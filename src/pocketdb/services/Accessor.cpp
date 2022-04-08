@@ -12,12 +12,7 @@ namespace PocketServices
         {
             std::vector<std::string> txs;
             for (const auto& tx : block.vtx)
-            {
-                if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
-                    continue;
-
                 txs.push_back(tx->GetHash().GetHex());
-            }
 
             if (txs.empty())
                 return true;
@@ -55,9 +50,6 @@ namespace PocketServices
     // Read transaction data for send via network
     bool Accessor::GetTransaction(const CTransaction& tx, string& data)
     {
-        if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
-            return true;
-
         PTransactionRef pocketTx;
         if (!GetTransaction(tx, pocketTx) || !pocketTx)
             return false;

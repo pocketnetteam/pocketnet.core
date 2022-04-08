@@ -9,7 +9,7 @@ static const unsigned int MAX_CACHE_SIZE_MB = 64;
 
 RPCCache::RPCCache() 
 {
-    m_blockHeight = chainActive.Height();
+    m_blockHeight = 0;
     m_maxCacheSize = gArgs.GetArg("-rpccachesize", MAX_CACHE_SIZE_MB) * 1024 * 1024;
 }
 
@@ -27,14 +27,14 @@ void RPCCache::Clear()
     LOCK(CacheMutex);
     m_cache.clear();
     m_cacheSize = 0;
-    m_blockHeight = chainActive.Height();
+    m_blockHeight = ChainActive().Height();
 
     LogPrint(BCLog::RPC, "RPC cache cleared.\n");
 }
 
 void RPCCache::Put(const std::string& path, const UniValue& content)
 {
-    if (chainActive.Height() > m_blockHeight)
+    if (ChainActive().Height() > m_blockHeight)
         this->Clear();
 
     int size = path.size() + content.write().size();
@@ -64,7 +64,7 @@ UniValue RPCCache::Get(const std::string& path)
         return UniValue();
     }
 
-    if (chainActive.Height() > m_blockHeight) {
+    if (ChainActive().Height() > m_blockHeight) {
         this->Clear();
         return UniValue();
     }

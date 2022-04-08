@@ -15,7 +15,7 @@ namespace PocketConsensus
         {
             CDataStream ss(hashProofOfStakeSource);
             ss << it.first;
-            arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
+            arith_uint256 hashSortRating = UintToArith256(Hash(ss)) / it.second;
             candidatesSorted.emplace_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
         }
 

@@ -7,6 +7,8 @@
 
 #include <QDialog>
 
+#include <support/allocators/secure.h>
+
 class WalletModel;
 
 namespace Ui {
@@ -27,10 +29,10 @@ public:
         Decrypt     /**< Ask passphrase and decrypt wallet */
     };
 
-    explicit AskPassphraseDialog(Mode mode, QWidget *parent);
+    explicit AskPassphraseDialog(Mode mode, QWidget *parent, SecureString* passphrase_out = nullptr);
     ~AskPassphraseDialog();
 
-    void accept();
+    void accept() override;
 
     void setModel(WalletModel *model);
 
@@ -39,6 +41,7 @@ private:
     Mode mode;
     WalletModel *model;
     bool fCapsLock;
+    SecureString* m_passphrase_out;
 
 private Q_SLOTS:
     void textChanged();
@@ -46,8 +49,8 @@ private Q_SLOTS:
     void toggleShowPassword(bool);
 
 protected:
-    bool event(QEvent *event);
-    bool eventFilter(QObject *object, QEvent *event);
+    bool event(QEvent *event) override;
+    bool eventFilter(QObject *object, QEvent *event) override;
 };
 
 #endif // POCKETCOIN_QT_ASKPASSPHRASEDIALOG_H

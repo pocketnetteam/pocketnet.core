@@ -6,7 +6,7 @@
 #include <qt/forms/ui_openuridialog.h>
 
 #include <qt/guiutil.h>
-#include <qt/walletmodel.h>
+#include <qt/sendcoinsrecipient.h>
 
 #include <QUrl>
 
@@ -15,7 +15,8 @@ OpenURIDialog::OpenURIDialog(QWidget *parent) :
     ui(new Ui::OpenURIDialog)
 {
     ui->setupUi(this);
-    ui->uriEdit->setPlaceholderText("pocketcoin:");
+
+    GUIUtil::handleCloseWindowShortcut(this);
 }
 
 OpenURIDialog::~OpenURIDialog()
@@ -38,13 +39,4 @@ void OpenURIDialog::accept()
     } else {
         ui->uriEdit->setValid(false);
     }
-}
-
-void OpenURIDialog::on_selectFileButton_clicked()
-{
-    QString filename = GUIUtil::getOpenFileName(this, tr("Select payment request file to open"), "", "", nullptr);
-    if(filename.isEmpty())
-        return;
-    QUrl fileUri = QUrl::fromLocalFile(filename);
-    ui->uriEdit->setText("pocketcoin:?r=" + QUrl::toPercentEncoding(fileUri.toString()));
 }

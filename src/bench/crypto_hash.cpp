@@ -2,19 +2,17 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-//#include <iostream>
 
 #include <bench/bench.h>
-#include <validation.h>
-#include <bloom.h>
-#include <hash.h>
-#include <random.h>
-#include <uint256.h>
-#include <utiltime.h>
 #include <crypto/ripemd160.h>
 #include <crypto/sha1.h>
 #include <crypto/sha256.h>
+#include <crypto/sha3.h>
 #include <crypto/sha512.h>
+#include <crypto/siphash.h>
+#include <hash.h>
+#include <random.h>
+#include <uint256.h>
 
 /* Number of bytes to hash per iteration */
 static const uint64_t BUFFER_SIZE = 1000*1000;
@@ -43,6 +41,15 @@ static void SHA256_test(benchmark::Bench& bench)
     std::vector<uint8_t> in(BUFFER_SIZE,0);
     bench.batch(in.size()).unit("byte").run([&] {
         CSHA256().Write(in.data(), in.size()).Finalize(hash);
+    });
+}
+
+static void SHA3_256_1M(benchmark::Bench& bench)
+{
+    uint8_t hash[SHA3_256::OUTPUT_SIZE];
+    std::vector<uint8_t> in(BUFFER_SIZE,0);
+    bench.batch(in.size()).unit("byte").run([&] {
+        SHA3_256().Write(in).Finalize(hash);
     });
 }
 
@@ -98,11 +105,11 @@ static void FastRandom_1bit(benchmark::Bench& bench)
     });
 }
 
-
 BENCHMARK(RIPEMD160);
 BENCHMARK(SHA1_test);
 BENCHMARK(SHA256_test);
 BENCHMARK(SHA512_test);
+BENCHMARK(SHA3_256_1M);
 BENCHMARK(SHA256_32b);
 BENCHMARK(SipHash_32b);
 BENCHMARK(SHA256D64_1024);

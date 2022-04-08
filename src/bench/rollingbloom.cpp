@@ -27,4 +27,13 @@ static void RollingBloom(benchmark::Bench& bench)
     });
 }
 
+static void RollingBloomReset(benchmark::Bench& bench)
+{
+    CRollingBloomFilter filter(120000, 0.000001);
+    bench.run([&] {
+        filter.reset();
+    });
+}
+
 BENCHMARK(RollingBloom);
+BENCHMARK(RollingBloomReset);

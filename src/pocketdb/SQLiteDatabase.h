@@ -49,6 +49,8 @@ namespace PocketDb
         void DropIndexes();
 
         void Cleanup() noexcept;
+        
+        /* void InitMigration(bool& cleanMempool); */
 
         void Close();
 

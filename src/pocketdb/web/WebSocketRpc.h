@@ -12,7 +12,7 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetMissedInfo(const JSONRPCRequest& request);
+    RPCHelpMan GetMissedInfo();
 } // namespace PocketWeb
 
 

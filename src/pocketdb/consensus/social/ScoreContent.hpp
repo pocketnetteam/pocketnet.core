@@ -73,7 +73,7 @@ namespace PocketConsensus
             if (auto[ok, txOpReturnPayload] = TransactionHelper::ExtractOpReturnPayload(tx); ok)
             {
                 string opReturnPayloadData = *lastContent->GetString1() + " " + to_string(*ptx->GetValue());
-                string opReturnPayloadHex = HexStr(opReturnPayloadData.begin(), opReturnPayloadData.end());
+                string opReturnPayloadHex = HexStr(opReturnPayloadData);
 
                 if (txOpReturnPayload != opReturnPayloadHex)
                     return {false, SocialConsensusResult_FailedOpReturn};

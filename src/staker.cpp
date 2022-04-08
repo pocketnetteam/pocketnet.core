@@ -1,6 +1,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <chrono>
 #include <staker.h>
 
 #include <miner.h>
@@ -10,8 +11,15 @@
 #include <wallet/wallet.h>
 #include <script/sign.h>
 #include <consensus/merkle.h>
+#include <rpc/blockchain.h>
+#include <node/context.h>
 
+#include "logging.h"
 #include "pocketdb/services/Serializer.h"
+#include "script/signingprovider.h"
+#include "shutdown.h"
+#include "util/threadnames.h"
+#include "util/time.h"
 
 Staker* Staker::getInstance()
 {
@@ -44,6 +52,7 @@ uint64_t Staker::getLastCoinStakeSearchInterval()
 
 void Staker::startWorkers(
     boost::thread_group& threadGroup,
+    const util::Ref& context,
     CChainParams const& chainparams,
     unsigned int minerSleep
 )
@@ -54,14 +63,14 @@ void Staker::startWorkers(
     this->minerSleep = minerSleep;
     threadGroup.create_thread(
         boost::bind(
-            &Staker::run, this, boost::cref(chainparams), boost::ref(threadGroup)
+            &Staker::run, this, boost::cref(context), boost::cref(chainparams), boost::ref(threadGroup)
         )
     );
 }
 
-void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGroup)
+void Staker::run(const util::Ref& context, CChainParams const& chainparams, boost::thread_group& threadGroup)
 {
-    while (true)
+    while (!ShutdownRequested())
     {
         auto wallets = GetWallets();
 
@@ -76,7 +85,7 @@ void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGro
                 // Create a worker thread for the wallet.
                 threadGroup.create_thread(
                     boost::bind(
-                        &Staker::worker, this, boost::cref(chainparams), boost::cref(name)
+                        &Staker::worker, this, boost::cref(context), boost::cref(chainparams), boost::cref(name)
                     )
                 );
                 walletWorkers.insert(name);
@@ -95,30 +104,26 @@ void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGro
             }
         }
 
-        MilliSleep(minerSleep * 10);
+        UninterruptibleSleep(std::chrono::milliseconds{minerSleep * 10});
     }
 }
 
-void Staker::worker(CChainParams const& chainparams, std::string const& walletName)
+void Staker::worker(const util::Ref& context, CChainParams const& chainparams, std::string const& walletName)
 {
     LogPrintf("Staker thread started for %s\n", walletName);
 
-    RenameThread("coin-staker");
+    util::ThreadRename("coin-staker");
 
+    const auto& node = EnsureNodeContext(context);
     bool running = true;
     int nLastCoinStakeSearchInterval = 0;
-    auto coinbaseScript = std::make_shared<CReserveScript>();
 
     auto wallet = GetWallet(walletName);
     if (!wallet) { return; }
-    wallet->GetScriptForMining(coinbaseScript);
 
     try
     {
-        if (!coinbaseScript || coinbaseScript->reserveScript.empty())
-            throw std::runtime_error("No coinbase script available (staking requires a wallet)");
-
-        while (running)
+        while (running && !ShutdownRequested())
         {
             auto wallet = GetWallet(walletName);
 
@@ -131,7 +136,7 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
             while (wallet->IsLocked())
             {
                 nLastCoinStakeSearchInterval = 0;
-                MilliSleep(1000);
+                UninterruptibleSleep(std::chrono::milliseconds{1000});
             }
 
             if (chainparams.GetConsensus().fPosRequiresPeers)
@@ -140,30 +145,33 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
                 {
                     bool fvNodesEmpty;
                     {
-                        fvNodesEmpty = !g_connman || g_connman->GetNodeCount(
+                        fvNodesEmpty = !node.connman || node.connman->GetNodeCount(
                             CConnman::CONNECTIONS_ALL
                         ) == 0;
                     }
-                    if (!fvNodesEmpty && !IsInitialBlockDownload())
+                    if (!fvNodesEmpty && !::ChainstateActive().IsInitialBlockDownload())
                         break;
-                    MilliSleep(1000);
+                    UninterruptibleSleep(std::chrono::milliseconds{1000});
                 } while (true);
             }
 
             while (!isStaking)
             {
-                MilliSleep(1000);
+                UninterruptibleSleep(std::chrono::milliseconds{1000});
             }
 
-            while (chainparams.GetConsensus().nPosFirstBlock > chainActive.Tip()->nHeight)
+            while (chainparams.GetConsensus().nPosFirstBlock > ::ChainActive().Tip()->nHeight)
             {
-                MilliSleep(30000);
+                UninterruptibleSleep(std::chrono::milliseconds{30000});
             }
 
             uint64_t nFees = 0;
-            auto assembler = BlockAssembler(chainparams);
+            // TODO (losty-fur): possible null mempool
+            auto assembler = BlockAssembler(*node.mempool, chainparams);
+
+            // TODO (losty): passing here nullopt because coinbase script is only usefull for mining blocks
             auto blocktemplate = assembler.CreateNewBlock(
-                coinbaseScript->reserveScript, true, true, &nFees
+                nullopt, true, &nFees
             );
 
             auto block = std::make_shared<CBlock>(blocktemplate->block);
@@ -173,13 +181,13 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
                 // Extend pocketBlock with coinStake transaction
                 if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
                     blocktemplate->pocketBlock->emplace_back(ptx);
-
-                CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams);
-                MilliSleep(500);
+                // TODO (losty-fur): possible null chainman
+                CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
             }
             else
             {
-                MilliSleep(minerSleep);
+                UninterruptibleSleep(std::chrono::milliseconds{minerSleep});
             }
         }
     }
@@ -219,19 +227,22 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
     CKey key;
     CMutableTransaction txCoinStake;
     CTransaction txNew;
-    int nBestHeight = chainActive.Tip()->nHeight;
+    int nBestHeight = ::ChainActive().Tip()->nHeight;
 
     txCoinStake.nTime = GetAdjustedTime();
     txCoinStake.nTime &= ~STAKE_TIMESTAMP_MASK;
 
     int64_t nSearchTime = txCoinStake.nTime;
 
+    auto legacyKeyStore = wallet->GetOrCreateLegacyScriptPubKeyMan();
+    assert(legacyKeyStore);
+
     if (nSearchTime > nLastCoinStakeSearchTime)
     {
         int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nLastCoinStakeSearchTime;
-        if (wallet->CreateCoinStake(*wallet.get(), block->nBits, nSearchInterval, nFees, txCoinStake, key))
+        if (wallet->CreateCoinStake(*legacyKeyStore, block->nBits, nSearchInterval, nFees, txCoinStake, key))
         {
-            if (txCoinStake.nTime >= chainActive.Tip()->GetPastTimeLimit() + 1)
+            if (txCoinStake.nTime >= ::ChainActive().Tip()->GetPastTimeLimit() + 1)
             {
                 // make sure coinstake would meet timestamp protocol
                 // as it would be the same as the block timestamp
@@ -268,7 +279,7 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
                     auto prevTx = wallet->GetWalletTx(prevHash);
                     const CScript& scriptPubKey = prevTx->tx->vout[n].scriptPubKey;
                     SignatureData sigdata;
-                    signSuccess = ProduceSignature(*wallet.get(),
+                    signSuccess = ProduceSignature(*legacyKeyStore,
                         MutableTransactionSignatureCreator(&txNewConst, i, prevTx->tx->vout[n].nValue, SIGHASH_ALL),
                         scriptPubKey, sigdata);
 

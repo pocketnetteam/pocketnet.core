@@ -3,16 +3,28 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/WebSocketRpc.h"
+#include "rpc/util.h"
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetMissedInfo(const JSONRPCRequest& request)
+    RPCHelpMan GetMissedInfo()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getmissedinfo \"address\" block_number\n"
-                "\nGet missed info.\n");
-
+        return RPCHelpMan{
+                "getmissedinfo",
+                "\nGet missed info.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"block_number", RPCArg::Type::NUM, RPCArg::Optional::NO, ""}
+                },
+                {
+                    // TODO (team)
+                },
+                RPCExamples{
+                    // TODO (team)
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VNUM});
 
         // Get address from arguments
@@ -25,8 +37,8 @@ namespace PocketWeb::PocketWebRpc
 
         // Get initial block number
         int blockNumber = request.params[1].get_int();
-        if (chainActive.Height() - blockNumber > 10000)
-            blockNumber = chainActive.Height() - 10000;
+        if (ChainActive().Height() - blockNumber > 10000)
+            blockNumber = ChainActive().Height() - 10000;
 
         // Get count of result records
         int cntResult = 30;
@@ -41,7 +53,7 @@ namespace PocketWeb::PocketWebRpc
         // Language statistic
         auto[contentCount, contentLangCount] = request.DbConnection()->WebRpcRepoInst->GetContentLanguages(blockNumber);
         UniValue fullStat(UniValue::VOBJ);
-        fullStat.pushKV("block", chainActive.Height());
+        fullStat.pushKV("block", ::ChainActive().Height());
         fullStat.pushKV("cntposts", contentCount);
         fullStat.pushKV("contentsLang", contentLangCount);
         result.push_back(fullStat);
@@ -136,5 +148,7 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         return result;
+    },
+        };
     }
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>ModalOverlay</class>
- <widget class="ModalOverlay" name="ModalOverlay">
+ <widget class="QWidget" name="ModalOverlay">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -350,6 +350,9 @@ QLabel { color: rgb(40,40,40);  }</string>
             <widget class="QPushButton" name="closeButton">
              <property name="text">
               <string>Hide</string>
+             </property>
+             <property name="shortcut">
+              <string>Esc</string>
              </property>
              <property name="focusPolicy">
               <enum>Qt::StrongFocus</enum>

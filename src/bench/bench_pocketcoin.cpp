@@ -5,11 +5,8 @@
 #include <bench/bench.h>
 
 #include <crypto/sha256.h>
-#include <key.h>
-#include <random.h>
-#include <util.h>
-#include <utilstrencodings.h>
-#include <validation.h>
+#include <util/strencodings.h>
+#include <util/system.h>
 
 
 #include <chrono>
@@ -27,25 +24,17 @@ static const char* DEFAULT_BENCH_FILTER = ".*";
 static constexpr int64_t DEFAULT_MIN_TIME_MS{10};
 
 const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
-static std::unique_ptr<ECCVerifyHandle> globalVerifyHandle;
-
-// TAWMAZ:
-static void SetupHelpOptions(ArgsManager& args)
-{
-    args.AddArg("-?", "Print this help message and exit", false, OptionsCategory::OPTIONS);
-    args.AddHiddenArgs({"-h", "-help"});
-}
 
 static void SetupBenchArgs(ArgsManager& argsman)
 {
     SetupHelpOptions(argsman);
 
-    argsman.AddArg("-asymptote=<n1,n2,n3,...>", "Test asymptotic growth of the runtime of an algorithm, if supported by the benchmark", false, OptionsCategory::OPTIONS);
-    argsman.AddArg("-filter=<regex>", strprintf("Regular expression filter to select benchmark by name (default: %s)", DEFAULT_BENCH_FILTER), false, OptionsCategory::OPTIONS);
-    argsman.AddArg("-list", "List benchmarks without executing them", false, OptionsCategory::OPTIONS);
-    argsman.AddArg("-min_time=<milliseconds>", strprintf("Minimum runtime per benchmark, in milliseconds (default: %d)", DEFAULT_MIN_TIME_MS), false, OptionsCategory::OPTIONS);
-    argsman.AddArg("-output_csv=<output.csv>", "Generate CSV file with the most important benchmark results", false, OptionsCategory::OPTIONS);
-    argsman.AddArg("-output_json=<output.json>", "Generate JSON file with all benchmark results", false, OptionsCategory::OPTIONS);
+    argsman.AddArg("-list", "List benchmarks without executing them", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-filter=<regex>", strprintf("Regular expression filter to select benchmark by name (default: %s)", DEFAULT_BENCH_FILTER), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-asymptote=n1,n2,n3,...", strprintf("Test asymptotic growth of the runtime of an algorithm, if supported by the benchmark"), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-min_time=<milliseconds>", strprintf("Minimum runtime per benchmark, in milliseconds (default: %d)", DEFAULT_MIN_TIME_MS), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-output_csv=<output.csv>", "Generate CSV file with the most important benchmark results.", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-output_json=<output.json>", "Generate JSON file with all benchmark results.", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 }
 
 // parses a comma separated list like "10,20,30,50"
@@ -67,8 +56,8 @@ int main(int argc, char** argv)
     SetupBenchArgs(argsman);
     SHA256AutoDetect();
     std::string error;
-    if (!gArgs.ParseParameters(argc, argv, error)) {
-        fprintf(stderr, "Error parsing command line arguments: %s\n", error.c_str());
+    if (!argsman.ParseParameters(argc, argv, error)) {
+        tfm::format(std::cerr, "Error parsing command line arguments: %s\n", error);
         return EXIT_FAILURE;
     }
 
@@ -121,24 +110,6 @@ int main(int argc, char** argv)
 
         return EXIT_SUCCESS;
     }
-
-    SHA256AutoDetect();
-    RandomInit();
-    ECC_Start();
-    globalVerifyHandle.reset(new ECCVerifyHandle());
-    //SetupEnvironment();
-    //SetupNetworking();
-    //InitSignatureCache();
-    //InitScriptExecutionCache();
-
-    SelectParams(CBaseChainParams::REGTEST);
-
-
-    PocketDb::InitSQLite(GetDataDir() / "pocketdb");
-
-    // Go up two directories to access the checkpoints folder, assume we are running in /src/test
-    fs::path checkpointsPath = fs::system_complete("../..");
-    PocketDb::InitSQLiteCheckpoints(checkpointsPath / "checkpoints");
 
     benchmark::Args args;
     args.asymptote = parseAsymptote(argsman.GetArg("-asymptote", ""));

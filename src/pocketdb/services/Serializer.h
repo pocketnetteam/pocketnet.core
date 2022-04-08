@@ -29,7 +29,7 @@
 #include "streams.h"
 #include "logging.h"
 
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 namespace PocketServices
 {

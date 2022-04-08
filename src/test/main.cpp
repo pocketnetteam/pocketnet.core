@@ -9,7 +9,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-//#include <test/util/setup_common.h>
+#include <test/util/setup_common.h>
 
 #include <iostream>
 

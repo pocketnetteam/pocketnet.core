@@ -4,20 +4,12 @@
 
 #include <wallet/test/wallet_test_fixture.h>
 
-#include <rpc/server.h>
-#include <wallet/db.h>
-
-WalletTestingSetup::WalletTestingSetup(const std::string& chainName):
-    TestingSetup(chainName), m_wallet("mock", WalletDatabase::CreateMock())
+WalletTestingSetup::WalletTestingSetup(const std::string& chainName)
+    : TestingSetup(chainName),
+      m_wallet(m_chain.get(), "", CreateMockWalletDatabase())
 {
     bool fFirstRun;
     m_wallet.LoadWallet(fFirstRun);
-    RegisterValidationInterface(&m_wallet);
-
-    //RegisterWalletRPCCommands(tableRPC);
-}
-
-WalletTestingSetup::~WalletTestingSetup()
-{
-    UnregisterValidationInterface(&m_wallet);
+    m_chain_notifications_handler = m_chain->handleNotifications({ &m_wallet, [](CWallet*) {} });
+    m_wallet_client->registerRpcs();
 }

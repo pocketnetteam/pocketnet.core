@@ -5,7 +5,7 @@
 #ifndef POCKETCONSENSUS_COMMENT_HPP
 #define POCKETCONSENSUS_COMMENT_HPP
 
-#include "utils/html.h"
+#include "util/html.h"
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/Comment.h"

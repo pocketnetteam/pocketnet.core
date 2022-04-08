@@ -11,7 +11,7 @@ namespace PocketWeb::PocketWebRpc
 {
     using namespace std;
 
-    UniValue GetTags(const JSONRPCRequest& request);
+    RPCHelpMan GetTags();
 }
 
 #endif //SRC_POCKETTAGSRPC_H

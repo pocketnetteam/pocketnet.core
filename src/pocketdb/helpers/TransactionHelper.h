@@ -11,7 +11,7 @@
 #include <numeric>
 #include "script/standard.h"
 #include "primitives/transaction.h"
-#include "utilstrencodings.h"
+#include "util/strencodings.h"
 
 #include "pocketdb/models/base/ReturnDtoModels.h"
 #include "pocketdb/models/base/PocketTypes.h"
@@ -22,6 +22,7 @@
 #include "pocketdb/models/dto/Coinbase.h"
 #include "pocketdb/models/dto/Coinstake.h"
 #include "pocketdb/models/dto/Default.h"
+#include "pocketdb/models/dto/Empty.h"
 #include "pocketdb/models/dto/Post.h"
 #include "pocketdb/models/dto/Video.h"
 #include "pocketdb/models/dto/Article.h"
@@ -56,7 +57,7 @@ namespace PocketHelpers
     class TransactionHelper
     {
     public:
-        static txnouttype ScriptType(const CScript& scriptPubKey);
+        static TxoutType ScriptType(const CScript& scriptPubKey);
         static std::string ExtractDestination(const CScript& scriptPubKey);
         static tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx);
         static TxType ConvertOpReturnToType(const string& op);
@@ -66,9 +67,6 @@ namespace PocketHelpers
         static string ConvertToReindexerTable(const Transaction& transaction);
         static string ExtractOpReturnHash(const CTransactionRef& tx);
         static tuple<bool, string> ExtractOpReturnPayload(const CTransactionRef& tx);
-        static bool IsPocketSupportedTransaction(const CTransactionRef& tx, TxType& txType);
-        static bool IsPocketSupportedTransaction(const CTransactionRef& tx);
-        static bool IsPocketSupportedTransaction(const CTransaction& tx);
         static bool IsPocketTransaction(TxType& txType);
         static bool IsPocketTransaction(const CTransactionRef& tx, TxType& txType);
         static bool IsPocketTransaction(const CTransactionRef& tx);

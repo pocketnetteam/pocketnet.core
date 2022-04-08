@@ -7,8 +7,7 @@
 
 #include <hash.h>
 #include <tinyformat.h>
-#include <utilstrencodings.h>
-#include <crypto/common.h>
+// TODO include utils/strencodings.h
 
 uint256 CBlockHeader::GetHash() const
 {
@@ -25,7 +24,7 @@ std::string CBlock::ToString() const
         hashMerkleRoot.ToString(),
         nTime, nBits, nNonce,
         vtx.size(),
-        HexStr(vchBlockSig.begin(), vchBlockSig.end()));
+        HexStr(vchBlockSig));
     for (const auto& tx : vtx) {
         s << "  " << tx->ToString() << "\n";
     }

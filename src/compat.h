@@ -10,24 +10,7 @@
 #include <config/pocketcoin-config.h>
 #endif
 
-#include <type_traits>
-
-// GCC 4.8 is missing some C++11 type_traits,
-// https://www.gnu.org/software/gcc/gcc-5/changes.html
-#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ < 5
-#define IS_TRIVIALLY_CONSTRUCTIBLE std::has_trivial_default_constructor
-#else
-#define IS_TRIVIALLY_CONSTRUCTIBLE std::is_trivially_default_constructible
-#endif
-
 #ifdef WIN32
-#ifdef _WIN32_WINNT
-#undef _WIN32_WINNT
-#endif
-#define _WIN32_WINNT 0x0501
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN 1
-#endif
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif

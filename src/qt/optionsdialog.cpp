@@ -10,6 +10,7 @@
 #include <qt/forms/ui_optionsdialog.h>
 
 #include <qt/pocketcoinunits.h>
+#include <qt/guiconstants.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 
@@ -23,23 +24,20 @@
 #include <QIntValidator>
 #include <QLocale>
 #include <QMessageBox>
+#include <QSystemTrayIcon>
 #include <QTimer>
 
 OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     QDialog(parent),
     ui(new Ui::OptionsDialog),
-    model(0),
-    mapper(0)
+    model(nullptr),
+    mapper(nullptr)
 {
     ui->setupUi(this);
 
     /* Main elements init */
     ui->databaseCache->setMinimum(nMinDbCache);
     ui->databaseCache->setMaximum(nMaxDbCache);
-    static const uint64_t GiB = 1024 * 1024 * 1024;
-    static const uint64_t nMinDiskSpace = MIN_DISK_SPACE_FOR_BLOCK_FILES / GiB +
-                          (MIN_DISK_SPACE_FOR_BLOCK_FILES % GiB) ? 1 : 0;
-    // ui->pruneSize->setMinimum(nMinDiskSpace);
     ui->threadsScriptVerif->setMinimum(-GetNumCores());
     ui->threadsScriptVerif->setMaximum(MAX_SCRIPTCHECK_THREADS);
     // ui->pruneWarning->setVisible(false);
@@ -73,22 +71,28 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
 #ifdef Q_OS_MAC
     /* remove Window tab on Mac */
     ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabWindow));
+    /* hide launch at startup option on macOS */
+    ui->pocketcoinAtStartup->setVisible(false);
+    ui->verticalLayout_Main->removeWidget(ui->pocketcoinAtStartup);
+    ui->verticalLayout_Main->removeItem(ui->horizontalSpacer_0_Main);
 #endif
 
-    /* remove Wallet tab in case of -disablewallet */
+    /* remove Wallet tab and 3rd party-URL textbox in case of -disablewallet */
     if (!enableWallet) {
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabWallet));
+        ui->thirdPartyTxUrlsLabel->setVisible(false);
+        ui->thirdPartyTxUrls->setVisible(false);
     }
 
     /* Display elements init */
     QDir translations(":translations");
 
-    ui->pocketcoinAtStartup->setToolTip(ui->pocketcoinAtStartup->toolTip().arg(tr(PACKAGE_NAME)));
-    ui->pocketcoinAtStartup->setText(ui->pocketcoinAtStartup->text().arg(tr(PACKAGE_NAME)));
+    ui->pocketcoinAtStartup->setToolTip(ui->pocketcoinAtStartup->toolTip().arg(PACKAGE_NAME));
+    ui->pocketcoinAtStartup->setText(ui->pocketcoinAtStartup->text().arg(PACKAGE_NAME));
 
-    ui->openPocketcoinConfButton->setToolTip(ui->openPocketcoinConfButton->toolTip().arg(tr(PACKAGE_NAME)));
+    ui->openPocketcoinConfButton->setToolTip(ui->openPocketcoinConfButton->toolTip().arg(PACKAGE_NAME));
 
-    ui->lang->setToolTip(ui->lang->toolTip().arg(tr(PACKAGE_NAME)));
+    ui->lang->setToolTip(ui->lang->toolTip().arg(PACKAGE_NAME));
     ui->lang->addItem(QString("(") + tr("default") + QString(")"), QVariant(""));
     for (const QString &langStr : translations.entryList())
     {
@@ -106,8 +110,6 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
             ui->lang->addItem(locale.nativeLanguageName() + QString(" (") + langStr + QString(")"), QVariant(langStr));
         }
     }
-    ui->thirdPartyTxUrls->setPlaceholderText("https://example.com/tx/%s");
-
     ui->unit->setModel(new PocketcoinUnits(this));
 
     /* Widget-to-option mapper */
@@ -126,6 +128,15 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     connect(ui->proxyIpTor, &QValidatedLineEdit::validationDidChange, this, &OptionsDialog::updateProxyValidationState);
     connect(ui->proxyPort, &QLineEdit::textChanged, this, &OptionsDialog::updateProxyValidationState);
     connect(ui->proxyPortTor, &QLineEdit::textChanged, this, &OptionsDialog::updateProxyValidationState);
+
+    if (!QSystemTrayIcon::isSystemTrayAvailable()) {
+        ui->hideTrayIcon->setChecked(true);
+        ui->hideTrayIcon->setEnabled(false);
+        ui->minimizeToTray->setChecked(false);
+        ui->minimizeToTray->setEnabled(false);
+    }
+
+    GUIUtil::handleCloseWindowShortcut(this);
 }
 
 OptionsDialog::~OptionsDialog()
@@ -142,6 +153,11 @@ void OptionsDialog::setModel(OptionsModel *_model)
         /* check if client restart is needed and show persistent message */
         if (_model->isRestartRequired())
             showRestartWarning(true);
+
+        // Prune values are in GB to be consistent with intro.cpp
+        static constexpr uint64_t nMinDiskSpace = (MIN_DISK_SPACE_FOR_BLOCK_FILES / GB_BYTES) + (MIN_DISK_SPACE_FOR_BLOCK_FILES % GB_BYTES) ? 1 : 0;
+        // TODO (losty-critical): ui->prineSize is commented out by pocketnet. Do we need it?
+        // ui->pruneSize->setRange(nMinDiskSpace, std::numeric_limits<int>::max());
 
         QString strLabel = _model->getOverriddenByCommandLine();
         if (strLabel.isEmpty())
@@ -211,8 +227,10 @@ void OptionsDialog::setMapper()
 
     /* Window */
 #ifndef Q_OS_MAC
-    mapper->addMapping(ui->hideTrayIcon, OptionsModel::HideTrayIcon);
-    mapper->addMapping(ui->minimizeToTray, OptionsModel::MinimizeToTray);
+    if (QSystemTrayIcon::isSystemTrayAvailable()) {
+        mapper->addMapping(ui->hideTrayIcon, OptionsModel::HideTrayIcon);
+        mapper->addMapping(ui->minimizeToTray, OptionsModel::MinimizeToTray);
+    }
     mapper->addMapping(ui->minimizeOnClose, OptionsModel::MinimizeOnClose);
     mapper->addMapping(ui->disableNotifications, OptionsModel::DisableNotifications);
 #endif
@@ -361,7 +379,7 @@ QValidator::State ProxyAddressValidator::validate(QString &input, int &pos) cons
 {
     Q_UNUSED(pos);
     // Validate the proxy
-    CService serv(LookupNumeric(input.toStdString().c_str(), DEFAULT_GUI_PROXY_PORT));
+    CService serv(LookupNumeric(input.toStdString(), DEFAULT_GUI_PROXY_PORT));
     proxyType addrProxy = proxyType(serv, true);
     if (addrProxy.IsValid())
         return QValidator::Acceptable;

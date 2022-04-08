@@ -113,35 +113,7 @@ Pocket sqlite database сохраняет все транзакции в раз�
 
 > Здесь и далее `main.Transactions.TxOut` - `<Db>.<Table>.<Field>` означает SQLite базу данных Pocket Social Data - `pocketdb/main.sqlite3`
 
-Все типы транзакций, хранящиеся в `main.Transactions` определены как Enum и имеют зафиксированное целое значение - [src/pocketdb/models/base/Base.hpp]()
-```c++
-enum TxType
-{
-    NOT_SUPPORTED = 0,
-
-    USER_ACCOUNT = 100,
-    VIDEO_SERVER_ACCOUNT = 101,
-    MESSAGE_SERVER_ACCOUNT = 102,
-
-    POST_CONTENT = 200,
-    VIDEO_CONTENT = 201,
-    TRANSLATE_CONTENT = 202,
-    SERVERPING_CONTENT = 203,
-    COMMENT_CONTENT = 204,
-
-    SCORE_POST_ACTION = 300,
-    SCORE_COMMENT_ACTION = 301,
-
-    SUBSCRIBE_ACTION = 302,
-    SUBSCRIBE_PRIVATE_ACTION = 303,
-    SUBSCRIBE_CANCEL_ACTION = 304,
-
-    BLOCKING_ACTION = 305,
-    BLOCKING_CANCEL_ACTION = 306,
-
-    COMPLAIN_ACTION = 307,
-};
-```
+Все типы транзакций, хранящиеся в `main.Transactions` определены как Enum и имеют зафиксированное целое значение - [src/pocketdb/models/base/PocketTypes.h]()
 
 Сформированный блок (1) подключается к цепи (2).
 

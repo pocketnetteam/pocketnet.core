@@ -1,7 +1,7 @@
 #ifndef POCKETCOIN_EVENTLOOP_H
 #define POCKETCOIN_EVENTLOOP_H
 
-#include <util.h>
+#include <util/system.h>
 #include <logging.h>
 
 #include <functional>
@@ -172,7 +172,7 @@ public:
         m_fRunning = true;
         m_thread = std::thread([name, &fRunning = m_fRunning, queue = m_queue, queueProcessor = m_queueProcessor](){
             if (name) {
-                RenameThread(name->c_str());
+                util::ThreadRename(name->c_str());
             }
             while (fRunning) {
                 try {

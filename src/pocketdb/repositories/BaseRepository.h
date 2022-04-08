@@ -6,7 +6,7 @@
 #define POCKETDB_BASEREPOSITORY_H
 
 #include <utility>
-#include <util.h>
+#include <util/system.h>
 #include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/helpers/TransactionHelper.h"

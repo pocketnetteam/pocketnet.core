@@ -5,12 +5,10 @@
 #include <bench/bench.h>
 
 #include <support/lockedpool.h>
-#include <validation.h>
-//#include <iostream>
-//#include <vector>
+
+#include <vector>
 
 #define ASIZE 2048
-#define BITER 5000
 #define MSIZE 2048
 
 static void BenchLockedPool(benchmark::Bench& bench)
@@ -24,19 +22,17 @@ static void BenchLockedPool(benchmark::Bench& bench)
         addr.push_back(nullptr);
     uint32_t s = 0x12345678;
     bench.run([&] {
-        for (int x=0; x<BITER; ++x) {
-            int idx = s & (addr.size()-1);
-            if (s & 0x80000000) {
-                b.free(addr[idx]);
-                addr[idx] = nullptr;
-            } else if(!addr[idx]) {
-                addr[idx] = b.alloc((s >> 16) & (MSIZE-1));
-            }
-            bool lsb = s & 1;
-            s >>= 1;
-            if (lsb)
-                s ^= 0xf00f00f0; // LFSR period 0xf7ffffe0
+        int idx = s & (addr.size() - 1);
+        if (s & 0x80000000) {
+            b.free(addr[idx]);
+            addr[idx] = nullptr;
+        } else if (!addr[idx]) {
+            addr[idx] = b.alloc((s >> 16) & (MSIZE - 1));
         }
+        bool lsb = s & 1;
+        s >>= 1;
+        if (lsb)
+            s ^= 0xf00f00f0; // LFSR period 0xf7ffffe0
     });
     for (void *ptr: addr)
         b.free(ptr);

@@ -5,7 +5,7 @@
 #ifndef SRC_RATINGSREPOSITORY_H
 #define SRC_RATINGSREPOSITORY_H
 
-#include <util.h>
+#include <util/system.h>
 
 #include "pocketdb/repositories/BaseRepository.h"
 #include "pocketdb/models/base/Rating.h"

@@ -5,41 +5,66 @@
 
 #include <rpc/server.h>
 
-#include <fs.h>
-#include <key_io.h>
-#include <random.h>
+#include <rpc/util.h>
 #include <shutdown.h>
 #include <sync.h>
-#include <ui_interface.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
+#include <util/system.h>
 #include <init.h>
 
-#include <boost/bind.hpp>
-#include <boost/signals2/signal.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/signals2/signal.hpp>
 
+#include <cassert>
 #include <memory> // for unique_ptr
+#include <mutex>
 #include <unordered_map>
 
-#include <chrono>
-using namespace std::chrono;
-
-static CCriticalSection cs_rpcWarmup;
-static bool fRPCRunning = false;
-static bool fRPCInWarmup GUARDED_BY(cs_rpcWarmup) = true;
-static std::string rpcWarmupStatus GUARDED_BY(cs_rpcWarmup) = "RPC server started";
+static Mutex g_rpc_warmup_mutex;
+static std::atomic<bool> g_rpc_running{false};
+static bool fRPCInWarmup GUARDED_BY(g_rpc_warmup_mutex) = true;
+static std::string rpcWarmupStatus GUARDED_BY(g_rpc_warmup_mutex) = "RPC server started";
 /* Timer-creating functions */
 static RPCTimerInterface* timerInterface = nullptr;
 /* Map of name to timer. */
-static std::map<std::string, std::unique_ptr<RPCTimerBase> > deadlineTimers;
+static Mutex g_deadline_timers_mutex;
+static std::map<std::string, std::unique_ptr<RPCTimerBase> > deadlineTimers GUARDED_BY(g_deadline_timers_mutex);
+static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& request, UniValue& result, bool last_handler, RPCCache* cache);
+
+struct RPCCommandExecutionInfo
+{
+    std::string method;
+    int64_t start;
+};
+
+struct RPCServerInfo
+{
+    Mutex mutex;
+    std::list<RPCCommandExecutionInfo> active_commands GUARDED_BY(mutex);
+};
+
+static RPCServerInfo g_rpc_server_info;
+
+struct RPCCommandExecution
+{
+    std::list<RPCCommandExecutionInfo>::iterator it;
+    explicit RPCCommandExecution(const std::string& method)
+    {
+        LOCK(g_rpc_server_info.mutex);
+        it = g_rpc_server_info.active_commands.insert(g_rpc_server_info.active_commands.end(), {method, GetTimeMicros()});
+    }
+    ~RPCCommandExecution()
+    {
+        LOCK(g_rpc_server_info.mutex);
+        g_rpc_server_info.active_commands.erase(it);
+    }
+};
 
 static struct CRPCSignals
 {
     boost::signals2::signal<void ()> Started;
     boost::signals2::signal<void ()> Stopped;
-    boost::signals2::signal<void (const CRPCCommand&)> PreCommand;
 } g_rpcSignals;
 
 void RPCServer::OnStarted(std::function<void ()> slot)
@@ -52,116 +77,15 @@ void RPCServer::OnStopped(std::function<void ()> slot)
     g_rpcSignals.Stopped.connect(slot);
 }
 
-void RPCTypeCheck(const UniValue& params,
-                  const std::list<UniValueType>& typesExpected,
-                  bool fAllowNull)
-{
-    unsigned int i = 0;
-    for (const UniValueType& t : typesExpected) {
-        if (params.size() <= i)
-            break;
-
-        const UniValue& v = params[i];
-        if (!(fAllowNull && v.isNull())) {
-            RPCTypeCheckArgument(v, t);
-        }
-        i++;
-    }
-}
-
-void RPCTypeCheckArgument(const UniValue& value, const UniValueType& typeExpected)
-{
-    if (!typeExpected.typeAny && value.type() != typeExpected.type) {
-        throw JSONRPCError(RPC_TYPE_ERROR, strprintf("Expected type %s, got %s", uvTypeName(typeExpected.type), uvTypeName(value.type())));
-    }
-}
-
-void RPCTypeCheckObj(const UniValue& o,
-    const std::map<std::string, UniValueType>& typesExpected,
-    bool fAllowNull,
-    bool fStrict)
-{
-    for (const auto& t : typesExpected) {
-        const UniValue& v = find_value(o, t.first);
-        if (!fAllowNull && v.isNull())
-            throw JSONRPCError(RPC_TYPE_ERROR, strprintf("Missing %s", t.first));
-
-        if (!(t.second.typeAny || v.type() == t.second.type || (fAllowNull && v.isNull()))) {
-            std::string err = strprintf("Expected type %s for %s, got %s",
-                uvTypeName(t.second.type), t.first, uvTypeName(v.type()));
-            throw JSONRPCError(RPC_TYPE_ERROR, err);
-        }
-    }
-
-    if (fStrict)
-    {
-        for (const std::string& k : o.getKeys())
-        {
-            if (typesExpected.count(k) == 0)
-            {
-                std::string err = strprintf("Unexpected key %s", k);
-                throw JSONRPCError(RPC_TYPE_ERROR, err);
-            }
-        }
-    }
-}
-
-CAmount AmountFromValue(const UniValue& value)
-{
-    if (!value.isNum() && !value.isStr())
-        throw JSONRPCError(RPC_TYPE_ERROR, "Amount is not a number or string");
-    CAmount amount;
-    if (!ParseFixedPoint(value.getValStr(), 8, &amount))
-        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount");
-    if (!MoneyRange(amount))
-        throw JSONRPCError(RPC_TYPE_ERROR, "Amount out of range");
-    return amount;
-}
-
-uint256 ParseHashV(const UniValue& v, std::string strName)
-{
-    std::string strHex;
-    if (v.isStr())
-        strHex = v.get_str();
-    if (!IsHex(strHex)) // Note: IsHex("") is false
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strName+" must be hexadecimal string (not '"+strHex+"')");
-    if (64 != strHex.length())
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must be of length %d (not %d)", strName, 64, strHex.length()));
-    uint256 result;
-    result.SetHex(strHex);
-    return result;
-}
-uint256 ParseHashO(const UniValue& o, std::string strKey)
-{
-    return ParseHashV(find_value(o, strKey), strKey);
-}
-std::vector<unsigned char> ParseHexV(const UniValue& v, std::string strName)
-{
-    std::string strHex;
-    if (v.isStr())
-        strHex = v.get_str();
-    if (!IsHex(strHex))
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strName+" must be hexadecimal string (not '"+strHex+"')");
-    return ParseHex(strHex);
-}
-std::vector<unsigned char> ParseHexO(const UniValue& o, std::string strKey)
-{
-    return ParseHexV(find_value(o, strKey), strKey);
-}
-
-/**
- * Note: This interface may still be subject to change.
- */
-
 std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest& helpreq) const
 {
     std::string strRet;
     std::string category;
-    std::set<rpcfn_type> setDone;
+    std::set<intptr_t> setDone;
     std::vector<std::pair<std::string, const CRPCCommand*> > vCommands;
 
     for (const auto& entry : mapCommands)
-        vCommands.emplace_back(entry.second->category + entry.first, entry.second);
+        vCommands.emplace_back(entry.second.front()->category + entry.first, entry.second.front());
     sort(vCommands.begin(), vCommands.end());
 
     JSONRPCRequest jreq(helpreq);
@@ -179,9 +103,9 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
 
         try
         {
-            rpcfn_type pfn = pcmd->actor;
-            if (setDone.insert(pfn).second)
-                (*pfn)(jreq);
+            UniValue unused_result;
+            if (setDone.insert(pcmd->unique_id).second)
+                pcmd->actor(jreq, unused_result, true /* last_handler */);
         }
         catch (const std::exception& e)
         {
@@ -230,112 +154,86 @@ UniValue CRPCTable::help(const JSONRPCRequest& jsonRequest) const
     return help(strCommand, jsonRequest);
 }
 
-const CRPCCommand *CRPCTable::operator[](const std::string &name) const
+void CRPCTable::appendCommand(const std::string& name, const CRPCCommand* pcmd)
 {
-    auto it = mapCommands.find(name);
-    if (it == mapCommands.end())
-        return nullptr;
-    return (*it).second;
+    CHECK_NONFATAL(!IsRPCRunning()); // Only add commands before rpc is running
+
+    mapCommands[name].push_back(pcmd);
 }
 
-bool CRPCTable::appendCommand(const std::string& name, const CRPCCommand* pcmd)
+bool CRPCTable::removeCommand(const std::string& name, const CRPCCommand* pcmd)
 {
-    if (IsRPCRunning())
-        return false;
-
-    // don't allow overwriting for now
-    std::map<std::string, const CRPCCommand*>::const_iterator it = mapCommands.find(name);
-    if (it != mapCommands.end())
-        return false;
-
-    mapCommands[name] = pcmd;
-    return true;
+    auto it = mapCommands.find(name);
+    if (it != mapCommands.end()) {
+        auto new_end = std::remove(it->second.begin(), it->second.end(), pcmd);
+        if (it->second.end() != new_end) {
+            it->second.erase(new_end, it->second.end());
+            return true;
+        }
+    }
+    return false;
 }
 
 void StartRPC()
 {
     LogPrint(BCLog::RPC, "Starting RPC\n");
-    fRPCRunning = true;
+    g_rpc_running = true;
     g_rpcSignals.Started();
 }
 
 void InterruptRPC()
 {
-    LogPrint(BCLog::RPC, "Interrupting RPC\n");
-    // Interrupt e.g. running longpolls
-    fRPCRunning = false;
+    static std::once_flag g_rpc_interrupt_flag;
+    // This function could be called twice if the GUI has been started with -server=1.
+    std::call_once(g_rpc_interrupt_flag, []() {
+        LogPrint(BCLog::RPC, "Interrupting RPC\n");
+        // Interrupt e.g. running longpolls
+        g_rpc_running = false;
+    });
 }
 
 void StopRPC()
 {
-    LogPrint(BCLog::RPC, "Stopping RPC\n");
-    deadlineTimers.clear();
-    DeleteAuthCookie();
-    g_rpcSignals.Stopped();
+    static std::once_flag g_rpc_stop_flag;
+    // This function could be called twice if the GUI has been started with -server=1.
+    assert(!g_rpc_running);
+    std::call_once(g_rpc_stop_flag, []() {
+        LogPrint(BCLog::RPC, "Stopping RPC\n");
+        WITH_LOCK(g_deadline_timers_mutex, deadlineTimers.clear());
+        DeleteAuthCookie();
+        g_rpcSignals.Stopped();
+    });
 }
 
 bool IsRPCRunning()
 {
-    return fRPCRunning;
+    return g_rpc_running;
+}
+
+void RpcInterruptionPoint()
+{
+    if (!IsRPCRunning()) throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Shutting down");
 }
 
 void SetRPCWarmupStatus(const std::string& newStatus)
 {
-    LOCK(cs_rpcWarmup);
+    LOCK(g_rpc_warmup_mutex);
     rpcWarmupStatus = newStatus;
 }
 
 void SetRPCWarmupFinished()
 {
-    LOCK(cs_rpcWarmup);
+    LOCK(g_rpc_warmup_mutex);
     assert(fRPCInWarmup);
     fRPCInWarmup = false;
 }
 
 bool RPCIsInWarmup(std::string *outStatus)
 {
-    LOCK(cs_rpcWarmup);
+    LOCK(g_rpc_warmup_mutex);
     if (outStatus)
         *outStatus = rpcWarmupStatus;
     return fRPCInWarmup;
-}
-
-void JSONRPCRequest::parse(const UniValue& valRequest)
-{
-    // Parse request
-    if (!valRequest.isObject())
-        throw JSONRPCError(RPC_INVALID_REQUEST, "Invalid Request object");
-    const UniValue& request = valRequest.get_obj();
-
-    // Parse id now so errors from here on will have the id
-    id = find_value(request, "id");
-
-    // Parse method
-    UniValue valMethod = find_value(request, "method");
-    if (valMethod.isNull())
-        throw JSONRPCError(RPC_INVALID_REQUEST, "Missing method");
-    if (!valMethod.isStr())
-        throw JSONRPCError(RPC_INVALID_REQUEST, "Method must be a string");
-    strMethod = valMethod.get_str();
-    
-    // Parse params
-    UniValue valParams = find_value(request, "params");
-    if (valParams.isArray() || valParams.isObject())
-        params = valParams;
-    else if (valParams.isNull())
-        params = UniValue(UniValue::VARR);
-    else
-        throw JSONRPCError(RPC_INVALID_REQUEST, "Params must be an array or object");
-}
-
-void JSONRPCRequest::SetDbConnection(const DbConnectionRef& _dbConnection)
-{
-    dbConnection = _dbConnection;
-}
-
-const DbConnectionRef& JSONRPCRequest::DbConnection() const
-{
-    return dbConnection;
 }
 
 bool IsDeprecatedRPCEnabled(const std::string& method)
@@ -432,72 +330,67 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
 {
     // Return immediately if in warmup
     {
-        LOCK(cs_rpcWarmup);
+        LOCK(g_rpc_warmup_mutex);
         if (fRPCInWarmup)
             throw JSONRPCError(RPC_IN_WARMUP, rpcWarmupStatus);
     }
 
+    // TODO (rpc): help is a common RPC command. I think we just need to register it in ctor as it had been done in bitcoin.
+    //                   also this will allow to change help() signature to a new RPCHelpMan that will be more correct than use such special case.
     if (request.strMethod == "help") {
         return help(request);
     }
 
     // Find method
     auto it = mapCommands.find(request.strMethod);
-    if (it == mapCommands.end())
-        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
+    // TODO (losty): Now it is legal to have more than one rpc command with same name. Only first one found works, but probably this coult break cache
+    if (it != mapCommands.end()) {
+        UniValue result;
+        for (const auto& command : it->second) {
+            if (ExecuteCommand(*command, request, result, &command == &it->second.back(), cache.get())) {
+                return result;
+            }
+        }
+    }
+    throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
+}
 
-    const CRPCCommand *pcmd =  (*it).second;
-    g_rpcSignals.PreCommand(*pcmd);
+static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& request, UniValue& result, bool last_handler, RPCCache* cache)
+{
     auto start = gStatEngineInstance.GetCurrentSystemTime();
-
-    // See if this request reply is cached
-    UniValue ret = cache->GetRpcCache(request);
+    auto ret = cache->GetRpcCache(request);
     if (ret.isNull()) {
         try
         {
+            RPCCommandExecution execution(request.strMethod);
             // Execute, convert arguments to array if necessary
             if (request.params.isObject()) {
-                    ret = pcmd->actor(transformNamedArguments(request, pcmd->argNames));
-                } else {
-                    ret = pcmd->actor(request);
+                return command.actor(transformNamedArguments(request, command.argNames), result, last_handler);
+            } else {
+                return command.actor(request, result, last_handler);
             }
-                // Save return value in cache for later
-                cache->PutRpcCache(request, ret);
         }
         catch (const std::exception& e)
         {
             throw JSONRPCError(RPC_MISC_ERROR, e.what());
         }
     }
+    
 
     auto stop = gStatEngineInstance.GetCurrentSystemTime();
 
     auto diff = (stop - start);
     LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", request.strMethod, request.peerAddr.substr(0, request.peerAddr.find(':')), diff.count());
 
-    return ret;
+    result = std::move(ret);
+    return true;
 }
 
 std::vector<std::string> CRPCTable::listCommands() const
 {
     std::vector<std::string> commandList;
-    typedef std::map<std::string, const CRPCCommand*> commandMap;
-
-    std::transform( mapCommands.begin(), mapCommands.end(),
-                   std::back_inserter(commandList),
-                   boost::bind(&commandMap::value_type::first,_1) );
+    for (const auto& i : mapCommands) commandList.emplace_back(i.first);
     return commandList;
-}
-
-std::string HelpExampleCli(const std::string& methodname, const std::string& args)
-{
-    return "> pocketcoin-cli " + methodname + " " + args + "\n";
-}
-
-std::string HelpExampleRpc(const std::string& methodname, const std::string& args)
-{
-    return "> curl --user myusername --data-binary '{\"jsonrpc\": \"1.0\", \"id\":\"curltest\", "
-        "\"method\": \"" + methodname + "\", \"params\": [" + args + "] }' -H 'content-type: text/plain;' http://127.0.0.1:37071/\n";
 }
 
 void RPCSetTimerInterfaceIfUnset(RPCTimerInterface *iface)
@@ -521,6 +414,7 @@ void RPCRunLater(const std::string& name, std::function<void()> func, int64_t nS
 {
     if (!timerInterface)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No timer handler registered for RPC");
+    LOCK(g_deadline_timers_mutex);
     deadlineTimers.erase(name);
     LogPrint(BCLog::RPC, "queue run of timer %s in %i seconds (using %s)\n", name, nSeconds, timerInterface->Name());
     deadlineTimers.emplace(name, std::unique_ptr<RPCTimerBase>(timerInterface->NewTimer(func, nSeconds*1000)));

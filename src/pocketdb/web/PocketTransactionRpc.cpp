@@ -3,17 +3,34 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketTransactionRpc.h"
+#include "consensus/validation.h"
+#include "node/coin.h"
+#include "primitives/transaction.h"
+#include "rpc/blockchain.h"
+#include "script/signingprovider.h"
+#include "util/rbf.h"
+#include "rpc/rawtransaction_util.h"
 #include "pocketdb/consensus/social/User.hpp"
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue AddTransaction(const JSONRPCRequest& request)
+    RPCHelpMan AddTransaction()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "addtransaction\n"
-                "\nAdd new pocketnet transaction.\n"
-            );
+        return RPCHelpMan{"addtransaction",
+                "\nGet transaction data.\n"
+                "in BIP 141 (witness data is discounted).\n",
+                {
+                    // TODO (rpc): provide arguments description
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    "" // TODO (rpc): provide examples
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        auto& node = EnsureNodeContext(request.context);
 
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
 
@@ -41,18 +58,20 @@ namespace PocketWeb::PocketWebRpc
         // Remove this after 1647000 in main net
         if (*ptx->GetType() == ACCOUNT_USER)
         {
-            std::shared_ptr<PocketConsensus::UserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::UserConsensus_checkpoint_login_limitation>(chainActive.Height());
+            std::shared_ptr<PocketConsensus::UserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::UserConsensus_checkpoint_login_limitation>(ChainActive().Height());
             if (auto[ok, result] = accountUserConsensus->Check(tx, static_pointer_cast<User>(ptx)); !ok)
                 throw JSONRPCError((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
         }
 
         // Insert into mempool
-        return _accept_transaction(tx, ptx);
+        return _accept_transaction(tx, ptx, *node.mempool, *node.connman); // TODO (losty-fur): possible null
+    },
+        };
     }
     
-    UniValue EstimateSmartFee(const JSONRPCRequest& request)
+    RPCHelpMan EstimateSmartFee()
     {
-        return estimatesmartfee(request);
+        return estimatesmartfee();
     }
 
     CMutableTransaction ConstructPocketnetTransaction(const UniValue& inputs_in, const CTxOut& dataOut,
@@ -147,7 +166,7 @@ namespace PocketWeb::PocketWebRpc
             rawTx.vout.push_back(out);
         }
 
-        if (!rbf.isNull() && rawTx.vin.size() > 0 && rbfOptIn != SignalsOptInRBF(rawTx)) {
+        if (!rbf.isNull() && rawTx.vin.size() > 0 && rbfOptIn != SignalsOptInRBF(CTransaction(rawTx))) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter combination: Sequence number(s) contradict replaceable option");
         }
 
@@ -157,14 +176,21 @@ namespace PocketWeb::PocketWebRpc
         return rawTx;
     }
 
-    UniValue GenerateTransaction(const JSONRPCRequest& request)
+    RPCHelpMan GenerateTransaction()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "generatetransaction\n"
-                "\nAdd new pocketnet transaction.\n"
-            );
-
+        return RPCHelpMan{"generatetransaction",
+                "\nAdd new pocketnet transaction.\n",
+                {
+                    // TODO (rpc): provide arguments description
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    "" // TODO (rpc): provide examples
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (Params().NetworkIDString() != CBaseChainParams::TESTNET)
             throw runtime_error("Only for testnet\n");
 
@@ -202,11 +228,13 @@ namespace PocketWeb::PocketWebRpc
         // Deserialize params
         _ptx->SetHash("");
         _ptx->DeserializeRpc(txPayload);
-
+        auto& node = EnsureNodeContext(request.context);
+        // TODO (losty): probably bad assert like this
+        assert(node.mempool);
         // Get unspents
         vector<pair<string, uint32_t>> mempoolInputs;
-        mempool.GetAllInputs(mempoolInputs);
-        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, chainActive.Height(), mempoolInputs);
+        node.mempool->GetAllInputs(mempoolInputs);
+        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActive().Height(), mempoolInputs);
 
         // Build inputs
         int64_t totalAmount = 0;
@@ -236,7 +264,7 @@ namespace PocketWeb::PocketWebRpc
         CMutableTransaction mTx = ConstructPocketnetTransaction(_inputs, _dataOut, _outputs, NullUniValue, NullUniValue);
 
         // Decode private keys
-        CBasicKeyStore keystore;
+        FillableSigningProvider keystore; // TODO (losty-critical): CBasicKeyStore removed.
         for (unsigned int idx = 0; idx < privKeys.size(); ++idx) {
             UniValue k = privKeys[idx];
             CKey key = DecodeSecret(k.get_str());
@@ -245,9 +273,22 @@ namespace PocketWeb::PocketWebRpc
             keystore.AddKey(key);
         }
 
+        // TODO (losty-critical): validate above is correct. In rawtransaction also used coins from prevouts (ParsePrevouts(...) method). Prevouts came there as rpc parameter
+        //                        see also signrawtransactionwithwallet(...) from wallet/rpcwallet.cpp
+        // Fetch previous transactions (inputs):
+        std::map<COutPoint, Coin> coins;
+        for (const CTxIn& txin : mTx.vin) {
+            coins[txin.prevout]; // Create empty map entry keyed by prevout.
+        }
+        FindCoins(node, coins);
+
         // Try sign transaction
-        UniValue signResult = SignTransaction(mTx, NullUniValue, &keystore, true, NullUniValue);
-        if (!signResult["complete"].get_bool()) {
+        UniValue signResult{UniValue::VOBJ};
+        std::map<int, std::string> input_errors;
+
+        bool fSignRes = SignTransaction(mTx, &keystore, coins, SIGHASH_ALL /*Or ParseSighashString(..) or smth.*/, input_errors);  // TODO (losty-critical): SignTransaction changed. Required vector of coins
+        SignTransactionResultToJSON(mTx, fSignRes, coins, input_errors, signResult);
+        if (!fSignRes) {
             if (signResult.exists("errors"))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid sign: " + signResult["errors"].write());
             else
@@ -264,13 +305,29 @@ namespace PocketWeb::PocketWebRpc
         // Set required fields
         ptx->SetString1(address);
 
+        // TODO (losty-fur): possible null mempool and connman
         // Insert into mempool
-        return _accept_transaction(tx, ptx);
+        return _accept_transaction(tx, ptx, *node.mempool, *node.connman);
         //const CTransaction& ctx = *tx;
         //return ctx.ToString();
+    },
+        };
     }
 
-    UniValue GenerateAddress(const JSONRPCRequest& request)
+    RPCHelpMan GenerateAddress()
+    {
+        return RPCHelpMan{"generateaddress",
+                "\nCreate new pocketnet address.\n",
+                {
+                    // TODO (rpc): provide arguments description
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    "" // TODO (rpc): provide examples
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
         if (request.fHelp)
             throw runtime_error(
@@ -278,15 +335,14 @@ namespace PocketWeb::PocketWebRpc
                 "\nCreate new pocketnet address.\n"
             );
 
-        if (Params().NetworkIDString() != CBaseChainParams::TESTNET)
+        if (Params().NetworkIDString() != CBaseChainParams::TESTNET && Params().NetworkIDString() != CBaseChainParams::REGTEST)
             throw runtime_error("Only for testnet\n");
 
         std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-        CWallet* const pwallet = wallet.get();
-
-        if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        if (!wallet) {
             return NullUniValue;
         }
+        CWallet* const pwallet = wallet.get();
 
         // // Amount for full address
         // CAmount nAmount = 2000;
@@ -315,21 +371,22 @@ namespace PocketWeb::PocketWebRpc
         result.pushKV("privkey", EncodeSecret(secretKey));
         //result.pushKV("refill", tx->GetHash().GetHex());
         return result;
+    },
+        };
     }
 
-    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx)
+    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman)
     {
-        const uint256& txid = tx->GetHash();
-
         promise<void> promise;
-        CAmount nMaxRawTxFee = maxTxFee;
-        if (ptx && *ptx->GetType() == PocketTx::BOOST_CONTENT)
-            nMaxRawTxFee = 0;
+        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty-critical): validate corresponding check is performed in wallet by using walletInstance->m_default_max_tx_fee
+        // if (ptx && *ptx->GetType() == PocketTx::BOOST_CONTENT)
+        //    nMaxRawTxFee = 0;
+        const uint256& txid = tx->GetHash();
 
         { // cs_main scope
             LOCK(cs_main);
 
-            CCoinsViewCache& view = *pcoinsTip;
+            CCoinsViewCache& view = ::ChainstateActive().CoinsTip();
             bool fHaveChain = false;
             for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++)
             {
@@ -341,34 +398,28 @@ namespace PocketWeb::PocketWebRpc
             if (!fHaveMempool && !fHaveChain)
             {
                 // push to local node and sync with wallets
-                CValidationState state;
-                bool fMissingInputs;
-                if (!AcceptToMemoryPool(mempool, state, tx, ptx, &fMissingInputs,
-                    nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee))
+                TxValidationState state;
+                if (!AcceptToMemoryPool(mempool, state, tx, ptx,
+                    nullptr /* plTxnReplaced */, false /* bypass_limits */))
                 {
                     if (state.IsConsensusFailed())
                     {
-                        throw JSONRPCError(state.GetRejectCode(), FormatStateMessage(state));
+                        throw JSONRPCError(state.GetRejectCode(), state.ToString());
                     }
                     else if (state.IsInvalid())
                     {
-                        throw JSONRPCError(RPC_TRANSACTION_REJECTED, FormatStateMessage(state));
-                    }
-                    else
-                    {
-                        if (state.GetRejectCode() == RPC_POCKETTX_MATURITY)
+                        if (state.GetResult() == TxValidationResult::TX_POCKET_PREMATURE_SPEND)
                         {
-                            throw JSONRPCError(RPC_POCKETTX_MATURITY, FormatStateMessage(state));
+                            throw JSONRPCError(RPC_POCKETTX_MATURITY, state.ToString());
                         }
                         else
                         {
-                            if (fMissingInputs)
-                            {
-                                throw JSONRPCError(RPC_TRANSACTION_ERROR, "Missing inputs");
-                            }
-
-                            throw JSONRPCError(RPC_TRANSACTION_ERROR, FormatStateMessage(state));
+                            throw JSONRPCError(RPC_TRANSACTION_REJECTED, state.ToString());
                         }
+                    }
+                    else
+                    {
+                        throw JSONRPCError(RPC_TRANSACTION_ERROR, state.ToString());
                     }
                 }
                 else
@@ -397,13 +448,11 @@ namespace PocketWeb::PocketWebRpc
 
         promise.get_future().wait();
 
-        if (g_connman)
-        {
-            CInv inv(MSG_TX, txid);
-            g_connman->ForEachNode([&inv](CNode* pnode) {
-                pnode->PushInventory(inv);
-            });
-        }
+        CInv inv(MSG_TX, txid);
+        connman.ForEachNode([&inv](CNode* pnode) {
+            // TODO (losty-fur): Validate this is working
+            pnode->PushTxInventory(inv.hash);
+        });
 
         return txid.GetHex();
     }

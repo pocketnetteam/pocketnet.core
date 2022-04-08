@@ -1,8 +1,10 @@
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
+include(CheckCXXSymbolExists)
 include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceRuns)
+include(CheckIncludeFileCXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -56,7 +58,7 @@ option(WITH_INCOMPATIBLE_BDB "Allow using a bdb version greater than 4.8" OFF)
 
 option(DISABLE_MAN "do not install man pages (default is to install)" OFF)
 if (NOT DISABLE_MAM)
-    #    TODO it doesn't go anywhere
+    #    TODO (build): build man
     set(ENABLE_MAN ON)
 endif ()
 
@@ -97,13 +99,11 @@ endif ()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 # Check endian headers
 include(CmakeCheckEndian.cmake)
 
 # LevelDB
-# TODO only if EMBEDDED_LVLDB defined
+# TODO (build): only if EMBEDDED_LVLDB defined
 add_subdirectory(leveldb/)
 
 
@@ -119,7 +119,6 @@ add_subdirectory(secp256k1/)
 set(WITH_PIC ${WITH_PIC_BACKUP} CACHE BOOL "Enable fPIC" FORCE)
 
 # Finding boost
-# TODO minimal boost version is increased to 1.66 because websockets (websocket/ws.h) are using lambdas as WriteHandler. This functional was implemented in 1.66.
 find_package(Boost 1.66 REQUIRED COMPONENTS system thread chrono filesystem date_time)
 ######## Boost sleep functions validation
 set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
@@ -159,6 +158,179 @@ else ()
 endif ()
 
 # Common checks
+
+# AC_CHECK_HEADERS analog
+foreach(_HEADER endian.h sys/endian.h byteswap.h stdio.h stdlib.h unistd.h strings.h sys/types.h sys/stat.h sys/select.h sys/prctl.h sys/sysctl.h vm/vm_param.h sys/vmmeter.h sys/resources.h)
+    check_include_file_cxx(${_HEADER} _RES_${_HEADER})
+    if (_RES_${_HEADER})
+        # Replace all non letter and number symbols with "_"
+        string (REGEX REPLACE "[^a-zA-Z0-9]" "_" _HEADER ${_HEADER})
+        # All letters to upper
+        string (TOUPPER ${_HEADER} _HEADER)
+        string (CONCAT _TODECLARE "HAVE_" ${_HEADER})
+        add_compile_definitions(${_TODECLARE}=1)
+    endif()
+endforeach()
+
+# Checking for getifaddrs and freeifaddrs
+set(_ADDRS_STUFF_COUNT 0)
+foreach(_SYMBOL getifaddrs freeifaddrs)
+    check_cxx_symbol_exists(${_SYMBOL} "sys/types.h;ifaddrs.h" _RES_${_SYMBOL})
+    if (_RES_${_SYMBOL})
+        # Replace all non letter and number symbols with "_"
+        string (REGEX REPLACE "[^a-zA-Z0-9]" "_" _SYMBOL ${_SYMBOL})
+        # All letters to upper
+        string (TOUPPER ${_SYMBOL} _SYMBOL)
+        string (CONCAT _TODECLARE "HAVE_DECL_" ${_SYMBOL})
+        add_compile_definitions(${_TODECLARE}=1)
+        MATH(EXPR _ADDRS_STUFF_COUNT "${_ADDRS_STUFF_COUNT}+1")
+    endif()
+endforeach()
+
+# Checking for bswap functions
+foreach(_SYMBOL bswap_16 bswap_32 bswap_64)
+    check_cxx_symbol_exists(${_SYMBOL} byteswap.h _RES_${_SYMBOL})
+    # Replace all non letter and number symbols with "_"
+    string (REGEX REPLACE "[^a-zA-Z0-9]" "_" _TODECLARE ${_SYMBOL})
+    # All letters to upper
+    string (TOUPPER ${_TODECLARE} _TODECLARE)
+    string (CONCAT _TODECLARE "HAVE_DECL_" ${_TODECLARE})
+    if (_RES_${_SYMBOL})
+        add_compile_definitions(${_TODECLARE}=1)
+    else()
+        add_compile_definitions(${_TODECLARE}=0)
+    endif()
+endforeach()
+
+if(${_ADDRS_STUFF_COUNT} EQUAL 2) # Means we succeed with both getifaddrs and freeifaddrs functions checking
+    # Trying to use noticed functions without linking "socket" lib
+    set(_CHECK_SOCKET_testbody "#include <sys/types.h>
+                                #include <ifaddrs.h>
+
+                                int main() {
+                                    struct ifaddrs *ifaddr;
+                                    getifaddrs(&ifaddr);
+                                    freeifaddrs(ifaddr);
+                                }")
+    check_cxx_source_runs("${_CHECK_SOCKET_testbody}" _CHECK_SOCKET_RES_WITHOUT_LIBSOCKET)
+    if(_CHECK_SOCKET_RES_WITHOUT_LIBSOCKET)
+        set(REQUIRED_SOCKET_LIB OFF)
+    else()
+        set(CMAKE_REQUIRED_LIBS_BACKUP ${CMAKE_REQUIRED_LIBS})
+        set(CMAKE_REQUIRED_LIBS ${CMAKE_REQUIRED_LIBS} socket)
+        check_cxx_source_runs("${_CHECK_SOCKET_testbody}" _CHECK_SOCKET_RES_WITH_LIBSOCKET)
+        if(_CHECK_SOCKET_RES_WITH_LIBSOCKET)
+            set(REQUIRED_SOCKET_LIB ON)
+        else()
+            message(FATAL_ERROR "cannot figure out how to use getifaddrs")
+        endif()
+        set (CMAKE_REQUIRED_LIBS ${CMAKE_REQUIRED_LIBS_BACKUP})
+    endif()
+endif()
+
+# Non-posix method from bsd and macos that should be enabled by specific option.
+# Checking for daemon function
+check_cxx_symbol_exists(daemon unistd.h _RES_DAEMON)
+if (_RES_DAEMON)
+    add_compile_definitions(HAVE_DECL_DAEMON=1)
+endif()
+
+# Checking for __builtin_clzll
+check_cxx_source_compiles("int main()
+                           {
+                               (void) __builtin_clzll(0);
+                               return 0;
+                           }" HAVE_BUILTIN_CLZLL)
+if(HAVE_BUILTIN_CLZLL)
+    add_compile_definitions(HAVE_BUILTIN_CLZLL=1)
+endif()
+
+# Checking for posix_fallocate
+check_cxx_source_compiles("#ifdef __linux__
+                           #ifdef _POSIX_C_SOURCE
+                           #undef _POSIX_C_SOURCE
+                           #endif
+                           #define _POSIX_C_SOURCE 200112L
+                           #endif // __linux__
+                           #include <fcntl.h>
+                           int main()
+                           {
+                               int f = posix_fallocate(0, 0, 0);
+                               return 0;
+                           }" HAVE_POSIX_FALLOCATE)
+if(HAVE_POSIX_FALLOCATE)
+    add_compile_definitions(HAVE_POSIX_FALLOCATE=1)
+endif()
+
+# Checking for sysctl
+check_cxx_source_compiles("#include <sys/types.h>
+                           #include <sys/sysctl.h>
+                           int main()
+                           {
+                               #ifdef __linux__
+                               #error \"Don't use sysctl on Linux, it's deprecated even when it works\"
+                               #endif
+                               sysctl(nullptr, 2, nullptr, nullptr, nullptr, 0);
+                               return 0;
+                           }" HAVE_SYSCTL)
+if(HAVE_SYSCTL)
+    add_compile_definitions(HAVE_SYSCTL=1)
+endif()
+
+# Checking for sysctl
+check_cxx_source_compiles("#include <sys/types.h>
+                           #include <sys/sysctl.h>
+                           int main()
+                           {
+                               #ifdef __linux__
+                               #error \"Don't use sysctl on Linux, it's deprecated even when it works\"
+                               #endif
+                               static int name[2] = {CTL_KERN, KERN_ARND};
+                               sysctl(name, 2, nullptr, nullptr, nullptr, 0);
+                               return 0;
+                           }" HAVE_SYSCTL_ARND)
+if(HAVE_SYSCTL_ARND)
+    add_compile_definitions(HAVE_SYSCTL_ARND=1)
+endif()
+
+# Checking for fdatasync
+check_cxx_source_compiles("#include <unistd.h>
+                           int main()
+                           {
+                               fdatasync(0);
+                               return 0;
+                           }" HAVE_FDATASYNC)
+if(HAVE_FDATASYNC)
+    add_compile_definitions(HAVE_FDATASYNC=1)
+else()
+    add_compile_definitions(HAVE_FDATASYNC=0)
+endif()
+
+# Checking for std::system
+check_cxx_source_compiles("#include <cstdlib>
+                           int main()
+                           {
+                               int nErr = std::system(\"\");
+                               return 0;
+                           }" HAVE_STD__SYSTEM)
+if(HAVE_STD__SYSTEM)
+    add_compile_definitions(HAVE_STD__SYSTEM=1)
+endif()
+
+# Checking for ::_wsystem
+check_cxx_source_compiles("int main()
+                           {
+                               int nErr = ::_wsystem(\"\");
+                               return 0;
+                           }" HAVE_WSYSTEM)
+if(HAVE_WSYSTEM)
+    add_compile_definitions(HAVE_WSYSTEM=1)
+endif()
+
+if(HAVE_STD__SYSTEM OR HAVE_WSYSTEM)
+    add_compile_definitions(HAVE_SYSTEM=1)
+endif()
+
 set(CMAKE_REQUIRED_FLAGS -msse4.1)
 check_cxx_source_runs( "#include <stdint.h>
                             #include <immintrin.h>
@@ -232,16 +404,37 @@ elseif (ENABLE_REDUCE_EXPORTS)
     message(FATAL_ERROR "Cannot find a working visibility attribute. Use -DENABLE_REDUCE_EXPORTS=OFF.")
 endif ()
 
-check_cxx_source_compiles(" #include <thread>
-                            static thread_local int foo = 0;
-                            static void run_thread() { foo++;}
-                            int main(){
-                                for(int i = 0; i < 10; i++) { std::thread(run_thread).detach();}
-                                return foo;
-                            }" HAVE_THREAD_LOCAL)
-if (HAVE_THREAD_LOCAL)
-    add_compile_definitions(HAVE_THREAD_LOCAL=1)
-endif ()
+check_cxx_source_compiles("#include <ctime>
+                            int main() {
+                                gmtime_r((const time_t *) nullptr, (struct tm *) nullptr);
+                            }" HAVE_GMTIME_R)
+if(HAVE_GMTIME_R)
+    add_compile_definitions(HAVE_GMTIME_R=1)
+else()
+    check_cxx_source_compiles("#include <ctime>
+                                int main() {
+                                    gmtime_s((struct tm *) nullptr, (const time_t *) nullptr);
+                                }" HAVE_GMTIME_S)
+    if(NOT HAVE_GMTIME_S)
+        message(FATAL_ERROR "Both gmtime_r and gmtime_s are unavailable")
+    endif()
+endif()
+
+# TODO (build): make an option to allow disabling this
+if (NOT MINGW) # TODO (build): also this is required for freebsd but probably we do not support it
+    check_cxx_source_compiles(" #include <thread>
+                                static thread_local int foo = 0;
+                                static void run_thread() { foo++;}
+                                int main(){
+                                    for(int i = 0; i < 10; i++) { std::thread(run_thread).detach();}
+                                    return foo;
+                                }" HAVE_THREAD_LOCAL)
+    if (HAVE_THREAD_LOCAL)
+        add_compile_definitions(HAVE_THREAD_LOCAL=1)
+    endif ()
+endif()
+
+# TODO (build): add libmultiprocess stuff
 
 check_cxx_source_compiles(" #include <sys/syscall.h>
                             #include <linux/random.h>
@@ -279,7 +472,7 @@ if (CHAR_EQUALS_INT8)
 endif ()
 
 if (ENABLE_REDUCE_EXPORTS)
-    #    TODO It doesn't go anywhere
+    #    TODO (build): It doesn't go anywhere
     check_cxx_compiler_flag(-fvisibility=hidden VISIBILITY_HIDDEN)
     if (NOT VISIBILITY_HIDDEN)
         message(FATAL_ERROR "Cannot set default symbol visibility. Use -DENABLE_REDUCE_EXPORTS=OFF")
@@ -295,6 +488,7 @@ set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_BACKUP})
 find_package(Event 2.0 REQUIRED)
 
 add_subdirectory(sqlite/)
+add_compile_definitions(USE_SQLITE=1)
 
 find_package(OpenSSL REQUIRED)
 
@@ -309,7 +503,7 @@ endif (HAVE_DECL_STRNLEN)
 
 # Univalue library
 if (WITH_SYSTEM_UNIVALUE)
-    # TODO write find_package script
+    # TODO (build): write find_package script
     find_library(UNIVALUE univalue)
     if (NOT UNIVALUE)
         message(FATAL_ERROR "System univalue requested but not found")
@@ -322,30 +516,36 @@ endif ()
 # Common library
 set(POCKETCOIN_COMMON pocketcoin_common)
 add_library(${POCKETCOIN_COMMON}
+        attributes.h
         cuckoocache.h
         eventloop.h
         indirectmap.h
-        limitedmap.h
+        # limitedmap.h
         memusage.h
         version.h
         reverse_iterator.h
-        reverselock.h
+        # reverselock.h
         streams.h
         undo.h
         span.h
         prevector.h
         protectedmap.h
         compat.h
+        compat/assumptions.h
         compat/byteswap.h
+        compat/cpuid.h
         compat/endian.h
         compat/sanity.h
         compat/glibc_sanity.cpp
         compat/glibcxx_sanity.cpp
         compat/strnlen.cpp
+        compat/stdin.h
+        compat/stdin.cpp
+        optional.h
         amount.h
         tinyformat.h
         )
-
+target_include_directories(${POCKETCOIN_COMMON} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Pocket DB functional library.
 # It is divided to pocketdb-server part and this functional part
@@ -363,6 +563,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/SocialTransaction.h
         pocketdb/models/base/Rating.h
         pocketdb/models/base/ReturnDtoModels.h
+        pocketdb/models/dto/Empty.h
         pocketdb/models/dto/Default.h
         pocketdb/models/dto/Coinbase.h
         pocketdb/models/dto/Coinstake.h
@@ -391,6 +592,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/TransactionOutput.cpp
         pocketdb/models/base/SocialTransaction.cpp
         pocketdb/models/base/Rating.cpp
+        pocketdb/models/dto/Empty.cpp
         pocketdb/models/dto/Default.cpp
         pocketdb/models/dto/Coinbase.cpp
         pocketdb/models/dto/Coinstake.cpp
@@ -436,46 +638,83 @@ add_library(${POCKETCOIN_SUPPORT}
         support/allocators/secure.h
         support/allocators/zeroafterfree.h
         )
-
+target_include_directories(${POCKETCOIN_SUPPORT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Pocketcoin util library
 set(POCKETCOIN_UTIL pocketcoin_util)
 add_library(${POCKETCOIN_UTIL}
+                randomenv.h
+                randomenv.cpp
                 clientversion.h
                 clientversion.cpp
+                flatfile.h
+                flatfile.cpp
                 fs.h
                 fs.cpp
                 logging.h
                 logging.cpp
+                logging/timer.h
                 sync.h
                 sync.cpp
                 threadsafety.h
                 threadinterrupt.h
                 threadinterrupt.cpp
-                utilmemory.h
-                utilmoneystr.h
-                utilmoneystr.cpp
-                utiltime.h
-                utiltime.cpp
-                utils/html.h
-                utils/html.cpp
+                util/memory.h
+                util/moneystr.h
+                util/moneystr.cpp
+                util/time.h
+                util/time.cpp
+                util/html.h
+                util/html.cpp
+                util/asmap.cpp
+                util/asmap.h
+                util/bip32.cpp
+                util/bip32.h
+                util/bytevectorhash.cpp
+                util/bytevectorhash.h
+                util/check.h
+                util/error.cpp
+                util/error.h
+                util/fees.cpp
+                util/fees.h
+                util/golombrice.h
+                util/macros.h
+                util/message.cpp
+                util/message.h
+                util/rbf.cpp
+                util/rbf.h
+                util/ref.h
+                util/settings.cpp
+                util/settings.h
+                util/spanparsing.cpp
+                util/spanparsing.h
+                util/string.cpp
+                util/string.h
+                util/threadnames.cpp
+                util/threadnames.h
+                util/translation.h
+                util/ui_change_type.h
+                util/url.cpp
+                util/url.h
+                util/vector.h
                 random.h
                 random.cpp
                 timedata.h
                 timedata.cpp
                 netaddress.h
                 netaddress.cpp
-                ui_interface.h
-                ui_interface.cpp
-                util.h
-                util.cpp
+                node/ui_interface.h
+                node/ui_interface.cpp
+                node/utxo_snapshot.h
+                util/system.h
+                util/system.cpp
                 chainparamsbase.h
                 chainparamsbase.cpp
                 chainparamsseeds.h
                 warnings.h
                 warnings.cpp
             )
-target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::date_time Event::event)
+target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::date_time Event::event univalue)
 target_link_libraries(${POCKETCOIN_UTIL} PUBLIC Boost::filesystem)
 if(WIN32)
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ws2_32 crypt32 wsock32)
@@ -484,6 +723,10 @@ endif ()
 if (ENABLE_GLIBC_BACK_COMPAT)
     target_sources(${POCKETCOIN_UTIL} PRIVATE compat/glibc_compat.cpp)
 endif ()
+if (REQUIRED_SOCKET_LIB)
+    # Linking to a socket library if getifaddrs freeifaddrs functions require it (see _CHECK_SOCKET_RES_WITHOUT_LIBSOCKET) 
+    target_link_libraries(${POCKETCOIN_UTIL} PRIVATE socket)
+endif()
 target_include_directories(${POCKETCOIN_UTIL} PUBLIC ${Boost_INCLUDE_DIRS})
 
 ######## Crypto
@@ -491,6 +734,8 @@ set(POCKETCOIN_CRYPTO pocketcoin_crypto)
 add_library(${POCKETCOIN_CRYPTO}
         crypto/sha256_sse4.cpp
         crypto/sha256.cpp
+        crypto/sha3.h
+        crypto/sha3.cpp
         crypto/chacha20.cpp
         crypto/aes.h
         crypto/hmac_sha256.cpp
@@ -501,11 +746,19 @@ add_library(${POCKETCOIN_CRYPTO}
         crypto/ripemd160.h
         crypto/hmac_sha512.h
         crypto/chacha20.h
+        crypto/chacha_poly_aead.h
+        crypto/chacha_poly_aead.cpp
+        crypto/hkdf_sha256_32.h
+        crypto/hkdf_sha256_32.cpp
         crypto/sha512.cpp
         crypto/sha1.cpp
         crypto/common.h
+        crypto/poly1305.h
+        crypto/poly1305.cpp
         crypto/hmac_sha256.h
         crypto/sha256.h
+        crypto/siphash.h
+        crypto/siphash.cpp
         crypto/aes.cpp
         uint256.h
         uint256.cpp
@@ -518,17 +771,17 @@ add_library(${POCKETCOIN_CRYPTO}
         serialize.h
         arith_uint256.cpp
         arith_uint256.h
-        utilstrencodings.h
-        utilstrencodings.cpp
+        util/strencodings.h # TODO (build): maybe move to utils
+        util/strencodings.cpp
         )
 target_link_libraries(${POCKETCOIN_CRYPTO} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_SUPPORT} secp256k1)
 if (ENABLE_SSE41)
     target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_sse41.cpp)
     if (MSVC)
-        #        TODO it seems like windows fails with everything exept sse2 that is enabled by default
-        #        Futhermore there are cmake scripts to find sse4.1 or avx support where they are always hardcoded as false for Windows
-        #        https://github.com/magic-sph/magic/blob/master/cmake/FindSSE.cmake
-        #        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:SSE4.1)
+        # TODO (build): it seems like windows fails with everything exept sse2 that is enabled by default
+        #               Futhermore there are cmake scripts to find sse4.1 or avx support where they are always hardcoded as false for Windows:
+        #               https://github.com/magic-sph/magic/blob/master/cmake/FindSSE.cmake
+        # target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:SSE4.1)
     else ()
         target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SSE41)
         target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -msse4.1)
@@ -562,9 +815,10 @@ add_library(${POCKETCOIN_SYSTEM} scheduler.cpp
         shutdown.cpp
         )
 target_link_libraries(${POCKETCOIN_SYSTEM} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO})
+target_include_directories(${POCKETCOIN_SYSTEM} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Consensus
-# TODO probably completely move this to server
+# TODO (build): probably completely move this to server
 set(POCKETCOIN_CONSENSUS pocketcoin_consensus)
 add_library(${POCKETCOIN_CONSENSUS}
         protocol.h
@@ -575,7 +829,7 @@ add_library(${POCKETCOIN_CONSENSUS}
         key.cpp
         )
 target_link_libraries(${POCKETCOIN_CONSENSUS} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} ${POCKETDB} univalue secp256k1)
-# TODO hadrdcoded because we are always building consensus
+# TODO (build): hadrdcoded because we are always building consensus
 add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 
 
@@ -583,19 +837,43 @@ add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 set(POCKETCOIN_COMMON_RPC pocketcoin_common_rpc)
 add_library(${POCKETCOIN_COMMON_RPC}
         rpc/protocol.h
-        rpc/protocol.cpp)
-target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL})
+        # TODO (build): request is shared between cli and daemon.
+        #               Currently it is using DBConnection that is a part of server.
+        #               This is OK for now because we have shared headers but this should be reworked.
+        #               PocketDB stuff should be extracted to a different lib. Specially "pocketdb/SQLiteConnection.h" 
+        #               Also sqlite should be publically linked to this new lib and removed from linking here
+        rpc/request.h
+        rpc/request.cpp
+        )
+target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL} univalue)
+target_link_libraries(${POCKETCOIN_COMMON_RPC} PUBLIC sqlite3)
+target_include_directories(${POCKETCOIN_COMMON_RPC} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 
 ########### Server
 set(POCKETCOIN_SERVER pocketcoin_server)
 add_library(${POCKETCOIN_SERVER}
+
+        node/coin.h
+        node/coin.cpp
+        node/coinstats.h
+        node/coinstats.cpp
+        node/context.h
+        node/context.cpp
+        node/psbt.h
+        node/psbt.cpp
+        node/transaction.h
+        node/transaction.cpp
+        interfaces/chain.h
+        interfaces/chain.cpp
         interfaces/node.h
         interfaces/node.cpp
         chainparams.h
         chainparams.cpp
         consensus/tx_verify.h
         consensus/tx_verify.cpp
+        consensus/tx_check.h
+        consensus/tx_check.cpp
         consensus/merkle.h
         consensus/merkle.cpp
         chain.h
@@ -614,9 +892,14 @@ add_library(${POCKETCOIN_SERVER}
         index/base.cpp
         index/txindex.h
         index/txindex.cpp
+        index/blockfilterindex.h
+        index/blockfilterindex.cpp
+        index/disktxpos.h
         checkpoints.h
         checkpoints.cpp
         checkqueue.h
+        banman.h
+        banman.cpp
         blockencodings.h
         blockencodings.cpp
         blockfilter.h
@@ -650,8 +933,10 @@ add_library(${POCKETCOIN_SERVER}
         txdb.cpp
         versionbits.h
         versionbits.cpp
-        keystore.h
-        keystore.cpp
+        versionbitsinfo.h
+        versionbitsinfo.cpp
+        # keystore.h
+        # keystore.cpp
         compressor.h
         compressor.cpp
         key_io.h
@@ -672,10 +957,15 @@ add_library(${POCKETCOIN_SERVER}
         policy/policy.cpp
         policy/rbf.h
         policy/rbf.cpp
+        policy/settings.h
+        policy/settings.cpp
+        signet.h
+        signet.cpp
+        script/keyorigin.h
         script/descriptor.h
         script/descriptor.cpp
-        script/ismine.h
-        script/ismine.cpp
+        script/signingprovider.h
+        script/signingprovider.cpp
         script/sigcache.h
         script/sigcache.cpp
         script/sign.h
@@ -692,6 +982,8 @@ add_library(${POCKETCOIN_SERVER}
         script/script.h
         txmempool.h
         txmempool.cpp
+        txrequest.h
+        txrequest.cpp
         net.h
         net.cpp
         primitives/block.h
@@ -702,7 +994,10 @@ add_library(${POCKETCOIN_SERVER}
         netbase.cpp
         net_processing.h
         net_processing.cpp
+        net_permissions.h
+        net_permissions.cpp
         netmessagemaker.h
+        net_types.h
         addrdb.h
         addrdb.cpp
         addrman.h
@@ -717,13 +1012,17 @@ add_library(${POCKETCOIN_SERVER}
         rpc/mining.cpp
         rpc/misc.cpp
         rpc/net.cpp
-        rpc/rawtransaction.h
+        # rpc/rawtransaction.h
         rpc/rawtransaction.cpp
+        rpc/rawtransaction_util.h
+        rpc/rawtransaction_util.cpp
         rpc/register.h
         rpc/server.cpp
         rpc/server.h
         rpc/util.cpp
         rpc/util.h
+        psbt.h
+        psbt.cpp
         rpc/cache.h
         rpc/cache.cpp
         walletinitinterface.h
@@ -822,14 +1121,19 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/Base.cpp
         pocketdb/consensus/Lottery.cpp
         )
-target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event leveldb OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
+target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
-target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue)
+target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue leveldb)
+target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (NOT DISABLE_WALLET)
     target_sources(${POCKETCOIN_SERVER} PRIVATE
+            wallet/bdb.h
+            wallet/bdb.cpp
             wallet/coincontrol.h
             wallet/coincontrol.cpp
+            wallet/context.h
+            wallet/context.cpp
             wallet/crypter.h
             wallet/crypter.cpp
             wallet/db.h
@@ -839,6 +1143,9 @@ if (NOT DISABLE_WALLET)
             wallet/fees.h
             wallet/fees.cpp
             wallet/init.cpp
+            wallet/ismine.h
+            wallet/load.h
+            wallet/load.cpp
             wallet/rpcdump.cpp
             wallet/rpcwallet.h
             wallet/rpcwallet.cpp
@@ -846,10 +1153,17 @@ if (NOT DISABLE_WALLET)
             wallet/wallet.cpp
             wallet/walletdb.h
             wallet/walletdb.cpp
+            wallet/wallettool.h
             wallet/walletutil.h
             wallet/walletutil.cpp
             wallet/coinselection.h
             wallet/coinselection.cpp
+            wallet/salvage.h
+            wallet/scriptpubkeyman.h
+            wallet/scriptpubkeyman.cpp
+
+            wallet/sqlite.h
+            wallet/sqlite.cpp
             interfaces/wallet.h
             interfaces/wallet.cpp
             staker.h
@@ -861,7 +1175,12 @@ else ()
     target_sources(${POCKETCOIN_SERVER} PRIVATE dummywallet.cpp)
 endif ()
 
-# TODO USE_UPNP
+if(REQUIRED_SOCKET_LIB)
+    # same as for above for POCKETCOIN_UTIL
+    target_link_libraries(${POCKETCOIN_SERVER} PRIVATE socket)
+endif()
+
+# TODO (build): USE_UPNP
 
 # ZMQ
 if (NOT DISABLE_ZMQ)
@@ -870,17 +1189,19 @@ if (NOT DISABLE_ZMQ)
         if (MSVC AND MSVC_FORCE_STATIC)
             target_compile_definitions(${POCKETCOIN_SERVER} PRIVATE ZMQ_STATIC)
         endif ()
-        add_compile_definitions(ENABLE_ZMQ)
+        add_compile_definitions(ENABLE_ZMQ=1)
         set(POCKETCOIN_ZMQ_SOURCES
                 zmq/zmqabstractnotifier.h
                 zmq/zmqabstractnotifier.cpp
                 zmq/zmqnotificationinterface.h
                 zmq/zmqnotificationinterface.cpp
                 zmq/zmqpublishnotifier.h
-                zmq/zmqconfig.h
+                # zmq/zmqconfig.h
                 zmq/zmqpublishnotifier.cpp
                 zmq/zmqrpc.h
                 zmq/zmqrpc.cpp
+                zmq/zmqutil.h
+                zmq/zmqutil.cpp
                 )
         target_sources(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_ZMQ_SOURCES})
         target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ZMQ::zmq)
@@ -888,21 +1209,25 @@ if (NOT DISABLE_ZMQ)
     else ()
         message(WARNING "ZMQ not found, disabling")
     endif ()
+else()
+    add_compile_definitions(ENABLE_ZMQ=0)
 endif ()
 
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
-target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event sqlite3 univalue secp256k1 memenv)
+target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event sqlite3 univalue secp256k1 leveldb)
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 
 add_library(libpocketcoin_cli rpc/client.h rpc/client.cpp)
 target_link_libraries(libpocketcoin_cli PRIVATE univalue ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC})
-set(POCKETCOIN_CLI pocketcoin_cli)
+target_include_directories(libpocketcoin_cli PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set(POCKETCOIN_CLI pocketcoin-cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
-target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli)
+# TODO (build): remove leveldb after header fix
+target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli leveldb)
 target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
 
-set(POCKETCOIN_TX pocketcoin_tx)
+set(POCKETCOIN_TX pocketcoin-tx)
 add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
 target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} ${POCKETDB} ${POCKETCOIN_CRYPTO} ${POCKETCOIN_CONSENSUS} univalue sqlite3)
 

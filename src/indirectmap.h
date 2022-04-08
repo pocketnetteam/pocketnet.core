@@ -5,6 +5,8 @@
 #ifndef POCKETCOIN_INDIRECTMAP_H
 #define POCKETCOIN_INDIRECTMAP_H
 
+#include <map>
+
 template <class T>
 struct DereferencingComparator { bool operator()(const T a, const T b) const { return *a < *b; } };
 

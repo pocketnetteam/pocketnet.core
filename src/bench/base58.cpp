@@ -4,12 +4,10 @@
 
 #include <bench/bench.h>
 
-#include <validation.h>
 #include <base58.h>
 
 #include <array>
 #include <vector>
-#include <string>
 
 
 static void Base58Encode(benchmark::Bench& bench)
@@ -21,8 +19,8 @@ static void Base58Encode(benchmark::Bench& bench)
             200, 24
         }
     };
-    bench.run([&] {
-        EncodeBase58(buff.data(), buff.data() + buff.size());
+    bench.batch(buff.size()).unit("byte").run([&] {
+        EncodeBase58(buff);
     });
 }
 
@@ -36,10 +34,8 @@ static void Base58CheckEncode(benchmark::Bench& bench)
             200, 24
         }
     };
-    std::vector<unsigned char> vch;
-    vch.assign(buff.begin(), buff.end());
-    bench.run([&] {
-        EncodeBase58Check(vch);
+    bench.batch(buff.size()).unit("byte").run([&] {
+        EncodeBase58Check(buff);
     });
 }
 
@@ -48,8 +44,8 @@ static void Base58Decode(benchmark::Bench& bench)
 {
     const char* addr = "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem";
     std::vector<unsigned char> vch;
-    bench.run([&] {
-        DecodeBase58(addr, vch);
+    bench.batch(strlen(addr)).unit("byte").run([&] {
+        (void) DecodeBase58(addr, vch, 64);
     });
 }
 

@@ -178,7 +178,7 @@ namespace PocketDb
     tuple<bool, TxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
     {
         bool blockingExists = false;
-        TxType blockingType = TxType::NOT_SUPPORTED;
+        TxType blockingType = TxType::TX_EMPTY;
 
         TryTransactionStep(__func__, [&]()
         {
@@ -214,7 +214,7 @@ namespace PocketDb
         const string& addressTo)
     {
         bool subscribeExists = false;
-        TxType subscribeType = TxType::NOT_SUPPORTED;
+        TxType subscribeType = TxType::TX_EMPTY;
 
         TryTransactionStep(__func__, [&]()
         {

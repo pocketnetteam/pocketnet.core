@@ -11,6 +11,7 @@
 #include <consensus/consensus.h>
 #include <primitives/transaction.h>
 #include <serialize.h>
+#include <version.h>
 
 /** Formatter for undo information for a CTxIn
  *
@@ -35,7 +36,7 @@ struct TxInUndoFormatter
     void Unser(Stream &s, Coin& txout) {
         uint32_t nCode = 0;
         ::Unserialize(s, VARINT(nCode));
-        txout.nHeight = nCode / 2;
+        txout.nHeight = nCode >> 1;
         txout.fCoinBase = nCode & 1;
         if (txout.nHeight > 0) {
             // Old versions stored the version number for the last spend of
@@ -47,9 +48,6 @@ struct TxInUndoFormatter
         ::Unserialize(s, Using<TxOutCompression>(txout.out));
     }
 };
-
-static const size_t MIN_TRANSACTION_INPUT_WEIGHT = WITNESS_SCALE_FACTOR * ::GetSerializeSize(CTxIn(), PROTOCOL_VERSION);
-static const size_t MAX_INPUTS_PER_BLOCK = MAX_BLOCK_WEIGHT / MIN_TRANSACTION_INPUT_WEIGHT;
 
 /** Undo information for a CTransaction */
 class CTxUndo

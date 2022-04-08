@@ -3,10 +3,11 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/helpers/TransactionHelper.h"
+#include "core_io.h"
 
 namespace PocketHelpers
 {
-    txnouttype TransactionHelper::ScriptType(const CScript& scriptPubKey)
+    TxoutType TransactionHelper::ScriptType(const CScript& scriptPubKey)
     {
         std::vector<std::vector<unsigned char>> vSolutions;
         return Solver(scriptPubKey, vSolutions);
@@ -112,7 +113,7 @@ namespace PocketHelpers
                 [](int i, const CTxOut& o) { return o.nValue + i; });
 
             if (txOutSum <= 0)
-                return TxType::NOT_SUPPORTED;
+                return TxType::TX_EMPTY;
             else
                 return TxType::TX_COINBASE;
         }
@@ -191,27 +192,9 @@ namespace PocketHelpers
         return { !vasm[3].empty(), vasm[3] };
     }
 
-    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx, TxType& txType)
-    {
-        txType = ParseType(tx);
-        return txType != NOT_SUPPORTED;
-    }
-
-    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx)
-    {
-        TxType txType = NOT_SUPPORTED;
-        return IsPocketSupportedTransaction(tx, txType);
-    }
-
-    bool TransactionHelper::IsPocketSupportedTransaction(const CTransaction& tx)
-    {
-        auto txRef = MakeTransactionRef(tx);
-        return IsPocketSupportedTransaction(txRef);
-    }
-
     bool TransactionHelper::IsPocketTransaction(TxType& txType)
     {
-        return txType != NOT_SUPPORTED &&
+        return txType != TX_EMPTY &&
                txType != TX_COINBASE &&
                txType != TX_COINSTAKE &&
                txType != TX_DEFAULT;
@@ -225,7 +208,7 @@ namespace PocketHelpers
 
     bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx)
     {
-        TxType txType = NOT_SUPPORTED;
+        TxType txType = TX_EMPTY;
         return IsPocketTransaction(tx, txType);
     }
 
@@ -275,6 +258,9 @@ namespace PocketHelpers
         PTransactionRef ptx = nullptr;
         switch (txType)
         {
+            case TX_EMPTY:
+                ptx = make_shared<Empty>(tx);
+                break;
             case TX_COINBASE:
                 ptx = make_shared<Coinbase>(tx);
                 break;
@@ -353,6 +339,9 @@ namespace PocketHelpers
         PTransactionRef ptx = nullptr;
         switch (txType)
         {
+            case TX_EMPTY:
+                ptx = make_shared<Empty>();
+                break;
             case TX_COINBASE:
                 ptx = make_shared<Coinbase>();
                 break;

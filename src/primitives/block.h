@@ -58,7 +58,7 @@ public:
         return (int64_t)nTime;
     }
 
-    unsigned int GetStakeEntropyBit() const
+    unsigned int GetStakeEntropyBit() const // Pocketcoin addition
     {
         // Take last bit of block hash as entropy bit
         unsigned int nEntropyBit = ((UintToArith256(GetHash()).GetLow64()) & 1llu);

@@ -8,17 +8,26 @@ namespace PocketWeb::PocketWebRpc
 {
     map<string, UniValue> TransactionsStatisticCache;
 
-    UniValue GetStatisticByHours(const JSONRPCRequest& request)
+    RPCHelpMan GetStatisticByHours()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getstatisticbyhours (topHeight, depth)\n"
-                "\nGet statistics\n"
-                "\nArguments:\n"
-                "1. \"topheight\"   (int32, optional) Top height (Default: chain height)\n"
-                "2. \"depth\"       (int32, optional) Depth hours (Maximum: 24 hours)\n");
-
-        int topHeight = chainActive.Height() / 10 * 10;
+        return RPCHelpMan{"getstatisticbyhours",
+                "\nGet statistics.\n",
+                {
+                    {"topheight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Top height (Default: chain height)"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth hours (Maximum: 24 hours)"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    // TODO (rpc): provide correct examples
+                    // HelpExampleCli("getstatisticbyhours", "") +
+                    // HelpExampleRpc("getstatisticbyhours", "")
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        int topHeight = ChainActive().Height() / 10 * 10;
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
@@ -28,19 +37,31 @@ namespace PocketWeb::PocketWebRpc
         depth = depth * 60;
 
         return request.DbConnection()->ExplorerRepoInst->GetTransactionsStatisticByHours(topHeight, depth);
+    },
+        };
     }
 
-    UniValue GetStatisticByDays(const JSONRPCRequest& request)
+    RPCHelpMan GetStatisticByDays()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getstatisticbydays (topHeight, depth)\n"
-                "\nGet statistics\n"
-                "\nArguments:\n"
-                "1. \"topheight\"   (int32, optional) Top height (Default: chain height)\n"
-                "2. \"depth\"       (int32, optional) Depth days (Maximum: 30 days)\n");
+        return RPCHelpMan{"getstatisticbydays",
+                "\nGet statistics.\n",
+                {
+                    {"topheight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Top height (Default: chain height)"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth days (Maximum: 30 days)"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    // TODO (rpc): provide correct examples
+                    // HelpExampleCli("getstatisticbydays", "") +
+                    // HelpExampleRpc("getstatisticbydays", "")
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
 
-        int topHeight = chainActive.Height() / 10 * 10;
+        int topHeight = ChainActive().Height() / 10 * 10;
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
@@ -50,17 +71,26 @@ namespace PocketWeb::PocketWebRpc
         depth = depth * 24 * 60;
 
         return request.DbConnection()->ExplorerRepoInst->GetTransactionsStatisticByDays(topHeight, depth);
+    },
+        };
     }
 
-    UniValue GetStatisticContentByHours(const JSONRPCRequest& request)
+    RPCHelpMan GetStatisticContentByHours()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getstatisticcontentbyhours\n"
-                "\nGet statistics for content transactions grouped by hours\n"
-            );
-
-        int topHeight = chainActive.Height() / 10 * 10;
+        return RPCHelpMan{"getstatisticcontentbyhours",
+                "\nGet statistics for content transactions grouped by hours\n",
+                {},
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    // TODO (rpc): examples
+                    HelpExampleCli("getstatisticcontentbyhours", "") +
+                    HelpExampleRpc("getstatisticcontentbyhours", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        int topHeight = ChainActive().Height() / 10 * 10;
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
@@ -70,17 +100,26 @@ namespace PocketWeb::PocketWebRpc
         depth = depth * 60;
 
         return request.DbConnection()->ExplorerRepoInst->GetContentStatisticByHours(topHeight, depth);
+    },
+        };
     }
 
-    UniValue GetStatisticContentByDays(const JSONRPCRequest& request)
+    RPCHelpMan GetStatisticContentByDays()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getstatisticcontentbydays\n"
-                "\nGet statistics for content transactions grouped by days\n"
-            );
-
-        int topHeight = chainActive.Height() / 10 * 10;
+        return RPCHelpMan{"getstatisticcontentbydays",
+                "\nGet statistics for content transactions grouped by days\n",
+                {},
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    // TODO (rpc): examples
+                    HelpExampleCli("getstatisticcontentbydays", "") +
+                    HelpExampleRpc("getstatisticcontentbydays", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        int topHeight = ChainActive().Height() / 10 * 10;
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
@@ -90,19 +129,28 @@ namespace PocketWeb::PocketWebRpc
         depth = depth * 24 * 60;
 
         return request.DbConnection()->ExplorerRepoInst->GetContentStatisticByDays(topHeight, depth);
+    },
+        };
     }
 
-    UniValue GetLastBlocks(const JSONRPCRequest& request)
+    RPCHelpMan GetLastBlocks()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getlastblocks ( count, last_height, verbosity )\n"
-                "\nGet N last blocks.\n"
-                "\nArguments:\n"
-                "1. \"count\"         (int, optional) Count of blocks. Maximum 100 blocks.\n"
-                "2. \"last_height\"   (int, optional) Height of last block, including.\n"
-                "3. \"verbosity\"     (int, optional) Verbosity output.\n");
-
+        return RPCHelpMan{"getlastblocks",
+                "\nGet N last blocks.\n",
+                {
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Count of blocks. Maximum 100 blocks."},
+                    {"last_height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Height of last block, including."},
+                    {"verbosity", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Verbosity output."},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getlastblocks", "") +
+                    HelpExampleRpc("getlastblocks", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         int count = 10;
         if (!request.params.empty() && request.params[0].isNum())
         {
@@ -110,11 +158,11 @@ namespace PocketWeb::PocketWebRpc
             if (count > 100) count = 100;
         }
 
-        int last_height = chainActive.Height();
+        int last_height = ::ChainActive().Height();
         if (request.params.size() > 1 && request.params[1].isNum())
         {
             last_height = request.params[1].get_int();
-            if (last_height < 0) last_height = chainActive.Height();
+            if (last_height < 0) last_height = ::ChainActive().Height();
         }
 
         bool verbose = false;
@@ -125,7 +173,7 @@ namespace PocketWeb::PocketWebRpc
         }
 
         // Collect general block information
-        CBlockIndex* pindex = chainActive[last_height];
+        CBlockIndex* pindex = ::ChainActive()[last_height];
         int i = count;
         map<int, UniValue> blocks;
         while (pindex && i-- > 0)
@@ -163,17 +211,30 @@ namespace PocketWeb::PocketWebRpc
             result.push_back(block.second);
 
         return result;
+    },
+        };
     }
 
-    UniValue GetCompactBlock(const JSONRPCRequest& request)
+    RPCHelpMan GetCompactBlock()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getcompactblock \"blockhash\" or \"blocknumber\" \n"
-                "\nArguments:\n"
-                "1. \"blockhash\"          (string, optional) The block by hash\n"
-                "2. \"blocknumber\"        (number, optional) The block by number\n");
-
+        return RPCHelpMan{"getcompactblock",
+                // TODO (team): description
+                "",
+                {
+                    {"blockhash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "The block by hash"},
+                    {"blocknumber", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The block by number"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getcompactblock", "123acbadbcca") +
+                    HelpExampleRpc("getcompactblock", "123acbadbcca") +
+                    HelpExampleCli("getcompactblock", "7546744353") +
+                    HelpExampleRpc("getcompactblock", "7546744353")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty())
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameters");
 
@@ -190,8 +251,8 @@ namespace PocketWeb::PocketWebRpc
         if (!blockHash.empty())
             pindex = LookupBlockIndexWithoutLock(uint256S(blockHash));
 
-        if (blockNumber >= 0 && blockNumber <= chainActive.Height())
-            pindex = chainActive[blockNumber];
+        if (blockNumber >= 0 && blockNumber <= ::ChainActive().Height())
+            pindex = ::ChainActive()[blockNumber];
 
         if (!pindex)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
@@ -209,23 +270,32 @@ namespace PocketWeb::PocketWebRpc
         if (pindex->pprev)
             result.pushKV("prevhash", pindex->pprev->GetBlockHash().GetHex());
 
-        auto pnext = chainActive.Next(pindex);
+        auto pnext = ::ChainActive().Next(pindex);
         if (pnext)
             result.pushKV("nexthash", pnext->GetBlockHash().GetHex());
 
         return result;
+    },
+        };
     }
 
-    UniValue GetAddressInfo(const JSONRPCRequest& request)
+    RPCHelpMan GetAddressInfo()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getaddressinfo \"address\"\n"
-                "\nGet address summary information\n"
-                "\nArguments:\n"
-                "1. \"address\"    (string) Address\n");
-
-        string address;
+        return RPCHelpMan{"getaddressinfo",
+                "\nGet contents statistic.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getaddressinfo", "1bd123c12f123a123b") +
+                    HelpExampleRpc("getaddressinfo", "1bd123c12f123a123b")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        std::string address;
         if (request.params.empty() || !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address argument");
 
@@ -248,21 +318,32 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return addressInfo;
+    },
+        };
     }
 
-    UniValue GetBalanceHistory(const JSONRPCRequest& request)
+    RPCHelpMan GetBalanceHistory()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getbalancehistory [\"address\", ...] topHeight count\n"
-                "\nGet balance changes history for addresses\n"
-                "\nArguments:\n"
-                "1. addresses     (array of strings) Addresses for calculate total balance\n"
-                "2. topHeight     (int32) Top block height (Inclusive)\n"
-                "3. count         (int32) Count of records\n\n"
-                "Return:\n"
-                "[ [height, amount], [1000, 500], [999,495], ... ]");
-
+        return RPCHelpMan{"getbalancehistory",
+                "\nGet balance changes history for addresses\n",
+                {
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "Addresses for calculate total balance",
+                     {
+                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
+                     }},
+                    {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::NO, "Top block height (Inclusive)"},
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::NO, "Count of records"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                    // "[ [height, amount], [1000, 500], [999,495], ... ]"
+                },
+                RPCExamples{
+                    HelpExampleCli("getbalancehistory", "[\"address\", ...] topHeight count") +
+                    HelpExampleRpc("getbalancehistory", "[\"address\", ...] topHeight count")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         vector<string> addresses;
         if (!request.params[0].isArray() && !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address argument");
@@ -295,7 +376,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        int topHeight = chainActive.Height();
+        int topHeight = ChainActive().Height();
         if (request.params[1].isNum())
             topHeight = request.params[1].get_int();
 
@@ -304,17 +385,26 @@ namespace PocketWeb::PocketWebRpc
             count = min(25, request.params[2].get_int());
 
         return request.DbConnection()->ExplorerRepoInst->GetBalanceHistory(addresses, topHeight, count);
+    },
+        };
     }
 
-    UniValue SearchByHash(const JSONRPCRequest& request)
+    RPCHelpMan SearchByHash()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "checkstringtype \"string\"\n"
-                "\nCheck type of input string - address, block or tx id.\n"
-                "\nArguments:\n"
-                "1. \"string\"   (string) Input string\n");
-
+        return RPCHelpMan{"checkstringtype",
+                "\nCheck type of input string - address, block or tx id.\n",
+                {
+                    {"string", RPCArg::Type::STR, RPCArg::Optional::NO, "Input string"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("checkstringtype", "123123123123") +
+                    HelpExampleRpc("checkstringtype", "123123123123")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty())
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameter");
 
@@ -345,28 +435,34 @@ namespace PocketWeb::PocketWebRpc
 
         result.pushKV("type", "notfound");
         return result;
+    },
+        };
     }
 
-    UniValue GetAddressTransactions(const JSONRPCRequest& request)
+    RPCHelpMan GetAddressTransactions()
     {
-        if (request.fHelp)
-        {
-            throw runtime_error(
-                "getaddresstransactions [address, pageInitBlock, pageStart, pageSize]\n"
-                "\nGet transactions info.\n"
-                "\nArguments:\n"
-                "1. \"address\"       (string, required) Address hash\n"
-                "2. \"pageInitBlock\" (number) Max block height for filter pagination window\n"
-                "3. \"pageStart\"     (number) Row number for start page\n"
-                "4. \"pageSize\"      (number) Page size\n"
-            );
-        }
-
+        return RPCHelpMan{"getaddresstransactions",
+                "\nGet transactions info.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address hash"},
+                    {"pageInitBlock", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Max block height for filter pagination window"},
+                    {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Row number for start page"},
+                    {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getaddresstransactions", "abaa1231bca1231") +
+                    HelpExampleRpc("getaddresstransactions", "abaa1231bca1231")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty() || !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (address)");
         string address = request.params[0].get_str();
 
-        int pageInitBlock = chainActive.Height();
+        int pageInitBlock = ::ChainActive().Height();
         if (request.params.size() > 1 && request.params[1].isNum())
             pageInitBlock = request.params[1].get_int();
 
@@ -400,22 +496,28 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return result;
+    },
+        };
     }
 
-    UniValue GetBlockTransactions(const JSONRPCRequest& request)
+    RPCHelpMan GetBlockTransactions()
     {
-        if (request.fHelp)
-        {
-            throw runtime_error(
-                "getblocktransactions [blockHash, pageStart, pageSize]\n"
-                "\nGet transactions info.\n"
-                "\nArguments:\n"
-                "1. \"blockHash\"     (string, required) Block hash\n"
-                "2. \"pageStart\"     (number) Row number for start page\n"
-                "3. \"pageSize\"      (number) Page size\n"
-            );
-        }
-
+        return RPCHelpMan{"getblocktransactions",
+                "\nGet transactions info.\n",
+                {
+                    {"blockHash", RPCArg::Type::STR, RPCArg::Optional::NO, "Block hash"},
+                    {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Row number for start page"},
+                    {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getblocktransactions", "abaa1231bca1231") +
+                    HelpExampleRpc("getblocktransactions", "abaa1231bca1231")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty() || !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (blockHash)");
         string blockHash = request.params[0].get_str();
@@ -449,16 +551,26 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return result;
+    },
+        };
     }
-    
-    UniValue GetTransaction(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw runtime_error(
-                "getrawtransaction\n"
-                "\nGet transaction data.\n"
-            );
 
+    RPCHelpMan GetTransaction()
+    {
+        return RPCHelpMan{"getrawtransaction",
+                "\nGet transaction data.\n",
+                {
+                    // TODO (rpc)
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    ""
+                    // TODO (rpc)
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         RPCTypeCheck(request.params, {UniValue::VSTR});
         string txHash = request.params[0].get_str();
 
@@ -470,20 +582,30 @@ namespace PocketWeb::PocketWebRpc
         const auto& ptx = (*pBlock)[0];
 
         return _constructTransaction(ptx);
+    },
+        };
     }
 
-    UniValue GetTransactions(const JSONRPCRequest& request)
+    RPCHelpMan GetTransactions()
     {
-        if (request.fHelp)
-        {
-            throw runtime_error(
-                "gettransactions [transactions[], pageStart, pageSize]\n"
-                "\nGet transactions info.\n"
-                "\nArguments:\n"
-                "1. \"transactions\"  (array, required) Transaction hashes\n"
-            );
-        }
-
+        return RPCHelpMan{"gettransactions",
+                "\nGet transactions info.\n",
+                {
+                    {"transactions", RPCArg::Type::ARR, RPCArg::Optional::NO, "Transaction hashes",
+                        {
+                            {"transaction", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    // TODO (team): provide examples
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         vector<string> transactions;
         if (request.params[0].isStr())
         {
@@ -510,6 +632,8 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return result;
+    },
+        };
     }
 
     UniValue _constructTransaction(const PTransactionRef& ptx)

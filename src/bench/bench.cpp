@@ -12,6 +12,7 @@
 #include <regex>
 #include <string>
 #include <vector>
+#include <test/util/setup_common.h>
 
 using namespace std::chrono_literals;
 

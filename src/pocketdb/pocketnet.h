@@ -9,7 +9,7 @@
 #include <chainparams.h>
 #include <core_io.h>
 #include <sstream>
-#include <util.h>
+#include <util/system.h>
 
 #include "logging.h"
 

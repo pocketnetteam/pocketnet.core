@@ -6,13 +6,11 @@
 #define POCKETCOIN_QT_UTILITYDIALOG_H
 
 #include <QDialog>
-#include <QObject>
+#include <QWidget>
 
-class PocketcoinGUI;
-
-namespace interfaces {
-    class Node;
-}
+QT_BEGIN_NAMESPACE
+class QMainWindow;
+QT_END_NAMESPACE
 
 namespace Ui {
     class HelpMessageDialog;
@@ -24,7 +22,7 @@ class HelpMessageDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit HelpMessageDialog(interfaces::Node& node, QWidget *parent, bool about);
+    explicit HelpMessageDialog(QWidget *parent, bool about);
     ~HelpMessageDialog();
 
     void printToConsole();
@@ -45,11 +43,11 @@ class ShutdownWindow : public QWidget
     Q_OBJECT
 
 public:
-    explicit ShutdownWindow(QWidget *parent=0, Qt::WindowFlags f=0);
-    static QWidget *showShutdownWindow(PocketcoinGUI *window);
+    explicit ShutdownWindow(QWidget *parent=nullptr, Qt::WindowFlags f=Qt::Widget);
+    static QWidget* showShutdownWindow(QMainWindow* window);
 
 protected:
-    void closeEvent(QCloseEvent *event);
+    void closeEvent(QCloseEvent *event) override;
 };
 
 #endif // POCKETCOIN_QT_UTILITYDIALOG_H

@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/services/Serializer.h"
+#include "script/standard.h"
 
 namespace PocketServices
 {
@@ -73,11 +74,8 @@ namespace PocketServices
 
     shared_ptr<Transaction> Serializer::buildInstance(const CTransactionRef& tx, const UniValue& src)
     {
-        TxType txType;
-        if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
-            return nullptr;
-
-        shared_ptr <Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, tx);
+        TxType txType = PocketHelpers::TransactionHelper::ParseType(tx);
+        shared_ptr<Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, tx);
         if (!ptx)
             return nullptr;
 
@@ -113,10 +111,7 @@ namespace PocketServices
 
     shared_ptr<Transaction> Serializer::buildInstanceRpc(const CTransactionRef& tx, const UniValue& src)
     {
-        TxType txType;
-        if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
-            return nullptr;
-
+        TxType txType = PocketHelpers::TransactionHelper::ParseType(tx);
         shared_ptr <Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, tx);
         if (!ptx)
             return nullptr;
@@ -166,7 +161,7 @@ namespace PocketServices
             out->SetValue(txout.nValue);
             out->SetScriptPubKey(HexStr(txout.scriptPubKey));
 
-            txnouttype type;
+            TxoutType type;
             std::vector <CTxDestination> vDest;
             int nRequired;
             if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))

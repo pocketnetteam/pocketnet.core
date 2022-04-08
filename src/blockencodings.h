@@ -7,7 +7,6 @@
 
 #include <primitives/block.h>
 
-#include <memory>
 
 class CTxMemPool;
 
@@ -34,19 +33,6 @@ public:
         m_shift += n;
         if (m_shift < n || m_shift >= std::numeric_limits<uint64_t>::max() || m_shift < std::numeric_limits<I>::min() || m_shift > std::numeric_limits<I>::max()) throw std::ios_base::failure("differential value overflow");
         v = I(m_shift++);
-    }
-};
-
-
-// Dumb helper to handle CTransaction compression at serialize-time
-struct TransactionCompressor {
-private:
-    CTransactionRef& tx;
-public:
-    explicit TransactionCompressor(CTransactionRef& txIn) : tx(txIn) {}
-
-    SERIALIZE_METHODS(TransactionCompressor, obj) {
-        READWRITE(obj.tx); //TODO: Compress tx encoding
     }
 };
 
@@ -111,7 +97,7 @@ protected:
     std::vector<PrefilledTransaction> prefilledtxn;
 
 public:
-    static const int SHORTTXIDS_LENGTH = 6;
+    static constexpr int SHORTTXIDS_LENGTH = 6;
 
     CBlockHeader header;
     std::vector<unsigned char> vchBlockSig;
@@ -142,7 +128,7 @@ class PartiallyDownloadedBlock {
 protected:
     std::vector<CTransactionRef> txn_available;
     size_t prefilled_count = 0, mempool_count = 0, extra_count = 0;
-    CTxMemPool* pool;
+    const CTxMemPool* pool;
 public:
     CBlockHeader header;
     std::vector<unsigned char> vchBlockSig;

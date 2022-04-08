@@ -2,6 +2,7 @@ set(QT_FORMS_UI
         addressbookpage.ui
         askpassphrasedialog.ui
         coincontroldialog.ui
+        createwalletdialog.ui
         editaddressdialog.ui
         updatenotificationdialog.ui
         helpmessagedialog.ui
@@ -10,6 +11,7 @@ set(QT_FORMS_UI
         openuridialog.ui
         optionsdialog.ui
         overviewpage.ui
+        psbtoperationsdialog.ui
         receivecoinsdialog.ui
         receiverequestdialog.ui
         debugwindow.ui

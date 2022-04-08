@@ -6,7 +6,7 @@
 #define SRC_WEB_RPC_UTILS_H
 
 #include "rpc/server.h"
-#include "utils/html.h"
+#include "util/html.h"
 #include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 

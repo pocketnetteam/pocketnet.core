@@ -264,16 +264,12 @@ class BigO;
  *  * ``{{/-last}}`` - End marker for either ``{{#-last}}`` or ``{{^-last}}``.
  *
    @verbatim embed:rst
-
    For an overview of all the possible data you can get out of nanobench, please see the tutorial at :ref:`tutorial-template-json`.
-
    The templates that ship with nanobench are:
-
    * :cpp:func:`templates::csv() <ankerl::nanobench::templates::csv()>`
    * :cpp:func:`templates::json() <ankerl::nanobench::templates::json()>`
    * :cpp:func:`templates::htmlBoxplot() <ankerl::nanobench::templates::htmlBoxplot()>`
    * :cpp:func:`templates::pyperf() <ankerl::nanobench::templates::pyperf()>`
-
    @endverbatim
  *
  * @param mustacheTemplate The template.
@@ -299,9 +295,7 @@ namespace templates {
 
 /*!
   @brief CSV data for the benchmark results.
-
   Generates a comma-separated values dataset. First line is the header, each following line is a summary of each benchmark run.
-
   @verbatim embed:rst
   See the tutorial at :ref:`tutorial-template-csv` for an example.
   @endverbatim
@@ -310,12 +304,10 @@ char const* csv() noexcept;
 
 /*!
   @brief HTML output that uses plotly to generate an interactive boxplot chart. See the tutorial for an example output.
-
   The output uses only the elapsed wall clock time, and displays each epoch as a single dot.
   @verbatim embed:rst
   See the tutorial at :ref:`tutorial-template-html` for an example.
   @endverbatim
-
   @see ankerl::nanobench::render()
  */
 char const* htmlBoxplot() noexcept;
@@ -330,7 +322,6 @@ char const* pyperf() noexcept;
 
 /*!
   @brief Template to generate JSON data.
-
   The generated JSON data contains *all* data that has been generated. All times are as double values, in seconds. The output can get
   quite large.
   @verbatim embed:rst
@@ -513,17 +504,13 @@ public:
     /*!
       Creates a new Rng that is seeded with a specific seed. Each Rng created from the same seed will produce the same randomness
       sequence. This can be useful for deterministic behavior.
-
       @verbatim embed:rst
       .. note::
-
          The random algorithm might change between nanobench releases. Whenever a faster and/or better random
          generator becomes available, I will switch the implementation.
       @endverbatim
-
       As per the Romu paper, this seeds the Rng with splitMix64 algorithm and performs 10 initial rounds for further mixing up of the
       internal state.
-
       @param seed  The 64bit seed. All values are allowed, even 0.
      */
     explicit Rng(uint64_t seed) noexcept;
@@ -628,20 +615,15 @@ public:
 
     /*!
       @brief Repeatedly calls `op()` based on the configuration, and performs measurements.
-
       This call is marked with `noinline` to prevent the compiler to optimize beyond different benchmarks. This can have quite a big
       effect on benchmark accuracy.
-
       @verbatim embed:rst
       .. note::
-
         Each call to your lambda must have a side effect that the compiler can't possibly optimize it away. E.g. add a result to an
         externally defined number (like `x` in the above example), and finally call `doNotOptimizeAway` on the variables the compiler
         must not remove. You can also use :cpp:func:`ankerl::nanobench::doNotOptimizeAway` directly in the lambda, but be aware that
         this has a small overhead.
-
       @endverbatim
-
       @tparam Op The code to benchmark.
      */
     template <typename Op>
@@ -866,9 +848,7 @@ public:
 
     /*!
       @verbatim embed:rst
-
       Convenience shortcut to :cpp:func:`ankerl::nanobench::doNotOptimizeAway`.
-
       @endverbatim
      */
     template <typename Arg>
@@ -876,15 +856,11 @@ public:
 
     /*!
       @verbatim embed:rst
-
       Sets N for asymptotic complexity calculation, so it becomes possible to calculate `Big O
       <https://en.wikipedia.org/wiki/Big_O_notation>`_ from multiple benchmark evaluations.
-
       Use :cpp:func:`ankerl::nanobench::Bench::complexityBigO` when the evaluation has finished. See the tutorial
       :ref:`asymptotic-complexity` for details.
-
       @endverbatim
-
       @tparam T Any type is cast to `double`.
       @param b Length of N for the next benchmark run, so it is possible to calculate `bigO`.
      */
@@ -895,16 +871,13 @@ public:
     /*!
       Calculates [Big O](https://en.wikipedia.org/wiki/Big_O_notation>) of the results with all preconfigured complexity functions.
       Currently these complexity functions are fitted into the benchmark results:
-
        @f$ \mathcal{O}(1) @f$,
        @f$ \mathcal{O}(n) @f$,
        @f$ \mathcal{O}(\log{}n) @f$,
        @f$ \mathcal{O}(n\log{}n) @f$,
        @f$ \mathcal{O}(n^2) @f$,
        @f$ \mathcal{O}(n^3) @f$.
-
       If we e.g. evaluate the complexity of `std::sort`, this is the result of `std::cout << bench.complexityBigO()`:
-
       ```
       |   coefficient |   err% | complexity
       |--------------:|-------:|------------
@@ -915,9 +888,7 @@ public:
       |   9.88133e-06 | 132.3% | O(log n)
       |   5.98793e-05 | 162.5% | O(1)
       ```
-
       So in this case @f$ \mathcal{O}(n\log{}n) @f$ provides the best approximation.
-
       @verbatim embed:rst
       See the tutorial :ref:`asymptotic-complexity` for details.
       @endverbatim
@@ -956,9 +927,7 @@ public:
 
     /*!
       @verbatim embed:rst
-
       Convenience shortcut to :cpp:func:`ankerl::nanobench::render`.
-
       @endverbatim
      */
     Bench& render(char const* templateContent, std::ostream& os);
@@ -1330,11 +1299,9 @@ char const* csv() noexcept {
 
 char const* htmlBoxplot() noexcept {
     return R"DELIM(<html>
-
 <head>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
-
 <body>
     <div id="myDiv"></div>
     <script>
@@ -1346,12 +1313,10 @@ char const* htmlBoxplot() noexcept {
             {{/result}}
         ];
         var title = '{{title}}';
-
         data = data.map(a => Object.assign(a, { boxpoints: 'all', pointpos: 0, type: 'box' }));
         var layout = { title: { text: title }, showlegend: false, yaxis: { title: 'time per unit', rangemode: 'tozero', autorange: true } }; Plotly.newPlot('myDiv', data, layout, {responsive: true});
     </script>
 </body>
-
 </html>)DELIM";
 }
 

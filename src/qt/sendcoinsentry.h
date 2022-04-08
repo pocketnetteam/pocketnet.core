@@ -5,12 +5,16 @@
 #ifndef POCKETCOIN_QT_SENDCOINSENTRY_H
 #define POCKETCOIN_QT_SENDCOINSENTRY_H
 
-#include <qt/walletmodel.h>
+#include <qt/sendcoinsrecipient.h>
 
 #include <QStackedWidget>
 
 class WalletModel;
 class PlatformStyle;
+
+namespace interfaces {
+class Node;
+} // namespace interfaces
 
 namespace Ui {
     class SendCoinsEntry;
@@ -26,7 +30,7 @@ class SendCoinsEntry : public QStackedWidget
     Q_OBJECT
 
 public:
-    explicit SendCoinsEntry(const PlatformStyle *platformStyle, QWidget *parent = 0);
+    explicit SendCoinsEntry(const PlatformStyle *platformStyle, QWidget *parent = nullptr);
     ~SendCoinsEntry();
 
     void setModel(WalletModel *model);

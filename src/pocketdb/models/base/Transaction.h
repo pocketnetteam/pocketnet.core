@@ -8,7 +8,7 @@
 #include <string>
 #include <univalue/include/univalue.h>
 #include <utility>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <crypto/sha256.h>
 #include <primitives/transaction.h>
 
@@ -76,6 +76,7 @@ namespace PocketTx
 
         vector<shared_ptr<TransactionInput>>& Inputs();
         vector<shared_ptr<TransactionOutput>>& Outputs();
+        const vector<shared_ptr<TransactionOutput>>& OutputsConst() const;
 
         shared_ptr<Payload> GetPayload() const;
         void SetPayload(Payload value);

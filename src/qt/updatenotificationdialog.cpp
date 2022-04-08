@@ -20,7 +20,7 @@ UpdateNotificationDialog::UpdateNotificationDialog(QString url, QString cur_vers
 {
     ui->setupUi(this);
 
-    QString label_text = "New version of Pocketnet Core available\n";
+    QString label_text = "New version of Bitnet Core available\n";
     label_text += "To update node you have to download new version. Stop node. Install new version and run it.\n\n";
     label_text += "New version - " + new_version + "\nCurrent version - " + cur_version + "\n\n";
     label_text += "Click OK to go to the latest version download page.";

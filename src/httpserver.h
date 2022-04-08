@@ -44,10 +44,14 @@ class WorkQueue;
 
 struct HTTPPathHandler;
 
+namespace util {
+class Ref;
+}
+
 /** Initialize HTTP server.
  * Call this before RegisterHTTPHandler or EventBase().
  */
-bool InitHTTPServer();
+bool InitHTTPServer(const util::Ref& context);
 /** Start HTTP server.
  * This is separate from InitHTTPServer to give users race-condition-free time
  * to register their handlers between InitHTTPServer and StartHTTPServer.
@@ -82,7 +86,7 @@ private:
     DbConnectionRef dbConnection;
 
 public:
-    explicit HTTPRequest(struct evhttp_request* req);
+    explicit HTTPRequest(struct evhttp_request* req, bool _replySent = false);
     ~HTTPRequest();
 
     Statistic::RequestTime Created;
@@ -221,7 +225,7 @@ public:
     HTTPWorkItem(std::shared_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
         req(std::move(_req)), path(_path), func(_func)
     {
-        // log = g_logger->WillLogCategory(BCLog::STAT);
+        // log = LogInstance().WillLogCategory(BCLog::STAT);
         // created = gStatEngineInstance.GetCurrentSystemTime();
     }
 
@@ -237,7 +241,7 @@ public:
 
         func(jreq, path);
 
-        // auto finish = gStatEngineInstance.GetCurrentSystemTime();
+        // auto stop = gStatEngineInstance.GetCurrentSystemTime();
 
         // if (log)
         // {
@@ -245,7 +249,7 @@ public:
         //         Statistic::RequestSample{
         //             uri,
         //             created,
-        //             start,
+        //             stop,
         //             finish,
         //             peer,
         //             0,
@@ -309,7 +313,7 @@ public:
     /** Unregister handler for prefix */
     void UnregisterHTTPHandler(const std::string& prefix, bool exactMatch);
 
-    bool HTTPReq(HTTPRequest* req, CRPCTable& table);
+    bool HTTPReq(HTTPRequest* req, const util::Ref& context,  CRPCTable& table);
 };
 
 class HTTPWebSocket: public HTTPSocket
@@ -325,8 +329,6 @@ public:
     void StopHTTPSocket();
     void InterruptHTTPSocket();
 };
-
-std::string urlDecode(const std::string& urlEncoded);
 
 extern HTTPSocket* g_socket;
 extern HTTPSocket* g_staticSocket;

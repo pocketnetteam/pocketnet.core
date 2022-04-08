@@ -2,11 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <clientversion.h>
+#include <crypto/siphash.h>
 #include <hash.h>
-#include <utilstrencodings.h>
-#include <test/test_pocketcoin.h>
-
-#include <vector>
+#include <test/util/setup_common.h>
+#include <util/strencodings.h>
 
 #include <boost/test/unit_test.hpp>
 

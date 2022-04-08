@@ -9,7 +9,7 @@
 
 #include "fs.h"
 #include "sync.h"
-#include "util.h"
+#include "util/system.h"
 #include "logging.h"
 #include "rpc/protocol.h"
 #include "boost/algorithm/string/split.hpp"

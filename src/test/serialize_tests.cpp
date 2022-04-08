@@ -2,10 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <hash.h>
 #include <serialize.h>
 #include <streams.h>
-#include <hash.h>
-#include <test/test_pocketcoin.h>
+#include <test/util/setup_common.h>
+#include <util/strencodings.h>
 
 #include <stdint.h>
 
@@ -144,7 +145,7 @@ BOOST_AUTO_TEST_CASE(floats)
     for (int i = 0; i < 1000; i++) {
         ss << float(i);
     }
-    BOOST_CHECK(Hash(ss.begin(), ss.end()) == uint256S("8e8b4cf3e4df8b332057e3e23af42ebc663b61e0495d5e7e32d85099d7f3fe0c"));
+    BOOST_CHECK(Hash(ss) == uint256S("8e8b4cf3e4df8b332057e3e23af42ebc663b61e0495d5e7e32d85099d7f3fe0c"));
 
     // decode
     for (int i = 0; i < 1000; i++) {
@@ -161,7 +162,7 @@ BOOST_AUTO_TEST_CASE(doubles)
     for (int i = 0; i < 1000; i++) {
         ss << double(i);
     }
-    BOOST_CHECK(Hash(ss.begin(), ss.end()) == uint256S("43d0c82591953c4eafe114590d392676a01585d25b25d433557f0d7878b23f96"));
+    BOOST_CHECK(Hash(ss) == uint256S("43d0c82591953c4eafe114590d392676a01585d25b25d433557f0d7878b23f96"));
 
     // decode
     for (int i = 0; i < 1000; i++) {
@@ -197,7 +198,7 @@ BOOST_AUTO_TEST_CASE(varints)
     }
 
     for (uint64_t i = 0;  i < 100000000000ULL; i += 999999937) {
-        uint64_t j = -1;
+        uint64_t j = std::numeric_limits<uint64_t>::max();
         ss >> VARINT(j);
         BOOST_CHECK_MESSAGE(i == j, "decoded:" << j << " expected:" << i);
     }
@@ -254,6 +255,14 @@ static bool isCanonicalException(const std::ios_base::failure& ex)
     return strcmp(expectedException.what(), ex.what()) == 0;
 }
 
+BOOST_AUTO_TEST_CASE(vector_bool)
+{
+    std::vector<uint8_t> vec1{1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1};
+    std::vector<bool> vec2{1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1};
+
+    BOOST_CHECK(vec1 == std::vector<uint8_t>(vec2.begin(), vec2.end()));
+    BOOST_CHECK(SerializeHash(vec1) == SerializeHash(vec2));
+}
 
 BOOST_AUTO_TEST_CASE(noncanonical)
 {

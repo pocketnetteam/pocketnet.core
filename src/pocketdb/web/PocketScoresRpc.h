@@ -6,16 +6,16 @@
 #define SRC_POCKETSCORESRPC_H
 
 #include "rpc/server.h"
-#include "rpc/rawtransaction.h"
+// #include "rpc/rawtransaction.h"
 
 namespace PocketWeb::PocketWebRpc
 {
     using namespace std;
 
-    UniValue GetAddressScores(const JSONRPCRequest& request);
-    UniValue GetPostScores(const JSONRPCRequest& request);
-    UniValue GetPagesScores(const JSONRPCRequest& request);
-    UniValue GetCoinInfo(const JSONRPCRequest& request);
+    RPCHelpMan GetAddressScores();
+    RPCHelpMan GetPostScores();
+    RPCHelpMan GetPagesScores();
+    RPCHelpMan GetCoinInfo();
 
 }
 

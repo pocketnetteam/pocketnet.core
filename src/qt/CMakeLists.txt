@@ -1,6 +1,6 @@
 include(CheckCXXSourceCompiles)
 
-find_package(Protobuf REQUIRED)
+# find_package(Protobuf REQUIRED)
 find_package(Qt5 COMPONENTS Widgets LinguistTools Network Core DBus QUIET)
 if(NOT TARGET Qt5::Widgets)
     message(FATAL_ERROR "Failed to find Widgets for qt5")
@@ -30,91 +30,98 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(QT_TS
         locale/pocketcoin_af.ts
-        locale/pocketcoin_af_ZA.ts
+        locale/pocketcoin_am.ts
         locale/pocketcoin_ar.ts
-        locale/pocketcoin_be_BY.ts
-        locale/pocketcoin_bg_BG.ts
+        locale/pocketcoin_az.ts
+        locale/pocketcoin_be.ts
         locale/pocketcoin_bg.ts
-        locale/pocketcoin_ca_ES.ts
+        locale/pocketcoin_bn.ts
+        locale/pocketcoin_bs.ts
         locale/pocketcoin_ca.ts
-        locale/pocketcoin_ca@valencia.ts
         locale/pocketcoin_cs.ts
         locale/pocketcoin_cy.ts
         locale/pocketcoin_da.ts
         locale/pocketcoin_de.ts
-        locale/pocketcoin_el_GR.ts
         locale/pocketcoin_el.ts
-        locale/pocketcoin_en_GB.ts
         locale/pocketcoin_en.ts
+        locale/pocketcoin_en_GB.ts
         locale/pocketcoin_eo.ts
-        locale/pocketcoin_es_AR.ts
+        locale/pocketcoin_es.ts
         locale/pocketcoin_es_CL.ts
         locale/pocketcoin_es_CO.ts
         locale/pocketcoin_es_DO.ts
-        locale/pocketcoin_es_ES.ts
         locale/pocketcoin_es_MX.ts
-        locale/pocketcoin_es.ts
-        locale/pocketcoin_es_UY.ts
         locale/pocketcoin_es_VE.ts
-        locale/pocketcoin_et_EE.ts
         locale/pocketcoin_et.ts
-        locale/pocketcoin_eu_ES.ts
-        locale/pocketcoin_fa_IR.ts
+        locale/pocketcoin_eu.ts
         locale/pocketcoin_fa.ts
         locale/pocketcoin_fi.ts
-        locale/pocketcoin_fr_CA.ts
-        locale/pocketcoin_fr_FR.ts
+        locale/pocketcoin_fil.ts
         locale/pocketcoin_fr.ts
+        locale/pocketcoin_ga.ts
         locale/pocketcoin_gl.ts
+        locale/pocketcoin_gl_ES.ts
+        locale/pocketcoin_gu.ts
         locale/pocketcoin_he.ts
-        locale/pocketcoin_hi_IN.ts
+        locale/pocketcoin_hi.ts
         locale/pocketcoin_hr.ts
         locale/pocketcoin_hu.ts
-        locale/pocketcoin_id_ID.ts
-        locale/pocketcoin_it_IT.ts
+        locale/pocketcoin_id.ts
+        locale/pocketcoin_is.ts
         locale/pocketcoin_it.ts
         locale/pocketcoin_ja.ts
         locale/pocketcoin_ka.ts
-        locale/pocketcoin_kk_KZ.ts
-        locale/pocketcoin_ko_KR.ts
+        locale/pocketcoin_kk.ts
+        locale/pocketcoin_kl.ts
+        locale/pocketcoin_km.ts
+        locale/pocketcoin_ko.ts
         locale/pocketcoin_ku_IQ.ts
         locale/pocketcoin_ky.ts
         locale/pocketcoin_la.ts
         locale/pocketcoin_lt.ts
-        locale/pocketcoin_lv_LV.ts
-        locale/pocketcoin_mk_MK.ts
+        locale/pocketcoin_lv.ts
+        locale/pocketcoin_mk.ts
+        locale/pocketcoin_ml.ts
         locale/pocketcoin_mn.ts
-        locale/pocketcoin_ms_MY.ts
+        locale/pocketcoin_mr_IN.ts
+        locale/pocketcoin_ms.ts
+        locale/pocketcoin_my.ts
         locale/pocketcoin_nb.ts
         locale/pocketcoin_ne.ts
         locale/pocketcoin_nl.ts
+        locale/pocketcoin_no.ts
         locale/pocketcoin_pam.ts
         locale/pocketcoin_pl.ts
+        locale/pocketcoin_pt.ts
         locale/pocketcoin_pt_BR.ts
-        locale/pocketcoin_pt_PT.ts
-        locale/pocketcoin_ro_RO.ts
         locale/pocketcoin_ro.ts
-        locale/pocketcoin_ru_RU.ts
         locale/pocketcoin_ru.ts
+        locale/pocketcoin_si.ts
         locale/pocketcoin_sk.ts
-        locale/pocketcoin_sl_SI.ts
+        locale/pocketcoin_sl.ts
+        locale/pocketcoin_sn.ts
         locale/pocketcoin_sq.ts
-        locale/pocketcoin_sr@latin.ts
         locale/pocketcoin_sr.ts
+        locale/pocketcoin_sr@latin.ts
         locale/pocketcoin_sv.ts
+        locale/pocketcoin_szl.ts
         locale/pocketcoin_ta.ts
-        locale/pocketcoin_th_TH.ts
-        locale/pocketcoin_tr_TR.ts
+        locale/pocketcoin_te.ts
+        locale/pocketcoin_th.ts
         locale/pocketcoin_tr.ts
+        locale/pocketcoin_ug.ts
         locale/pocketcoin_uk.ts
-        locale/pocketcoin_ur_PK.ts
+        locale/pocketcoin_ur.ts
         locale/pocketcoin_uz@Cyrl.ts
+        locale/pocketcoin_uz@Latn.ts
         locale/pocketcoin_vi.ts
-        locale/pocketcoin_vi_VN.ts
+        locale/pocketcoin_yo.ts
+        locale/pocketcoin_zh-Hans.ts
+        locale/pocketcoin_zh.ts
         locale/pocketcoin_zh_CN.ts
         locale/pocketcoin_zh_HK.ts
-        locale/pocketcoin_zh.ts
-        locale/pocketcoin_zh_TW.ts)
+        locale/pocketcoin_zh_TW.ts
+        locale/pocketcoin_zu.ts)
 
 # Specify output path for generated qm files
 foreach(QT_TS_FILE ${QT_TS})
@@ -134,17 +141,18 @@ set_source_files_properties(${QT_TS} PROPERTIES OUTPUT_LOCATION ${QT_TS_OUTPUT_P
 
 set(POCKETCOIN_MM
         macdockiconhandler.mm
-        macnotificationhandler.mm)
+        macnotificationhandler.mm
+        macos_appnap.mm)
 
-set(QT_QRC_CPP qrc_pocketcoin.cpp)
+# set(QT_QRC_CPP qrc_pocketcoin.cpp)
 set(QT_QRC pocketcoin.qrc)
 set(QT_QRC_LOCALE_CPP qrc_pocketcoin_locale.cpp)
 set(QT_QRC_LOCALE pocketcoin_locale.qrc)
 
 # Protobuf files generating
-set(PROTOBUF_PROTO paymentrequest.proto)
-protobuf_generate_cpp(PROTOBUF_CC PROTOBUF_H ${PROTOBUF_PROTO})
-add_custom_target(protobuf_generated ALL DEPENDS ${PROTOBUF_CC} ${PROTOBUF_H})
+# set(PROTOBUF_PROTO paymentrequest.proto)
+# protobuf_generate_cpp(PROTOBUF_CC PROTOBUF_H ${PROTOBUF_PROTO})
+# add_custom_target(protobuf_generated ALL DEPENDS ${PROTOBUF_CC} ${PROTOBUF_H})
 
 set(POCKETCOIN_QT_H
         addressbookpage.h
@@ -153,12 +161,13 @@ set(POCKETCOIN_QT_H
         bantablemodel.h
         pocketcoinaddressvalidator.h
         pocketcoinamountfield.h
+        pocketcoin.h
         pocketcoingui.h
         pocketcoinunits.h
-        callback.h
         clientmodel.h
         coincontroldialog.h
         coincontroltreewidget.h
+        createwalletdialog.h
         csvmodelwriter.h
         editaddressdialog.h
         updatenotificationdialog.h
@@ -172,10 +181,11 @@ set(POCKETCOIN_QT_H
         optionsdialog.h
         optionsmodel.h
         overviewpage.h
-        paymentrequestplus.h
         paymentserver.h
         peertablemodel.h
         platformstyle.h
+        psbtoperationsdialog.h
+        qrimagewidget.h
         qvalidatedlineedit.h
         qvaluecombobox.h
         receivecoinsdialog.h
@@ -184,16 +194,19 @@ set(POCKETCOIN_QT_H
         rpcconsole.h
         sendcoinsdialog.h
         sendcoinsentry.h
+        sendcoinsrecipient.h
         signverifymessagedialog.h
         splashscreen.h
         trafficgraphwidget.h
         transactiondesc.h
         transactiondescdialog.h
         transactionfilterproxy.h
+        transactionoverviewwidget.h
         transactionrecord.h
         transactiontablemodel.h
         transactionview.h
         utilitydialog.h
+        walletcontroller.h
         walletframe.h
         walletmodel.h
         walletmodeltransaction.h
@@ -202,14 +215,12 @@ if(WIN32)
     list(APPEND POCKETCOIN_QT_H winshutdownmonitor.h)
 endif()
 if(APPLE)
-    list(APPEND POCKETCOIN_QT_H macdockiconhandler.h macnotificationhandler.h)
+    list(APPEND POCKETCOIN_QT_H macdockiconhandler.h macnotificationhandler.h macos_appnap.h)
 endif()
 
 set(RES_ICONS
         res/icons/add.png
         res/icons/address-book.png
-        res/icons/about.png
-        res/icons/about_qt.png
         res/icons/pocketcoin.ico
         res/icons/pocketcoin_testnet.ico
         res/icons/pocketcoin.png
@@ -219,13 +230,11 @@ set(RES_ICONS
         res/icons/clock3.png
         res/icons/clock4.png
         res/icons/clock5.png
-        res/icons/configure.png
         res/icons/connect0.png
         res/icons/connect1.png
         res/icons/connect2.png
         res/icons/connect3.png
         res/icons/connect4.png
-        res/icons/debugwindow.png
         res/icons/edit.png
         res/icons/editcopy.png
         res/icons/editpaste.png
@@ -233,21 +242,16 @@ set(RES_ICONS
         res/icons/eye.png
         res/icons/eye_minus.png
         res/icons/eye_plus.png
-        res/icons/filesave.png
         res/icons/fontbigger.png
         res/icons/fontsmaller.png
         res/icons/hd_disabled.png
         res/icons/hd_enabled.png
         res/icons/history.png
-        res/icons/info.png
-        res/icons/key.png
         res/icons/lock_closed.png
         res/icons/lock_open.png
         res/icons/network_disabled.png
-        res/icons/open.png
         res/icons/overview.png
         res/icons/proxy.png
-        res/icons/quit.png
         res/icons/receive.png
         res/icons/remove.png
         res/icons/send.png
@@ -260,11 +264,11 @@ set(RES_ICONS
         res/icons/tx_input.png
         res/icons/tx_output.png
         res/icons/tx_mined.png
-        res/icons/warning.png
-        res/icons/verify.png)
+        res/icons/warning.png)
 
 set(POCKETCOIN_QT_BASE_CPP
         bantablemodel.cpp
+        pocketcoin.cpp
         pocketcoinaddressvalidator.cpp
         pocketcoinamountfield.cpp
         pocketcoingui.cpp
@@ -294,12 +298,14 @@ set(POCKETCOIN_QT_WALLET_CPP
         askpassphrasedialog.cpp
         coincontroldialog.cpp
         coincontroltreewidget.cpp
+        createwalletdialog.cpp
         editaddressdialog.cpp
         updatenotificationdialog.cpp
         openuridialog.cpp
         overviewpage.cpp
-        paymentrequestplus.cpp
         paymentserver.cpp
+        psbtoperationsdialog.cpp
+        qrimagewidget.cpp
         receivecoinsdialog.cpp
         receiverequestdialog.cpp
         recentrequeststablemodel.cpp
@@ -312,6 +318,7 @@ set(POCKETCOIN_QT_WALLET_CPP
         transactionrecord.cpp
         transactiontablemodel.cpp
         transactionview.cpp
+        walletcontroller.cpp
         walletframe.cpp
         walletmodel.cpp
         walletmodeltransaction.cpp
@@ -325,42 +332,42 @@ if(NOT DISABLE_WALLET)
     list(APPEND POCKETCOIN_QT_CPP ${POCKETCOIN_QT_WALLET_CPP})
 endif()
 
-set(RES_MOVIES res/movies/spinner-000.png
-        res/movies/spinner-001.png
-        res/movies/spinner-002.png
-        res/movies/spinner-003.png
-        res/movies/spinner-004.png
-        res/movies/spinner-005.png
-        res/movies/spinner-006.png
-        res/movies/spinner-007.png
-        res/movies/spinner-008.png
-        res/movies/spinner-009.png
-        res/movies/spinner-010.png
-        res/movies/spinner-011.png
-        res/movies/spinner-012.png
-        res/movies/spinner-013.png
-        res/movies/spinner-014.png
-        res/movies/spinner-015.png
-        res/movies/spinner-016.png
-        res/movies/spinner-017.png
-        res/movies/spinner-018.png
-        res/movies/spinner-019.png
-        res/movies/spinner-020.png
-        res/movies/spinner-021.png
-        res/movies/spinner-022.png
-        res/movies/spinner-023.png
-        res/movies/spinner-024.png
-        res/movies/spinner-025.png
-        res/movies/spinner-026.png
-        res/movies/spinner-027.png
-        res/movies/spinner-028.png
-        res/movies/spinner-029.png
-        res/movies/spinner-030.png
-        res/movies/spinner-031.png
-        res/movies/spinner-032.png
-        res/movies/spinner-033.png
-        res/movies/spinner-034.png
-        res/movies/spinner-035.png)
+set(RES_ANUMATIONS res/animations/spinner-000.png
+        res/animations/spinner-001.png
+        res/animations/spinner-002.png
+        res/animations/spinner-003.png
+        res/animations/spinner-004.png
+        res/animations/spinner-005.png
+        res/animations/spinner-006.png
+        res/animations/spinner-007.png
+        res/animations/spinner-008.png
+        res/animations/spinner-009.png
+        res/animations/spinner-010.png
+        res/animations/spinner-011.png
+        res/animations/spinner-012.png
+        res/animations/spinner-013.png
+        res/animations/spinner-014.png
+        res/animations/spinner-015.png
+        res/animations/spinner-016.png
+        res/animations/spinner-017.png
+        res/animations/spinner-018.png
+        res/animations/spinner-019.png
+        res/animations/spinner-020.png
+        res/animations/spinner-021.png
+        res/animations/spinner-022.png
+        res/animations/spinner-023.png
+        res/animations/spinner-024.png
+        res/animations/spinner-025.png
+        res/animations/spinner-026.png
+        res/animations/spinner-027.png
+        res/animations/spinner-028.png
+        res/animations/spinner-029.png
+        res/animations/spinner-030.png
+        res/animations/spinner-031.png
+        res/animations/spinner-032.png
+        res/animations/spinner-033.png
+        res/animations/spinner-034.png
+        res/animations/spinner-035.png)
 
 set(POCKETCOIN_RC res/pocketcoin-qt-res.rc)
 
@@ -387,15 +394,15 @@ add_library(qt_libpocketcoinqt
         ${QT_QRC_LOCALE_COMPILED}
         ${RES_ICONS}
         ${RES_IMAGES}
-        ${RES_MOVIES}
-        ${PROTOBUF_CC}
-        ${PROTOBUF_H}
+        ${RES_ANIMATIONS}
+        # ${PROTOBUF_CC}
+        # ${PROTOBUF_H}
         )
 target_link_libraries(qt_libpocketcoinqt PRIVATE Boost::filesystem OpenSSL::Crypto Oracle::BerkeleyDB leveldb ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON})
 target_link_libraries(qt_libpocketcoinqt PUBLIC Qt5::Core Qt5::Widgets Qt5::Network)
 set_target_properties(qt_libpocketcoinqt PROPERTIES PREFIX "") # Remove "lib" prefix because we already have it in library name
-# Specify dependencies that force processing resources, protobuf and ui files before this target
-add_dependencies(qt_libpocketcoinqt resources resources_locale protobuf_generated ui_done)
+# Specify dependencies that force processing resources and ui files before this target
+add_dependencies(qt_libpocketcoinqt resources resources_locale ui_done)
 # TODO Add checks for this or allow use config as it is in autotools
 target_compile_definitions(qt_libpocketcoinqt PRIVATE HAVE_DECL_BSWAP_16=1 HAVE_DECL_BSWAP_32=1 HAVE_DECL_BSWAP_64=1 HAVE_DECL_EVP_MD_CTX_NEW=1)
 # Include directory "${CMAKE_CURRENT_BINARY_DIR}/.." because generated files (resources, qm files, processed ui, etc) are
@@ -454,14 +461,14 @@ if(_POCKETCOIN_QT_STATIC)
     target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_STATICPLUGIN=1)
 endif()
 
-add_executable(pocketcoin-qt pocketcoin.cpp)
+add_executable(pocketcoin-qt main.cpp)
 if(APPLE)
     target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_MM} moc_macdockiconhandler.cpp)
 endif()
 if(WIN32)
     target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_RC})
 endif()
-target_link_libraries(pocketcoin-qt PRIVATE qt_libpocketcoinqt ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} leveldb memenv ${Protobuf_LIBRARY_DEBUG} libpocketcoin_cli)
-target_include_directories(pocketcoin-qt PRIVATE ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR}/..)
+target_link_libraries(pocketcoin-qt PRIVATE qt_libpocketcoinqt ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} leveldb libpocketcoin_cli)
+# target_include_directories(pocketcoin-qt PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
 
 target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_NO_KEYWORDS)

@@ -15,20 +15,18 @@
 #include "txmempool.h"
 #include "rpc/mining.h"
 #include "policy/rbf.h"
-#include "utilstrencodings.h"
-#include "keystore.h"
-#include "rpc/rawtransaction.h"
+#include "util/strencodings.h"
 #include "pocketdb/services/Serializer.h"
 #include "pocketdb/consensus/Base.h"
 #include "pocketdb/consensus/Helper.h"
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx = nullptr);
-    UniValue AddTransaction(const JSONRPCRequest& request);
-    UniValue EstimateSmartFee(const JSONRPCRequest& request);
-    UniValue GenerateTransaction(const JSONRPCRequest& request);
-    UniValue GenerateAddress(const JSONRPCRequest& request);
+    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman);
+    RPCHelpMan AddTransaction();
+    RPCHelpMan EstimateSmartFee();
+    RPCHelpMan GenerateTransaction();
+    RPCHelpMan GenerateAddress();
 }
 
 #endif //SRC_POCKETTRANSACTIONRPC_H

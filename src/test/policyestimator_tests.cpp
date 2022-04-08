@@ -2,13 +2,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <policy/policy.h>
 #include <policy/fees.h>
+#include <policy/policy.h>
 #include <txmempool.h>
 #include <uint256.h>
-#include <util.h>
+#include <util/time.h>
 
-#include <test/test_pocketcoin.h>
+#include <test/util/setup_common.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
 {
     CBlockPolicyEstimator feeEst;
     CTxMemPool mpool(&feeEst);
-    LOCK(mpool.cs);
+    LOCK2(cs_main, mpool.cs);
     TestMemPoolEntryHelper entry;
     CAmount basefee(2000);
     CAmount deltaFee(100);
@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     tx.vin[0].scriptSig = garbage;
     tx.vout.resize(1);
     tx.vout[0].nValue=0LL;
-    CFeeRate baseRate(basefee, GetVirtualTransactionSize(tx));
+    CFeeRate baseRate(basefee, GetVirtualTransactionSize(CTransaction(tx)));
 
     // Create a fake block
     std::vector<CTransactionRef> block;

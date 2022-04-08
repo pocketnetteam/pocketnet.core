@@ -13,8 +13,8 @@ namespace PocketWeb::PocketWebRpc
 {
     using namespace std;
     
-    UniValue GetCommentsByPost(const JSONRPCRequest& request);
-    UniValue GetLastComments(const JSONRPCRequest& request);
+    RPCHelpMan GetCommentsByPost();
+    RPCHelpMan GetLastComments();
 } // namespace PocketWeb
 
 
