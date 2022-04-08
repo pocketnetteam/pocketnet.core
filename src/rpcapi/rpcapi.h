@@ -47,13 +47,23 @@ struct RequestContext
     std::shared_ptr<IReplier> replier;
 };
 
+/**
+ * Class to process requests.
+ */
 class IRequestHandler
 {
 public:
+    /**
+     * @param reqContext - request data
+     * @param sqliteConnection - unique sqlite connection provided by worker
+     */
     virtual void Exec(const RequestContext& reqContext, const DbConnectionRef& sqliteConnection) = 0;
     virtual ~IRequestHandler() = default;
 };
 
+/**
+ * Request handler that passes request data, sqlite connection and rpc table to user's defined function.
+ */
 class RPCTableFunctionalHandler : public IRequestHandler
 {
 public:
@@ -79,7 +89,10 @@ private:
     std::function<void(const RequestContext& reqContext, const DbConnectionRef&)> m_func;
 };
 
-
+/**
+ * Executes handler with given request context and sqlite connection
+ * provided by worker
+ */
 class RequestWorkItem : public IWorkItem {
 public:
     RequestWorkItem() = default;
@@ -91,6 +104,11 @@ private:
     std::shared_ptr<IRequestHandler> m_handler;
 };
 
+/**
+ * Struct that represents "path" rules and a request handler that belongs to them.
+ * There is only one instance of handler for each request so thread
+ * syncronization should be done inside request handler itself.
+ */
 struct PathRequestHandlerEntry
 {
     std::string prefix;
@@ -98,6 +116,10 @@ struct PathRequestHandlerEntry
     std::shared_ptr<IRequestHandler> requestHandler;
 };
 
+/**
+ * Available answers for pod processing, so the RequestProcessor could handle different
+ * behavior based on this result.
+ */
 enum class PodProcessingResult
 {
     Success,
