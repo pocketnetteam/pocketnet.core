@@ -32,12 +32,15 @@ static const CRPCCommand commands[] =
     {"search",          "searchusers",                      &SearchUsers,                   {"keyword", "fieldtypes", "orderbyrank"}},
 
     // Recomendations
+    // TODO (o1q): Remove below methods when the client gui switches to new methods
     {"search",          "getrecomendedaccountsbysubscriptions",           &GetRecomendedAccountsBySubscriptions,           {"address", "count"}},
     {"search",          "getrecomendedaccountsbyscoresonsimilaraccounts", &GetRecomendedAccountsByScoresOnSimilarAccounts, {"address", "contenttypes", "height", "depth", "count"}},
     {"search",          "getrecomendedaccountsbyscoresfromaddress",       &GetRecomendedAccountsByScoresFromAddress,       {"address", "contenttypes", "height", "depth", "count"}},
     {"search",          "getrecomendedaccountsbytags",                    &GetRecomendedAccountsByTags,                    {"tags", "count"}},
     {"search",          "getrecomendedcontentsbyscoresonsimilarcontents", &GetRecomendedContentsByScoresOnSimilarContents, {"contentid", "contenttypes", "depth", "count"}},
     {"search",          "getrecomendedcontentsbyscoresfromaddress",       &GetRecomendedContentsByScoresFromAddress,       {"address", "contenttypes", "height", "depth", "count"}},
+    // TODO (o1q): Remove above methods when the client gui switches to new (below) methods
+    {"search",          "getrecommendedcontentbycontentid", &GetRecommendedContentByContentId,  {"contentid", "address", "contenttypes", "lang", "count"}},
 
     // WebSocket
     {"websocket",       "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},

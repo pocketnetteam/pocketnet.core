@@ -730,4 +730,97 @@ namespace PocketDb
 
         return result;
     }
+
+    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut)
+    {
+        auto func = __func__;
+        vector<int64_t> ids;
+
+        if (contentAddress.empty())
+            return ids;
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string excludeAddressFilter = "?";
+        if (!address.empty())
+            excludeAddressFilter += ", ?";
+
+        string langFilter = "";
+        if (!lang.empty())
+            langFilter = "join Payload lang on lang.TxHash = Contents.Hash and lang.String1 = ?";
+
+        int minReputation = 30;
+
+        string sql = R"sql(
+            select recomendations.Id
+            from (
+                    select Contents.String1,
+                    Contents.Id,
+                    Rates.String2,
+                    count(*) count
+            from Transactions Rates indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions Contents indexed by Transactions_Type_Last_String2_Height
+                on Contents.String2 = Rates.String2
+                    and Contents.Last = 1
+                    and Contents.Height > 0
+                    and Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
+                    and Contents.String1 not in ( )sql" + excludeAddressFilter + R"sql( )
+            )sql" + langFilter + R"sql(
+            where Rates.Type in (300)
+                and Rates.Int1 = 5
+                and Rates.Height > 0
+                and Rates.Last in (0, 1)
+                and Rates.String1 in (
+                    select subscribers.String2
+                    from Transactions subscribers indexed by Transactions_Type_Last_String1_Height_Id
+                    cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                        on u.Type in (100)
+                            and u.Last = 1 and u.Height > 0
+                            and u.String1 = subscribers.String1
+                    left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                        on r.Type = 0
+                            and r.Last = 1
+                            and r.Id = u.Id
+                    where subscribers.Type in (302, 303)
+                        and subscribers.Last = 1
+                        and subscribers.Height > 0
+                        and subscribers.String1 = ?
+                        and ifnull(r.Value, 0) > ?)
+            group by Rates.String2
+            order by count(*) desc
+            ) recomendations
+            group by recomendations.String1
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementText(stmt, i++, contentAddress);
+            if (!address.empty())
+                TryBindStatementText(stmt, i++, address);
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            TryBindStatementText(stmt, i++, contentAddress);
+            TryBindStatementInt(stmt, i++, minReputation);
+            TryBindStatementInt(stmt, i++, cntOut);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return ids;
+    }
 }
