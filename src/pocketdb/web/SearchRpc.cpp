@@ -576,10 +576,17 @@ namespace PocketWeb::PocketWebRpc
             cntOut = request.params[4].get_int();
 
         UniValue result(UniValue::VARR);
-        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, chainActive.Height(), (60 * 24 * 30 * 6), 100);
+        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, chainActive.Height(), (60 * 24 * 30 * 3), 10);
         if (!ids.empty())
         {
-            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, address);
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+            result.push_backV(contents);
+        }
+
+        ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOut);
+        if (!ids.empty())
+        {
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
             result.push_backV(contents);
         }
 

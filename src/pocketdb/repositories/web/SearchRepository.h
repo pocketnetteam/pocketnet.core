@@ -42,6 +42,7 @@ namespace PocketDb
         UniValue GetRecomendedContentsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
 
         vector<int64_t> GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth = 129600, int cntScored = 100);
+        vector<int64_t> GetRandomContentByAddress(const string& contentAddress, const vector<int>& contentTypes, const string& lang, int cntOut);
     };
 
     typedef shared_ptr<SearchRepository> SearchRepositoryRef;

@@ -833,4 +833,61 @@ namespace PocketDb
 
         return ids;
     }
+
+    vector<int64_t> SearchRepository::GetRandomContentByAddress(const string& contentAddress, const vector<int>& contentTypes, const string& lang, int cntOut)
+    {
+        auto func = __func__;
+        vector<int64_t> ids;
+
+        if (contentAddress.empty())
+            return ids;
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string langFilter = "";
+        if (!lang.empty())
+            langFilter = "cross join Payload lang on lang.TxHash = Contents.Hash and lang.String1 = ?";
+
+        string sql = R"sql(
+            select Contents.Id
+            from Transactions Contents indexed by Transactions_Type_Last_String1_Height_Id
+            )sql" + langFilter + R"sql(
+            where Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
+              and Contents.Last = 1
+              and Contents.String1 = ?
+              and Contents.Height > 0
+            order by random()
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementText(stmt, i++, contentAddress);
+
+            TryBindStatementInt(stmt, i++, cntOut);
+
+            // LogPrintf(sqlite3_expanded_sql(*stmt));
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return ids;
+
+
+    }
 }
