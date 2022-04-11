@@ -3446,7 +3446,6 @@ namespace PocketDb
             }
 
             // ---------------------------------------------
-            LogPrintf(sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
