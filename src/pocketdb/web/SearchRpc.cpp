@@ -537,7 +537,7 @@ namespace PocketWeb::PocketWebRpc
                 "2. \"addressExclude\" (string, optional) Address for exclude from recommendations\n"
                 "3. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/videos/articles\n"
                 "3. \"lang\" (string, optional) Language for recommendations\n"
-                "4. \"count\" (int, optional) Number of resulting records. Default 15\n"
+                "4. \"count\" (int, optional) Number of recommendations records and number of other contents from addres. Default 15\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);

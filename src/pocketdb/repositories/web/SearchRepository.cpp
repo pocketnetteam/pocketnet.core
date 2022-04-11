@@ -731,7 +731,7 @@ namespace PocketDb
         return result;
     }
 
-    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth, int cntScored)
+    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth, int cntSubscriptions)
     {
         auto func = __func__;
         vector<int64_t> ids;
@@ -817,7 +817,7 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, minReputation);
             TryBindStatementText(stmt, i++, contentAddress);
 
-            TryBindStatementInt(stmt, i++, cntScored);
+            TryBindStatementInt(stmt, i++, cntSubscriptions);
 
             TryBindStatementInt(stmt, i++, cntOut);
 
