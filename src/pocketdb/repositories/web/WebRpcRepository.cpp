@@ -569,11 +569,11 @@ namespace PocketDb
                     if (auto[ok, value] = TryGetColumnInt(*stmt, 21); ok) record.pushKV("rc", value);
                     if (auto[ok, value] = TryGetColumnString(*stmt, 22); ok) record.pushKV("hash", value);
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 23); ok)
                     {
-                        UniValue subscribes(UniValue::VARR);
-                        subscribes.read(value);
-                        record.pushKV("subscribes", subscribes);
+                        UniValue flags(UniValue::VOBJ);
+                        flags.read(value);
+                        record.pushKV("flags", flags);
                     }
                 }
 
