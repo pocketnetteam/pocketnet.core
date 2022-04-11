@@ -14,6 +14,7 @@
 #include <rtc/datachannel.hpp>
 #include <rtc/websocket.hpp>
 #include "eventloop.h"
+#include "webrtc/wsconnectionhandler.h"
 
 #include <string>
 #include <vector>
@@ -37,7 +38,7 @@ public:
 private:
     std::atomic_bool m_fRunning = false;
     const int m_port;
-    ProtectedMap<std::string, std::shared_ptr<rtc::WebSocket>> m_wsConnections;
+    std::shared_ptr<ProtectedMap<std::string, std::shared_ptr<webrtc::WsConnectionHandler>>> m_wsConnections;
     std::shared_ptr<WebRTCProtocol> m_protocol;
     std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> m_queue;
     std::shared_ptr<QueueEventLoopThread<std::shared_ptr<WebRTCConnection>>> m_eventLoop;

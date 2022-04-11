@@ -20,6 +20,7 @@ WebRTC::WebRTC(std::shared_ptr <IRequestProcessor> requestProcessor, int port)
 {
     m_protocol = std::make_shared<WebRTCProtocol>(requestProcessor, m_queue),
     m_eventLoop = std::make_shared<QueueEventLoopThread<std::shared_ptr<WebRTCConnection>>>(m_queue, std::make_shared<PCClearer>());
+    m_wsConnections = std::make_shared<ProtectedMap<std::string, std::shared_ptr<webrtc::WsConnectionHandler>>>();
 }
 
 
@@ -29,11 +30,12 @@ void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
         // TODO (losty-rtc): error
         return;
     }
-    if (m_wsConnections.has(ip)) {
+    if (m_wsConnections->has(ip)) {
         // TODO (losty-rtc): error
         return;
     }
     auto ws = std::make_shared<rtc::WebSocket>();
+    auto wsHandler = std::make_shared<webrtc::WsConnectionHandler>(ip, ws, m_wsConnections);
     // TODO (losty-rtc): better memory handling in callbacks
     ws->onOpen([ws = std::weak_ptr(ws)]() {
         // UniValue registermeMsg(UniValue::VOBJ);
@@ -71,19 +73,21 @@ void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
             protocol->Process(message["message"], ip, lock);
         }
     });
-    ws->onClosed([ip, /*HACK*/&wsConnections = m_wsConnections]() {
-        wsConnections.erase(ip);
+    ws->onClosed([wsHandler = std::weak_ptr(wsHandler)]() {
+        if (auto lock = wsHandler.lock()) {
+            lock->onClosed();
+        }
     });
 
     std::string url = "ws://" + ip + ":" + std::to_string(m_port) + "/signaling";
     ws->open(url);
 
-    m_wsConnections.insert(ip, std::move(ws));
+    m_wsConnections->insert(ip, std::move(wsHandler));
 }
 
 void WebRTC::DropConnection(const std::string &ip)
 {
-    m_wsConnections.erase(ip);
+    m_wsConnections->erase(ip);
 }
 
 void WebRTC::Start()
@@ -96,7 +100,7 @@ void WebRTC::Stop()
 {
     m_fRunning = false;
     m_eventLoop->Stop();
-    m_wsConnections.clear();
+    m_wsConnections->clear();
     m_protocol->StopAll();
     // TODO (losty-rtc): queue is not cleared
 }
