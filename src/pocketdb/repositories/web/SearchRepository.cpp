@@ -731,13 +731,15 @@ namespace PocketDb
         return result;
     }
 
-    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut)
+    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth, int cntScored)
     {
         auto func = __func__;
         vector<int64_t> ids;
 
         if (contentAddress.empty())
             return ids;
+
+        // int nHeight = chainActive.Height();
 
         string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
 
@@ -747,7 +749,7 @@ namespace PocketDb
 
         string langFilter = "";
         if (!lang.empty())
-            langFilter = "join Payload lang on lang.TxHash = Contents.Hash and lang.String1 = ?";
+            langFilter = "cross join Payload lang on lang.TxHash = Contents.Hash and lang.String1 = ?";
 
         int minReputation = 30;
 
@@ -758,8 +760,8 @@ namespace PocketDb
                     Contents.Id,
                     Rates.String2,
                     count(*) count
-            from Transactions Rates indexed by Transactions_Type_Last_String1_String2_Height
-            join Transactions Contents indexed by Transactions_Type_Last_String2_Height
+            from Transactions Rates indexed by Transactions_Type_Last_String1_Height_Id
+            cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
                 on Contents.String2 = Rates.String2
                     and Contents.Last = 1
                     and Contents.Height > 0
@@ -768,7 +770,7 @@ namespace PocketDb
             )sql" + langFilter + R"sql(
             where Rates.Type in (300)
                 and Rates.Int1 = 5
-                and Rates.Height > 0
+                and Rates.Height > ?--0
                 and Rates.Last in (0, 1)
                 and Rates.String1 in (
                     select subscribers.String2
@@ -777,15 +779,17 @@ namespace PocketDb
                         on u.Type in (100)
                             and u.Last = 1 and u.Height > 0
                             and u.String1 = subscribers.String1
-                    left join Ratings r indexed by Ratings_Type_Id_Last_Value
-                        on r.Type = 0
+                    cross join Ratings r indexed by Ratings_Type_Id_Last_Value
+                        on r.Id = u.Id
+                            and r.Type = 0
                             and r.Last = 1
-                            and r.Id = u.Id
+                            and r.Value > ?
                     where subscribers.Type in (302, 303)
                         and subscribers.Last = 1
                         and subscribers.Height > 0
                         and subscribers.String1 = ?
-                        and ifnull(r.Value, 0) > ?)
+                    limit ?
+                    )
             group by Rates.String2
             order by count(*) desc
             ) recomendations
@@ -808,10 +812,16 @@ namespace PocketDb
             if (!lang.empty())
                 TryBindStatementText(stmt, i++, lang);
 
-            TryBindStatementText(stmt, i++, contentAddress);
+            TryBindStatementInt(stmt, i++, nHeight-depth);
+
             TryBindStatementInt(stmt, i++, minReputation);
+            TryBindStatementText(stmt, i++, contentAddress);
+
+            TryBindStatementInt(stmt, i++, cntScored);
+
             TryBindStatementInt(stmt, i++, cntOut);
 
+            // LogPrintf(sqlite3_expanded_sql(*stmt));
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)

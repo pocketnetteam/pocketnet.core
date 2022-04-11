@@ -516,7 +516,67 @@ namespace PocketWeb::PocketWebRpc
         auto contentsAddresses = request.DbConnection()->WebRpcRepoInst->GetContentsAddresses(vector<string>{contenthash});
 
         UniValue result(UniValue::VARR);
-        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(contentsAddresses[contenthash], address, contentTypes, lang, cntOut);
+        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(contentsAddresses[contenthash], address, contentTypes, lang, cntOut, chainActive.Height(), (60 * 24 * 30 * 6), 100);
+        if (!ids.empty())
+        {
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, address);
+            result.push_backV(contents);
+        }
+
+        return result;
+    }
+
+    UniValue GetRecommendedContentByAddress(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "getrecommendedcontentbyaddress \"address\", \"addressExclude\", \"contenttypes\", \"lang\", count\n"
+                "\nContents recommendations by contentid for address.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address for recommendations\n"
+                "2. \"addressExclude\" (string, optional) Address for exclude from recommendations\n"
+                "3. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/videos/articles\n"
+                "3. \"lang\" (string, optional) Language for recommendations\n"
+                "4. \"count\" (int, optional) Number of resulting records. Default 15\n"
+            );
+
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = "";
+        if (request.params.size() > 0 && request.params[0].isStr()) {
+            address = request.params[0].get_str();
+
+            if(!address.empty()) {
+                CTxDestination dest = DecodeDestination(address);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + address);
+            }
+        }
+
+        string addressExclude = "";
+        if (request.params.size() > 1 && request.params[1].isStr()) {
+            addressExclude = request.params[1].get_str();
+
+            if(!addressExclude.empty()) {
+                CTxDestination dest = DecodeDestination(addressExclude);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + addressExclude);
+            }
+        }
+
+        vector<int> contentTypes;
+        if(request.params.size()>2)
+            ParseRequestContentTypes(request.params[2], contentTypes);
+
+        string lang = "";
+        if (request.params.size() > 3 && request.params[3].isStr())
+            lang = request.params[3].get_str();
+
+        int cntOut = 15;
+        if (request.params.size() > 4 && request.params[4].isNum())
+            cntOut = request.params[4].get_int();
+
+        UniValue result(UniValue::VARR);
+        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, chainActive.Height(), (60 * 24 * 30 * 6), 100);
         if (!ids.empty())
         {
             auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, address);
