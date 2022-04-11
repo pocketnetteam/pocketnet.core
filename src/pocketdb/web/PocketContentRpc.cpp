@@ -21,8 +21,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 2 && request.params[2].isNum())
         {
             countOut = request.params[2].get_int();
-            if (countOut > 10)
-                countOut = 10;
+            countOut = std::min(countOut, 20);
         }
 
         lang = "en";

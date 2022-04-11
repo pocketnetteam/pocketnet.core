@@ -15,52 +15,9 @@ UniValue gettemplate(const JSONRPCRequest& request)
     return aResult;
 }
 
-UniValue Test(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "test\n"
-            "\n...\n");
-
-    string contentAddress = "PUmbyuUgsPdkpysD9XKPdhbjG149BM3U8N";
-    string address = "";
-    std::vector<int> contentTypes = {201};
-    string lang = "en";
-    int cntOut = 15;
-
-    int depth = 60*24;
-    int cntScored = 100;
-
-    UniValue aResult(UniValue::VARR);
-    //for (int nDay = 1; nDay <= 90; nDay++)
-    int nDay = 90;
-    for (nDay = 1; nDay <= 180; nDay++)
-    for (cntScored = 1; cntScored <= 300; cntScored++)
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(contentAddress, address, contentTypes, lang,
-            cntOut, chainActive.Height(), depth * nDay, cntScored);
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        if (ids.size() <= 0)
-            duration = 10000;
-
-        LogPrintf("nDay = %d; cntSubscribes = %d, duration = %d\n", nDay, cntScored, duration);
-        UniValue oItm(UniValue::VOBJ);
-        oItm.pushKV("contentAddress", contentAddress);
-        oItm.pushKV("nDay", nDay);
-        oItm.pushKV("cntSubscribes", cntScored);
-        oItm.pushKV("duration", duration);
-        aResult.push_back(oItm);
-    }
-
-    return aResult;
-}
-
 // @formatter:off
 static const CRPCCommand commands[] =
 {
-    {"hidden", "test", &Test, {}},
     {"hidden",       "generatepocketnettransaction",      &GenerateTransaction,             {"address", "privKey", "outCount", "type", "payload"}},
     {"hidden",       "generatepocketnetaddress",          &GenerateAddress,                 {}},
 

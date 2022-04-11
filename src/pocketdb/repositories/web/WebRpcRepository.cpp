@@ -1483,7 +1483,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select Id
-            from Transactions
+            from Transactions indexed by Transactions_Hash_Height
             where Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
               and Height is not null
         )sql";
