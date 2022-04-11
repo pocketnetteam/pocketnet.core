@@ -36,7 +36,11 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_LowReputation};
 
             // Target transaction must be a exists and is a content and author should be equals ptx->GetContentAddressHash()
-            if (!ConsensusRepoInst.Exists(*ptx->GetContentTxHash(), *ptx->GetContentAddressHash(), { ACCOUNT_USER, CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }, true))
+            if (!ConsensusRepoInst.ExistsNotDeleted(
+                *ptx->GetContentTxHash(),
+                *ptx->GetContentAddressHash(),
+                { ACCOUNT_USER, CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
+            ))
                 return {false, SocialConsensusResult_NotFound};
 
             return Success;
