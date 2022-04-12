@@ -27,7 +27,8 @@ namespace PocketWeb::PocketWebRpc
     UniValue FeedSelector(const JSONRPCRequest& request);
     UniValue GetContentsStatistic(const JSONRPCRequest& request);
     UniValue GetRandomContents(const JSONRPCRequest& request);
-    
+    UniValue GetContentActions(const JSONRPCRequest& request);
+
 }
 
 #endif //SRC_POCKETDEBUG_H

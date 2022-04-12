@@ -138,6 +138,8 @@ namespace PocketDb
 
         vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
 
+        UniValue GetContentActions(const string& postTxHash);
+
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
         UniValue GetSubscribesFeedOld(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);

@@ -647,4 +647,17 @@ namespace PocketWeb::PocketWebRpc
 
         return result;
     }
+
+    UniValue GetContentActions(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getcontentactions\n"
+                "\nGet profiles that performed actions(score/boos/donate) on content.\n");
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        auto contentHash = request.params[0].get_str();
+        return request.DbConnection()->WebRpcRepoInst->GetContentActions(contentHash);
+    }
 }

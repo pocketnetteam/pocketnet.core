@@ -3705,4 +3705,154 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetContentActions(const string& postTxHash)
+    {
+        auto func = __func__;
+        UniValue resultScores(UniValue::VARR);
+        UniValue resultBoosts(UniValue::VARR);
+        UniValue resultDonations(UniValue::VARR);
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            --scores
+            select
+                s.String2 as ContentTxHash,
+                s.String1 as AddressHash,
+                p.String2 as AccountName,
+                p.String3 as AccountAvatar,
+                r.Value as AccountReputation,
+                s.Int1 as ScoreValue,
+                0 as sumBoost,
+                0 as sumDonation
+            from Transactions s indexed by Transactions_Type_Last_String2_Height
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on  u.String1 = s.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
+            left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                on r.Id = u.Id and r.Type = 0 and r.Last = 1
+            cross join Payload p on p.TxHash = u.Hash
+            where s.Type in (300)
+              and s.Last in (0,1)
+              and s.Height > 0
+              and s.String2 = ?
+
+            --boosts
+            union
+
+            select
+                tb.String2 as ContentTxHash,
+                tb.String1 as AddressHash,
+                p.String2 as AccountName,
+                p.String3 as AccountAvatar,
+                r.Value as AccountReputation,
+                0 as ScoreValue,
+                tb.sumBoost as sumBoost,
+                0 as sumDonation
+            from
+            (
+            select
+                b.String1,
+                b.String2,
+                sum(b.Int1) as sumBoost
+            from Transactions b indexed by Transactions_Type_Last_String2_Height
+            where b.Type in (208)
+              and b.Last in (0,1)
+              and b.Height > 0
+              and b.String2 = ?
+            group by
+                b.String1,
+                b.String2
+            )tb
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.String1 = tb.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
+            left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                on r.Id = u.Id and r.Type = 0 and r.Last = 1
+            cross join Payload p on p.TxHash = u.Hash
+
+            --donations
+            union
+
+            select
+                td.String3 as ContentTxHash,
+                td.String1 as AddressHash,
+                p.String2 as AccountName,
+                p.String3 as AccountAvatar,
+                r.Value as AccountReputation,
+                0 as ScoreValue,
+                0 as sumBoost,
+                td.sumDonation as sumDonation
+            from
+            (
+            select
+                comment.String1,
+                comment.String3,
+                sum(o.Value) as sumDonation
+            from Transactions comment indexed by Transactions_Type_Last_String3_Height
+            join Transactions content indexed by Transactions_Type_Last_String2_Height
+                on content.String2 = comment.String3
+                    and content.Type in (200,201,202)
+                    and content.Last = 1
+                    and content.Height is not null
+            join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                on o.TxHash = comment.Hash
+                    and o.AddressHash = content.String1
+                    and o.AddressHash != comment.String1
+                    and o.Value > 0
+            where comment.Type in (204, 205, 206)
+                and comment.Height is not null
+                and comment.Last = 1
+                and comment.String3 = ?
+            group by
+                comment.String1,
+                comment.String3
+            )td
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.String1 = td.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
+            left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                on r.Id = u.Id and r.Type = 0 and r.Last = 1
+            cross join Payload p on p.TxHash = u.Hash
+        )sql";
+
+        TryTransactionStep(func, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            TryBindStatementText(stmt, i++, postTxHash);
+            TryBindStatementText(stmt, i++, postTxHash);
+            TryBindStatementText(stmt, i++, postTxHash);
+
+            // ---------------------------------------------
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok && value > 0) {
+                    record.pushKV("value", value);
+                    resultScores.push_back(record);
+                }
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok && value > 0) {
+                    record.pushKV("value", value);
+                    resultBoosts.push_back(record);
+                }
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok && value > 0) {
+                    record.pushKV("value", value);
+                    resultDonations.push_back(record);
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        result.pushKV("scores",resultScores);
+        result.pushKV("boosts",resultBoosts);
+        result.pushKV("donations",resultDonations);
+
+        return result;
+    }
+
 }
