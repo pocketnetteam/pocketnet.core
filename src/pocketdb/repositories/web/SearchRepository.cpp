@@ -752,8 +752,15 @@ namespace PocketDb
         // int minReputation = 30;
         //
         // string sql = R"sql(
-        //     select recomendations.Id
-        //     from (
+        //     select Contents.String1
+        //     from Transactions Rates indexed by Transactions_Type_Last_String1_Height_Id
+        //     cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
+        //         on Contents.String2 = Rates.String2
+        //             and Contents.Last = 1
+        //             and Contents.Height > 0
+        //             and Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
+        //             and Contents.String1 not in ( ? )
+        //
         //             select Contents.String1,
         //             Contents.Id,
         //             Rates.String2,
