@@ -731,10 +731,10 @@ namespace PocketDb
         return result;
     }
 
-    vector<int64_t> SearchRepository::GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth, int cntSubscriptions)
+    vector<string> SearchRepository::GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth, int cntSubscriptions)
     {
         auto func = __func__;
-        vector<int64_t> ids;
+        vector<string> ids;
 
         if (address.empty())
             return ids;
@@ -810,7 +810,7 @@ namespace PocketDb
             // LogPrintf(sqlite3_expanded_sql(*stmt));
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
                     ids.push_back(value);
             }
 
