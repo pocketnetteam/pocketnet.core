@@ -55,6 +55,7 @@ namespace PocketWeb::PocketWebRpc
     #pragma region Recomendations
     UniValue GetRecommendedContentByContentId(const JSONRPCRequest& request);
     UniValue GetRecommendedContentByAddress(const JSONRPCRequest& request);
+    UniValue GetRecommendedAccountByAddress(const JSONRPCRequest& request);
     #pragma endregion
 }
 
