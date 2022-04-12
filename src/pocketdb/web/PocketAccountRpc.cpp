@@ -148,8 +148,10 @@ namespace PocketWeb::PocketWebRpc
         if (result["address"].isNull())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
-        // Calculate additional fields
+        // Cechk account permissions
+        AccountData accountData = { result["address_id"].get_int64(), result["reputation"].get_int64(), result["user_reg_height"].get_int64(), result["likers"].get_int64() };
         auto accountMode = reputationConsensus->GetAccountMode(result["reputation"].get_int(), result["balance"].get_int64());
+        auto accountIsShark = reputationConsensus->IsShark(accountData);
 
         result.pushKV("mode", accountMode);
         result.pushKV("trial", accountMode == AccountMode_Trial);
@@ -213,6 +215,16 @@ namespace PocketWeb::PocketWebRpc
 
         if (!result["score_spent"].isNull())
             result.pushKV("score_unspent", scoreLimit - result["score_spent"].get_int());
+
+        if (!result["mod_flag_spent"].isNull())
+            result.pushKV("mod_flag_unspent", reputationConsensus->GetConsensusLimit(ConsensusLimit_moderation_flag_count) - result["mod_flag_spent"].get_int());
+
+        if (accountIsShark)
+        {
+            UniValue badges(UniValue::VARR);
+            badges.push_back("shark");
+            result.pushKV("badges", badges);
+        }
 
         return result;
     }
