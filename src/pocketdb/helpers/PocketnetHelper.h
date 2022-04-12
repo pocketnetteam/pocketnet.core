@@ -25,7 +25,8 @@ namespace PocketHelpers
             "PVJ1rRdS9y9sUpaBJc8quiSTJGrC3xW8EH",
             "PAF1BvWEH7pA24QbbEvCEasViC2Pw9BVj3",
             "PSADH5AY5M9RaWrDVdaMrR2C2s6dCGfNK4",
-            "PMyjUzHtzsmbejB87ATbrcQNatiGsT4NzG"
+            "PMyjUzHtzsmbejB87ATbrcQNatiGsT4NzG",
+            "PHdW4pwWbFdoofVhSEfPSHgradmrvZdbE5"
         }},
         {"test", {
             "TG69Jioc81PiwMAJtRanfZqUmRY4TUG7nt",
