@@ -24,6 +24,14 @@ namespace PocketDb
     using namespace PocketTx;
     using namespace PocketHelpers;
 
+    struct AccountData
+    {
+        int64_t AddressId;
+        int64_t Reputation;
+        int64_t RegistrationHeight;
+        int64_t LikersCount;
+    };
+
     class ConsensusRepository : public TransactionRepository
     {
     public:
@@ -49,6 +57,8 @@ namespace PocketDb
         int GetAccountRegistrationHeight(int addressId);
         int64_t GetAccountRegistrationTime(int addressId);
 
+        AccountData GetAccountData(const string& address);
+
         ScoreDataDtoRef GetScoreData(const string& txHash);
         shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
         tuple<bool, string> GetReferrer(const string& address);
@@ -71,6 +81,8 @@ namespace PocketDb
         bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
         bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
         bool ExistsAnotherByName(const string& address, const string& name);
+        bool Exists(const string& txHash, const vector<TxType>& types, bool inChain);
+        bool ExistsNotDeleted(const string& txHash, const string& address, const vector<TxType>& types);
 
         // get counts in "mempool" - Height is null
         int CountMempoolBlocking(const string& address, const string& addressTo);
@@ -122,6 +134,11 @@ namespace PocketDb
         int CountChainArticleEdit(const string& address, const string& rootTxHash);
 
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
+
+        /* MODERATION */
+        int CountModerationFlag(const string& address, int height, bool includeMempool);
+        int CountModerationFlag(const string& address, const string& addressTo, bool includeMempool);
+
     };
 
 } // namespace PocketDb

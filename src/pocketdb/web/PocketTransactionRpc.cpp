@@ -34,7 +34,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX deserialize failed");
 
         // Set required fields
-        ptx->SetAddress(address);
+        ptx->SetString1(address);
 
         // TODO (team): TEMPORARY
         // Temporary check for UserConsensus_checkpoint_login_limitation checkpoint
@@ -262,7 +262,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX deserialize failed");
 
         // Set required fields
-        ptx->SetAddress(address);
+        ptx->SetString1(address);
 
         // Insert into mempool
         return _accept_transaction(tx, ptx);

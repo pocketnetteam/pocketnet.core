@@ -58,6 +58,7 @@ namespace PocketDb
         RatingsRepoInst.Init();
         ConsensusRepoInst.Init();
         NotifierRepoInst.Init();
+        SystemRepoInst.Init();
 
         // Open, create structure and close `web` db
         PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();

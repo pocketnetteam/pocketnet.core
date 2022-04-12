@@ -52,29 +52,31 @@ namespace PocketDb
                 -- ContentVideo.RootTxHash
                 -- ContentDelete.RootTxHash
                 -- Comment.RootTxHash
-                -- ScorePost.PostTxHash
-                -- ScoreComment.CommentTxHash
+                -- ScorePost.ContentRootTxHash
+                -- ScoreComment.CommentRootTxHash
                 -- Subscribe.AddressToHash
                 -- Blocking.AddressToHash
-                -- Complain.PostTxHash
-                -- Boost.ContentTxHash
+                -- Complain.ContentRootTxHash
+                -- Boost.ContentRootTxHash
+                -- ModerationFlag.ContentTxHash
                 String2   text   null,
 
-                -- ContentPost.RelayTxHash
-                -- ContentVideo.RelayTxHash
-                -- Comment.PostTxHash
+                -- ContentPost.RelayRootTxHash
+                -- ContentVideo.RelayRootTxHash
+                -- Comment.ContentRootTxHash
                 String3   text   null,
 
-                -- Comment.ParentTxHash
+                -- Comment.ParentRootTxHash
                 String4   text   null,
 
-                -- Comment.AnswerTxHash
+                -- Comment.AnswerRootTxHash
                 String5   text   null,
 
                 -- ScoreContent.Value
                 -- ScoreComment.Value
                 -- Complain.Reason
                 -- Boost.Amount
+                -- ModerationFlag.Reason
                 Int1      int    null
             );
         )sql");
@@ -121,7 +123,6 @@ namespace PocketDb
                 -- ContentVideo.Url
                 String7 text   null,
 
-                -- Comment.Donate
                 Int1    int    null
             );
         )sql");
@@ -173,23 +174,18 @@ namespace PocketDb
             );
         )sql");
 
+        _tables.emplace_back(R"sql(
+            create table if not exists System
+            (
+                Db text not null,
+                Version int not null,
+                primary key (Db)
+            );
+        )sql");
+
 
         _preProcessing = R"sql(
-            
-            insert into TxInputs
-            (
-                SpentTxHash,
-                TxHash,
-                Number
-            )
-            select
-                o.SpentTxHash,
-                o.TxHash,
-                o.Number
-            from TxOutputs o indexed by TxOutputs_SpentTxHash
-            where o.SpentTxHash is not null
-              and not exists (select i.ROWID from TxInputs i)
-
+            insert or ignore into System (Db, Version) values ('main', 0);
         )sql";
 
 
@@ -213,6 +209,7 @@ namespace PocketDb
             create index if not exists Transactions_Type_Last_Height_String5_String1 on Transactions (Type, Last, Height, String5, String1);
             create index if not exists Transactions_Type_Last_Height_Id on Transactions (Type, Last, Height, Id);
             create index if not exists Transactions_Type_String1_String2_Height on Transactions (Type, String1, String2, Height);
+            create index if not exists Transactions_Type_String1_String3_Height on Transactions (Type, String1, String3, Height);
             create index if not exists Transactions_Type_String1_Height_Time_Int1 on Transactions (Type, String1, Height, Time, Int1);
             create index if not exists Transactions_String1_Last_Height on Transactions (String1, Last, Height);
             create index if not exists Transactions_Last_Id_Height on Transactions (Last, Id, Height);
