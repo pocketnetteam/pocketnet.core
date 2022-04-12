@@ -98,7 +98,7 @@ namespace PocketConsensus
     public:
         explicit ReputationConsensus(int height) : BaseConsensus(height) {}
 
-        virtual bool IsShark(const AccountData& accountData, ConsensusLimit limit)
+        virtual bool IsShark(const AccountData& accountData, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
         {
             auto minReputation = GetConsensusLimit(limit);
             auto minLikersCount = GetMinLikers(accountData.RegistrationHeight);
