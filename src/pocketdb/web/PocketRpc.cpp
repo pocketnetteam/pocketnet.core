@@ -42,6 +42,7 @@ static const CRPCCommand commands[] =
     // TODO (o1q): Remove above methods when the client gui switches to new (below) methods
     {"search",          "getrecommendedcontentbycontentid", &GetRecommendedContentByContentId, {"contentid", "address", "contenttypes", "lang", "count"}},
     {"search",          "getrecommendedcontentbyaddress",   &GetRecommendedContentByAddress,   {"address", "addressExclude", "contenttypes", "lang", "count"}},
+    {"search",          "getrecommendedaccountbyaddress",   &GetRecommendedAccountByAddress,   {"address", "addressExclude", "contenttypes", "lang", "count"}},
 
     // WebSocket
     {"websocket",       "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},
