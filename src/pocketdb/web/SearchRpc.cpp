@@ -575,21 +575,23 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 4 && request.params[4].isNum())
             cntOut = request.params[4].get_int();
 
-        UniValue result(UniValue::VARR);
+        UniValue resultContent(UniValue::VARR);
         auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, chainActive.Height(), (60 * 24 * 30 * 3), 10);
         if (!ids.empty())
         {
             auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
-            result.push_backV(contents);
+            resultContent.push_backV(contents);
         }
 
         ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOut);
         if (!ids.empty())
         {
             auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
-            result.push_backV(contents);
+            resultContent.push_backV(contents);
         }
 
+        UniValue result(UniValue::VOBJ);
+        result.pushKV("contents", resultContent);
         return result;
     }
 
