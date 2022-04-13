@@ -84,6 +84,10 @@ namespace PocketDb
         UniValue GetSubscribesAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
         UniValue GetSubscribersAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
         UniValue GetBlockingToAddresses(const string& address);
+        vector<string> GetTopAccounts(int topHeight, int countOut, const string& lang,
+        const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, int depth,
+        int badReputationLimit);
 
         UniValue GetTags(const string& lang, int pageSize, int pageStart);
 
@@ -110,6 +114,11 @@ namespace PocketDb
         vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
         
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
+
+        UniValue GetTopFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+        const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
+        int badReputationLimit);
         
         UniValue GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
