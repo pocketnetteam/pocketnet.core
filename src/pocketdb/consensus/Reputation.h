@@ -74,7 +74,7 @@ namespace PocketConsensus
             int64_t _max_scores_one_to_one = GetConsensusLimit(ConsensusLimit_scores_one_to_one_over_comment);
             int64_t _scores_one_to_one_depth = GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth);
 
-            std::vector<int> values;
+            vector<int> values;
             if (lottery)
             {
                 values.push_back(1);
@@ -98,14 +98,18 @@ namespace PocketConsensus
     public:
         explicit ReputationConsensus(int height) : BaseConsensus(height) {}
 
-        virtual bool IsShark(const string& address, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
+        virtual bool IsShark(const AccountData& accountData, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
         {
-            auto accountData = ConsensusRepoInst.GetAccountData(address);
-
             auto minReputation = GetConsensusLimit(limit);
             auto minLikersCount = GetMinLikers(accountData.RegistrationHeight);
 
             return accountData.Reputation >= minReputation && accountData.LikersCount >= minLikersCount;
+        }
+
+        virtual bool IsShark(const string& address, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
+        {
+            auto accountData = ConsensusRepoInst.GetAccountData(address);
+            return IsShark(accountData, limit);
         }
 
         virtual AccountMode GetAccountMode(int reputation, int64_t balance)
@@ -164,9 +168,14 @@ namespace PocketConsensus
             }
         }
     
-        virtual int GetScoreMultiplier(int scoreValue)
+        virtual int GetScoreContentAuthorValue(int scoreValue)
         {
             return (scoreValue - 3) * 10;
+        }
+    
+        virtual int GetScoreCommentAuthorValue(int scoreValue)
+        {
+            return scoreValue;
         }
     };
 
@@ -234,19 +243,34 @@ namespace PocketConsensus
     };
 
     // Consensus checkpoint: reducing the impact on the reputation of scores 1,2 for content
-    class ReputationConsensus_checkpoint_scores_reducing_impact : public ReputationConsensus_checkpoint_1324655_2
+    class ReputationConsensus_checkpoint_scores_content_author_reducing_impact : public ReputationConsensus_checkpoint_1324655_2
     {
     public:
-        explicit ReputationConsensus_checkpoint_scores_reducing_impact(int height) : ReputationConsensus_checkpoint_1324655_2(height) {}
-        int GetScoreMultiplier(int scoreValue) override
+        explicit ReputationConsensus_checkpoint_scores_content_author_reducing_impact(int height) : ReputationConsensus_checkpoint_1324655_2(height) {}
+        int GetScoreContentAuthorValue(int scoreValue) override
         {
             int multiplier = 10;
             if (scoreValue == 1 || scoreValue == 2)
-                multiplier = 2;
+                multiplier = 1;
             
             return (scoreValue - 3) * multiplier;
         }
     };
+
+    // Consensus checkpoint: disable the impact on the reputation of scores -1 for comment
+    class ReputationConsensus_checkpoint_scores_comment_author_disable_impact : public ReputationConsensus_checkpoint_scores_content_author_reducing_impact
+    {
+    public:
+        explicit ReputationConsensus_checkpoint_scores_comment_author_disable_impact(int height) : ReputationConsensus_checkpoint_scores_content_author_reducing_impact(height) {}
+        int GetScoreCommentAuthorValue(int scoreValue) override
+        {
+            if (scoreValue == -1)
+                return 0;
+            
+            return scoreValue;
+        }
+    };
+
 
     //  Factory for select actual rules version
     class ReputationConsensusFactory
@@ -258,7 +282,8 @@ namespace PocketConsensus
             { 1180000,      0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
             { 1324655,  65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
             { 1324655,  75000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655_2>(height); }},
-            { 1680000, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_reducing_impact>(height); }},
+            { 1680000, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
+            { 1680000, 772000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_comment_author_disable_impact>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
