@@ -808,7 +808,6 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, i++, cntOut);
 
-            // LogPrintf(sqlite3_expanded_sql(*stmt));
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
@@ -910,7 +909,6 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, i++, cntOut);
 
-            // LogPrintf(sqlite3_expanded_sql(*stmt));
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
@@ -965,7 +963,6 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, i++, cntOut);
 
-            // LogPrintf(sqlite3_expanded_sql(*stmt));
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
