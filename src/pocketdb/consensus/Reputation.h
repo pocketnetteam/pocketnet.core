@@ -261,7 +261,7 @@ namespace PocketConsensus
     class ReputationConsensus_checkpoint_scores_comment_author_disable_impact : public ReputationConsensus_checkpoint_scores_content_author_reducing_impact
     {
     public:
-        explicit ReputationConsensus_checkpoint_scores_comment_disable_impact(int height) : ReputationConsensus_checkpoint_scores_content_author_reducing_impact(height) {}
+        explicit ReputationConsensus_checkpoint_scores_comment_author_disable_impact(int height) : ReputationConsensus_checkpoint_scores_content_author_reducing_impact(height) {}
         int GetScoreCommentAuthorValue(int scoreValue) override
         {
             if (scoreValue == -1)
