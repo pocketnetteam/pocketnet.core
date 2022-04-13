@@ -190,10 +190,11 @@ namespace PocketDb
 
         string sql = R"sql(
             select
+                u.Id as AddressId,
                 u.String1 as Address,
 
-                (select reg.Time from Transactions reg indexed by Transactions_Id
-                    where reg.Id=u.Id and reg.Height=(select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id=reg.Id)) as RegistrationDate,
+                reg.Time as RegistrationDate,
+                reg.Height as RegistrationHeight,
 
                 ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
@@ -223,9 +224,15 @@ namespace PocketDb
                     where p.Type in (301) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ScoreCommentSpent,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (307) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ComplainSpent
+                    where p.Type in (307) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ComplainSpent,
+
+                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                    where p.Type in (410) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as FlagsSpent
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+
+            cross join Transactions reg indexed by Transactions_Id
+                    on reg.Id = u.Id and reg.Height = (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = reg.Id)
 
             where u.Type in (100, 101, 102)
             and u.Height is not null
@@ -248,19 +255,23 @@ namespace PocketDb
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) result.pushKV("user_reg_date", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("balance", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("likers", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result.pushKV("address_id", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.pushKV("user_reg_date", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("user_reg_height", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("balance", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("likers", value);
 
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("post_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("video_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("article_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("comment_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("comment_score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) result.pushKV("complain_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("post_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("video_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("article_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("comment_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) result.pushKV("score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 12); ok) result.pushKV("comment_score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 13); ok) result.pushKV("complain_spent", value);
+                
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 14); ok) result.pushKV("mod_flag_spent", value);
             }
 
             FinalizeSqlStatement(*stmt);
