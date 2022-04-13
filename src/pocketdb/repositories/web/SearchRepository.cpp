@@ -780,6 +780,7 @@ namespace PocketDb
                         limit ?
                 )
             group by Contents.String1
+            having count(*) > 1
             order by count (*) desc
             limit ?
         )sql";
@@ -878,6 +879,7 @@ namespace PocketDb
                     limit ?
                     )
             group by Rates.String2
+            having count(*) > 1
             order by count(*) desc
             ) recomendations
             group by recomendations.String1
