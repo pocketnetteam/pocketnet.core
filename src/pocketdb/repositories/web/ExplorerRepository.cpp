@@ -323,7 +323,7 @@ namespace PocketDb {
                 select t.Hash
                 from Transactions t indexed by Transactions_BlockHash
                 where t.BlockHash = ?
-                order by t.BlockNum desc
+                order by t.BlockNum asc
                 limit ?, ?
             )sql");
 
