@@ -100,15 +100,15 @@ namespace PocketServices
                 continue;
 
             // Calculate ratings values
-            // Rating for users over posts = equals -20 and 20 - saved in int 21 = 2.1
+            // Rating for users over posts = equals -0.2 and 20 - saved in int 20 = 2.0
             // Rating for users over comments = equals -0.1 or 0.1
-            // Rating for posts equals between -2 and 2
+            // Rating for posts equals between -2 and 2 - as is
             // Rating for comments equals between -1 and 2 - as is
             switch (scoreData->ScoreType)
             {
                 case PocketTx::ACTION_SCORE_CONTENT:
                     ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
-                        reputationConsensus->GetScoreMultiplier(scoreData->ScoreValue);
+                        reputationConsensus->GetScoreContentAuthorValue(scoreData->ScoreValue);
 
                     ratingValues[RatingType::RATING_CONTENT][scoreData->ContentId] +=
                         scoreData->ScoreValue - 3;
@@ -120,7 +120,7 @@ namespace PocketServices
 
                 case PocketTx::ACTION_SCORE_COMMENT:
                     ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
-                        scoreData->ScoreValue;
+                        reputationConsensus->GetScoreCommentAuthorValue(scoreData->ScoreValue);
 
                     ratingValues[RatingType::RATING_COMMENT][scoreData->ContentId] +=
                         scoreData->ScoreValue;
