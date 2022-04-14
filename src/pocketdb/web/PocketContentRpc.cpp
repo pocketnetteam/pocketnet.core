@@ -110,6 +110,7 @@ namespace PocketWeb::PocketWebRpc
                     if (!IsValidDestination(dest))
                         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address_feed);
                 }
+            }
         }
     }
 
