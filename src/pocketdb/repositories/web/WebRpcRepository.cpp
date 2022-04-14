@@ -2884,7 +2884,7 @@ namespace PocketDb
              ) )sql";
         }
 
-        sql += " order by t.Id desc ";
+        sql += " order by cr.Value desc ";
         sql += " limit ? ";
 
         // ---------------------------------------------
