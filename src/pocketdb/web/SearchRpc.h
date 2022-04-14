@@ -22,7 +22,8 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan SearchLinks();
     RPCHelpMan SearchContents();
 
-    #pragma region Recomendations
+    #pragma region Recomendations OLD
+    // TODO (o1q): Remove below methods when the client gui switches to new methods
     // Accounts recommendations based on subscriptions
     // Get some accounts that were followed by people who've followed this Account
     // This should be run only if Account already has followers
@@ -48,6 +49,12 @@ namespace PocketWeb::PocketWebRpc
     // Contents recommendations by address scores
     // Get some contents that were liked by people who've scored like address  (not long ago - several blocks ago)
     RPCHelpMan GetRecomendedContentsByScoresFromAddress();
+    #pragma endregion
+
+    #pragma region Recomendations
+    RPCHelpMan GetRecommendedContentByContentId();
+    RPCHelpMan GetRecommendedContentByAddress();
+    RPCHelpMan GetRecommendedAccountByAddress();
     #pragma endregion
 }
 
