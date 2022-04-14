@@ -23,7 +23,8 @@ namespace PocketWeb::PocketWebRpc
     UniValue SearchLinks(const JSONRPCRequest& request);
     UniValue SearchContents(const JSONRPCRequest& request);
 
-    #pragma region Recomendations
+    #pragma region Recomendations OLD
+    // TODO (o1q): Remove below methods when the client gui switches to new methods
     // Accounts recommendations based on subscriptions
     // Get some accounts that were followed by people who've followed this Account
     // This should be run only if Account already has followers
@@ -49,6 +50,12 @@ namespace PocketWeb::PocketWebRpc
     // Contents recommendations by address scores
     // Get some contents that were liked by people who've scored like address  (not long ago - several blocks ago)
     UniValue GetRecomendedContentsByScoresFromAddress(const JSONRPCRequest& request);
+    #pragma endregion
+
+    #pragma region Recomendations
+    UniValue GetRecommendedContentByContentId(const JSONRPCRequest& request);
+    UniValue GetRecommendedContentByAddress(const JSONRPCRequest& request);
+    UniValue GetRecommendedAccountByAddress(const JSONRPCRequest& request);
     #pragma endregion
 }
 

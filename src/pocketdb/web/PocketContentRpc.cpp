@@ -21,8 +21,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 2 && request.params[2].isNum())
         {
             countOut = request.params[2].get_int();
-            if (countOut > 10)
-                countOut = 10;
+            countOut = std::min(countOut, 20);
         }
 
         lang = "en";
@@ -454,6 +453,66 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
+    UniValue GetTopFeed(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetTopFeed\n"
+                "topHeight           (int) - ???\n"
+                "topContentHash      (string, optional) - ???\n"
+                "countOut            (int, optional) - ???\n"
+                "lang                (string, optional) - ???\n"
+                "tags                (vector<string>, optional) - ???\n"
+                "contentTypes        (vector<int>, optional) - ???\n"
+                "txIdsExcluded       (vector<string>, optional) - ???\n"
+                "adrsExcluded        (vector<string>, optional) - ???\n"
+                "tagsExcluded        (vector<string>, optional) - ???\n"
+                "address             (string, optional) - ???\n"
+                "depth               (int, optional) - ???\n"
+            );
+
+        int topHeight;
+        string topContentHash;
+        int countOut;
+        string lang;
+        vector<string> tags;
+        vector<int> contentTypes;
+        vector<string> txIdsExcluded;
+        vector<string> adrsExcluded;
+        vector<string> tagsExcluded;
+        string address;
+        int depth = 60 * 24 * 30 * 12; // about 1 year
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+            adrsExcluded, tagsExcluded, address);
+        // depth
+        if (request.params.size() > 10)
+        {
+            RPCTypeCheckArgument(request.params[10], UniValue::VNUM);
+            depth = std::min(depth, request.params[10].get_int());
+        }
+
+        int64_t topContentId = 0;
+        if (!topContentHash.empty())
+        {
+            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+            if (!ids.empty())
+                topContentId = ids[0];
+        }
+
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
+        UniValue result(UniValue::VOBJ);
+        UniValue content = request.DbConnection()->WebRpcRepoInst->GetTopFeed(
+            countOut, topContentId, topHeight, lang, tags, contentTypes,
+            txIdsExcluded, adrsExcluded, tagsExcluded,
+            address, depth, badReputationLimit);
+
+        result.pushKV("height", topHeight);
+        result.pushKV("contents", content);
+        return result;
+    }
+
     UniValue GetSubscribesFeed(const JSONRPCRequest& request)
     {
         if (request.fHelp)
@@ -647,5 +706,18 @@ namespace PocketWeb::PocketWebRpc
         result.push_backV(content);
 
         return result;
+    }
+
+    UniValue GetContentActions(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getcontentactions\n"
+                "\nGet profiles that performed actions(score/boos/donate) on content.\n");
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        auto contentHash = request.params[0].get_str();
+        return request.DbConnection()->WebRpcRepoInst->GetContentActions(contentHash);
     }
 }

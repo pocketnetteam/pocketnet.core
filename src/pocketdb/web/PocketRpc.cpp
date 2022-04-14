@@ -32,12 +32,17 @@ static const CRPCCommand commands[] =
     {"search",          "searchusers",                      &SearchUsers,                   {"keyword", "fieldtypes", "orderbyrank"}},
 
     // Recomendations
+    // TODO (o1q): Remove below methods when the client gui switches to new methods
     {"search",          "getrecomendedaccountsbysubscriptions",           &GetRecomendedAccountsBySubscriptions,           {"address", "count"}},
     {"search",          "getrecomendedaccountsbyscoresonsimilaraccounts", &GetRecomendedAccountsByScoresOnSimilarAccounts, {"address", "contenttypes", "height", "depth", "count"}},
     {"search",          "getrecomendedaccountsbyscoresfromaddress",       &GetRecomendedAccountsByScoresFromAddress,       {"address", "contenttypes", "height", "depth", "count"}},
     {"search",          "getrecomendedaccountsbytags",                    &GetRecomendedAccountsByTags,                    {"tags", "count"}},
     {"search",          "getrecomendedcontentsbyscoresonsimilarcontents", &GetRecomendedContentsByScoresOnSimilarContents, {"contentid", "contenttypes", "depth", "count"}},
     {"search",          "getrecomendedcontentsbyscoresfromaddress",       &GetRecomendedContentsByScoresFromAddress,       {"address", "contenttypes", "height", "depth", "count"}},
+    // TODO (o1q): Remove above methods when the client gui switches to new (below) methods
+    {"search",          "getrecommendedcontentbycontentid", &GetRecommendedContentByContentId, {"contentid", "address", "contenttypes", "lang", "count"}},
+    {"search",          "getrecommendedcontentbyaddress",   &GetRecommendedContentByAddress,   {"address", "addressExclude", "contenttypes", "lang", "count"}},
+    {"search",          "getrecommendedaccountbyaddress",   &GetRecommendedAccountByAddress,   {"address", "addressExclude", "contenttypes", "lang", "count"}},
 
     // WebSocket
     {"websocket",       "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},
@@ -49,14 +54,16 @@ static const CRPCCommand commands[] =
     {"contents",        "gethierarchicalfeed",              &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     {"contents",        "gethierarchicalstrip",             &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     {"contents",        "getboostfeed",                     &GetBoostFeed,                  {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
-    {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address", "address_feed"}},
-    {"contents",        "getsubscribesfeed",                &GetSubscribesFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address", "address_feed"}},
+    {"contents",        "gettopfeed",                       &GetTopFeed,                    {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","depth"}},
+    {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed"}},
+    {"contents",        "getsubscribesfeed",                &GetSubscribesFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed"}},
     {"contents",        "getrawtransactionwithmessage",     &FeedSelector,                  {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"contents",        "getrawtransactionwithmessagebyid", &GetContent,                    {"ids", "address"}},
     {"contents",        "getcontent",                       &GetContent,                    {"ids", "address"}},
     {"contents",        "getcontentsstatistic",             &GetContentsStatistic,          {"addresses", "contentTypes", "height", "depth"}},
     {"contents",        "getcontents",                      &GetContents,                   {"address"}},
     {"contents",        "getrandomcontents",                &GetRandomContents,             {}},
+    {"contents",        "getcontentactions",                &GetContentActions,             {"contentHash"}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
@@ -78,6 +85,7 @@ static const CRPCCommand commands[] =
     {"accounts",        "getusersubscribes",                &GetAccountSubscribes,           {"address", "height", "depth"}},
     {"accounts",        "getusersubscribers",               &GetAccountSubscribers,          {"address", "height", "depth"}},
     {"accounts",        "getuserblockings",                 &GetAccountBlockings,            {"address", "height", "depth"}},
+    {"accounts",        "gettopaccounts",                   &GetTopAccounts,                 {"topHeight","countOut","lang","tags","contentTypes","adrsExcluded","tagsExcluded","depth"}},
 
     // Scores
     {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},
