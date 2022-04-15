@@ -137,7 +137,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<ModerationFlagConsensus>> m_rules = {
             {       0,     -1, [](int height) { return make_shared<ModerationFlagConsensus>(height); }},
-            { 1680000, 761000, [](int height) { return make_shared<ModerationFlagConsensus_checkpoint_enable>(height); }},
+            { 1700000, 761000, [](int height) { return make_shared<ModerationFlagConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModerationFlagConsensus> Instance(int height)

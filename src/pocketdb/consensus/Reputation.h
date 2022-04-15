@@ -282,8 +282,8 @@ namespace PocketConsensus
             { 1180000,      0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
             { 1324655,  65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
             { 1324655,  75000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655_2>(height); }},
-            { 1680000, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
-            { 1680000, 772000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_comment_author_disable_impact>(height); }},
+            { 1700000, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
+            { 1700000, 772000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_comment_author_disable_impact>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
