@@ -2826,19 +2826,19 @@ namespace PocketDb
 
         string langFilter;
         if (!lang.empty())
-            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
+            langFilter += " cross join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
 
         string sql = R"sql(
             select t.Id
 
-            from Transactions t indexed by Transactions_Last_Id_Height
+            from Transactions t indexed by Transactions_Type_Last_Height_Id
 
-            join Ratings cr indexed by Ratings_Type_Id_Last_Value
+            cross join Ratings cr indexed by Ratings_Type_Id_Last_Value
                 on cr.Type = 2 and cr.Last = 1 and cr.Id = t.Id and cr.Value > 0
 
             )sql" + langFilter + R"sql(
 
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
 
             left join Ratings ur indexed by Ratings_Type_Id_Last_Height
