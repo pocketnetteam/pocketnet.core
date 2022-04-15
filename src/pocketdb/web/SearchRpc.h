@@ -23,37 +23,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue SearchLinks(const JSONRPCRequest& request);
     UniValue SearchContents(const JSONRPCRequest& request);
 
-    #pragma region Recomendations OLD
-    // TODO (o1q): Remove below methods when the client gui switches to new methods
-    // Accounts recommendations based on subscriptions
-    // Get some accounts that were followed by people who've followed this Account
-    // This should be run only if Account already has followers
-    UniValue GetRecomendedAccountsBySubscriptions(const JSONRPCRequest& request);
-
-    // Accounts recommendations based on scores on other Account
-    // Get some Accounts that were scored by people who've scored this Account  (not long ago - several blocks ago)
-    UniValue GetRecomendedAccountsByScoresOnSimilarAccounts(const JSONRPCRequest& request);
-
-    // Accounts recommendations based on address scores
-    // Get some Accounts that were scored by people who've scored like address  (not long ago - several blocks ago)
-    // Get address scores -> Get scored contents -> Get Scores to these contents -> Get scores accounts -> Get their scores -> Get their scored contents -> Get these contents Authors
-    UniValue GetRecomendedAccountsByScoresFromAddress(const JSONRPCRequest& request);
-
-    // Accounts recommendations based on tags
-    UniValue GetRecomendedAccountsByTags(const JSONRPCRequest& request);
-
-    // Contents recommendations by others contents
-    // Get some contents that were liked by people who've seen this content (not long ago - several blocks ago)
-    // This should be run only if Content already has >XXXX likes
-    UniValue GetRecomendedContentsByScoresOnSimilarContents(const JSONRPCRequest& request);
-
-    // Contents recommendations by address scores
-    // Get some contents that were liked by people who've scored like address  (not long ago - several blocks ago)
-    UniValue GetRecomendedContentsByScoresFromAddress(const JSONRPCRequest& request);
-    #pragma endregion
-
     #pragma region Recomendations
-    UniValue GetRecommendedContentByContentId(const JSONRPCRequest& request);
     UniValue GetRecommendedContentByAddress(const JSONRPCRequest& request);
     UniValue GetRecommendedAccountByAddress(const JSONRPCRequest& request);
     #pragma endregion
