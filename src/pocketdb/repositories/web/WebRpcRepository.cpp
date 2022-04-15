@@ -2846,7 +2846,7 @@ namespace PocketDb
 
             where t.Type in )sql" + contentTypesWhere + R"sql(
                 and t.Last = 1
-                and t.String3 is null
+                --and t.String3 is null
                 and t.Height > ?
                 and t.Height <= ?
 
