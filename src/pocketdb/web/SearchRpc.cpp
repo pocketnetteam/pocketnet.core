@@ -394,8 +394,18 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 4 && request.params[4].isNum())
             cntOut = request.params[4].get_int();
 
+        int nHeight = chainActive.Height();
+        if (request.params.size() > 5 && request.params[5].isNum() && request.params[5].get_int() > 0)
+            nHeight = request.params[5].get_int();
+
+        int depth = (60 * 24 * 30 * 3); //about 3 month as default
+        if (request.params.size() > 6 && request.params[6].isNum())
+        {
+            depth = std::max(request.params[6].get_int(), (60 * 24 * 30 * 6)); // not greater than about 6 month
+        }
+
         UniValue result(UniValue::VARR);
-        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedAccountByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, chainActive.Height(), (60 * 24 * 30 * 3), 10);
+        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedAccountByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, nHeight, depth);
         if (!ids.empty())
         {
             auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
