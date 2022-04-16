@@ -590,7 +590,7 @@ namespace PocketDb
             from (
                  select Contents.String1,
                         Contents.Id,
-                        Rates.String2,
+                        --Rates.String2,
                         count(*) count
                  from Transactions Rates indexed by Transactions_Type_Last_String1_Height_Id
                   cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
@@ -652,11 +652,13 @@ namespace PocketDb
                        order by rnk
                        limit ?
                        )
-                 group by Rates.String2
+                 --group by Rates.String2
+                 group by Contents.Id
                  having count(*) > ?
                  order by count(*) desc
                  ) recomendations
             group by recomendations.String1
+            order by recomendations.count desc
             limit ?
         )sql";
 
