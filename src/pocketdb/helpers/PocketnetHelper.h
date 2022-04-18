@@ -15,8 +15,8 @@ namespace PocketHelpers
 {
     using namespace std;
 
-    static map<string, vector<string>> PocketnetDevelopers{
-        {"main", {
+    static map<NetworkId, vector<string>> PocketnetDevelopers{
+        {NetworkId::NetworkMain, {
             "P9EkPPJPPRYxmK541WJkmH8yBM4GuWDn2m",
             "PUGBtfmivvcg1afnEt9vqVi3yZ7v6S9BcC",
             "PDtuJDVXaq82HH7fafgwBmcoxbqqWdJ9u9",
@@ -28,7 +28,7 @@ namespace PocketHelpers
             "PMyjUzHtzsmbejB87ATbrcQNatiGsT4NzG",
             "PHdW4pwWbFdoofVhSEfPSHgradmrvZdbE5"
         }},
-        {"test", {
+        {NetworkId::NetworkTest, {
             "TG69Jioc81PiwMAJtRanfZqUmRY4TUG7nt",
             "TLnfXcFNxxrpEUUzrzZvbW7b9gWFtAcc8x",
             "TYMo5HRFpc7tqzccaVifx7s2x2ZDqMikCR",
@@ -37,7 +37,7 @@ namespace PocketHelpers
 
     static inline bool IsDeveloper(const string& address)
     {
-        auto net = Params().NetworkIDString();
+        auto net = Params().NetworkID();
         return find(PocketnetDevelopers[net].begin(), PocketnetDevelopers[net].end(), address) != PocketnetDevelopers[net].end();
     }
 }
