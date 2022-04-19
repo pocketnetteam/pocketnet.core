@@ -604,7 +604,10 @@ void SetupServerArgs()
 
     gArgs.AddArg("-api", strprintf("Enable Public RPC api server (default: %u)", DEFAULT_API_ENABLE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rest", strprintf("Accept public REST requests (default: %u)", DEFAULT_REST_ENABLE), true, OptionsCategory::RPC);
-    gArgs.AddArg("-static", strprintf("Accept public requests to static resources (default: %u)", DEFAULT_STATIC_ENABLE), false, OptionsCategory::RPC);
+    
+    gArgs.AddArg("-static", strprintf("Accept public requests to static resources (default: %u)", DEFAULT_STATIC_ENABLE), true, OptionsCategory::RPC);
+    gArgs.AddArg("-staticpath", "Path to static resources (default: GetDataDir()/wwwroot", true, OptionsCategory::RPC);
+
     gArgs.AddArg("-rpcallowip=<ip>", "Allow JSON-RPC connections from specified source. Valid for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24). This option can be specified multiple times", false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcauth=<userpw>", "Username and hashed password for JSON-RPC connections. The field <userpw> comes in the format: <USERNAME>:<SALT>$<HASH>. A canonical python script is included in share/rpcauth. The client then connects normally using the rpcuser=<USERNAME>/rpcpassword=<PASSWORD> pair of arguments. This option can be specified multiple times", false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcbind=<addr>[:port]", "Bind to given address to listen for JSON-RPC connections. This option is ignored unless -rpcallowip is also passed. Port is optional and overrides -rpcport. Use [host]:port notation for IPv6. This option can be specified multiple times (default: 127.0.0.1 and ::1 i.e., localhost, or if -rpcallowip has been specified, 0.0.0.0 and :: i.e., all addresses)", false, OptionsCategory::RPC);
