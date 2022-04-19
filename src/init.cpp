@@ -2264,7 +2264,8 @@ bool AppInitMain()
     // ********************************************************* Step 13: finished
 
     // Start WebSocket server
-    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE)) InitWS();
+    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE))
+        InitWS();
 
     gStatEngineInstance.Run(threadGroup);
 
