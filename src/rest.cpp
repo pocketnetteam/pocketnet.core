@@ -765,6 +765,9 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
         return true;
     }
 
+    if (strURIPart.find("status") == 0)
+        return get_static_status(req, strURIPart);
+
     if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile(strURIPart); code == HTTP_OK)
     {
         req->WriteHeader("Content-Type", file->ContentType);
@@ -875,10 +878,7 @@ void StartREST()
 void StartStatic()
 {
     if (g_staticSocket)
-    {
         g_staticSocket->RegisterHTTPHandler("/", false, get_static_web, g_staticSocket->m_workQueue);
-        g_staticSocket->RegisterHTTPHandler("/status", false, get_static_status, g_staticSocket->m_workQueue);
-    }
 }
 
 void InterruptREST()
