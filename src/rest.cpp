@@ -841,7 +841,7 @@ static bool get_static_status(HTTPRequest* req, const std::string& strURIPart)
     entry.pushKV("ports", ports);
 
     req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, result.write() + "\n");
+    req->WriteReply(HTTP_OK, entry.write() + "\n");
     return true;
 }
 
