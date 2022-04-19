@@ -74,7 +74,8 @@ namespace PocketWeb
 
     void PocketFrontend::Init()
     {
-        _rootPath = GetDataDir() / "static_files";
+        string _argPath = gArgs.GetArg("-staticpath", "wwwroot");
+        _rootPath = (_argPath == "wwwroot") ? GetDataDir() / "wwwroot" : _argPath;
 
         auto testContent = shared_ptr<StaticFile>(new StaticFile{
             "/404.html",
@@ -156,12 +157,7 @@ namespace PocketWeb
         if (!readOk)
         {
             if (!stopRecurse)
-            {
-                if (_path.find("explorer") == 0)
-                    return GetFile("/explorer/index.html", true);
-
                 return GetFile("/index.html", true);
-            }
 
             return NotFound();
         }
