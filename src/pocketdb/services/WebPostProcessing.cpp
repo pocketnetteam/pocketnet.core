@@ -18,14 +18,19 @@ namespace PocketServices
     {
         // Signal for complete all tasks
         {
+            LogPrintf("DEBUG 1");
             LOCK(_queue_mutex);
+            LogPrintf("DEBUG 2");
 
             shutdown = true;
             _queue_cond.notify_all();
+            LogPrintf("DEBUG 3");
         }
 
         // Wait all tasks completed
+        LogPrintf("DEBUG 4");
         LOCK(_running_mutex);
+        LogPrintf("DEBUG 5");
     }
 
     void WebPostProcessor::Worker()
