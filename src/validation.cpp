@@ -39,6 +39,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
 #include <univalue.h>
+#include <httpserver.h>
 
 #include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/services/Accessor.h"
