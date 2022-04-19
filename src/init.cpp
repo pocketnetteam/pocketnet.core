@@ -82,9 +82,6 @@
 
 bool fFeeEstimatesInitialized = false;
 static const bool DEFAULT_PROXYRANDOMIZE = true;
-static const bool DEFAULT_API_ENABLE = true;
-static const bool DEFAULT_REST_ENABLE = false;
-static const bool DEFAULT_STATIC_ENABLE = false;
 static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 std::unique_ptr<CConnman> g_connman;

@@ -719,27 +719,6 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
     }
 }
 
-static bool rest_topaddresses(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-
-    auto[rf, uriParts] = ParseParams(strURIPart);
-
-    int count = 30;
-    if (!uriParts.empty())
-    {
-        count = std::stoi(uriParts[0]);
-        if (count > 1000)
-            count = 1000;
-    }
-
-    auto result = req->DbConnection()->WebRpcRepoInst->GetTopAddresses(count);
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, result.write() + "\n");
-    return true;
-}
-
 static double getEmission(int height)
 {
     int first75 = 3750000;
@@ -772,40 +751,6 @@ static double getEmission(int height)
     }
 
     return emission;
-}
-
-static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-
-    auto[rf, uriParts] = ParseParams(strURIPart);
-
-    int height = chainActive.Height();
-    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
-        height = result;
-
-    double emission = getEmission(height);
-
-    switch (rf)
-    {
-        case RetFormat::JSON:
-        {
-            UniValue result(UniValue::VOBJ);
-            result.pushKV("height", height);
-            result.pushKV("emission", emission);
-
-            req->WriteHeader("Content-Type", "application/json");
-            req->WriteReply(HTTP_OK, result.write() + "\n");
-            return true;
-        }
-        default:
-        {
-            req->WriteHeader("Content-Type", "text/plain");
-            req->WriteReply(HTTP_OK, std::to_string(emission) + "\n");
-            return true;
-        }
-    }
 }
 
 static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
@@ -914,10 +859,6 @@ static const struct
     {"/rest/mempool/contents",   rest_mempool_contents},
     {"/rest/headers/",           rest_headers},
     {"/rest/getutxos",           rest_getutxos},
-    {"/rest/emission",           rest_emission},
-    {"/rest/getemission",        rest_emission},
-    {"/rest/topaddresses",       rest_topaddresses},
-    {"/rest/gettopaddresses",    rest_topaddresses},
     {"/rest/blockhash",          rest_blockhash},
 };
 
