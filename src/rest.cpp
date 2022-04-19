@@ -753,35 +753,6 @@ static double getEmission(int height)
     return emission;
 }
 
-static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-
-    if (strURIPart.find("clear") == 0)
-    {
-        PocketWeb::PocketFrontendInst.ClearCache();
-        req->WriteReply(HTTP_OK, "Cache cleared!");
-        return true;
-    }
-
-    if (strURIPart.find("status") == 0)
-        return get_static_status(req, strURIPart);
-
-    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile(strURIPart); code == HTTP_OK)
-    {
-        req->WriteHeader("Content-Type", file->ContentType);
-        req->WriteReply(code, file->Content);
-        return true;
-    }
-    else
-    {
-        return RESTERR(req, code, "");
-    }
-
-    return RESTERR(req, HTTP_NOT_FOUND, "");
-}
-
 static bool get_static_status(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
@@ -846,6 +817,35 @@ static bool get_static_status(HTTPRequest* req, const std::string& strURIPart)
     req->WriteHeader("Content-Type", "application/json");
     req->WriteReply(HTTP_OK, entry.write() + "\n");
     return true;
+}
+
+static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    if (strURIPart.find("clear") == 0)
+    {
+        PocketWeb::PocketFrontendInst.ClearCache();
+        req->WriteReply(HTTP_OK, "Cache cleared!");
+        return true;
+    }
+
+    if (strURIPart.find("status") == 0)
+        return get_static_status(req, strURIPart);
+
+    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile(strURIPart); code == HTTP_OK)
+    {
+        req->WriteHeader("Content-Type", file->ContentType);
+        req->WriteReply(code, file->Content);
+        return true;
+    }
+    else
+    {
+        return RESTERR(req, code, "");
+    }
+
+    return RESTERR(req, HTTP_NOT_FOUND, "");
 }
 
 static const struct
