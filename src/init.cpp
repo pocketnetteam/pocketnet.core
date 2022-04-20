@@ -100,8 +100,6 @@
 
 static bool fFeeEstimatesInitialized = false;
 static const bool DEFAULT_PROXYRANDOMIZE = true;
-static const bool DEFAULT_API_ENABLE = true;
-static const bool DEFAULT_REST_ENABLE = false;
 static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 Statistic::RequestStatEngine gStatEngineInstance;
@@ -229,6 +227,7 @@ void Shutdown(NodeContext& node)
 
     StopHTTPRPC();
     StopREST();
+    StopSTATIC();
     StopRPC();
     StopHTTPServer();
 
@@ -628,6 +627,11 @@ void SetupServerArgs(NodeContext& node)
 
     argsman.AddArg("-api", strprintf("Enable Public RPC api server (default: %u)", DEFAULT_API_ENABLE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rest", strprintf("Accept public REST requests (default: %u)", DEFAULT_REST_ENABLE), ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::RPC);
+
+    argsman.AddArg("-static", strprintf("Accept public requests to static resources (default: %u)", DEFAULT_STATIC_ENABLE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-staticpath", "Path to static resources (default: GetDataDir()/wwwroot", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+
+    
     argsman.AddArg("-rpcallowip=<ip>", "Allow JSON-RPC connections from specified source. Valid for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24). This option can be specified multiple times", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcauth=<userpw>", "Username and HMAC-SHA-256 hashed password for JSON-RPC connections. The field <userpw> comes in the format: <USERNAME>:<SALT>$<HASH>. A canonical python script is included in share/rpcauth. The client then connects normally using the rpcuser=<USERNAME>/rpcpassword=<PASSWORD> pair of arguments. This option can be specified multiple times", ArgsManager::ALLOW_ANY | ArgsManager::SENSITIVE, OptionsCategory::RPC);
     argsman.AddArg("-rpcbind=<addr>[:port]", "Bind to given address to listen for JSON-RPC connections. Do not expose the RPC server to untrusted networks such as the public internet! This option is ignored unless -rpcallowip is also passed. Port is optional and overrides -rpcport. Use [host]:port notation for IPv6. This option can be specified multiple times (default: 127.0.0.1 and ::1 i.e., localhost)", ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY | ArgsManager::SENSITIVE, OptionsCategory::RPC);
@@ -866,7 +870,7 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
         }
 
         // .. only web DB
-        if (fReindex == 5 && args.GetBoolArg("-api", true))
+        if (fReindex == 5 && args.GetBoolArg("-api", DEFAULT_API_ENABLE))
         {
             LogPrintf("Building a Web database: 0%%\n");
 
@@ -971,14 +975,25 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
     const ArgsManager& args = *Assert(node.args);
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
+
     if (!InitHTTPServer(context))
         return false;
+    
     StartRPC();
+    
     node.rpc_interruption_point = RpcInterruptionPoint;
+
     if (!StartHTTPRPC(context))
         return false;
-    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST(context);
+    
+    if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE))
+        StartREST(context);
+
+    if (gArgs.GetBoolArg("-static", DEFAULT_STATIC_ENABLE))
+        StartSTATIC(context);
+
     StartHTTPServer();
+
     return true;
 }
 
@@ -1626,7 +1641,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     
     PocketWeb::PocketFrontendInst.Init();
 
-    if (args.GetBoolArg("-api", true))
+    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     // ********************************************************* Step 4b: Additional settings
@@ -2297,7 +2312,8 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // ********************************************************* Step 13: finished
 
     // Start WebSocket server
-    if (args.GetBoolArg("-api", true)) InitWS();
+    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
+        InitWS();
 
     gStatEngineInstance.Run(threadGroup, context);
 
