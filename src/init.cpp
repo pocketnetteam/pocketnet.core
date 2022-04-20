@@ -1012,7 +1012,7 @@ static bool AppInitServers()
         StartREST();
 
     if (gArgs.GetBoolArg("-static", DEFAULT_STATIC_ENABLE))
-        StartStatic();
+        StartSTATIC();
 
     StartHTTPServer();
 
