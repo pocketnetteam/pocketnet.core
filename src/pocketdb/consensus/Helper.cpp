@@ -106,9 +106,8 @@ namespace PocketConsensus
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
             if (txType == TxType::NOT_SUPPORTED)
                 continue;
-            // TAWMAZ: Coinbase exists in early mined blocks as well, 
-            // if (coinstakeBlock && txType == TxType::TX_COINBASE)
-            if (txType == TxType::TX_COINBASE)
+
+            if (coinstakeBlock && txType == TxType::TX_COINBASE)
                 continue;
 
             // Maybe payload not exists?

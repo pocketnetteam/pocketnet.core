@@ -287,25 +287,30 @@ CBlock TestChain100Setup::CreateAndProcessMempoolBlock(CTxMemPool &mempool, cons
 
     SetMockTime(++g_mocktime);
 
-    std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(mempool, chainparams).CreateNewBlock(scriptPubKey);
+    std::unique_ptr<CBlockTemplate> pblocktemplate= BlockAssembler(mempool, chainparams).CreateNewBlock(scriptPubKey);
+
+    CBlock block = pblocktemplate->block;
+    PocketBlockRef pocketBlock = pblocktemplate->pocketBlock;
 
     // IncrementExtraNonce creates a valid coinbase and merkleRoot
     {
         LOCK(cs_main);
         unsigned int extraNonce = 0;
-        IncrementExtraNonce(&pblocktemplate->block, active.Tip(), extraNonce);
+        IncrementExtraNonce(&block, active.Tip(), extraNonce);
     }
 
-    while (!CheckProofOfWork(pblocktemplate->block.GetHash(), pblocktemplate->block.nBits, chainparams.GetConsensus(), ChainActive().Height())) ++pblocktemplate->block.nNonce;
+    while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus(), ChainActive().Height())) ++block.nNonce;
 
+    std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
+
+    if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block.vtx[0]); ok)
+            pocketBlock->emplace_back(ptx);
 
     BlockValidationState state;
-    bool fNewBlock = false;
- 
-    bool ret = m_node.chainman->ProcessNewBlock(state, chainparams, std::make_shared<CBlock>(pblocktemplate->block), pblocktemplate->pocketBlock, true, &fNewBlock);
+    bool ret = m_node.chainman->ProcessNewBlock(state, chainparams, shared_pblock, pocketBlock, true, nullptr);
     assert(ret);
 
-    return pblocktemplate->block;
+    return block;
 }
 
 TestChain100Setup::~TestChain100Setup()
