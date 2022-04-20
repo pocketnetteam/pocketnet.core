@@ -33,6 +33,10 @@ static const int DEFAULT_HTTP_STATIC_WORKQUEUE = 16;
 static const int DEFAULT_HTTP_REST_WORKQUEUE = 16;
 static const int DEFAULT_HTTP_SERVER_TIMEOUT = 30;
 
+static const bool DEFAULT_API_ENABLE = true;
+static const bool DEFAULT_REST_ENABLE = false;
+static const bool DEFAULT_STATIC_ENABLE = false;
+
 struct evhttp_request;
 
 class CService;

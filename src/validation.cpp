@@ -39,6 +39,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
 #include <univalue.h>
+#include <httpserver.h>
 
 #include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/services/Accessor.h"
@@ -2586,7 +2587,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Extend WEB database
-    if (gArgs.GetBoolArg("-api", true) && enablePocketConnect)
+    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE) && enablePocketConnect)
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
 
     // -----------------------------------------------------------------------------------------------------------------
