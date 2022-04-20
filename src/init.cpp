@@ -212,6 +212,7 @@ void Shutdown()
 
     StopHTTPRPC();
     StopREST();
+    StopSTATIC();
     StopRPC();
     StopHTTPServer();
 
