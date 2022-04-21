@@ -665,6 +665,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlsharedcache", strprintf("Experimental: enable shared cache for sqlite connections (default: disabled)"), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
+    argsman.AddArg("-withoutweb", strprintf("Disable WEB part of database (default: %u)", false), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
 
 
 #if HAVE_DECL_DAEMON
@@ -1641,7 +1642,8 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     
     PocketWeb::PocketFrontendInst.Init();
 
-    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
+    // Always start WEB DB building thread
+    if (!args.GetBoolArg("-withoutweb", false))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     // ********************************************************* Step 4b: Additional settings

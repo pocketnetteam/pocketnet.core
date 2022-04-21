@@ -23,7 +23,7 @@
         <pair source="cu" header="cuh" fileNamingConvention="NONE" />
       </extensions>
     </Objective-C-extensions>
-    <SqlCodeStyleSettings version="5">
+    <SqlCodeStyleSettings version="6">
       <option name="VIEW_WRAP_QUERY" value="false" />
     </SqlCodeStyleSettings>
     <codeStyleSettings language="ObjectiveC">
