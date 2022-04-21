@@ -5,6 +5,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketFrontend.h"
+#include "fs.h"
 
 namespace PocketWeb
 {
@@ -74,7 +75,20 @@ namespace PocketWeb
 
     void PocketFrontend::Init()
     {
-        _rootPath = GetDataDir() / "static_files";
+        string _argPath = gArgs.GetArg("-staticpath", "wwwroot");
+        _rootPath = (_argPath == "wwwroot") ? GetDataDir() / "wwwroot" : _argPath;
+
+        // Create directory structure
+        try
+        {
+            if (!_rootPath.empty())
+                fs::create_directories(_rootPath);
+        }
+        catch (const fs::filesystem_error&)
+        {
+            if (!fs::exists(_rootPath) || !fs::is_directory(_rootPath))
+                throw;
+        }
 
         auto testContent = shared_ptr<StaticFile>(new StaticFile{
             "/404.html",
@@ -156,12 +170,7 @@ namespace PocketWeb
         if (!readOk)
         {
             if (!stopRecurse)
-            {
-                if (_path.find("explorer") == 0)
-                    return GetFile("/explorer/index.html", true);
-
                 return GetFile("/index.html", true);
-            }
 
             return NotFound();
         }
