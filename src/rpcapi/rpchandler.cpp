@@ -333,10 +333,10 @@ std::pair<std::shared_ptr<RequestProcessor>, std::shared_ptr<RequestProcessor>> 
         auto web = std::make_shared<RPCTableFunctionalHandler>(webTable, commonFunc);
         auto webPost = std::make_shared<RPCTableFunctionalHandler>(webPostTable, commonFunc);
         auto podWeb = std::make_shared<RequestHandlerPod>(std::vector<PathRequestHandlerEntry>{{"/", false, web}}, workQueuePublicDepth, rpcPublicThreads);
-        auto podWebPost = std::make_shared<RequestHandlerPod>(std::vector<PathRequestHandlerEntry>{{"/post/", false, web}}, workQueuePostDepth, rpcPostThreads);
+        auto podWebPost = std::make_shared<RequestHandlerPod>(std::vector<PathRequestHandlerEntry>{{"/post/", false, webPost}}, workQueuePostDepth, rpcPostThreads);
 
-        webRequestProcessor->RegisterPod(std::move(podWeb));
         webRequestProcessor->RegisterPod(std::move(podWebPost));
+        webRequestProcessor->RegisterPod(std::move(podWeb));
     }
 
     auto podPrivate = std::make_shared<RequestHandlerPod>(std::vector<PathRequestHandlerEntry>{{"/", true, handlerPrivate}}, workQueueMainDepth, rpcMainThreads);
