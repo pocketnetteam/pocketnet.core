@@ -274,31 +274,31 @@ namespace PocketDb
                 ifnull((select b.Value from Balances b indexed by Balances_AddressHash_Last
                     where b.AddressHash=u.String1 and b.Last=1),0) as Balance,
 
-                (select count(1) from Ratings r indexed by Ratings_Type_Id_Last_Height
+                (select count() from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Type=1 and r.Id=u.Id) as Likers,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (200) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as PostSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (201) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as VideoSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (202) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ArticleSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (204) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as CommentSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (300) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ScoreSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (301) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ScoreCommentSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (307) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ComplainSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (410) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as FlagsSpent
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id

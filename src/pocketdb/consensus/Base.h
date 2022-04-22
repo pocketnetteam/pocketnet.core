@@ -333,25 +333,10 @@ namespace PocketConsensus
             }
         },
         // ConsensusLimit_threshold_likers_count
-        {
-            ConsensusLimit_threshold_likers_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       0},
-                        {1124000, 100}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 0},
-                        {100000, 10}
-                    }
-                }
-            }
-        },
+        { ConsensusLimit_threshold_likers_count, {
+            { NetworkMain, { {0, 0}, {1124000, 100} }},
+            { NetworkTest, { {0, 0}, {100000, 10} }}
+        }},
         { ConsensusLimit_threshold_low_likers_count, {
             { NetworkMain, { {0, 30} }},
             { NetworkTest, { {0, 30}, {761000, 0} }}
