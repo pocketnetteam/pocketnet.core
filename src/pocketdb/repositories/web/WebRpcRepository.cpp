@@ -4519,8 +4519,7 @@ namespace PocketDb
                 join Payload p
                     on p.TxHash = u.Hash
                 where tBoost.Type in (208)
-                and tBoost.Last in (0, 1)
-                and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                    and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 union
 
