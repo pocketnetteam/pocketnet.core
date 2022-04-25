@@ -77,6 +77,7 @@ static const CRPCCommand commands[] =
     {"contents",        "getcontents",                      &GetContents,                   {"address"}},
     {"contents",        "getrandomcontents",                &GetRandomContents,             {}},
     {"contents",        "getcontentactions",                &GetContentActions,             {"contentHash"}},
+    {"contents",        "getevents",                        &GetEvents,                     {"addresses"}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},

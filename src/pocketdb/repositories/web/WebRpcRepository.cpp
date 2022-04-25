@@ -6,6 +6,101 @@
 
 namespace PocketDb
 {
+    class EventsReconstructor : public RowAccessor
+    {
+    public:
+        EventsReconstructor(const vector<string>& addresses)
+        {
+            for (const auto& address: addresses) {
+                // Preinitializing results for all addresses so we can fill it with common pocknetteam content
+                m_result.insert({address, UniValue(UniValue::VARR)});
+            }
+        }
+        bool FeedRow(sqlite3_stmt* stmt)
+        {
+            auto [ok0, type] = TryGetColumnString(stmt, 0);
+            if (!ok0) {
+                return false;
+            }
+
+            if (type == "pocketnetteam") {
+                return ProcessPocketnetTeamPost(stmt);
+            } else {
+                auto[ok1, address] = TryGetColumnString(stmt, 1);
+                if (!ok1) {
+                    return false;
+                }
+                UniValue data;
+                if (!ProcessAccountRelevant(stmt, type, 2, data)) {
+                    return false;
+                }
+                if (auto addressEntry = m_result.find(address); addressEntry != m_result.end()) {
+                    addressEntry->second.push_back(data);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        map<string, UniValue> GetResult() const
+        {
+            return m_result;
+        }
+
+    protected:
+        bool ProcessPocketnetTeamPost(sqlite3_stmt* stmt)
+        {
+            UniValue pocketcontent;
+            // TODO (losty): a bit hack to because currently this extracts just common data. Replace it with specific to pocket post later
+            if (!ProcessAccountRelevant(stmt, "pocketnetteam", 2, pocketcontent)) {
+                return false;
+            }
+            for (auto& address: m_result) {
+                // TODO (losty): do we want to filter which addresses requrie pocketnetteam posts?
+                // Pushing pocketnetteam posts to every address specific entry.
+                address.second.push_back(pocketcontent);
+            }
+            return true;
+        }
+
+        bool ProcessAccountRelevant(sqlite3_stmt* stmt, const std::string& entryType, int index, UniValue& toFill)
+        {
+            UniValue entry(UniValue::VOBJ);
+            entry.pushKV("type", entryType);
+            if (auto[ok, height] = TryGetColumnInt64(stmt, index++); ok) {
+                entry.pushKV("height", height);
+            } else {
+                return false;
+            }
+            if (auto[ok, txHash] = TryGetColumnString(stmt, index++); ok) {
+                entry.pushKV("txHash", txHash);
+            } else {
+                return false;
+            }
+            if (auto[ok, txType] = TryGetColumnInt(stmt, index++); ok) {
+                entry.pushKV("txType", txType);
+            } else {
+                return false;
+            }
+
+            // TODO (losty): better parsing
+            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string1", val);
+            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string2", val);
+            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string3", val);
+            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string4", val);
+            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string5", val);
+            if (auto[ok, val] = TryGetColumnInt64(stmt, index++); ok) entry.pushKV("int1", val);
+            if (auto[ok, val] = TryGetColumnInt64(stmt, index++); ok) entry.pushKV("int2", val);
+
+            toFill = std::move(entry); 
+            return true;
+        }
+    private:
+        map<string, UniValue> m_result;
+    };
+
+
     void WebRpcRepository::Init() {}
 
     void WebRpcRepository::Destroy() {}
@@ -4172,6 +4267,345 @@ namespace PocketDb
         result.pushKV("donations",resultDonations);
 
         return result;
+    };
+    
+    std::map<std::string, UniValue> WebRpcRepository::GetEventsForAddresses(const std::vector<std::string>& addresses)
+    {
+        string langFilter; // TODO
+        string contentTypesWhere; // TODO
+        string contentIdWhere; // TODO
+        bool includePocket = false; // TODO
+
+        constexpr int8_t numUnions = 11;
+        auto sql = R"sql(
+            select * from ( -- Wrapper for ordering
+            )sql" + string(includePocket ? R"sql(
+                -- Pocket posts
+                select
+                    'pocketnetteam',
+                    t.String1 as AddressOrd,
+                    t.Height as HeightOrd,
+                    t.Hash,
+                    t.Type,
+                    t.String2, -- Address of post
+                    p.String2,
+                    p.String3,
+                    null,
+                    null,
+                    null,
+                    null
+                from Transactions t indexed by Transactions_Type_String1_String2_Height
+                join Payload p on (t.Hash = p.TxHash)
+                where t.String1 = ? and t.Type in (200,201,202)
+                
+                union
+            )sql" : "") + R"sql(
+
+                -- Incoming money
+                -- TODO (losty-event): ignore money from me to me
+                select
+                    'money',
+                    o.AddressHash as AddressOrd,
+                    o.TxHeight as HeightOrd,
+                    o.TxHash,
+                    t.Type,
+                    o.SpentTxHash,
+                    null,
+                    null,
+                    null,
+                    null,
+                    t.Time,
+                    o.Value
+                from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
+                join Transactions t on t.Hash = o.TxHash
+                where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                
+                union
+
+                -- referals
+                -- TODO (losty-event): only first registration
+                select
+                    'referals',
+                    t.String2 as AddressOrd,
+                    t.Height as HeightOrd,
+                    t.Hash,
+                    t.Type,
+                    t.String1,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                from Transactions t indexed by Transactions_Type_String1_String2_Height
+                where t.Type = 100
+                    and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                union
+
+                -- Comment answers
+                select
+                    'answers',
+                    c.String1 as AddressOrd,
+                    a.Height as HeightOrd,
+                    a.Hash,
+                    a.Type,
+                    a.String1 as addrFrom,
+                    a.String2 as RootTxHash,
+                    a.String3 as posttxid,
+                    a.String4 as parentid,
+                    a.String5 as answerid,
+                    a.Time,
+                    null
+                from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+                join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
+                    on a.Type in (204, 205) and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
+                where c.Type in (204, 205)
+                and c.Last = 1
+                and c.Height is not null
+                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                union
+
+                -- Comments for my content
+                -- [NOTE]: Getting only first comment.
+                -- TODO (losty): very slow!
+                select
+                    'comments',
+                    p.String1 as AddressOrd,
+                    c.Height as HeightOrd,
+                    c.Hash,
+                    c.Type,
+                    c.String1 as addrFrom,
+                    c.String2 as RootTxHash,
+                    c.String3 as posttxid,
+                    c.String4 as  parentid,
+                    c.String5 as  answerid,
+                    c.Time,
+                    null
+                from Transactions p indexed by Transactions_Type_String1_String2_Height
+                join Transactions c indexed by Transactions_Type_String1_String3_Height
+                    on c.Type in (204) and c.String3 = p.String2 and c.String1 != p.String1
+                    on o.TxHash = c.Hash and o.AddressHash = p.String1 and o.AddressHash != c.String1
+                where p.Type in (200, 201, 202)
+                and p.Height is not null
+                and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                union
+
+                -- Subscribers
+                select
+                    'subscribers',
+                    subs.String2 as AddressOrd,
+                    subs.Height as HeightOrd,
+                    subs.Hash,
+                    subs.Type,
+                    subs.String1 as addrFrom,
+                    p.String2 as nameFrom,
+                    p.String3 as avatarFrom,
+                    null,
+                    null,
+                    subs.Time,
+                    null
+                from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    on subs.String1 = u.String1 and u.Type in (100)
+                        and u.Height is not null
+                        and u.Last = 1
+                cross join Payload p on p.TxHash = u.Hash
+                where subs.Type in (302, 303)
+                    and subs.Last = 1
+                    and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                
+                union
+
+                -- Comment scores
+                select
+                    'commentscores',
+                    c.String1 as AddressOrd,
+                    s.Height as HeightOrd,
+                    s.Hash,
+                    s.Type,
+                    s.String1 as address,
+                    s.String2 as commenttxid,
+                    null,
+                    null,
+                    null,
+                    s.Time,
+                    s.Int1 as value
+                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+                join Transactions s indexed by Transactions_Type_Last_String2_Height
+                    on s.Type in (301) and s.String2 = c.String2 and s.Height is not null
+                where c.Type in (204, 205)
+                and c.Last = 1
+                and c.Height is not null
+                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                
+                union
+
+                -- Content scores
+                select
+                    'contentscores',
+                    c.String1 as AddressOrd,
+                    s.Height as HeightOrd,
+                    s.Hash,
+                    s.Type,
+                    s.String1 as address,
+                    s.String2 as posttxid,
+                    null,
+                    null,
+                    null,
+                    s.Time,
+                    s.Int1 as value
+                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+                join Transactions s indexed by Transactions_Type_Last_String2_Height
+                    on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height is not null
+                where c.Type in (200, 201, 202)
+                and c.Last = 1
+                and c.Height is not null
+                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                union
+
+                -- Content from private subscribers
+                select
+                    'privatecontent',
+                    subs.String1 as AddressOrd,
+                    cps.Height as HeightOrd,
+                    lc.Hash, -- Probably cps.Hash for hash of original post, or both maybe
+                    lc.Type,
+                    lcp.String3,
+                    null,
+                    null,
+                    null,
+                    null,
+                    cps.Time,
+                    null
+                from Transactions subs -- Subscribers private
+                cross join Transactions cps -- content for private subscribers 
+                    on (subs.String2 = cps.String1 and
+                        cps.Type in (200, 201, 202) and
+                        cps.Hash = cps.String2) -- Only original, no edit. Probably add also last for url or smth
+                left join Transactions lc -- last content
+                    on (lc.String2 = cps.Hash and
+                        lc.Type = cps.Type)
+                left join Payload lcp
+                    on (lcp.TxHash = lc.Hash)
+                where 
+                    subs.Type = 303 and
+                    subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                union
+
+                -- Boosts for my content
+                select
+                    'boost',
+                    tContent.String1 as AddressOrd,
+                    tBoost.Height,
+                    tBoost.Hash,
+                    tContent.Type,
+                    tBoost.String1 as boostAddress,
+                    tBoost.String2 as contenttxid,
+                    p.String2 as boostName,
+                    p.String3 as boostAvatar,
+                    null,
+                    tBoost.Time,
+                    tBoost.Int1 as boostAmount
+                from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
+                join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
+                    on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202)
+                join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    on u.String1 = tBoost.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
+                join Payload p
+                    on p.TxHash = u.Hash
+                where tBoost.Type in (208)
+                and tBoost.Last in (0, 1)
+                and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                union
+
+                -- Reposts
+                select
+                    'reposts',
+                    p.String1 as AddressOrd,
+                    r.Height as HeightOrd,
+                    r.Hash,
+                    r.Type,
+                    r.String2 as RootTxHash,
+                    r.String3 as RelayTxHash,
+                    r.String1 as AddressHash,
+                    null,
+                    null,
+                    r.Time,
+                    null
+                from Transactions r
+                join Transactions p on p.Hash = r.String3 and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                where r.Type in (200, 201, 202)
+                and r.Last = 1
+                and r.Height is not null
+                and r.String3 is not null
+            ) order by HeightOrd
+        )sql";
+
+        EventsReconstructor reconstructor(addresses);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+
+            // Pocket posts
+            if (includePocket) {
+                TryBindStatementText(stmt, i++, GetPocketnetteamAddress());
+            }
+            // Incoming money
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+            // Referals
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+            // Comment answers
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+            // Comments for my content
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+            // Subscribers and unsubscribers
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+            // Comment scores
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+            // Content scores
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+            // Content from private subscribers
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+            // Boosts
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+            // Reposts
+            for (auto& address : addresses) {
+                TryBindStatementText(stmt, i++, address);
+            }
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (!reconstructor.FeedRow(*stmt)) {
+                    break;
+                }
+            }
+        });
+        return reconstructor.GetResult();
     }
 
 }

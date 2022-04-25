@@ -938,4 +938,42 @@ namespace PocketWeb::PocketWebRpc
                           },
         };
     }
+
+    RPCHelpMan GetEvents()
+    {
+        return RPCHelpMan{"GetContentActions",
+                          "\nGet profiles that performed actions(score/boos/donate) on content.\n",
+                          {
+                                  // TODO (rpc): provide args description
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc)
+                                  HelpExampleCli("GetRandomPost", "") +
+                                  HelpExampleRpc("GetRandomPost", "")
+                          },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VARR});
+
+        auto arr = request.params[0].get_array();
+        vector<string> addresses;
+        addresses.reserve(arr.size());
+        for (int i = 0; i < arr.size(); i++) {
+            addresses.emplace_back(arr[i].get_str());
+        }
+
+        auto events = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(addresses);
+
+        UniValue result(UniValue::VOBJ);
+        for (auto& entry: events) {
+            result.pushKV(entry.first, entry.second);
+        }
+
+        return result;
+    },
+        };
+    }
 }
