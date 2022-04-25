@@ -392,15 +392,17 @@ bool InitHTTPServer(const util::Ref& context)
 #endif
 
     // Additional pocketnet seocket
-    if (gArgs.GetBoolArg("-api", true))
+    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE))
     {
         g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
         RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
-
-        // Additional pocketnet static files socket
-        g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
-        g_restSocket = new HTTPSocket(eventBase, timeout, workQueueRestDepth, true);
     }
+
+    if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE))
+        g_restSocket = new HTTPSocket(eventBase, timeout, workQueueRestDepth, true);
+
+    if (gArgs.GetBoolArg("-static", DEFAULT_STATIC_ENABLE))
+        g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
  
     if (!HTTPBindAddresses())
     {

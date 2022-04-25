@@ -54,6 +54,7 @@
 #include <string>
 
 #include <boost/algorithm/string/replace.hpp>
+#include <httpserver.h>
 
 #include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/services/Accessor.h"
@@ -2511,7 +2512,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Extend WEB database
-    if (gArgs.GetBoolArg("-api", true) && enablePocketConnect)
+    if (!gArgs.GetBoolArg("-withoutweb", false) && enablePocketConnect)
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
 
     // -----------------------------------------------------------------------------------------------------------------
