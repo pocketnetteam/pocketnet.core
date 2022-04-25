@@ -4474,21 +4474,22 @@ namespace PocketDb
                     cps.Height as HeightOrd,
                     lc.Hash, -- Probably cps.Hash for hash of original post, or both maybe
                     lc.Type,
+                    lc.String1,
                     lcp.String3,
-                    null,
                     null,
                     null,
                     null,
                     cps.Time,
                     null
-                from Transactions subs -- Subscribers private
+                from Transactions subs indexed by Transactions_Type_String1_String2_Height -- Subscribers private
                 cross join Transactions cps -- content for private subscribers 
                     on (subs.String2 = cps.String1 and
                         cps.Type in (200, 201, 202) and
                         cps.Hash = cps.String2) -- Only original, no edit. Probably add also last for url or smth
-                left join Transactions lc -- last content
+                left join Transactions lc indexed by Transactions_Type_Last_String2_Height -- last content
                     on (lc.String2 = cps.Hash and
-                        lc.Type = cps.Type)
+                        lc.Type = cps.Type and
+                        lc.Last = 1)
                 left join Payload lcp
                     on (lcp.TxHash = lc.Hash)
                 where 
