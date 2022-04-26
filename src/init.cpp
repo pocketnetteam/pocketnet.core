@@ -82,8 +82,6 @@
 
 bool fFeeEstimatesInitialized = false;
 static const bool DEFAULT_PROXYRANDOMIZE = true;
-static const bool DEFAULT_API_ENABLE = true;
-static const bool DEFAULT_REST_ENABLE = false;
 static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 std::unique_ptr<CConnman> g_connman;
@@ -214,6 +212,7 @@ void Shutdown()
 
     StopHTTPRPC();
     StopREST();
+    StopSTATIC();
     StopRPC();
     StopHTTPServer();
 
@@ -603,6 +602,10 @@ void SetupServerArgs()
 
     gArgs.AddArg("-api", strprintf("Enable Public RPC api server (default: %u)", DEFAULT_API_ENABLE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rest", strprintf("Accept public REST requests (default: %u)", DEFAULT_REST_ENABLE), true, OptionsCategory::RPC);
+    
+    gArgs.AddArg("-static", strprintf("Accept public requests to static resources (default: %u)", DEFAULT_STATIC_ENABLE), true, OptionsCategory::RPC);
+    gArgs.AddArg("-staticpath", "Path to static resources (default: GetDataDir()/wwwroot", true, OptionsCategory::RPC);
+
     gArgs.AddArg("-rpcallowip=<ip>", "Allow JSON-RPC connections from specified source. Valid for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24). This option can be specified multiple times", false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcauth=<userpw>", "Username and hashed password for JSON-RPC connections. The field <userpw> comes in the format: <USERNAME>:<SALT>$<HASH>. A canonical python script is included in share/rpcauth. The client then connects normally using the rpcuser=<USERNAME>/rpcpassword=<PASSWORD> pair of arguments. This option can be specified multiple times", false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcbind=<addr>[:port]", "Bind to given address to listen for JSON-RPC connections. This option is ignored unless -rpcallowip is also passed. Port is optional and overrides -rpcport. Use [host]:port notation for IPv6. This option can be specified multiple times (default: 127.0.0.1 and ::1 i.e., localhost, or if -rpcallowip has been specified, 0.0.0.0 and :: i.e., all addresses)", false, OptionsCategory::RPC);
@@ -636,8 +639,8 @@ void SetupServerArgs()
     gArgs.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), false, OptionsCategory::SQLITE);
     gArgs.AddArg("-sqlsharedcache", strprintf("Experimental: enable shared cache for sqlite connections (default: disabled)"), false, OptionsCategory::SQLITE);
     gArgs.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), false, OptionsCategory::SQLITE);
-
-
+    gArgs.AddArg("-withoutweb", strprintf("Disable WEB part of database (default: %u)", false), false, OptionsCategory::SQLITE);
+    
 #if HAVE_DECL_DAEMON
     gArgs.AddArg("-daemon", "Run in the background as a daemon and accept commands", false, OptionsCategory::OPTIONS);
 #else
@@ -876,7 +879,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         }
 
         // .. only web DB
-        if (fReindex == 5 && gArgs.GetBoolArg("-api", true))
+        if (fReindex == 5 && gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE))
         {
             LogPrintf("Building a Web database: 0%%\n");
 
@@ -996,13 +999,23 @@ static bool AppInitServers()
 { 
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
+    
     if (!InitHTTPServer())
         return false;
+    
     StartRPC();
+    
     if (!StartHTTPRPC())
         return false;
-    if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST();
+    
+    if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE))
+        StartREST();
+
+    if (gArgs.GetBoolArg("-static", DEFAULT_STATIC_ENABLE))
+        StartSTATIC();
+
     StartHTTPServer();
+
     return true;
 }
 
@@ -1691,7 +1704,8 @@ bool AppInitMain()
 
     PocketWeb::PocketFrontendInst.Init();
 
-    if (gArgs.GetBoolArg("-api", true))
+    // Always start WEB DB building thread
+    if (!gArgs.GetBoolArg("-withoutweb", false))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     // ********************************************************* Step 4b: Additional settings
@@ -2252,7 +2266,8 @@ bool AppInitMain()
     // ********************************************************* Step 13: finished
 
     // Start WebSocket server
-    if (gArgs.GetBoolArg("-api", true)) InitWS();
+    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE))
+        InitWS();
 
     gStatEngineInstance.Run(threadGroup);
 

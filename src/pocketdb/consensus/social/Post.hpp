@@ -60,7 +60,8 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress()))
+                return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
@@ -303,7 +304,7 @@ namespace PocketConsensus
     class PostConsensusFactory
     {
     protected:
-        const vector<ConsensusCheckpoint < PostConsensus>> m_rules = {
+        const vector<ConsensusCheckpoint<PostConsensus>> m_rules = {
             { 0, -1, [](int height) { return make_shared<PostConsensus>(height); }},
             { 1124000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1124000>(height); }},
             { 1180000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1180000>(height); }},

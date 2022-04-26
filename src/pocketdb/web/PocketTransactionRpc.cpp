@@ -34,11 +34,11 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX deserialize failed");
 
         // Set required fields
-        ptx->SetAddress(address);
+        ptx->SetString1(address);
 
         // TODO (team): TEMPORARY
         // Temporary check for UserConsensus_checkpoint_login_limitation checkpoint
-        // Remove this after 1629000 in main net
+        // Remove this after 1647000 in main net
         if (*ptx->GetType() == ACCOUNT_USER)
         {
             std::shared_ptr<PocketConsensus::UserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::UserConsensus_checkpoint_login_limitation>(chainActive.Height());
@@ -262,7 +262,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX deserialize failed");
 
         // Set required fields
-        ptx->SetAddress(address);
+        ptx->SetString1(address);
 
         // Insert into mempool
         return _accept_transaction(tx, ptx);
@@ -323,7 +323,7 @@ namespace PocketWeb::PocketWebRpc
 
         promise<void> promise;
         CAmount nMaxRawTxFee = maxTxFee;
-        if (*ptx->GetType() == PocketTx::BOOST_CONTENT)
+        if (ptx && *ptx->GetType() == PocketTx::BOOST_CONTENT)
             nMaxRawTxFee = 0;
 
         { // cs_main scope

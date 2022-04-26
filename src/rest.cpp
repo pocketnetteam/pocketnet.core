@@ -719,38 +719,8 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
     }
 }
 
-static bool rest_topaddresses(HTTPRequest* req, const std::string& strURIPart)
+static double getEmission(int height)
 {
-    if (!CheckWarmup(req))
-        return false;
-
-    auto[rf, uriParts] = ParseParams(strURIPart);
-
-    int count = 30;
-    if (!uriParts.empty())
-    {
-        count = std::stoi(uriParts[0]);
-        if (count > 1000)
-            count = 1000;
-    }
-
-    auto result = req->DbConnection()->WebRpcRepoInst->GetTopAddresses(count);
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, result.write() + "\n");
-    return true;
-}
-
-static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-
-    auto[rf, uriParts] = ParseParams(strURIPart);
-
-    int height = chainActive.Height();
-    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
-        height = result;
-
     int first75 = 3750000;
     int halvblocks = 2'100'000;
     double emission = 0;
@@ -780,25 +750,73 @@ static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
         }
     }
 
-    switch (rf)
-    {
-        case RetFormat::JSON:
-        {
-            UniValue result(UniValue::VOBJ);
-            result.pushKV("height", height);
-            result.pushKV("emission", emission);
+    return emission;
+}
 
-            req->WriteHeader("Content-Type", "application/json");
-            req->WriteReply(HTTP_OK, result.write() + "\n");
-            return true;
-        }
-        default:
-        {
-            req->WriteHeader("Content-Type", "text/plain");
-            req->WriteReply(HTTP_OK, std::to_string(emission) + "\n");
-            return true;
-        }
+static bool get_static_status(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    // TODO (brangr): join with PocketSystemRpc.cpp::GetNodeInfo
+
+    UniValue entry(UniValue::VOBJ);
+
+    // General information about instance
+    entry.pushKV("version", FormatVersion(CLIENT_VERSION));
+    entry.pushKV("time", GetAdjustedTime());
+    entry.pushKV("chain", Params().NetworkIDString());
+    entry.pushKV("proxy", true);
+
+    // Network information
+    uint64_t nNetworkWeight = GetPoSKernelPS();
+    entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
+    entry.pushKV("emission", getEmission(chainActive.Height()));
+    
+    // Last block
+    CBlockIndex* pindex = chainActive.Tip();
+    UniValue oblock(UniValue::VOBJ);
+    oblock.pushKV("height", pindex->nHeight);
+    oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
+    oblock.pushKV("time", (int64_t)pindex->nTime);
+    oblock.pushKV("ntx", (int)pindex->nTx);
+    entry.pushKV("lastblock", oblock);
+
+    UniValue proxies(UniValue::VARR);
+    if (WSConnections) {
+        auto fillProxy = [&proxies](const std::pair<const std::string, WSUser>& it) {
+            if (it.second.Service) {
+                UniValue proxy(UniValue::VOBJ);
+                proxy.pushKV("address", it.second.Address);
+                proxy.pushKV("ip", it.second.Ip);
+                proxy.pushKV("port", it.second.MainPort);
+                proxy.pushKV("portWss", it.second.WssPort);
+                proxies.push_back(proxy);
+            }
+        };
+        WSConnections->Iterate(fillProxy);
     }
+    entry.pushKV("proxies", proxies);
+
+    // Ports information
+    int64_t nodePort = gArgs.GetArg("-port", Params().GetDefaultPort());
+    int64_t publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
+    int64_t staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
+    int64_t restPort = gArgs.GetArg("-restport", BaseParams().RestPort());
+    int64_t wssPort = gArgs.GetArg("-wsport", 8087); // TODO (brangr): move 8087 to BaseParams().WSPort()
+
+    UniValue ports(UniValue::VOBJ);
+    ports.pushKV("node", nodePort);
+    ports.pushKV("api", publicPort);
+    ports.pushKV("rest", restPort);
+    ports.pushKV("wss", wssPort);
+    ports.pushKV("http", staticPort);
+    ports.pushKV("https", staticPort);
+    entry.pushKV("ports", ports);
+
+    req->WriteHeader("Content-Type", "application/json");
+    req->WriteReply(HTTP_OK, entry.write() + "\n");
+    return true;
 }
 
 static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
@@ -812,6 +830,9 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
         req->WriteReply(HTTP_OK, "Cache cleared!");
         return true;
     }
+
+    if (strURIPart.find("status") == 0)
+        return get_static_status(req, strURIPart);
 
     if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile(strURIPart); code == HTTP_OK)
     {
@@ -841,20 +862,21 @@ static const struct
     {"/rest/mempool/contents",   rest_mempool_contents},
     {"/rest/headers/",           rest_headers},
     {"/rest/getutxos",           rest_getutxos},
-    {"/rest/emission",           rest_emission},
-    {"/rest/getemission",        rest_emission},
-    {"/rest/topaddresses",       rest_topaddresses},
-    {"/rest/gettopaddresses",    rest_topaddresses},
     {"/rest/blockhash",          rest_blockhash},
 };
 
 void StartREST()
 {
     if (g_restSocket)
+    {
         for (auto uri_prefixe: uri_prefixes)
             g_restSocket->RegisterHTTPHandler(uri_prefixe.prefix, false, uri_prefixe.handler, g_restSocket->m_workQueue);
+    }
+}
 
-    // Register web content route
+// Register web content route
+void StartSTATIC()
+{
     if (g_staticSocket)
         g_staticSocket->RegisterHTTPHandler("/", false, get_static_web, g_staticSocket->m_workQueue);
 }
@@ -867,8 +889,11 @@ void StopREST()
 {
     if (g_restSocket)
         for (auto uri_prefixe: uri_prefixes)
-            g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
+            g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);    
+}
 
+void StopSTATIC()
+{
     if (g_staticSocket)
         g_staticSocket->UnregisterHTTPHandler("/", false);
 }

@@ -52,7 +52,7 @@ namespace PocketWeb::PocketWebRpc
 
             // Mutex guarded node statistic
             CNodeStateStats nodeState;
-            if (GetNodeStateStats(stats.nodeid, nodeState))
+            if (GetNodeStateStatsView(stats.nodeid, nodeState))
             {
                 obj.pushKV("banscore", nodeState.nMisbehavior);
                 obj.pushKV("synced_headers", nodeState.nSyncHeight);

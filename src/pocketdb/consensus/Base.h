@@ -77,6 +77,11 @@ namespace PocketConsensus
         SocialConsensusResult_BadPayload = 59,
         SocialConsensusResult_ScoreLowReputation = 60,
         SocialConsensusResult_ChangeInfoDoubleInMempool = 61,
+        SocialConsensusResult_Duplicate = 62,
+        SocialConsensusResult_NotImplemeted = 63,
+        SocialConsensusResult_SelfFlag = 64,
+        SocialConsensusResult_ExceededLimit = 65,
+        SocialConsensusResult_LowReputation = 66,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
@@ -141,6 +146,13 @@ namespace PocketConsensus
             case (SocialConsensusResult_ScoreDeletedContent): return "ScoreDeletedContent";
             case (SocialConsensusResult_RelayContentNotFound): return "RelayContentNotFound";
             case (SocialConsensusResult_BadPayload): return "BadPayload";
+            case (SocialConsensusResult_ChangeInfoDoubleInMempool): return "ChangeInfoDoubleInMempool";
+            case (SocialConsensusResult_Duplicate): return "Duplicate";
+            case (SocialConsensusResult_NotImplemeted): return "NotImplemeted";
+            case (SocialConsensusResult_SelfFlag): return "SelfFlag";
+            case (SocialConsensusResult_ExceededLimit): return "ExceededLimit";
+            case (SocialConsensusResult_LowReputation): return "LowReputation";
+
             default: return "Unknown";
         }
     }
@@ -210,6 +222,8 @@ namespace PocketConsensus
         ConsensusLimit_lottery_referral_depth,
 
         ConsensusLimit_bad_reputation,
+
+        ConsensusLimit_moderation_flag_count,
     };
 
     /*********************************************************************************************/
@@ -253,7 +267,8 @@ namespace PocketConsensus
                 {
                     NetworkTest,
                     {
-                        {0, 100}
+                        {0, 100},
+                        {761000, 10}
                     }
                 }
             }
@@ -318,43 +333,14 @@ namespace PocketConsensus
             }
         },
         // ConsensusLimit_threshold_likers_count
-        {
-            ConsensusLimit_threshold_likers_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       0},
-                        {1124000, 100}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 0},
-                        {100000, 10}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_threshold_low_likers_count
-        {
-            ConsensusLimit_threshold_low_likers_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 30}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 30}
-                    }
-                }
-            }
-        },
+        { ConsensusLimit_threshold_likers_count, {
+            { NetworkMain, { {0, 0}, {1124000, 100} }},
+            { NetworkTest, { {0, 0}, {100000, 10} }}
+        }},
+        { ConsensusLimit_threshold_low_likers_count, {
+            { NetworkMain, { {0, 30} }},
+            { NetworkTest, { {0, 30}, {761000, 0} }}
+        }},
         // ConsensusLimit_threshold_low_likers_depth
         {
             ConsensusLimit_threshold_low_likers_depth,
@@ -1077,6 +1063,16 @@ namespace PocketConsensus
                 }
             }
         },
+
+        //
+        // MODERATION
+        //
+
+        { ConsensusLimit_moderation_flag_count, {
+            { NetworkMain, { {0, 30} }},
+            { NetworkTest, { {0, 100} }}
+        }},
+        
     };
 
     /*********************************************************************************************/

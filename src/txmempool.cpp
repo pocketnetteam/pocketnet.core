@@ -559,7 +559,6 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
     RemoveStaged(setAllRemoves, false, reason);
 
     // Also sqlite clean
-    // TODO (brangr): !!!!
     //CleanSQLite(removeHashes, "removeRecursive", reason);
 }
 
@@ -615,7 +614,6 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
     RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::REORG);
 
     // Also sqlite clean
-    // TODO (brangr): !!!!
     // CleanSQLite(removeHashes, "removeForReorg", MemPoolRemovalReason::REORG);
 }
 

@@ -84,10 +84,15 @@ namespace PocketDb
         UniValue GetSubscribesAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
         UniValue GetSubscribersAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
         UniValue GetBlockingToAddresses(const string& address);
+        vector<string> GetTopAccounts(int topHeight, int countOut, const string& lang,
+        const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, int depth,
+        int badReputationLimit);
 
         UniValue GetTags(const string& lang, int pageSize, int pageStart);
 
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
+        map<string,string> GetContentsAddresses(const vector<string>& txHashes);
 
         UniValue GetUnspents(const vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
 
@@ -109,6 +114,11 @@ namespace PocketDb
         vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
         
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
+
+        UniValue GetTopFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+        const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
+        int badReputationLimit);
         
         UniValue GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
@@ -136,6 +146,12 @@ namespace PocketDb
         UniValue GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes);
 
         vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
+
+        UniValue GetContentActions(const string& postTxHash);
+
+        // TODO (o1q): Remove this two methods when the client gui switches to new methods
+        UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
+        UniValue GetSubscribesFeedOld(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
 
     private:
         int cntBlocksForResult = 300;

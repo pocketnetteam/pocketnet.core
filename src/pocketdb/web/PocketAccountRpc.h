@@ -7,6 +7,7 @@
 
 #include "rpc/server.h"
 #include "rpc/rawtransaction.h"
+#include "pocketdb/web/WebRpcUtils.h"
 #include "pocketdb/consensus/Reputation.h"
 
 namespace PocketWeb::PocketWebRpc
@@ -25,6 +26,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetAccountSubscribes(const JSONRPCRequest& request);
     UniValue GetAccountSubscribers(const JSONRPCRequest& request);
     UniValue GetAccountBlockings(const JSONRPCRequest& request);
+    UniValue GetTopAccounts(const JSONRPCRequest& request);
 }
 
 

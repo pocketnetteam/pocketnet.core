@@ -10,6 +10,7 @@
 #include <utility>
 #include <utilstrencodings.h>
 #include <crypto/sha256.h>
+#include <primitives/transaction.h>
 
 #include "pocketdb/models/base/Payload.h"
 #include "pocketdb/models/base/TransactionInput.h"
@@ -23,8 +24,7 @@ namespace PocketTx
     {
     public:
         Transaction();
-
-        explicit Transaction(const std::shared_ptr<const CTransaction>& tx);
+        Transaction(const CTransactionRef& tx);
 
         virtual shared_ptr<UniValue> Serialize() const;
 
@@ -33,7 +33,6 @@ namespace PocketTx
         virtual void DeserializePayload(const UniValue& src);
 
         virtual string BuildHash() = 0;
-        virtual void SetAddress(const string& value) {}
 
         shared_ptr<string> GetHash() const;
         void SetHash(string value);
@@ -81,6 +80,9 @@ namespace PocketTx
         shared_ptr<Payload> GetPayload() const;
         void SetPayload(Payload value);
         bool HasPayload() const;
+        
+        void GeneratePayload();
+        void ClearPayload();
 
     protected:
         shared_ptr<TxType> m_type = nullptr;
@@ -99,9 +101,6 @@ namespace PocketTx
         shared_ptr<Payload> m_payload = nullptr;
         vector<shared_ptr<TransactionInput>> m_inputs;
         vector<shared_ptr<TransactionOutput>> m_outputs;
-
-        void GeneratePayload();
-        void ClearPayload();
 
         string GenerateHash(const string& data) const;
     };

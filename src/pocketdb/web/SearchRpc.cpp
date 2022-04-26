@@ -141,7 +141,7 @@ namespace PocketWeb::PocketWebRpc
             };
 
             // Search
-            auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest);
+            auto ids = request.DbConnection()->SearchRepoInst->SearchUsersOld(searchRequest);
             
             // Get accounts data
             auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
@@ -168,22 +168,17 @@ namespace PocketWeb::PocketWebRpc
 
         RPCTypeCheck(request.params, {UniValue::VSTR});
 
-        SearchRequest searchRequest;
-
-        searchRequest.Keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
-        searchRequest.FieldTypes = { ContentFieldType::ContentFieldType_AccountUserName };
-        // ContentFieldType::ContentFieldType_AccountUserAbout, ContentFieldType::ContentFieldType_AccountUserUrl
-        searchRequest.OrderByRank = true;
-
-        auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest);
-        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
-
         UniValue result(UniValue::VARR);
-        for (auto &profile : usersProfiles)
-        {
-            // profile.second.pushKV("searchResult", users[profile.first]);
-            result.push_back(profile.second);
-        }
+
+        string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
+        if (keyword.size() <= 1)
+            return result;
+
+        auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(keyword);
+        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
+        
+        for (auto& id : ids)
+            result.push_back(usersProfiles[id]);
 
         return result;
     }
@@ -271,207 +266,153 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetRecomendedAccountsBySubscriptions(const JSONRPCRequest& request)
+    UniValue GetRecommendedContentByAddress(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
-                "getrecomendedaccountsbysubscriptions \"address\", count\n"
-                "\nAccounts recommendations by subscriptions.\n"
+                "getrecommendedcontentbyaddress \"address\", \"addressExclude\", \"contenttypes\", \"lang\", count\n"
+                "\nContents recommendations by content address.\n"
                 "\nArguments:\n"
                 "1. \"address\" (string) Address for recommendations\n"
-                "2. \"count\" (int, optional) Number of resulting records. Default 10\n"
+                "2. \"addressExclude\" (string, optional) Address for exclude from recommendations\n"
+                "3. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/videos/articles\n"
+                "3. \"lang\" (string, optional) Language for recommendations\n"
+                "4. \"count\" (int, optional) Number of recommendations records and number of other contents from addres. Default 15\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-        string address = request.params[0].get_str();
-        CTxDestination dest = DecodeDestination(address);
+        string address = "";
+        if (request.params.size() > 0 && request.params[0].isStr()) {
+            address = request.params[0].get_str();
 
-        if (!IsValidDestination(dest))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+            if(!address.empty()) {
+                CTxDestination dest = DecodeDestination(address);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + address);
+            }
+        }
 
-        int cntOut = 10;
-        if (request.params.size() > 1 && request.params[1].isNum())
-            cntOut = request.params[1].get_int();
+        string addressExclude = "";
+        if (request.params.size() > 1 && request.params[1].isStr()) {
+            addressExclude = request.params[1].get_str();
 
-        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsBySubscriptions(address, cntOut);
-    }
-
-    UniValue GetRecomendedAccountsByScoresOnSimilarAccounts(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw runtime_error(
-                "getrecomendedaccountsbyscoresonsimilaraccounts \"address\", \"contenttypes\", height, depth, count\n"
-                "\nAccounts recommendations by likes based on address.\n"
-                "\nArguments:\n"
-                "1. \"address\" (string) Address for recommendations\n"
-                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
-                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
-                "4. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
-                "5. \"count\" (int, optional) Number of resulting records. Default 10\n"
-            );
-
-        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-        string address = request.params[0].get_str();
-        CTxDestination dest = DecodeDestination(address);
-
-        if (!IsValidDestination(dest))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+            if(!addressExclude.empty()) {
+                CTxDestination dest = DecodeDestination(addressExclude);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + addressExclude);
+            }
+        }
 
         vector<int> contentTypes;
-        ParseRequestContentTypes(request.params[1], contentTypes);
+        if(request.params.size()>2)
+            ParseRequestContentTypes(request.params[2], contentTypes);
 
-        int nHeight = chainActive.Height();
-        int depth = 1000;
-        int cntOut = 10;
+        string lang = "";
+        if (request.params.size() > 3 && request.params[3].isStr())
+            lang = request.params[3].get_str();
 
-        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
-            nHeight = request.params[2].get_int();
-
-        if (request.params.size() > 3 && request.params[3].isNum())
-            depth = request.params[3].get_int();
-
+        int cntOut = 15;
         if (request.params.size() > 4 && request.params[4].isNum())
             cntOut = request.params[4].get_int();
 
-        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresOnSimilarAccounts(address, contentTypes, nHeight, depth, cntOut);
+        int nHeight = chainActive.Height();
+        if (request.params.size() > 5 && request.params[5].isNum() && request.params[5].get_int() > 0)
+            nHeight = request.params[5].get_int();
+
+        int depth = (60 * 24 * 30 * 3); //about 3 month as default
+        if (request.params.size() > 6 && request.params[6].isNum())
+        {
+            depth = std::max(request.params[6].get_int(), (60 * 24 * 30 * 6)); // not greater than about 6 month
+        }
+
+        UniValue resultContent(UniValue::VARR);
+        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, nHeight, depth);
+        if (!ids.empty())
+        {
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+            resultContent.push_backV(contents);
+        }
+
+        ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOut);
+        if (!ids.empty())
+        {
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+            resultContent.push_backV(contents);
+        }
+
+        UniValue result(UniValue::VOBJ);
+        result.pushKV("contents", resultContent);
+        return result;
     }
 
-    UniValue GetRecomendedAccountsByScoresFromAddress(const JSONRPCRequest& request)
+    UniValue GetRecommendedAccountByAddress(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
-                "getrecomendedaccountsbyscoresfromaddress \"address\", \"contenttypes\", height, depth, count\n"
-                "\nAccounts recommendations by likes.\n"
+                "getrecommendedaccountbyaddress \"address\", \"addressExclude\", \"contenttypes\", \"lang\", count\n"
+                "\nAccounts recommendations by address.\n"
                 "\nArguments:\n"
                 "1. \"address\" (string) Address for recommendations\n"
-                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
-                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
-                "4. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
-                "5. \"count\" (int, optional) Number of resulting records. Default 10\n"
+                "2. \"addressExclude\" (string, optional) Address for exclude from recommendations\n"
+                "3. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/videos/articles\n"
+                "3. \"lang\" (string, optional) Language for recommendations\n"
+                "4. \"count\" (int, optional) Number of recommendations records and number of other contents from addres. Default 15\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-        string address = request.params[0].get_str();
-        CTxDestination dest = DecodeDestination(address);
+        string address = "";
+        if (request.params.size() > 0 && request.params[0].isStr()) {
+            address = request.params[0].get_str();
 
-        if (!IsValidDestination(dest))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+            if(!address.empty()) {
+                CTxDestination dest = DecodeDestination(address);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + address);
+            }
+        }
+
+        string addressExclude = "";
+        if (request.params.size() > 1 && request.params[1].isStr()) {
+            addressExclude = request.params[1].get_str();
+
+            if(!addressExclude.empty()) {
+                CTxDestination dest = DecodeDestination(addressExclude);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + addressExclude);
+            }
+        }
 
         vector<int> contentTypes;
-        ParseRequestContentTypes(request.params[1], contentTypes);
+        if(request.params.size()>2)
+            ParseRequestContentTypes(request.params[2], contentTypes);
 
-        int nHeight = chainActive.Height();
-        int depth = 1000;
-        int cntOut = 10;
+        string lang = "";
+        if (request.params.size() > 3 && request.params[3].isStr())
+            lang = request.params[3].get_str();
 
-        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
-            nHeight = request.params[2].get_int();
-
-        if (request.params.size() > 3 && request.params[3].isNum())
-            depth = request.params[3].get_int();
-
+        int cntOut = 15;
         if (request.params.size() > 4 && request.params[4].isNum())
             cntOut = request.params[4].get_int();
 
-        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
-    }
-
-    UniValue GetRecomendedAccountsByTags(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw runtime_error(
-                "getrecomendedaccountsbytags \"tags\", count\n"
-                "\nAccounts recommendations by tags.\n"
-                "\nArguments:\n"
-                "1. \"tags\" (array of strings) Tags for recommendations\n"
-                "2. \"count\" (int, optional) Number of resulting records. Default 10\n"
-            );
-
-        vector<string> tags;
-        if (request.params.size() > 0)
-            ParseRequestTags(request.params[0], tags);
-
-        if (tags.empty())
-            throw JSONRPCError(RPC_INVALID_PARAMETER, string("There are no tags in the input parameters."));
-
         int nHeight = chainActive.Height();
-        int depth = 60 * 24 * 30; // about 1 month
+        if (request.params.size() > 5 && request.params[5].isNum() && request.params[5].get_int() > 0)
+            nHeight = request.params[5].get_int();
 
-        int cntOut = 10;
-        if (request.params.size() > 1 && request.params[1].isNum())
-            cntOut = request.params[1].get_int();
+        int depth = (60 * 24 * 30 * 3); //about 3 month as default
+        if (request.params.size() > 6 && request.params[6].isNum())
+        {
+            depth = std::max(request.params[6].get_int(), (60 * 24 * 30 * 6)); // not greater than about 6 month
+        }
 
-        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByTags(tags, nHeight, depth, cntOut);
-    }
+        UniValue result(UniValue::VARR);
+        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedAccountByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, nHeight, depth);
+        if (!ids.empty())
+        {
+            auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
+            for (const auto[id, record] : profiles)
+                result.push_back(record);
+        }
 
-    UniValue GetRecomendedContentsByScoresOnSimilarContents(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw runtime_error(
-                "getrecomendedcontentsbyscoresonsimilarcontents \"contentid\", \"contenttypes\", depth, count\n"
-                "\nContents recommendations by other content.\n"
-                "\nArguments:\n"
-                "1. \"contentid\" (string) Content hash for recommendations\n"
-                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
-                "3. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
-                "4. \"count\" (int, optional) Number of resulting records. Default 10\n"
-            );
-
-        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-        string contentid = request.params[0].get_str();
-
-        vector<int> contentTypes;
-        ParseRequestContentTypes(request.params[1], contentTypes);
-
-        int depth = 1000;
-        int cntOut = 10;
-
-        if (request.params.size() > 2 && request.params[2].isNum())
-            depth = request.params[2].get_int();
-
-        if (request.params.size() > 3 && request.params[3].isNum())
-            cntOut = request.params[3].get_int();
-
-        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresOnSimilarContents(contentid, contentTypes, depth, cntOut);
-    }
-
-    UniValue GetRecomendedContentsByScoresFromAddress(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw runtime_error(
-                "getrecomendedcontentsbyscoresfromaddress \"address\", \"contenttypes\", height, depth, count\n"
-                "\nContents recommendations for address by likes.\n"
-                "\nArguments:\n"
-                "1. \"address\" (string) Address for recommendations\n"
-                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
-                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
-                "4. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
-                "5. \"count\" (int, optional) Number of resulting records. Default 10\n"
-            );
-
-        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-        string address = request.params[0].get_str();
-        CTxDestination dest = DecodeDestination(address);
-
-        if (!IsValidDestination(dest))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
-
-        vector<int> contentTypes;
-        ParseRequestContentTypes(request.params[1], contentTypes);
-
-        int nHeight = chainActive.Height();
-        int depth = 1000;
-        int cntOut = 10;
-
-        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
-            nHeight = request.params[2].get_int();
-
-        if (request.params.size() > 3 && request.params[3].isNum())
-            depth = request.params[3].get_int();
-
-        if (request.params.size() > 4 && request.params[4].isNum())
-            cntOut = request.params[4].get_int();
-
-        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
+        return result;
     }
 }

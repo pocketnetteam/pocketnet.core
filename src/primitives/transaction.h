@@ -13,9 +13,6 @@
 #include <uint256.h>
 #include "core_io.h"
 #include "streams.h"
-
-#include "pocketdb/models/base/Transaction.h"
-
 #include <tuple>
 
 /**

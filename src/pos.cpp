@@ -299,8 +299,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
     // Weighted target
     int64_t nValueIn = txPrev->vout[prevout.n].nValue;
-    arith_uint256 bnWeight = std::min(
-        nValueIn, Params().GetConsensus().nStakeMaximumThreshold);
+    arith_uint256 bnWeight = std::min(nValueIn, Params().GetConsensus().nStakeMaximumThreshold);
     bnTarget *= bnWeight;
 
     targetProofOfStake = bnTarget;
@@ -315,37 +314,9 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     hashProofOfStakeSource = ss;
     hashProofOfStake = UintToArith256(Hash(ss.begin(), ss.end()));
 
-    if (fPrintProofOfStake)
-    {
-        //LogPrintf("CheckStakeKernelHash() : using modifier 0x%016x at height=%d timestamp=%s for block from timestamp=%s\n",
-        //    nStakeModifier, nStakeModifierHeight,
-        //    FormatISO8601DateTime(nStakeModifierTime),
-        //    FormatISO8601DateTime(nTimeBlockFrom));
-        //LogPrintf("CheckStakeKernelHash() : check modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s bnTarget=%s nBits=%08x nValueIn=%d bnWeight=%s\n",
-        //    nStakeModifier,
-        //    nTimeBlockFrom, txPrev->nTime, prevout.n, nTimeTx,
-        //    hashProofOfStake.ToString(),bnTarget.ToString(), nBits, nValueIn,bnWeight.ToString());
-    }
-
     // Now check if proof-of-stake hash meets target protocol
     if (hashProofOfStake > bnTarget)
-    {
         return false;
-    }
-
-    if (!fPrintProofOfStake)
-    {
-        LogPrintf(
-            "CheckStakeKernelHash() : using modifier 0x%016x at height=%d timestamp=%s for block from timestamp=%s\n",
-            nStakeModifier, nStakeModifierHeight,
-            FormatISO8601DateTime(nStakeModifierTime),
-            FormatISO8601DateTime(nTimeBlockFrom));
-        LogPrintf(
-            "CheckStakeKernelHash() : pass modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s\n",
-            nStakeModifier,
-            nTimeBlockFrom, txPrev->nTime, prevout.n, nTimeTx,
-            hashProofOfStake.ToString());
-    }
 
     return true;
 }
@@ -354,12 +325,9 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock, int64_t nTimeTx)
 {
     if (nHeight > 0)
-    {
         return (nTimeBlock == nTimeTx) && ((nTimeTx & STAKE_TIMESTAMP_MASK) == 0);
-    } else
-    {
+    else
         return (nTimeBlock == nTimeTx);
-    }
 }
 
 // Stake Modifier (hash modifier of proof-of-stake):

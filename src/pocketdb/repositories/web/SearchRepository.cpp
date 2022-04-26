@@ -105,7 +105,7 @@ namespace PocketDb
         return ids;
     }
 
-    vector<int64_t> SearchRepository::SearchUsers(const SearchRequest& request)
+    vector<int64_t> SearchRepository::SearchUsersOld(const SearchRequest& request)
     {
         auto func = __func__;
         vector<int64_t> result;
@@ -164,75 +164,65 @@ namespace PocketDb
         return result;
     }
 
-    UniValue SearchRepository::GetRecomendedAccountsBySubscriptions(const string& address, int cntOut)
+    vector<int64_t> SearchRepository::SearchUsers(const string& keyword)
     {
         auto func = __func__;
-        UniValue result(UniValue::VARR);
+        vector<int64_t> result;
 
-        if (address.empty())
-            return result;
+        string _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
 
         string sql = R"sql(
-            select
-                recommendation.address,
-                p.String2 as name,
-                p.String3 as avatar
-
-                , ifnull((
-                    select r.Value
-                    from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Type=0 and r.Id=u.Id and r.Last=1)
-                ,0) as Reputation
-
-                , (
-                    select count(*)
-                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
-                ) as SubscribersCount
-            from (
+            select names.* from (
                 select
-                    t.String2 address
-                from Transactions t indexed by Transactions_Type_Last_String1_String2_Height
-                where t.Last = 1
-                    and t.Type in (302,303)
-                    and t.Height is not null
-                    and t.String2 != ?
-                    and t.String1 in (select s.String1
-                                      from Transactions s indexed by Transactions_Type_Last_String2_Height
-                                      where s.Type in (302,303)
-                                        and s.Last = 1
-                                        and s.Height is not null
-                                        and s.String2 = ?)
-                group by t.String2
-                order by count(*) desc
+                      fm.ContentId
+                    , ROW_NUMBER() OVER ( ORDER BY RANK, length(f.Value) ) as ROWNUMBER
+                    , RANK as RNK
+                    , r.Value as Rating
+                from web.Content f
+                join web.ContentMap fm on fm.ROWID = f.ROWID
+                left join Ratings r on r.Id = fm.ContentId and r.Last = 1 and r.Type = 0
+                where fm.FieldType in (?)
+                    and f.Value match ?
                 limit ?
-            )recommendation
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = recommendation.address
-                and u.Type in (100,101,102)
-                and u.Last=1
-                and u.Height is not null
-            cross join Payload p on p.TxHash = u.Hash
+            ) names
 
+            union
+
+            select about.* from (
+                select
+                      fm.ContentId
+                    , ROW_NUMBER() OVER ( ORDER BY r.Value DESC) as ROWNUMBER
+                    , RANK as RNK
+                    , r.Value as Rating
+                from web.Content f
+                join web.ContentMap fm on fm.ROWID = f.ROWID
+                left join Ratings r on r.Id = fm.ContentId and r.Last = 1 and r.Type = 0
+                where fm.FieldType in (?)
+                    and f.Value match ?
+                limit ?
+            ) about
+
+            order by ROWNUMBER, RNK, Rating desc
         )sql";
 
         TryTransactionStep(__func__, [&]()
         {
+            int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, cntOut);
+            TryBindStatementInt(stmt, i++, (int)ContentFieldType::ContentFieldType_AccountUserName);
+            TryBindStatementText(stmt, i++, _keyword);
+            TryBindStatementInt(stmt, i++, 10);
+
+            TryBindStatementInt(stmt, i++, (int)ContentFieldType::ContentFieldType_AccountUserAbout);
+            TryBindStatementText(stmt, i++, _keyword);
+            TryBindStatementInt(stmt, i++, 10);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
-                result.push_back(record);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    if (find(result.begin(), result.end(), value) == result.end())
+                        result.push_back(value);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -241,331 +231,58 @@ namespace PocketDb
         return result;
     }
 
-    UniValue SearchRepository::GetRecomendedAccountsByScoresOnSimilarAccounts(const string& address, const vector<int>& contentTypes, int nHeight, int depth, int cntOut)
+    //TODO (o1q): remove it
+    vector<string> SearchRepository::GetRecommendedAccountByAddressSubscriptionsOld(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth, int cntSubscriptions)
     {
         auto func = __func__;
-        UniValue result(UniValue::VARR);
+        vector<string> ids;
 
         if (address.empty())
-            return result;
+            return ids;
 
         string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
 
-        string sql = R"sql(
-            select recommendation.address,
-                   p.String2              as name,
-                   p.String3              as avatar
+        string excludeAddressFilter = "?";
+        if (!addressExclude.empty())
+            excludeAddressFilter += ", ?";
 
-                , ifnull((
-                    select r.Value
-                    from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Type=0 and r.Id=u.Id and r.Last=1)
-                ,0) as Reputation
+        string langFilter = "";
+        if (!lang.empty())
+            langFilter = "cross join Payload lang on lang.TxHash = u.Hash and lang.String1 = ?";
 
-                , (
-                    select count(*)
-                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
-                ) as SubscribersCount
-            from (
-                select
-                    tOtherContents.String1 as address
-                from Transactions tOtherContents
-                         indexed by Transactions_Type_Last_String1_String2_Height
-                where tOtherContents.String2 in (
-                    select tOtherLikes.String2 as OtherLikedContent
-                    from Transactions tOtherlikes
-                    where tOtherLikes.String1 in (
-                        select tLikes.String1 as Liker
-                        from Transactions tLikes
-                        where tLikes.String2 in (
-                            select tContents.String2 as BloggerContent
-                            from Transactions tContents
-                            where tContents.Type in ( )sql" + contentTypesFilter + R"sql( )
-                              and tContents.Last = 1
-                              and tContents.String1 = ?
-                              and tContents.Height >= ?
-                        )
-                          and tLikes.Type in (300)
-                          and tLikes.Last in (1, 0)
-                          and tLikes.Int1 > 3
-                          and tLikes.Height >= ?
-                    )
-                      and tOtherLikes.Type in (300)
-                      and tOtherLikes.Last in (1, 0)
-                      and tOtherLikes.Int1 > 3
-                      and tOtherLikes.Height >= ?
-                )
-                  and tOtherContents.Type in ( )sql" + contentTypesFilter + R"sql( )
-                  and tOtherContents.String1 != ?
-                  and tOtherContents.Last = 1
-                  and tOtherContents.Height >= ?
-                group by tOtherContents.String1
-                order by count(*) desc
-                limit ?
-            )recommendation
-             cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                      on u.String1 = recommendation.address
-                      and u.Type in (100,101,102)
-                      and u.Last=1
-                      and u.Height is not null
-             cross join Payload p on p.TxHash = u.Hash
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, cntOut);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
-                result.push_back(record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    UniValue SearchRepository::GetRecomendedAccountsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth, int cntOut)
-    {
-        auto func = __func__;
-        UniValue result(UniValue::VARR);
-
-        if (address.empty())
-            return result;
-
-        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+        int minReputation = 300;
 
         string sql = R"sql(
-            select recommendation.address,
-                   p.String2              as name,
-                   p.String3              as avatar
-
-                , ifnull((
-                    select r.Value
-                    from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Type=0 and r.Id=u.Id and r.Last=1)
-                ,0) as Reputation
-
-                , (
-                    select count(*)
-                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
-                ) as SubscribersCount
-            from (
-                select
-                        tOtherContents.String1 as address
-                from Transactions tOtherContents
-                         indexed by Transactions_Type_Last_String2_Height
-                where tOtherContents.String2 in (
-                    select tOtherLikes.String2 as OtherLikedContent
-                    from Transactions tOtherlikes
-                    where tOtherLikes.String1 in (
-                        select tLikes.String1 as Liker
-                        from Transactions tLikes
-                        where tLikes.String2 in (
-                            select tAddressLikes.String2 as ContentsLikedByAddress
-                            from Transactions tAddressLikes
-                            where tAddressLikes.String1 = ?
-                              and tAddressLikes.Type in (300)
-                              and tAddressLikes.Last in (1, 0)
-                              and tAddressLikes.Int1 > 3
-                              and tAddressLikes.Height >= ?
-                        )
-                          and tLikes.Type in (300)
-                          and tLikes.Last in (1, 0)
-                          and tLikes.Int1 > 3
-                          and tLikes.Height >= ?
-                    )
-                      and tOtherLikes.Type in (300)
-                      and tOtherLikes.Last in (1, 0)
-                      and tOtherLikes.Int1 > 3
-                      and tOtherLikes.Height >= ?
-                )
-                  and tOtherContents.Type in ( )sql" + contentTypesFilter + R"sql( )
-                  and tOtherContents.String1 != ?
-                  and tOtherContents.Last = 1
-                  and tOtherContents.Height >= ?
-                group by tOtherContents.String1
-                order by count(*) desc
-                limit ?
-            )recommendation
-            cross join Transactions u on u.String1 = recommendation.address
-                    and u.Type in (100,101,102)
-                    and u.Last=1
-                    and u.Height is not null
-            cross join Payload p on p.TxHash = u.Hash
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, cntOut);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
-                result.push_back(record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    UniValue SearchRepository::GetRecomendedAccountsByTags(const vector<string>& tags, int nHeight, int depth, int cntOut)
-    {
-        auto func = __func__;
-        UniValue result(UniValue::VARR);
-
-        if (tags.empty())
-            return result;
-
-        string tagsFilter = join(vector<string>(tags.size(), "?"), ",");
-
-        string sql = R"sql(
-            select
-                recommendation.address,
-                p.String2 as name,
-                p.String3 as avatar
-
-                , ifnull((
-                    select r.Value
-                    from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Type=0 and r.Id=u.Id and r.Last=1)
-                ,0) as Reputation
-
-                , (
-                    select count(*)
-                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
-                ) as SubscribersCount
-            from (
-                select authors.string1 address
-                from (
-                         select c.String1
-                         from Transactions sc indexed by Transactions_Type_Last_Height_Id
-                          cross join Transactions c indexed by Transactions_Type_Last_String2_Height
-                             on c.String2 = sc.String2 and c.Type in (200, 201, 202) and c.Height > 0 and c.Last = 1
-                                 and c.id in (select tm.ContentId
-                                              from web.Tags tag indexed by Tags_Lang_Value_Id
-                                              join web.TagsMap tm indexed by TagsMap_TagId_ContentId
-                                                on tag.Id = tm.TagId
-                                              where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ))
-                         where sc.Type in (300)
-                           and sc.Last in (0, 1)
-                           and sc.Height > ?
-                           and sc.Int1 = 5
-                    ) authors
-                group by authors.string1
-                order by count(*) desc
-                limit ?
-            )recommendation
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = recommendation.address
-                and u.Type in (100,101,102)
-                and u.Last=1
-                and u.Height is not null
-            cross join Payload p on p.TxHash = u.Hash
-
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            for (const auto& tag: tags)
-                TryBindStatementText(stmt, i++, tag);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, cntOut);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
-                result.push_back(record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    UniValue SearchRepository::GetRecomendedContentsByScoresOnSimilarContents(const string& contentid, const vector<int>& contentTypes, int depth, int cntOut)
-    {
-        auto func = __func__;
-        UniValue result(UniValue::VARR);
-
-        if (contentid.empty())
-            return result;
-
-        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
-
-        string sql = R"sql(
-            select OtherRaters.String2 OtherScoredContent, count(*) cnt
-            from Transactions OtherRaters indexed by Transactions_Type_Last_String1_Height_Id
+            select Contents.String1
+            from Transactions Rates indexed by Transactions_Type_Last_String1_Height_Id
             cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
-                on OtherRaters.String2 = Contents.String2 and Contents.Last = 1 and Contents.Type in ( )sql" + contentTypesFilter + R"sql( ) and Contents.Height > 0
-            where OtherRaters.Type in (300)
-              and OtherRaters.Int1 > 3
-              and OtherRaters.Last in (1, 0)
-              and OtherRaters.Height >= (select Height
-                                         from Transactions indexed by Transactions_Type_Last_String2_Height
-                                         where Type in ( )sql" + contentTypesFilter + R"sql( )
-                                           and String2 = ?
-                                           and Last = 1) - ?
-              and OtherRaters.String1 in (
-                select String1 as Rater
-                from Transactions Raters indexed by Transactions_Type_Last_String2_Height
-                where Raters.Type in (300)
-                  and Raters.Int1 > 3
-                  and Raters.String2 = ?
-                  and Raters.Last in (1, 0)
-            )
-              and OtherRaters.String2 != ?
-            group by OtherRaters.String2
-            order by count(*) desc
+                on Contents.String2 = Rates.String2
+                    and Contents.Last = 1
+                    and Contents.Height > 0
+                    and Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
+                    and Contents.String1 not in ( ? )
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.String1 = Contents.String1
+                    and u.Type in (100)
+                    and u.Last = 1
+                    and u.Height > 0
+            )sql" + langFilter + R"sql(
+            where Rates.Type in (300)
+                and Rates.Int1 = 5
+                and Rates.Height > ?
+                and Rates.Last in (0, 1)
+                and Rates.String1 in (
+                    select subscribes.String2
+                    from Transactions subscribes indexed by Transactions_Type_Last_String1_Height_Id
+                    where subscribes.Type in (302, 303)
+                        and subscribes.Last = 1
+                        and subscribes.Height > 0
+                        and subscribes.String1 = ?
+                        limit ?
+                )
+            group by Contents.String1
+            having count(*) > 1
+            order by count (*) desc
             limit ?
         )sql";
 
@@ -576,65 +293,97 @@ namespace PocketDb
             int i = 1;
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
-            TryBindStatementText(stmt, i++, contentid);
-            TryBindStatementInt(stmt, i++, depth);
-            TryBindStatementText(stmt, i++, contentid);
-            TryBindStatementText(stmt, i++, contentid);
+
+            TryBindStatementText(stmt, i++, address);
+            if (!addressExclude.empty())
+                TryBindStatementText(stmt, i++, addressExclude);
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            TryBindStatementInt(stmt, i++, nHeight-depth);
+
+            TryBindStatementText(stmt, i++, address);
+
+            TryBindStatementInt(stmt, i++, cntSubscriptions);
+
             TryBindStatementInt(stmt, i++, cntOut);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("contentid", value);
-                result.push_back(record);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    ids.push_back(value);
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        return result;
+        return ids;
     }
 
-    UniValue SearchRepository::GetRecomendedContentsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth, int cntOut)
+    //TODO (o1q): remove it
+    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptionsOld(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth, int cntSubscriptions)
     {
         auto func = __func__;
-        UniValue result(UniValue::VARR);
+        vector<int64_t> ids;
 
-        if (address.empty())
-            return result;
+        if (contentAddress.empty())
+            return ids;
 
         string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
 
+        string excludeAddressFilter = "?";
+        if (!address.empty())
+            excludeAddressFilter += ", ?";
+
+        string langFilter = "";
+        if (!lang.empty())
+            langFilter = "cross join Payload lang on lang.TxHash = Contents.Hash and lang.String1 = ?";
+
+        int minReputation = 300;
+
         string sql = R"sql(
-            select OtherRaters.String2 as OtherScoredContent, count(*) cnt
-            from Transactions OtherRaters indexed by Transactions_Type_Last_String1_Height_Id
+            select recomendations.Id
+            from (
+                    select Contents.String1,
+                    Contents.Id,
+                    Rates.String2,
+                    count(*) count
+            from Transactions Rates indexed by Transactions_Type_Last_String1_Height_Id
             cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
-                on OtherRaters.String2 = Contents.String2 and Contents.Last = 1 and Contents.Type in ( )sql" + contentTypesFilter + R"sql( ) and Contents.Height > 0
-            where OtherRaters.String1 in (
-                select Scores.String1 as Rater
-                from Transactions Scores indexed by Transactions_Type_Last_String2_Height
-                where Scores.String2 in (
-                    select addressScores.String2 as ContentsScoredByAddress
-                    from Transactions addressScores indexed by Transactions_Type_Last_String1_Height_Id
-                    where addressScores.String1 = ?
-                      and addressScores.Type in (300)
-                      and addressScores.Last in (1, 0)
-                      and addressScores.Int1 > 3
-                      and addressScores.Height >= ?
-                )
-                  and Scores.Type in (300)
-                  and Scores.Last in (1, 0)
-                  and Scores.Int1 > 3
-                  and Scores.Height >= ?
-            )
-              and OtherRaters.Type in (300)
-              and OtherRaters.Last in (1, 0)
-              and OtherRaters.Int1 > 3
-              and OtherRaters.Height >= ?
-            group by OtherRaters.String2
+                on Contents.String2 = Rates.String2
+                    and Contents.Last = 1
+                    and Contents.Height > 0
+                    and Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
+                    and Contents.String1 not in ( )sql" + excludeAddressFilter + R"sql( )
+            )sql" + langFilter + R"sql(
+            where Rates.Type in (300)
+                and Rates.Int1 = 5
+                and Rates.Height > ?
+                and Rates.Last in (0, 1)
+                and Rates.String1 in (
+                    select subscribers.String2
+                    from Transactions subscribers indexed by Transactions_Type_Last_String1_Height_Id
+                    cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                        on u.Type in (100)
+                            and u.Last = 1 and u.Height > 0
+                            and u.String1 = subscribers.String1
+                    cross join Ratings r indexed by Ratings_Type_Id_Last_Value
+                        on r.Id = u.Id
+                            and r.Type = 0
+                            and r.Last = 1
+                            and r.Value > ?
+                    where subscribers.Type in (302, 303)
+                        and subscribers.Last = 1
+                        and subscribers.Height > 0
+                        and subscribers.String1 = ?
+                    limit ?
+                    )
+            group by Rates.String2
+            having count(*) > 1
             order by count(*) desc
+            ) recomendations
+            group by recomendations.String1
             limit ?
         )sql";
 
@@ -644,23 +393,371 @@ namespace PocketDb
 
             int i = 1;
             for (const auto& contenttype: contentTypes)
-               TryBindStatementInt(stmt, i++, contenttype);
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementText(stmt, i++, contentAddress);
+            if (!address.empty())
+                TryBindStatementText(stmt, i++, address);
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            TryBindStatementInt(stmt, i++, nHeight-depth);
+
+            TryBindStatementInt(stmt, i++, minReputation);
+            TryBindStatementText(stmt, i++, contentAddress);
+
+            TryBindStatementInt(stmt, i++, cntSubscriptions);
+
             TryBindStatementInt(stmt, i++, cntOut);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("contentid", value);
-                result.push_back(record);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        return result;
+        return ids;
+    }
+
+    vector<string> SearchRepository::GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
+    {
+        auto func = __func__;
+        vector<string> ids;
+
+        if (address.empty())
+            return ids;
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string excludeAddressFilter = "?";
+        if (!addressExclude.empty())
+            excludeAddressFilter += ", ?";
+
+        string langFilter = "";
+        if (!lang.empty())
+            langFilter = "cross join Payload lang on lang.TxHash = u.Hash and lang.String1 = ?";
+
+        int minReputation = 300;
+        int limitSubscriptions = 30;
+        int limitSubscriptionsTotal = 30;
+        int cntRates = 1;
+
+        string sql = R"sql(
+            select Contents.String1
+            from Transactions Rates indexed by Transactions_Type_Last_String1_Height_Id
+            cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
+                on Contents.String2 = Rates.String2
+                    and Contents.Last = 1
+                    and Contents.Height > 0
+                    and Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
+                    and Contents.String1 not in ( )sql" + excludeAddressFilter + R"sql( )
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.String1 = Contents.String1
+                    and u.Type in (100)
+                    and u.Last = 1
+                    and u.Height > 0
+            )sql" + langFilter + R"sql(
+            where Rates.Type in (300)
+                and Rates.Int1 = 5
+                and Rates.Height > ?
+                and Rates.Last in (0, 1)
+                and Rates.String1 in
+               (
+               select address
+               from (
+                    select rnk, address
+                    from (
+                         select 1 as rnk, subscribes.String2 as address
+                         from Transactions subscribes indexed by Transactions_String1_Last_Height
+                          cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                             on u.Type in (100)
+                                 and u.Last = 1 and u.Height > 0
+                                 and u.String1 = subscribes.String2
+                          cross join Ratings r indexed by Ratings_Type_Id_Last_Value
+                             on r.Id = u.Id
+                                 and r.Type = 0
+                                 and r.Last = 1
+                                 and r.Value > ?
+                         where subscribes.Type in (302, 303)
+                           and subscribes.Last = 1
+                           and subscribes.String1 = ?
+                           and subscribes.Height is not null
+                         order by subscribes.Height desc
+                         limit ?
+                         )
+                    union
+                    select rnk, address
+                    from (
+                         select 2 as rnk, subscribers.String1 as address
+                         from Transactions subscribers indexed by Transactions_Type_Last_String2_Height
+                          cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                             on u.Type in (100)
+                                 and u.Last = 1 and u.Height > 0
+                                 and u.String1 = subscribers.String1
+                          cross join Ratings r indexed by Ratings_Type_Id_Last_Value
+                             on r.Id = u.Id
+                                 and r.Type = 0
+                                 and r.Last = 1
+                                 and r.Value > ?
+                         where subscribers.Type in (302, 303)
+                           and subscribers.Last = 1
+                           and subscribers.String2 = ?
+                           and subscribers.Height is not null
+                         order by random()
+                         limit ?
+                         ))
+               order by rnk
+               limit ?
+               )
+            group by Contents.String1
+            having count(*) > ?
+            order by count (*) desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementText(stmt, i++, address);
+            if (!addressExclude.empty())
+                TryBindStatementText(stmt, i++, addressExclude);
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            TryBindStatementInt(stmt, i++, nHeight-depth);
+
+            TryBindStatementInt(stmt, i++, minReputation);
+            TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, limitSubscriptions);
+
+            TryBindStatementInt(stmt, i++, minReputation);
+            TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, limitSubscriptions);
+
+            TryBindStatementInt(stmt, i++, limitSubscriptionsTotal);
+
+            TryBindStatementInt(stmt, i++, cntRates);
+
+            TryBindStatementInt(stmt, i++, cntOut);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return ids;
+    }
+
+    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
+    {
+        auto func = __func__;
+        vector<int64_t> ids;
+
+        if (contentAddress.empty())
+            return ids;
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string excludeAddressFilter = "?";
+        if (!address.empty())
+            excludeAddressFilter += ", ?";
+
+        string langFilter = "";
+        if (!lang.empty())
+            langFilter = "cross join Payload lang indexed by Payload_String1_TxHash on lang.TxHash = Contents.Hash and lang.String1 = ?";
+
+        int minReputation = 300;
+        int limitSubscriptions = 50;
+        int limitSubscriptionsTotal = 30;
+        int cntRates = 1;
+
+        string sql = R"sql(
+            select recomendations.Id
+            from (
+                 select Contents.String1,
+                        Contents.Id,
+                        --Rates.String2,
+                        count(*) count
+                 from Transactions Rates indexed by Transactions_Type_Last_String1_Height_Id
+                  cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
+                     on Contents.String2 = Rates.String2
+                         and Contents.Last = 1
+                         and Contents.Height > 0
+                         and Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
+                         and Contents.String1 not in ( )sql" + excludeAddressFilter + R"sql( )
+                  )sql" + langFilter + R"sql(
+                 where Rates.Type in (300)
+                   and Rates.Int1 = 5
+                   and Rates.Height > ?
+                   and Rates.Last in (0, 1)
+                   and Rates.String1 in
+                       (
+                       select address
+                       from (
+                            select rnk, address
+                            from (
+                                 select 1 as rnk, subscribes.String2 as address
+                                 from Transactions subscribes indexed by Transactions_String1_Last_Height
+                                  cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                                     on u.Type in (100)
+                                         and u.Last = 1 and u.Height > 0
+                                         and u.String1 = subscribes.String2
+                                  cross join Ratings r indexed by Ratings_Type_Id_Last_Value
+                                     on r.Id = u.Id
+                                         and r.Type = 0
+                                         and r.Last = 1
+                                         and r.Value > ?
+                                 where subscribes.Type in (302, 303)
+                                   and subscribes.Last = 1
+                                   and subscribes.String1 = ?
+                                   and subscribes.Height is not null
+                                 order by subscribes.Height desc
+                                 limit ?
+                                 )
+                            union
+                            select rnk, address
+                            from (
+                                 select 2 as rnk, subscribers.String1 as address
+                                 from Transactions subscribers indexed by Transactions_Type_Last_String2_Height
+                                  cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                                     on u.Type in (100)
+                                         and u.Last = 1 and u.Height > 0
+                                         and u.String1 = subscribers.String1
+                                  cross join Ratings r indexed by Ratings_Type_Id_Last_Value
+                                     on r.Id = u.Id
+                                         and r.Type = 0
+                                         and r.Last = 1
+                                         and r.Value > ?
+                                 where subscribers.Type in (302, 303)
+                                   and subscribers.Last = 1
+                                   and subscribers.String2 = ?
+                                   and subscribers.Height is not null
+                                 order by random()
+                                 limit ?
+                                 ))
+                       order by rnk
+                       limit ?
+                       )
+                 --group by Rates.String2
+                 group by Contents.Id
+                 having count(*) > ?
+                 order by count(*) desc
+                 ) recomendations
+            group by recomendations.String1
+            order by recomendations.count desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementText(stmt, i++, contentAddress);
+            if (!address.empty())
+                TryBindStatementText(stmt, i++, address);
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            TryBindStatementInt(stmt, i++, nHeight-depth);
+
+            TryBindStatementInt(stmt, i++, minReputation);
+            TryBindStatementText(stmt, i++, contentAddress);
+            TryBindStatementInt(stmt, i++, limitSubscriptions);
+
+            TryBindStatementInt(stmt, i++, minReputation);
+            TryBindStatementText(stmt, i++, contentAddress);
+            TryBindStatementInt(stmt, i++, limitSubscriptions);
+
+            TryBindStatementInt(stmt, i++, limitSubscriptionsTotal);
+
+            TryBindStatementInt(stmt, i++, cntRates);
+
+            TryBindStatementInt(stmt, i++, cntOut);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return ids;
+    }
+
+    vector<int64_t> SearchRepository::GetRandomContentByAddress(const string& contentAddress, const vector<int>& contentTypes, const string& lang, int cntOut)
+    {
+        auto func = __func__;
+        vector<int64_t> ids;
+
+        if (contentAddress.empty())
+            return ids;
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string langFilter = "";
+        if (!lang.empty())
+            langFilter = "cross join Payload lang on lang.TxHash = Contents.Hash and lang.String1 = ?";
+
+        string sql = R"sql(
+            select Contents.Id
+            from Transactions Contents indexed by Transactions_Type_Last_String1_Height_Id
+            )sql" + langFilter + R"sql(
+            where Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
+              and Contents.Last = 1
+              and Contents.String1 = ?
+              and Contents.Height > 0
+            order by random()
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementText(stmt, i++, contentAddress);
+
+            TryBindStatementInt(stmt, i++, cntOut);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return ids;
+
+
     }
 }

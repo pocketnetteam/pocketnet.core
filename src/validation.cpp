@@ -39,6 +39,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
 #include <univalue.h>
+#include <httpserver.h>
 
 #include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/services/Accessor.h"
@@ -1078,11 +1079,11 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         {
             // Check transaction with pocketnet base rules
             if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, chainActive.Height() + 1); !ok)
-                return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
+                return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Check with result `%s`\n", PocketConsensus::SocialConsensusResultString(result)));
 
             // Check transaction with pocketnet consensus rules
             if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, chainActive.Height() + 1); !ok)
-                return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result));
+                return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Validate with result `%s`\n", PocketConsensus::SocialConsensusResultString(result)));
         }
 
         if (test_accept)
@@ -2586,7 +2587,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Extend WEB database
-    if (gArgs.GetBoolArg("-api", true) && enablePocketConnect)
+    if (!gArgs.GetBoolArg("-withoutweb", false) && enablePocketConnect)
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -4621,7 +4622,7 @@ bool ProcessNewBlock(CValidationState& state,
             MILLI * (double)(nTime3 - nTime2),
             pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime3 - nTime2) / (double)(pocketBlock->size() - 1));
 
-        // It is necessary to check that block and pocket Black contain an equal number of transactions
+        // It is necessary to check that block and PocketBlock contain an equal number of transactions
         // Also check pocket block with general pocketnet consensus rules
         if (ret)
         {
@@ -4632,7 +4633,13 @@ bool ProcessNewBlock(CValidationState& state,
                 checkHeight = _pindex->nHeight;
 
             if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock, checkHeight); !ok)
-                ret = false;
+            {
+                if (_pindex)
+                    _pindex->nStatus &= ~BLOCK_HAVE_DATA;
+
+                ret = state.DoS(200, false, REJECT_INCOMPLETE, "failed-check-social-payload", false, "", true);
+                *fNewBlock = false;
+            }
                 
             LogPrint(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, pblock->GetHash().GetHex());
         }
