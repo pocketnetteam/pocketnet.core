@@ -23,8 +23,11 @@ void webrtc::signaling::SignalingServer::Init(const std::string &ep, const short
     endpoint.on_close = [proc = m_processor](std::shared_ptr<WsServer::Connection> connection, int, const std::string&) {
         proc->OnClosedConnection(std::move(connection));
     };
+    endpoint.on_error = [proc = m_processor](std::shared_ptr<Connection> connection, const boost::system::error_code & err) {
+        std::cout << "DEBUG (Signaling): disconnected with error: " << err.message() << std::endl;
+        proc->OnClosedConnection(std::move(connection));
+    };
 
-    // TODO (losty-signaling): ugly capturing
     endpoint.on_message = [proc = m_processor](std::shared_ptr<WsServer::Connection> connection, std::shared_ptr<WsServer::InMessage> in_message) {
         proc->ProcessMessage(connection, std::move(in_message));
     };
