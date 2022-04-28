@@ -103,7 +103,9 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
                 }
                 auto path = message["path"].get_str();
                 auto body = message["requestData"].write();
-                auto replier = std::make_shared<DataChannelReplier>(dc, ip);
+                std::optional<std::string> reqID;
+                if (message.exists("id") && message["id"].isStr()) reqID = message["id"].get_str();
+                auto replier = std::make_shared<DataChannelReplier>(dc, ip, reqID);
                 requestHandler->Process(path, body, replier);
 
             });

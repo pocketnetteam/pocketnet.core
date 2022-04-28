@@ -22,14 +22,15 @@
 class DataChannelReplier : public IReplier
 {
 public:
-    DataChannelReplier(std::shared_ptr<rtc::DataChannel> dataChannel, const std::string& ip)
+    DataChannelReplier(std::shared_ptr<rtc::DataChannel> dataChannel, const std::string& ip, const std::optional<std::string>& reqID)
         : m_dataChannel(std::move(dataChannel)),
-          m_ip(ip)
+          m_ip(ip),
+          m_reqID(reqID)
     {}
     void WriteReply(int nStatus, const std::string& reply = "") override
     {
         // TODO (losty-rtc): formatting message here
-        m_dataChannel->send(reply);
+        m_dataChannel->send(ConstructMessage(reply));
     }
     void WriteHeader(const std::string& hdr, const std::string& value) override
     {
@@ -48,9 +49,25 @@ public:
     {
         return m_created;
     }
+protected:
+    std::string ConstructMessage(const std::string& reply)
+    {
+        UniValue data;
+        if (!data.read(reply)) {
+            // TODO (losty): reply should be always valid json but what if not?
+            return reply;
+        }
+        UniValue msg(UniValue::VOBJ);
+        if (m_reqID) {
+            msg.pushKV("id", m_reqID.value());
+        }
+        msg.pushKV("data", data);
+        return msg.write();
+    }
 private:
     std::shared_ptr<rtc::DataChannel> m_dataChannel;
     std::string m_ip;
+    std::optional<std::string> m_reqID;
     Statistic::RequestTime m_created = gStatEngineInstance.GetCurrentSystemTime();
 };
 
