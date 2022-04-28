@@ -121,7 +121,6 @@ if(LibDataChannel_FOUND AND LibDataChannel_LIBRARIES AND NOT TARGET LibDataChann
     add_library(LibDataChannel::libdatachannel INTERFACE IMPORTED)
     set_target_properties(LibDataChannel::libdatachannel PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${LibDataChannel_INCLUDE_DIR}"
-            IMPORTED_LOCATION "${LIBDATACHANNEL_LIB}"
             INTERFACE_LINK_LIBRARIES "${LibDataChannel_LIBRARIES}"
             )
 endif()
