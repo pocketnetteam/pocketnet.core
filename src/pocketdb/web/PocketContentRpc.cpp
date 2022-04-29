@@ -943,8 +943,8 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetEvents()
     {
-        return RPCHelpMan{"GetContentActions",
-                          "\nGet profiles that performed actions(score/boos/donate) on content.\n",
+        return RPCHelpMan{"GetEvents",
+                          "\nGet all events for entire chain assotiated with addresses.\n",
                           {
                                   // TODO (rpc): provide args description
                           },
@@ -953,8 +953,8 @@ namespace PocketWeb::PocketWebRpc
                           },
                           RPCExamples{
                                   // TODO (rpc)
-                                  HelpExampleCli("GetRandomPost", "") +
-                                  HelpExampleRpc("GetRandomPost", "")
+                                  HelpExampleCli("getevents", "") +
+                                  HelpExampleRpc("getevents", "")
                           },
     [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
