@@ -178,6 +178,7 @@ CTransactionRef PocketNetTestingSetup::CreateAdPost(std::string name1, std::stri
     UniValue pocketData;
     pocketData.setObject();
     pocketData.pushKV("c", txIn->GetHash().GetHex());
+    pocketData.pushKV("t", GetAccountAddress(name2));
 	shared_ptr<Transaction> _ptx = PocketHelpers::TransactionHelper::CreateInstance(PocketTx::ACTION_AD_POST);
     _ptx->SetHash("");
     _ptx->DeserializeRpc(pocketData);
@@ -447,6 +448,7 @@ BOOST_AUTO_TEST_CASE(pocketnet_adpost_accept)
     auto bobProfile = sqlConnection->WebRpcRepoInst->GetAccountProfiles(a2);
 
     bobTx = CreatePost("bob", bobTx);
+    CTransactionRef postTx = bobTx;
 
     block = CreateAndProcessMempoolBlock(*m_node.mempool, scriptPubKey);
     BOOST_CHECK(block.vtx.size() == 2);
@@ -456,6 +458,7 @@ BOOST_AUTO_TEST_CASE(pocketnet_adpost_accept)
     UniValue contents = sqlConnection->WebRpcRepoInst->GetContentsForAddress(a1.get_str());
 
     bobTx = CreateAdPost("bob", "alice", bobTx);
+    CTransactionRef adPostTx = bobTx;
 
     block = CreateAndProcessMempoolBlock(*m_node.mempool, scriptPubKey);
     BOOST_CHECK(block.vtx.size() == 2);
@@ -491,6 +494,11 @@ BOOST_AUTO_TEST_CASE(pocketnet_adpost_accept)
     UniValue repostComment = find_value(profileFeed[0].get_obj(), "m");
     std::vector<string> message2{repostComment.get_str()};
     BOOST_CHECK(std::string("repost%20Checkout%20buy%20bobs%20stuff") == message2[0]);
+
+    auto response = PocketDb::NotifierRepoInst.GetAdPost(adPostTx->GetHash().GetHex());
+    BOOST_CHECK(response["address"].get_str() == GetAccountAddress("bob"));
+    BOOST_CHECK(response["contenttxhash"].get_str() == postTx->GetHash().GetHex());
+    BOOST_CHECK(response["targetaddress"].get_str() == GetAccountAddress("alice"));
 
     // cleanup
     keyMap.erase("alice");

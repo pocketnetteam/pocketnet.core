@@ -488,4 +488,38 @@ namespace PocketDb
 
         return result;
     }
+
+    UniValue NotifierRepository::GetAdPost(const string &adPostHash)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            select
+                t.String1 sourceAddress,
+                t.String2 contentTxHash,
+                t.String3 targetAddress
+            from Transactions t
+            where t.Type in (308)
+              and t.Hash = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, adPostHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("contenttxhash", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("targetaddress", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+
+    }
 }

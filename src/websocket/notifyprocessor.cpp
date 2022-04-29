@@ -123,6 +123,8 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                         optype = "commentEdit";
                     else if (spl[1] == OR_COMMENT_DELETE)
                         optype = "commentDelete";
+                    else if (spl[1] == OR_ADPOST)
+                        optype = "adpost";
                 }
             }
             //-------------------------
@@ -342,6 +344,25 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     }
 
                     PrepareWSMessage(messages, "event", response["postAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);
+                }
+            }
+            else if (optype == "adpost")
+            {
+                auto response = PocketDb::NotifierRepoInst.GetAdPost(txid);
+
+                if(response["address"].get_str() != addr.first && response["targetaddress"].get_str() != addr.first)
+                    continue;
+                if (response.exists("contenttxhash"))
+                {
+                    custom_fields cFields
+                    {
+                        {"mesType", optype},
+                        {"addrFrom", response["address"].get_str()},
+                        {"contenttxhash", response["contenttxhash"].get_str()},
+                        {"targetaddress", response["targetaddress"].get_str()}
+                    };
+
+                    PrepareWSMessage(messages, "event", response["targetaddress"].get_str(), response["contenttxhash"].get_str(), txtime, cFields);
                 }
             }
         }

@@ -23,6 +23,7 @@ namespace PocketTx
 
         result->pushKV("address", GetAddress() ? *GetAddress() : "");
         result->pushKV("contenttxhash", GetContentTxHash() ? *GetContentTxHash() : "");
+        result->pushKV("targetaddress", GetTargetAddress() ? *GetTargetAddress() : "");
 
         return result;
     }
@@ -32,11 +33,13 @@ namespace PocketTx
         Transaction::Deserialize(src);
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "contenttxhash"); ok) SetContentTxHash(val);
+        if (auto[ok, val] = TryGetStr(src, "targetaddress"); ok) SetTargetAddress(val);
     }
 
     void AdPost::DeserializeRpc(const UniValue& src)
     {
         if (auto[ok, val] = TryGetStr(src, "c"); ok) SetContentTxHash(val);
+        if (auto[ok, val] = TryGetStr(src, "t"); ok) SetTargetAddress(val);
     }
     
     void AdPost::DeserializePayload(const UniValue& src)
@@ -51,12 +54,16 @@ namespace PocketTx
     shared_ptr <string> AdPost::GetContentTxHash() const { return m_string2; }
     void AdPost::SetContentTxHash(const string& value) { m_string2 = make_shared<string>(value); }
 
+    shared_ptr <string> AdPost::GetTargetAddress() const { return m_string3; }
+    void AdPost::SetTargetAddress(const string& value) { m_string3 = make_shared<string>(value); }
+
 
     string AdPost::BuildHash()
     {
         std::string data;
 
         data += GetContentTxHash() ? *GetContentTxHash() : "";
+        data += GetTargetAddress() ? *GetTargetAddress() : "";
 
         return Transaction::GenerateHash(data);
     }
