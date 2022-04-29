@@ -4316,9 +4316,9 @@ namespace PocketDb
                     null,
                     t.Time,
                     o.Value
-                from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
+                from TxOutputs o
                 join Transactions t on t.Hash = o.TxHash
-                where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                where o.TxHeight > 0 and o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 
                 union
 
@@ -4337,8 +4337,9 @@ namespace PocketDb
                     null,
                     null,
                     null
-                from Transactions t indexed by Transactions_Type_String1_String2_Height
+                from Transactions t indexed by Transactions_Type_Last_String2_Height
                 where t.Type = 100
+                    and Last = 1
                     and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 union
@@ -4347,7 +4348,7 @@ namespace PocketDb
                 select
                     'answers',
                     c.String1 as AddressOrd,
-                    a.Height as HeightOrd,
+                    orig.Height as HeightOrd,
                     a.Hash,
                     a.Type,
                     a.String1 as addrFrom,
@@ -4357,9 +4358,12 @@ namespace PocketDb
                     a.String5 as answerid,
                     a.Time,
                     null
-                from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+                from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
                 join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
                     on a.Type in (204, 205) and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
+                join Transactions orig indexed by Transactions_Hash_Height -- TODO (losty): very slow here. However, even slow without it
+                -- TODO: creating Transactions_Type_Last_Height_String5_String1_String2 for c speed it up a lot
+                    on orig.Hash = a.String2
                 where c.Type in (204, 205)
                 and c.Last = 1
                 and c.Height is not null
@@ -4368,12 +4372,10 @@ namespace PocketDb
                 union
 
                 -- Comments for my content
-                -- [NOTE]: Getting only first comment.
-                -- TODO (losty): very slow!
                 select
                     'comments',
                     p.String1 as AddressOrd,
-                    c.Height as HeightOrd,
+                    orig.Height as HeightOrd,
                     c.Hash,
                     c.Type,
                     c.String1 as addrFrom,
@@ -4383,11 +4385,16 @@ namespace PocketDb
                     c.String5 as  answerid,
                     c.Time,
                     null
-                from Transactions p indexed by Transactions_Type_String1_String2_Height
-                join Transactions c indexed by Transactions_Type_String1_String3_Height
-                    on c.Type in (204) and c.String3 = p.String2 and c.String1 != p.String1
+                from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
+                join Transactions c indexed by Transactions_Type_Last_String3_Height
+                    on c.Type in (204, 205) and c.Height > 0 and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
+                left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
                     on o.TxHash = c.Hash and o.AddressHash = p.String1 and o.AddressHash != c.String1
+                left join Transactions orig indexed by Transactions_Hash_Height
+                    -- TODO: very slow, need index with String2
+                    on orig.Hash = c.String2
                 where p.Type in (200, 201, 202)
+                and p.Last = 1
                 and p.Height is not null
                 and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
@@ -4413,13 +4420,14 @@ namespace PocketDb
                         and u.Height is not null
                         and u.Last = 1
                 cross join Payload p on p.TxHash = u.Hash
-                where subs.Type in (302, 303)
+                where subs.Type in (302, 303) -- Ignoring unsubscribers?
                     and subs.Last = 1
                     and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 
                 union
 
                 -- Comment scores
+                -- TODO: a bit slow
                 select
                     'commentscores',
                     c.String1 as AddressOrd,
@@ -4435,15 +4443,16 @@ namespace PocketDb
                     s.Int1 as value
                 from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
                 join Transactions s indexed by Transactions_Type_Last_String2_Height
-                    on s.Type in (301) and s.String2 = c.String2 and s.Height is not null
+                    on s.Type in (301) and s.Last in (0,1) and s.String2 = c.String2 and s.Height > 0 -- No last
                 where c.Type in (204, 205)
                 and c.Last = 1
-                and c.Height is not null
+                and c.Height > 0
                 and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 
                 union
 
                 -- Content scores
+                -- TODO: a bit slow
                 select
                     'contentscores',
                     c.String1 as AddressOrd,
@@ -4459,10 +4468,9 @@ namespace PocketDb
                     s.Int1 as value
                 from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
                 join Transactions s indexed by Transactions_Type_Last_String2_Height
-                    on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height is not null
+                    on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height > 0
                 where c.Type in (200, 201, 202)
                 and c.Last = 1
-                and c.Height is not null
                 and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 union
@@ -4471,29 +4479,30 @@ namespace PocketDb
                 select
                     'privatecontent',
                     subs.String1 as AddressOrd,
-                    cps.Height as HeightOrd,
-                    lc.Hash, -- Probably cps.Hash for hash of original post, or both maybe
-                    lc.Type,
-                    lc.String1,
-                    lcp.String3,
+                    orig.Height as HeightOrd,
+                    cps.Hash,
+                    cps.Type,
+                    cps.String1,
+                    cps.String3,
                     null,
                     null,
                     null,
                     cps.Time,
                     null
-                from Transactions subs indexed by Transactions_Type_String1_String2_Height -- Subscribers private
-                cross join Transactions cps -- content for private subscribers 
-                    on (subs.String2 = cps.String1 and
-                        cps.Type in (200, 201, 202) and
-                        cps.Hash = cps.String2) -- Only original, no edit. Probably add also last for url or smth
-                left join Transactions lc indexed by Transactions_Type_Last_String2_Height -- last content
-                    on (lc.String2 = cps.Hash and
-                        lc.Type = cps.Type and
-                        lc.Last = 1)
-                left join Payload lcp
-                    on (lcp.TxHash = lc.Hash)
-                where 
+                from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id -- Subscribers private
+                cross join Transactions cps indexed by Transactions_Type_Last_String1_Height_Id-- content for private subscribers
+                    on cps.Last = 1 and
+                       subs.String2 = cps.String1 and
+                       cps.Type in (200, 201, 202) and
+                       cps.Height > 0
+                left join Transactions orig
+                    on orig.Hash = cps.String2
+                left join Payload p
+                    on p.TxHash = cps.Hash
+                where
                     subs.Type = 303 and
+                    subs.Last = 1 and
+                    subs.Height > 0 and
                     subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 union
@@ -4520,7 +4529,9 @@ namespace PocketDb
                 join Payload p
                     on p.TxHash = u.Hash
                 where tBoost.Type in (208)
-                    and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and tBoost.Last in (0, 1)
+                and tBoost.Height > 0
+                and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 union
 
@@ -4538,11 +4549,12 @@ namespace PocketDb
                     null,
                     r.Time,
                     null
-                from Transactions r
-                join Transactions p on p.Hash = r.String3 and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                from Transactions r indexed by Transactions_Type_Last_String3_Height
+                join Transactions p indexed by Transactions_String1_Last_Height
+                    on p.Hash = r.String3 and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 where r.Type in (200, 201, 202)
                 and r.Last = 1
-                and r.Height is not null
+                and r.Height > 0
                 and r.String3 is not null
             ) order by HeightOrd
         )sql";
