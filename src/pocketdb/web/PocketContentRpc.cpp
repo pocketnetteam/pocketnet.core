@@ -971,7 +971,14 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         for (auto& entry: events) {
-            result.pushKV(entry.first, entry.second);
+            auto address = entry.first;
+            UniValue txs(UniValue::VARR);
+            for (const auto& sortedByHeight : entry.second) {
+                for (const auto& tx: sortedByHeight.second) {
+                    txs.push_back(tx);
+                }
+            }
+            result.pushKV(address, txs);
         }
 
         return result;

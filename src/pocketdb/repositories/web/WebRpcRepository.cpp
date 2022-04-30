@@ -13,66 +13,53 @@ namespace PocketDb
         {
             for (const auto& address: addresses) {
                 // Preinitializing results for all addresses so we can fill it with common pocknetteam content
-                m_result.insert({address, UniValue(UniValue::VARR)});
+                m_result.insert({address, {}});
             }
         }
         bool FeedRow(sqlite3_stmt* stmt)
         {
             auto [ok0, type] = TryGetColumnString(stmt, 0);
-            if (!ok0) {
+            auto [ok1, address] = TryGetColumnString(stmt, 1);
+            auto [ok2, height] = TryGetColumnInt64(stmt, 2);
+            if (!ok0 || !ok1 || !ok2) {
                 return false;
             }
 
-            if (type == "pocketnetteam") {
-                return ProcessPocketnetTeamPost(stmt);
-            } else {
-                auto[ok1, address] = TryGetColumnString(stmt, 1);
-                if (!ok1) {
-                    return false;
-                }
-                UniValue data;
-                if (!ProcessAccountRelevant(stmt, type, 2, data)) {
-                    return false;
-                }
-                if (auto addressEntry = m_result.find(address); addressEntry != m_result.end()) {
-                    addressEntry->second.push_back(data);
-                    return true;
-                } else {
-                    return false;
-                }
-            }
+            return Process(type, address, height, stmt);
         }
 
-        map<string, UniValue> GetResult() const
+        map<string, map<int, vector<UniValue>>> GetResult() const
         {
             return m_result;
         }
 
     protected:
-        bool ProcessPocketnetTeamPost(sqlite3_stmt* stmt)
+        bool Process(const std::string& entryType, const std::string& address, const int& height, sqlite3_stmt* stmt)
         {
-            UniValue pocketcontent;
-            // TODO (losty): a bit hack to because currently this extracts just common data. Replace it with specific to pocket post later
-            if (!ProcessAccountRelevant(stmt, "pocketnetteam", 2, pocketcontent)) {
+            UniValue toFill;
+            if (!ProcessRawRows(stmt, entryType, height, 3, toFill)) {
                 return false;
             }
-            for (auto& address: m_result) {
-                // TODO (losty): do we want to filter which addresses requrie pocketnetteam posts?
-                // Pushing pocketnetteam posts to every address specific entry.
-                address.second.push_back(pocketcontent);
+
+            if (entryType == "pocketnetteam") {
+                for (auto& ad : m_result) {
+                    ad.second[height].emplace_back(toFill);
+                }
+            } else {
+                if (m_result.find(address) == m_result.end()) {
+                    return false; // Unexpected address
+                }
+                m_result[address][height].emplace_back(toFill);
             }
             return true;
         }
 
-        bool ProcessAccountRelevant(sqlite3_stmt* stmt, const std::string& entryType, int index, UniValue& toFill)
+        // TODO (losty): specific for each entry
+        bool ProcessRawRows(sqlite3_stmt* stmt, const std::string& entryType, const int& height, int index, UniValue& toFill)
         {
             UniValue entry(UniValue::VOBJ);
             entry.pushKV("type", entryType);
-            if (auto[ok, height] = TryGetColumnInt64(stmt, index++); ok) {
-                entry.pushKV("height", height);
-            } else {
-                return false;
-            }
+            entry.pushKV("height", height);
             if (auto[ok, txHash] = TryGetColumnString(stmt, index++); ok) {
                 entry.pushKV("txHash", txHash);
             } else {
@@ -84,7 +71,6 @@ namespace PocketDb
                 return false;
             }
 
-            // TODO (losty): better parsing
             if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string1", val);
             if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string2", val);
             if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string3", val);
@@ -97,7 +83,7 @@ namespace PocketDb
             return true;
         }
     private:
-        map<string, UniValue> m_result;
+        map<string, map<int, vector<UniValue>>> m_result;
     };
 
 
@@ -4269,7 +4255,7 @@ namespace PocketDb
         return result;
     };
     
-    std::map<std::string, UniValue> WebRpcRepository::GetEventsForAddresses(const std::vector<std::string>& addresses)
+    std::map<std::string, std::map<int, std::vector<UniValue>>> WebRpcRepository::GetEventsForAddresses(const std::vector<std::string>& addresses)
     {
         string langFilter; // TODO
         string contentTypesWhere; // TODO
@@ -4278,285 +4264,283 @@ namespace PocketDb
 
         constexpr int8_t numUnions = 11;
         auto sql = R"sql(
-            select * from ( -- Wrapper for ordering
             )sql" + string(includePocket ? R"sql(
                 -- Pocket posts
-                select
-                    'pocketnetteam',
-                    t.String1 as AddressOrd,
-                    t.Height as HeightOrd,
-                    t.Hash,
-                    t.Type,
-                    t.String2, -- Address of post
-                    p.String2,
-                    p.String3,
-                    null,
-                    null,
-                    null,
-                    null
-                from Transactions t indexed by Transactions_Type_String1_String2_Height
-                join Payload p on (t.Hash = p.TxHash)
-                where t.String1 = ? and t.Type in (200,201,202)
-                
-                union
-            )sql" : "") + R"sql(
+            select
+                'pocketnetteam',
+                t.String1 as AddressOrd,
+                t.Height as HeightOrd,
+                t.Hash,
+                t.Type,
+                t.String2, -- Address of post
+                p.String2,
+                p.String3,
+                null,
+                null,
+                null,
+                null
+            from Transactions t indexed by Transactions_Type_String1_String2_Height
+            join Payload p on (t.Hash = p.TxHash)
+            where t.String1 = ? and t.Type in (200,201,202)
+            
+            union
+        )sql" : "") + R"sql(
 
-                -- Incoming money
-                -- TODO (losty-event): ignore money from me to me
-                select
-                    'money',
-                    o.AddressHash as AddressOrd,
-                    o.TxHeight as HeightOrd,
-                    o.TxHash,
-                    t.Type,
-                    o.SpentTxHash,
-                    null,
-                    null,
-                    null,
-                    null,
-                    t.Time,
-                    o.Value
-                from TxOutputs o
-                join Transactions t on t.Hash = o.TxHash
-                where o.TxHeight > 0 and o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                
-                union
+            -- Incoming money
+            -- TODO (losty-event): ignore money from me to me
+            select
+                'money',
+                o.AddressHash as AddressOrd,
+                o.TxHeight as HeightOrd,
+                o.TxHash,
+                t.Type,
+                o.SpentTxHash,
+                null,
+                null,
+                null,
+                null,
+                t.Time,
+                o.Value
+            from TxOutputs o
+            join Transactions t on t.Hash = o.TxHash
+            where o.TxHeight > 0 and o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            
+            union
 
-                -- referals
-                -- TODO (losty-event): only first registration
-                select
-                    'referals',
-                    t.String2 as AddressOrd,
-                    t.Height as HeightOrd,
-                    t.Hash,
-                    t.Type,
-                    t.String1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-                from Transactions t indexed by Transactions_Type_Last_String2_Height
-                where t.Type = 100
-                    and Last = 1
-                    and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            -- referals
+            -- TODO (losty-event): only first registration
+            select
+                'referals',
+                t.String2 as AddressOrd,
+                t.Height as HeightOrd,
+                t.Hash,
+                t.Type,
+                t.String1,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            from Transactions t indexed by Transactions_Type_Last_String2_Height
+            where t.Type = 100
+                and Last = 1
+                and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
-                union
+            union
 
-                -- Comment answers
-                select
-                    'answers',
-                    c.String1 as AddressOrd,
-                    orig.Height as HeightOrd,
-                    a.Hash,
-                    a.Type,
-                    a.String1 as addrFrom,
-                    a.String2 as RootTxHash,
-                    a.String3 as posttxid,
-                    a.String4 as parentid,
-                    a.String5 as answerid,
-                    a.Time,
-                    null
-                from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
-                join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
-                    on a.Type in (204, 205) and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
-                join Transactions orig indexed by Transactions_Hash_Height -- TODO (losty): very slow here. However, even slow without it
-                -- TODO: creating Transactions_Type_Last_Height_String5_String1_String2 for c speed it up a lot
-                    on orig.Hash = a.String2
-                where c.Type in (204, 205)
-                and c.Last = 1
-                and c.Height is not null
-                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            -- Comment answers
+            select
+                'answers',
+                c.String1 as AddressOrd,
+                orig.Height as HeightOrd,
+                a.Hash,
+                a.Type,
+                a.String1 as addrFrom,
+                a.String2 as RootTxHash,
+                a.String3 as posttxid,
+                a.String4 as parentid,
+                a.String5 as answerid,
+                a.Time,
+                null
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
+            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
+                on a.Type in (204, 205) and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
+            join Transactions orig indexed by Transactions_Hash_Height -- TODO (losty): very slow here. However, even slow without it
+            -- TODO: creating Transactions_Type_Last_Height_String5_String1_String2 for c speed it up a lot
+                on orig.Hash = a.String2
+            where c.Type in (204, 205)
+            and c.Last = 1
+            and c.Height is not null
+            and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
-                union
+            union
 
-                -- Comments for my content
-                select
-                    'comments',
-                    p.String1 as AddressOrd,
-                    orig.Height as HeightOrd,
-                    c.Hash,
-                    c.Type,
-                    c.String1 as addrFrom,
-                    c.String2 as RootTxHash,
-                    c.String3 as posttxid,
-                    c.String4 as  parentid,
-                    c.String5 as  answerid,
-                    c.Time,
-                    null
-                from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
-                join Transactions c indexed by Transactions_Type_Last_String3_Height
-                    on c.Type in (204, 205) and c.Height > 0 and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
-                left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                    on o.TxHash = c.Hash and o.AddressHash = p.String1 and o.AddressHash != c.String1
-                left join Transactions orig indexed by Transactions_Hash_Height
-                    -- TODO: very slow, need index with String2
-                    on orig.Hash = c.String2
-                where p.Type in (200, 201, 202)
-                and p.Last = 1
-                and p.Height is not null
-                and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            -- Comments for my content
+            select
+                'comments',
+                p.String1 as AddressOrd,
+                orig.Height as HeightOrd,
+                c.Hash,
+                c.Type,
+                c.String1 as addrFrom,
+                c.String2 as RootTxHash,
+                c.String3 as posttxid,
+                c.String4 as  parentid,
+                c.String5 as  answerid,
+                c.Time,
+                null
+            from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions c indexed by Transactions_Type_Last_String3_Height
+                on c.Type in (204, 205) and c.Height > 0 and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
+            left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                on o.TxHash = c.Hash and o.AddressHash = p.String1 and o.AddressHash != c.String1
+            left join Transactions orig indexed by Transactions_Hash_Height
+                -- TODO: very slow, need index with String2
+                on orig.Hash = c.String2
+            where p.Type in (200, 201, 202)
+            and p.Last = 1
+            and p.Height is not null
+            and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
-                union
+            union
 
-                -- Subscribers
-                select
-                    'subscribers',
-                    subs.String2 as AddressOrd,
-                    subs.Height as HeightOrd,
-                    subs.Hash,
-                    subs.Type,
-                    subs.String1 as addrFrom,
-                    p.String2 as nameFrom,
-                    p.String3 as avatarFrom,
-                    null,
-                    null,
-                    subs.Time,
-                    null
-                from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    on subs.String1 = u.String1 and u.Type in (100)
-                        and u.Height is not null
-                        and u.Last = 1
-                cross join Payload p on p.TxHash = u.Hash
-                where subs.Type in (302, 303) -- Ignoring unsubscribers?
-                    and subs.Last = 1
-                    and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                
-                union
+            -- Subscribers
+            select
+                'subscribers',
+                subs.String2 as AddressOrd,
+                subs.Height as HeightOrd,
+                subs.Hash,
+                subs.Type,
+                subs.String1 as addrFrom,
+                p.String2 as nameFrom,
+                p.String3 as avatarFrom,
+                null,
+                null,
+                subs.Time,
+                null
+            from Transactions subs indexed by Transactions_Type_Last_String2_Height
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on subs.String1 = u.String1 and u.Type in (100)
+                    and u.Height is not null
+                    and u.Last = 1
+            cross join Payload p on p.TxHash = u.Hash
+            where subs.Type in (302, 303) -- Ignoring unsubscribers?
+                and subs.Last = 1
+                and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            
+            union
 
-                -- Comment scores
-                -- TODO: a bit slow
-                select
-                    'commentscores',
-                    c.String1 as AddressOrd,
-                    s.Height as HeightOrd,
-                    s.Hash,
-                    s.Type,
-                    s.String1 as address,
-                    s.String2 as commenttxid,
-                    null,
-                    null,
-                    null,
-                    s.Time,
-                    s.Int1 as value
-                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
-                join Transactions s indexed by Transactions_Type_Last_String2_Height
-                    on s.Type in (301) and s.Last in (0,1) and s.String2 = c.String2 and s.Height > 0 -- No last
-                where c.Type in (204, 205)
-                and c.Last = 1
-                and c.Height > 0
-                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                
-                union
+            -- Comment scores
+            -- TODO: a bit slow
+            select
+                'commentscores',
+                c.String1 as AddressOrd,
+                s.Height as HeightOrd,
+                s.Hash,
+                s.Type,
+                s.String1 as address,
+                s.String2 as commenttxid,
+                null,
+                null,
+                null,
+                s.Time,
+                s.Int1 as value
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+            join Transactions s indexed by Transactions_Type_Last_String2_Height
+                on s.Type in (301) and s.Last in (0,1) and s.String2 = c.String2 and s.Height > 0 -- No last
+            where c.Type in (204, 205)
+            and c.Last = 1
+            and c.Height > 0
+            and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            
+            union
 
-                -- Content scores
-                -- TODO: a bit slow
-                select
-                    'contentscores',
-                    c.String1 as AddressOrd,
-                    s.Height as HeightOrd,
-                    s.Hash,
-                    s.Type,
-                    s.String1 as address,
-                    s.String2 as posttxid,
-                    null,
-                    null,
-                    null,
-                    s.Time,
-                    s.Int1 as value
-                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
-                join Transactions s indexed by Transactions_Type_Last_String2_Height
-                    on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height > 0
-                where c.Type in (200, 201, 202)
-                and c.Last = 1
-                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            -- Content scores
+            -- TODO: a bit slow
+            select
+                'contentscores',
+                c.String1 as AddressOrd,
+                s.Height as HeightOrd,
+                s.Hash,
+                s.Type,
+                s.String1 as address,
+                s.String2 as posttxid,
+                null,
+                null,
+                null,
+                s.Time,
+                s.Int1 as value
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+            join Transactions s indexed by Transactions_Type_Last_String2_Height
+                on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height > 0
+            where c.Type in (200, 201, 202)
+            and c.Last = 1
+            and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
-                union
+            union
 
-                -- Content from private subscribers
-                select
-                    'privatecontent',
-                    subs.String1 as AddressOrd,
-                    orig.Height as HeightOrd,
-                    cps.Hash,
-                    cps.Type,
-                    cps.String1,
-                    cps.String3,
-                    null,
-                    null,
-                    null,
-                    cps.Time,
-                    null
-                from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id -- Subscribers private
-                cross join Transactions cps indexed by Transactions_Type_Last_String1_Height_Id-- content for private subscribers
-                    on cps.Last = 1 and
-                       subs.String2 = cps.String1 and
-                       cps.Type in (200, 201, 202) and
-                       cps.Height > 0
-                left join Transactions orig
-                    on orig.Hash = cps.String2
-                left join Payload p
-                    on p.TxHash = cps.Hash
-                where
-                    subs.Type = 303 and
-                    subs.Last = 1 and
-                    subs.Height > 0 and
-                    subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            -- Content from private subscribers
+            select
+                'privatecontent',
+                subs.String1 as AddressOrd,
+                orig.Height as HeightOrd,
+                cps.Hash,
+                cps.Type,
+                cps.String1,
+                cps.String3,
+                null,
+                null,
+                null,
+                cps.Time,
+                null
+            from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id -- Subscribers private
+            cross join Transactions cps indexed by Transactions_Type_Last_String1_Height_Id-- content for private subscribers
+                on cps.Last = 1 and
+                    subs.String2 = cps.String1 and
+                    cps.Type in (200, 201, 202) and
+                    cps.Height > 0
+            left join Transactions orig
+                on orig.Hash = cps.String2
+            left join Payload p
+                on p.TxHash = cps.Hash
+            where
+                subs.Type = 303 and
+                subs.Last = 1 and
+                subs.Height > 0 and
+                subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
-                union
+            union
 
-                -- Boosts for my content
-                select
-                    'boost',
-                    tContent.String1 as AddressOrd,
-                    tBoost.Height,
-                    tBoost.Hash,
-                    tContent.Type,
-                    tBoost.String1 as boostAddress,
-                    tBoost.String2 as contenttxid,
-                    p.String2 as boostName,
-                    p.String3 as boostAvatar,
-                    null,
-                    tBoost.Time,
-                    tBoost.Int1 as boostAmount
-                from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
-                join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
-                    on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202)
-                join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    on u.String1 = tBoost.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
-                join Payload p
-                    on p.TxHash = u.Hash
-                where tBoost.Type in (208)
-                and tBoost.Last in (0, 1)
-                and tBoost.Height > 0
-                and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            -- Boosts for my content
+            select
+                'boost',
+                tContent.String1 as AddressOrd,
+                tBoost.Height,
+                tBoost.Hash,
+                tContent.Type,
+                tBoost.String1 as boostAddress,
+                tBoost.String2 as contenttxid,
+                p.String2 as boostName,
+                p.String3 as boostAvatar,
+                null,
+                tBoost.Time,
+                tBoost.Int1 as boostAmount
+            from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
+            join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
+                on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202)
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.String1 = tBoost.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
+            join Payload p
+                on p.TxHash = u.Hash
+            where tBoost.Type in (208)
+            and tBoost.Last in (0, 1)
+            and tBoost.Height > 0
+            and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
-                union
+            union
 
-                -- Reposts
-                select
-                    'reposts',
-                    p.String1 as AddressOrd,
-                    r.Height as HeightOrd,
-                    r.Hash,
-                    r.Type,
-                    r.String2 as RootTxHash,
-                    r.String3 as RelayTxHash,
-                    r.String1 as AddressHash,
-                    null,
-                    null,
-                    r.Time,
-                    null
-                from Transactions r indexed by Transactions_Type_Last_String3_Height
-                join Transactions p indexed by Transactions_String1_Last_Height
-                    on p.Hash = r.String3 and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                where r.Type in (200, 201, 202)
-                and r.Last = 1
-                and r.Height > 0
-                and r.String3 is not null
-            ) order by HeightOrd
+            -- Reposts
+            select
+                'reposts',
+                p.String1 as AddressOrd,
+                r.Height as HeightOrd,
+                r.Hash,
+                r.Type,
+                r.String2 as RootTxHash,
+                r.String3 as RelayTxHash,
+                r.String1 as AddressHash,
+                null,
+                null,
+                r.Time,
+                null
+            from Transactions r indexed by Transactions_Type_Last_String3_Height
+            join Transactions p indexed by Transactions_String1_Last_Height
+                on p.Hash = r.String3 and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            where r.Type in (200, 201, 202)
+            and r.Last = 1
+            and r.Height > 0
+            and r.String3 is not null
         )sql";
 
         EventsReconstructor reconstructor(addresses);
