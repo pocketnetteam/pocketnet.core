@@ -152,7 +152,7 @@ namespace PocketDb
         /**
          * Returns map where key is address. Value is map, where key - height, value - vector of transactions for this height.
          */
-        std::map<std::string, std::map<int, std::vector<UniValue>>> GetEventsForAddresses(const std::vector<std::string>& address);
+        std::map<std::string, std::map<int, std::vector<UniValue>>> GetEventsForAddresses(const std::vector<std::string>& address, int64_t height, int64_t blockNum, const std::set<std::string>& filters);
 
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);

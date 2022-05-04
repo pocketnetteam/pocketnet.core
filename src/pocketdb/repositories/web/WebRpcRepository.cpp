@@ -4255,7 +4255,7 @@ namespace PocketDb
         return result;
     };
     
-    std::map<std::string, std::map<int, std::vector<UniValue>>> WebRpcRepository::GetEventsForAddresses(const std::vector<std::string>& addresses)
+    std::map<std::string, std::map<int, std::vector<UniValue>>> WebRpcRepository::GetEventsForAddresses(const std::vector<std::string>& addresses, int64_t height, int64_t blockNum, const std::set<std::string>& filters)
     {
         string langFilter; // TODO
         string contentTypesWhere; // TODO
@@ -4264,7 +4264,7 @@ namespace PocketDb
 
         constexpr int8_t numUnions = 11;
         auto sql = R"sql(
-            )sql" + string(includePocket ? R"sql(
+            )sql" + string(filters.empty() || filters.find("pocketnetteam") != filters.end() ? R"sql(
                 -- Pocket posts
             select
                 'pocketnetteam',
@@ -4284,7 +4284,7 @@ namespace PocketDb
             where t.String1 = ? and t.Type in (200,201,202)
             
             union
-        )sql" : "") + R"sql(
+        )sql" : "") + (filters.find("money") != filters.end() ? R"sql(
 
             -- Incoming money
             -- TODO (losty-event): ignore money from me to me
@@ -4306,6 +4306,7 @@ namespace PocketDb
             where o.TxHeight > 0 and o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
             
             union
+        )sql" : "") + (filters.empty() || filters.find("referals") != filters.end() ? R"sql(
 
             -- referals
             -- TODO (losty-event): only first registration
@@ -4328,6 +4329,8 @@ namespace PocketDb
                 and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
             union
+
+        )sql" : "") + (filters.empty() || filters.find("answers") != filters.end() ? R"sql(
 
             -- Comment answers
             select
@@ -4355,6 +4358,7 @@ namespace PocketDb
             and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
             union
+        )sql" : "") + (filters.empty() || filters.find("comments") != filters.end() ? R"sql(
 
             -- Comments for my content
             select
@@ -4384,6 +4388,7 @@ namespace PocketDb
             and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
             union
+        )sql" : "") + (filters.empty() || filters.find("subscribers") != filters.end() ? R"sql(
 
             -- Subscribers
             select
@@ -4410,6 +4415,7 @@ namespace PocketDb
                 and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
             
             union
+        )sql" : "") + (filters.empty() || filters.find("commentscores") != filters.end() ? R"sql(
 
             -- Comment scores
             -- TODO: a bit slow
@@ -4435,6 +4441,7 @@ namespace PocketDb
             and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
             
             union
+        )sql" : "") + (filters.empty() || filters.find("contentscores") != filters.end() ? R"sql(
 
             -- Content scores
             -- TODO: a bit slow
@@ -4459,6 +4466,7 @@ namespace PocketDb
             and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
             union
+        )sql" : "") + (filters.empty() || filters.find("privatecontent") != filters.end() ? R"sql(
 
             -- Content from private subscribers
             select
@@ -4491,6 +4499,7 @@ namespace PocketDb
                 subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
             union
+        )sql" : "") + (filters.empty() || filters.find("boost") != filters.end() ? R"sql(
 
             -- Boosts for my content
             select
@@ -4519,6 +4528,7 @@ namespace PocketDb
             and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
             union
+        )sql" : "") + (filters.empty() || filters.find("reposts") != filters.end() ? R"sql(
 
             -- Reposts
             select
@@ -4541,7 +4551,7 @@ namespace PocketDb
             and r.Last = 1
             and r.Height > 0
             and r.String3 is not null
-        )sql";
+        )sql" : "");
 
         EventsReconstructor reconstructor(addresses);
         TryTransactionStep(__func__, [&]()
@@ -4550,48 +4560,68 @@ namespace PocketDb
             int i = 1;
 
             // Pocket posts
-            if (includePocket) {
+            if (filters.empty() || filters.find("pocketnetteam") != filters.end()) {
                 TryBindStatementText(stmt, i++, GetPocketnetteamAddress());
             }
             // Incoming money
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("money") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
             // Referals
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("referals") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
             // Comment answers
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("answers") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
             // Comments for my content
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("comments") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
             // Subscribers and unsubscribers
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("subscribers") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
             // Comment scores
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("commentscores") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
             // Content scores
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("contentscores") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
             // Content from private subscribers
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("privatecontent") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
             // Boosts
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("boost") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
             // Reposts
-            for (auto& address : addresses) {
-                TryBindStatementText(stmt, i++, address);
+            if (filters.empty() || filters.find("reposts") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
             }
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)

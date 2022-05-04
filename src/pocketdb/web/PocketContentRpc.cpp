@@ -967,7 +967,27 @@ namespace PocketWeb::PocketWebRpc
             addresses.emplace_back(arr[i].get_str());
         }
 
-        auto events = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(addresses);
+
+        int64_t height = 0; // Default
+        if (request.params.size() > 1 || request.params[1].isNum()) {
+            height = request.params[1].get_int64();
+        }
+
+        int64_t blockNum = 0; // Default
+        if (request.params.size() > 2 || request.params[2].isNum()) {
+            blockNum = request.params[2].get_int64();
+        }
+        std::set<std::string> filters;
+        if (request.params.size() > 3 && request.params[3].isArray()) {
+            auto rawFilters  = request.params[3].get_array();
+            for (int i = 0; i < rawFilters.size(); i++) {
+                if (rawFilters[i].isStr()) {
+                    filters.insert(rawFilters[i].get_str());
+                }
+            }
+        }
+
+        auto events = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(addresses, height, blockNum, filters);
 
         UniValue result(UniValue::VOBJ);
         for (auto& entry: events) {
