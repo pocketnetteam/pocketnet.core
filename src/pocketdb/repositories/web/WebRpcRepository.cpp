@@ -4284,7 +4284,7 @@ namespace PocketDb
             where t.String1 = ? and t.Type in (200,201,202)
             
             union
-        )sql" : "") + (filters.find("money") != filters.end() ? R"sql(
+        )sql" : "") + (filters.empty() || filters.find("money") != filters.end() ? R"sql(
 
             -- Incoming money
             -- TODO (losty-event): ignore money from me to me
