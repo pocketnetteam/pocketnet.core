@@ -968,18 +968,25 @@ namespace PocketWeb::PocketWebRpc
         }
 
 
-        int64_t height = 0; // Default
-        if (request.params.size() > 1 || request.params[1].isNum()) {
-            height = request.params[1].get_int64();
+        int64_t heightMax = ChainActive().Height(); // TODO (losty): deadlock here wtf
+        if (request.params.size() > 1 && request.params[1].isNum()) {
+            heightMax = request.params[1].get_int64();
         }
 
-        int64_t blockNum = 0; // Default
-        if (request.params.size() > 2 || request.params[2].isNum()) {
+        int64_t blockNum = 9999999; // Default
+        if (request.params.size() > 2 && request.params[2].isNum()) {
             blockNum = request.params[2].get_int64();
         }
+
+        int64_t depth = 129600; // 3 months
+        if (request.params.size() > 3 && request.params[3].isNum()) {
+            depth = request.params[3].get_int64();
+        }
+        int64_t heightMin = heightMax - depth;
+
         std::set<std::string> filters;
-        if (request.params.size() > 3 && request.params[3].isArray()) {
-            auto rawFilters  = request.params[3].get_array();
+        if (request.params.size() > 4 && request.params[4].isArray()) {
+            auto rawFilters  = request.params[4].get_array();
             for (int i = 0; i < rawFilters.size(); i++) {
                 if (rawFilters[i].isStr()) {
                     filters.insert(rawFilters[i].get_str());
@@ -987,16 +994,14 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto events = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(addresses, height, blockNum, filters);
+        auto events = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(addresses, heightMax, heightMin, blockNum, filters);
 
         UniValue result(UniValue::VOBJ);
         for (auto& entry: events) {
             auto address = entry.first;
             UniValue txs(UniValue::VARR);
-            for (const auto& sortedByHeight : entry.second) {
-                for (const auto& tx: sortedByHeight.second) {
+            for (const auto& tx : entry.second) {
                     txs.push_back(tx);
-                }
             }
             result.pushKV(address, txs);
         }

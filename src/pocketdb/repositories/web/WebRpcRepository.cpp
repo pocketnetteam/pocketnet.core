@@ -19,71 +19,43 @@ namespace PocketDb
         bool FeedRow(sqlite3_stmt* stmt)
         {
             auto [ok0, type] = TryGetColumnString(stmt, 0);
-            auto [ok1, address] = TryGetColumnString(stmt, 1);
-            auto [ok2, height] = TryGetColumnInt64(stmt, 2);
-            if (!ok0 || !ok1 || !ok2) {
+            auto [ok1, height] = TryGetColumnInt64(stmt, 1);
+            auto [ok2, blockNum] = TryGetColumnInt64(stmt, 2);
+            auto [ok3, hash] = TryGetColumnString(stmt, 3);
+            if (!ok0 || !ok1 || !ok2 || !ok3) {
                 return false;
             }
 
-            return Process(type, address, height, stmt);
+            UniValue txUni(UniValue::VOBJ);
+            txUni.pushKV("type", type);
+            txUni.pushKV("height", height);
+            txUni.pushKV("blockNum", blockNum);
+            txUni.pushKV("hash", hash);
+
+            if (type == "pocketnetteam") {
+                for (auto& addressEntry : m_result) {
+                    addressEntry.second.emplace_back(txUni);
+                }
+            } else {
+                auto [ok, address] = TryGetColumnString(stmt, 4);
+                if (!ok) return false;
+                if (auto addressEntry = m_result.find(address); addressEntry != m_result.end()) {
+                    addressEntry->second.emplace_back(txUni);
+                } else {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
-        map<string, map<int, vector<UniValue>>> GetResult() const
+        map<string, vector<UniValue>> GetResult() const
         {
             return m_result;
         }
 
-    protected:
-        bool Process(const std::string& entryType, const std::string& address, const int& height, sqlite3_stmt* stmt)
-        {
-            UniValue toFill;
-            if (!ProcessRawRows(stmt, entryType, height, 3, toFill)) {
-                return false;
-            }
-
-            if (entryType == "pocketnetteam") {
-                for (auto& ad : m_result) {
-                    ad.second[height].emplace_back(toFill);
-                }
-            } else {
-                if (m_result.find(address) == m_result.end()) {
-                    return false; // Unexpected address
-                }
-                m_result[address][height].emplace_back(toFill);
-            }
-            return true;
-        }
-
-        // TODO (losty): specific for each entry
-        bool ProcessRawRows(sqlite3_stmt* stmt, const std::string& entryType, const int& height, int index, UniValue& toFill)
-        {
-            UniValue entry(UniValue::VOBJ);
-            entry.pushKV("type", entryType);
-            entry.pushKV("height", height);
-            if (auto[ok, txHash] = TryGetColumnString(stmt, index++); ok) {
-                entry.pushKV("txHash", txHash);
-            } else {
-                return false;
-            }
-            if (auto[ok, txType] = TryGetColumnInt(stmt, index++); ok) {
-                entry.pushKV("txType", txType);
-            } else {
-                return false;
-            }
-
-            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string1", val);
-            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string2", val);
-            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string3", val);
-            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string4", val);
-            if (auto[ok, val] = TryGetColumnString(stmt, index++); ok) entry.pushKV("string5", val);
-            if (auto[ok, val] = TryGetColumnInt64(stmt, index++); ok) entry.pushKV("int1", val);
-            if (auto[ok, val] = TryGetColumnInt64(stmt, index++); ok) entry.pushKV("int2", val);
-
-            toFill = std::move(entry); 
-            return true;
-        }
     private:
-        map<string, map<int, vector<UniValue>>> m_result;
+        map<string, vector<UniValue>> m_result;
     };
 
 
@@ -4255,82 +4227,81 @@ namespace PocketDb
         return result;
     };
     
-    std::map<std::string, std::map<int, std::vector<UniValue>>> WebRpcRepository::GetEventsForAddresses(const std::vector<std::string>& addresses, int64_t height, int64_t blockNum, const std::set<std::string>& filters)
+    std::map<std::string, std::vector<UniValue>> WebRpcRepository::GetEventsForAddresses(const std::vector<std::string>& addresses, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<std::string>& filters)
     {
-        string langFilter; // TODO
-        string contentTypesWhere; // TODO
-        string contentIdWhere; // TODO
-        bool includePocket = false; // TODO
-
-        constexpr int8_t numUnions = 11;
+        // TODO (losty): currently filtering causes sql error without "reposts" because of unnecessary unions at the end of each single select
         auto sql = R"sql(
             )sql" + string(filters.empty() || filters.find("pocketnetteam") != filters.end() ? R"sql(
-                -- Pocket posts
+            -- Pocket posts
             select
-                'pocketnetteam',
-                t.String1 as AddressOrd,
-                t.Height as HeightOrd,
+                ('pocketnetteam')TP,
+                t.Height,
+                t.BlockNum,
                 t.Hash,
-                t.Type,
-                t.String2, -- Address of post
-                p.String2,
-                p.String3,
-                null,
-                null,
-                null,
                 null
-            from Transactions t indexed by Transactions_Type_String1_String2_Height
-            join Payload p on (t.Hash = p.TxHash)
-            where t.String1 = ? and t.Type in (200,201,202)
-            
+
+            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
+
+            where t.Type in (200,201,202)
+            and t.String1 = ?
+            and t.Last = 1
+            and t.Height > ?
+            and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
+
             union
+            
         )sql" : "") + (filters.empty() || filters.find("money") != filters.end() ? R"sql(
 
             -- Incoming money
             -- TODO (losty-event): ignore money from me to me
             select
-                'money',
-                o.AddressHash as AddressOrd,
-                o.TxHeight as HeightOrd,
-                o.TxHash,
-                t.Type,
-                o.SpentTxHash,
-                null,
-                null,
-                null,
-                null,
-                t.Time,
-                o.Value
-            from TxOutputs o
-            join Transactions t on t.Hash = o.TxHash
-            where o.TxHeight > 0 and o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-            
+                ('money')TP,
+                t.Height,
+                t.BlockNum,
+                t.Hash,
+                o.AddressHash
+
+            from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_TxHash
+
+            join Transactions t indexed by Transactions_Hash_Type_Height
+                on t.Hash = o.TxHash
+                and t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
+                and t.Height > ?
+                and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
+
+            join TxOutputs i indexed by TxOutputs_SpentTxHash
+                on i.SpentTxHash = o.TxHash
+                and i.AddressHash != o.AddressHash
+
+            where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and o.TxHeight > ?
+                and o.TxHeight < ?
+
             union
         )sql" : "") + (filters.empty() || filters.find("referals") != filters.end() ? R"sql(
 
             -- referals
             -- TODO (losty-event): only first registration
+
             select
-                'referals',
-                t.String2 as AddressOrd,
-                t.Height as HeightOrd,
+                ('referals')TP,
+                t.Height,
+                t.BlockNum,
                 t.Hash,
-                t.Type,
-                t.String1,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-            from Transactions t indexed by Transactions_Type_Last_String2_Height
+                t.String2
+
+            from Transactions t --indexed by Transactions_Type_Last_String2_Height
+
             where t.Type = 100
-                and Last = 1
+                and t.Last = 1
                 and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and t.Height > ?
+                and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
+                and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
 
             union
 
-        )sql" : "") + (filters.empty() || filters.find("answers") != filters.end() ? R"sql(
+        )sql" : "") /* + (filters.empty() || filters.find("answers") != filters.end() ? R"sql(
 
             -- Comment answers
             select
@@ -4358,115 +4329,108 @@ namespace PocketDb
             and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
             union
-        )sql" : "") + (filters.empty() || filters.find("comments") != filters.end() ? R"sql(
+        )sql" : "")*/ + (filters.empty() || filters.find("comments") != filters.end() ? R"sql(
 
             -- Comments for my content
             select
-                'comments',
-                p.String1 as AddressOrd,
-                orig.Height as HeightOrd,
+                ('comments')TP,
+                c.Height,
+                c.BlockNum,
                 c.Hash,
-                c.Type,
-                c.String1 as addrFrom,
-                c.String2 as RootTxHash,
-                c.String3 as posttxid,
-                c.String4 as  parentid,
-                c.String5 as  answerid,
-                c.Time,
-                null
-            from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
-            join Transactions c indexed by Transactions_Type_Last_String3_Height
-                on c.Type in (204, 205) and c.Height > 0 and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
-            left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                on o.TxHash = c.Hash and o.AddressHash = p.String1 and o.AddressHash != c.String1
-            left join Transactions orig indexed by Transactions_Hash_Height
-                -- TODO: very slow, need index with String2
-                on orig.Hash = c.String2
-            where p.Type in (200, 201, 202)
-            and p.Last = 1
-            and p.Height is not null
-            and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                p.String1
+
+            from Transactions p indexed by Transactions_String1_Last_Height
+
+            cross join Transactions c indexed by Transactions_Type_Last_String3_Height
+                on c.Type in (204,205)
+                and c.Height > 0
+                and c.Last = 1
+                and c.String3 = p.String2
+                and c.String1 != p.String1
+                and c.Hash = c.String2
+                and c.Height > ?
+                and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
+
+            where p.Type in (200,201,202)
+                and p.Last = 1
+                and p.Height > ?
+                and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
             union
         )sql" : "") + (filters.empty() || filters.find("subscribers") != filters.end() ? R"sql(
 
             -- Subscribers
             select
-                'subscribers',
-                subs.String2 as AddressOrd,
-                subs.Height as HeightOrd,
+                ('subscribers')TP,
+                subs.Height,
+                subs.BlockNum,
                 subs.Hash,
-                subs.Type,
-                subs.String1 as addrFrom,
-                p.String2 as nameFrom,
-                p.String3 as avatarFrom,
-                null,
-                null,
-                subs.Time,
-                null
-            from Transactions subs indexed by Transactions_Type_Last_String2_Height
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on subs.String1 = u.String1 and u.Type in (100)
-                    and u.Height is not null
-                    and u.Last = 1
-            cross join Payload p on p.TxHash = u.Hash
+                subs.String2
+
+            from Transactions subs --indexed by Transactions_Type_Last_String2_Height
+
+            join Transactions u --indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100)
+                and u.Last = 1
+                and u.String1 = subs.String1
+                and u.Height is not null
+
             where subs.Type in (302, 303) -- Ignoring unsubscribers?
                 and subs.Last = 1
                 and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and subs.Height > ?
+                and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
             
             union
         )sql" : "") + (filters.empty() || filters.find("commentscores") != filters.end() ? R"sql(
 
             -- Comment scores
-            -- TODO: a bit slow
             select
-                'commentscores',
-                c.String1 as AddressOrd,
-                s.Height as HeightOrd,
+                ('commentscores')TP,
+                s.Height,
+                s.BlockNum,
                 s.Hash,
-                s.Type,
-                s.String1 as address,
-                s.String2 as commenttxid,
-                null,
-                null,
-                null,
-                s.Time,
-                s.Int1 as value
+                c.String1
+
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+
             join Transactions s indexed by Transactions_Type_Last_String2_Height
-                on s.Type in (301) and s.Last in (0,1) and s.String2 = c.String2 and s.Height > 0 -- No last
-            where c.Type in (204, 205)
-            and c.Last = 1
-            and c.Height > 0
-            and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                on s.Type in (301)
+                and s.Last in (0,1)
+                and s.String2 = c.String2
+                and s.Height > ?
+                and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
+
+            where c.Type in (204,205)
+                and c.Last = 1
+                and c.Height > ?
+                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
             
             union
         )sql" : "") + (filters.empty() || filters.find("contentscores") != filters.end() ? R"sql(
 
             -- Content scores
-            -- TODO: a bit slow
             select
-                'contentscores',
-                c.String1 as AddressOrd,
-                s.Height as HeightOrd,
+                ('contentscores')TP,
+                s.Height,
+                s.BlockNum,
                 s.Hash,
-                s.Type,
-                s.String1 as address,
-                s.String2 as posttxid,
-                null,
-                null,
-                null,
-                s.Time,
-                s.Int1 as value
+                c.String1
+
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+
             join Transactions s indexed by Transactions_Type_Last_String2_Height
-                on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height > 0
+                on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2
+                and s.Height > ?
+                and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
+
             where c.Type in (200, 201, 202)
-            and c.Last = 1
-            and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and c.Last = 1
+                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and c.Height > ?
 
             union
-        )sql" : "") + (filters.empty() || filters.find("privatecontent") != filters.end() ? R"sql(
+        )sql" : "") /* + (filters.empty() || filters.find("privatecontent") != filters.end() ? R"sql(
 
             -- Content from private subscribers
             select
@@ -4499,58 +4463,57 @@ namespace PocketDb
                 subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
             union
-        )sql" : "") + (filters.empty() || filters.find("boost") != filters.end() ? R"sql(
+        )sql" : "") */ + (filters.empty() || filters.find("boost") != filters.end() ? R"sql(
 
             -- Boosts for my content
             select
-                'boost',
-                tContent.String1 as AddressOrd,
+                ('boost')TP,
                 tBoost.Height,
+                tBoost.BlockNum,
                 tBoost.Hash,
-                tContent.Type,
-                tBoost.String1 as boostAddress,
-                tBoost.String2 as contenttxid,
-                p.String2 as boostName,
-                p.String3 as boostAvatar,
-                null,
-                tBoost.Time,
-                tBoost.Int1 as boostAmount
-            from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
-            join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
-                on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202)
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.String1 = tBoost.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
-            join Payload p
-                on p.TxHash = u.Hash
-            where tBoost.Type in (208)
-            and tBoost.Last in (0, 1)
-            and tBoost.Height > 0
-            and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                tContent.String1
 
+            from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
+
+            join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
+                on tContent.Type in (200,201,202)
+                and tContent.Last in (0,1)
+                and tContent.Height > ?
+                and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and tContent.String2 = tBoost.String2
+
+            where tBoost.Type in (208)
+                and tBoost.Last in (0,1)
+                and tBoost.Height > ?
+                and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
             union
         )sql" : "") + (filters.empty() || filters.find("reposts") != filters.end() ? R"sql(
 
             -- Reposts
             select
-                'reposts',
-                p.String1 as AddressOrd,
-                r.Height as HeightOrd,
+                ('reposts')TP,
+                r.Height,
+                r.BlockNum,
                 r.Hash,
-                r.Type,
-                r.String2 as RootTxHash,
-                r.String3 as RelayTxHash,
-                r.String1 as AddressHash,
-                null,
-                null,
-                r.Time,
-                null
-            from Transactions r indexed by Transactions_Type_Last_String3_Height
-            join Transactions p indexed by Transactions_String1_Last_Height
-                on p.Hash = r.String3 and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-            where r.Type in (200, 201, 202)
-            and r.Last = 1
-            and r.Height > 0
-            and r.String3 is not null
+                p.String1
+            from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
+
+            join Transactions r indexed by Transactions_Type_Last_String3_Height
+                on r.Type in (200,201,202)
+                and r.Last = 1
+                and r.String3 = p.Hash
+                and r.Height > ?
+                and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
+
+            where p.Type in (200,201,202)
+                and p.Last = 1
+                and p.Height > ?
+                and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+            ----------------------------------------
+            -- Global order and limit for pagination
+            order by Height desc, BlockNum desc
+            limit 10
         )sql" : "");
 
         EventsReconstructor reconstructor(addresses);
@@ -4562,27 +4525,47 @@ namespace PocketDb
             // Pocket posts
             if (filters.empty() || filters.find("pocketnetteam") != filters.end()) {
                 TryBindStatementText(stmt, i++, GetPocketnetteamAddress());
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
             }
             // Incoming money
             if (filters.empty() || filters.find("money") != filters.end()) {
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
                 for (auto& address : addresses) {
                     TryBindStatementText(stmt, i++, address);
                 }
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
             }
             // Referals
             if (filters.empty() || filters.find("referals") != filters.end()) {
                 for (auto& address : addresses) {
                     TryBindStatementText(stmt, i++, address);
                 }
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
             }
-            // Comment answers
-            if (filters.empty() || filters.find("answers") != filters.end()) {
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
-            }
+            // // Comment answers
+            // if (filters.empty() || filters.find("answers") != filters.end()) {
+            //     for (auto& address : addresses) {
+            //         TryBindStatementText(stmt, i++, address);
+            //     }
+            // }
+
             // Comments for my content
             if (filters.empty() || filters.find("comments") != filters.end()) {
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
+                TryBindStatementInt64(stmt, i++, heightMin);
                 for (auto& address : addresses) {
                     TryBindStatementText(stmt, i++, address);
                 }
@@ -4592,33 +4575,58 @@ namespace PocketDb
                 for (auto& address : addresses) {
                     TryBindStatementText(stmt, i++, address);
                 }
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
             }
             // Comment scores
             if (filters.empty() || filters.find("commentscores") != filters.end()) {
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
+                TryBindStatementInt64(stmt, i++, heightMin);
                 for (auto& address : addresses) {
                     TryBindStatementText(stmt, i++, address);
                 }
             }
             // Content scores
             if (filters.empty() || filters.find("contentscores") != filters.end()) {
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
                 for (auto& address : addresses) {
                     TryBindStatementText(stmt, i++, address);
                 }
+                TryBindStatementInt64(stmt, i++, heightMin);
             }
-            // Content from private subscribers
-            if (filters.empty() || filters.find("privatecontent") != filters.end()) {
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
-            }
+            // // Content from private subscribers
+            // if (filters.empty() || filters.find("privatecontent") != filters.end()) {
+            //     for (auto& address : addresses) {
+            //         TryBindStatementText(stmt, i++, address);
+            //     }
+            // }
+
             // Boosts
             if (filters.empty() || filters.find("boost") != filters.end()) {
+                TryBindStatementInt64(stmt, i++, heightMin);
                 for (auto& address : addresses) {
                     TryBindStatementText(stmt, i++, address);
                 }
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
             }
             // Reposts
             if (filters.empty() || filters.find("reposts") != filters.end()) {
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
+                TryBindStatementInt64(stmt, i++, heightMin);
                 for (auto& address : addresses) {
                     TryBindStatementText(stmt, i++, address);
                 }
