@@ -4493,7 +4493,7 @@ namespace PocketDb
             limit 10
         )sql";
 
-        static const std::map<std::string, std::string> selects = {
+        static const std::vector<std::pair<std::string, std::string>> selects = {
                 {"pocketnetteam", pocketnetteam},
                 {"money", money},
                 {"referals", referals},
@@ -4517,9 +4517,9 @@ namespace PocketDb
             }
             sqlConstructable.pop_back(); // Remove last union
         } else {
-            for (const auto& filter: filters) {
-                if (auto select = selects.find(filter); select != selects.end()) {
-                    sqlConstructable.emplace_back(select->second);
+            for (const auto& select: selects) {
+                if (filters.find(select.first) != filters.end()) {
+                    sqlConstructable.emplace_back(select.second);
                     sqlConstructable.emplace_back("union");
                 }
             }
@@ -4532,6 +4532,8 @@ namespace PocketDb
         ss << footer;
         std::string sql = ss.str();
 
+        std::string pocketnetteamAddress = GetPocketnetteamAddress();
+
         EventsReconstructor reconstructor(addresses);
         TryTransactionStep(__func__, [&]()
         {
@@ -4540,7 +4542,7 @@ namespace PocketDb
 
             // Pocket posts
             if (filters.empty() || filters.find("pocketnetteam") != filters.end()) {
-                TryBindStatementText(stmt, i++, GetPocketnetteamAddress());
+                TryBindStatementText(stmt, i++, pocketnetteamAddress);
                 TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
