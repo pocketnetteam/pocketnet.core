@@ -4613,6 +4613,8 @@ namespace PocketDb
                     break;
                 }
             }
+
+            FinalizeSqlStatement(*stmt);
         });
         return reconstructor.GetResult();
     }
