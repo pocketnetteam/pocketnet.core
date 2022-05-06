@@ -720,8 +720,8 @@ void PeerLogicValidation::InitializeNode(CNode* pnode)
     NodeId nodeid = pnode->GetId();
     
     {
-        LOCK(cs_main);
         LOCK(cs_nodestate);
+        LOCK(cs_main);
         mapNodeState.emplace_hint(mapNodeState.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
     }
 
@@ -732,6 +732,7 @@ void PeerLogicValidation::InitializeNode(CNode* pnode)
 void PeerLogicValidation::FinalizeNode(NodeId nodeid, bool& fUpdateConnectionTime)
 {
     LOCK(cs_main);
+    LOCK(cs_nodestate);
 
     fUpdateConnectionTime = false;
     CNodeState* state = State(nodeid);
@@ -754,11 +755,7 @@ void PeerLogicValidation::FinalizeNode(NodeId nodeid, bool& fUpdateConnectionTim
     g_outbound_peers_with_protect_from_disconnect -= state->m_chain_sync.m_protect;
     assert(g_outbound_peers_with_protect_from_disconnect >= 0);
 
-    {
-        LOCK(cs_nodestate);
-        mapNodeState.erase(nodeid);
-    }
-    
+    mapNodeState.erase(nodeid);
     if (mapNodeState.empty()) {
         // Do a consistency check after the last peer is removed.
         assert(mapBlocksInFlight.empty());
@@ -790,6 +787,7 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats& stats)
 bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
 {
     LOCK(cs_nodestate);
+
     CNodeState* state = StateView(nodeid);
     if (state == nullptr)
         return false;
