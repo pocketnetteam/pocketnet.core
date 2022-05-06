@@ -978,18 +978,15 @@ namespace PocketWeb::PocketWebRpc
             blockNum = request.params[2].get_int64();
         }
 
-        int64_t depth = 129600; // 3 months
-        if (request.params.size() > 3 && request.params[3].isNum()) {
-            depth = request.params[3].get_int64();
-        }
+        static const int64_t depth = 129600; // 3 months
         int64_t heightMin = heightMax - depth;
         if (heightMin < 0) {
             heightMin = 0;
         }
 
         std::set<std::string> filters;
-        if (request.params.size() > 4 && request.params[4].isArray()) {
-            auto rawFilters  = request.params[4].get_array();
+        if (request.params.size() > 3 && request.params[3].isArray()) {
+            auto rawFilters  = request.params[3].get_array();
             for (int i = 0; i < rawFilters.size(); i++) {
                 if (rawFilters[i].isStr()) {
                     filters.insert(rawFilters[i].get_str());
