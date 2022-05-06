@@ -103,9 +103,9 @@ UniValue RPCCache::Get(const std::string& path)
 
     ClearOverdue(chainActive.Height());
 
-    if (m_cache.find(path) != m_cache.end()) {
+    if (auto entry = m_cache.find(path); entry != m_cache.end()) {
         LogPrint(BCLog::RPC, "RPC Cache get found %s in cache\n", path);
-        return m_cache.at(path).GetData();
+        return entry->second.GetData();
     }
 
     // Return empty UniValue if nothing found in cache.
