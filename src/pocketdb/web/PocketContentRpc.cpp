@@ -958,15 +958,9 @@ namespace PocketWeb::PocketWebRpc
                           },
     [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        RPCTypeCheck(request.params, {UniValue::VARR});
+        RPCTypeCheck(request.params, {UniValue::VSTR});
 
-        auto arr = request.params[0].get_array();
-        vector<string> addresses;
-        addresses.reserve(arr.size());
-        for (int i = 0; i < arr.size(); i++) {
-            addresses.emplace_back(arr[i].get_str());
-        }
-
+        auto address = request.params[0].get_str();
 
         int64_t heightMax = ChainActive().Height(); // TODO (losty): deadlock here wtf
         if (request.params.size() > 1 && request.params[1].isNum()) {
@@ -994,19 +988,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto events = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(addresses, heightMax, heightMin, blockNum, filters);
-
-        UniValue result(UniValue::VOBJ);
-        for (auto& entry: events) {
-            auto address = entry.first;
-            UniValue txs(UniValue::VARR);
-            for (const auto& tx : entry.second) {
-                    txs.push_back(tx);
-            }
-            result.pushKV(address, txs);
-        }
-
-        return result;
+        return request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(address, heightMax, heightMin, blockNum, filters);
     },
         };
     }

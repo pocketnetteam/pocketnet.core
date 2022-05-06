@@ -9,13 +9,9 @@ namespace PocketDb
     class EventsReconstructor : public RowAccessor
     {
     public:
-        EventsReconstructor(const vector<string>& addresses)
-        {
-            for (const auto& address: addresses) {
-                // Preinitializing results for all addresses so we can fill it with common pocknetteam content
-                m_result.insert({address, {}});
-            }
-        }
+        EventsReconstructor()
+            : m_result(UniValue::VARR)
+        {}
         bool FeedRow(sqlite3_stmt* stmt)
         {
             auto [ok0, type] = TryGetColumnString(stmt, 0);
@@ -32,30 +28,18 @@ namespace PocketDb
             txUni.pushKV("blockNum", blockNum);
             txUni.pushKV("hash", hash);
 
-            if (type == "pocketnetteam") {
-                for (auto& addressEntry : m_result) {
-                    addressEntry.second.emplace_back(txUni);
-                }
-            } else {
-                auto [ok, address] = TryGetColumnString(stmt, 4);
-                if (!ok) return false;
-                if (auto addressEntry = m_result.find(address); addressEntry != m_result.end()) {
-                    addressEntry->second.emplace_back(txUni);
-                } else {
-                    return false;
-                }
-            }
+            m_result.push_back(txUni);
 
             return true;
         }
 
-        map<string, vector<UniValue>> GetResult() const
+        UniValue GetResult() const
         {
             return m_result;
         }
 
     private:
-        map<string, vector<UniValue>> m_result;
+        UniValue m_result;
     };
 
 
@@ -4227,7 +4211,7 @@ namespace PocketDb
         return result;
     };
     
-    std::map<std::string, std::vector<UniValue>> WebRpcRepository::GetEventsForAddresses(const std::vector<std::string>& addresses, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<std::string>& filters)
+    UniValue WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<std::string>& filters)
     {
         static const auto pocketnetteam = R"sql(
             -- Pocket posts
@@ -4235,8 +4219,7 @@ namespace PocketDb
                 ('pocketnetteam')TP,
                 t.Height as Height,
                 t.BlockNum as BlockNum,
-                t.Hash,
-                null
+                t.Hash
 
             from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
 
@@ -4253,8 +4236,7 @@ namespace PocketDb
                 ('money')TP,
                 t.Height as Height,
                 t.BlockNum as BlockNum,
-                t.Hash,
-                o.AddressHash
+                t.Hash
 
             from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_TxHash
 
@@ -4268,7 +4250,7 @@ namespace PocketDb
                 on i.SpentTxHash = o.TxHash
                 and i.AddressHash != o.AddressHash
 
-            where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            where o.AddressHash = ?
                 and o.TxHeight > ?
                 and o.TxHeight < ?
         )sql";
@@ -4278,14 +4260,13 @@ namespace PocketDb
                 ('referals')TP,
                 t.Height as Height,
                 t.BlockNum as BlockNum,
-                t.Hash,
-                t.String2
+                t.Hash
 
             from Transactions t --indexed by Transactions_Type_Last_String2_Height
 
             where t.Type = 100
                 and t.Last = 1
-                and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and t.String2 = ?
                 and t.Height > ?
                 and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
                 and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
@@ -4314,7 +4295,7 @@ namespace PocketDb
             where c.Type in (204, 205)
             and c.Last = 1
             and c.Height is not null
-            and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            and c.String1 = ?
         )sql";
         static const auto comments = R"sql(
             -- Comments for my content
@@ -4322,8 +4303,7 @@ namespace PocketDb
                 ('comments')TP,
                 c.Height as Height,
                 c.BlockNum as BlockNum,
-                c.Hash,
-                p.String1
+                c.Hash
 
             from Transactions p indexed by Transactions_String1_Last_Height
 
@@ -4340,7 +4320,7 @@ namespace PocketDb
             where p.Type in (200,201,202)
                 and p.Last = 1
                 and p.Height > ?
-                and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and p.String1 = ?
         )sql";
         static const auto subscribers = R"sql(
             -- Subscribers
@@ -4348,8 +4328,7 @@ namespace PocketDb
                 ('subscribers')TP,
                 subs.Height as Height,
                 subs.BlockNum as BlockNum,
-                subs.Hash,
-                subs.String2
+                subs.Hash
 
             from Transactions subs --indexed by Transactions_Type_Last_String2_Height
 
@@ -4361,7 +4340,7 @@ namespace PocketDb
 
             where subs.Type in (302, 303) -- Ignoring unsubscribers?
                 and subs.Last = 1
-                and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and subs.String2 = ?
                 and subs.Height > ?
                 and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
         )sql";
@@ -4371,8 +4350,7 @@ namespace PocketDb
                 ('commentscores')TP,
                 s.Height as Height,
                 s.BlockNum as BlockNum,
-                s.Hash,
-                c.String1
+                s.Hash
 
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
 
@@ -4386,7 +4364,7 @@ namespace PocketDb
             where c.Type in (204,205)
                 and c.Last = 1
                 and c.Height > ?
-                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and c.String1 = ?
         )sql";
         static const auto contentscores = R"sql(
             -- Content scores
@@ -4394,8 +4372,7 @@ namespace PocketDb
                 ('contentscores')TP,
                 s.Height as Height,
                 s.BlockNum as BlockNum,
-                s.Hash,
-                c.String1
+                s.Hash
 
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
 
@@ -4406,7 +4383,7 @@ namespace PocketDb
 
             where c.Type in (200, 201, 202)
                 and c.Last = 1
-                and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and c.String1 = ?
                 and c.Height > ?
         )sql";
         static const auto privatecontent = R"sql(
@@ -4415,8 +4392,7 @@ namespace PocketDb
                 ('privatecontent')TP,
                 cps.Height as Height,
                 cps.BlockNum as BlockNum,
-                cps.Hash,
-                subs.String1
+                cps.Hash
 
             from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id -- Subscribers private
 
@@ -4434,7 +4410,7 @@ namespace PocketDb
             where subs.Type = 303
             and subs.Last = 1
             and subs.Height > ?
-            and subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            and subs.String1 = ?
         )sql";
         static const auto boost = R"sql(
             -- Boosts for my content
@@ -4442,8 +4418,7 @@ namespace PocketDb
                 ('boost')TP,
                 tBoost.Height as Height,
                 tBoost.BlockNum as BlockNum,
-                tBoost.Hash,
-                tContent.String1
+                tBoost.Hash
 
             from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
 
@@ -4451,7 +4426,7 @@ namespace PocketDb
                 on tContent.Type in (200,201,202)
                 and tContent.Last in (0,1)
                 and tContent.Height > ?
-                and tContent.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and tContent.String1 = ?
                 and tContent.String2 = tBoost.String2
 
             where tBoost.Type in (208)
@@ -4466,8 +4441,7 @@ namespace PocketDb
                 ('reposts')TP,
                 r.Height as Height,
                 r.BlockNum as BlockNum,
-                r.Hash,
-                p.String1
+                r.Hash
             from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
 
             join Transactions r indexed by Transactions_Type_Last_String3_Height
@@ -4480,7 +4454,7 @@ namespace PocketDb
             where p.Type in (200,201,202)
                 and p.Last = 1
                 and p.Height > ?
-                and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and p.String1 = ?
         )sql";
 
         static const auto footer = R"sql(
@@ -4530,7 +4504,7 @@ namespace PocketDb
 
         std::string pocketnetteamAddress = GetPocketnetteamAddress();
 
-        EventsReconstructor reconstructor(addresses);
+        EventsReconstructor reconstructor;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
@@ -4550,17 +4524,13 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
                 TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementInt64(stmt, i++, heightMax);
             }
             // Referals
             if (filters.empty() || filters.find("referals") != filters.end()) {
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
                 TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
@@ -4580,15 +4550,11 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
                 TryBindStatementInt64(stmt, i++, heightMin);
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
             }
             // Subscribers and unsubscribers
             if (filters.empty() || filters.find("subscribers") != filters.end()) {
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
                 TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
@@ -4601,9 +4567,7 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
                 TryBindStatementInt64(stmt, i++, heightMin);
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
             }
             // Content scores
             if (filters.empty() || filters.find("contentscores") != filters.end()) {
@@ -4611,9 +4575,7 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
                 TryBindStatementInt64(stmt, i++, heightMin);
             }
             // Content from private subscribers
@@ -4623,17 +4585,13 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
                 TryBindStatementInt64(stmt, i++, heightMin);
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
             }
 
             // Boosts
             if (filters.empty() || filters.find("boost") != filters.end()) {
                 TryBindStatementInt64(stmt, i++, heightMin);
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
                 TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
@@ -4646,9 +4604,7 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
                 TryBindStatementInt64(stmt, i++, heightMin);
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
             }
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
