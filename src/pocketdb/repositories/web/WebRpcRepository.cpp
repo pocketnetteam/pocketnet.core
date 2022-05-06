@@ -4412,33 +4412,29 @@ namespace PocketDb
         static const auto privatecontent = R"sql(
             -- Content from private subscribers
             select
-                'privatecontent',
-                subs.String1 as AddressOrd,
-                orig.Height as HeightOrd,
+                ('privatecontent')TP,
+                cps.Height as Height,
+                cps.BlockNum as BlockNum,
                 cps.Hash,
-                cps.Type,
-                cps.String1,
-                cps.String3,
-                null,
-                null,
-                null,
-                cps.Time,
-                null
+                subs.String1
+
             from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id -- Subscribers private
-            cross join Transactions cps indexed by Transactions_Type_Last_String1_Height_Id-- content for private subscribers
-                on cps.Last = 1 and
-                    subs.String2 = cps.String1 and
-                    cps.Type in (200, 201, 202) and
-                    cps.Height > 0
-            left join Transactions orig
-                on orig.Hash = cps.String2
+
+            cross join Transactions cps indexed by Transactions_Type_Last_String1_Height_Id -- content for private subscribers
+                on cps.Type in (200,201,202)
+            and cps.Last = 1
+            and cps.String1 = subs.String2
+            and cps.Hash = cps.String2 -- Only first content record
+            and cps.Height > ?
+            and (cps.Height < ? or (cps.Height = ? and cps.BlockNum < ?))
+
             left join Payload p
                 on p.TxHash = cps.Hash
-            where
-                subs.Type = 303 and
-                subs.Last = 1 and
-                subs.Height > 0 and
-                subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+            where subs.Type = 303
+            and subs.Last = 1
+            and subs.Height > ?
+            and subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
         )sql";
         static const auto boost = R"sql(
             -- Boosts for my content
@@ -4502,7 +4498,7 @@ namespace PocketDb
                 {"subscribers", subscribers},
                 {"commentscores", commentscores},
                 {"contentscores", contentscores},
-//                {"privatecontent", privatecontent},
+                {"privatecontent", privatecontent},
                 {"boost", boost},
                 {"reposts", reposts}
          };
@@ -4620,12 +4616,17 @@ namespace PocketDb
                 }
                 TryBindStatementInt64(stmt, i++, heightMin);
             }
-            // // Content from private subscribers
-            // if (filters.empty() || filters.find("privatecontent") != filters.end()) {
-            //     for (auto& address : addresses) {
-            //         TryBindStatementText(stmt, i++, address);
-            //     }
-            // }
+            // Content from private subscribers
+            if (filters.empty() || filters.find("privatecontent") != filters.end()) {
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
+                TryBindStatementInt64(stmt, i++, heightMin);
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
+            }
 
             // Boosts
             if (filters.empty() || filters.find("boost") != filters.end()) {
