@@ -15,11 +15,17 @@ class RPCCacheInfoGroup
 {
 public:
     RPCCacheInfoGroup(int lifeTime, std::set<std::string> methods);
-    bool IsSupportedMethod(const std::string& method) const;
-    const int& GetLifeTime();
+    int lifeTime;
+    std::set<std::string> methods;
+};
+
+class RPCCacheInfoGenerator
+{
+public:
+    explicit RPCCacheInfoGenerator(std::vector<RPCCacheInfoGroup> groups);
+    std::map<std::string, int> Generate() const;
 private:
-    int m_lifeTime;
-    std::set<std::string> m_methods;
+    std::vector<RPCCacheInfoGroup> m_groups;
 };
 
 class RPCCacheEntry
@@ -40,7 +46,8 @@ private:
     std::map<std::string, RPCCacheEntry> m_cache;
     int m_cacheSize;
     int m_maxCacheSize;
-    std::vector<RPCCacheInfoGroup> m_cacheInfoGroups =
+    // <methodName, lifeTime>
+    std::map<std::string, int> m_supportedMethods = RPCCacheInfoGenerator(
                                                 { 
                                                     { 1,
                                                         {
@@ -105,7 +112,7 @@ private:
                                                             "estimatesmartfee"
                                                         }
                                                     }
-                                                };
+                                                }).Generate();
 
     /* Make a key for the unordered hash map by concatenating together the methodname and
      * params.  TODO: We will likely need to improve this methodology in the future in
