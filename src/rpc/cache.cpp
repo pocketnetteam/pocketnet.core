@@ -8,16 +8,28 @@
 static const unsigned int MAX_CACHE_SIZE_MB = 64;
 
 RPCCacheInfoGroup::RPCCacheInfoGroup(int lifeTime, std::set<std::string> methods)
-    : m_lifeTime(std::move(lifeTime)),
-      m_methods(std::move(methods))
+    : lifeTime(std::move(lifeTime)),
+      methods(std::move(methods))
 {}
-bool RPCCacheInfoGroup::IsSupportedMethod(const std::string& method) const
+
+
+RPCCacheInfoGenerator::RPCCacheInfoGenerator(std::vector<RPCCacheInfoGroup> groups)
+    : m_groups(std::move(groups))
+{}
+std::map<std::string, int> RPCCacheInfoGenerator::Generate() const
 {
-    return m_methods.find(method) != m_methods.end();
-}
-const int& RPCCacheInfoGroup::GetLifeTime()
-{
-    return m_lifeTime;
+    std::map<std::string, int> result;
+    std::set<int> lifeTimes;
+    for (const auto& group: m_groups) {
+        // Do not allow different groups with same lifetime
+        assert(lifeTimes.emplace(group.lifeTime).second);
+        for(const auto& method: group.methods) {
+            // Do not allow same method in different groups
+            assert(result.emplace(method, group.lifeTime).second);
+        }
+    }
+
+    return result;
 }
 
 RPCCacheEntry::RPCCacheEntry(UniValue data, int validUntill)
@@ -115,7 +127,7 @@ UniValue RPCCache::Get(const std::string& path)
 UniValue RPCCache::GetRpcCache(const JSONRPCRequest& req)
 {
     // Return empty UniValue if method not supported for caching.
-    if (std::find_if(m_cacheInfoGroups.begin(), m_cacheInfoGroups.end(), [&req](const auto& elem) { return elem.IsSupportedMethod(req.strMethod); }) == m_cacheInfoGroups.end())
+    if (m_supportedMethods.find(req.strMethod) == m_supportedMethods.end())
         return UniValue();
 
     return Get(MakeHashKey(req));
@@ -123,8 +135,8 @@ UniValue RPCCache::GetRpcCache(const JSONRPCRequest& req)
 
 void RPCCache::PutRpcCache(const JSONRPCRequest& req, const UniValue& content)
 {
-    if (auto group = std::find_if(m_cacheInfoGroups.begin(), m_cacheInfoGroups.end(), [&req](const auto& elem) { return elem.IsSupportedMethod(req.strMethod); }); group != m_cacheInfoGroups.end()) {
-        Put(MakeHashKey(req), content, group->GetLifeTime());
+    if (auto group = m_supportedMethods.find(req.strMethod); group != m_supportedMethods.end()) {
+        Put(MakeHashKey(req), content, group->second);
     }
 }
 
