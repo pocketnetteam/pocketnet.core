@@ -983,6 +983,9 @@ namespace PocketWeb::PocketWebRpc
             depth = request.params[3].get_int64();
         }
         int64_t heightMin = heightMax - depth;
+        if (heightMin < 0) {
+            heightMin = 0;
+        }
 
         std::set<std::string> filters;
         if (request.params.size() > 4 && request.params[4].isArray()) {

@@ -4229,14 +4229,12 @@ namespace PocketDb
     
     std::map<std::string, std::vector<UniValue>> WebRpcRepository::GetEventsForAddresses(const std::vector<std::string>& addresses, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<std::string>& filters)
     {
-        // TODO (losty): currently filtering causes sql error without "reposts" because of unnecessary unions at the end of each single select
-        auto sql = R"sql(
-            )sql" + string(filters.empty() || filters.find("pocketnetteam") != filters.end() ? R"sql(
+        static const auto pocketnetteam = R"sql(
             -- Pocket posts
             select
                 ('pocketnetteam')TP,
-                t.Height,
-                t.BlockNum,
+                t.Height as Height,
+                t.BlockNum as BlockNum,
                 t.Hash,
                 null
 
@@ -4248,16 +4246,13 @@ namespace PocketDb
             and t.Height > ?
             and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
 
-            union
-            
-        )sql" : "") + (filters.empty() || filters.find("money") != filters.end() ? R"sql(
-
+        )sql";
+        static const auto money = R"sql(
             -- Incoming money
-            -- TODO (losty-event): ignore money from me to me
             select
                 ('money')TP,
-                t.Height,
-                t.BlockNum,
+                t.Height as Height,
+                t.BlockNum as BlockNum,
                 t.Hash,
                 o.AddressHash
 
@@ -4276,17 +4271,13 @@ namespace PocketDb
             where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 and o.TxHeight > ?
                 and o.TxHeight < ?
-
-            union
-        )sql" : "") + (filters.empty() || filters.find("referals") != filters.end() ? R"sql(
-
+        )sql";
+        static const auto referals =  R"sql(
             -- referals
-            -- TODO (losty-event): only first registration
-
             select
                 ('referals')TP,
-                t.Height,
-                t.BlockNum,
+                t.Height as Height,
+                t.BlockNum as BlockNum,
                 t.Hash,
                 t.String2
 
@@ -4298,11 +4289,8 @@ namespace PocketDb
                 and t.Height > ?
                 and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
                 and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
-
-            union
-
-        )sql" : "") /* + (filters.empty() || filters.find("answers") != filters.end() ? R"sql(
-
+        )sql";
+        static const auto answers = R"sql(
             -- Comment answers
             select
                 'answers',
@@ -4327,15 +4315,13 @@ namespace PocketDb
             and c.Last = 1
             and c.Height is not null
             and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-
-            union
-        )sql" : "")*/ + (filters.empty() || filters.find("comments") != filters.end() ? R"sql(
-
+        )sql";
+        static const auto comments = R"sql(
             -- Comments for my content
             select
                 ('comments')TP,
-                c.Height,
-                c.BlockNum,
+                c.Height as Height,
+                c.BlockNum as BlockNum,
                 c.Hash,
                 p.String1
 
@@ -4355,15 +4341,13 @@ namespace PocketDb
                 and p.Last = 1
                 and p.Height > ?
                 and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-
-            union
-        )sql" : "") + (filters.empty() || filters.find("subscribers") != filters.end() ? R"sql(
-
+        )sql";
+        static const auto subscribers = R"sql(
             -- Subscribers
             select
                 ('subscribers')TP,
-                subs.Height,
-                subs.BlockNum,
+                subs.Height as Height,
+                subs.BlockNum as BlockNum,
                 subs.Hash,
                 subs.String2
 
@@ -4380,15 +4364,13 @@ namespace PocketDb
                 and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 and subs.Height > ?
                 and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
-            
-            union
-        )sql" : "") + (filters.empty() || filters.find("commentscores") != filters.end() ? R"sql(
-
+        )sql";
+        static const auto commentscores = R"sql(
             -- Comment scores
             select
                 ('commentscores')TP,
-                s.Height,
-                s.BlockNum,
+                s.Height as Height,
+                s.BlockNum as BlockNum,
                 s.Hash,
                 c.String1
 
@@ -4405,15 +4387,13 @@ namespace PocketDb
                 and c.Last = 1
                 and c.Height > ?
                 and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-            
-            union
-        )sql" : "") + (filters.empty() || filters.find("contentscores") != filters.end() ? R"sql(
-
+        )sql";
+        static const auto contentscores = R"sql(
             -- Content scores
             select
                 ('contentscores')TP,
-                s.Height,
-                s.BlockNum,
+                s.Height as Height,
+                s.BlockNum as BlockNum,
                 s.Hash,
                 c.String1
 
@@ -4428,10 +4408,8 @@ namespace PocketDb
                 and c.Last = 1
                 and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 and c.Height > ?
-
-            union
-        )sql" : "") /* + (filters.empty() || filters.find("privatecontent") != filters.end() ? R"sql(
-
+        )sql";
+        static const auto privatecontent = R"sql(
             -- Content from private subscribers
             select
                 'privatecontent',
@@ -4461,15 +4439,13 @@ namespace PocketDb
                 subs.Last = 1 and
                 subs.Height > 0 and
                 subs.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-
-            union
-        )sql" : "") */ + (filters.empty() || filters.find("boost") != filters.end() ? R"sql(
-
+        )sql";
+        static const auto boost = R"sql(
             -- Boosts for my content
             select
                 ('boost')TP,
-                tBoost.Height,
-                tBoost.BlockNum,
+                tBoost.Height as Height,
+                tBoost.BlockNum as BlockNum,
                 tBoost.Hash,
                 tContent.String1
 
@@ -4486,14 +4462,14 @@ namespace PocketDb
                 and tBoost.Last in (0,1)
                 and tBoost.Height > ?
                 and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
-            union
-        )sql" : "") + (filters.empty() || filters.find("reposts") != filters.end() ? R"sql(
+        )sql";
+        static const auto reposts = R"sql(
 
             -- Reposts
             select
                 ('reposts')TP,
-                r.Height,
-                r.BlockNum,
+                r.Height as Height,
+                r.BlockNum as BlockNum,
                 r.Hash,
                 p.String1
             from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
@@ -4509,12 +4485,52 @@ namespace PocketDb
                 and p.Last = 1
                 and p.Height > ?
                 and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+        )sql";
 
-            ----------------------------------------
+        static const auto footer = R"sql(
             -- Global order and limit for pagination
             order by Height desc, BlockNum desc
             limit 10
-        )sql" : "");
+        )sql";
+
+        static const std::map<std::string, std::string> selects = {
+                {"pocketnetteam", pocketnetteam},
+                {"money", money},
+                {"referals", referals},
+//                {"answers", answers},
+                {"comments", comments},
+                {"subscribers", subscribers},
+                {"commentscores", commentscores},
+                {"contentscores", contentscores},
+//                {"privatecontent", privatecontent},
+                {"boost", boost},
+                {"reposts", reposts}
+         };
+
+        // TODO (losty): simplify this logic
+        std::vector<std::string> sqlConstructable;
+        if (filters.empty()) {
+            sqlConstructable.reserve(selects.size() * 2 /* "union" after*/ - 1 /* without union after last */);
+            for (const auto& select: selects) {
+                sqlConstructable.emplace_back(select.second);
+                sqlConstructable.emplace_back("union");
+            }
+            sqlConstructable.pop_back(); // Remove last union
+        } else {
+            for (const auto& filter: filters) {
+                if (auto select = selects.find(filter); select != selects.end()) {
+                    sqlConstructable.emplace_back(select->second);
+                    sqlConstructable.emplace_back("union");
+                }
+            }
+            sqlConstructable.pop_back(); // Remove last union
+        }
+        std::stringstream ss;
+        for (const auto& select: sqlConstructable) {
+            ss << select;
+        }
+        ss << footer;
+        std::string sql = ss.str();
 
         EventsReconstructor reconstructor(addresses);
         TryTransactionStep(__func__, [&]()
