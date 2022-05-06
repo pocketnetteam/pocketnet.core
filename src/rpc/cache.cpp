@@ -7,9 +7,34 @@
 
 static const unsigned int MAX_CACHE_SIZE_MB = 64;
 
+RPCCacheInfoGroup::RPCCacheInfoGroup(int lifeTime, std::set<std::string> methods)
+    : m_lifeTime(std::move(lifeTime)),
+      m_methods(std::move(methods))
+{}
+bool RPCCacheInfoGroup::IsSupportedMethod(const std::string& method) const
+{
+    return m_methods.find(method) != m_methods.end();
+}
+const int& RPCCacheInfoGroup::GetLifeTime()
+{
+    return m_lifeTime;
+}
+
+RPCCacheEntry::RPCCacheEntry(UniValue data, int validUntill)
+    : m_data(std::move(data)),
+      m_validUntill(std::move(validUntill))
+{}
+const UniValue& RPCCacheEntry::GetData() const
+{
+    return m_data;
+}
+const int& RPCCacheEntry::GetValidUntill() const
+{
+    return m_validUntill;
+}
+
 RPCCache::RPCCache() 
 {
-    m_blockHeight = chainActive.Height();
     m_maxCacheSize = gArgs.GetArg("-rpccachesize", MAX_CACHE_SIZE_MB) * 1024 * 1024;
 }
 
@@ -27,52 +52,60 @@ void RPCCache::Clear()
     LOCK(CacheMutex);
     m_cache.clear();
     m_cacheSize = 0;
-    m_blockHeight = chainActive.Height();
 
     LogPrint(BCLog::RPC, "RPC cache cleared.\n");
 }
 
-void RPCCache::Put(const std::string& path, const UniValue& content)
+void RPCCache::ClearOverdue(int height)
 {
-    if (chainActive.Height() > m_blockHeight)
-        this->Clear();
+    for (auto itr = m_cache.begin(); itr != m_cache.end();) {
+        if(itr->second.GetValidUntill() >= height) {
+            itr = m_cache.erase(itr);
+        } else {
+            itr++;
+        }
+    }
+}
+
+void RPCCache::Put(const std::string& path, const UniValue& content, const int& lifeTime)
+{
+    auto currentHeight = chainActive.Height();
+
+    auto validUntill = currentHeight + lifeTime;
+
+    LOCK(CacheMutex);
 
     int size = path.size() + content.write().size();
+
+    ClearOverdue(currentHeight);
 
     if (m_maxCacheSize < size + m_cacheSize) {
         LogPrint(BCLog::RPC, "RPC cache over size limit: current = %d, max = %d\n", size + m_cacheSize, m_maxCacheSize);
         return;
     }
 
-    LOCK(CacheMutex);
-    if (m_cache.find(path) == m_cache.end()) {
-        LogPrint(BCLog::RPC, "RPC cache put '%s', size %d\n", path, size);
-        m_cacheSize += size;
-        m_cache.emplace(path, content);
-    } else {
+    if (auto entry = m_cache.find(path); entry != m_cache.end()) {
         LogPrint(BCLog::RPC, "RPC cache put update '%s'\n", path);
         // Adjust cache size, remove old element size, add new element size
-        m_cacheSize -= m_cache[path].size();
+        m_cacheSize -= entry->second.GetData().size();
         m_cacheSize += content.write().size();
-        m_cache[path] = content;
+    } else {
+        LogPrint(BCLog::RPC, "RPC cache put '%s', size %d\n", path, size);
+        m_cacheSize += size;
     }
+    m_cache.insert_or_assign(path, RPCCacheEntry(content, validUntill));
+
 }
 
 UniValue RPCCache::Get(const std::string& path)
 {
-    if (m_cache.empty()) {
-        return UniValue();
-    }
-
-    if (chainActive.Height() > m_blockHeight) {
-        this->Clear();
-        return UniValue();
-    }
-
     LOCK(CacheMutex);
+
+    ClearOverdue(chainActive.Height());
+
     if (m_cache.find(path) != m_cache.end()) {
         LogPrint(BCLog::RPC, "RPC Cache get found %s in cache\n", path);
-        return m_cache.at(path);
+        return m_cache.at(path).GetData();
     }
 
     // Return empty UniValue if nothing found in cache.
@@ -82,7 +115,7 @@ UniValue RPCCache::Get(const std::string& path)
 UniValue RPCCache::GetRpcCache(const JSONRPCRequest& req)
 {
     // Return empty UniValue if method not supported for caching.
-    if (std::find(supportedMethods.begin(), supportedMethods.end(), req.strMethod) == supportedMethods.end())
+    if (std::find_if(m_cacheInfoGroups.begin(), m_cacheInfoGroups.end(), [&req](const auto& elem) { return elem.IsSupportedMethod(req.strMethod); }) == m_cacheInfoGroups.end())
         return UniValue();
 
     return Get(MakeHashKey(req));
@@ -90,10 +123,9 @@ UniValue RPCCache::GetRpcCache(const JSONRPCRequest& req)
 
 void RPCCache::PutRpcCache(const JSONRPCRequest& req, const UniValue& content)
 {
-    if (std::find(supportedMethods.begin(), supportedMethods.end(), req.strMethod) == supportedMethods.end())
-        return;
-
-    Put(MakeHashKey(req), content);
+    if (auto group = std::find_if(m_cacheInfoGroups.begin(), m_cacheInfoGroups.end(), [&req](const auto& elem) { return elem.IsSupportedMethod(req.strMethod); }); group != m_cacheInfoGroups.end()) {
+        Put(MakeHashKey(req), content, group->GetLifeTime());
+    }
 }
 
 std::tuple<int64_t, int64_t> RPCCache::Statistic()
