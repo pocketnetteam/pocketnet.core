@@ -11,78 +11,115 @@
 
 class JSONRPCRequest;
 
+class RPCCacheInfoGroup
+{
+public:
+    RPCCacheInfoGroup(int lifeTime, std::set<std::string> methods);
+    bool IsSupportedMethod(const std::string& method) const;
+    const int& GetLifeTime();
+private:
+    int m_lifeTime;
+    std::set<std::string> m_methods;
+};
+
+class RPCCacheEntry
+{
+public:
+    RPCCacheEntry(UniValue data, int validUntill);
+    const UniValue& GetData() const;
+    const int& GetValidUntill() const;
+private:
+    int m_validUntill;
+    UniValue m_data;
+};
+
 class RPCCache
 {
 private:
     Mutex CacheMutex;
-    std::map<std::string, UniValue> m_cache;
-    int m_blockHeight;
+    std::map<std::string, RPCCacheEntry> m_cache;
     int m_cacheSize;
     int m_maxCacheSize;
-    const std::vector<std::string> supportedMethods = { "getlastcomments",
-                                                        "getcomments",
-                                                        "getuseraddress",
-                                                        "getaddressregistration",
-                                                        "search",
-                                                        "searchlinks",
-                                                        "searchusers",
-                                                        "gettags",
-                                                        "getrawtransactionwithmessagebyid",
-                                                        "getrawtransactionwithmessage",
-                                                        "getrawtransaction",
-                                                        "getusercontents",
-                                                        "gethistoricalfeed",
-                                                        "gethistoricalstrip",
-                                                        "gethierarchicalfeed",
-                                                        "gethierarchicalstrip",
-                                                        "gethotposts",
-                                                        "gettopfeed",
-                                                        "getuserprofile",
-                                                        "getprofilefeed",
-                                                        "getsubscribesfeed",
-                                                        "txunspent",
-                                                        "getaddressid",
-                                                        "getuserstate",
-                                                        "getpagescores",
-                                                        "getcontent",
-                                                        "getcontents",
-                                                        "getaccountsetting",
-                                                        "getcontentsstatistic",
-                                                        "getusersubscribes",
-                                                        "getusersubscribers",
-                                                        "getuserblockings",
-                                                        "gettopaccounts",
-                                                        "getaddressscores",
-                                                        "getpostscores",
-                                                        "getstatisticbyhours",
-                                                        "getstatisticbydays",
-                                                        "getstatisticcontentbyhours",
-                                                        "getstatisticcontentbydays",
-                                                        "getrecommendedcontentbyaddress",
-                                                        "getrecommendedaccountbyaddress",
-                                                        "getaddressinfo",
-                                                        "getcompactblock",
-                                                        "getlastblocks",
-                                                        "searchbyhash",
-                                                        "gettransactions",
-                                                        "getaddresstransactions",
-                                                        "getblocktransactions",
-                                                        "getbalancehistory",
-                                                        "getcoininfo",
-                                                        "estimatesmartfee" };
+    std::vector<RPCCacheInfoGroup> m_cacheInfoGroups =
+                                                { 
+                                                    { 1,
+                                                        {
+                                                            "getlastcomments",
+                                                            "getcomments",
+                                                            "getuseraddress",
+                                                            "getaddressregistration",
+                                                            "search",
+                                                            "searchlinks",
+                                                            "searchusers",
+                                                            "gettags",
+                                                            "getrawtransactionwithmessagebyid",
+                                                            "getrawtransactionwithmessage",
+                                                            "getrawtransaction",
+                                                            "getusercontents",
+                                                            "gethistoricalfeed",
+                                                            "gethistoricalstrip",
+                                                            "gethierarchicalfeed"
+                                                        }
+                                                    },
+                                                    { 2,
+                                                        {
+                                                            "gethierarchicalstrip",
+                                                            "gethotposts",
+                                                            "gettopfeed",
+                                                            "getuserprofile",
+                                                            "getprofilefeed",
+                                                            "getsubscribesfeed",
+                                                            "txunspent",
+                                                            "getaddressid",
+                                                            "getuserstate",
+                                                            "getpagescores",
+                                                            "getcontent",
+                                                            "getcontents",
+                                                            "getaccountsetting",
+                                                            "getcontentsstatistic",
+                                                            "getusersubscribes",
+                                                            "getusersubscribers",
+                                                            "getuserblockings",
+                                                            "gettopaccounts",
+                                                            "getaddressscores",
+                                                            "getpostscores",
+                                                            "getstatisticbyhours",
+                                                            "getstatisticbydays",
+                                                            "getstatisticcontentbyhours"
+                                                        }
+                                                    },
+                                                    { 3,
+                                                        {
+                                                            "getstatisticcontentbydays",
+                                                            "getrecommendedcontentbyaddress",
+                                                            "getrecommendedaccountbyaddress",
+                                                            "getaddressinfo",
+                                                            "getcompactblock",
+                                                            "getlastblocks",
+                                                            "searchbyhash",
+                                                            "gettransactions",
+                                                            "getaddresstransactions",
+                                                            "getblocktransactions",
+                                                            "getbalancehistory",
+                                                            "getcoininfo",
+                                                            "estimatesmartfee"
+                                                        }
+                                                    }
+                                                };
 
     /* Make a key for the unordered hash map by concatenating together the methodname and
      * params.  TODO: We will likely need to improve this methodology in the future in
      * case parameters are delivered in out of order by the front-end clients.
      */
     std::string MakeHashKey(const JSONRPCRequest& req);
+    void ClearOverdue(int height);
 
 public:
     RPCCache();
 
     void Clear();
 
-    void Put(const std::string& path, const UniValue& content);
+    void Put(const std::string& path, const UniValue& content, const int& lifeTime);
 
     UniValue Get(const std::string& path);
 
