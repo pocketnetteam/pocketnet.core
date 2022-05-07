@@ -48,6 +48,7 @@ const int& RPCCacheEntry::GetValidUntill() const
 RPCCache::RPCCache() 
 {
     m_maxCacheSize = gArgs.GetArg("-rpccachesize", MAX_CACHE_SIZE_MB) * 1024 * 1024;
+    m_cacheSize = 0;
 }
 
 std::string RPCCache::MakeHashKey(const JSONRPCRequest& req)
@@ -71,7 +72,9 @@ void RPCCache::Clear()
 void RPCCache::ClearOverdue(int height)
 {
     for (auto itr = m_cache.begin(); itr != m_cache.end();) {
-        if(itr->second.GetValidUntill() >= height) {
+        if(itr->second.GetValidUntill() <= height) {
+            // TODO: calculate size more accurate, probably move to RPCCache entry or smth.
+            m_cacheSize -= (itr->first.size() + itr->second.GetData().write().size()); // Decreasing cache size 
             itr = m_cache.erase(itr);
         } else {
             itr++;
