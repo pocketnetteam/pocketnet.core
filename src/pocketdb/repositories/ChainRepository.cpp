@@ -473,8 +473,6 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(stmt, 1, height);
         TryBindStatementInt(stmt, 2, height);
-
-        LogPrintf("RestoreOldLast 1 %s\n", sqlite3_expanded_sql(*stmt));
         TryStepStatement(stmt);
 
         int64_t nTime2 = GetTimeMicros();
@@ -498,8 +496,6 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(stmt2, 1, height);
         TryBindStatementInt(stmt2, 2, height);
-
-        LogPrintf("RestoreOldLast 2 %s\n", sqlite3_expanded_sql(*stmt2));
         TryStepStatement(stmt2);
 
         int64_t nTime3 = GetTimeMicros();
@@ -521,8 +517,6 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(stmt3, 1, height);
         TryBindStatementInt(stmt3, 2, height);
-
-        LogPrintf("RestoreOldLast 3 %s\n", sqlite3_expanded_sql(*stmt3));
         TryStepStatement(stmt3);
 
         int64_t nTime4 = GetTimeMicros();
