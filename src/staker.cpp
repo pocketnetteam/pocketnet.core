@@ -62,8 +62,11 @@ void Staker::startWorkers(
 
 void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGroup)
 {
-    while (!ShutdownRequested())
+    while (true)
     {
+        if (ShutdownRequested())
+            break;
+
         auto wallets = GetWallets();
 
         std::unordered_set<std::string> walletNames;
@@ -102,7 +105,7 @@ void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGro
 
 void Staker::worker(CChainParams const& chainparams, std::string const& walletName)
 {
-    LogPrintf("Staker worker thread started for %s\n", walletName);
+    LogPrintf("Staker thread started for %s\n", walletName);
 
     RenameThread("coin-staker");
 
@@ -119,7 +122,7 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
         if (!coinbaseScript || coinbaseScript->reserveScript.empty())
             throw std::runtime_error("No coinbase script available (staking requires a wallet)");
 
-        while (running && !ShutdownRequested())
+        while (running || !ShutdownRequested())
         {
             auto wallet = GetWallet(walletName);
 
@@ -135,7 +138,7 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
                 MilliSleep(1000);
             }
 
-            if (gArgs.GetBoolArg("-stakingrequirespeers", DEFAULT_STAKINGREQUIRESPEERS))
+            if (chainparams.GetConsensus().fPosRequiresPeers)
             {
                 do
                 {
@@ -192,12 +195,12 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
     }
     catch (const boost::thread_interrupted&)
     {
-        LogPrintf("Staker worker thread terminated\n");
+        LogPrintf("Pocketcoin Staker terminated\n");
         throw;
     }
     catch (const std::runtime_error& e)
     {
-        LogPrintf("Staker worker thread runtime error: %s\n", e.what());
+        LogPrintf("Pocketcoin Staker runtime error: %s\n", e.what());
         return;
     }
 }
