@@ -64,7 +64,7 @@ static constexpr int STALE_RELAY_AGE_LIMIT = 30 * 24 * 60 * 60;
 /// limiting block relay. Set to one week, denominated in seconds.
 static constexpr int HISTORICAL_BLOCK_AGE = 7 * 24 * 60 * 60;
 
-CCriticalSection cs_nodestate;
+// CCriticalSection cs_nodestate;
 
 struct COrphanTx {
     // When modifying, adapt the copy of this definition in tests/DoS_tests.
@@ -405,7 +405,7 @@ static CNodeState* State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     return _state(pnode);
 }
 
-static CNodeState* StateView(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_nodestate)
+static CNodeState* StateView(NodeId pnode) // EXCLUSIVE_LOCKS_REQUIRED(cs_nodestate)
 {
     return _state(pnode);
 }
@@ -721,7 +721,7 @@ void PeerLogicValidation::InitializeNode(CNode* pnode)
     
     {
         LOCK(cs_main);
-        LOCK(cs_nodestate);
+        //LOCK(cs_nodestate);
         mapNodeState.emplace_hint(mapNodeState.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
     }
 
@@ -755,7 +755,7 @@ void PeerLogicValidation::FinalizeNode(NodeId nodeid, bool& fUpdateConnectionTim
     assert(g_outbound_peers_with_protect_from_disconnect >= 0);
 
     {
-        LOCK(cs_nodestate);
+        //LOCK(cs_nodestate);
         mapNodeState.erase(nodeid);
     }
     
@@ -789,7 +789,7 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats& stats)
 
 bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
 {
-    LOCK(cs_nodestate);
+    //LOCK(cs_nodestate);
 
     CNodeState* state = StateView(nodeid);
     if (state == nullptr)
