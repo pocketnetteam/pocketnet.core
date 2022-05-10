@@ -47,72 +47,110 @@ private:
     int m_cacheSize;
     int m_maxCacheSize;
     // <methodName, lifeTime>
-    std::map<std::string, int> m_supportedMethods = RPCCacheInfoGenerator(
-                                                { 
-                                                    { 1,
-                                                        {
-                                                            "getlastcomments",
-                                                            "getcomments",
-                                                            "getuseraddress",
-                                                            "getaddressregistration",
-                                                            "search",
-                                                            "searchlinks",
-                                                            "searchusers",
-                                                            "gettags",
-                                                            "getrawtransactionwithmessagebyid",
-                                                            "getrawtransactionwithmessage",
-                                                            "getrawtransaction",
-                                                            "getusercontents",
-                                                            "gethistoricalfeed",
-                                                            "gethistoricalstrip",
-                                                            "gethierarchicalfeed"
-                                                        }
-                                                    },
-                                                    { 2,
-                                                        {
-                                                            "gethierarchicalstrip",
-                                                            "gethotposts",
-                                                            "gettopfeed",
-                                                            "getuserprofile",
-                                                            "getprofilefeed",
-                                                            "getsubscribesfeed",
-                                                            "txunspent",
-                                                            "getaddressid",
-                                                            "getuserstate",
-                                                            "getpagescores",
-                                                            "getcontent",
-                                                            "getcontents",
-                                                            "getaccountsetting",
-                                                            "getcontentsstatistic",
-                                                            "getusersubscribes",
-                                                            "getusersubscribers",
-                                                            "getuserblockings",
-                                                            "gettopaccounts",
-                                                            "getaddressscores",
-                                                            "getpostscores",
-                                                            "getstatisticbyhours",
-                                                            "getstatisticbydays",
-                                                            "getstatisticcontentbyhours"
-                                                        }
-                                                    },
-                                                    { 3,
-                                                        {
-                                                            "getstatisticcontentbydays",
-                                                            "getrecommendedcontentbyaddress",
-                                                            "getrecommendedaccountbyaddress",
-                                                            "getaddressinfo",
-                                                            "getcompactblock",
-                                                            "getlastblocks",
-                                                            "searchbyhash",
-                                                            "gettransactions",
-                                                            "getaddresstransactions",
-                                                            "getblocktransactions",
-                                                            "getbalancehistory",
-                                                            "getcoininfo",
-                                                            "estimatesmartfee"
-                                                        }
-                                                    }
-                                                }).Generate();
+    std::map<std::string, int> m_supportedMethods = {
+        { "getlastcomments", 15 },
+        { "getcomments", 5 },
+        { "getuseraddress", 60 },
+        { "search", 60 },
+        { "gettags", 60 },
+        { "getnodeinfo", 1 },
+
+        { "getrawtransactionwithmessagebyid", 5 },
+        { "getrawtransactionwithmessage", 5 },
+        { "getrawtransaction", 5 },
+        { "getusercontents", 10 },
+        { "gethierarchicalstrip", 5 },
+        { "getboostfeed", 5 },
+        { "getprofilefeed", 5 },
+        { "gethierarchicalstrip", 5 },
+        { "getsubscribesfeed", 5 },
+        { "gethistoricalstrip", 5 },
+
+        { "gethotposts", 5 },
+        { "getuserprofile", 10 },
+        { "getuserstate", 10 },
+        { "getpagescores", 5 },
+        { "getcontent", 82000 },
+        { "getcontents", 82000 },
+        { "getmissedinfo", 10 },
+        { "getcontentsstatistic", 10 },
+        { "searchlinks", 10 },
+        { "getaccountsetting", 10 },
+        { "getstatisticbyhours", 10 },
+        { "getstatisticbydays", 100 },
+
+        { "getstatisticcontentbyhours", 10 },
+        { "getstatisticcontentbydays", 100 },
+        { "gettopfeed", 60 },
+        { "gettopaccounts", 60 },
+        { "getcontentactions", 60 },
+        { "getrecommendedcontentbyaddress", 60 },
+        { "getrecomendedaccountsbysubscriptions", 60 },
+        { "getrecommendedaccountbyaddress", 60 },
+        { "getrecomendedaccountsbyscoresonsimilaraccounts", 60 },
+        { "getrecomendedaccountsbyscoresfromaddress", 60 },
+        { "getrecomendedcontentsbyscoresfromaddress", 60 },
+    };
+    
+    // auto _ = RPCCacheInfoGenerator( { 
+    //     { 1, {
+    //         "getlastcomments",
+    //         "getcomments",
+    //         "getuseraddress",
+    //         "getaddressregistration",
+    //         "search",
+    //         "searchlinks",
+    //         "searchusers",
+    //         "gettags",
+    //         "getrawtransactionwithmessagebyid",
+    //         "getrawtransactionwithmessage",
+    //         "getrawtransaction",
+    //         "getusercontents",
+    //         "gethistoricalfeed",
+    //         "gethistoricalstrip",
+    //         "gethierarchicalfeed"
+    //     } },
+    //     { 2, {
+    //         "gethierarchicalstrip",
+    //         "gethotposts",
+    //         "gettopfeed",
+    //         "getuserprofile",
+    //         "getprofilefeed",
+    //         "getsubscribesfeed",
+    //         "txunspent",
+    //         "getaddressid",
+    //         "getuserstate",
+    //         "getpagescores",
+    //         "getcontent",
+    //         "getcontents",
+    //         "getaccountsetting",
+    //         "getcontentsstatistic",
+    //         "getusersubscribes",
+    //         "getusersubscribers",
+    //         "getuserblockings",
+    //         "gettopaccounts",
+    //         "getaddressscores",
+    //         "getpostscores",
+    //         "getstatisticbyhours",
+    //         "getstatisticbydays",
+    //         "getstatisticcontentbyhours"
+    //     } },
+    //     { 3, {
+    //         "getstatisticcontentbydays",
+    //         "getrecommendedcontentbyaddress",
+    //         "getrecommendedaccountbyaddress",
+    //         "getaddressinfo",
+    //         "getcompactblock",
+    //         "getlastblocks",
+    //         "searchbyhash",
+    //         "gettransactions",
+    //         "getaddresstransactions",
+    //         "getblocktransactions",
+    //         "getbalancehistory",
+    //         "getcoininfo",
+    //         "estimatesmartfee"
+    //     } }
+    // }).Generate();
 
     /* Make a key for the unordered hash map by concatenating together the methodname and
      * params.  TODO: We will likely need to improve this methodology in the future in
