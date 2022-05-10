@@ -78,18 +78,15 @@ private:
         { "getaccountsetting", 10 },
         { "getstatisticbyhours", 10 },
         { "getstatisticbydays", 100 },
-
         { "getstatisticcontentbyhours", 10 },
         { "getstatisticcontentbydays", 100 },
+        { "getcontentactions", 60 },
+
         { "gettopfeed", 60 },
         { "gettopaccounts", 60 },
-        { "getcontentactions", 60 },
         { "getrecommendedcontentbyaddress", 60 },
-        { "getrecomendedaccountsbysubscriptions", 60 },
         { "getrecommendedaccountbyaddress", 60 },
-        { "getrecomendedaccountsbyscoresonsimilaraccounts", 60 },
-        { "getrecomendedaccountsbyscoresfromaddress", 60 },
-        { "getrecomendedcontentsbyscoresfromaddress", 60 },
+
     };
     
     // auto _ = RPCCacheInfoGenerator( { 
