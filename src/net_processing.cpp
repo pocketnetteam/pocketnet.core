@@ -391,9 +391,8 @@ struct CNodeState {
 
 /** Map maintaining per-node state. */
 static std::map<NodeId, CNodeState> mapNodeState GUARDED_BY(cs_main);
-static std::map<NodeId, CNodeState> mapNodeStateView GUARDED_BY(cs_nodestate);
 
-static CNodeState* State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+static CNodeState* _state(NodeId pnode)
 {
     auto it = mapNodeState.find(pnode);
     if (it == mapNodeState.end())
@@ -401,12 +400,14 @@ static CNodeState* State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     return &it->second;
 }
 
+static CNodeState* State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    return _state(pnode);
+}
+
 static CNodeState* StateView(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_nodestate)
 {
-    auto it = mapNodeStateView.find(pnode);
-    if (it == mapNodeStateView.end())
-        return nullptr;
-    return &it->second;
+    return _state(pnode);
 }
 
 static void UpdatePreferredDownload(CNode* node, CNodeState* state) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
@@ -720,12 +721,8 @@ void PeerLogicValidation::InitializeNode(CNode* pnode)
     
     {
         LOCK(cs_main);
-        mapNodeState.emplace_hint(mapNodeState.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
-    }
-
-    {
         LOCK(cs_nodestate);
-        mapNodeStateView.emplace_hint(mapNodeStateView.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
+        mapNodeState.emplace_hint(mapNodeState.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
     }
 
     if (!pnode->fInbound)
@@ -734,8 +731,9 @@ void PeerLogicValidation::InitializeNode(CNode* pnode)
 
 void PeerLogicValidation::FinalizeNode(NodeId nodeid, bool& fUpdateConnectionTime)
 {
-    fUpdateConnectionTime = false;
     LOCK(cs_main);
+
+    fUpdateConnectionTime = false;
     CNodeState* state = State(nodeid);
     assert(state != nullptr);
 
@@ -756,13 +754,11 @@ void PeerLogicValidation::FinalizeNode(NodeId nodeid, bool& fUpdateConnectionTim
     g_outbound_peers_with_protect_from_disconnect -= state->m_chain_sync.m_protect;
     assert(g_outbound_peers_with_protect_from_disconnect >= 0);
 
-    mapNodeState.erase(nodeid);
-
     {
         LOCK(cs_nodestate);
-        mapNodeStateView.erase(nodeid);
+        mapNodeState.erase(nodeid);
     }
-
+    
     if (mapNodeState.empty()) {
         // Do a consistency check after the last peer is removed.
         assert(mapBlocksInFlight.empty());
@@ -794,7 +790,6 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats& stats)
 bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
 {
     LOCK(cs_nodestate);
-
     CNodeState* state = StateView(nodeid);
     if (state == nullptr)
         return false;
