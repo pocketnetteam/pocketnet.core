@@ -271,24 +271,20 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsComplain(const string& postHash, const string& address, bool mempool)
+    bool ConsensusRepository::ExistsComplain(const string& postHash, const string& address)
     {
         bool result = false;
 
         TryTransactionStep(__func__, [&]()
         {
-            string sql = R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 SELECT count(*)
                 FROM Transactions
                 WHERE Type in (307)
                   and String1 = ?
                   and String2 = ?
-            )sql";
-
-            if (!mempool)
-                sql += " and Height > 0";
-
-            auto stmt = SetupSqlStatement(sql);
+                  and Height is not null
+            )sql");
 
             TryBindStatementText(stmt, 1, address);
             TryBindStatementText(stmt, 2, postHash);
@@ -302,6 +298,7 @@ namespace PocketDb
 
         return result;
     }
+
 
     bool ConsensusRepository::ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool)
     {
@@ -764,17 +761,17 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            select count()
+            select count(1)
             from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
             join Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
-                on s.String2 = c.String2
-               and s.Type in (300)
-               and s.Height <= ?
-               and s.String1 = ?
-               and s.Time < ?
-               and s.Time >= ?
-               and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
-               and s.Hash != ?
+                on  s.String2 = c.String2
+                and s.Type in (300)
+                and s.Height <= ?
+                and s.String1 = ?
+                and s.Time < ?
+                and s.Time >= ?
+                and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+                and s.Hash != ?
             where c.Type in (200,201,202,207)
               and c.String1 = ?
               and c.Height is not null
@@ -793,8 +790,6 @@ namespace PocketDb
             TryBindStatementInt64(stmt, i++, scoreData->ScoreTime - scoresOneToOneDepth);
             TryBindStatementText(stmt, i++, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, i++, scoreData->ContentAddressHash);
-
-            LogPrintf("GetScoreContentCount: %s\n", sqlite3_expanded_sql(*stmt));
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -819,18 +814,18 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            select count()
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            select count(1)
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
-                on s.String2 = c.String2
-               and s.Type in (301)
-               and s.Height <= ?
-               and s.String1 = ?
-               and s.Height is not null
-               and s.Time < ?
-               and s.Time >= ?
-               and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
-               and s.Hash != ?
+                on  s.String2 = c.String2
+                and s.Type in (301)
+                and s.Height <= ?
+                and s.String1 = ?
+                and s.Height is not null
+                and s.Time < ?
+                and s.Time >= ?
+                and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+                and s.Hash != ?
             where c.Type in (204, 205, 206)
               and c.Height is not null
               and c.String1 = ?
@@ -849,8 +844,6 @@ namespace PocketDb
             TryBindStatementInt64(stmt, i++, (int64_t) scoreData->ScoreTime - scoresOneToOneDepth);
             TryBindStatementText(stmt, i++, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, i++, scoreData->ContentAddressHash);
-
-            LogPrintf("GetScoreCommentCount: %s\n", sqlite3_expanded_sql(*stmt));
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
