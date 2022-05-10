@@ -763,7 +763,7 @@ namespace PocketDb
         string sql = R"sql(
             select count(1)
             from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
-            join Transactions s indexed by Transactions_Type_String1_String2_Height
+            join Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
                 on  s.String2 = c.String2
                 and s.Type in (300)
                 and s.Height <= ?
@@ -791,8 +791,6 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, i++, scoreData->ContentAddressHash);
 
-            LogPrintf("GetScoreContentCount: %s\n", sqlite3_expanded_sql(*stmt));
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
@@ -818,7 +816,7 @@ namespace PocketDb
         string sql = R"sql(
             select count(1)
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
-            join Transactions s indexed by Transactions_Type_String1_String2_Height
+            join Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
                 on  s.String2 = c.String2
                 and s.Type in (301)
                 and s.Height <= ?
@@ -846,8 +844,6 @@ namespace PocketDb
             TryBindStatementInt64(stmt, i++, (int64_t) scoreData->ScoreTime - scoresOneToOneDepth);
             TryBindStatementText(stmt, i++, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, i++, scoreData->ContentAddressHash);
-
-            LogPrintf("GetScoreCommentCount: %s\n", sqlite3_expanded_sql(*stmt));
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
