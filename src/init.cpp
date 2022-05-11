@@ -238,6 +238,9 @@ void Shutdown()
 
     StopTorControl();
 
+    if (notifyClientsThread)
+        notifyClientsThread->Stop();
+
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue threadGroup
     threadGroup.interrupt_all();
