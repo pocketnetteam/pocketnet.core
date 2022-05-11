@@ -44,7 +44,7 @@ public:
 
     int count()
     {
-        return m_map.count();
+        return m_map.size();
     }
 
 protected:
