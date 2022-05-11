@@ -386,7 +386,6 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             try
             {
                 connWS.second.Connection->send(msg.write(), [](const SimpleWeb::error_code& ec) {});
-                LogPrintf("DEBUG: ws.processor 1 - %s - %s\n", connWS.second.Connection->ID(), msg.write());
             }
             catch (const std::exception& e)
             {
@@ -405,7 +404,6 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     if (pocketnetaccinfo.exists("avatar")) m.pushKV("avatarFrom", pocketnetaccinfo["avatar"].get_str());
                     m.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
                     connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
-                    LogPrintf("DEBUG: ws.processor 2 - %s - %s\n", connWS.second.Connection->ID(), m.write());
                 }
                 catch (const std::exception& e)
                 {
@@ -420,7 +418,6 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     try
                     {
                         connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
-                        LogPrintf("DEBUG: ws.processor 3 - %s - %s\n", connWS.second.Connection->ID(), m.write());
                     }
                     catch (const std::exception& e)
                     {
