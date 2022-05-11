@@ -210,9 +210,6 @@ void Shutdown()
     PocketServices::WebPostProcessorInst.Stop();
     gStatEngineInstance.Stop();
 
-    if (notifyClientsThread)
-        notifyClientsThread->Stop();
-
     StopHTTPRPC();
     StopREST();
     StopSTATIC();
@@ -241,6 +238,9 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroup.interrupt_all();
     threadGroup.join_all();
+    if (notifyClientsThread) {
+        notifyClientsThread->Stop();
+    }
 
     // After the threads that potentially access these pointers have been stopped,
     // destruct and reset all to nullptr.
@@ -639,8 +639,8 @@ void SetupServerArgs()
     gArgs.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), false, OptionsCategory::SQLITE);
     gArgs.AddArg("-sqlsharedcache", strprintf("Experimental: enable shared cache for sqlite connections (default: disabled)"), false, OptionsCategory::SQLITE);
     gArgs.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), false, OptionsCategory::SQLITE);
-
-
+    gArgs.AddArg("-withoutweb", strprintf("Disable WEB part of database (default: %u)", false), false, OptionsCategory::SQLITE);
+    
 #if HAVE_DECL_DAEMON
     gArgs.AddArg("-daemon", "Run in the background as a daemon and accept commands", false, OptionsCategory::OPTIONS);
 #else
@@ -967,8 +967,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
     // Start staker thread after activate best chain
     #ifdef ENABLE_WALLET
     Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
-    if (Staker::getInstance()->getIsStaking())
-        Staker::getInstance()->startWorkers(threadGroup, chainparams);
+    Staker::getInstance()->startWorkers(threadGroup, chainparams);
     #endif
 }
 
@@ -1550,7 +1549,6 @@ static void StartWS()
         std::shared_ptr<WsServer::InMessage> in_message)
     {
         auto out_message = in_message->string();
-
         UniValue val;
         if (val.read(out_message))
         {
@@ -1579,18 +1577,29 @@ static void StartWS()
                     {
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
                         WSConnections->insert_or_assign(connection->ID(), wsUser);
+
+                        UniValue m(UniValue::VOBJ);
+                        m.pushKV("result", "success");
+                        connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+
                     }
                     else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
                             WSConnections->erase(connection->ID());
+
+                            UniValue m(UniValue::VOBJ);
+                            m.pushKV("result", "success");
+                            connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
                         }
                     }
                 }
             }
             catch (const std::exception &e)
             {
+                LogPrintf("Warning: ws.on_message - %s\n", e.what());
+
                 UniValue m(UniValue::VOBJ);
                 m.pushKV("result", "error");
                 m.pushKV("error", e.what());
@@ -1626,7 +1635,7 @@ static void InitWS()
     auto notifyProcessor = std::make_shared<NotifyBlockProcessor>(WSConnections);
     notifyClientsQueue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
     notifyClientsThread = std::make_shared<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>(notifyClientsQueue, notifyProcessor);
-    notifyClientsThread->Start("notifyClientsThread");
+    notifyClientsThread->Start();
     std::thread server_thread(&StartWS);
     server_thread.detach();
 }
@@ -1710,7 +1719,8 @@ bool AppInitMain()
 
     PocketWeb::PocketFrontendInst.Init();
 
-    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE))
+    // Always start WEB DB building thread
+    if (!gArgs.GetBoolArg("-withoutweb", false))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     // ********************************************************* Step 4b: Additional settings
