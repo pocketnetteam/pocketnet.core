@@ -44,6 +44,7 @@ public:
 
     int count()
     {
+        std::lock_guard<std::mutex> lock(m_mutex);
         return m_map.size();
     }
 
