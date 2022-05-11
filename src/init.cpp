@@ -1577,11 +1577,21 @@ static void StartWS()
                     {
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
                         WSConnections->insert_or_assign(connection->ID(), wsUser);
-                    } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
+
+                        UniValue m(UniValue::VOBJ);
+                        m.pushKV("result", "success");
+                        connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+
+                    }
+                    else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
                             WSConnections->erase(connection->ID());
+
+                            UniValue m(UniValue::VOBJ);
+                            m.pushKV("result", "success");
+                            connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
                         }
                     }
                 }
@@ -1589,6 +1599,11 @@ static void StartWS()
             catch (const std::exception &e)
             {
                 LogPrintf("Warning: ws.on_message - %s\n", e.what());
+
+                UniValue m(UniValue::VOBJ);
+                m.pushKV("result", "error");
+                m.pushKV("error", e.what());
+                connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
             }
         }
     };
