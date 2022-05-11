@@ -210,6 +210,11 @@ void Shutdown()
     PocketServices::WebPostProcessorInst.Stop();
     gStatEngineInstance.Stop();
 
+    if (notifyClientsThread) {
+        notifyClientsThread->Stop();
+        LogPrintf("DEBUG: Stopped notifyClientsThread\n");
+    }
+
     StopHTTPRPC();
     StopREST();
     StopSTATIC();
@@ -233,9 +238,6 @@ void Shutdown()
     if (g_txindex) g_txindex->Stop();
 
     StopTorControl();
-
-    if (notifyClientsThread)
-        notifyClientsThread->Stop();
 
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue threadGroup
