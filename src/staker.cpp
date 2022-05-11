@@ -62,7 +62,7 @@ void Staker::startWorkers(
 
 void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGroup)
 {
-    while (true)
+    while (!ShutdownRequested())
     {
         auto wallets = GetWallets();
 
