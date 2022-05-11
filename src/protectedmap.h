@@ -42,6 +42,11 @@ public:
         }
     }
 
+    int count()
+    {
+        return m_map.count();
+    }
+
 protected:
     std::map<Key, Value> m_map;
     std::mutex m_mutex;
