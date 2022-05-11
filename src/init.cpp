@@ -1550,14 +1550,14 @@ static void StartWS()
     {
         auto out_message = in_message->string();
 
-        LogPrintf("DEBUG: ws.on_message 1 - %s - %s\n", connection->ID(), out_message);
+        LogPrintf("DEBUG: ws.on_message 1 (%d) - %s - %s\n", WSConnections->m_map.count(), connection->ID(), out_message);
 
         UniValue val;
         if (val.read(out_message))
         {
             try
             {
-                LogPrintf("DEBUG: ws.on_message 2 - %s - %s\n", connection->ID(), val.write());
+                LogPrintf("DEBUG: ws.on_message 2 (%d) - %s - %s\n", WSConnections->m_map.count(), connection->ID(), val.write());
 
                 std::vector<std::string> keys = val.getKeys();
                 if (std::find(keys.begin(), keys.end(), "addr") != keys.end())
@@ -1583,7 +1583,7 @@ static void StartWS()
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
                         WSConnections->insert_or_assign(connection->ID(), wsUser);
 
-                        LogPrintf("DEBUG: ws.on_message 3 - %s\n", connection->ID());
+                        LogPrintf("DEBUG: ws.on_message 3 (%d) - %s\n", WSConnections->m_map.count(), connection->ID());
                     }
                     else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
@@ -1591,11 +1591,11 @@ static void StartWS()
                         {
                             WSConnections->erase(connection->ID());
 
-                            LogPrintf("DEBUG: ws.on_message 4 - %s - %s\n", connection->ID(), val["msg"].get_str());
+                            LogPrintf("DEBUG: ws.on_message 4 (%d) - %s - %s\n", WSConnections->m_map.count(), connection->ID(), val["msg"].get_str());
                         }
                     }
 
-                    LogPrintf("DEBUG: ws.on_message 5 - %s\n", connection->ID());
+                    LogPrintf("DEBUG: ws.on_message 5 (%d) - %s\n", WSConnections->m_map.count(), connection->ID());
                 }
             }
             catch (const std::exception &e)
@@ -1612,7 +1612,7 @@ static void StartWS()
 
     ws.on_open = [](std::shared_ptr<WsServer::Connection> connection)
     {
-        LogPrintf("DEBUG: ws.on_open - %s\n", connection->ID());
+        LogPrintf("DEBUG: ws.on_open (%d) - %s\n", WSConnections->m_map.count(), connection->ID());
 //        cout << "Server: Opened connection " << connection.get() << endl;
 //        boost::lock_guard<boost::mutex> guard(WSMutex);
 //        if ((std::find(WSConnections.begin(), WSConnections.end(), connection) == WSConnections.end()))
@@ -1621,13 +1621,13 @@ static void StartWS()
 
     ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/)
     {
-        LogPrintf("DEBUG: ws.on_close - %s\n", connection->ID());
+        LogPrintf("DEBUG: ws.on_close (%d) - %s\n", WSConnections->m_map.count(), connection->ID());
         WSConnections->erase(connection->ID());
     };
 
     ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec)
     {
-        LogPrintf("DEBUG: ws.on_error - %s\n", connection->ID());
+        LogPrintf("DEBUG: ws.on_error (%d) - %s\n", WSConnections->m_map.count(), connection->ID());
         WSConnections->erase(connection->ID());
     };
 
