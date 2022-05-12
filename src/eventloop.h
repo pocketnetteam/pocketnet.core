@@ -25,8 +25,6 @@ template<class T>
 class Queue
 {
 public:
-    using condCheck = std::function<bool()>;
-
     /**
     * Pop the next object from queue.
     * If queue is empty - blocks current thread until new value comes to queue
@@ -35,30 +33,23 @@ public:
     * @return true if element was filled
     * @return false if element was not filled
     */
-    bool GetNext(T& out, const condCheck& pre, const condCheck& post)
+    bool GetNext(T& out)
     {
-        WAIT_LOCK(m_mutex, lock);
-
-        if (pre) {
-            if (!pre()) {
-                return false;
-            }
+        std::unique_lock<std::mutex> lock(m_mutex);
+        if (!GetPostConditionCheck()) {
+            return false;
         }
-
         if (m_queue.empty()) {
             m_cv.wait(lock);
         }
-
-        if (post) {
-            if (!post()) {
-                return false;
-            }
-        }
-
         if (m_queue.empty()) {
+            // Just return false because if we are here - queue waiting was interrupted and wi need to unblock waiting threads.
+            // False indicates that there is no out value and thread can call GetNext() again if it was not expected to interrupt.
             return false;
         }
-
+        if (!GetPostConditionCheck()) {
+            return false;
+        }
         out = std::forward<T>(m_queue.front());
         m_queue.pop();
         return true;
@@ -66,19 +57,18 @@ public:
 
     bool Add(T entry)
     {
-        LOCK(m_mutex);
-
-        if (!AddConditionCheck()) {
-            return false;
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            if (!AddConditionCheck()) {
+                return false;
+            }
+            m_queue.push(std::forward<T>(entry));
         }
-
-        m_queue.push(std::forward<T>(entry));
         m_cv.notify_one();
         return true;
     }
     void Interrupt()
     {
-        LOCK(m_mutex);
         // This just simply unblocks all threads that are waiting for value.
         // If there are multiple threads working with a single queue this will have the following workflow:
         // 1) All threads that are waiting in GetNext() will be unblocked.
@@ -90,7 +80,7 @@ public:
 
     size_t Size()
     {
-        LOCK(m_mutex);
+        std::unique_lock<std::mutex> lock(m_mutex);
         return _Size();
     }
 
@@ -100,14 +90,19 @@ protected:
     virtual bool AddConditionCheck() {
         return true;
     }
-
+    virtual bool GetPreconditionCheck() {
+        return true;
+    }
+    virtual bool GetPostConditionCheck() {
+        return true;
+    }
     size_t _Size()
     {
         return m_queue.size();
     }
 private:
     std::queue<T> m_queue;
-    Mutex m_mutex;
+    std::mutex m_mutex;
     std::condition_variable m_cv;
 };
 
@@ -174,33 +169,21 @@ public:
 
     void Start(std::optional<std::string> name = std::nullopt)
     {
-        LOCK(m_running_mutex);
         m_fRunning = true;
-
-        m_thread = std::thread([name, &fRunning = m_fRunning, queue = m_queue, queueProcessor = m_queueProcessor]()
-        {
+        m_thread = std::thread([name, &fRunning = m_fRunning, queue = m_queue, queueProcessor = m_queueProcessor](){
             if (name) {
                 RenameThread(name->c_str());
             }
-
-            // This is going to be executed after internal queue mutex lock to prevent
-            // stopping thread between this check and starting to wait.
-            auto preAndPostCheck = [&]() -> bool { return fRunning; };
-
-            while (fRunning)
-            {
-                try
-                {
+            while (fRunning) {
+                try {
                     T entry;
-                    auto res = queue->GetNext(entry, preAndPostCheck, preAndPostCheck);
-                    
+                    auto res = queue->GetNext(entry);
                     // If res is false - someone else interrupts queue and if current thread still wants to run just call GetNext() again
-                    if (res)
+                    if (res && fRunning) {
                         queueProcessor->Process(std::forward<T>(entry));
-                }
-                catch (const std::exception& e)
-                {
-                    LogPrintf("%s event loop thread exception: %s", name.value_or(""), e.what());
+                    }
+                } catch (const std::exception& e) {
+                    LogPrintf("Shutting down %s event loop thread because of exception: %s", name.value_or(""), e.what());
                 }
             }
         });
@@ -212,12 +195,10 @@ public:
      */
     void Stop()
     {
-        LOCK(m_running_mutex);
         if (m_fRunning) {
             m_fRunning = false;
             m_queue->Interrupt();
         }
-
         // Try join anyway because otherwise there could be a situation when thread is stopped but not joined
         // that is a bad practise.
         if (m_thread.joinable()) {
@@ -234,7 +215,6 @@ private:
     std::thread m_thread;
     std::shared_ptr<Queue<T>> m_queue;
     std::atomic_bool m_fRunning = true;
-    Mutex m_running_mutex;
     std::shared_ptr<IQueueProcessor<T>> m_queueProcessor;
 };
 
