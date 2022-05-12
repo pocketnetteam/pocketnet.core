@@ -183,7 +183,6 @@ public:
                         queueProcessor->Process(std::forward<T>(entry));
                     }
                 } catch (const std::exception& e) {
-                    fRunning = false;
                     LogPrintf("Shutting down %s event loop thread because of exception: %s", name.value_or(""), e.what());
                 }
             }
