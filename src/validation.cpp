@@ -675,12 +675,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     // Only accept nLockTime-using transactions that can be mined in the next
     // block; we don't want our mempool filled up with transactions that can't
     // be mined yet.
-    if (!CheckFinalTx(tx, STANDARD_LOCKTIME_VERIFY_FLAGS))
-    {
-        TxType txType = TransactionHelper::ParseType(ptx);
-        if(!TransactionHelper::IsIn(txType, vector<TxType>{TxType::CONTENT_POST, TxType::CONTENT_VIDEO, TxType::CONTENT_ARTICLE}))
-            return state.DoS(0, false, REJECT_NONSTANDARD, "non-final");
-    }
+    // if (!CheckFinalTx(tx, STANDARD_LOCKTIME_VERIFY_FLAGS))
+    //     return state.DoS(0, false, REJECT_NONSTANDARD, "non-final");
 
     // is it already in the memory pool?
     if (pool.exists(hash))
@@ -837,7 +833,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 strprintf("%d < %d", nModifiedFees, mempoolRejectFee));
         }
 
-        // TODO (o1q): Set minimal fee for several PocketNet transactions to limit bots actions
         // For PocketNET transaction allow minimal fee
         if (!bypass_limits)
         {
@@ -2592,7 +2587,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Extend WEB database
-    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE) && enablePocketConnect)
+    if (!gArgs.GetBoolArg("-withoutweb", false) && enablePocketConnect)
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
 
     // -----------------------------------------------------------------------------------------------------------------
