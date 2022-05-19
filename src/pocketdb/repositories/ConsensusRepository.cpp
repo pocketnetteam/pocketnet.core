@@ -761,21 +761,21 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            select count(1)
-            from Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
-            cross join Transactions c indexed by Transactions_Type_Last_String1_String2_Height
-                on c.Type in (200,201,202,207)
-               and c.String1 = ?
-               and c.Height is not null
-               and c.Last = 1
-            where s.String2 = c.String2
-              and s.Type in (300)
-              and s.Height <= ?
-              and s.String1 = ?
-              and s.Time < ?
-              and s.Time >= ?
-              and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
-              and s.Hash != ?
+            select count()
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
+                on s.String2 = c.String2
+               and s.Type in (300)
+               and s.Height <= ?
+               and s.String1 = ?
+               and s.Time < ?
+               and s.Time >= ?
+               and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+               and s.Hash != ?
+            where c.Type in (200,201,202,207)
+              and c.String1 = ?
+              and c.Height is not null
+              and c.Last = 1
         )sql";
 
         // Execute
@@ -814,22 +814,22 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            select count(1)
-            from Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
-            cross join Transactions c indexed by Transactions_Type_Last_String1_String2_Height
-                on c.Type in (204, 205, 206)
-               and c.Height is not null
-               and c.String1 = ?
-               and c.Last = 1
-            where s.String2 = c.String2
-              and s.Type in (301)
-              and s.Height <= ?
-              and s.String1 = ?
-              and s.Height is not null
-              and s.Time < ?
-              and s.Time >= ?
-              and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
-              and s.Hash != ?
+            select count()
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
+                on s.String2 = c.String2
+               and s.Type in (301)
+               and s.Height <= ?
+               and s.String1 = ?
+               and s.Height is not null
+               and s.Time < ?
+               and s.Time >= ?
+               and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+               and s.Hash != ?
+            where c.Type in (204, 205, 206)
+              and c.Height is not null
+              and c.String1 = ?
+              and c.Last = 1
         )sql";
 
         // Execute
