@@ -1626,7 +1626,7 @@ static void InitWS()
     auto notifyProcessor = std::make_shared<NotifyBlockProcessor>(WSConnections);
     notifyClientsQueue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
     notifyClientsThread = std::make_shared<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>(notifyClientsQueue, notifyProcessor);
-    notifyClientsThread->Start();
+    notifyClientsThread->Start("notifyClientsThread");
     std::thread server_thread(&StartWS);
     server_thread.detach();
 }
