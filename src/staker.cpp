@@ -192,12 +192,12 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
     }
     catch (const boost::thread_interrupted&)
     {
-        LogPrintf("Staker worker thread terminated: %s\n", walletName);
+        LogPrintf("Staker worker thread terminated\n");
         throw;
     }
     catch (const std::runtime_error& e)
     {
-        LogPrintf("Staker worker thread runtime error: %s: %s\n", walletName, e.what());
+        LogPrintf("Staker worker thread runtime error: %s\n", e.what());
         return;
     }
 }
