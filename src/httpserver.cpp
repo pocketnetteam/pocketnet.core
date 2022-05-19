@@ -611,6 +611,9 @@ void HTTPSocket::StopHTTPSocket()
 
 void HTTPSocket::InterruptHTTPSocket()
 {
+    if (m_thread_http_workers.empty())
+        return;
+        
     if (m_eventHTTP)
     {
         // Unlisten sockets
@@ -812,9 +815,8 @@ void HTTPWebSocket::StartHTTPSocket(int threadCount, int threadPostCount, bool s
 void HTTPWebSocket::StopHTTPSocket()
 {   
     // Interrupting socket here because stop without interrupting is illegal.
-    if (!m_thread_http_workers.empty()) {
-        InterruptHTTPSocket();
-    }
+    InterruptHTTPSocket();
+
     // Resetting queue as it has done previously that restricts running this socket again.
     // However this doesn't affect current rpc handlers because they handle their own shared_ptr of queue, but adding new rpc handlers
     // is UB after this call.
