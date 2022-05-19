@@ -277,7 +277,7 @@ private:
     std::vector<std::shared_ptr<QueueEventLoopThread<std::unique_ptr<HTTPClosure>>>> m_thread_http_workers;
 
 protected:
-    void StartThreads(std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection);
+    void StartThreads(const std::string name, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection);
 
 public:
     HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
@@ -324,7 +324,6 @@ public:
 
     HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess);
     ~HTTPWebSocket();
-
     void StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection);
     void StopHTTPSocket();
     void InterruptHTTPSocket();
