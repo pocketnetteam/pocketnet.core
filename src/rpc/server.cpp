@@ -452,17 +452,19 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
 
     // See if this request reply is cached
     UniValue ret = cache->GetRpcCache(request);
-    if (ret.isNull()) {
+    if (ret.isNull())
+    {
         try
         {
             // Execute, convert arguments to array if necessary
             if (request.params.isObject()) {
-                    ret = pcmd->actor(transformNamedArguments(request, pcmd->argNames));
-                } else {
-                    ret = pcmd->actor(request);
+                ret = pcmd->actor(transformNamedArguments(request, pcmd->argNames));
+            } else {
+                ret = pcmd->actor(request);
             }
-                // Save return value in cache for later
-                cache->PutRpcCache(request, ret);
+
+            // Save return value in cache for later
+            cache->PutRpcCache(request, ret);
         }
         catch (const std::exception& e)
         {

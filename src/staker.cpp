@@ -62,11 +62,8 @@ void Staker::startWorkers(
 
 void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGroup)
 {
-    while (true)
+    while (!ShutdownRequested())
     {
-        if (ShutdownRequested())
-            break;
-
         auto wallets = GetWallets();
 
         std::unordered_set<std::string> walletNames;
@@ -101,8 +98,6 @@ void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGro
 
         MilliSleep(minerSleep * 10);
     }
-
-    LogPrintf("Staker run thread exited\n");
 }
 
 void Staker::worker(CChainParams const& chainparams, std::string const& walletName)
@@ -197,12 +192,12 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
     }
     catch (const boost::thread_interrupted&)
     {
-        LogPrintf("Staker worker thread terminated: %s\n", walletName);
+        LogPrintf("Staker worker thread terminated\n");
         throw;
     }
     catch (const std::runtime_error& e)
     {
-        LogPrintf("Staker worker thread runtime error: %s: %s\n", walletName, e.what());
+        LogPrintf("Staker worker thread runtime error: %s\n", e.what());
         return;
     }
 }
