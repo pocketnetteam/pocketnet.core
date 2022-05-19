@@ -11,7 +11,6 @@ namespace PocketConsensus
 {
     using namespace std;
 
-    // ------------------------------------------
     // Consensus checkpoint at 0 block
     class ReputationConsensus : public BaseConsensus
     {
