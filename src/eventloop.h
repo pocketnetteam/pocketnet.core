@@ -35,15 +35,15 @@ public:
     */
     bool GetNext(T& out)
     {
-        WAIT_LOCK(m_mutex, lock);
-
         if (shutdown) {
             return false;
         }
 
-        if (!GetPostConditionCheck()) {
+        if (!GetPreConditionCheck()) {
             return false;
         }
+        
+        WAIT_LOCK(m_mutex, lock);
 
         if (m_queue.empty()) {
             m_cv.wait(lock);
@@ -97,13 +97,18 @@ public:
         return _Size();
     }
 
+    bool IsRunning()
+    {
+        return !shutdown;
+    }
+
     virtual ~Queue() = default;
 protected:
     // Override following methods to define special queue restrictions, e.x. max queue length.
     virtual bool AddConditionCheck() {
         return true;
     }
-    virtual bool GetPreconditionCheck() {
+    virtual bool GetPreConditionCheck() {
         return true;
     }
     virtual bool GetPostConditionCheck() {
@@ -192,7 +197,7 @@ public:
                 RenameThread(name->c_str());
             }
 
-            while (fRunning)
+            while (fRunning && queue->IsRunning())
             {
                 try
                 {
@@ -207,10 +212,6 @@ public:
                 {
                     LogPrintf("%s event loop thread exception: %s", name.value_or(""), e.what());
                 }
-
-                // An additional condition for exiting the loop for those threads that have not received a signal to exit
-                if (!fRunning)
-                    break;
             }
         });
     }
