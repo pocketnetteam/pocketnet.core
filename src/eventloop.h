@@ -35,21 +35,30 @@ public:
     */
     bool GetNext(T& out)
     {
-        std::unique_lock<std::mutex> lock(m_mutex);
+        WAIT_LOCK(m_mutex, lock);
+
+        if (shutdown) {
+            return false;
+        }
+
         if (!GetPostConditionCheck()) {
             return false;
         }
+
         if (m_queue.empty()) {
             m_cv.wait(lock);
         }
+
         if (m_queue.empty()) {
             // Just return false because if we are here - queue waiting was interrupted and wi need to unblock waiting threads.
             // False indicates that there is no out value and thread can call GetNext() again if it was not expected to interrupt.
             return false;
         }
+
         if (!GetPostConditionCheck()) {
             return false;
         }
+
         out = std::forward<T>(m_queue.front());
         m_queue.pop();
         return true;
@@ -57,18 +66,22 @@ public:
 
     bool Add(T entry)
     {
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            if (!AddConditionCheck()) {
-                return false;
-            }
-            m_queue.push(std::forward<T>(entry));
+        LOCK(m_mutex);
+
+        if (!AddConditionCheck()) {
+            return false;
         }
+
+        m_queue.push(std::forward<T>(entry));
         m_cv.notify_one();
         return true;
     }
     void Interrupt()
     {
+        LOCK(m_mutex);
+
+        shutdown = true;
+        
         // This just simply unblocks all threads that are waiting for value.
         // If there are multiple threads working with a single queue this will have the following workflow:
         // 1) All threads that are waiting in GetNext() will be unblocked.
@@ -80,7 +93,7 @@ public:
 
     size_t Size()
     {
-        std::unique_lock<std::mutex> lock(m_mutex);
+        LOCK(m_mutex);
         return _Size();
     }
 
@@ -101,8 +114,9 @@ protected:
         return m_queue.size();
     }
 private:
+    bool shutdown = false;
     std::queue<T> m_queue;
-    std::mutex m_mutex;
+    Mutex m_mutex;
     std::condition_variable m_cv;
 };
 
@@ -169,22 +183,34 @@ public:
 
     void Start(std::optional<std::string> name = std::nullopt)
     {
+        LOCK(m_running_mutex);
         m_fRunning = true;
-        m_thread = std::thread([name, &fRunning = m_fRunning, queue = m_queue, queueProcessor = m_queueProcessor](){
+
+        m_thread = std::thread([name, &fRunning = m_fRunning, queue = m_queue, queueProcessor = m_queueProcessor]()
+        {
             if (name) {
                 RenameThread(name->c_str());
             }
-            while (fRunning) {
-                try {
+
+            while (fRunning)
+            {
+                try
+                {
                     T entry;
                     auto res = queue->GetNext(entry);
+                    
                     // If res is false - someone else interrupts queue and if current thread still wants to run just call GetNext() again
-                    if (res && fRunning) {
+                    if (res && fRunning)
                         queueProcessor->Process(std::forward<T>(entry));
-                    }
-                } catch (const std::exception& e) {
-                    LogPrintf("Shutting down %s event loop thread because of exception: %s", name.value_or(""), e.what());
                 }
+                catch (const std::exception& e)
+                {
+                    LogPrintf("%s event loop thread exception: %s", name.value_or(""), e.what());
+                }
+
+                // An additional condition for exiting the loop for those threads that have not received a signal to exit
+                if (!fRunning)
+                    break;
             }
         });
     }
@@ -195,10 +221,11 @@ public:
      */
     void Stop()
     {
-        if (m_fRunning) {
-            m_fRunning = false;
-            m_queue->Interrupt();
-        }
+        m_fRunning = false;
+        m_queue->Interrupt();
+        
+        LOCK(m_running_mutex);
+        
         // Try join anyway because otherwise there could be a situation when thread is stopped but not joined
         // that is a bad practise.
         if (m_thread.joinable()) {
@@ -215,6 +242,7 @@ private:
     std::thread m_thread;
     std::shared_ptr<Queue<T>> m_queue;
     std::atomic_bool m_fRunning = true;
+    Mutex m_running_mutex;
     std::shared_ptr<IQueueProcessor<T>> m_queueProcessor;
 };
 

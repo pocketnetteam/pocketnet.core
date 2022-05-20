@@ -10,6 +10,7 @@
 #include <wallet/wallet.h>
 #include <script/sign.h>
 #include <consensus/merkle.h>
+#include "shutdown.h"
 
 #include "pocketdb/services/Serializer.h"
 
@@ -61,7 +62,7 @@ void Staker::startWorkers(
 
 void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGroup)
 {
-    while (true)
+    while (!ShutdownRequested())
     {
         auto wallets = GetWallets();
 
@@ -101,7 +102,7 @@ void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGro
 
 void Staker::worker(CChainParams const& chainparams, std::string const& walletName)
 {
-    LogPrintf("Staker thread started for %s\n", walletName);
+    LogPrintf("Staker worker thread started for %s\n", walletName);
 
     RenameThread("coin-staker");
 
@@ -110,7 +111,7 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
     auto coinbaseScript = std::make_shared<CReserveScript>();
 
     auto wallet = GetWallet(walletName);
-    if (!wallet) { return; }
+    if (!wallet) return;
     wallet->GetScriptForMining(coinbaseScript);
 
     try
@@ -118,7 +119,7 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
         if (!coinbaseScript || coinbaseScript->reserveScript.empty())
             throw std::runtime_error("No coinbase script available (staking requires a wallet)");
 
-        while (running)
+        while (running && !ShutdownRequested())
         {
             auto wallet = GetWallet(walletName);
 
@@ -138,25 +139,31 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
             {
                 do
                 {
-                    bool fvNodesEmpty;
-                    {
-                        fvNodesEmpty = !g_connman || g_connman->GetNodeCount(
-                            CConnman::CONNECTIONS_ALL
-                        ) == 0;
-                    }
+                    if (ShutdownRequested())
+                        break;
+
+                    bool fvNodesEmpty = !g_connman || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0;
+
                     if (!fvNodesEmpty && !IsInitialBlockDownload())
                         break;
+
                     MilliSleep(1000);
                 } while (true);
             }
 
             while (!isStaking)
             {
+                if (ShutdownRequested())
+                    break;
+
                 MilliSleep(1000);
             }
 
             while (chainparams.GetConsensus().nPosFirstBlock > chainActive.Tip()->nHeight)
             {
+                if (ShutdownRequested())
+                    break;
+
                 MilliSleep(30000);
             }
 
@@ -185,12 +192,12 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
     }
     catch (const boost::thread_interrupted&)
     {
-        LogPrintf("Pocketcoin Staker terminated\n");
+        LogPrintf("Staker worker thread terminated\n");
         throw;
     }
     catch (const std::runtime_error& e)
     {
-        LogPrintf("Pocketcoin Staker runtime error: %s\n", e.what());
+        LogPrintf("Staker worker thread runtime error: %s\n", e.what());
         return;
     }
 }

@@ -235,6 +235,12 @@ namespace PocketHelpers
         return IsPocketTransaction(txRef);
     }
 
+    // TODO (o1q): Implement it for setting minimum fee for several PocketNet transactions
+    bool TransactionHelper::IsPocketNeededPaymentTransaction(const CTransactionRef& tx)
+    {
+        return false;
+    }
+
     tuple<bool, shared_ptr<ScoreDataDto>> TransactionHelper::ParseScore(const CTransactionRef& tx)
     {
         shared_ptr<ScoreDataDto> scoreData = make_shared<ScoreDataDto>();

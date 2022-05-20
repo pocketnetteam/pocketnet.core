@@ -837,6 +837,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 strprintf("%d < %d", nModifiedFees, mempoolRejectFee));
         }
 
+        // TODO (o1q): Set minimal fee for several PocketNet transactions to limit bots actions
         // For PocketNET transaction allow minimal fee
         if (!bypass_limits)
         {

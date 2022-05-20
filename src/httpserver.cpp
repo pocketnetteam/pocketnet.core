@@ -580,21 +580,21 @@ HTTPSocket::~HTTPSocket()
     }
 }
 
-void HTTPSocket::StartThreads(std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection)
+void HTTPSocket::StartThreads(const std::string name, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection)
 {
     for (int i = 0; i < threadCount; i++) {
         // Creating exec processor for every thread to guarantee each thread will have its own sqliteConnection.
         // If unique sqliteConnection for each thread is not required, execProcessor can be shared between threads
         auto execProcessor = std::make_shared<ExecutorSqlite>(selfDbConnection);
         auto thread = std::make_shared<QueueEventLoopThread<std::unique_ptr<HTTPClosure>>>(queue, std::move(execProcessor));
-        thread->Start("pocketcoin-httpworker");
+        thread->Start(name);
         m_thread_http_workers.emplace_back(thread);
     }
 }
 
 void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
 {
-    StartThreads(m_workQueue, threadCount, selfDbConnection);
+    StartThreads("HTTPSocket::StartHTTPSocket", m_workQueue, threadCount, selfDbConnection);
 }
 
 void HTTPSocket::StopHTTPSocket()
@@ -611,6 +611,9 @@ void HTTPSocket::StopHTTPSocket()
 
 void HTTPSocket::InterruptHTTPSocket()
 {
+    if (m_thread_http_workers.empty())
+        return;
+        
     if (m_eventHTTP)
     {
         // Unlisten sockets
@@ -805,14 +808,19 @@ HTTPWebSocket::~HTTPWebSocket() = default;
 
 void HTTPWebSocket::StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection)
 {
-    StartThreads(m_workQueue, threadCount, selfDbConnection);
-    StartThreads(m_workPostQueue, threadPostCount, selfDbConnection);
+    StartThreads("HTTPWebSocket::StartHTTPSocket (GET)", m_workQueue, threadCount, selfDbConnection);
+    StartThreads("HTTPWebSocket::StartHTTPSocket (POST)", m_workPostQueue, threadPostCount, selfDbConnection);
 }
 
 void HTTPWebSocket::StopHTTPSocket()
 {   
-    HTTPSocket::StopHTTPSocket();
+    // Interrupting socket here because stop without interrupting is illegal.
+    InterruptHTTPSocket();
 
+    // Resetting queue as it has done previously that restricts running this socket again.
+    // However this doesn't affect current rpc handlers because they handle their own shared_ptr of queue, but adding new rpc handlers
+    // is UB after this call.
+    m_workQueue.reset();
     m_workPostQueue.reset();
 }
 

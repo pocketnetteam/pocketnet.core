@@ -210,6 +210,9 @@ void Shutdown()
     PocketServices::WebPostProcessorInst.Stop();
     gStatEngineInstance.Stop();
 
+    if (notifyClientsThread)
+        notifyClientsThread->Stop();
+
     StopHTTPRPC();
     StopREST();
     StopSTATIC();
@@ -238,9 +241,6 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroup.interrupt_all();
     threadGroup.join_all();
-    if (notifyClientsThread) {
-        notifyClientsThread->Stop();
-    }
 
     // After the threads that potentially access these pointers have been stopped,
     // destruct and reset all to nullptr.
@@ -967,7 +967,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
     // Start staker thread after activate best chain
     #ifdef ENABLE_WALLET
     Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
-    Staker::getInstance()->startWorkers(threadGroup, chainparams);
+    if (Staker::getInstance()->getIsStaking())
+        Staker::getInstance()->startWorkers(threadGroup, chainparams);
     #endif
 }
 
@@ -1549,6 +1550,7 @@ static void StartWS()
         std::shared_ptr<WsServer::InMessage> in_message)
     {
         auto out_message = in_message->string();
+
         UniValue val;
         if (val.read(out_message))
         {
@@ -1577,7 +1579,8 @@ static void StartWS()
                     {
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
                         WSConnections->insert_or_assign(connection->ID(), wsUser);
-                    } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
+                    }
+                    else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
@@ -1588,7 +1591,10 @@ static void StartWS()
             }
             catch (const std::exception &e)
             {
-                LogPrintf("Warning: ws.on_message - %s\n", e.what());
+                UniValue m(UniValue::VOBJ);
+                m.pushKV("result", "error");
+                m.pushKV("error", e.what());
+                connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
             }
         }
     };
@@ -1620,7 +1626,7 @@ static void InitWS()
     auto notifyProcessor = std::make_shared<NotifyBlockProcessor>(WSConnections);
     notifyClientsQueue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
     notifyClientsThread = std::make_shared<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>(notifyClientsQueue, notifyProcessor);
-    notifyClientsThread->Start();
+    notifyClientsThread->Start("notifyClientsThread");
     std::thread server_thread(&StartWS);
     server_thread.detach();
 }
