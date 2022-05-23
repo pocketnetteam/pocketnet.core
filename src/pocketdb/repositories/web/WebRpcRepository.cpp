@@ -535,8 +535,9 @@ namespace PocketDb
             // Fetch data
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto[ok0, address] = TryGetColumnString(*stmt, 0);
-                auto[ok2, id] = TryGetColumnInt64(*stmt, 1);
+                int i = 0;
+                auto[ok0, address] = TryGetColumnString(*stmt, i++);
+                auto[ok2, id] = TryGetColumnInt64(*stmt, i++);
 
                 UniValue record(UniValue::VOBJ);
 
@@ -544,24 +545,25 @@ namespace PocketDb
                 record.pushKV("id", id);
                 if (IsDeveloper(address)) record.pushKV("dev", true);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("i", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("b", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("r", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("postcnt", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) record.pushKV("reputation", value / 10.0);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 8); ok) record.pushKV("subscribes_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) record.pushKV("subscribers_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) record.pushKV("blockings_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("likers_count", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("k", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("a", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("l", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("s", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 16); ok) record.pushKV("update", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 17); ok) record.pushKV("regdate", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("i", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("b", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("r", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("postcnt", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("dltdcnt", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("reputation", value / 10.0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribes_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribers_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("blockings_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("likers_count", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("k", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("a", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("l", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("s", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("update", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("regdate", value);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                 {
                     UniValue flags(UniValue::VOBJ);
                     flags.read(value);
@@ -571,29 +573,29 @@ namespace PocketDb
                 if (!shortForm)
                 {
                     
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 19); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribes", subscribes);
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 20); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribers", subscribes);
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 21); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("blocking", subscribes);
                     }
                     
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 22); ok) record.pushKV("rc", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 23); ok) record.pushKV("hash", value);
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("rc", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("hash", value);
                 }
 
                 result.emplace_back(address, id, record);
