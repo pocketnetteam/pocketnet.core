@@ -444,10 +444,16 @@ namespace PocketDb
                 , ifnull(u.String2,'') as Referrer
 
                 , ifnull((
-                    select count(1)
+                    select count()
                     from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (200,201,202,207) and po.Last = 1 and po.Height > 0 and po.String1=u.String1)
+                    where po.Type in (200,201,202) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
                 ,0) as PostsCount
+
+                , ifnull((
+                    select count()
+                    from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
+                    where po.Type in (207) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
+                ,0) as DelCount
 
                 , ifnull((
                     select r.Value
