@@ -431,18 +431,6 @@ namespace PocketDb
 
                 , u.Hash as AccountHash
 
-                , (
-                    select json_group_object(gr.Type, gr.Cnt)
-                    from (
-                      select (f.Int1)Type, (count())Cnt
-                      from Transactions f indexed by Transactions_Type_Last_String3_Height
-                      where f.Type in ( 410 )
-                        and f.Last = 0
-                        and f.String3 = u.String1
-                      group by f.Int1
-                    )gr
-                ) as FlagsJson
-
             )sql";
         }
 
@@ -503,6 +491,19 @@ namespace PocketDb
                     where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1
                 ) as RegistrationDate
 
+                , (
+                    select json_group_object(gr.Type, gr.Cnt)
+                    from (
+                      select (f.Int1)Type, (count())Cnt
+                      from Transactions f indexed by Transactions_Type_Last_String3_Height
+                      where f.Type in ( 410 )
+                        and f.Last = 0
+                        and f.String3 = u.String1
+                        and f.Height > 0
+                      group by f.Int1
+                    )gr
+                ) as FlagsJson
+
                 )sql" + fullProfileSql + R"sql(
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
@@ -554,39 +555,39 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 16); ok) record.pushKV("update", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 17); ok) record.pushKV("regdate", value);
 
+                if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
+                {
+                    UniValue flags(UniValue::VOBJ);
+                    flags.read(value);
+                    record.pushKV("flags", flags);
+                }
+
                 if (!shortForm)
                 {
                     
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 19); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribes", subscribes);
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 19); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 20); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribers", subscribes);
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 20); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 21); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("blocking", subscribes);
                     }
                     
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 21); ok) record.pushKV("rc", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 22); ok) record.pushKV("hash", value);
-
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 23); ok)
-                    {
-                        UniValue flags(UniValue::VOBJ);
-                        flags.read(value);
-                        record.pushKV("flags", flags);
-                    }
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 22); ok) record.pushKV("rc", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 23); ok) record.pushKV("hash", value);
                 }
 
                 result.emplace_back(address, id, record);
