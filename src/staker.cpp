@@ -135,7 +135,7 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
                 MilliSleep(1000);
             }
 
-            if (chainparams.GetConsensus().fPosRequiresPeers)
+            if (gArgs.GetBoolArg("-stakingrequirespeers", DEFAULT_STAKINGREQUIRESPEERS))
             {
                 do
                 {
