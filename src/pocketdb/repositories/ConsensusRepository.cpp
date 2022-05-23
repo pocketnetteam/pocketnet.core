@@ -277,16 +277,18 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            string sql = R"sql(
                 SELECT count(*)
                 FROM Transactions
                 WHERE Type in (307)
                   and String1 = ?
                   and String2 = ?
-            )sql");
+            )sql"
 
             if (!mempool)
                 sql += " and Height > 0";
+
+            auto stmt = SetupSqlStatement(sql);
 
             TryBindStatementText(stmt, 1, address);
             TryBindStatementText(stmt, 2, postHash);
