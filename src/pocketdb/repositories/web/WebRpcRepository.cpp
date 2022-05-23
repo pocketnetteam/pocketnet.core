@@ -444,16 +444,10 @@ namespace PocketDb
                 , ifnull(u.String2,'') as Referrer
 
                 , ifnull((
-                    select count()
+                    select count(1)
                     from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (200,201,202) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
+                    where po.Type in (200,201,202) and po.Last=1 and po.Height is not null and po.String1=u.String1)
                 ,0) as PostsCount
-
-                , ifnull((
-                    select count()
-                    from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (207) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
-                ,0) as DelCount
 
                 , ifnull((
                     select r.Value
@@ -464,19 +458,19 @@ namespace PocketDb
                 , (
                     select count(*)
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
                 ) as SubscribesCount
 
                 , (
                     select count(*)
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String2 = u.String1
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
                 ) as SubscribersCount
 
                 , (
                     select count(*)
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    where subs.Type in (305) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
+                    where subs.Type in (305) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
                 ) as BlockingsCount
 
                 , (
@@ -535,9 +529,8 @@ namespace PocketDb
             // Fetch data
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                int i = 0;
-                auto[ok0, address] = TryGetColumnString(*stmt, i++);
-                auto[ok2, id] = TryGetColumnInt64(*stmt, i++);
+                auto[ok0, address] = TryGetColumnString(*stmt, 0);
+                auto[ok2, id] = TryGetColumnInt64(*stmt, 1);
 
                 UniValue record(UniValue::VOBJ);
 
@@ -545,25 +538,24 @@ namespace PocketDb
                 record.pushKV("id", id);
                 if (IsDeveloper(address)) record.pushKV("dev", true);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("i", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("b", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("r", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("postcnt", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("dltdcnt", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("reputation", value / 10.0);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribes_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribers_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("blockings_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("likers_count", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("k", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("a", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("l", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("s", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("update", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("regdate", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("i", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("b", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("r", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("postcnt", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) record.pushKV("reputation", value / 10.0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 8); ok) record.pushKV("subscribes_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) record.pushKV("subscribers_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) record.pushKV("blockings_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("likers_count", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("k", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("a", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("l", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("s", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 16); ok) record.pushKV("update", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 17); ok) record.pushKV("regdate", value);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
                 {
                     UniValue flags(UniValue::VOBJ);
                     flags.read(value);
@@ -573,29 +565,29 @@ namespace PocketDb
                 if (!shortForm)
                 {
                     
-                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 19); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribes", subscribes);
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 20); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribers", subscribes);
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 21); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("blocking", subscribes);
                     }
                     
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("rc", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("hash", value);
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 22); ok) record.pushKV("rc", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 23); ok) record.pushKV("hash", value);
                 }
 
                 result.emplace_back(address, id, record);
