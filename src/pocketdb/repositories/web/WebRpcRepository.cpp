@@ -446,7 +446,7 @@ namespace PocketDb
                 , ifnull((
                     select count(1)
                     from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (200,201,202) and po.Last=1 and po.Height is not null and po.String1=u.String1)
+                    where po.Type in (200,201,202,207) and po.Last = 1 and po.Height > 0 and po.String1=u.String1)
                 ,0) as PostsCount
 
                 , ifnull((
@@ -458,19 +458,19 @@ namespace PocketDb
                 , (
                     select count(*)
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
+                    where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
                 ) as SubscribesCount
 
                 , (
                     select count(*)
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
+                    where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String2 = u.String1
                 ) as SubscribersCount
 
                 , (
                     select count(*)
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    where subs.Type in (305) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
+                    where subs.Type in (305) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
                 ) as BlockingsCount
 
                 , (
