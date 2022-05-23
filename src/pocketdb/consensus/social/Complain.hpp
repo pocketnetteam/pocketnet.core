@@ -110,8 +110,13 @@ namespace PocketConsensus
         }
         ConsensusValidateResult ValidateMempool(const ComplainRef& ptx) override
         {
+            // Check double complain
+            if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetPostTxHash(), *ptx->GetAddress(), true))
+                return {false, SocialConsensusResult_DoubleComplain};
+
             int count = GetChainCount(ptx);
             count += ConsensusRepoInst.CountMempoolComplain(*ptx->GetAddress());
+
             return ValidateLimit(ptx, count);
         }
         vector<string> GetAddressesForCheckRegistration(const ComplainRef& ptx) override
