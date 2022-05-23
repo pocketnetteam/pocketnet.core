@@ -283,7 +283,7 @@ namespace PocketDb
                 WHERE Type in (307)
                   and String1 = ?
                   and String2 = ?
-            )sql"
+            )sql";
 
             if (!mempool)
                 sql += " and Height > 0";
