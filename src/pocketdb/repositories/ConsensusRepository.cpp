@@ -271,20 +271,24 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsComplain(const string& postHash, const string& address)
+    bool ConsensusRepository::ExistsComplain(const string& postHash, const string& address, bool mempool)
     {
         bool result = false;
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            string sql = R"sql(
                 SELECT count(*)
                 FROM Transactions
                 WHERE Type in (307)
                   and String1 = ?
                   and String2 = ?
-                  and Height is not null
-            )sql");
+            )sql";
+
+            if (!mempool)
+                sql += " and Height > 0";
+
+            auto stmt = SetupSqlStatement(sql);
 
             TryBindStatementText(stmt, 1, address);
             TryBindStatementText(stmt, 2, postHash);
@@ -298,7 +302,6 @@ namespace PocketDb
 
         return result;
     }
-
 
     bool ConsensusRepository::ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool)
     {

@@ -77,7 +77,7 @@ namespace PocketDb
             int64_t scoresOneToOneDepth);
 
         // Exists
-        bool ExistsComplain(const string& postHash, const string& address);
+        bool ExistsComplain(const string& postHash, const string& address, bool mempool);
         bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
         bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
         bool ExistsAnotherByName(const string& address, const string& name);
