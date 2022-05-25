@@ -64,8 +64,9 @@ namespace PocketServices
 
     void ChainPostProcessing::IndexRatings(int height, vector<TransactionIndexingInfo>& txs)
     {
-        map <RatingType, map<int, int>> ratingValues;
-        map<int, vector<int>> accountLikersSrc;
+        map<RatingType, map<int, int>> ratingValues;
+        map<RatingType, map<int, vector<int>>> likersValues;
+        // map<int, vector<int>> accountLikersSrc;
 
         // Actual consensus checker instance by current height
         auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
@@ -113,8 +114,8 @@ namespace PocketServices
                     ratingValues[RatingType::RATING_CONTENT][scoreData->ContentId] +=
                         scoreData->ScoreValue - 3;
 
-                    if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
-                        BuildAccountLikers(scoreData, accountLikersSrc);
+                    // if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
+                    //     BuildAccountLikers(scoreData, accountLikersSrc);
 
                     break;
 
@@ -125,8 +126,8 @@ namespace PocketServices
                     ratingValues[RatingType::RATING_COMMENT][scoreData->ContentId] +=
                         scoreData->ScoreValue;
 
-                    if (scoreData->ScoreValue == 1)
-                        BuildAccountLikers(scoreData, accountLikersSrc);
+                    // if (scoreData->ScoreValue == 1)
+                    //     BuildAccountLikers(scoreData, accountLikersSrc);
 
                     break;
 
@@ -134,10 +135,13 @@ namespace PocketServices
                 default:
                     break;
             }
+            
+            // Extend list of ratings with likers values
+            reputationConsensus->ValidateAccountLiker(scoreData, ratingValues);
         }
 
         // Prepare all ratings model records for increase Rating
-        shared_ptr <vector<Rating>> ratings = make_shared < vector < Rating >> ();
+        shared_ptr<vector<Rating>> ratings = make_shared<vector<Rating>>();
         for (const auto& tp : ratingValues)
         {
             for (const auto& itm : tp.second)
@@ -157,23 +161,28 @@ namespace PocketServices
         }
 
         // Prepare all ratings model records for Liker type
-        map<int, vector<int>> accountLikers;
-        reputationConsensus->PrepareAccountLikers(accountLikersSrc, accountLikers);
 
-        // Save likers in db
-        for (const auto& acc : accountLikers)
-        {
-            for (const auto& lkrId : acc.second)
-            {
-                Rating rtg;
-                rtg.SetType(RatingType::RATING_ACCOUNT_LIKERS);
-                rtg.SetHeight(height);
-                rtg.SetId(acc.first);
-                rtg.SetValue(lkrId);
+        
+        // TODO implement loop for likersValues
 
-                ratings->push_back(rtg);
-            }
-        }
+
+        // map<int, vector<int>> accountLikers;
+        // reputationConsensus->PrepareAccountLikers(accountLikersSrc, accountLikers);
+
+        // // Save likers in db
+        // for (const auto& acc : accountLikers)
+        // {
+        //     for (const auto& lkrId : acc.second)
+        //     {
+        //         Rating rtg;
+        //         rtg.SetType(RatingType::RATING_ACCOUNT_LIKERS);
+        //         rtg.SetHeight(height);
+        //         rtg.SetId(acc.first);
+        //         rtg.SetValue(lkrId);
+
+        //         ratings->push_back(rtg);
+        //     }
+        // }
 
         if (ratings->empty())
             return;
@@ -182,7 +191,7 @@ namespace PocketServices
         PocketDb::RatingsRepoInst.InsertRatings(ratings);
     }
 
-    void ChainPostProcessing::BuildAccountLikers(const shared_ptr <ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
+    void ChainPostProcessing::BuildAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
     {
         auto found = find(
             accountLikers[scoreData->ContentAddressId].begin(),

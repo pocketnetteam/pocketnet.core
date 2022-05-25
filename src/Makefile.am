@@ -175,7 +175,7 @@ POCKETDB_H = \
     pocketdb/models/base/SocialTransaction.h \
     pocketdb/models/base/Rating.h \
     pocketdb/models/base/Payload.h \
-    pocketdb/models/base/ReturnDtoModels.h \
+    pocketdb/models/base/DtoModels.h \
     \
     pocketdb/models/dto/Default.h \
     pocketdb/models/dto/Coinbase.h \
