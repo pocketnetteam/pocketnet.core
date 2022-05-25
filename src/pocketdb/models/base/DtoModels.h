@@ -85,6 +85,8 @@ namespace PocketTx
         string ContentAddressHash;
         int64_t ContentTime;
 
+        string String5;
+
         shared_ptr<UniValue> Serialize() override
         {
             UniValue ret(UniValue::VOBJ);

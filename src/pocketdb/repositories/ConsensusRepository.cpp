@@ -592,7 +592,9 @@ namespace PocketDb
                 c.Time cTime,
                 c.Id cId,
                 ca.Id caId,
-                ca.String1 caHash
+                ca.String1 caHash,
+
+                c.String5
 
             from Transactions s indexed by Transactions_Hash_Height
 
@@ -633,6 +635,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) data.ContentId = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) data.ContentAddressId = value;
                 if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) data.ContentAddressHash = value;
+                
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) data.String5 = value;
 
                 result = make_shared<ScoreDataDto>(data);
             }

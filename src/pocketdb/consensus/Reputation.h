@@ -176,6 +176,16 @@ namespace PocketConsensus
         {
             return scoreValue;
         }
+    
+        virtual void ValidateAccountLiker(const ScoreDataDtoRef& scoreData, map<RatingType, map<int, int>>& ratingValues)
+        {
+            // TODO (brangr): implement
+            // проверить наличие в ratingValues
+            // проверить наличие в БД
+            // по старому правилу удалить те, что были до этого чтобы остался только один
+
+            // унаследовать и изменить правила
+        }
     };
 
     // Consensus checkpoint at 151600 block
@@ -205,7 +215,6 @@ namespace PocketConsensus
         }
     };
 
-    // Consensus checkpoint at 1324655 block
     class ReputationConsensus_checkpoint_1324655 : public ReputationConsensus_checkpoint_1180000
     {
     public:

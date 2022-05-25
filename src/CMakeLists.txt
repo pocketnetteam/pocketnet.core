@@ -362,7 +362,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/TransactionOutput.h
         pocketdb/models/base/SocialTransaction.h
         pocketdb/models/base/Rating.h
-        pocketdb/models/base/ReturnDtoModels.h
+        pocketdb/models/base/DtoModels.h
         pocketdb/models/dto/Default.h
         pocketdb/models/dto/Coinbase.h
         pocketdb/models/dto/Coinstake.h
