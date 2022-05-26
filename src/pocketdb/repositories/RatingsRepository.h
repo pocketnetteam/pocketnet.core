@@ -9,7 +9,7 @@
 
 #include "pocketdb/repositories/BaseRepository.h"
 #include "pocketdb/models/base/Rating.h"
-#include "pocketdb/models/base/ReturnDtoModels.h"
+#include "pocketdb/models/base/DtoModels.h"
 
 namespace PocketDb
 {
@@ -27,7 +27,7 @@ namespace PocketDb
 
         // Accumulate new rating records
         void InsertRatings(shared_ptr<vector<Rating>> ratings);
-
+        bool ExistsLiker(int addressId, int likerId);
         bool ExistsLiker(int addressId, int likerId, int height);
 
     private:

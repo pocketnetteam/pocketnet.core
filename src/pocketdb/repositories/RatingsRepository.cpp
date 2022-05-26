@@ -10,14 +10,23 @@ namespace PocketDb
     {
         for (const auto& rating: *ratings)
         {
-            if (*rating.GetType() == RatingType::RATING_ACCOUNT_LIKERS)
+            switch (*rating.GetType())
+            {
+            case RatingType::RATING_ACCOUNT_LIKERS:
+            case RatingType::RATING_ACCOUNT_LIKERS_POST:
+            case RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ROOT:
+            case RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ANSWER:
+            case RatingType::RATING_ACCOUNT_DISLIKERS_COMMENT_ANSWER:
                 InsertLiker(rating);
-            else
+                break;
+            default:
                 InsertRating(rating);
+                break;
+            }
         }
     }
 
-    bool RatingsRepository::ExistsLiker(int addressId, int likerId, int height)
+    bool RatingsRepository::ExistsLiker(int addressId, int likerId)
     {
         bool result = false;
 
@@ -27,6 +36,35 @@ namespace PocketDb
                 select count(*)
                 from Ratings indexed by Ratings_Type_Id_Value
                 where Type = ?
+                  and Id = ?
+                  and Value = ?
+            )sql");
+
+            TryBindStatementInt(stmt, 1, RatingType::RATING_ACCOUNT_LIKERS);
+            TryBindStatementInt(stmt, 2, addressId);
+            TryBindStatementInt(stmt, 3, likerId);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = (value > 0);
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    // TODO (brangr): implement height and additional types
+    bool RatingsRepository::ExistsLiker(int addressId, int likerId, int height)
+    {
+        bool result = false;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Ratings indexed by Ratings_Type_Id_Value
+                where Type in (11,12,10,100)
                   and Id = ?
                   and Value = ?
             )sql");

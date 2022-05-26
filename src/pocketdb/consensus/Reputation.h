@@ -94,6 +94,29 @@ namespace PocketConsensus
             return true;
         }
 
+        virtual void ExtendLikersList(vector<int>& lkrs, int likerId)
+        {
+            lkrs.clear();
+            lkrs.emplace_back(likerId);
+        }
+
+        // TODO (brangr): implement new logic for only comments and dislikers
+        virtual bool ValidateScoreValue(const ScoreDataDtoRef& scoreData)
+        {
+            // For scores to posts allowed only 4 and 5 values
+            if (scoreData->ScoreType == ACTION_SCORE_CONTENT)
+                if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
+                    return true;
+            
+            // For scores to comments allowed only 1 value
+            if (scoreData->ScoreType == ACTION_SCORE_COMMENT)
+                if (scoreData->ScoreValue == 1)
+                    return true;
+                    
+            // Another types not allowed
+            return false;
+        }
+
     public:
         explicit ReputationConsensus(int height) : BaseConsensus(height) {}
 
@@ -151,21 +174,6 @@ namespace PocketConsensus
                     return true;
             }
         }
-
-        virtual void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)
-        {
-            for (const auto& account : accountLikersSrc)
-            {
-                for (const auto& likerId : account.second)
-                {
-                    if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
-                    {
-                        accountLikers[account.first].clear();
-                        accountLikers[account.first].emplace_back(likerId);
-                    }
-                }
-            }
-        }
     
         virtual int GetScoreContentAuthorValue(int scoreValue)
         {
@@ -176,15 +184,57 @@ namespace PocketConsensus
         {
             return scoreValue;
         }
-    
-        virtual void ValidateAccountLiker(const ScoreDataDtoRef& scoreData, map<RatingType, map<int, int>>& ratingValues)
-        {
-            // TODO (brangr): implement
-            // проверить наличие в ratingValues
-            // проверить наличие в БД
-            // по старому правилу удалить те, что были до этого чтобы остался только один
 
-            // унаследовать и изменить правила
+        // virtual void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)
+        // {
+        //     for (const auto& account : accountLikersSrc)
+        //     {
+        //         for (const auto& likerId : account.second)
+        //         {
+        //             if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
+        //             {
+        //                 accountLikers[account.first].clear();
+        //                 accountLikers[account.first].emplace_back(likerId);
+        //             }
+        //         }
+        //     }
+        // }
+    
+        virtual void ValidateAccountLiker(const ScoreDataDtoRef& scoreData, map<RatingType, map<int, vector<int>>>& likersValues)
+        {
+            // Check general score data
+            if (!ValidateScoreValue(scoreData))
+                return;
+
+            // Check already added to list and exists in DB
+            auto& lkrs = likersValues[RATING_ACCOUNT_LIKERS][scoreData->ContentAddressId];
+
+            bool exists_list = ( find(lkrs.begin(), lkrs.end(), scoreData->ScoreAddressId) != lkrs.end() );
+            bool exists_db = PocketDb::RatingsRepoInst.ExistsLiker(scoreData->ContentAddressId, scoreData->ScoreAddressId);
+
+            // Base likers logic
+            if (!exists_list && !exists_db)
+                ExtendLikersList(lkrs, scoreData->ScoreAddressId);
+
+            // Split likers types
+            if (!PocketDb::RatingsRepoInst.ExistsLiker(scoreData->ContentAddressId, scoreData->ScoreAddressId, Height))
+            {
+                auto& lkrs_post = likersValues[RATING_ACCOUNT_LIKERS_POST][scoreData->ContentAddressId];
+                auto& lkrs_cmnt_root = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ROOT][scoreData->ContentAddressId];
+                auto& lkrs_cmnt_answer = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ANSWER][scoreData->ContentAddressId];
+
+                // Scores to posts
+                if (scoreData->ScoreType == ACTION_SCORE_CONTENT && (find(lkrs_post.begin(), lkrs_post.end(), scoreData->ScoreAddressId) != lkrs_post.end()))
+                    ExtendLikersList(lkrs_post, scoreData->ScoreAddressId);
+
+                // Scores to root comments
+                if (scoreData->ScoreType == ACTION_SCORE_COMMENT && scoreData->String5.empty() && (find(lkrs_cmnt_root.begin(), lkrs_cmnt_root.end(), scoreData->ScoreAddressId) != lkrs_cmnt_root.end()))
+                    ExtendLikersList(lkrs_cmnt_root, scoreData->ScoreAddressId);
+
+                // Scores to answer comments
+                if (scoreData->ScoreType == ACTION_SCORE_COMMENT && !scoreData->String5.empty() && (find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
+                    ExtendLikersList(lkrs_cmnt_answer, scoreData->ScoreAddressId);
+            }
         }
     };
 
@@ -217,6 +267,11 @@ namespace PocketConsensus
 
     class ReputationConsensus_checkpoint_1324655 : public ReputationConsensus_checkpoint_1180000
     {
+    protected:
+        void ExtendLikersList(vector<int>& lkrs, int likerId) override
+        {
+            lkrs.emplace_back(likerId);
+        }
     public:
         explicit ReputationConsensus_checkpoint_1324655(int height) : ReputationConsensus_checkpoint_1180000(height) {}
         AccountMode GetAccountMode(int reputation, int64_t balance) override
@@ -234,34 +289,20 @@ namespace PocketConsensus
                 return AccountMode_Trial;
             }
         }
-        void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers) override
-        {
-            for (const auto& account : accountLikersSrc)
-                for (const auto& likerId : account.second)
-                    if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
-                        accountLikers[account.first].emplace_back(likerId);
-        }
-    };
-
-    // Consensus checkpoint at 1324655_2 block
-    class ReputationConsensus_checkpoint_1324655_2 : public ReputationConsensus_checkpoint_1324655
-    {
-    public:
-        explicit ReputationConsensus_checkpoint_1324655_2(int height) : ReputationConsensus_checkpoint_1324655(height) {}
-        void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers) override
-        {
-            for (const auto& account : accountLikersSrc)
-                for (const auto& likerId : account.second)
-                    if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
-                        accountLikers[account.first].emplace_back(likerId);
-        }
+        // void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers) override
+        // {
+        //     for (const auto& account : accountLikersSrc)
+        //         for (const auto& likerId : account.second)
+        //             if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
+        //                 accountLikers[account.first].emplace_back(likerId);
+        // }
     };
 
     // Consensus checkpoint: reducing the impact on the reputation of scores 1,2 for content
-    class ReputationConsensus_checkpoint_scores_content_author_reducing_impact : public ReputationConsensus_checkpoint_1324655_2
+    class ReputationConsensus_checkpoint_scores_content_author_reducing_impact : public ReputationConsensus_checkpoint_1324655
     {
     public:
-        explicit ReputationConsensus_checkpoint_scores_content_author_reducing_impact(int height) : ReputationConsensus_checkpoint_1324655_2(height) {}
+        explicit ReputationConsensus_checkpoint_scores_content_author_reducing_impact(int height) : ReputationConsensus_checkpoint_1324655(height) {}
         int GetScoreContentAuthorValue(int scoreValue) override
         {
             int multiplier = 10;
@@ -270,20 +311,6 @@ namespace PocketConsensus
             
             return (scoreValue - 3) * multiplier;
         }
-        int GetScoreCommentAuthorValue(int scoreValue) override
-        {
-            if (scoreValue == -1)
-                return 0;
-            
-            return scoreValue;
-        }
-    };
-
-    // Consensus checkpoint: disable the impact on the reputation of scores -1 for comment
-    class ReputationConsensus_checkpoint_scores_comment_author_disable_impact : public ReputationConsensus_checkpoint_scores_content_author_reducing_impact
-    {
-    public:
-        explicit ReputationConsensus_checkpoint_scores_comment_author_disable_impact(int height) : ReputationConsensus_checkpoint_scores_content_author_reducing_impact(height) {}
         int GetScoreCommentAuthorValue(int scoreValue) override
         {
             if (scoreValue == -1)
@@ -303,9 +330,7 @@ namespace PocketConsensus
             { 151600,      -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
             { 1180000,      0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
             { 1324655,  65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
-            // { 1324655,  75000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655_2>(height); }},
             { 1700000, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
-            // { 1700000, 772000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_comment_author_disable_impact>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)

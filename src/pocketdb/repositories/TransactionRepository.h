@@ -13,7 +13,7 @@
 #include "pocketdb/models/base/Transaction.h"
 #include "pocketdb/models/base/TransactionOutput.h"
 #include "pocketdb/models/base/Rating.h"
-#include "pocketdb/models/base/ReturnDtoModels.h"
+#include "pocketdb/models/base/DtoModels.h"
 #include "pocketdb/models/dto/User.h"
 #include "pocketdb/models/dto/ScoreContent.h"
 #include "pocketdb/models/dto/ScoreComment.h"

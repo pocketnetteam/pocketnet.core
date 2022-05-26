@@ -102,7 +102,7 @@ namespace PocketTx
         
         RATING_ACCOUNT_LIKERS = 1,
         
-        // DEBUG!!! TEMP!@
+        // TODO (brangr): DEBUG!!! TEMP!@
         RATING_ACCOUNT_LIKERS_POST = 11,
         RATING_ACCOUNT_LIKERS_COMMENT_ROOT = 12,
 
