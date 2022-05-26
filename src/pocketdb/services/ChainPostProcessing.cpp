@@ -137,7 +137,7 @@ namespace PocketServices
             }
             
             // Extend list of ratings with likers values
-            reputationConsensus->ValidateAccountLiker(scoreData, ratingValues);
+            reputationConsensus->ValidateAccountLiker(scoreData, likersValues);
         }
 
         // Prepare all ratings model records for increase Rating
@@ -160,29 +160,23 @@ namespace PocketServices
             }
         }
 
-        // Prepare all ratings model records for Liker type
+        // Save likers in db
+        for (const auto& tp : likersValues)
+        {
+            for (const auto& cnt : tp.second)
+            {
+                for (const auto& lkr : cnt.second)
+                {
+                    Rating rtg;
+                    rtg.SetType(tp.first);
+                    rtg.SetHeight(height);
+                    rtg.SetId(cnt.first);
+                    rtg.SetValue(lkr);
 
-        
-        // TODO implement loop for likersValues
-
-
-        // map<int, vector<int>> accountLikers;
-        // reputationConsensus->PrepareAccountLikers(accountLikersSrc, accountLikers);
-
-        // // Save likers in db
-        // for (const auto& acc : accountLikers)
-        // {
-        //     for (const auto& lkrId : acc.second)
-        //     {
-        //         Rating rtg;
-        //         rtg.SetType(RatingType::RATING_ACCOUNT_LIKERS);
-        //         rtg.SetHeight(height);
-        //         rtg.SetId(acc.first);
-        //         rtg.SetValue(lkrId);
-
-        //         ratings->push_back(rtg);
-        //     }
-        // }
+                    ratings->push_back(rtg);
+                }
+            }
+        }
 
         if (ratings->empty())
             return;

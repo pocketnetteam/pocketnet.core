@@ -11,7 +11,7 @@
 #include "pocketdb/repositories/BaseRepository.h"
 #include "pocketdb/models/base/Rating.h"
 #include "pocketdb/models/base/PocketTypes.h"
-#include "pocketdb/models/base/ReturnDtoModels.h"
+#include "pocketdb/models/base/DtoModels.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
