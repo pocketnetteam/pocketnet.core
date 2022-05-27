@@ -69,9 +69,8 @@ namespace PocketDb
                   and Value = ?
             )sql");
 
-            TryBindStatementInt(stmt, 1, RatingType::RATING_ACCOUNT_LIKERS);
-            TryBindStatementInt(stmt, 2, addressId);
-            TryBindStatementInt(stmt, 3, likerId);
+            TryBindStatementInt(stmt, 1, addressId);
+            TryBindStatementInt(stmt, 2, likerId);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
