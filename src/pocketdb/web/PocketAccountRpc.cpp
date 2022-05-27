@@ -54,8 +54,13 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 1)
             shortForm = request.params[1].get_str() == "1";
 
+        // Count of days for first flags after first content publish
+        int firstFlagsDepth = 7;
+        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
+            firstFlagsDepth = request.params[2].get_int();
+
         // Get data
-        map<string, UniValue> profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm);
+        map<string, UniValue> profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm, firstFlagsDepth);
         for (auto& p : profiles)
             result.push_back(p.second);
 
@@ -509,7 +514,7 @@ namespace PocketWeb::PocketWebRpc
             adrsExcluded, tagsExcluded, depth, badReputationLimit);
         if (!ids.empty())
         {
-            auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
+            auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
             for (const auto[id, record] : profiles)
                 result.push_back(record);
         }
