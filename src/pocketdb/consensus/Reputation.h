@@ -224,15 +224,15 @@ namespace PocketConsensus
                 auto& lkrs_cmnt_answer = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ANSWER][scoreData->ContentAddressId];
 
                 // Scores to posts
-                if (scoreData->ScoreType == ACTION_SCORE_CONTENT && (find(lkrs_post.begin(), lkrs_post.end(), scoreData->ScoreAddressId) != lkrs_post.end()))
+                if (scoreData->ScoreType == ACTION_SCORE_CONTENT && (find(lkrs_post.begin(), lkrs_post.end(), scoreData->ScoreAddressId) == lkrs_post.end()))
                     ExtendLikersList(lkrs_post, scoreData->ScoreAddressId);
 
                 // Scores to root comments
-                if (scoreData->ScoreType == ACTION_SCORE_COMMENT && scoreData->String5.empty() && (find(lkrs_cmnt_root.begin(), lkrs_cmnt_root.end(), scoreData->ScoreAddressId) != lkrs_cmnt_root.end()))
+                if (scoreData->ScoreType == ACTION_SCORE_COMMENT && scoreData->String5.empty() && (find(lkrs_cmnt_root.begin(), lkrs_cmnt_root.end(), scoreData->ScoreAddressId) == lkrs_cmnt_root.end()))
                     ExtendLikersList(lkrs_cmnt_root, scoreData->ScoreAddressId);
 
                 // Scores to answer comments
-                if (scoreData->ScoreType == ACTION_SCORE_COMMENT && !scoreData->String5.empty() && (find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
+                if (scoreData->ScoreType == ACTION_SCORE_COMMENT && !scoreData->String5.empty() && (find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) == lkrs_cmnt_answer.end()))
                     ExtendLikersList(lkrs_cmnt_answer, scoreData->ScoreAddressId);
             }
         }
