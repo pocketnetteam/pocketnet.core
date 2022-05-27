@@ -62,7 +62,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select count(*)
+                select 1
                 from Ratings indexed by Ratings_Type_Id_Value
                 where Type in (11,12,10,100)
                   and Id = ?
@@ -73,8 +73,7 @@ namespace PocketDb
             TryBindStatementInt(stmt, 2, likerId);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = (value > 0);
+                result = false;
 
             FinalizeSqlStatement(*stmt);
         });
