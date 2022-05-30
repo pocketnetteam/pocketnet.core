@@ -219,7 +219,9 @@ POCKETDB_H = \
     pocketdb/models/web/WebTag.h \
     pocketdb/models/web/WebContent.h \
     pocketdb/models/web/SearchRequest.h
-
+    pocketdb/models/shortform/ShortForm.h
+    pocketdb/models/shortform/ShortAccount.h
+    pocketdb/models/shortform/ShortTxData.h
 # PocketDb CPP
 POCKETDB_CPP = \
     pocketdb/SQLiteDatabase.cpp \
@@ -300,6 +302,9 @@ POCKETDB_CPP = \
     pocketdb/models/dto/BoostContent.cpp \
     pocketdb/models/dto/Article.cpp \
     pocketdb/models/dto/moderation/Flag.cpp
+    pocketdb/models/shortform/ShortForm.cpp
+    pocketdb/models/shortform/ShortAccount.cpp
+    pocketdb/models/shortform/ShortTxData.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \

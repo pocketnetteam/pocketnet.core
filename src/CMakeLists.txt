@@ -621,6 +621,12 @@ add_library(${POCKETDB}
         pocketdb/models/web/WebContent.h
         pocketdb/models/dto/BoostContent.cpp
         pocketdb/models/web/SearchRequest.h
+        pocketdb/models/shortform/ShortForm.h
+        pocketdb/models/shortform/ShortForm.cpp
+        pocketdb/models/shortform/ShortTxData.h
+        pocketdb/models/shortform/ShortTxData.cpp
+        pocketdb/models/shortform/ShortAccount.h
+        pocketdb/models/shortform/ShortAccount.cpp
         )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
 
