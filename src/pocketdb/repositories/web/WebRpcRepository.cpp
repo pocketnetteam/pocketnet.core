@@ -4211,6 +4211,216 @@ namespace PocketDb
         return result;
     };
     
+    UniValue WebRpcRepository::GetEventsForBlock(int64_t height, const std::set<std::string>& filters)
+    {
+        static const auto pocketnetteam = R"sql(
+            -- Pocket posts
+            select
+                ('pocketnetteam')TP,
+                t.BlockNum as BlockNum,
+                t.Hash,
+                t.String1
+
+            from Transactions t indexed by Transactions_Height_Type
+
+            where t.Type in (200,201,202)
+            and t.Height = ?
+
+        )sql";
+        static const auto money = R"sql(
+            -- Incoming money
+            select
+                ('money')TP,
+                t.BlockNum as BlockNum,
+                t.Hash,
+                o.AddressHash
+
+            from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_TxHash
+
+            join Transactions t indexed by Transactions_Hash_Type_Height
+                on t.Hash = o.TxHash
+                and t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
+                and t.Height = ?
+
+            join TxOutputs i indexed by TxOutputs_SpentTxHash
+                on i.SpentTxHash = o.TxHash
+                and i.AddressHash != o.AddressHash
+
+            where o.TxHeight = ?
+        )sql";
+        static const auto referals =  R"sql(
+            -- referals
+            select
+                ('referals')TP,
+                t.BlockNum as BlockNum,
+                t.Hash,
+                t.String2 = ?
+
+            from Transactions t --indexed by Transactions_Type_Last_String2_Height
+
+            where t.Type = 100
+                and t.Height = ?
+
+        )sql";
+        static const auto answers = R"sql(
+            -- Comment answers
+            select
+                'answers',
+                c.String1 as AddressOrd,
+                orig.Height as HeightOrd,
+                a.Hash,
+                a.Type,
+                a.String1 as addrFrom,
+                a.String2 as RootTxHash,
+                a.String3 as posttxid,
+                a.String4 as parentid,
+                a.String5 as answerid,
+                a.Time,
+                null
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
+            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
+                on a.Type in (204, 205) and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
+            join Transactions orig indexed by Transactions_Hash_Height -- TODO (losty): very slow here. However, even slow without it
+            -- TODO: creating Transactions_Type_Last_Height_String5_String1_String2 for c speed it up a lot
+                on orig.Hash = a.String2
+            where c.Type in (204, 205)
+            and c.Last = 1
+            and c.Height is not null
+            and c.String1 = ?
+        )sql";
+        static const auto comments = R"sql(
+            -- Comments for my content
+            select
+                ('comments')TP,
+                c.BlockNum as BlockNum,
+                c.Hash,
+                p.String1
+            from Transactions c indexed by Transactions_Hash_Type_Height
+            join Transactions p indexed by Transactions_Type_Last_String1_String2_Height
+                on p.Type in (200,201,202)
+                and p.String2 = c.String3
+                and p.Last = 1
+                and c.String1 != p.String1
+            where c.Type in (204,205)
+                and c.Height = ?
+        )sql";
+        static const auto subscribers = R"sql(
+            -- Subscribers
+            select
+                ('subscribers')TP,
+                subs.BlockNum as BlockNum,
+                subs.Hash,
+                subs.String2
+
+            from Transactions subs --indexed by Transactions_Type_Last_String2_Height
+
+            join Transactions u --indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100)
+                and u.Last = 1
+                and u.String1 = subs.String1
+                and u.Height is not null
+
+            where subs.Type in (302, 303) -- Ignoring unsubscribers?
+                and subs.Height = ?
+        )sql";
+        static const auto commentscores = R"sql(
+            -- Comment scores
+            select
+                ('commentscores')TP,
+                s.BlockNum as BlockNum,
+                s.Hash,
+                c.String1
+
+            from Transactions s indexed by Transactions_Height_Type
+
+            join Transactions c indexed by Transactions_Type_Last_String2_Height
+                on c.Type in (204,205)
+                and c.Last = 1
+                and s.String2 = c.String2
+                and c.Height is not null
+
+            where s.Type in (301)
+                and s.Height = ?
+        )sql";
+        static const auto contentscores = R"sql(
+            -- Content scores
+            select
+                ('contentscores')TP,
+                s.BlockNum as BlockNum,
+                s.Hash,
+                c.String1
+
+            from Transactions s indexed by Transactions_Height_Type
+
+            join Transactions c indexed by Transactions_Type_Last_String2_Height
+                on c.Type in (200, 201, 202)
+                and c.Last = 1
+                and s.String2 = c.String2
+
+            where s.Type in (300)
+                and s.Height = ?
+        )sql";
+        static const auto privatecontent = R"sql(
+            -- Content from private subscribers
+            select
+                ('privatecontent')TP,
+                cps.BlockNum as BlockNum,
+                cps.Hash,
+                subs.String1
+
+            from Transactions cps indexed by Transactions_Height_Type -- TODO (losty): change index? -- content for private subscribers
+
+            join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
+                on subs.Type = 303
+                and subs.Last = 1
+                and subs.String2 = cps.String1
+
+            left join Payload p
+                on p.TxHash = cps.Hash
+
+            where cps.Type in (200,201,202)
+                and cps.Height = ?
+        )sql";
+        static const auto boost = R"sql(
+            -- Boosts for my content
+            select
+                ('boost')TP,
+                tBoost.BlockNum as BlockNum,
+                tBoost.Hash,
+                tContent.String1
+
+            from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
+
+            join Transactions tContent indexed by Transactions_Type_Last_String2_Height
+                on tContent.Type in (200,201,202)
+                and tContent.Last in (0,1)
+                and tContent.String2 = tBoost.String2
+
+            where tBoost.Type in (208)
+                and tBoost.Last in (0,1)
+                and tBoost.Height = ?
+        )sql";
+        static const auto reposts = R"sql(
+
+            -- Reposts
+            select
+                ('reposts')TP,
+                r.BlockNum as BlockNum,
+                r.Hash,
+                p.String1
+
+            from Transactions r indexed by Transactions_Height_Type
+
+            join Transactions p indexed by Transactions_Type_Last_String1_Height_Id
+                on p.Type in (200,201,202)
+                and p.Last = 1
+                and p.Hash = r.String3
+
+            where r.Type in (200,201,202)
+                and r.Height = ?
+        )sql";
+    }
+    
     UniValue WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<std::string>& filters)
     {
         static const auto pocketnetteam = R"sql(

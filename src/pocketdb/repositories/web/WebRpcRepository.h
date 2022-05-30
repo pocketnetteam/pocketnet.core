@@ -154,6 +154,8 @@ namespace PocketDb
          */
         UniValue GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNum, const std::set<std::string>& filters);
 
+        UniValue GetEventsForBlock(int64_t height, const std::set<std::string>& filters);
+
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
         UniValue GetSubscribesFeedOld(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
