@@ -228,7 +228,7 @@ namespace PocketConsensus
                     return;
 
                 auto& lkrs_cmnt_answer = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ANSWER][scoreData->ContentAddressId];
-                if ((find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) == lkrs_cmnt_answer.end()))
+                if ((find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
                     return;
 
                 // Scores to posts
