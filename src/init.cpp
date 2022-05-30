@@ -2095,41 +2095,33 @@ bool AppInitMain()
 
     // --------------------------------------------------------
 
-    while (i <= chainActive.Height() && !ShutdownRequested())
-    {
-        try
-        {
-            CBlockIndex* pblockindex = chainActive[i];
-            CBlock block;
-            if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-            {
-                LogPrintf("Stopping after failed index pocket part\n");
-                StartShutdown();
-                break;
-            }
+    // while (i <= chainActive.Height() && !ShutdownRequested())
+    // {
+    //     try
+    //     {
+    //         CBlockIndex* pblockindex = chainActive[i];
+    //         CBlock block;
+    //         if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+    //         {
+    //             LogPrintf("Stopping after failed index pocket part\n");
+    //             StartShutdown();
+    //             break;
+    //         }
 
-            vector<TransactionIndexingInfo> txs;
-            PocketServices::ChainPostProcessing::PrepareTransactions(block, txs);
-            PocketServices::ChainPostProcessing::IndexRatings(block, pblockindex->nHeight);
+    //         vector<TransactionIndexingInfo> txs;
+    //         PocketServices::ChainPostProcessing::PrepareTransactions(block, txs);
+    //         PocketServices::ChainPostProcessing::IndexRatings(block, pblockindex->nHeight);
 
-            LogPrint(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
-            i += 1;
-        }
-        catch (std::exception& e)
-        {
-            LogPrintf("Stopping after failed index pocket part: %s\n", e.what());
-            StartShutdown();
-            break;
-        }
-    }
-
-    
-
-
-
-
-
-
+    //         LogPrint(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
+    //         i += 1;
+    //     }
+    //     catch (std::exception& e)
+    //     {
+    //         LogPrintf("Stopping after failed index pocket part: %s\n", e.what());
+    //         StartShutdown();
+    //         break;
+    //     }
+    // }
 
     // -------------------------------------------------------
 
