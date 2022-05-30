@@ -7,6 +7,7 @@
 
 #include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/models/shortform/ShortAccount.h"
+#include "pocketdb/models/shortform/ShortTxType.h"
 
 #include <univalue.h>
 
@@ -19,13 +20,13 @@ namespace PocketDb
     class ShortTxData
     {
     public:
-        ShortTxData(std::string hash, PocketTx::TxType type, std::string address,
+        ShortTxData(std::string hash, PocketDb::ShortTxType type, std::string address,
                     std::optional<ShortAccount> account, std::optional<int> val,
                     std::optional<std::string> description);
         UniValue Serialize() const;
     private:
         std::string m_hash;
-        PocketTx::TxType m_type;
+        PocketDb::ShortTxType m_type;
         std::string m_address; // Creator of tx.
         std::optional<ShortAccount> m_account; // Account data associated with address
         std::optional<int> m_val;

@@ -4,7 +4,10 @@
 
 #include "pocketdb/models/shortform/ShortTxData.h"
 
-PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType type, std::string address,
+#include "pocketdb/helpers/ShortFormHelper.h"
+
+
+PocketDb::ShortTxData::ShortTxData(std::string hash, PocketDb::ShortTxType type, std::string address,
                                     std::optional<ShortAccount> account, std::optional<int> val,
                                     std::optional<std::string> description)
     : m_hash(std::move(hash)),
@@ -20,7 +23,7 @@ UniValue PocketDb::ShortTxData::Serialize() const
     UniValue data(UniValue::VOBJ);
 
     data.pushKV("hash", m_hash);
-    data.pushKV("type", (int)m_type);
+    data.pushKV("type", PocketHelpers::ShortTxTypeConvertor::toString(m_type));
     data.pushKV("address", m_address);
     if (m_account) data.pushKV("account", m_account->Serialize());
     if (m_val) data.pushKV("val", m_val.value());

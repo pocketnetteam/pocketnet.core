@@ -4446,7 +4446,8 @@ namespace PocketDb
                 ('money')TP,
                 t.Height as Height,
                 t.BlockNum as BlockNum,
-                t.Hash
+                t.Hash,
+                o.Value
 
             from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_TxHash
 

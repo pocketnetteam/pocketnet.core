@@ -120,6 +120,7 @@ POCKETDB_H = \
     \
     pocketdb/helpers/PocketnetHelper.h \
     pocketdb/helpers/TransactionHelper.h \
+    pocketdb/helpers/ShortFormHelper.h \
     \
     pocketdb/web/PocketContentRpc.h \
     pocketdb/web/PocketCommentsRpc.h \
@@ -218,10 +219,11 @@ POCKETDB_H = \
     \
     pocketdb/models/web/WebTag.h \
     pocketdb/models/web/WebContent.h \
-    pocketdb/models/web/SearchRequest.h
-    pocketdb/models/shortform/ShortForm.h
-    pocketdb/models/shortform/ShortAccount.h
-    pocketdb/models/shortform/ShortTxData.h
+    pocketdb/models/web/SearchRequest.h \
+    pocketdb/models/shortform/ShortForm.h \
+    pocketdb/models/shortform/ShortAccount.h \
+    pocketdb/models/shortform/ShortTxData.h \
+    pocketdb/models/shortform/ShortTxType.h
 # PocketDb CPP
 POCKETDB_CPP = \
     pocketdb/SQLiteDatabase.cpp \
@@ -232,6 +234,7 @@ POCKETDB_CPP = \
     pocketdb/migrations/web.cpp \
     \
     pocketdb/helpers/TransactionHelper.cpp \
+    pocketdb/helpers/ShortFormHelper.cpp \
     \
     pocketdb/services/WsNotifier.cpp \
     pocketdb/services/Serializer.cpp \
@@ -301,9 +304,9 @@ POCKETDB_CPP = \
     pocketdb/models/dto/Video.cpp \
     pocketdb/models/dto/BoostContent.cpp \
     pocketdb/models/dto/Article.cpp \
-    pocketdb/models/dto/moderation/Flag.cpp
-    pocketdb/models/shortform/ShortForm.cpp
-    pocketdb/models/shortform/ShortAccount.cpp
+    pocketdb/models/dto/moderation/Flag.cpp \
+    pocketdb/models/shortform/ShortForm.cpp \
+    pocketdb/models/shortform/ShortAccount.cpp \
     pocketdb/models/shortform/ShortTxData.cpp
 
 # CORE
