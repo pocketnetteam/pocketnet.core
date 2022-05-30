@@ -29,7 +29,8 @@ namespace PocketServices
     public:
         static void Index(const CBlock& block, int height);
         static bool Rollback(int height);
-    protected:
+    // TODO (brangr): DEBUG!!!
+    //protected:
         static void PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs);
         static void IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs);
         static void IndexRatings(int height, vector<TransactionIndexingInfo>& txs);
