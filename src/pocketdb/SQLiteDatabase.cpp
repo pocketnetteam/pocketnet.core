@@ -128,7 +128,7 @@ namespace PocketDb
             {
                 token = sql.substr(0, pos);
 
-                LogPrintf("Migration Sqlite database `%s` structure.. %s", m_file_path, token);
+                LogPrintf("Migration Sqlite database `%s` structure.. %s\n", m_file_path, token);
 
                 BeginTransaction();
 
