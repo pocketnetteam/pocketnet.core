@@ -133,7 +133,9 @@ namespace PocketDb
 
             while ((pos = sql.find(';')) != std::string::npos)
             {
-                token = sql.substr(0, pos);
+                token = sql.substr(1, pos);
+
+                LogPrint(BCLog::MIGRATION, "Migration Sqlite database `%s` structure..\n---\n%s\n---\n", m_file_path, token);
 
                 LogPrint(BCLog::MIGRATION, "Migration Sqlite database `%s` structure..\n---\n%s\n---\n", m_file_path, token);
 
