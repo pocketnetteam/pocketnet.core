@@ -117,7 +117,7 @@ namespace PocketTx
                 return RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ANSWER;
 
             // You don't have to get to here
-            assert(true);
+            assert(false);
         }
     };
 
