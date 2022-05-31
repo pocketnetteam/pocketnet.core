@@ -127,12 +127,12 @@ POCKETDB_H = \
     pocketdb/repositories/RatingsRepository.h \
     pocketdb/repositories/CheckpointRepository.h \
     pocketdb/repositories/SystemRepository.h \
+    pocketdb/repositories/MigrationRepository.h \
     pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/WebRpcRepository.h \
     pocketdb/repositories/web/NotifierRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
     pocketdb/repositories/web/SearchRepository.h \
-    pocketdb/repositories/web/MigrationRepository.h \
     \
     pocketdb/services/WsNotifier.h \
     pocketdb/services/b/services/Serializer.h \
@@ -229,12 +229,12 @@ POCKETDB_CPP = \
     pocketdb/repositories/RatingsRepository.cpp \
     pocketdb/repositories/CheckpointRepository.cpp \
     pocketdb/repositories/SystemRepository.cpp \
+    pocketdb/repositories/MigrationRepository.cpp \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/WebRpcRepository.cpp \
     pocketdb/repositories/web/NotifierRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
     pocketdb/repositories/web/SearchRepository.cpp \
-    pocketdb/repositories/web/MigrationRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
     pocketdb/consensus/Base.cpp \
