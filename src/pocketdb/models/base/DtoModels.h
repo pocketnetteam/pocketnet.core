@@ -115,6 +115,9 @@ namespace PocketTx
 
             if (ScoreType == ACTION_SCORE_COMMENT && !String5.empty())
                 return RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ANSWER;
+
+            // You don't have to get to here
+            assert(true);
         }
     };
 
