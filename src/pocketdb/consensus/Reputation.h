@@ -104,7 +104,7 @@ namespace PocketConsensus
         {
             for (const auto& type : lkrs)
                 if (type.first != RatingType::RATING_ACCOUNT_LIKERS)
-                    lkrs[type.first].clear();
+                    lkrs[type.first][scoreData->ContentAddressId].clear();
 
             lkrs[scoreData->LikerType()][scoreData->ContentAddressId].emplace_back(scoreData->ScoreAddressId);
         }
