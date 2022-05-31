@@ -20,44 +20,44 @@ namespace PocketDb
 
             LogPrintf("SQLDB Migration: SplitLikers starting. Do not turn off your node and PC.\n");
 
-            TryStepStatement(
-                SetupSqlStatement(R"sql(
-                    insert into Ratings (type, last, height, id, value)
+            auto stmt = SetupSqlStatement(R"sql(
+                insert into Ratings (type, last, height, id, value)
+                select
+
+                (
                     select
-
-                    (
-                        select
-                        case sc.Type
-                            when 300 then 11
-                            when 301 then (
-                            case c.String5
-                                when null then 12
-                                else 10
-                            end
-                            )
+                    case sc.Type
+                        when 300 then 11
+                        when 301 then (
+                        case c.String5
+                            when null then 12
+                            else 10
                         end
-                        from Transactions sc indexed by Transactions_Height_Id
-                        join Transactions ul indexed by Transactions_Type_Last_String1_Height_Id on ul.Type = 100 and ul.Last = 1 and ul.Height > 0 and ul.String1 = sc.String1
-                        join Transactions c on c.Hash = sc.String2
-                        join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id on ua.Type = 100 and ua.Last = 1 and ua.Height > 0 and ua.String1 = c.String1
-                        where sc.Type in (300,301)
-                        and sc.Height = r.Height
-                        and ua.Id = r.Id
-                        and ul.Id = r.Value
-                        order by sc.BlockNum asc
-                        limit 1
-                    ) lkrType
+                        )
+                    end
+                    from Transactions sc indexed by Transactions_Height_Id
+                    join Transactions ul indexed by Transactions_Type_Last_String1_Height_Id on ul.Type = 100 and ul.Last = 1 and ul.Height > 0 and ul.String1 = sc.String1
+                    join Transactions c on c.Hash = sc.String2
+                    join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id on ua.Type = 100 and ua.Last = 1 and ua.Height > 0 and ua.String1 = c.String1
+                    where sc.Type in (300,301)
+                    and sc.Height = r.Height
+                    and ua.Id = r.Id
+                    and ul.Id = r.Value
+                    order by sc.BlockNum asc
+                    limit 1
+                ) lkrType
 
-                    , 1
-                    , r.Height
-                    , r.Id
-                    , r.Value
+                , 1
+                , r.Height
+                , r.Id
+                , r.Value
 
-                    from Ratings r
-                    where r.Type in (1)
-                    order by r.Height desc
-                )sql")
-            );
+                from Ratings r
+                where r.Type in (1)
+                order by r.Height desc
+            )sql");
+
+            TryStepStatement(stmt);
 
             result = CheckNeedSplitLikers();
         });
