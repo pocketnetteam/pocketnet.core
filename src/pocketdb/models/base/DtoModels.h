@@ -104,6 +104,18 @@ namespace PocketTx
             ret.pushKV("ContentTime", ContentTime);
             return make_shared<UniValue>(ret);
         }
+
+        RatingType LikerType()
+        {
+            if (ScoreType == ACTION_SCORE_CONTENT)
+                return RatingType::RATING_ACCOUNT_LIKERS_POST;
+
+            if (ScoreType == ACTION_SCORE_COMMENT && String5.empty())
+                return RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ROOT;
+
+            if (ScoreType == ACTION_SCORE_COMMENT && !String5.empty())
+                return RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ANSWER;
+        }
     };
 
     typedef shared_ptr<ScoreDataDto> ScoreDataDtoRef;
