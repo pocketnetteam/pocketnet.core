@@ -128,7 +128,8 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::CONSENSUS, "consensus"},
     {BCLog::WALLET, "wallet"},
     {BCLog::SQLBENCH, "sqlbench"},
-    {BCLog::RPCERROR, "rpcerror"}
+    {BCLog::RPCERROR, "rpcerror"},
+    {BCLog::MIGRATION, "migration"}
 };
 
 bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str)
