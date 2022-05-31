@@ -132,6 +132,7 @@ POCKETDB_H = \
     pocketdb/repositories/web/NotifierRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
     pocketdb/repositories/web/SearchRepository.h \
+    pocketdb/repositories/web/MigrationRepository.h \
     \
     pocketdb/services/WsNotifier.h \
     pocketdb/services/b/services/Serializer.h \
@@ -233,6 +234,7 @@ POCKETDB_CPP = \
     pocketdb/repositories/web/NotifierRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
     pocketdb/repositories/web/SearchRepository.cpp \
+    pocketdb/repositories/web/MigrationRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
     pocketdb/consensus/Base.cpp \

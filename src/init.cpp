@@ -173,6 +173,7 @@ void ShutdownPocketServices()
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
     PocketDb::NotifierRepoInst.Destroy();
+    PocketDb::MigrationRepoInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");
     PocketDb::SQLiteDbInst.Close();
@@ -1717,6 +1718,12 @@ bool AppInitMain()
     if (!gArgs.GetBoolArg("-withoutweb", false))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
+    if (ShutdownRequested())
+    {
+        LogPrintf("Shutdown requested. Exiting.\n");
+        return false;
+    }
+
     // ********************************************************* Step 4b: Additional settings
 
     if (gArgs.GetArg("-reindex", 0) == 4)
@@ -2091,40 +2098,6 @@ bool AppInitMain()
             }
         }
     }
-
-
-    // --------------------------------------------------------
-
-    // while (i <= chainActive.Height() && !ShutdownRequested())
-    // {
-    //     try
-    //     {
-    //         CBlockIndex* pblockindex = chainActive[i];
-    //         CBlock block;
-    //         if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-    //         {
-    //             LogPrintf("Stopping after failed index pocket part\n");
-    //             StartShutdown();
-    //             break;
-    //         }
-
-    //         vector<TransactionIndexingInfo> txs;
-    //         PocketServices::ChainPostProcessing::PrepareTransactions(block, txs);
-    //         PocketServices::ChainPostProcessing::IndexRatings(block, pblockindex->nHeight);
-
-    //         LogPrint(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
-    //         i += 1;
-    //     }
-    //     catch (std::exception& e)
-    //     {
-    //         LogPrintf("Stopping after failed index pocket part: %s\n", e.what());
-    //         StartShutdown();
-    //         break;
-    //     }
-    // }
-
-    // -------------------------------------------------------
-
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.

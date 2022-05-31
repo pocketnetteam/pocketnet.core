@@ -100,6 +100,15 @@ namespace PocketConsensus
             lkrs.emplace_back(likerId);
         }
 
+        virtual void ExtendLikersList(map<RatingType, map<int, vector<int>>>& lkrs, const ScoreDataDtoRef& scoreData)
+        {
+            for (const auto& type : lkrs)
+                if (type.first != RatingType::RATING_ACCOUNT_LIKERS)
+                    lkrs[type.first].clear();
+
+            lkrs[scoreData->LikerType()][scoreData->ContentAddressId].emplace_back(scoreData->ScoreAddressId);
+        }
+
         // TODO (brangr): implement new logic for only comments and dislikers
         virtual bool ValidateScoreValue(const ScoreDataDtoRef& scoreData)
         {
@@ -185,21 +194,6 @@ namespace PocketConsensus
             return scoreValue;
         }
 
-        // virtual void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)
-        // {
-        //     for (const auto& account : accountLikersSrc)
-        //     {
-        //         for (const auto& likerId : account.second)
-        //         {
-        //             if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
-        //             {
-        //                 accountLikers[account.first].clear();
-        //                 accountLikers[account.first].emplace_back(likerId);
-        //             }
-        //         }
-        //     }
-        // }
-    
         virtual void ValidateAccountLiker(const ScoreDataDtoRef& scoreData, map<RatingType, map<int, vector<int>>>& likersValues)
         {
             // Check general score data
@@ -208,40 +202,38 @@ namespace PocketConsensus
 
             // Check already added to list and exists in DB
             auto& lkrs = likersValues[RATING_ACCOUNT_LIKERS][scoreData->ContentAddressId];
+            if (find(lkrs.begin(), lkrs.end(), scoreData->ScoreAddressId) == lkrs.end())
+            {
+                if (!PocketDb::RatingsRepoInst.ExistsLiker(scoreData->ContentAddressId, scoreData->ScoreAddressId))
+                {
+                    ExtendLikersList(
+                        lkrs,
+                        scoreData->ScoreAddressId
+                    );
+                }
+            }
 
-            bool exists_list = ( find(lkrs.begin(), lkrs.end(), scoreData->ScoreAddressId) != lkrs.end() );
-            bool exists_db = PocketDb::RatingsRepoInst.ExistsLiker(scoreData->ContentAddressId, scoreData->ScoreAddressId);
-
-            // Base likers logic
-            if (!exists_list && !exists_db)
-                ExtendLikersList(lkrs, scoreData->ScoreAddressId);
-
+            //
             // Split likers types
+            // 
+            auto& lkrs_post = likersValues[RATING_ACCOUNT_LIKERS_POST][scoreData->ContentAddressId];
+            if ((find(lkrs_post.begin(), lkrs_post.end(), scoreData->ScoreAddressId) != lkrs_post.end()))
+                return;
+            
+            auto& lkrs_cmnt_root = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ROOT][scoreData->ContentAddressId];
+            if ((find(lkrs_cmnt_root.begin(), lkrs_cmnt_root.end(), scoreData->ScoreAddressId) != lkrs_cmnt_root.end()))
+                return;
+
+            auto& lkrs_cmnt_answer = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ANSWER][scoreData->ContentAddressId];
+            if ((find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
+                return;
+                
             if (!PocketDb::RatingsRepoInst.ExistsLiker(scoreData->ContentAddressId, scoreData->ScoreAddressId, Height))
             {
-                auto& lkrs_post = likersValues[RATING_ACCOUNT_LIKERS_POST][scoreData->ContentAddressId];
-                if ((find(lkrs_post.begin(), lkrs_post.end(), scoreData->ScoreAddressId) != lkrs_post.end()))
-                    return;
-                
-                auto& lkrs_cmnt_root = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ROOT][scoreData->ContentAddressId];
-                if ((find(lkrs_cmnt_root.begin(), lkrs_cmnt_root.end(), scoreData->ScoreAddressId) != lkrs_cmnt_root.end()))
-                    return;
-
-                auto& lkrs_cmnt_answer = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ANSWER][scoreData->ContentAddressId];
-                if ((find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
-                    return;
-
-                // Scores to posts
-                if (scoreData->ScoreType == ACTION_SCORE_CONTENT)
-                    ExtendLikersList(lkrs_post, scoreData->ScoreAddressId);
-
-                // Scores to root comments
-                if (scoreData->ScoreType == ACTION_SCORE_COMMENT && scoreData->String5.empty())
-                    ExtendLikersList(lkrs_cmnt_root, scoreData->ScoreAddressId);
-
-                // Scores to answer comments
-                if (scoreData->ScoreType == ACTION_SCORE_COMMENT && !scoreData->String5.empty())
-                    ExtendLikersList(lkrs_cmnt_answer, scoreData->ScoreAddressId);
+                ExtendLikersList(
+                    likersValues,
+                    scoreData
+                );
             }
         }
     };
@@ -280,6 +272,10 @@ namespace PocketConsensus
         {
             lkrs.emplace_back(likerId);
         }
+        void ExtendLikersList(map<RatingType, map<int, vector<int>>>& lkrs, const ScoreDataDtoRef& scoreData) override
+        {
+            lkrs[scoreData->LikerType()][scoreData->ContentAddressId].emplace_back(scoreData->ScoreAddressId);
+        }
     public:
         explicit ReputationConsensus_checkpoint_1324655(int height) : ReputationConsensus_checkpoint_1180000(height) {}
         AccountMode GetAccountMode(int reputation, int64_t balance) override
@@ -297,13 +293,6 @@ namespace PocketConsensus
                 return AccountMode_Trial;
             }
         }
-        // void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers) override
-        // {
-        //     for (const auto& account : accountLikersSrc)
-        //         for (const auto& likerId : account.second)
-        //             if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
-        //                 accountLikers[account.first].emplace_back(likerId);
-        // }
     };
 
     // Consensus checkpoint: reducing the impact on the reputation of scores 1,2 for content

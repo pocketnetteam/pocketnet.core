@@ -8,8 +8,8 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
-#include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/repositories/BaseRepository.h"
+#include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/models/base/Transaction.h"
 #include "pocketdb/models/base/TransactionOutput.h"
 #include "pocketdb/models/base/Rating.h"
