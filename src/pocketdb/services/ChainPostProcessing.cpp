@@ -114,9 +114,6 @@ namespace PocketServices
                     ratingValues[RatingType::RATING_CONTENT][scoreData->ContentId] +=
                         scoreData->ScoreValue - 3;
 
-                    // if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
-                    //     BuildAccountLikers(scoreData, accountLikersSrc);
-
                     break;
 
                 case PocketTx::ACTION_SCORE_COMMENT:
@@ -125,9 +122,6 @@ namespace PocketServices
 
                     ratingValues[RatingType::RATING_COMMENT][scoreData->ContentId] +=
                         scoreData->ScoreValue;
-
-                    // if (scoreData->ScoreValue == 1)
-                    //     BuildAccountLikers(scoreData, accountLikersSrc);
 
                     break;
 
