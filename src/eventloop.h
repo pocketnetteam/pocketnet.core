@@ -50,7 +50,7 @@ public:
         }
 
         if (post) {
-            if (!post) {
+            if (!post()) {
                 return false;
             }
         }
