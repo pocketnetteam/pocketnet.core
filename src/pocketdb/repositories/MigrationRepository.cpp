@@ -18,7 +18,7 @@ namespace PocketDb
                 return;
             }
 
-            LogPrintf("SQLDB Migration: SplitLikers starting. Do not turn off your node and PC.\n");
+            LogPrint(BCLog::MIGRATION, "SQLDB Migration: SplitLikers starting. Do not turn off your node and PC.\n");
 
             auto stmt = SetupSqlStatement(R"sql(
                 insert into Ratings (type, last, height, id, value)
@@ -54,7 +54,6 @@ namespace PocketDb
 
                 from Ratings r
                 where r.Type in (1)
-                order by r.Height desc
             )sql");
 
             TryStepStatement(stmt);
