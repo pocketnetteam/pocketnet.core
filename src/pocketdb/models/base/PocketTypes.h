@@ -42,16 +42,17 @@ namespace PocketTx
     #define OR_SERVER_PING "73657276657250696e67"          // Server ping over Posts
 
     #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
-
     #define OR_CONTENT_BOOST "636f6e74656e74426f6f7374" // Boost content
-
     #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
+
+    #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
+    
 
     // Int tx type
     enum TxType
     {
         NOT_SUPPORTED = 0,
-
+        
         TX_DEFAULT = 1,
         TX_COINBASE = 2,
         TX_COINSTAKE = 3,
@@ -85,6 +86,11 @@ namespace PocketTx
         ACTION_BLOCKING_CANCEL = 306,
 
         ACTION_COMPLAIN = 307,
+
+        MODERATOR_REQUEST = 400, // Some users have the right to choose a moderator
+        MODERATOR_REGISTER = 401, // Each moderator must define a list of public key hashes for voting
+        MODERATION_FLAG = 410, // Flags are used to mark content that needs moderation
+        MODERATION_VOTE = 420, // Votes is used by moderators in the jury process
     };
 
     // Rating types

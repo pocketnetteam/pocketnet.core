@@ -24,7 +24,7 @@ POCKETCOIN_DAEMON_NAME=pocketcoind
 POCKETCOIN_GUI_NAME=pocketcoin-qt
 POCKETCOIN_CLI_NAME=pocketcoin-cli
 POCKETCOIN_TX_NAME=pocketcoin-tx
-POCKETCOIN_WALLET_TOOL_NAME=pocketcoin-wallet
+# POCKETCOIN_WALLET_TOOL_NAME=pocketcoin-wallet
 
 dnl Unless the user specified ARFLAGS, force it to be cr
 AC_ARG_VAR(ARFLAGS, [Flags for the archiver, defaults to <cr> if not set])
@@ -117,7 +117,7 @@ AC_ARG_ENABLE([wallet],
   [enable_wallet=$enableval],
   [enable_wallet=yes])
 
-# TODO (team): we are using bundled sqlite so explicitly disable it here to avoid autotools finding it on system
+# We are using bundled sqlite so explicitly disable it here to avoid autotools finding it on system
 # AC_ARG_WITH([sqlite],
 #   [AS_HELP_STRING([--with-sqlite=yes|no|auto],
 #   [enable sqlite wallet support (default: auto, i.e., enabled if wallet is enabled and sqlite is found)])],
@@ -257,7 +257,7 @@ AC_ARG_WITH([mpgen],
 
 AC_ARG_ENABLE([multiprocess],
   [AS_HELP_STRING([--enable-multiprocess],
-  [build multiprocess pocketcoin-node, pocketcoin-wallet, and pocketcoin-gui executables in addition to monolithic pocketcoind and pocketcoin-qt executables. Requires libmultiprocess library. Experimental (default is no)])],
+  [build multiprocess pocketcoin-node, and pocketcoin-gui executables in addition to monolithic pocketcoind and pocketcoin-qt executables. Requires libmultiprocess library. Experimental (default is no)])],
   [enable_multiprocess=$enableval],
   [enable_multiprocess=no])
 
@@ -545,7 +545,7 @@ CPPFLAGS="$CPPFLAGS -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS"
 
 AC_ARG_WITH([utils],
   [AS_HELP_STRING([--with-utils],
-  [build pocketcoin-cli pocketcoin-tx pocketcoin-wallet (default=yes)])],
+  [build pocketcoin-cli pocketcoin-tx (default=yes)])],
   [build_pocketcoin_utils=$withval],
   [build_pocketcoin_utils=yes])
 
@@ -561,11 +561,11 @@ AC_ARG_ENABLE([util-tx],
   [build_pocketcoin_tx=$enableval],
   [build_pocketcoin_tx=$build_pocketcoin_utils])
 
-AC_ARG_ENABLE([util-wallet],
-  [AS_HELP_STRING([--enable-util-wallet],
-  [build pocketcoin-wallet])],
-  [build_pocketcoin_wallet=$enableval],
-  [build_pocketcoin_wallet=$build_pocketcoin_utils])
+# AC_ARG_ENABLE([util-wallet],
+#   [AS_HELP_STRING([--enable-util-wallet],
+#   [build pocketcoin-wallet])],
+#   [build_pocketcoin_wallet=$enableval],
+#   [build_pocketcoin_wallet=$build_pocketcoin_utils])
 
 AC_ARG_WITH([libs],
   [AS_HELP_STRING([--with-libs],
@@ -579,7 +579,7 @@ AC_ARG_WITH([daemon],
   [build_pocketcoind=$withval],
   [build_pocketcoind=yes])
 
-dnl TODO openssl is removed out of bitcoin
+dnl Restore openssl that was removed from bitcoin 0.21
 AC_CHECK_HEADER([openssl/crypto.h],,AC_MSG_ERROR(libcrypto headers missing))
 AC_CHECK_LIB([crypto],      [main],CRYPTO_LIBS=-lcrypto, AC_MSG_ERROR(libcrypto missing))
 
@@ -601,6 +601,7 @@ case $host in
      AC_CHECK_LIB([uuid],     [main],, AC_MSG_ERROR(libuuid missing))
      AC_CHECK_LIB([advapi32], [CryptAcquireContextW],, AC_MSG_ERROR(libadvapi32 missing))
      AC_CHECK_LIB([ws2_32],   [WSAStartup],, AC_MSG_ERROR(libws2_32 missing))
+     AC_CHECK_LIB([mswsock],  [main],, AC_MSG_ERROR(libmswsock missing))
      AC_CHECK_LIB([shlwapi],  [PathRemoveFileSpecW],, AC_MSG_ERROR(libshlwapi missing))
      AC_CHECK_LIB([iphlpapi], [GetAdaptersAddresses],, AC_MSG_ERROR(libiphlpapi missing))
 
@@ -1263,11 +1264,7 @@ if test x$have_miniupnpc != xno; then
 fi
 fi
 
-if test x$build_pocketcoin_wallet$build_pocketcoin_cli$build_pocketcoin_tx$build_pocketcoind$pocketcoin_enable_qt$use_tests$use_bench = xnonononononono; then
-    use_boost=no
-else
-    use_boost=yes
-fi
+use_boost=yes
 
 if test x$use_boost = xyes; then
 
@@ -1580,7 +1577,7 @@ if test x$build_pocketcoin_wallet$build_pocketcoin_cli$build_pocketcoin_tx$build
   AC_MSG_ERROR([No targets! Please specify at least one of: --with-utils --with-libs --with-daemon --with-gui --enable-bench or --enable-tests])
 fi
 
-# TODO (team) hardcoded cause we use sqlite anyway
+# Forced using sqlite
 AC_DEFINE([USE_SQLITE],[1],[Define if sqlite support should be compiled in])
 
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
@@ -1630,7 +1627,7 @@ AC_SUBST(POCKETCOIN_DAEMON_NAME)
 AC_SUBST(POCKETCOIN_GUI_NAME)
 AC_SUBST(POCKETCOIN_CLI_NAME)
 AC_SUBST(POCKETCOIN_TX_NAME)
-AC_SUBST(POCKETCOIN_WALLET_TOOL_NAME)
+# AC_SUBST(POCKETCOIN_WALLET_TOOL_NAME)
 
 AC_SUBST(RELDFLAGS)
 AC_SUBST(DEBUG_CPPFLAGS)
@@ -1714,7 +1711,6 @@ if test x$need_bundled_univalue = xyes; then
   AC_CONFIG_SUBDIRS([src/univalue])
 fi
 
-# TODO probably make this optional
 AC_CONFIG_SUBDIRS([src/sqlite])
 
 ac_configure_args="${ac_configure_args} --disable-shared --with-pic --enable-benchmark=no --with-bignum=no --enable-module-recovery --enable-module-schnorrsig --enable-experimental"

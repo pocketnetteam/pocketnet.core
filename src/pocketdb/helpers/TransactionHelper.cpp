@@ -39,20 +39,19 @@ namespace PocketHelpers
             return TxType::CONTENT_VIDEO;
         else if (op == OR_ARTICLE)
             return TxType::CONTENT_ARTICLE;
+            
         else if (op == OR_CONTENT_BOOST)
             return TxType::BOOST_CONTENT;
         else if (op == OR_CONTENT_DELETE)
             return TxType::CONTENT_DELETE;
-        else if (op == OR_SCORE)
-            return TxType::ACTION_SCORE_CONTENT;
-        else if (op == OR_COMPLAIN)
-            return TxType::ACTION_COMPLAIN;
+
         else if (op == OR_SUBSCRIBE)
             return TxType::ACTION_SUBSCRIBE;
         else if (op == OR_SUBSCRIBEPRIVATE)
             return TxType::ACTION_SUBSCRIBE_PRIVATE;
         else if (op == OR_UNSUBSCRIBE)
             return TxType::ACTION_SUBSCRIBE_CANCEL;
+
         else if (op == OR_ACCOUNT_SETTING)
             return TxType::ACCOUNT_SETTING;
         else if (op == OR_USERINFO)
@@ -61,18 +60,30 @@ namespace PocketHelpers
             return TxType::ACCOUNT_VIDEO_SERVER;
         else if (op == OR_MESSAGE_SERVER)
             return TxType::ACCOUNT_MESSAGE_SERVER;
+
         else if (op == OR_BLOCKING)
             return TxType::ACTION_BLOCKING;
         else if (op == OR_UNBLOCKING)
             return TxType::ACTION_BLOCKING_CANCEL;
+
         else if (op == OR_COMMENT)
             return TxType::CONTENT_COMMENT;
         else if (op == OR_COMMENT_EDIT)
             return TxType::CONTENT_COMMENT_EDIT;
         else if (op == OR_COMMENT_DELETE)
             return TxType::CONTENT_COMMENT_DELETE;
+
         else if (op == OR_COMMENT_SCORE)
             return TxType::ACTION_SCORE_COMMENT;
+        else if (op == OR_SCORE)
+            return TxType::ACTION_SCORE_CONTENT;
+
+        // MODERATION
+        else if (op == OR_COMPLAIN)
+            return TxType::ACTION_COMPLAIN;
+
+        else if (op == OR_MODERATION_FLAG)
+            return TxType::MODERATION_FLAG;
 
         return TxType::TX_DEFAULT;
     }
@@ -152,6 +163,8 @@ namespace PocketHelpers
                 return "Subscribes";
             case TxType::BOOST_CONTENT:
                 return "Boosts";
+            case TxType::MODERATION_FLAG:
+                return "ModFlag";
             default:
                 return "";
         }
@@ -326,6 +339,9 @@ namespace PocketHelpers
             case ACTION_COMPLAIN:
                 ptx = make_shared<Complain>(tx);
                 break;
+            case MODERATION_FLAG:
+                ptx = make_shared<ModerationFlag>(tx);
+                break;
             default:
                 return nullptr;
         }
@@ -401,6 +417,9 @@ namespace PocketHelpers
             case ACTION_COMPLAIN:
                 ptx = make_shared<Complain>();
                 break;
+            case MODERATION_FLAG:
+                ptx = make_shared<ModerationFlag>();
+                break;
             default:
                 return nullptr;
         }
@@ -421,36 +440,38 @@ namespace PocketHelpers
     {
         switch (type)
         {
-            case PocketTx::CONTENT_DELETE:
+            case CONTENT_DELETE:
                 return "contentDelete";
-            case PocketTx::CONTENT_POST:
+            case CONTENT_POST:
                 return "share";
-            case PocketTx::CONTENT_VIDEO:
+            case CONTENT_VIDEO:
                 return "video";
-            case PocketTx::CONTENT_ARTICLE:
+            case CONTENT_ARTICLE:
                 return "article";
-            case PocketTx::ACCOUNT_SETTING:
+            case ACCOUNT_SETTING:
                 return "accSet";
-            case PocketTx::ACTION_SCORE_CONTENT:
+            case ACTION_SCORE_CONTENT:
                 return "upvoteShare";
-            case PocketTx::ACTION_SUBSCRIBE:
+            case ACTION_SUBSCRIBE:
                 return "subscribe";
-            case PocketTx::ACTION_SUBSCRIBE_PRIVATE:
+            case ACTION_SUBSCRIBE_PRIVATE:
                 return "subscribePrivate";
-            case PocketTx::ACTION_SUBSCRIBE_CANCEL:
+            case ACTION_SUBSCRIBE_CANCEL:
                 return "unsubscribe";
-            case PocketTx::ACCOUNT_USER:
+            case ACCOUNT_USER:
                 return "userInfo";
-            case PocketTx::CONTENT_COMMENT:
+            case CONTENT_COMMENT:
                 return "comment";
-            case PocketTx::CONTENT_COMMENT_EDIT:
+            case CONTENT_COMMENT_EDIT:
                 return "commentEdit";
-            case PocketTx::CONTENT_COMMENT_DELETE:
+            case CONTENT_COMMENT_DELETE:
                 return "commentDelete";
-            case PocketTx::ACTION_SCORE_COMMENT:
+            case ACTION_SCORE_COMMENT:
                 return "cScore";
-            case PocketTx::BOOST_CONTENT:
+            case BOOST_CONTENT:
                 return "contentBoost";
+            case MODERATION_FLAG:
+                return "modFlag";
             default:
                 return "";
         }
@@ -473,6 +494,7 @@ namespace PocketHelpers
         else if (type == "commentDelete" || type == OR_COMMENT_DELETE) return TxType::CONTENT_COMMENT_DELETE;
         else if (type == "cScore" || type == OR_COMMENT_SCORE) return TxType::ACTION_SCORE_COMMENT;
         else if (type == "contentBoost" || type == OR_CONTENT_BOOST) return TxType::BOOST_CONTENT;
+        else if (type == "modFlag") return TxType::MODERATION_FLAG;
         else return TxType::NOT_SUPPORTED;
     }
 }

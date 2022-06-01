@@ -9,7 +9,7 @@
 
 #include <univalue.h>
 #include <rpc/server.h>
-// TODO (losty-fur): server.h breaks header dependencies because forces pocketcoin-cli to use libpocketcoin_server.
+// TODO (build): server.h breaks header dependencies because forces pocketcoin-cli to use libpocketcoin_server.
 
 /** Default max iterations to try in RPC generatetodescriptor, generatetoaddress, and generateblock. */
 static const uint64_t DEFAULT_MAX_TRIES{1000000};

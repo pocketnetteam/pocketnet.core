@@ -37,22 +37,19 @@ namespace PocketServices
             auto& tx = block.vtx[i];
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
 
-            if (txType != TxType::NOT_SUPPORTED)
+            TransactionIndexingInfo txInfo;
+            txInfo.Hash = tx->GetHash().GetHex();
+            txInfo.BlockNumber = (int) i;
+            txInfo.Time = tx->nTime;
+            txInfo.Type = txType;
+
+            if (!tx->IsCoinBase())
             {
-                TransactionIndexingInfo txInfo;
-                txInfo.Hash = tx->GetHash().GetHex();
-                txInfo.BlockNumber = (int) i;
-                txInfo.Time = tx->nTime;
-                txInfo.Type = txType;
-
-                if (!tx->IsCoinBase())
-                {
-                    for (const auto& inp : tx->vin)
-                        txInfo.Inputs.emplace_back(inp.prevout.hash.GetHex(), inp.prevout.n);
-                }
-
-                txs.emplace_back(txInfo);
+                for (const auto& inp : tx->vin)
+                    txInfo.Inputs.emplace_back(inp.prevout.hash.GetHex(), inp.prevout.n);
             }
+
+            txs.emplace_back(txInfo);
         }
     }
 
@@ -100,15 +97,15 @@ namespace PocketServices
                 continue;
 
             // Calculate ratings values
-            // Rating for users over posts = equals -20 and 20 - saved in int 21 = 2.1
+            // Rating for users over posts = equals -0.2 and 20 - saved in int 20 = 2.0
             // Rating for users over comments = equals -0.1 or 0.1
-            // Rating for posts equals between -2 and 2
+            // Rating for posts equals between -2 and 2 - as is
             // Rating for comments equals between -1 and 2 - as is
             switch (scoreData->ScoreType)
             {
                 case PocketTx::ACTION_SCORE_CONTENT:
                     ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
-                        (scoreData->ScoreValue - 3) * 10;
+                        reputationConsensus->GetScoreContentAuthorValue(scoreData->ScoreValue);
 
                     ratingValues[RatingType::RATING_CONTENT][scoreData->ContentId] +=
                         scoreData->ScoreValue - 3;
@@ -120,7 +117,7 @@ namespace PocketServices
 
                 case PocketTx::ACTION_SCORE_COMMENT:
                     ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
-                        scoreData->ScoreValue;
+                        reputationConsensus->GetScoreCommentAuthorValue(scoreData->ScoreValue);
 
                     ratingValues[RatingType::RATING_COMMENT][scoreData->ContentId] +=
                         scoreData->ScoreValue;

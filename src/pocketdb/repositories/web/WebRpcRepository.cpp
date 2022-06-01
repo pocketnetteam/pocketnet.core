@@ -190,10 +190,11 @@ namespace PocketDb
 
         string sql = R"sql(
             select
+                u.Id as AddressId,
                 u.String1 as Address,
 
-                (select reg.Time from Transactions reg indexed by Transactions_Id
-                    where reg.Id=u.Id and reg.Height=(select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id=reg.Id)) as RegistrationDate,
+                reg.Time as RegistrationDate,
+                reg.Height as RegistrationHeight,
 
                 ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
@@ -223,9 +224,15 @@ namespace PocketDb
                     where p.Type in (301) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ScoreCommentSpent,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (307) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ComplainSpent
+                    where p.Type in (307) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ComplainSpent,
+
+                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                    where p.Type in (410) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as FlagsSpent
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+
+            cross join Transactions reg indexed by Transactions_Id
+                    on reg.Id = u.Id and reg.Height = (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = reg.Id)
 
             where u.Type in (100, 101, 102)
             and u.Height is not null
@@ -248,19 +255,23 @@ namespace PocketDb
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) result.pushKV("user_reg_date", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("balance", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("likers", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result.pushKV("address_id", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.pushKV("user_reg_date", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("user_reg_height", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("balance", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("likers", value);
 
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("post_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("video_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("article_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("comment_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("comment_score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) result.pushKV("complain_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("post_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("video_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("article_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("comment_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) result.pushKV("score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 12); ok) result.pushKV("comment_score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 13); ok) result.pushKV("complain_spent", value);
+                
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 14); ok) result.pushKV("mod_flag_spent", value);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -417,6 +428,20 @@ namespace PocketDb
                     )
                 ),0) as ReferralsCount
 
+                , u.Hash as AccountHash
+
+                , (
+                    select json_group_object(gr.Type, gr.Cnt)
+                    from (
+                      select (f.Int1)Type, (count())Cnt
+                      from Transactions f indexed by Transactions_Type_Last_String3_Height
+                      where f.Type in ( 410 )
+                        and f.Last = 0
+                        and f.String3 = u.String1
+                      group by f.Int1
+                    )gr
+                ) as FlagsJson
+
             )sql";
         }
 
@@ -492,12 +517,14 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
+            // Bind parameters
             int i = 1;
             for (const string& address : addresses)
                 TryBindStatementText(stmt, i++, address);
             for (int64_t id : ids)
                 TryBindStatementInt64(stmt, i++, id);
 
+            // Fetch data
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto[ok0, address] = TryGetColumnString(*stmt, 0);
@@ -551,6 +578,14 @@ namespace PocketDb
                     }
                     
                     if (auto[ok, value] = TryGetColumnInt(*stmt, 21); ok) record.pushKV("rc", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 22); ok) record.pushKV("hash", value);
+
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 23); ok)
+                    {
+                        UniValue flags(UniValue::VOBJ);
+                        flags.read(value);
+                        record.pushKV("flags", flags);
+                    }
                 }
 
                 result.emplace_back(address, id, record);
@@ -1429,6 +1464,136 @@ namespace PocketDb
         return UniValue(UniValue::VARR);
     }
 
+    vector<string> WebRpcRepository::GetTopAccounts(int topHeight, int countOut, const string& lang,
+        const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, int depth,
+        int badReputationLimit)
+    {
+        auto func = __func__;
+        vector<string> result;
+
+        if (contentTypes.empty())
+            return result;
+
+        // --------------------------------------------
+
+        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
+
+        string langFilter;
+        if (!lang.empty())
+            langFilter += " cross join Payload p indexed by Payload_String1_TxHash on p.TxHash = u.Hash and p.String1 = ? ";
+
+        string sql = R"sql(
+            select t.String1
+
+            from Transactions t indexed by Transactions_Last_Id_Height
+
+            cross join Ratings cr indexed by Ratings_Type_Id_Last_Value
+                on cr.Type = 2 and cr.Last = 1 and cr.Id = t.Id and cr.Value > 0
+
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+
+            )sql" + langFilter + R"sql(
+
+            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
+                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+
+            where t.Type in )sql" + contentTypesWhere + R"sql(
+                and t.Last = 1
+                and t.String3 is null
+                and t.Height > ?
+                and t.Height <= ?
+
+                -- Do not show posts from users with low reputation
+                and ifnull(ur.Value,0) > ?
+        )sql";
+
+        if (!tags.empty())
+        {
+            sql += R"sql(
+                and t.id in (
+                    select tm.ContentId
+                    from web.Tags tag indexed by Tags_Lang_Value_Id
+                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                        on tag.Id = tm.TagId
+                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+                )
+            )sql";
+        }
+
+        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!tagsExcluded.empty())
+        {
+            sql += R"sql( and t.Id not in (
+                select tmEx.ContentId
+                from web.Tags tagEx indexed by Tags_Lang_Value_Id
+                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
+                    on tagEx.Id=tmEx.TagId
+                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
+             ) )sql";
+        }
+
+        sql += " group by t.String1 ";
+        sql += " order by count(*) desc ";
+        sql += " limit ? ";
+
+        // ---------------------------------------------
+
+        TryTransactionStep(func, [&]()
+        {
+            int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementInt(stmt, i++, topHeight - depth);
+            TryBindStatementInt(stmt, i++, topHeight);
+
+            TryBindStatementInt(stmt, i++, badReputationLimit);
+
+            if (!tags.empty())
+            {
+                for (const auto& tag: tags)
+                    TryBindStatementText(stmt, i++, tag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            if (!adrsExcluded.empty())
+                for (const auto& exadr: adrsExcluded)
+                    TryBindStatementText(stmt, i++, exadr);
+
+            if (!tagsExcluded.empty())
+            {
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, i++, extag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            TryBindStatementInt(stmt, i++, countOut);
+
+            // ---------------------------------------------
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // Complete!
+        return result;
+    }
+
     UniValue WebRpcRepository::GetTags(const string& lang, int pageSize, int pageStart)
     {
         UniValue result(UniValue::VARR);
@@ -1483,7 +1648,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select Id
-            from Transactions
+            from Transactions indexed by Transactions_Hash_Height
             where Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
               and Height is not null
         )sql";
@@ -1500,6 +1665,42 @@ namespace PocketDb
             {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
                     result.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    map<string,string> WebRpcRepository::GetContentsAddresses(const vector<string>& txHashes)
+    {
+        map<string, string> result;
+
+        if (txHashes.empty())
+            return result;
+
+        string sql = R"sql(
+            select Hash, String1
+            from Transactions
+            where Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+              and Height is not null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const string& txHash : txHashes)
+                TryBindStatementText(stmt, i++, txHash);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[ok0, contenthash] = TryGetColumnString(*stmt, 0);
+                auto[ok1, contentaddress] = TryGetColumnString(*stmt, 1);
+                if(ok0 && ok1)
+                    result.emplace(contenthash,contentaddress);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -2008,13 +2209,13 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                c.String2 as RootTxHash,
-                c.Time,
-                c.Height,
-                c.String1 as addrFrom,
-                c.String3 as posttxid,
-                c.String4 as  parentid,
-                c.String5 as  answerid
+                a.String2 as RootTxHash,
+                a.Time,
+                a.Height,
+                a.String1 as addrFrom,
+                a.String3 as posttxid,
+                a.String4 as parentid,
+                a.String5 as answerid
             from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
             join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
                 on a.Type in (204, 205) and a.Height > ? and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
@@ -2601,6 +2802,160 @@ namespace PocketDb
         for (auto& id : ids)
             result.push_back(tmpResult[id]);
 
+        return result;
+    }
+
+    UniValue WebRpcRepository::GetTopFeed(int countOut, const int64_t& topContentId, int topHeight,
+        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const string& address, int depth, int badReputationLimit)
+    {
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        if (contentTypes.empty())
+            return result;
+
+        // --------------------------------------------
+
+        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
+
+        string contentIdWhere;
+        if (topContentId > 0)
+            contentIdWhere = " and t.Id < ? ";
+
+        string langFilter;
+        if (!lang.empty())
+            langFilter += " cross join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
+
+        string sql = R"sql(
+            select t.Id
+
+            from Transactions t indexed by Transactions_Type_Last_Height_Id
+
+            cross join Ratings cr indexed by Ratings_Type_Id_Last_Value
+                on cr.Type = 2 and cr.Last = 1 and cr.Id = t.Id and cr.Value > 0
+
+            )sql" + langFilter + R"sql(
+
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+
+            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
+                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+
+            where t.Type in )sql" + contentTypesWhere + R"sql(
+                and t.Last = 1
+                --and t.String3 is null
+                and t.Height > ?
+                and t.Height <= ?
+
+                -- Do not show posts from users with low reputation
+                and ifnull(ur.Value,0) > ?
+
+                )sql" + contentIdWhere + R"sql(
+        )sql";
+
+        if (!tags.empty())
+        {
+            sql += R"sql(
+                and t.id in (
+                    select tm.ContentId
+                    from web.Tags tag indexed by Tags_Lang_Value_Id
+                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                        on tag.Id = tm.TagId
+                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+                )
+            )sql";
+        }
+
+        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!tagsExcluded.empty())
+        {
+            sql += R"sql( and t.Id not in (
+                select tmEx.ContentId
+                from web.Tags tagEx indexed by Tags_Lang_Value_Id
+                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
+                    on tagEx.Id=tmEx.TagId
+                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
+             ) )sql";
+        }
+
+        sql += " order by cr.Value desc ";
+        sql += " limit ? ";
+
+        // ---------------------------------------------
+
+        vector<int64_t> ids;
+
+        TryTransactionStep(func, [&]()
+        {
+            int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementInt(stmt, i++, topHeight - depth);
+            TryBindStatementInt(stmt, i++, topHeight);
+
+            TryBindStatementInt(stmt, i++, badReputationLimit);
+
+            if (topContentId > 0)
+                TryBindStatementInt64(stmt, i++, topContentId);
+
+            if (!tags.empty())
+            {
+                for (const auto& tag: tags)
+                    TryBindStatementText(stmt, i++, tag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            if (!txidsExcluded.empty())
+                for (const auto& extxid: txidsExcluded)
+                    TryBindStatementText(stmt, i++, extxid);
+
+            if (!adrsExcluded.empty())
+                for (const auto& exadr: adrsExcluded)
+                    TryBindStatementText(stmt, i++, exadr);
+
+            if (!tagsExcluded.empty())
+            {
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, i++, extag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            TryBindStatementInt(stmt, i++, countOut);
+
+            // ---------------------------------------------
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
+                ids.push_back(contentId);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // Get content data
+        if (!ids.empty())
+        {
+            auto contents = GetContentsData(ids, address);
+            result.push_backV(contents);
+        }
+
+        // Complete!
         return result;
     }
 
@@ -3410,7 +3765,6 @@ namespace PocketDb
             }
 
             // ---------------------------------------------
-            LogPrintf(sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -3666,6 +4020,156 @@ namespace PocketDb
 
             FinalizeSqlStatement(*stmt);
         });
+
+        return result;
+    }
+
+    UniValue WebRpcRepository::GetContentActions(const string& postTxHash)
+    {
+        auto func = __func__;
+        UniValue resultScores(UniValue::VARR);
+        UniValue resultBoosts(UniValue::VARR);
+        UniValue resultDonations(UniValue::VARR);
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            --scores
+            select
+                s.String2 as ContentTxHash,
+                s.String1 as AddressHash,
+                p.String2 as AccountName,
+                p.String3 as AccountAvatar,
+                r.Value as AccountReputation,
+                s.Int1 as ScoreValue,
+                0 as sumBoost,
+                0 as sumDonation
+            from Transactions s indexed by Transactions_Type_Last_String2_Height
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on  u.String1 = s.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
+            left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                on r.Id = u.Id and r.Type = 0 and r.Last = 1
+            cross join Payload p on p.TxHash = u.Hash
+            where s.Type in (300)
+              and s.Last in (0,1)
+              and s.Height > 0
+              and s.String2 = ?
+
+            --boosts
+            union
+
+            select
+                tb.String2 as ContentTxHash,
+                tb.String1 as AddressHash,
+                p.String2 as AccountName,
+                p.String3 as AccountAvatar,
+                r.Value as AccountReputation,
+                0 as ScoreValue,
+                tb.sumBoost as sumBoost,
+                0 as sumDonation
+            from
+            (
+            select
+                b.String1,
+                b.String2,
+                sum(b.Int1) as sumBoost
+            from Transactions b indexed by Transactions_Type_Last_String2_Height
+            where b.Type in (208)
+              and b.Last in (0,1)
+              and b.Height > 0
+              and b.String2 = ?
+            group by
+                b.String1,
+                b.String2
+            )tb
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.String1 = tb.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
+            left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                on r.Id = u.Id and r.Type = 0 and r.Last = 1
+            cross join Payload p on p.TxHash = u.Hash
+
+            --donations
+            union
+
+            select
+                td.String3 as ContentTxHash,
+                td.String1 as AddressHash,
+                p.String2 as AccountName,
+                p.String3 as AccountAvatar,
+                r.Value as AccountReputation,
+                0 as ScoreValue,
+                0 as sumBoost,
+                td.sumDonation as sumDonation
+            from
+            (
+            select
+                comment.String1,
+                comment.String3,
+                sum(o.Value) as sumDonation
+            from Transactions comment indexed by Transactions_Type_Last_String3_Height
+            join Transactions content indexed by Transactions_Type_Last_String2_Height
+                on content.String2 = comment.String3
+                    and content.Type in (200,201,202)
+                    and content.Last = 1
+                    and content.Height is not null
+            join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                on o.TxHash = comment.Hash
+                    and o.AddressHash = content.String1
+                    and o.AddressHash != comment.String1
+                    and o.Value > 0
+            where comment.Type in (204, 205, 206)
+                and comment.Height is not null
+                and comment.Last = 1
+                and comment.String3 = ?
+            group by
+                comment.String1,
+                comment.String3
+            )td
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.String1 = td.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
+            left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                on r.Id = u.Id and r.Type = 0 and r.Last = 1
+            cross join Payload p on p.TxHash = u.Hash
+        )sql";
+
+        TryTransactionStep(func, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            TryBindStatementText(stmt, i++, postTxHash);
+            TryBindStatementText(stmt, i++, postTxHash);
+            TryBindStatementText(stmt, i++, postTxHash);
+
+            // ---------------------------------------------
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok && value > 0) {
+                    record.pushKV("value", value);
+                    resultScores.push_back(record);
+                }
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok && value > 0) {
+                    record.pushKV("value", value);
+                    resultBoosts.push_back(record);
+                }
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok && value > 0) {
+                    record.pushKV("value", value);
+                    resultDonations.push_back(record);
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        result.pushKV("scores",resultScores);
+        result.pushKV("boosts",resultBoosts);
+        result.pushKV("donations",resultDonations);
 
         return result;
     }

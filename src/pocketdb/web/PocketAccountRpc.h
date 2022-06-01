@@ -7,6 +7,7 @@
 
 #include "rpc/server.h"
 // #include "rpc/rawtransaction.h"
+#include "pocketdb/web/WebRpcUtils.h"
 #include "pocketdb/consensus/Reputation.h"
 
 namespace PocketWeb::PocketWebRpc
@@ -25,6 +26,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetAccountSubscribes();
     RPCHelpMan GetAccountSubscribers();
     RPCHelpMan GetAccountBlockings();
+    RPCHelpMan GetTopAccounts();
 }
 
 

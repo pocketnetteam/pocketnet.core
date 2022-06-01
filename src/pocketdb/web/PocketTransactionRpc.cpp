@@ -20,13 +20,13 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet transaction data.\n"
                 "in BIP 141 (witness data is discounted).\n",
                 {
-                    // TODO (losty-rpc): provide arguments description
+                    // TODO (rpc): provide arguments description
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    "" // TODO (losty-rpc): provide examples
+                    "" // TODO (rpc): provide examples
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -51,7 +51,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX deserialize failed");
 
         // Set required fields
-        ptx->SetAddress(address);
+        ptx->SetString1(address);
 
         // TODO (team): TEMPORARY
         // Temporary check for UserConsensus_checkpoint_login_limitation checkpoint
@@ -181,13 +181,13 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"generatetransaction",
                 "\nAdd new pocketnet transaction.\n",
                 {
-                    // TODO (losty-rpc): provide arguments description
+                    // TODO (rpc): provide arguments description
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    "" // TODO (losty-rpc): provide examples
+                    "" // TODO (rpc): provide examples
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -303,7 +303,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX deserialize failed");
 
         // Set required fields
-        ptx->SetAddress(address);
+        ptx->SetString1(address);
 
         // TODO (losty-fur): possible null mempool and connman
         // Insert into mempool
@@ -319,13 +319,13 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"generateaddress",
                 "\nCreate new pocketnet address.\n",
                 {
-                    // TODO (losty-rpc): provide arguments description
+                    // TODO (rpc): provide arguments description
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    "" // TODO (losty-rpc): provide examples
+                    "" // TODO (rpc): provide examples
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -378,7 +378,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman)
     {
         promise<void> promise;
-        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty-fur): validate corresponding check is performed in wallet by using walletInstance->m_default_max_tx_fee
+        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty-critical): validate corresponding check is performed in wallet by using walletInstance->m_default_max_tx_fee
         // if (ptx && *ptx->GetType() == PocketTx::BOOST_CONTENT)
         //    nMaxRawTxFee = 0;
         const uint256& txid = tx->GetHash();

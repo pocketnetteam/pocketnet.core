@@ -58,7 +58,7 @@ option(WITH_INCOMPATIBLE_BDB "Allow using a bdb version greater than 4.8" OFF)
 
 option(DISABLE_MAN "do not install man pages (default is to install)" OFF)
 if (NOT DISABLE_MAM)
-    #    TODO it doesn't go anywhere
+    #    TODO (build): build man
     set(ENABLE_MAN ON)
 endif ()
 
@@ -103,7 +103,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(CmakeCheckEndian.cmake)
 
 # LevelDB
-# TODO only if EMBEDDED_LVLDB defined
+# TODO (build): only if EMBEDDED_LVLDB defined
 add_subdirectory(leveldb/)
 
 
@@ -119,7 +119,6 @@ add_subdirectory(secp256k1/)
 set(WITH_PIC ${WITH_PIC_BACKUP} CACHE BOOL "Enable fPIC" FORCE)
 
 # Finding boost
-# TODO minimal boost version is increased to 1.66 because websockets (websocket/ws.h) are using lambdas as WriteHandler. This functional was implemented in 1.66.
 find_package(Boost 1.66 REQUIRED COMPONENTS system thread chrono filesystem date_time)
 ######## Boost sleep functions validation
 set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
@@ -229,7 +228,7 @@ if(${_ADDRS_STUFF_COUNT} EQUAL 2) # Means we succeed with both getifaddrs and fr
     endif()
 endif()
 
-# TODO (losty-fur): non-posix method from bsd and macos that should be enabled by specific option.
+# Non-posix method from bsd and macos that should be enabled by specific option.
 # Checking for daemon function
 check_cxx_symbol_exists(daemon unistd.h _RES_DAEMON)
 if (_RES_DAEMON)
@@ -421,8 +420,8 @@ else()
     endif()
 endif()
 
-# TODO (losty-fur): make an option to allow disabling this
-if (NOT MINGW) # TODO (losty-fur): also freebsd but probably we do not support it
+# TODO (build): make an option to allow disabling this
+if (NOT MINGW) # TODO (build): also this is required for freebsd but probably we do not support it
     check_cxx_source_compiles(" #include <thread>
                                 static thread_local int foo = 0;
                                 static void run_thread() { foo++;}
@@ -435,7 +434,7 @@ if (NOT MINGW) # TODO (losty-fur): also freebsd but probably we do not support i
     endif ()
 endif()
 
-# TODO (losty-fur): add libmultiprocess stuff
+# TODO (build): add libmultiprocess stuff
 
 check_cxx_source_compiles(" #include <sys/syscall.h>
                             #include <linux/random.h>
@@ -473,7 +472,7 @@ if (CHAR_EQUALS_INT8)
 endif ()
 
 if (ENABLE_REDUCE_EXPORTS)
-    #    TODO It doesn't go anywhere
+    #    TODO (build): It doesn't go anywhere
     check_cxx_compiler_flag(-fvisibility=hidden VISIBILITY_HIDDEN)
     if (NOT VISIBILITY_HIDDEN)
         message(FATAL_ERROR "Cannot set default symbol visibility. Use -DENABLE_REDUCE_EXPORTS=OFF")
@@ -504,7 +503,7 @@ endif (HAVE_DECL_STRNLEN)
 
 # Univalue library
 if (WITH_SYSTEM_UNIVALUE)
-    # TODO write find_package script
+    # TODO (build): write find_package script
     find_library(UNIVALUE univalue)
     if (NOT UNIVALUE)
         message(FATAL_ERROR "System univalue requested but not found")
@@ -561,6 +560,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Transaction.h
         pocketdb/models/base/TransactionInput.h
         pocketdb/models/base/TransactionOutput.h
+        pocketdb/models/base/SocialTransaction.h
         pocketdb/models/base/Rating.h
         pocketdb/models/base/ReturnDtoModels.h
         pocketdb/models/dto/Default.h
@@ -589,6 +589,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Transaction.cpp
         pocketdb/models/base/TransactionInput.cpp
         pocketdb/models/base/TransactionOutput.cpp
+        pocketdb/models/base/SocialTransaction.cpp
         pocketdb/models/base/Rating.cpp
         pocketdb/models/dto/Default.cpp
         pocketdb/models/dto/Coinbase.cpp
@@ -614,6 +615,8 @@ add_library(${POCKETDB}
         pocketdb/models/dto/Complain.cpp
         pocketdb/models/dto/AccountSetting.cpp
         pocketdb/models/dto/ContentDelete.cpp
+        pocketdb/models/dto/moderation/Flag.h
+        pocketdb/models/dto/moderation/Flag.cpp
         pocketdb/models/web/WebTag.h
         pocketdb/models/web/WebContent.h
         pocketdb/models/dto/BoostContent.cpp
@@ -719,8 +722,7 @@ if (ENABLE_GLIBC_BACK_COMPAT)
     target_sources(${POCKETCOIN_UTIL} PRIVATE compat/glibc_compat.cpp)
 endif ()
 if (REQUIRED_SOCKET_LIB)
-    # TODO (losty-fur): idk what is this "socket" lib, but linking to this is done in bitcoin after specific checking.
-    #                   Probably this is specific for some unix systems but since we have the checking noticed above nothing should be broken here. 
+    # Linking to a socket library if getifaddrs freeifaddrs functions require it (see _CHECK_SOCKET_RES_WITHOUT_LIBSOCKET) 
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE socket)
 endif()
 target_include_directories(${POCKETCOIN_UTIL} PUBLIC ${Boost_INCLUDE_DIRS})
@@ -767,17 +769,17 @@ add_library(${POCKETCOIN_CRYPTO}
         serialize.h
         arith_uint256.cpp
         arith_uint256.h
-        util/strencodings.h # TODO maybe move to utils
+        util/strencodings.h # TODO (build): maybe move to utils
         util/strencodings.cpp
         )
 target_link_libraries(${POCKETCOIN_CRYPTO} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_SUPPORT} secp256k1)
 if (ENABLE_SSE41)
     target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_sse41.cpp)
     if (MSVC)
-        #        TODO it seems like windows fails with everything exept sse2 that is enabled by default
-        #        Futhermore there are cmake scripts to find sse4.1 or avx support where they are always hardcoded as false for Windows
-        #        https://github.com/magic-sph/magic/blob/master/cmake/FindSSE.cmake
-        #        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:SSE4.1)
+        # TODO (build): it seems like windows fails with everything exept sse2 that is enabled by default
+        #               Futhermore there are cmake scripts to find sse4.1 or avx support where they are always hardcoded as false for Windows:
+        #               https://github.com/magic-sph/magic/blob/master/cmake/FindSSE.cmake
+        # target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:SSE4.1)
     else ()
         target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SSE41)
         target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -msse4.1)
@@ -814,7 +816,7 @@ target_link_libraries(${POCKETCOIN_SYSTEM} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCO
 target_include_directories(${POCKETCOIN_SYSTEM} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Consensus
-# TODO probably completely move this to server
+# TODO (build): probably completely move this to server
 set(POCKETCOIN_CONSENSUS pocketcoin_consensus)
 add_library(${POCKETCOIN_CONSENSUS}
         protocol.h
@@ -825,7 +827,7 @@ add_library(${POCKETCOIN_CONSENSUS}
         key.cpp
         )
 target_link_libraries(${POCKETCOIN_CONSENSUS} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} ${POCKETDB} univalue secp256k1)
-# TODO hadrdcoded because we are always building consensus
+# TODO (build): hadrdcoded because we are always building consensus
 add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 
 
@@ -833,11 +835,11 @@ add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 set(POCKETCOIN_COMMON_RPC pocketcoin_common_rpc)
 add_library(${POCKETCOIN_COMMON_RPC}
         rpc/protocol.h
-        # TODO (losty-fur): request is shared between cli and daemon.
-        #                   Currently it is using DBConnection that is a part of server.
-        #                   This is OK for now because we have shared headers but this should be reworked.
-        #                   PocketDB stuff should be extracted to a different lib. Specially "pocketdb/SQLiteConnection.h" 
-        #                   Also sqlite should be publically linked to this new lib and removed from linking here
+        # TODO (build): request is shared between cli and daemon.
+        #               Currently it is using DBConnection that is a part of server.
+        #               This is OK for now because we have shared headers but this should be reworked.
+        #               PocketDB stuff should be extracted to a different lib. Specially "pocketdb/SQLiteConnection.h" 
+        #               Also sqlite should be publically linked to this new lib and removed from linking here
         rpc/request.h
         rpc/request.cpp
         )
@@ -1078,6 +1080,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/ConsensusRepository.cpp
         pocketdb/repositories/CheckpointRepository.h
         pocketdb/repositories/CheckpointRepository.cpp
+        pocketdb/repositories/SystemRepository.h
+        pocketdb/repositories/SystemRepository.cpp
         pocketdb/repositories/web/NotifierRepository.h
         pocketdb/repositories/web/NotifierRepository.cpp
         pocketdb/repositories/web/WebRepository.h
@@ -1110,10 +1114,10 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/AccountSetting.hpp
         pocketdb/consensus/social/ContentDelete.hpp
         pocketdb/consensus/social/BoostContent.hpp
+        pocketdb/consensus/moderation/Flag.hpp
         pocketdb/consensus/Helper.cpp
         pocketdb/consensus/Base.cpp
         pocketdb/consensus/Lottery.cpp
-        pocketdb/consensus/Reputation.cpp
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
@@ -1156,7 +1160,6 @@ if (NOT DISABLE_WALLET)
             wallet/scriptpubkeyman.h
             wallet/scriptpubkeyman.cpp
 
-            # TODO (losty-fur): we force use sqlite. In bitcoin this is optional
             wallet/sqlite.h
             wallet/sqlite.cpp
             interfaces/wallet.h
@@ -1171,12 +1174,11 @@ else ()
 endif ()
 
 if(REQUIRED_SOCKET_LIB)
-    # TODO (losty-fur): idk what is this "socket" lib, but linking to this is done in bitcoin after specific checking.
-    #                   Probably this is specific for some unix systems but since we have the checking noticed above nothing should be broken here. 
+    # same as for above for POCKETCOIN_UTIL
     target_link_libraries(${POCKETCOIN_SERVER} PRIVATE socket)
 endif()
 
-# TODO USE_UPNP
+# TODO (build): USE_UPNP
 
 # ZMQ
 if (NOT DISABLE_ZMQ)
@@ -1219,7 +1221,7 @@ target_link_libraries(libpocketcoin_cli PRIVATE univalue ${POCKETCOIN_UTIL} ${PO
 target_include_directories(libpocketcoin_cli PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set(POCKETCOIN_CLI pocketcoin-cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
-# TODO (losty-fur): remove leveldb after header fix
+# TODO (build): remove leveldb after header fix
 target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli leveldb)
 target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
 

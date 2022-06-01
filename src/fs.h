@@ -42,7 +42,7 @@ namespace fsbridge {
     };
 
     std::string get_filesystem_error_message(const fs::filesystem_error& e);
-// TODO (losty-fur): according to description this can be removed because pocketnet is using C++17
+// TODO : according to description this can be removed because pocketnet is using C++17
     // GNU libstdc++ specific workaround for opening UTF-8 paths on Windows.
     //
     // On Windows, it is only possible to reliably access multibyte file paths through

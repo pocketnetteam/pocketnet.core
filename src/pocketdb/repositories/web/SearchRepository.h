@@ -34,12 +34,13 @@ namespace PocketDb
         vector<int64_t> SearchUsersOld(const SearchRequest& request);
         vector<int64_t> SearchUsers(const string& keyword);
 
-        UniValue GetRecomendedAccountsBySubscriptions(const string& address, int cntOut = 10);
-        UniValue GetRecomendedAccountsByScoresOnSimilarAccounts(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
-        UniValue GetRecomendedAccountsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
-        UniValue GetRecomendedAccountsByTags(const vector<string>& tags, int nHeight, int depth = 1000, int cntOut = 10);
-        UniValue GetRecomendedContentsByScoresOnSimilarContents(const string& contentid, const vector<int>& contentTypes, int depth = 1000, int cntOut = 10);
-        UniValue GetRecomendedContentsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
+        //TODO (o1q): remove it
+        vector<string> GetRecommendedAccountByAddressSubscriptionsOld(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth = 129600 /* about 3 month */, int cntSubscriptions = 100);
+        vector<int64_t> GetRecommendedContentByAddressSubscriptionsOld(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth = 129600 /* about 3 month */, int cntSubscriptions = 100);
+
+        vector<string> GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth = 129600 /* about 3 month */);
+        vector<int64_t> GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth = 129600 /* about 3 month */);
+        vector<int64_t> GetRandomContentByAddress(const string& contentAddress, const vector<int>& contentTypes, const string& lang, int cntOut);
     };
 
     typedef shared_ptr<SearchRepository> SearchRepositoryRef;

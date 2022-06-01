@@ -22,7 +22,6 @@ namespace PocketDb
     using namespace std;
 
     void InitSQLite(fs::path path);
-
     void InitSQLiteCheckpoints(fs::path path);
 
     class SQLiteDatabase
@@ -50,6 +49,8 @@ namespace PocketDb
         void DropIndexes();
 
         void Cleanup() noexcept;
+        
+        /* void InitMigration(bool& cleanMempool); */
 
         void Close();
 

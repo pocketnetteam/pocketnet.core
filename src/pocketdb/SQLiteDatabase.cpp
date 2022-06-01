@@ -6,13 +6,17 @@
 #include "util/system.h"
 #include "pocketdb/pocketnet.h"
 #include "util/translation.h"
+#include "validation.h"
+#include <node/ui_interface.h>
+
+#include "pocketdb/services/Serializer.h"
 
 namespace PocketDb
 {
     static void ErrorLogCallback(void* arg, int code, const char* msg)
     {
         // From sqlite3_config() documentation for the SQLITE_CONFIG_LOG option:
-        // "The void pointer that is the second argument t SQLITE_CONFIG_LOG is passed through as
+        // "The void pointer that is the second argument to SQLITE_CONFIG_LOG is passed through as
         // the first parameter to the application-defined logger function whenever that function is
         // invoked."
         // Assert that this is the case:
@@ -59,6 +63,7 @@ namespace PocketDb
         RatingsRepoInst.Init();
         ConsensusRepoInst.Init();
         NotifierRepoInst.Init();
+        SystemRepoInst.Init();
 
         // Open, create structure and close `web` db
         PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();
@@ -109,6 +114,108 @@ namespace PocketDb
             LogPrintf("%s: %d; Failed to shutdown SQLite: %s\n", __func__, ret, sqlite3_errstr(ret));
         }
     }
+
+/*
+    void SQLiteDatabase::InitMigration(bool& cleanMempool)
+    {
+
+        /*** Update Pocket DB from 0 to version 1 ********************************************
+         *
+         * This migration is necessary to fill the database with TxOutputs
+         * records with OP_RETURN records - these records were not saved initially in the database
+         * 
+         * It is also necessary to fill in the TxInputs table
+         * 
+         * Since the data of these tables become critically important for the operation of the node,
+         * it is necessary to make sure that they are available and valid.
+         * To do this, a full chainActive scan is performed, checking for the presence of all data.
+         * 
+         * Only after the end of the process, the DB version will be increased - in case of a process failure.
+         * 
+         ************************************************************************************/
+/*        const string dbNameMain = "main";
+        const int newDbVersion = 1;
+        int dbVersion = SystemRepoInst.GetDbVersion(dbNameMain);
+
+        if (dbVersion < newDbVersion)
+        {
+            // Clean mempool for resaving transactions data
+            cleanMempool = true;
+
+            // For optimize work drop all indexes
+            uiInterface.InitMessage("Preparing the database for updating..");
+            DropIndexes();
+
+            // Full rescan blockchain for resaving all transactions data
+            int height = 0;
+            int percent = ChainActive().Height() / 100;
+            int64_t startTime = GetTimeMicros();
+            while (height <= ChainActive().Height() && !ShutdownRequested())
+            {
+                try
+                {
+                    // Read block from disk
+                    CBlock block;
+                    CBlockIndex* pblockindex = ChainActive()[height];
+                    if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+                    {
+                        LogPrintf("Failed read block %s from disk. Stopping\n", pblockindex->GetBlockHash().GetHex());
+                        StartShutdown();
+                        return;
+                    }
+
+                    // The default logic is used to deserialize the necessary data
+                    // We can use standard methods to write data to the database, because inside `WHERE NOT EXISTS` is used
+                    // This will allow us to record only the missing data without changing the existing ones.
+                    if (auto[ok, pocketBlock] = PocketServices::Serializer::DeserializeBlock(block); ok)
+                    {
+                        TransRepoInst.InsertTransactions(pocketBlock);
+                        
+                        for (size_t i = 0; i < block.vtx.size(); i++)
+                        {
+                            const auto& tx = block.vtx[i];
+
+                            ChainRepoInst.UpdateTransactionHeight(
+                                pblockindex->GetBlockHash().GetHex(),
+                                i,
+                                height,
+                                tx->GetHash().GetHex()
+                            );
+                        }
+                    }
+                    else
+                    {
+                        LogPrintf("Failed deserialize block %s. Stopping\n", pblockindex->GetBlockHash().GetHex());
+                        StartShutdown();
+                        return;
+                    }
+
+                    // Message for logging
+                    if (height % percent == 0)
+                    {
+                        int64_t time = GetTimeMicros();
+                        uiInterface.InitMessage(tfm::format("Updating Pocket DB: %d%% (%.2fm)", (height / percent), (0.000001 * (time - startTime)) / 60.0));
+                        LogPrintf("Updating Pocket DB: %d%% (%.2fm)\n", (height / percent), (0.000001 * (time - startTime)) / 60.0);
+                    }
+
+                    height += 1;
+                }
+                catch (std::exception& e)
+                {
+                    LogPrintf("Unknown error: %s\n", e.what());
+                    StartShutdown();
+                    return;
+                }
+            }
+
+            // Restore db structure
+            CreateStructure();
+
+            // Increment db version
+            SystemRepoInst.SetDbVersion(dbNameMain, newDbVersion);
+        }
+    }
+*/
 
     bool SQLiteDatabase::BulkExecute(std::string sql)
     {
@@ -241,7 +348,8 @@ namespace PocketDb
 
         try
         {
-            LogPrintf("Migration Sqlite database `%s` structure..\n", m_file_path);
+            uiInterface.InitMessage(tfm::format("Updating Pocket DB `%s` structure..", m_file_path));
+            LogPrintf("Updating Pocket DB`%s` structure..\n", m_file_path);
 
             if (sqlite3_get_autocommit(m_db) == 0)
                 throw std::runtime_error(strprintf("%s: Database `%s` not opened?\n", __func__, m_file_path));

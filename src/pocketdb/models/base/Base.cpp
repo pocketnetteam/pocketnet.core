@@ -60,4 +60,13 @@ namespace PocketTx
 
         return make_tuple(false, 0);
     }
+
+    tuple<bool, UniValue> Base::TryGetObj(const UniValue& o, const string& key)
+    {
+        auto exists = o.exists(key);
+        if (exists && o[key].isObject() && !o[key].empty())
+            return make_tuple(true, o[key]);
+
+        return make_tuple(false, NullUniValue);
+    }
 }

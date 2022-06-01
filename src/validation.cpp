@@ -54,6 +54,7 @@
 #include <string>
 
 #include <boost/algorithm/string/replace.hpp>
+#include <httpserver.h>
 
 #include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/services/Accessor.h"
@@ -1036,20 +1037,16 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     }
 
     // For supported transactions payload must be exists
-    if (!_pocketTx && PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
+    if (!_pocketTx)
         return state.Invalid(TxValidationResult::TX_SOCIAL_UNWARRANT, "pocketnet payload data not found");
 
-    // Check consensus if transaction payload exists
-    if (_pocketTx)
-    {
-        // Check transaction with pocketnet base rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, ::ChainActive().Height() + 1); !ok)
-            return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result), (int)result);
+    // Check transaction with pocketnet base rules
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, ::ChainActive().Height() + 1); !ok)
+        return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result), (int)result);
 
-        // Check transaction with pocketnet consensus rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
-            return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_UNWARRANT, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result), (int)result);
-    }
+    // Check transaction with pocketnet consensus rules
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
+        return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_UNWARRANT, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result), (int)result);
 
     // At this point, we believe that all the checks have been carried
     // out and we can safely save the transaction to the database for
@@ -2431,7 +2428,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         {
             if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
             {
-                // TODO (losty-err): was 100 dos. Seems like its ok here but probably add something another error
                 error("ConnectBlock() : incorrect proof of stake transaction checkpoint");
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS); 
             }
@@ -2471,8 +2467,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             // We do not mark the block invalid for situations where the chain can be rebuilt.
             // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
             // we need to think about marking the block incomplete and requesting it from the network again.
-            // TODO (losty): change this error.
-            return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-validate-social-consensus");
+            return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-validate-social-consensus", "", true);
         }
         
         LogPrint(BCLog::CONSENSUS, "    Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
@@ -2517,7 +2512,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Extend WEB database
-    if (gArgs.GetBoolArg("-api", true) && enablePocketConnect)
+    if (!gArgs.GetBoolArg("-withoutweb", false) && enablePocketConnect)
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -2948,7 +2943,7 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock, pindexNew->nHeight); !ok)
     {
         pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
-        return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-find-social-payload"); // TODO (losty-err): is error correct?
+        return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-find-social-payload", "", true);
     }
 
     // Apply the block atomically to the chain state.
@@ -3828,7 +3823,7 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     // Must check for duplicate inputs (see CVE-2018-17144)
     for (const auto& tx : block.vtx) {
         TxValidationState tx_state;
-        if (!CheckTransaction(*tx, tx_state)) { // TODO (losty-fur): there was third bool argument that was changed to true by us (origanally was false). Check if nothing affected here by removed that argument
+        if (!CheckTransaction(*tx, tx_state)) {
             // CheckBlock() does context-free validation checks. The only
             // possible failures are consensus failures.
             assert(tx_state.GetResult() == TxValidationResult::TX_CONSENSUS);
@@ -4071,13 +4066,11 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     }
 
     if (block.IsProofOfWork() && nHeight > Params().GetConsensus().nPosFirstBlock) {
-        // TODO (losty-fur): was 10 dos but now will be punished with 100
-        return state.Invalid(BlockValidationResult::BLOCK_CHECKPOINT, "check-pow-height", "pow-mined blocks not allowed");
+        return state.Invalid(BlockValidationResult::BLOCK_PROOF_INVALID, "check-pow-height", "pow-mined blocks not allowed");
     }
 
     if (block.IsProofOfStake() && nHeight < Params().GetConsensus().nPosFirstBlock) {
-        // TODO (losty-fur): was 10 dos but now will be punished with 100
-        return state.Invalid(BlockValidationResult::BLOCK_CHECKPOINT, "check-pos-height", "pos-mined blocks not allowed");
+        return state.Invalid(BlockValidationResult::BLOCK_PROOF_INVALID, "check-pos-height", "pos-mined blocks not allowed");
     }
 
     // Check CheckCoinStakeTimestamp
@@ -4309,7 +4302,7 @@ bool ChainstateManager::ProcessNewBlockHeaders(const std::vector<CBlockHeader>& 
     }
     if (NotifyHeaderTip()) {
         if (::ChainstateActive().IsInitialBlockDownload() && ppindex && *ppindex) {
-            LogPrintf("Synchronizing blockheaders, height: %d (~%.2f%%)\n", (*ppindex)->nHeight, 100.0/((*ppindex)->nHeight+(GetAdjustedTime() - (*ppindex)->GetBlockTime()) / Params().GetConsensus().nPowTargetSpacing) * (*ppindex)->nHeight);
+            LogPrint(BCLog::SYNC, "Synchronizing blockheaders, height: %d (~%.2f%%)\n", (*ppindex)->nHeight, 100.0/((*ppindex)->nHeight+(GetAdjustedTime() - (*ppindex)->GetBlockTime()) / Params().GetConsensus().nPowTargetSpacing) * (*ppindex)->nHeight);
         }
     }
     return true;
@@ -4463,7 +4456,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
                 if (_pindex)
                     _pindex->nStatus &= ~BLOCK_HAVE_DATA;
 
-                ret = false;
+                ret = state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-check-social-payload", "", true);
                 *fNewBlock = false;
             }
                 

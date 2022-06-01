@@ -51,14 +51,14 @@ namespace PocketWeb::PocketWebRpc
                 "\nReturn Pocketnet user profile.\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
-                    {"shortForm", /* TODO (losty-rpc): is this really string? */RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
+                    {"shortForm", /* TODO (rpc): is this really string? */RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                     
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("getuserprofile", "123123abd123 1") +
                     HelpExampleRpc("getuserprofile", "123123abd123 1") +
                     HelpExampleCli("getuserprofile", "123123abd123") +
@@ -108,10 +108,10 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("getuseraddress", "") +
                     HelpExampleRpc("getuseraddress", "")
                 },
@@ -151,7 +151,7 @@ namespace PocketWeb::PocketWebRpc
                     },
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("getaddressregistration", "[\"addresses\",...]") +
                     HelpExampleRpc("getaddressregistration", "[\"addresses\",...]")
                 },
@@ -191,10 +191,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("getuserstate", "ad123ab123fd") +
                     HelpExampleRpc("getuserstate", "ad123ab123fd")
                 },
@@ -217,8 +217,10 @@ namespace PocketWeb::PocketWebRpc
         if (result["address"].isNull())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
-        // Calculate additional fields
+        // Cechk account permissions
+        AccountData accountData = { result["address_id"].get_int64(), result["reputation"].get_int64(), result["user_reg_height"].get_int64(), result["likers"].get_int64() };
         auto accountMode = reputationConsensus->GetAccountMode(result["reputation"].get_int(), result["balance"].get_int64());
+        auto accountIsShark = reputationConsensus->IsShark(accountData);
 
         result.pushKV("mode", accountMode);
         result.pushKV("trial", accountMode == AccountMode_Trial);
@@ -283,6 +285,16 @@ namespace PocketWeb::PocketWebRpc
         if (!result["score_spent"].isNull())
             result.pushKV("score_unspent", scoreLimit - result["score_spent"].get_int());
 
+        if (!result["mod_flag_spent"].isNull())
+            result.pushKV("mod_flag_unspent", reputationConsensus->GetConsensusLimit(ConsensusLimit_moderation_flag_count) - result["mod_flag_spent"].get_int());
+
+        if (accountIsShark)
+        {
+            UniValue badges(UniValue::VARR);
+            badges.push_back("shark");
+            result.pushKV("badges", badges);
+        }
+
         return result;
     },
         };
@@ -305,10 +317,10 @@ namespace PocketWeb::PocketWebRpc
 
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("txunspent", "") +
                     HelpExampleRpc("txunspent", "")
                 },
@@ -401,10 +413,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("getaccountsetting", "123abacf12") +
                     HelpExampleRpc("getaccountsetting", "123abacf12")
                 },
@@ -433,10 +445,10 @@ namespace PocketWeb::PocketWebRpc
                     {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of statistic. Default - whole history"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("getuserstatistic", "[\"addresses\", ...], height, depth") +
                     HelpExampleRpc("getuserstatistic", "[\"addresses\", ...], height, depth")
                 },
@@ -501,10 +513,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("GetAccountSubscribes", "\"address\"") +
                     HelpExampleRpc("GetAccountSubscribes", "\"address\"")
                 },
@@ -527,10 +539,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("GetAccountSubscribers", "\"address\"") +
                     HelpExampleRpc("GetAccountSubscribers", "\"address\"")
                 },
@@ -553,10 +565,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("GetAccountBlockings", "\"address\"") +
                     HelpExampleRpc("GetAccountBlockings", "\"address\"")
                 },
@@ -568,6 +580,94 @@ namespace PocketWeb::PocketWebRpc
 
         return request.DbConnection()->WebRpcRepoInst->GetBlockingToAddresses(address);
     },
+        };
+    }
+
+    RPCHelpMan GetTopAccounts()
+    {
+        return RPCHelpMan{"GetTopAccounts",
+                          "\nReturn top accounts based on their content ratings\n",
+                          {
+                                  // TODO (rpc): provide inputs description
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc): provide correct examples
+                                  HelpExampleCli("GetTopAccounts", "\"address\"") +
+                                  HelpExampleRpc("GetTopAccounts", "\"address\"")
+                          },
+                          [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+                          {
+                              int topHeight = ::ChainActive().Height();
+                              if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int() > 0)
+                                  topHeight = request.params[0].get_int();
+
+                              int countOut = 15;
+                              if (request.params.size() > 1 && request.params[1].isNum())
+                                  countOut = request.params[1].get_int();
+
+                              string lang = "";
+                              if (request.params.size() > 2 && request.params[2].isStr())
+                                  lang = request.params[2].get_str();
+
+                              vector<string> tags;
+                              if (request.params.size() > 3)
+                                  ParseRequestTags(request.params[3], tags);
+
+                              vector<int> contentTypes;
+                              if (request.params.size() > 4)
+                                  ParseRequestContentTypes(request.params[4], contentTypes);
+
+                              vector<string> adrsExcluded;
+                              if (request.params.size() > 5)
+                              {
+                                  if (request.params[5].isStr() && !request.params[5].get_str().empty())
+                                  {
+                                      adrsExcluded.push_back(request.params[5].get_str());
+                                  }
+                                  else if (request.params[5].isArray())
+                                  {
+                                      UniValue adrs = request.params[5].get_array();
+                                      for (unsigned int idx = 0; idx < adrs.size(); idx++)
+                                      {
+                                          string adrEx = boost::trim_copy(adrs[idx].get_str());
+                                          if (!adrEx.empty())
+                                              adrsExcluded.push_back(adrEx);
+
+                                          if (adrsExcluded.size() > 100)
+                                              break;
+                                      }
+                                  }
+                              }
+
+                              vector<string> tagsExcluded;
+                              if (request.params.size() > 6)
+                                  ParseRequestTags(request.params[6], tagsExcluded);
+
+                              int depth = 60 * 24 * 30 * 12; // about 1 year
+                              if (request.params.size() > 7)
+                              {
+                                  RPCTypeCheckArgument(request.params[7], UniValue::VNUM);
+                                  depth = std::min(depth, request.params[7].get_int());
+                              }
+
+                              auto reputationConsensus = ReputationConsensusFactoryInst.Instance(::ChainActive().Height());
+                              auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
+                              UniValue result(UniValue::VARR);
+                              auto ids =  request.DbConnection()->WebRpcRepoInst->GetTopAccounts(topHeight, countOut, lang, tags, contentTypes,
+                                                                                                 adrsExcluded, tagsExcluded, depth, badReputationLimit);
+                              if (!ids.empty())
+                              {
+                                  auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
+                                  for (const auto[id, record] : profiles)
+                                      result.push_back(record);
+                              }
+
+                              return result;
+                          },
         };
     }
 
