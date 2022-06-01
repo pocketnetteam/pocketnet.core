@@ -150,11 +150,11 @@ namespace PocketDb
                 )
             )sql");
 
-            TryBindStatementInt(stmt, 1, (int)*rating.GetType());
+            TryBindStatementInt(stmt, 1, *rating.GetType());
             TryBindStatementInt(stmt, 2, rating.GetHeight());
             TryBindStatementInt64(stmt, 3, rating.GetId());
             TryBindStatementInt64(stmt, 4, rating.GetValue());
-            TryBindStatementInt(stmt, 5, (int)*rating.GetType());
+            TryBindStatementInt(stmt, 5, *rating.GetType());
             TryBindStatementInt64(stmt, 6, rating.GetId());
             TryBindStatementInt64(stmt, 7, rating.GetValue());
 
