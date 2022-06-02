@@ -545,8 +545,8 @@ namespace PocketDb
         TryBindStatementInt(stmt4, 3, height);
         TryStepStatement(stmt4);
 
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Likers:Last = 1): %.2fms\n", 0.001 * (nTime4 - nTime3));
+        int64_t nTime5 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Likers:Last = 1): %.2fms\n", 0.001 * (nTime5 - nTime4));
 
     }
 
