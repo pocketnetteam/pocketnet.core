@@ -27,9 +27,13 @@ namespace PocketDb
 
         bool SplitLikers();
 
+        // Calculate last values group by AccountID & Type
+        bool AccumulateLikers();
+
     protected:
 
         bool CheckNeedSplitLikers();
+        bool CheckNeedAccumulateLikers();
 
     };
 
