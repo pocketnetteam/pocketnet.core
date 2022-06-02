@@ -742,7 +742,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
+            TryBindStatementInt(stmt, 1, (int) RatingType::ACCOUNT_LIKERS);
             TryBindStatementInt(stmt, 2, addressId);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)

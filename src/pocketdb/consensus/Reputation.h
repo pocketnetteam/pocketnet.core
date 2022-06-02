@@ -103,7 +103,7 @@ namespace PocketConsensus
         virtual void ExtendLikersList(map<RatingType, map<int, vector<int>>>& lkrs, const ScoreDataDtoRef& scoreData)
         {
             for (const auto& type : lkrs)
-                if (type.first != RatingType::RATING_ACCOUNT_LIKERS)
+                if (type.first != RatingType::ACCOUNT_LIKERS)
                     lkrs[type.first][scoreData->ContentAddressId].clear();
 
             lkrs[scoreData->LikerType()][scoreData->ContentAddressId].emplace_back(scoreData->ScoreAddressId);
@@ -201,7 +201,7 @@ namespace PocketConsensus
                 return;
 
             // Check already added to list and exists in DB
-            auto& lkrs = likersValues[RATING_ACCOUNT_LIKERS][scoreData->ContentAddressId];
+            auto& lkrs = likersValues[ACCOUNT_LIKERS][scoreData->ContentAddressId];
             if (find(lkrs.begin(), lkrs.end(), scoreData->ScoreAddressId) == lkrs.end())
             {
                 if (!PocketDb::RatingsRepoInst.ExistsLiker(scoreData->ContentAddressId, scoreData->ScoreAddressId))
@@ -216,15 +216,15 @@ namespace PocketConsensus
             //
             // Split likers types
             // 
-            auto& lkrs_post = likersValues[RATING_ACCOUNT_LIKERS_POST][scoreData->ContentAddressId];
+            auto& lkrs_post = likersValues[ACCOUNT_LIKERS_POST][scoreData->ContentAddressId];
             if ((find(lkrs_post.begin(), lkrs_post.end(), scoreData->ScoreAddressId) != lkrs_post.end()))
                 return;
             
-            auto& lkrs_cmnt_root = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ROOT][scoreData->ContentAddressId];
+            auto& lkrs_cmnt_root = likersValues[ACCOUNT_LIKERS_COMMENT_ROOT][scoreData->ContentAddressId];
             if ((find(lkrs_cmnt_root.begin(), lkrs_cmnt_root.end(), scoreData->ScoreAddressId) != lkrs_cmnt_root.end()))
                 return;
 
-            auto& lkrs_cmnt_answer = likersValues[RATING_ACCOUNT_LIKERS_COMMENT_ANSWER][scoreData->ContentAddressId];
+            auto& lkrs_cmnt_answer = likersValues[ACCOUNT_LIKERS_COMMENT_ANSWER][scoreData->ContentAddressId];
             if ((find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
                 return;
                 

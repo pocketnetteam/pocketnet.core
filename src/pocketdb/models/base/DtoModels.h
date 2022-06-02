@@ -108,13 +108,13 @@ namespace PocketTx
         RatingType LikerType()
         {
             if (ScoreType == ACTION_SCORE_CONTENT)
-                return RatingType::RATING_ACCOUNT_LIKERS_POST;
+                return RatingType::ACCOUNT_LIKERS_POST;
 
             if (ScoreType == ACTION_SCORE_COMMENT && String5.empty())
-                return RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ROOT;
+                return RatingType::ACCOUNT_LIKERS_COMMENT_ROOT;
 
             if (ScoreType == ACTION_SCORE_COMMENT && !String5.empty())
-                return RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ANSWER;
+                return RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER;
 
             // You don't have to get to here
             assert(false);

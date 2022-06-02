@@ -12,11 +12,11 @@ namespace PocketDb
         {
             switch (*rating.GetType())
             {
-            case RatingType::RATING_ACCOUNT_LIKERS:
-            case RatingType::RATING_ACCOUNT_LIKERS_POST:
-            case RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ROOT:
-            case RatingType::RATING_ACCOUNT_LIKERS_COMMENT_ANSWER:
-            case RatingType::RATING_ACCOUNT_DISLIKERS_COMMENT_ANSWER:
+            case RatingType::ACCOUNT_LIKERS:
+            case RatingType::ACCOUNT_LIKERS_POST:
+            case RatingType::ACCOUNT_LIKERS_COMMENT_ROOT:
+            case RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER:
+            case RatingType::ACCOUNT_DISLIKERS_COMMENT_ANSWER:
                 InsertLiker(rating);
                 break;
             default:
@@ -131,7 +131,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            auto stmtInsert = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Ratings (
                     Type,
                     Last,
@@ -147,16 +147,38 @@ namespace PocketDb
                       and r.Value=?
                 )
             )sql");
+            TryBindStatementInt(stmtInsert, 1, *rating.GetType());
+            TryBindStatementInt(stmtInsert, 2, rating.GetHeight());
+            TryBindStatementInt64(stmtInsert, 3, rating.GetId());
+            TryBindStatementInt64(stmtInsert, 4, rating.GetValue());
+            TryBindStatementInt(stmtInsert, 5, *rating.GetType());
+            TryBindStatementInt64(stmtInsert, 6, rating.GetId());
+            TryBindStatementInt64(stmtInsert, 7, rating.GetValue());
+            TryStepStatement(stmtInsert);
 
-            TryBindStatementInt(stmt, 1, *rating.GetType());
-            TryBindStatementInt(stmt, 2, rating.GetHeight());
-            TryBindStatementInt64(stmt, 3, rating.GetId());
-            TryBindStatementInt64(stmt, 4, rating.GetValue());
-            TryBindStatementInt(stmt, 5, *rating.GetType());
-            TryBindStatementInt64(stmt, 6, rating.GetId());
-            TryBindStatementInt64(stmt, 7, rating.GetValue());
-
-            TryStepStatement(stmt);
+            // Increase last value
+            auto stmtReplace = SetupSqlStatement(R"sql(
+                replace into Ratings (Type, Last, Height, Id, Value)
+                values (
+                    ?, -- Type
+                    1, -- Last
+                    ?, -- Height
+                    ?, -- Id
+                    (1 + ifnull((
+                        select r.Value
+                        from Ratings r
+                        where r.Type = ?
+                          and r.Id = ?
+                          and r.Last = 1
+                    ),0)) -- New Value
+                )
+            )sql");
+            TryBindStatementInt(stmtReplace, 1, *rating.GetType());
+            TryBindStatementInt(stmtReplace, 2, rating.GetHeight());
+            TryBindStatementInt64(stmtReplace, 3, rating.GetId());
+            TryBindStatementInt(stmtReplace, 4, *rating.GetType());
+            TryBindStatementInt64(stmtReplace, 5, rating.GetId());
+            TryStepStatement(stmtReplace);
         });
     }
 }
