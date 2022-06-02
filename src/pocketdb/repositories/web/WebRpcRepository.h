@@ -14,6 +14,7 @@
 #include <timedata.h>
 #include "core_io.h"
 #include "util/html.h"
+#include "pocketdb/models/shortform/ShortForm.h"
 
 namespace PocketDb
 {
@@ -152,7 +153,7 @@ namespace PocketDb
         /**
          * Returns map where key is address. Value is map, where key - height, value - vector of transactions for this height.
          */
-        UniValue GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNum, const std::set<std::string>& filters);
+        std::vector<ShortForm> GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNum, const std::set<std::string>& filters);
 
         UniValue GetEventsForBlock(int64_t height, const std::set<std::string>& filters);
 

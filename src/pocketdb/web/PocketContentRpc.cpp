@@ -988,7 +988,13 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        return request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(address, heightMax, heightMin, blockNum, filters);
+        auto shortTxs = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(address, heightMax, heightMin, blockNum, filters);
+        UniValue res(UniValue::VARR);
+        for (const auto& tx: shortTxs) {
+            res.push_back(tx.Serialize());
+        }
+
+        return res;
     },
         };
     }
