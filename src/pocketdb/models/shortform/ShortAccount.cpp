@@ -24,3 +24,43 @@ UniValue PocketDb::ShortAccount::Serialize() const
 
     return data;
 }
+
+const std::string& PocketDb::ShortAccount::GetName() const
+{
+    return m_name;
+}
+
+void PocketDb::ShortAccount::SetName(const std::string& name)
+{
+    m_name = name;
+}
+
+const std::string& PocketDb::ShortAccount::GetAvatar() const
+{
+    return m_avatar;
+}
+
+void PocketDb::ShortAccount::SetAvatar(const std::string& avatar)
+{
+    m_avatar = avatar;
+}
+
+const std::string& PocketDb::ShortAccount::GetBadge() const
+{
+    return m_badge;
+}
+
+void PocketDb::ShortAccount::SetBadge(const std::string& badge)
+{
+    m_badge = badge;
+}
+
+const int64_t& PocketDb::ShortAccount::GetReputation() const
+{
+    return m_reputation;
+}
+
+void PocketDb::ShortAccount::SetReputation(const int64_t& reputation)
+{
+    m_reputation = reputation;
+}

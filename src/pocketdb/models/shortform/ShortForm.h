@@ -6,6 +6,7 @@
 #define POCKETDB_SHORTFORM_H
 
 #include "pocketdb/models/shortform/ShortTxData.h"
+#include "pocketdb/models/shortform/ShortTxType.h"
 
 #include <optional>
 
@@ -14,10 +15,17 @@ namespace PocketDb
     class ShortForm
     {
     public:
-        ShortForm(ShortTxData txData, std::optional<ShortTxData> relatedContent);
+        // TODO tomorrow: serialize me correctly!!!
+        ShortForm(PocketDb::ShortTxType type, ShortTxData txData, std::optional<ShortTxData> relatedContent);
 
         UniValue Serialize() const;
+
+        PocketDb::ShortTxType GetType() const;
+        const ShortTxData& GetTxData() const;
+        const std::optional<ShortTxData>& GetRelaytedContent() const;
+        void SetRelatedContent(const std::optional<ShortTxData> &relatedContent);
     private:
+        PocketDb::ShortTxType m_type;
         ShortTxData m_txData;
         std::optional<ShortTxData> m_relatedContent;
     };
