@@ -20,7 +20,7 @@ namespace PocketDb
 
             LogPrint(BCLog::MIGRATION, "SQLDB Migration: SplitLikers starting. Do not turn off your node and PC.\n");
 
-            TryTransactionBulk({
+            TryTransactionBulk(__func__, {
 
                 // Insert new splitted types of likers
                 SetupSqlStatement(R"sql(
@@ -138,7 +138,7 @@ namespace PocketDb
 
             LogPrint(BCLog::MIGRATION, "SQLDB Migration: AccumulateLikers starting. Do not turn off your node and PC.\n");
 
-            TryTransactionBulk({
+            TryTransactionBulk(__func__, {
 
                 // Clear old data - this first init simple migration
                 SetupSqlStatement(R"sql(     
