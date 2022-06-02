@@ -524,7 +524,7 @@ namespace PocketDb
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances:Last = 1): %.2fms\n", 0.001 * (nTime4 - nTime3));
 
         // Decrease last likers values
-        auto stmt2 = SetupSqlStatement(R"sql(
+        auto stmt4 = SetupSqlStatement(R"sql(
             update Ratings indexed by Ratings_Type_Id_Last_Height set
                 Value = Value - r.Cnt,
                 Height = (select mex(r1.Height) from Rating r1 where r1.Type = r.Type and r1.Id = r.Id and r1.Height < ?)
@@ -540,13 +540,13 @@ namespace PocketDb
               and Ratings.Id = r.Id
               and Ratings.Last = 1
         )sql");
-        TryBindStatementInt(stmt2, 1, height);
-        TryBindStatementInt(stmt2, 2, height);
-        TryBindStatementInt(stmt2, 3, height);
-        TryStepStatement(stmt2);
+        TryBindStatementInt(stmt4, 1, height);
+        TryBindStatementInt(stmt4, 2, height);
+        TryBindStatementInt(stmt4, 3, height);
+        TryStepStatement(stmt4);
 
-        int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Ratings:Last = 1): %.2fms\n", 0.001 * (nTime3 - nTime2));
+        int64_t nTime4 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Likers:Last = 1): %.2fms\n", 0.001 * (nTime4 - nTime3));
 
     }
 
