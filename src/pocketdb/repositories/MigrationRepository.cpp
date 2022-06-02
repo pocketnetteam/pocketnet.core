@@ -12,7 +12,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            if (CheckNeedSplitLikers())
+            if (!CheckNeedSplitLikers())
             {
                 result = true;
                 return;
@@ -20,7 +20,6 @@ namespace PocketDb
 
             LogPrint(BCLog::MIGRATION, "SQLDB Migration: SplitLikers starting. Do not turn off your node and PC.\n");
 
-            // Calculate last values group by AccountID & Type
             TryTransactionBulk({
 
                 // Insert new splitted types of likers
@@ -82,7 +81,7 @@ namespace PocketDb
 
             });
 
-            result = CheckNeedSplitLikers();
+            result = !CheckNeedSplitLikers();
         });
         return result;
     }
@@ -115,23 +114,74 @@ namespace PocketDb
                 auto[sumSpltValueOk, sumSpltValue] = TryGetColumnInt64(*stmt, 2);
                 auto[cntSpltOk, cntSplt] = TryGetColumnInt64(*stmt, 3);
 
-                result = (sumAllId == sumSpltId && sumAllValue == sumSpltValue && cntAll == cntSplt);
+                result = (sumAllId != sumSpltId || sumAllValue != sumSpltValue || cntAll != cntSplt);
+
             }
         }
 
-        impletment
-auto stmt = SetupSqlStatement(R"sql(
-  select
-    r.Id
-    ,r.Type
-    ,count()rCount
-    ,rl.Value
-  from Ratings r
-  left join Ratings rl on rl.Type = (r.Type + 100 - 10) and rl.Id = r.Id and rl.Last = 1
-  where r.Type in (11,12,13)
-  group by r.Id, r.Type
-  --having rCount != rl.Value
-)sql");
+        FinalizeSqlStatement(*stmt);
+
+        return result;
+    }
+
+    bool MigrationRepository::AccumulateLikers()
+    {
+        bool result = false;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            if (!CheckNeedAccumulateLikers())
+            {
+                result = true;
+                return;
+            }
+
+            LogPrint(BCLog::MIGRATION, "SQLDB Migration: AccumulateLikers starting. Do not turn off your node and PC.\n");
+
+            TryTransactionBulk({
+
+                // Clear old data - this first init simple migration
+                SetupSqlStatement(R"sql(     
+                    delete from Ratings
+                    where Type in (101,102,103)
+                )sql"),
+
+                // Insert new last values
+                SetupSqlStatement(R"sql(
+                    insert or fail into Ratings (Type, Last, Height, Id, Value)
+                    select
+                        (Type + 100 - 10)
+                        ,1
+                        ,max(Height)
+                        ,Id
+                        ,count()
+                    from Ratings
+                    where Type in (11,22,13)
+                    group by Id, Type
+                )sql")
+
+            });
+
+            result = !CheckNeedAccumulateLikers();
+        });
+        return result;
+    }
+
+    bool MigrationRepository::CheckNeedAccumulateLikers()
+    {
+        bool result = false;
+
+        auto stmt = SetupSqlStatement(R"sql(
+            select 1
+            from Ratings r
+            left join Ratings rl on rl.Type = (r.Type + 100 - 10) and rl.Id = r.Id and rl.Last = 1
+            where r.Type in (11,12,13)
+            group by r.Id, r.Type, rl.Value
+            having count() != rl.Value or rl.Value isnull
+            limit 1
+        )sql");
+
+        result = (sqlite3_step(*stmt) == SQLITE_ROW);
 
         FinalizeSqlStatement(*stmt);
 

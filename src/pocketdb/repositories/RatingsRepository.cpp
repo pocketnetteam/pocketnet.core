@@ -138,22 +138,12 @@ namespace PocketDb
                     Height,
                     Id,
                     Value
-                ) SELECT ?,1,?,?,?
-                WHERE NOT EXISTS (
-                    select 1
-                    from Ratings r indexed by Ratings_Type_Id_Value
-                    where r.Type=?
-                      and r.Id=?
-                      and r.Value=?
-                )
+                ) values ( ?,1,?,?,? )
             )sql");
             TryBindStatementInt(stmtInsert, 1, *rating.GetType());
             TryBindStatementInt(stmtInsert, 2, rating.GetHeight());
             TryBindStatementInt64(stmtInsert, 3, rating.GetId());
             TryBindStatementInt64(stmtInsert, 4, rating.GetValue());
-            TryBindStatementInt(stmtInsert, 5, *rating.GetType());
-            TryBindStatementInt64(stmtInsert, 6, rating.GetId());
-            TryBindStatementInt64(stmtInsert, 7, rating.GetValue());
             TryStepStatement(stmtInsert);
 
             // Increase last value
