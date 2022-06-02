@@ -179,16 +179,5 @@ namespace PocketServices
         PocketDb::RatingsRepoInst.InsertRatings(ratings);
     }
 
-    void ChainPostProcessing::BuildAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
-    {
-        auto found = find(
-            accountLikers[scoreData->ContentAddressId].begin(),
-            accountLikers[scoreData->ContentAddressId].end(),
-            scoreData->ScoreAddressId
-        );
-
-        if (found == accountLikers[scoreData->ContentAddressId].end())
-            accountLikers[scoreData->ContentAddressId].push_back(scoreData->ScoreAddressId);
-    }
     
 } // namespace PocketServices

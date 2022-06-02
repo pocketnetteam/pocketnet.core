@@ -125,6 +125,18 @@ namespace PocketDb
                 throw std::runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
         }
 
+        void TryTransactionBulk(const vector<shared_ptr<sqlite3_stmt*>>& stmts)
+    {
+            if (!m_database.BeginTransaction())
+                throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
+                
+            for (const auto& stmt : stmts)
+                TryStepStatement(stmt);
+
+            if (!m_database.CommitTransaction())
+                throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
+        }
+
         shared_ptr<sqlite3_stmt*> SetupSqlStatement(const std::string& sql) const
         {
             sqlite3_stmt* stmt;

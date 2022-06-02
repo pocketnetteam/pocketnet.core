@@ -20,47 +20,70 @@ namespace PocketDb
 
             LogPrint(BCLog::MIGRATION, "SQLDB Migration: SplitLikers starting. Do not turn off your node and PC.\n");
 
-            auto stmt = SetupSqlStatement(R"sql(
-                insert into Ratings (type, last, height, id, value)
-                select
+            // Calculate last values group by AccountID & Type
+            TryTransactionBulk({
 
-                (
+                // Insert new splitted types of likers
+                SetupSqlStatement(R"sql(
+                    insert into Ratings (type, last, height, id, value)
                     select
-                    case sc.Type
-                        when 300 then 11
-                        when 301 then (
-                        case c.String5
-                            when null then 12
-                            else 10
+
+                    (
+                        select
+                        case sc.Type
+                            when 300 then 11
+                            when 301 then (
+                            case c.String5
+                                when null then 12
+                                else 13
+                            end
+                            )
                         end
-                        )
-                    end
-                    from Transactions sc indexed by Transactions_Height_Id
-                    join Transactions ul indexed by Transactions_Type_Last_String1_Height_Id on ul.Type = 100 and ul.Last = 1 and ul.Height > 0 and ul.String1 = sc.String1
-                    join Transactions c on c.Hash = sc.String2
-                    join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id on ua.Type = 100 and ua.Last = 1 and ua.Height > 0 and ua.String1 = c.String1
-                    where sc.Type in (300,301)
-                    and sc.Height = r.Height
-                    and ua.Id = r.Id
-                    and ul.Id = r.Value
-                    order by sc.BlockNum asc
-                    limit 1
-                ) lkrType
+                        from Transactions sc indexed by Transactions_Height_Id
+                        join Transactions ul indexed by Transactions_Type_Last_String1_Height_Id on ul.Type = 100 and ul.Last = 1 and ul.Height > 0 and ul.String1 = sc.String1
+                        join Transactions c on c.Hash = sc.String2
+                        join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id on ua.Type = 100 and ua.Last = 1 and ua.Height > 0 and ua.String1 = c.String1
+                        where sc.Type in (300,301)
+                        and sc.Height = r.Height
+                        and ua.Id = r.Id
+                        and ul.Id = r.Value
+                        order by sc.BlockNum asc
+                        limit 1
+                    ) lkrType
 
-                , 1
-                , r.Height
-                , r.Id
-                , r.Value
+                    , 1
+                    , r.Height
+                    , r.Id
+                    , r.Value
 
-                from Ratings r
-                where r.Type in (1)
-            )sql");
+                    from Ratings r
+                    where r.Type in (1)
+                )sql")
 
-            TryStepStatement(stmt);
+                // Clear old data - this first init simple migration
+                SetupSqlStatement(R"sql(     
+                    delete from Ratings
+                    where Type in (101,102,103)
+                )sql"),
+
+                // Insert new last values
+                SetupSqlStatement(R"sql(
+                    insert or fail into Ratings (Type, Last, Height, Id, Value)
+                    select
+                        (Type + 100 - 10)
+                        ,1
+                        ,max(Height)
+                        ,Id
+                        ,count()
+                    from Ratings
+                    where Type in (11,22,13)
+                    group by Id, Type
+                )sql")
+
+            });
 
             result = CheckNeedSplitLikers();
         });
-
         return result;
     }
 
@@ -95,6 +118,20 @@ namespace PocketDb
                 result = (sumAllId == sumSpltId && sumAllValue == sumSpltValue && cntAll == cntSplt);
             }
         }
+
+        impletment
+auto stmt = SetupSqlStatement(R"sql(
+  select
+    r.Id
+    ,r.Type
+    ,count()rCount
+    ,rl.Value
+  from Ratings r
+  left join Ratings rl on rl.Type = (r.Type + 100 - 10) and rl.Id = r.Id and rl.Last = 1
+  where r.Type in (11,12,13)
+  group by r.Id, r.Type
+  --having rCount != rl.Value
+)sql");
 
         FinalizeSqlStatement(*stmt);
 

@@ -485,9 +485,10 @@ namespace PocketDb
             from (
                 select r1.Type, r1.Id, max(r2.Height)Height
                 from Ratings r1 indexed by Ratings_Type_Id_Last_Height
-                join Ratings r2 indexed by Ratings_Last_Id_Height on r2.Last = 0 and r2.Id = r1.Id and r2.Height < ?
+                join Ratings r2 indexed by Ratings_Type_Id_Last_Height on r2.Type = r1.Type and r2.Id = r1.Id and r2.Last = 0 and r2.Height < ?
                 where r1.Height >= ?
                   and r1.Last = 1
+                  and r1.Type in (0,2,3)
                 group by r1.Type, r1.Id
             )r
             where Ratings.Type = r.Type
@@ -521,6 +522,32 @@ namespace PocketDb
 
         int64_t nTime4 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances:Last = 1): %.2fms\n", 0.001 * (nTime4 - nTime3));
+
+        // Decrease last likers values
+        auto stmt2 = SetupSqlStatement(R"sql(
+            update Ratings indexed by Ratings_Type_Id_Last_Height set
+                Value = Value - r.Cnt,
+                Height = (select mex(r1.Height) from Rating r1 where r1.Type = r.Type and r1.Id = r.Id and r1.Height < ?)
+            from (
+                select r1.Type, r1.Id, count()Cnt
+                from Ratings r1 indexed by Ratings_Type_Id_Last_Height
+                where r1.Height >= ?
+                  and r1.Last = 1
+                  and r1.Type in (11,12,13,14)
+                group by r1.Type, r1.Id
+            )r
+            where Ratings.Type = (r.Type + 100 - 10)
+              and Ratings.Id = r.Id
+              and Ratings.Last = 1
+        )sql");
+        TryBindStatementInt(stmt2, 1, height);
+        TryBindStatementInt(stmt2, 2, height);
+        TryBindStatementInt(stmt2, 3, height);
+        TryStepStatement(stmt2);
+
+        int64_t nTime3 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Ratings:Last = 1): %.2fms\n", 0.001 * (nTime3 - nTime2));
+
     }
 
     void ChainRepository::RollbackHeight(int height)
@@ -576,6 +603,7 @@ namespace PocketDb
         auto stmt21 = SetupSqlStatement(R"sql(
             delete from Ratings
             where Height >= ?
+              and Type in (0,2,3)
         )sql");
         TryBindStatementInt(stmt21, 1, height);
         TryStepStatement(stmt21);
