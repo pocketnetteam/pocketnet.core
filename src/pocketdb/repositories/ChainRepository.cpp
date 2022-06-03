@@ -621,7 +621,6 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(stmt7, 1, height);
         TryBindStatementInt(stmt7, 2, height);
-        TryBindStatementInt(stmt7, 3, height);
         TryStepStatement(stmt7);
 
         int64_t nTime7 = GetTimeMicros();
