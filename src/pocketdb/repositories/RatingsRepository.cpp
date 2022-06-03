@@ -62,7 +62,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select 1
                 from Ratings indexed by Ratings_Type_Id_Value
-                where Type in (11,12,10,100)
+                where Type in (11,12,13)
                   and Id = ?
                   and Value = ?
             )sql");
