@@ -154,7 +154,7 @@ namespace PocketDb
                     1, -- Last
                     ?, -- Height
                     ?, -- Id
-                    1 -- New Value
+                    0  -- Init Value
                 where not exists (
                     select 1
                     from Ratings r
