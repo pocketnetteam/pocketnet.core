@@ -147,28 +147,54 @@ namespace PocketDb
             TryStepStatement(stmtInsert);
 
             // Increase last value
-            auto stmtReplace = SetupSqlStatement(R"sql(
-                replace into Ratings (Type, Last, Height, Id, Value)
-                values (
+            auto stmtInsertLast = SetupSqlStatement(R"sql(
+                insert or fail into Ratings (Type, Last, Height, Id, Value)
+                select
                     ?, -- Type
                     1, -- Last
                     ?, -- Height
                     ?, -- Id
-                    (1 + ifnull((
-                        select r.Value
-                        from Ratings r
-                        where r.Type = ?
-                          and r.Id = ?
-                          and r.Last = 1
-                    ),0)) -- New Value
+                    1 -- New Value
+                where not exists (
+                    select 1
+                    from Ratings r
+                    where r.Type = ?
+                      and r.Id = ?
+                      and r.Last = 1
                 )
             )sql");
-            TryBindStatementInt(stmtReplace, 1, *rating.GetType());
-            TryBindStatementInt(stmtReplace, 2, rating.GetHeight());
-            TryBindStatementInt64(stmtReplace, 3, rating.GetId());
-            TryBindStatementInt(stmtReplace, 4, *rating.GetType());
-            TryBindStatementInt64(stmtReplace, 5, rating.GetId());
-            TryStepStatement(stmtReplace);
+            TryBindStatementInt(stmtInsertLast, 1, *rating.GetType());
+            TryBindStatementInt(stmtInsertLast, 2, rating.GetHeight());
+            TryBindStatementInt64(stmtInsertLast, 3, rating.GetId());
+            TryBindStatementInt(stmtInsertLast, 4, *rating.GetType());
+            TryBindStatementInt64(stmtInsertLast, 5, rating.GetId());
+            TryStepStatement(stmtInsertLast);
+
+            // Increase last value
+            auto stmtUpdateLast = SetupSqlStatement(R"sql(
+                update Ratings set
+                    Value = (
+                        1 + ifnull((
+                            select r.Value
+                            from Ratings r
+                            where r.Type = ?
+                              and r.Id = ?
+                              and r.Last = 1
+                            limit 1
+                        ),0)
+                    )
+                    , Height = ?
+                where Type = ?
+                  and Id = ?
+                  and Last = 1
+                )
+            )sql");
+            TryBindStatementInt(stmtUpdateLast, 1, *rating.GetType());
+            TryBindStatementInt64(stmtUpdateLast, 2, rating.GetId());
+            TryBindStatementInt(stmtUpdateLast, 3, rating.GetHeight());
+            TryBindStatementInt(stmtUpdateLast, 4, *rating.GetType());
+            TryBindStatementInt64(stmtUpdateLast, 5, rating.GetId());
+            TryStepStatement(stmtUpdateLast);
         });
     }
 }
