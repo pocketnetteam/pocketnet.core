@@ -522,9 +522,88 @@ namespace PocketDb
 
         int64_t nTime4 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances:Last = 1): %.2fms\n", 0.001 * (nTime4 - nTime3));
+    }
 
-        // Decrease last likers values
+    void ChainRepository::RollbackHeight(int height)
+    {
+        int64_t nTime1 = GetTimeMicros();
+
+        // Rollback general transaction information
+        auto stmt2 = SetupSqlStatement(R"sql(
+            UPDATE Transactions SET
+                BlockHash = null,
+                BlockNum = null,
+                Height = null,
+                Id = null,
+                Last = 0
+            WHERE Height >= ?
+        )sql");
+        TryBindStatementInt(stmt2, 1, height);
+        TryStepStatement(stmt2);
+
+        int64_t nTime2 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Transactions:Height = null): %.2fms\n", 0.001 * (nTime2 - nTime1));
+
+        // ----------------------------------------
+
+        // Rollback spent transaction outputs
+        auto stmt3 = SetupSqlStatement(R"sql(
+            UPDATE TxOutputs SET
+                SpentHeight = null,
+                SpentTxHash = null
+            WHERE SpentHeight >= ?
+        )sql");
+        TryBindStatementInt(stmt3, 1, height);
+        TryStepStatement(stmt3);
+
+        int64_t nTime3 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:SpentHeight = null): %.2fms\n", 0.001 * (nTime3 - nTime2));
+
+        // Rollback transaction outputs height
         auto stmt4 = SetupSqlStatement(R"sql(
+            UPDATE TxOutputs SET
+                TxHeight = null
+            WHERE TxHeight >= ?
+        )sql");
+        TryBindStatementInt(stmt4, 1, height);
+        TryStepStatement(stmt4);
+
+        int64_t nTime4 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:TxHeight = null): %.2fms\n", 0.001 * (nTime4 - nTime3));
+
+        // ----------------------------------------
+
+        // Remove ratings
+        auto stmt5 = SetupSqlStatement(R"sql(
+            delete from Ratings
+            where Height >= ?
+              and Type in (
+                0,2,3, -- Accumulate ratings
+                1,11,12,13,14 -- Likers facts
+              )
+        )sql");
+        TryBindStatementInt(stmt5, 1, height);
+        TryStepStatement(stmt5);
+
+        int64_t nTime5 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime5 - nTime4));
+
+        // ----------------------------------------
+
+        // Remove balances
+        auto stmt6 = SetupSqlStatement(R"sql(
+            delete from Balances
+            where Height >= ?
+        )sql");
+        TryBindStatementInt(stmt6, 1, height);
+        TryStepStatement(stmt6);
+
+        int64_t nTime6 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime6 - nTime5));
+        
+        // ----------------------------------------
+        // Decrease last likers values
+        auto stmt7 = SetupSqlStatement(R"sql(
             update Ratings indexed by Ratings_Type_Id_Last_Height set
                 Value = Value - r.Cnt,
                 Height = (select max(r1.Height) from Rating r1 where r1.Type = r.Type and r1.Id = r.Id and r1.Height < ?)
@@ -540,106 +619,26 @@ namespace PocketDb
               and Ratings.Id = r.Id
               and Ratings.Last = 1
         )sql");
-        TryBindStatementInt(stmt4, 1, height);
-        TryBindStatementInt(stmt4, 2, height);
-        TryBindStatementInt(stmt4, 3, height);
-        TryStepStatement(stmt4);
+        TryBindStatementInt(stmt7, 1, height);
+        TryBindStatementInt(stmt7, 2, height);
+        TryBindStatementInt(stmt7, 3, height);
+        TryStepStatement(stmt7);
 
-        int64_t nTime5 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Likers:Last = 1): %.2fms\n", 0.001 * (nTime5 - nTime4));
-
-    }
-
-    void ChainRepository::RollbackHeight(int height)
-    {
-        int64_t nTime1 = GetTimeMicros();
-
-        // Rollback general transaction information
-        auto stmt0 = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                BlockHash = null,
-                BlockNum = null,
-                Height = null,
-                Id = null,
-                Last = 0
-            WHERE Height >= ?
-        )sql");
-        TryBindStatementInt(stmt0, 1, height);
-        TryStepStatement(stmt0);
-
-        int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Transactions:Height = null): %.2fms\n", 0.001 * (nTime2 - nTime1));
+        int64_t nTime7 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Likers:Last): %.2fms\n", 0.001 * (nTime7 - nTime6));
 
         // ----------------------------------------
-
-        // Rollback spent transaction outputs
-        auto stmt1 = SetupSqlStatement(R"sql(
-            UPDATE TxOutputs SET
-                SpentHeight = null,
-                SpentTxHash = null
-            WHERE SpentHeight >= ?
-        )sql");
-        TryBindStatementInt(stmt1, 1, height);
-        TryStepStatement(stmt1);
-
-        int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:SpentHeight = null): %.2fms\n", 0.001 * (nTime3 - nTime2));
-
-        // Rollback transaction outputs height
-        auto stmt11 = SetupSqlStatement(R"sql(
-            UPDATE TxOutputs SET
-                TxHeight = null
-            WHERE TxHeight >= ?
-        )sql");
-        TryBindStatementInt(stmt11, 1, height);
-        TryStepStatement(stmt11);
-
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:TxHeight = null): %.2fms\n", 0.001 * (nTime4 - nTime3));
-
-        // ----------------------------------------
-
-        // Remove ratings
-        auto stmt21 = SetupSqlStatement(R"sql(
-            delete from Ratings
-            where Height >= ?
-              and Type in (
-                0,2,3, -- Accumulate ratings
-                1,11,12,13,14 -- Likers facts
-              )
-        )sql");
-        TryBindStatementInt(stmt21, 1, height);
-        TryStepStatement(stmt21);
-
-        int64_t nTime5 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime5 - nTime4));
-
-        // ----------------------------------------
-
-        // Remove balances
-        auto stmt31 = SetupSqlStatement(R"sql(
-            delete from Balances
-            where Height >= ?
-        )sql");
-        TryBindStatementInt(stmt31, 1, height);
-        TryStepStatement(stmt31);
-
-        int64_t nTime6 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime6 - nTime5));
-        
-        // ----------------------------------------
-
         // Remove zero last likers
-        auto stmt41 = SetupSqlStatement(R"sql(
+        auto stmt8 = SetupSqlStatement(R"sql(
             delete from Ratings
             where Height >= ?
               and Type in (101,102,103,104) and Value = 0
         )sql");
-        TryBindStatementInt(stmt41, 1, height);
-        TryStepStatement(stmt41);
+        TryBindStatementInt(stmt8, 1, height);
+        TryStepStatement(stmt8);
 
-        int64_t nTime7 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings last zero delete): %.2fms\n", 0.001 * (nTime7 - nTime6));
+        int64_t nTime8 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings last zero delete): %.2fms\n", 0.001 * (nTime8 - nTime7));
     }
 
 
