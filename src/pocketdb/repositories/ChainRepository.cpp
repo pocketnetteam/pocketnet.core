@@ -527,7 +527,7 @@ namespace PocketDb
         auto stmt4 = SetupSqlStatement(R"sql(
             update Ratings indexed by Ratings_Type_Id_Last_Height set
                 Value = Value - r.Cnt,
-                Height = (select mex(r1.Height) from Rating r1 where r1.Type = r.Type and r1.Id = r.Id and r1.Height < ?)
+                Height = (select max(r1.Height) from Rating r1 where r1.Type = r.Type and r1.Id = r.Id and r1.Height < ?)
             from (
                 select r1.Type, r1.Id, count()Cnt
                 from Ratings r1 indexed by Ratings_Type_Id_Last_Height
@@ -603,7 +603,10 @@ namespace PocketDb
         auto stmt21 = SetupSqlStatement(R"sql(
             delete from Ratings
             where Height >= ?
-              and Type in (0,2,3)
+              and Type in (
+                0,2,3, -- Accumulate ratings
+                1,11,12,13,14 -- Likers facts
+              )
         )sql");
         TryBindStatementInt(stmt21, 1, height);
         TryStepStatement(stmt21);
@@ -623,6 +626,20 @@ namespace PocketDb
 
         int64_t nTime6 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime6 - nTime5));
+        
+        // ----------------------------------------
+
+        // Remove zero last likers
+        auto stmt41 = SetupSqlStatement(R"sql(
+            delete from Ratings
+            where Height >= ?
+              and Type in (101,102,103,104) and Value = 0
+        )sql");
+        TryBindStatementInt(stmt41, 1, height);
+        TryStepStatement(stmt41);
+
+        int64_t nTime7 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings last zero delete): %.2fms\n", 0.001 * (nTime7 - nTime6));
     }
 
 
