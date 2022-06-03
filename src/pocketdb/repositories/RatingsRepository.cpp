@@ -132,7 +132,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmtInsert = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO Ratings (
+                insert or fail into Ratings (
                     Type,
                     Last,
                     Height,
