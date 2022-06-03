@@ -146,7 +146,25 @@ namespace PocketDb
             TryBindStatementInt64(stmtInsert, 4, rating.GetValue());
             TryStepStatement(stmtInsert);
 
-            // Increase last value
+            // Set last count value
+            int type = -1;
+            switch (*rating.GetType())
+            {
+                case RatingType::ACCOUNT_LIKERS_POST:
+                    type = RatingType::ACCOUNT_LIKERS_POST_LAST;
+                    break;
+                case RatingType::ACCOUNT_LIKERS_COMMENT_ROOT:
+                    type = RatingType::ACCOUNT_LIKERS_COMMENT_ROOT_LAST;
+                    break;
+                case RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER:
+                    type = RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER_LAST;
+                    break;
+                // Other types not accumulate
+                default:
+                    return;
+            }
+
+            // Init first last value record
             auto stmtInsertLast = SetupSqlStatement(R"sql(
                 insert or fail into Ratings (Type, Last, Height, Id, Value)
                 select
@@ -159,14 +177,14 @@ namespace PocketDb
                     select 1
                     from Ratings r
                     where r.Type = ?
-                      and r.Id = ?
-                      and r.Last = 1
+                    and r.Id = ?
+                    and r.Last = 1
                 )
             )sql");
-            TryBindStatementInt(stmtInsertLast, 1, *rating.GetType());
+            TryBindStatementInt(stmtInsertLast, 1, type);
             TryBindStatementInt(stmtInsertLast, 2, rating.GetHeight());
             TryBindStatementInt64(stmtInsertLast, 3, rating.GetId());
-            TryBindStatementInt(stmtInsertLast, 4, *rating.GetType());
+            TryBindStatementInt(stmtInsertLast, 4, type);
             TryBindStatementInt64(stmtInsertLast, 5, rating.GetId());
             TryStepStatement(stmtInsertLast);
 
@@ -185,14 +203,13 @@ namespace PocketDb
                     )
                     , Height = ?
                 where Type = ?
-                  and Id = ?
-                  and Last = 1
-                )
+                and Id = ?
+                and Last = 1
             )sql");
-            TryBindStatementInt(stmtUpdateLast, 1, *rating.GetType());
+            TryBindStatementInt(stmtUpdateLast, 1, type);
             TryBindStatementInt64(stmtUpdateLast, 2, rating.GetId());
             TryBindStatementInt(stmtUpdateLast, 3, rating.GetHeight());
-            TryBindStatementInt(stmtUpdateLast, 4, *rating.GetType());
+            TryBindStatementInt(stmtUpdateLast, 4, type);
             TryBindStatementInt64(stmtUpdateLast, 5, rating.GetId());
             TryStepStatement(stmtUpdateLast);
         });
