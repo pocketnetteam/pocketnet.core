@@ -116,6 +116,8 @@ namespace PocketDb
             {
                 token = sql.substr(0, pos);
 
+                LogPrint(BCLog::MIGRATION, "Migration Sqlite database `%s` structure..\n---\n%s\n---\n", m_file_path, token);
+
                 BeginTransaction();
 
                 if (sqlite3_exec(m_db, token.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK)
