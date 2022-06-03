@@ -57,7 +57,7 @@ namespace PocketDb
 
                     from Ratings r
                     where r.Type in (1)
-                )sql")
+                )sql"),
 
                 // Clear old data - this first init simple migration
                 SetupSqlStatement(R"sql(     
