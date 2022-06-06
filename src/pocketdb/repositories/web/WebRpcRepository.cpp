@@ -4473,7 +4473,7 @@ namespace PocketDb
                 null,
                 null,
                 null,
-                null,
+                null, -- TODO (losty): related content? If repost etc
                 null,
                 null,
                 null,
@@ -4568,7 +4568,7 @@ namespace PocketDb
             from Transactions t --indexed by Transactions_Type_Last_String2_Height
             left join Payload p
                 on p.TxHash = t.Hash
-            left join Ratings r
+            left join Ratings r indexed by Ratings_Type_Id_Last_Height
                 on r.Type = 0
                 and r.Id = t.Id
                 and r.Last = 1
@@ -4646,9 +4646,11 @@ namespace PocketDb
                 and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
             left join Payload pc
                 on pC.TxHash = c.Hash
-            left join Transactions ac indexed by Transactions_String1_Last_Height -- accounts of commentators
+            left join Transactions ac -- accounts of commentators
                 on ac.String1 = c.String1
                 and ac.Last = 1
+                and ac.Type = 100
+                and ac.Height is not null
             left join Payload pac
                 on pac.TxHash = ac.Hash
 
@@ -4731,9 +4733,9 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
 
-            join Transactions s indexed by Transactions_Type_String1_String2_Height
+            join Transactions s indexed by Transactions_Type_Last_String2_Height
                 on s.Type = 301
                 and s.String2 = c.String2
                 and s.Height > ?
@@ -4745,6 +4747,7 @@ namespace PocketDb
                 on acs.Type = 100
                 and acs.Last = 1
                 and acs.String1 = s.String1
+                and acs.Height is not null
             join Payload pacs
                 on pacs.TxHash = acs.Hash
             join Ratings racs indexed by Ratings_Type_Id_Last_Height
@@ -4784,10 +4787,10 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
 
-            join Transactions s indexed by Transactions_Type_String1_String2_Height
-                on s.Type = 301
+            join Transactions s indexed by Transactions_Type_Last_String2_Height
+                on s.Type = 300
                 and s.String2 = c.String2
                 and s.Height > ?
                 and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
@@ -4798,6 +4801,7 @@ namespace PocketDb
                 on acs.Type = 100
                 and acs.Last = 1
                 and acs.String1 = s.String1
+                and acs.Height is not null
             join Payload pacs
                 on pacs.TxHash = acs.Hash
             join Ratings racs indexed by Ratings_Type_Id_Last_Height
@@ -4805,7 +4809,7 @@ namespace PocketDb
                 and racs.Id = acs.Id
                 and racs.Last = 1
 
-            where c.Type in (204,205)
+            where c.Type in (200, 201, 202)
                 and c.Last = 1
                 and c.Height > ?
                 and c.String1 = ?
@@ -4854,6 +4858,7 @@ namespace PocketDb
                 on ac.Type = 100
                 and ac.Last = 1
                 and ac.String1 = c.String1
+                and ac.Height is not null
             join Payload pac
                 on pac.TxHash = ac.Hash
             join Ratings rac indexed by Ratings_Type_Id_Last_Height
@@ -4906,6 +4911,9 @@ namespace PocketDb
             
             join Transactions ac
                 on ac.String1 = tBoost.String1
+                and ac.Type = 100
+                and ac.Last = 1
+                and ac.Height is not null
             join Payload pac
                 on pac.TxHash = ac.Hash
             join Ratings rac indexed by Ratings_Type_Id_Last_Height
@@ -4962,6 +4970,7 @@ namespace PocketDb
                 on ar.Type = 100
                 and ar.Last = 1
                 and ar.String1 = r.String1
+                and ar.Height is not null
             join Payload par
                 on par.TxHash = ar.Hash
             join Ratings rar indexed by Ratings_Type_Id_Last_Height
