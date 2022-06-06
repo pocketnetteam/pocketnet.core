@@ -4727,7 +4727,7 @@ namespace PocketDb
                 c.Height, -- TODO (losty): original?
                 c.BlockNum,
                 null,
-                substr(ps.String1, 0, 100),
+                ps.String1,
                 null,
                 null,
                 null,
@@ -4781,7 +4781,7 @@ namespace PocketDb
                 c.Height, -- TODO (losty): original?
                 c.BlockNum,
                 null,
-                substr(ps.String1, 0, 100),
+                ps.String2,
                 null,
                 null,
                 null,
