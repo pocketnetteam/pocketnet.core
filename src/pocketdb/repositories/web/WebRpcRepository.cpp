@@ -15,13 +15,13 @@ namespace PocketDb
         {
             auto [ok, type] = TryGetColumnString(stmt, 0);
             if (!ok) {
-                return false;
+                throw std::runtime_error("Missing row type");
             }
 
             int currentIndex = 1;
             auto txData = ProcessTxData(stmt, currentIndex);
             if (!txData) {
-                return false;
+                throw std::runtime_error("Missing required fields for tx data in a row");
             }
 
             auto relatedContent = ProcessTxData(stmt, currentIndex);
