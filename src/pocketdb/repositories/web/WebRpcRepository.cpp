@@ -4646,7 +4646,7 @@ namespace PocketDb
                 and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
             left join Payload pc
                 on pC.TxHash = c.Hash
-            left join Transactions ac -- accounts of commentators
+            join Transactions ac -- accounts of commentators
                 on ac.String1 = c.String1
                 and ac.Last = 1
                 and ac.Type = 100
@@ -4693,9 +4693,9 @@ namespace PocketDb
                 and u.Last = 1
                 and u.String1 = subs.String1
                 and u.Height is not null
-            join Payload pu
+            left join Payload pu
                 on pu.TxHash = u.Hash
-            join Ratings ru indexed by Ratings_Type_Id_Last_Height
+            left join Ratings ru indexed by Ratings_Type_Id_Last_Height
                 on ru.Type = 0
                 and ru.Id = u.Id
                 and ru.Last = 1
@@ -4741,16 +4741,16 @@ namespace PocketDb
                 and s.Height > ?
                 and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
 
-            join Payload ps
+            left join Payload ps
                 on ps.TxHash = c.Hash
             join Transactions acs
                 on acs.Type = 100
                 and acs.Last = 1
                 and acs.String1 = s.String1
                 and acs.Height is not null
-            join Payload pacs
+            left join Payload pacs
                 on pacs.TxHash = acs.Hash
-            join Ratings racs indexed by Ratings_Type_Id_Last_Height
+            left join Ratings racs indexed by Ratings_Type_Id_Last_Height
                 on racs.Type = 0
                 and racs.Id = acs.Id
                 and racs.Last = 1
@@ -4795,16 +4795,16 @@ namespace PocketDb
                 and s.Height > ?
                 and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
 
-            join Payload ps
+            left join Payload ps
                 on ps.TxHash = c.Hash
             join Transactions acs
                 on acs.Type = 100
                 and acs.Last = 1
                 and acs.String1 = s.String1
                 and acs.Height is not null
-            join Payload pacs
+            left join Payload pacs
                 on pacs.TxHash = acs.Hash
-            join Ratings racs indexed by Ratings_Type_Id_Last_Height
+            left join Ratings racs indexed by Ratings_Type_Id_Last_Height
                 on racs.Type = 0
                 and racs.Id = acs.Id
                 and racs.Last = 1
@@ -4859,9 +4859,9 @@ namespace PocketDb
                 and ac.Last = 1
                 and ac.String1 = c.String1
                 and ac.Height is not null
-            join Payload pac
+            left join Payload pac
                 on pac.TxHash = ac.Hash
-            join Ratings rac indexed by Ratings_Type_Id_Last_Height
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
                 on rac.Type = 0
                 and rac.Id = ac.Id
                 and rac.Last = 1
@@ -4906,7 +4906,7 @@ namespace PocketDb
                 and tContent.Height > ?
                 and tContent.String1 = ?
                 and tContent.String2 = tBoost.String2
-            join Payload pContent
+            left join Payload pContent
                 on pContent.TxHash = tContent.Hash
             
             join Transactions ac
@@ -4914,9 +4914,9 @@ namespace PocketDb
                 and ac.Type = 100
                 and ac.Last = 1
                 and ac.Height is not null
-            join Payload pac
+            left join Payload pac
                 on pac.TxHash = ac.Hash
-            join Ratings rac indexed by Ratings_Type_Id_Last_Height
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
                 on rac.Type = 0
                 and rac.Id = ac.Id
                 and rac.Last = 1
@@ -4964,16 +4964,16 @@ namespace PocketDb
                 and r.String3 = p.Hash
                 and r.Height > ?
                 and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
-            join Payload pr
+            left join Payload pr
                 on pr.TxHash = r.Hash
             join Transactions ar
                 on ar.Type = 100
                 and ar.Last = 1
                 and ar.String1 = r.String1
                 and ar.Height is not null
-            join Payload par
+            left join Payload par
                 on par.TxHash = ar.Hash
-            join Ratings rar indexed by Ratings_Type_Id_Last_Height
+            left join Ratings rar indexed by Ratings_Type_Id_Last_Height
                 on rar.Type = 0
                 and rar.Id = ar.Id
                 and rar.Last = 1
