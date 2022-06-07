@@ -105,19 +105,19 @@ namespace PocketTx
             return make_shared<UniValue>(ret);
         }
 
-        RatingType LikerType()
+        RatingType LikerType(bool last)
         {
             if (ScoreType == ACTION_SCORE_CONTENT)
-                return RatingType::ACCOUNT_LIKERS_POST;
+                return last ? ACCOUNT_LIKERS_POST_LAST : ACCOUNT_LIKERS_POST;
 
             if (ScoreType == ACTION_SCORE_COMMENT && String5.empty())
-                return RatingType::ACCOUNT_LIKERS_COMMENT_ROOT;
+                return last ? ACCOUNT_LIKERS_COMMENT_ROOT_LAST : ACCOUNT_LIKERS_COMMENT_ROOT;
 
             if (ScoreType == ACTION_SCORE_COMMENT && !String5.empty())
-                return RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER;
+                return last ? ACCOUNT_LIKERS_COMMENT_ANSWER_LAST : ACCOUNT_LIKERS_COMMENT_ANSWER;
 
             // You don't have to get to here
-            assert(false);
+            return ACCOUNT_LIKERS;
         }
     };
 

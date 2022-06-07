@@ -29,13 +29,10 @@ namespace PocketServices
     public:
         static void Index(const CBlock& block, int height);
         static bool Rollback(int height);
-    // TODO (brangr): DEBUG!!!
-    //protected:
+    protected:
         static void PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs);
         static void IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs);
         static void IndexRatings(int height, vector<TransactionIndexingInfo>& txs);
-    private:
-        static void BuildAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers);
     };
 } // namespace PocketServices
 

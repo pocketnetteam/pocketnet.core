@@ -65,6 +65,7 @@ namespace PocketServices
     void ChainPostProcessing::IndexRatings(int height, vector<TransactionIndexingInfo>& txs)
     {
         map<RatingType, map<int, int>> ratingValues;
+        vector<ScoreDataDtoRef> distinctScores;
         map<RatingType, map<int, vector<int>>> likersValues;
         // map<int, vector<int>> accountLikersSrc;
 
@@ -125,16 +126,22 @@ namespace PocketServices
 
                     break;
 
-                    // Not supported score type
+                // Not supported score type
                 default:
                     break;
             }
             
             // Extend list of ratings with likers values
-            reputationConsensus->ValidateAccountLiker(scoreData, likersValues);
+            reputationConsensus->DistinctScores(scoreData, distinctScores);
         }
 
-        // Prepare all ratings model records for increase Rating
+        // Filter all distinct records
+        for (const auto& _scoreData : distinctScores)
+        {
+            reputationConsensus->ValidateAccountLiker(_scoreData, likersValues, ratingValues);
+        }
+            
+        // Prepare all ratings model records for increase ratings
         shared_ptr<vector<Rating>> ratings = make_shared<vector<Rating>>();
         for (const auto& tp : ratingValues)
         {
@@ -154,13 +161,22 @@ namespace PocketServices
             }
         }
 
-        // Save likers in db
+        // Prepare likers models
         for (const auto& tp : likersValues)
         {
             for (const auto& cnt : tp.second)
             {
                 for (const auto& lkr : cnt.second)
                 {
+                    // Skip not changed likers count
+                    if (lkr == 0 && (
+                        tp.first == RatingType::ACCOUNT_LIKERS_POST_LAST ||
+                        tp.first == RatingType::ACCOUNT_LIKERS_COMMENT_ROOT_LAST ||
+                        tp.first == RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER_LAST ||
+                        tp.first == RatingType::ACCOUNT_DISLIKERS_COMMENT_ANSWER_LAST
+                    ))
+                        continue;
+                        
                     Rating rtg;
                     rtg.SetType(tp.first);
                     rtg.SetHeight(height);
@@ -179,5 +195,4 @@ namespace PocketServices
         PocketDb::RatingsRepoInst.InsertRatings(ratings);
     }
 
-    
 } // namespace PocketServices

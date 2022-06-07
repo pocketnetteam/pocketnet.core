@@ -29,23 +29,23 @@ namespace PocketDb
 
                     (
                         select
-                        case sc.Type
-                            when 300 then 11
-                            when 301 then (
-                            case c.String5
-                                when null then 12
-                                else 13
+                            case sc.Type
+                                when 300 then 101
+                                when 301 then (
+                                case c.String5
+                                    when null then 102
+                                    else 103
+                                end
+                                )
                             end
-                            )
-                        end
                         from Transactions sc indexed by Transactions_Height_Id
                         join Transactions ul indexed by Transactions_Type_Last_String1_Height_Id on ul.Type = 100 and ul.Last = 1 and ul.Height > 0 and ul.String1 = sc.String1
                         join Transactions c on c.Hash = sc.String2
                         join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id on ua.Type = 100 and ua.Last = 1 and ua.Height > 0 and ua.String1 = c.String1
                         where sc.Type in (300,301)
-                        and sc.Height = r.Height
-                        and ua.Id = r.Id
-                        and ul.Id = r.Value
+                          and sc.Height = r.Height
+                          and ua.Id = r.Id
+                          and ul.Id = r.Value
                         order by sc.BlockNum asc
                         limit 1
                     ) lkrType
@@ -57,28 +57,7 @@ namespace PocketDb
 
                     from Ratings r
                     where r.Type in (1)
-                )sql"),
-
-                // Clear old data - this first init simple migration
-                SetupSqlStatement(R"sql(     
-                    delete from Ratings
-                    where Type in (101,102,103)
-                )sql"),
-
-                // Insert new last values
-                SetupSqlStatement(R"sql(
-                    insert or fail into Ratings (Type, Last, Height, Id, Value)
-                    select
-                        (Type + 100 - 10)
-                        ,1
-                        ,max(Height)
-                        ,Id
-                        ,count()
-                    from Ratings
-                    where Type in (11,22,13)
-                    group by Id, Type
                 )sql")
-
             });
 
             result = !CheckNeedSplitLikers();
@@ -99,7 +78,7 @@ namespace PocketDb
 
             select 'Split', ifnull(sum(r.Id),0)sId, ifnull(sum(r.Value),0)sValue, count()cnt
             from Ratings r
-            where r.Type in (10,11,12)
+            where r.Type in (101,102,103)
         )sql");
 
         if (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -140,25 +119,29 @@ namespace PocketDb
 
             TryTransactionBulk(__func__, {
 
-                // Clear old data - this first init simple migration
-                SetupSqlStatement(R"sql(     
-                    delete from Ratings
-                    where Type in (101,102,103)
-                )sql"),
+                // TODO (brangr): IMPLEMENT !!! implement fill all accumulates likers count
 
-                // Insert new last values
-                SetupSqlStatement(R"sql(
-                    insert or fail into Ratings (Type, Last, Height, Id, Value)
-                    select
-                        (Type + 100 - 10)
-                        ,1
-                        ,max(Height)
-                        ,Id
-                        ,count()
-                    from Ratings
-                    where Type in (11,22,13)
-                    group by Id, Type
-                )sql")
+                // Clear old data - this first init simple migration
+                // SetupSqlStatement(R"sql(     
+                //     delete from Ratings
+                //     where Type in (11,12,13)
+                //       and Last = 1
+                // )sql"),
+
+                // // Insert new last values
+                // SetupSqlStatement(R"sql(
+                //     insert or fail into Ratings (Type, Last, Height, Id, Value)
+                //     select
+                //         Type,
+                //         1,
+                //         max(Height),
+                //         Id,
+                //         count()
+                //     from Ratings
+                //     where Type in (11,12,13)
+                //       and Last = 0
+                //     group by Type, Id
+                // )sql")
 
             });
 
@@ -171,19 +154,22 @@ namespace PocketDb
     {
         bool result = false;
 
-        auto stmt = SetupSqlStatement(R"sql(
-            select 1
-            from Ratings r
-            left join Ratings rl on rl.Type = (r.Type + 100 - 10) and rl.Id = r.Id and rl.Last = 1
-            where r.Type in (11,12,13)
-            group by r.Id, r.Type, rl.Value
-            having count() != rl.Value or rl.Value isnull
-            limit 1
-        )sql");
+        // TODO (brangr): implement !!!
 
-        result = (sqlite3_step(*stmt) == SQLITE_ROW);
+        // auto stmt = SetupSqlStatement(R"sql(
+        //     select 1
+        //     from Ratings r
+        //     left join Ratings rl on rl.Type = r.Type and rl.Id = r.Id and rl.Last = 1
+        //     where r.Type in (101,102,103)
+        //       and r.Last = 0
+        //     group by r.Type, r.Id, rl.Value
+        //     having count() != rl.Value or rl.Value isnull
+        //     limit 1
+        // )sql");
 
-        FinalizeSqlStatement(*stmt);
+        // result = (sqlite3_step(*stmt) == SQLITE_ROW);
+
+        // FinalizeSqlStatement(*stmt);
 
         return result;
     }

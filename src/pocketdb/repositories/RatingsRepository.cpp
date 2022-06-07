@@ -26,49 +26,27 @@ namespace PocketDb
         }
     }
 
-    bool RatingsRepository::ExistsLiker(int addressId, int likerId)
+    bool RatingsRepository::ExistsLiker(int addressId, int likerId, const vector<RatingType>& types)
     {
         bool result = false;
+        
+        string sql = R"sql(
+            select 1
+            from Ratings indexed by Ratings_Type_Id_Value
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                and Id = ?
+                and Value = ?
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
-                select 1
-                from Ratings indexed by Ratings_Type_Id_Value
-                where Type in (1)
-                  and Id = ?
-                  and Value = ?
-            )sql");
+            auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, addressId);
-            TryBindStatementInt(stmt, 2, likerId);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                result = true;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    // TODO (brangr): implement height and additional types
-    bool RatingsRepository::ExistsLiker(int addressId, int likerId, int height)
-    {
-        bool result = false;
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(R"sql(
-                select 1
-                from Ratings indexed by Ratings_Type_Id_Value
-                where Type in (11,12,13)
-                  and Id = ?
-                  and Value = ?
-            )sql");
-
-            TryBindStatementInt(stmt, 1, addressId);
-            TryBindStatementInt(stmt, 2, likerId);
+            int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementInt(stmt, i++, addressId);
+            TryBindStatementInt(stmt, i++, likerId);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 result = true;
@@ -145,73 +123,6 @@ namespace PocketDb
             TryBindStatementInt64(stmtInsert, 3, rating.GetId());
             TryBindStatementInt64(stmtInsert, 4, rating.GetValue());
             TryStepStatement(stmtInsert);
-
-            // Set last count value
-            int type = -1;
-            switch (*rating.GetType())
-            {
-                case RatingType::ACCOUNT_LIKERS_POST:
-                    type = RatingType::ACCOUNT_LIKERS_POST_LAST;
-                    break;
-                case RatingType::ACCOUNT_LIKERS_COMMENT_ROOT:
-                    type = RatingType::ACCOUNT_LIKERS_COMMENT_ROOT_LAST;
-                    break;
-                case RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER:
-                    type = RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER_LAST;
-                    break;
-                // Other types not accumulate
-                default:
-                    return;
-            }
-
-            // Init first last value record
-            auto stmtInsertLast = SetupSqlStatement(R"sql(
-                insert or fail into Ratings (Type, Last, Height, Id, Value)
-                select
-                    ?, -- Type
-                    1, -- Last
-                    ?, -- Height
-                    ?, -- Id
-                    0  -- Init Value
-                where not exists (
-                    select 1
-                    from Ratings r
-                    where r.Type = ?
-                    and r.Id = ?
-                    and r.Last = 1
-                )
-            )sql");
-            TryBindStatementInt(stmtInsertLast, 1, type);
-            TryBindStatementInt(stmtInsertLast, 2, rating.GetHeight());
-            TryBindStatementInt64(stmtInsertLast, 3, rating.GetId());
-            TryBindStatementInt(stmtInsertLast, 4, type);
-            TryBindStatementInt64(stmtInsertLast, 5, rating.GetId());
-            TryStepStatement(stmtInsertLast);
-
-            // Increase last value
-            auto stmtUpdateLast = SetupSqlStatement(R"sql(
-                update Ratings set
-                    Value = (
-                        1 + ifnull((
-                            select r.Value
-                            from Ratings r
-                            where r.Type = ?
-                              and r.Id = ?
-                              and r.Last = 1
-                            limit 1
-                        ),0)
-                    )
-                    , Height = ?
-                where Type = ?
-                and Id = ?
-                and Last = 1
-            )sql");
-            TryBindStatementInt(stmtUpdateLast, 1, type);
-            TryBindStatementInt64(stmtUpdateLast, 2, rating.GetId());
-            TryBindStatementInt(stmtUpdateLast, 3, rating.GetHeight());
-            TryBindStatementInt(stmtUpdateLast, 4, type);
-            TryBindStatementInt64(stmtUpdateLast, 5, rating.GetId());
-            TryStepStatement(stmtUpdateLast);
         });
     }
 }

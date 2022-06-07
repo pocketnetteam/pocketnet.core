@@ -6,6 +6,8 @@
 #define SRC_RATINGSREPOSITORY_H
 
 #include <util.h>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include "pocketdb/repositories/BaseRepository.h"
 #include "pocketdb/models/base/Rating.h"
@@ -14,6 +16,9 @@
 namespace PocketDb
 {
     using std::runtime_error;
+    using boost::algorithm::join;
+    using boost::adaptors::transformed;
+    
     using namespace PocketTx;
 
     class RatingsRepository : public BaseRepository
@@ -28,7 +33,7 @@ namespace PocketDb
         // Accumulate new rating records
         void InsertRatings(shared_ptr<vector<Rating>> ratings);
         bool ExistsLiker(int addressId, int likerId);
-        bool ExistsLiker(int addressId, int likerId, int height);
+        bool ExistsLiker(int addressId, int likerId, const vector<RatingType>& types);
 
     private:
 
