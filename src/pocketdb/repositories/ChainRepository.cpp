@@ -457,6 +457,7 @@ namespace PocketDb
     {
         int64_t nTime0 = GetTimeMicros();
 
+        // ----------------------------------------
         // Restore old Last transactions
         auto stmt1 = SetupSqlStatement(R"sql(
             update Transactions indexed by Transactions_Height_Id
@@ -478,6 +479,7 @@ namespace PocketDb
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Transactions): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
+        // ----------------------------------------
         // Restore Last for deleting ratings
         auto stmt2 = SetupSqlStatement(R"sql(
             update Ratings indexed by Ratings_Type_Id_Height_Value
@@ -488,7 +490,6 @@ namespace PocketDb
                 join Ratings r2 indexed by Ratings_Type_Id_Last_Height on r2.Type = r1.Type and r2.Id = r1.Id and r2.Last = 0 and r2.Height < ?
                 where r1.Height >= ?
                   and r1.Last = 1
-                  and r1.Type in (0,2,3)
                 group by r1.Type, r1.Id
             )r
             where Ratings.Type = r.Type
@@ -502,38 +503,9 @@ namespace PocketDb
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Ratings): %.2fms\n", 0.001 * (nTime2 - nTime1));
 
-        // Restore Previous Last for deleting ratings
-        auto stmt3 = SetupSqlStatement(R"sql(
-            insert into Ratings (
-                Type,
-                Last,
-                Height,
-                Id,
-                Value
-            )
-            select
-                r.Type,
-                1,
-                max(r2.Height)Height,
-                r.Id,
-                count() -- value
-            from Ratings r indexed by Ratings_Type_Id_Last_Height
-            join Ratings r2 indexed by Ratings_Type_Id_Last_Height on r2.Type = r.Type and r2.Id = r.Id and r2.Last = 1 and r2.Height < ?
-            where r.Type in (101,102,103,104)
-              and r.Height >= ?
-              and r.Last = 1
-            group by r.Type, r.Id
-        )sql");
-        TryBindStatementInt(stmt3, 1, height);
-        TryBindStatementInt(stmt3, 2, height);
-        TryStepStatement(stmt3);
-
-        int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Ratings:Last): %.2fms\n", 0.001 * (nTime3 - nTime2));
-
-        // ----------------------------------
+        // ----------------------------------------
         // Restore Last for deleting balances
-        auto stmt4 = SetupSqlStatement(R"sql(
+        auto stmt3 = SetupSqlStatement(R"sql(
             update Balances set
                 Last = 1
             from (
@@ -547,12 +519,12 @@ namespace PocketDb
             where Balances.AddressHash = b.AddressHash
               and Balances.Height = b.Height
         )sql");
-        TryBindStatementInt(stmt4, 1, height);
-        TryBindStatementInt(stmt4, 2, height);
-        TryStepStatement(stmt4);
+        TryBindStatementInt(stmt3, 1, height);
+        TryBindStatementInt(stmt3, 2, height);
+        TryStepStatement(stmt3);
 
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime4 - nTime3));
+        int64_t nTime3 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
     }
 
     void ChainRepository::RollbackHeight(int height)

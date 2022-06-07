@@ -51,6 +51,7 @@ namespace PocketDb
         InitializeSqlite();
         PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDbMainMigration>();
         PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
+        // TODO (brangr): DEBUG!!!
         //SQLiteDbInst.CreateStructure();
 
         TransRepoInst.Init();
