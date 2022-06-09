@@ -12,7 +12,7 @@
 namespace webrtc {
 using handlerRet = std::function<void(rtc::message_variant)>;
 
-class DataChannelHandler
+class DataChannelHandlerProvider
 {
 public:
     static handlerRet GetRPCHandler(std::shared_ptr<IRequestProcessor> requestProcessor, std::weak_ptr<rtc::DataChannel> dc, const std::string& ip);

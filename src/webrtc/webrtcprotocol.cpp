@@ -4,7 +4,7 @@
 #include <memory>
 #include <rtc/peerconnection.hpp>
 
-#include "webrtc/DataChannelHandler.h"
+#include "webrtc/DataChannelHandlerProvider.h"
 
 #include "univalue.h"
 #include "webrtc/webrtcconnection.h"
@@ -91,9 +91,9 @@ bool webrtc::WebRTCProtocol::Process(const UniValue& message, const std::string&
                 }
             });
             if (label == "rpc") {
-                dataChannel->onMessage(DataChannelHandler::GetRPCHandler(requestHandler, dataChannel, ip));
+                dataChannel->onMessage(DataChannelHandlerProvider::GetRPCHandler(requestHandler, dataChannel, ip));
             } else if (label == "notify") {
-                dataChannel->onMessage(DataChannelHandler::GetNotificationsHandler(notificationProtocol, dataChannel, ip));
+                dataChannel->onMessage(DataChannelHandlerProvider::GetNotificationsHandler(notificationProtocol, dataChannel, ip));
             }
             if (auto lock = webrtcConnection.lock()) {
                 lock->AddDataChannel(dataChannel);

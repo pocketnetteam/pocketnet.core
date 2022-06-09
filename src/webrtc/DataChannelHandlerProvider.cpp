@@ -2,13 +2,13 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "webrtc/DataChannelHandler.h"
+#include "webrtc/DataChannelHandlerProvider.h"
 
 #include "webrtc/DataChannelConnection.h"
 #include "webrtc/webrtcprotocol.h"
 
 
-std::function<void(rtc::message_variant)> webrtc::DataChannelHandler::GetRPCHandler(std::shared_ptr<IRequestProcessor> requestProcessor, std::weak_ptr<rtc::DataChannel> dc, const std::string& ip)
+std::function<void(rtc::message_variant)> webrtc::DataChannelHandlerProvider::GetRPCHandler(std::shared_ptr<IRequestProcessor> requestProcessor, std::weak_ptr<rtc::DataChannel> dc, const std::string& ip)
 {
     return [dc, requestProcessor, ip](rtc::message_variant data) {
                 if (!std::holds_alternative<std::string>(data)) {
@@ -36,7 +36,7 @@ std::function<void(rtc::message_variant)> webrtc::DataChannelHandler::GetRPCHand
             };
 }
 
-std::function<void(rtc::message_variant)> webrtc::DataChannelHandler::GetNotificationsHandler(std::shared_ptr<notifications::INotificationProtocol> notificationProtocol, std::weak_ptr<rtc::DataChannel> dc, const std::string& ip)
+std::function<void(rtc::message_variant)> webrtc::DataChannelHandlerProvider::GetNotificationsHandler(std::shared_ptr<notifications::INotificationProtocol> notificationProtocol, std::weak_ptr<rtc::DataChannel> dc, const std::string& ip)
 {
     return [notificationProtocol, dc, ip](rtc::message_variant data) {
                 if (!std::holds_alternative<std::string>(data)) {

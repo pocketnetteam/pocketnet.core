@@ -1137,8 +1137,8 @@ add_library(${POCKETCOIN_SERVER}
         webrtc/signaling/signalingserver.cpp 
         webrtc/signaling/signalingprocessor.h 
         webrtc/signaling/signalingprocessor.cpp
-        webrtc/DataChannelHandler.h
-        webrtc/DataChannelHandler.cpp
+        webrtc/DataChannelHandlerProvider.h
+        webrtc/DataChannelHandlerProvider.cpp
         web/IConnection.h
         web/WSConnection.h
         web/WSConnection.cpp
