@@ -9,6 +9,10 @@
 
 // TODO (losty): a very common to IReplier from RPC. Consider generalize
 
+/**
+ * Class that is needed to generalize nitification functional
+ * between webrtc's datachannel and websocket
+ */
 class IConnection
 {
 public:

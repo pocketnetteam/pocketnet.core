@@ -10,6 +10,10 @@
 #include "rtc/datachannel.hpp"
 
 namespace webrtc {
+/**
+ * Simple wrapper around datachannel to provide generalizing
+ * with websocket connection
+ */
 class DataChannelConnection : public IConnection
 {
 public:

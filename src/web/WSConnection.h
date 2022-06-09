@@ -10,6 +10,11 @@
 
 #include <string>
 
+/**
+ * Simple wrapper around SimpleWeb's websocket to provide
+ * generalizing with wih datachannel connection
+ * 
+ */
 class WSConnection : public IConnection
 {
 public:
