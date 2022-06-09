@@ -17,6 +17,11 @@ class INotifications
 {
 public:
     virtual std::shared_ptr<INotificationProtocol> GetProtocol() const = 0;
+
+    /**
+     * Queue interface that should be used to add new blocks for notification processing. All extracted notifications
+     * will be automatically sended to clients.
+     */
     virtual std::shared_ptr<NotificationQueue> GetNotificationQueue() const = 0;
     virtual void Start(int threads) = 0;
     virtual void Stop() = 0;
