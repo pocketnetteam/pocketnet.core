@@ -4,12 +4,15 @@
 #include <memory>
 #include <rtc/peerconnection.hpp>
 
+#include "webrtc/DataChannelHandler.h"
+
 #include "univalue.h"
 #include "webrtc/webrtcconnection.h"
 
 
-WebRTCProtocol::WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue) 
+WebRTCProtocol::WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<INotificationProtocol> notificationProtocol, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue) 
     : m_requestHandler(std::move(requestHandler)),
+      m_notificationProtocol(std::move(notificationProtocol)),
       m_connections(std::make_shared<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>>()),
       m_clearQueue(std::move(clearQueue))
 {
@@ -75,40 +78,23 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
                 }
             }
         });
-        pc->onDataChannel([requestHandler = m_requestHandler, webrtcConnection = std::weak_ptr(webrtcConnectionnn), ip](std::shared_ptr<rtc::DataChannel> dataChannel) {
+        pc->onDataChannel([requestHandler = m_requestHandler, notificationProtocol = m_notificationProtocol, webrtcConnection = std::weak_ptr(webrtcConnectionnn), ip](std::shared_ptr<rtc::DataChannel> dataChannel) {
             // TODO (losty-rtc): MOST INTERESTED THING.
             // Add dataChannel to class that will setup it and provide rpc handlers to it.
             const auto label = dataChannel->label(); // "notifications" for websocket functional and "rpc" for rpc
-            dataChannel->onClosed([webrtcConnection, label]() {
+            dataChannel->onClosed([webrtcConnection, label, notificationProtocol, ip]() {
                 if (auto lock = webrtcConnection.lock()) {
                     lock->RemoveDataChannel(label);
                 }
+                if (label == "notify") {
+                    notificationProtocol->forceDelete(ip);
+                }
             });
-            dataChannel->onMessage([/*TODO (losty-rtc): a bit dirty hack to allow free memory for datachannel*/dataChannel = std::weak_ptr(dataChannel), requestHandler, ip](rtc::message_variant data) {
-                if (!std::holds_alternative<std::string>(data)) {
-                    // TOOD (losty-rtc): error
-                    return;
-                }
-                auto dc = dataChannel.lock();
-                if (!dc) {
-                    // Freeing memory
-                    return;
-                }
-                // auto message = std::get<std::string>(data);
-                UniValue message(UniValue::VOBJ);
-                message.read(std::get<std::string>(data));
-                if (!message.exists("path") || !message.exists("requestData")) {
-                    // TODO (losty-rtc): error
-                    return;
-                }
-                auto path = message["path"].get_str();
-                auto body = message["requestData"].write();
-                std::optional<std::string> reqID;
-                if (message.exists("id") && message["id"].isStr()) reqID = message["id"].get_str();
-                auto replier = std::make_shared<DataChannelReplier>(dc, ip, reqID);
-                requestHandler->Process(path, body, replier);
-
-            });
+            if (label == "rpc") {
+                dataChannel->onMessage(DataChannelHandler::GetRPCHandler(requestHandler, dataChannel, ip));
+            } else if (label == "notify") {
+                dataChannel->onMessage(DataChannelHandler::GetNotificationsHandler(notificationProtocol, dataChannel, ip));
+            }
             if (auto lock = webrtcConnection.lock()) {
                 lock->AddDataChannel(dataChannel);
             }

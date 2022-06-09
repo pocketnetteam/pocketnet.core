@@ -942,8 +942,6 @@ add_library(${POCKETCOIN_SERVER}
         key_io.cpp
         websocket/ws.h
         websocket/ws.cpp
-        websocket/notifyprocessor.h
-        websocket/notifyprocessor.cpp
         validation.h
         validation.cpp
         validationinterface.h
@@ -1133,10 +1131,29 @@ add_library(${POCKETCOIN_SERVER}
         webrtc/webrtcconnection.cpp
         webrtc/wsconnectionhandler.h
         webrtc/wsconnectionhandler.cpp
+        webrtc/DataChannelConnection.h
+        webrtc/DataChannelConnection.cpp
         webrtc/signaling/signalingserver.h 
         webrtc/signaling/signalingserver.cpp 
         webrtc/signaling/signalingprocessor.h 
-        webrtc/signaling/signalingprocessor.cpp 
+        webrtc/signaling/signalingprocessor.cpp
+        webrtc/DataChannelHandler.h
+        webrtc/DataChannelHandler.cpp
+        web/IConnection.h
+        web/WSConnection.h
+        web/WSConnection.cpp
+        notification/NotificationClient.h
+        notification/INotificationProtocol.h
+        notification/NotificationProtocol.h
+        notification/NotificationProtocol.cpp
+        notification/notifyprocessor.h
+        notification/notifyprocessor.cpp
+        notification/INotifications.h
+        notification/Notifications.h
+        notification/Notifications.cpp
+        notification/NotificationsFactory.h
+        notification/NotificationsFactory.cpp
+        notification/NotificationTypedefs.h
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time LibDataChannel::libdatachannel)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})

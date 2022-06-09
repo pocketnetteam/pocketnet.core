@@ -74,7 +74,7 @@ private:
 class WebRTCProtocol
 {
 public:
-    WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue);
+    WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<INotificationProtocol> notificationProtocol, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue);
     bool Process(const UniValue& message, const std::string& ip, const std::shared_ptr<rtc::WebSocket>& ws);
     void StopAll();
 protected:
@@ -84,6 +84,7 @@ private:
     // TODO (losty-rtc): move out from protocol
     std::shared_ptr<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>> m_connections;
     std::shared_ptr<IRequestProcessor> m_requestHandler;
+    std::shared_ptr<INotificationProtocol> m_notificationProtocol;
     rtc::Configuration m_config;
     std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> m_clearQueue;
 };

@@ -47,7 +47,6 @@
 #include <script/standard.h>
 #include <shutdown.h>
 #include <eventloop.h>
-#include <websocket/notifyprocessor.h>
 #ifdef ENABLE_WALLET
 #include <staker.h>
 #endif
@@ -79,6 +78,8 @@
 
 #include "webrtc/webrtc.h"
 #include "webrtc/signaling/signalingserver.h"
+#include "web/WSConnection.h"
+#include "notification/NotificationsFactory.h"
 
 #include <functional>
 #include <set>
@@ -110,9 +111,7 @@ static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 Statistic::RequestStatEngine gStatEngineInstance;
 
-std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
-std::shared_ptr<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>> notifyClientsThread;
-std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
+std::unique_ptr<INotifications> notifications;
 
 // TODO (losty-rpc): fixup
 RPC g_rpc;
@@ -285,8 +284,8 @@ void Shutdown(NodeContext& node)
     if (g_load_block.joinable()) g_load_block.join();
     threadGroup.interrupt_all();
     threadGroup.join_all();
-    if (notifyClientsThread) {
-        notifyClientsThread->Stop();
+    if (notifications) {
+        notifications->Stop();
     }
 
     // After the threads that potentially access these pointers have been stopped,
@@ -671,6 +670,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-rpcrestworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_WORKQUEUE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpccachesize=<n>", strprintf("Maximum amount of memory in megabytes allowed for RPCcache usage (default: %d MB)", 64), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-server", "Accept command line and JSON-RPC commands", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-notificationsthreads=<n>", strprintf("Set number of notifications workers used to process incoming blocks and construct notification messages (default: %d)", 1), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 
     // SQLite
     argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
@@ -1003,7 +1003,7 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
         if (!g_rest.StartREST())
             return false;
     }
-    g_webrtc = std::make_shared<WebRTC>(g_rpc.GetWebRequestProcessor(), 13131);
+    g_webrtc = std::make_shared<WebRTC>(g_rpc.GetWebRequestProcessor(), notifications->GetProtocol(), 13131);
     g_webrtc->Start();
     // TODO (losty-rtc): hardcoded. Should be moved somewhere to net_processing on new peers
     g_signaling.Init("^/signaling/?$", 13131);
@@ -1479,37 +1479,7 @@ static void StartWS()
         {
             try
             {
-                std::vector<std::string> keys = val.getKeys();
-                if (std::find(keys.begin(), keys.end(), "addr") != keys.end())
-                {
-                    std::string _addr = val["addr"].get_str();
-
-                    int block = ChainActive().Height();
-                    if (std::find(keys.begin(), keys.end(), "block") != keys.end()) block = val["block"].get_int();
-
-                    std::string ip = connection->remote_endpoint_address();
-                    bool service = std::find(keys.begin(), keys.end(), "service") != keys.end();
-
-                    int mainPort = 8899;
-                    if (std::find(keys.begin(), keys.end(), "mainport") != keys.end())
-                        mainPort = val["mainport"].get_int();
-
-                    int wssPort = 8099;
-                    if (std::find(keys.begin(), keys.end(), "wssport") != keys.end())
-                        wssPort = val["wssport"].get_int();
-
-                    if (std::find(keys.begin(), keys.end(), "nonce") != keys.end())
-                    {
-                        WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
-                        WSConnections->insert_or_assign(connection->ID(), wsUser);
-                    } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
-                    {
-                        if (val["msg"].get_str() == "unsubscribe")
-                        {
-                            WSConnections->erase(connection->ID());
-                        }
-                    }
-                }
+                notifications->GetProtocol()->ProcessMessage(val, std::make_shared<WSConnection>(connection), connection->ID());
             }
             catch (const std::exception &e)
             {
@@ -1528,24 +1498,31 @@ static void StartWS()
 
     ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/)
     {
-        WSConnections->erase(connection->ID());
+        if (notifications) {
+            notifications->GetProtocol()->forceDelete(connection->ID());
+        }
     };
 
     ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec)
     {
-        WSConnections->erase(connection->ID());
+        if (notifications) {
+            notifications->GetProtocol()->forceDelete(connection->ID());
+        }
     };
 
     server.start();
 }
 
+static void InitNotifications(int threads)
+{
+    if (!notifications) {
+        notifications = NotificationsFactory().NewNotifications();
+    }
+    notifications->Start(threads);
+}
+
 static void InitWS()
 {
-    WSConnections = std::make_shared<ProtectedMap<std::string, WSUser>>();
-    auto notifyProcessor = std::make_shared<NotifyBlockProcessor>(WSConnections);
-    notifyClientsQueue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
-    notifyClientsThread = std::make_shared<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>(notifyClientsQueue, notifyProcessor);
-    notifyClientsThread->Start();
     std::thread server_thread(&StartWS);
     server_thread.detach();
 }
@@ -2327,7 +2304,10 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // ********************************************************* Step 13: finished
 
     // Start WebSocket server
-    if (args.GetBoolArg("-api", true)) InitWS();
+    if (args.GetBoolArg("-api", true)) {
+        InitNotifications(args.GetArg("-notificationsthreads", 1));
+        InitWS();
+    }
 
     gStatEngineInstance.Run(threadGroup, context);
 

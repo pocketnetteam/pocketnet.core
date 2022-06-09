@@ -14,11 +14,11 @@ public:
 };
 
 
-WebRTC::WebRTC(std::shared_ptr <IRequestProcessor> requestProcessor, int port)
+WebRTC::WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, std::shared_ptr<INotificationProtocol> notificationProtocol, int port)
     : m_port(port),
       m_queue(std::make_shared<Queue<std::shared_ptr<WebRTCConnection>>>())
 {
-    m_protocol = std::make_shared<WebRTCProtocol>(requestProcessor, m_queue),
+    m_protocol = std::make_shared<WebRTCProtocol>(requestProcessor, notificationProtocol, m_queue),
     m_eventLoop = std::make_shared<QueueEventLoopThread<std::shared_ptr<WebRTCConnection>>>(m_queue, std::make_shared<PCClearer>());
     m_wsConnections = std::make_shared<ProtectedMap<std::string, std::shared_ptr<webrtc::WsConnectionHandler>>>();
 }

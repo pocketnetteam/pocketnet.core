@@ -25,7 +25,7 @@
 class WebRTC
 {
 public:
-    WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, int port);
+    WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, std::shared_ptr<INotificationProtocol> notificationProtocol, int port);
     /**
      * Initializing internal thread that is required to
      * corretly freeing memory

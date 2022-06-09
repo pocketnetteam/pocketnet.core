@@ -187,18 +187,8 @@ namespace PocketWeb::PocketWebRpc
         entry.pushKV("lastblock", oblock);
 
         UniValue proxies(UniValue::VARR);
-        if (WSConnections) {
-            auto fillProxy = [&proxies](const std::pair<const std::string, WSUser>& it) {
-                if (it.second.Service) {
-                    UniValue proxy(UniValue::VOBJ);
-                    proxy.pushKV("address", it.second.Address);
-                    proxy.pushKV("ip", it.second.Ip);
-                    proxy.pushKV("port", it.second.MainPort);
-                    proxy.pushKV("portWss", it.second.WssPort);
-                    proxies.push_back(proxy);
-                }
-            };
-            WSConnections->Iterate(fillProxy);
+        if (notifications) {
+            proxies = std::move(notifications->CollectStats());
         }
         entry.pushKV("proxies", proxies);
 

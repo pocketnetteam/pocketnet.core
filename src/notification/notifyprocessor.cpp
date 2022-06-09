@@ -1,14 +1,17 @@
-#include "websocket/notifyprocessor.h"
+// Copyright (c) 2018-2022 The Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
+#include "notification/notifyprocessor.h"
 
 #include "validation.h"
 #include "primitives/block.h"
 #include "pocketdb/pocketnet.h"
 
 
-NotifyBlockProcessor::NotifyBlockProcessor(std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections) 
-{
-    m_WSConnections = std::move(WSConnections);
-}
+NotifyBlockProcessor::NotifyBlockProcessor(std::shared_ptr<NotifyableStorage> clients) 
+    : m_clients(std::move(clients))
+{}
 
 void NotifyBlockProcessor::PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields)
 {
@@ -32,7 +35,7 @@ void NotifyBlockProcessor::PrepareWSMessage(std::map<std::string, std::vector<Un
 
 void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
 {
-    if (m_WSConnections->empty()) {
+    if (m_clients->empty()) {
         return;
     }
 
@@ -357,7 +360,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         contentsLang.pushKV(TransactionHelper::TxStringType(PocketHelpers::TransactionHelper::ConvertOpReturnToType(itemContent.first)), langContents);
     }
 
-    auto send = [&](std::pair<const std::string, WSUser>& connWS) {
+    auto send = [&](std::pair<const std::string, NotificationClient>& connWS) {
         UniValue msg(UniValue::VOBJ);
         msg.pushKV("addr", connWS.second.Address);
         msg.pushKV("stakeTxHash", _block_stake_txHash);
@@ -378,7 +381,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         {
             try
             {
-                connWS.second.Connection->send(msg.write(), [](const SimpleWeb::error_code& ec) {});
+                connWS.second.Connection->Send(msg.write());
             }
             catch (const std::exception& e)
             {
@@ -396,7 +399,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     if (pocketnetaccinfo.exists("name")) m.pushKV("nameFrom", pocketnetaccinfo["name"].get_str());
                     if (pocketnetaccinfo.exists("avatar")) m.pushKV("avatarFrom", pocketnetaccinfo["avatar"].get_str());
                     m.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
-                    connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+                    connWS.second.Connection->Send(m.write());
                 }
                 catch (const std::exception& e)
                 {
@@ -410,7 +413,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                 {
                     try
                     {
-                        connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+                        connWS.second.Connection->Send(m.write());
                     }
                     catch (const std::exception& e)
                     {
@@ -422,5 +425,5 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             connWS.second.Block = blockIndex->nHeight;
         }
     };
-    m_WSConnections->Iterate(send);
+    m_clients->Iterate(send);
 }
