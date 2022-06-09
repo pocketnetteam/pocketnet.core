@@ -360,7 +360,13 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
         contentsLang.pushKV(TransactionHelper::TxStringType(PocketHelpers::TransactionHelper::ConvertOpReturnToType(itemContent.first)), langContents);
     }
 
+    std:set<std::string> droppedConnections; // Handling dropped and non-lockable connections
     auto send = [&](std::pair<const std::string, NotificationClient>& connWS) {
+        auto connection = connWS.second.Connection.lock();
+        if (!connection) {
+            droppedConnections.insert(connWS.first);
+            return;
+        }
         UniValue msg(UniValue::VOBJ);
         msg.pushKV("addr", connWS.second.Address);
         msg.pushKV("stakeTxHash", _block_stake_txHash);
@@ -381,7 +387,7 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
         {
             try
             {
-                connWS.second.Connection->Send(msg.write());
+                connection->Send(msg.write());
             }
             catch (const std::exception& e)
             {
@@ -399,7 +405,7 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
                     if (pocketnetaccinfo.exists("name")) m.pushKV("nameFrom", pocketnetaccinfo["name"].get_str());
                     if (pocketnetaccinfo.exists("avatar")) m.pushKV("avatarFrom", pocketnetaccinfo["avatar"].get_str());
                     m.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
-                    connWS.second.Connection->Send(m.write());
+                    connection->Send(m.write());
                 }
                 catch (const std::exception& e)
                 {
@@ -413,7 +419,7 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
                 {
                     try
                     {
-                        connWS.second.Connection->Send(m.write());
+                        connection->Send(m.write());
                     }
                     catch (const std::exception& e)
                     {
@@ -426,4 +432,9 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
         }
     };
     m_clients->Iterate(send);
+
+    // Clearing all dropped connections to omit OOM
+    for (const auto& dropped : droppedConnections) {
+        m_clients->erase(dropped);
+    }
 }

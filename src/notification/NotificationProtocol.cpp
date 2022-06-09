@@ -33,7 +33,7 @@ bool notifications::NotificationProtocol::ProcessMessage(const UniValue& msg, st
 
         if (std::find(keys.begin(), keys.end(), "nonce") != keys.end())
         {
-            NotificationClient wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
+            NotificationClient wsUser = {std::weak_ptr(connection), _addr, block, ip, service, mainPort, wssPort};
             m_clients->insert_or_assign(id, wsUser);
         } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
         {

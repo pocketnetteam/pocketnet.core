@@ -15,7 +15,7 @@ namespace notifications {
 // Struct for connecting users
 struct NotificationClient
 {
-    std::shared_ptr<IConnection> Connection;
+    std::weak_ptr<IConnection> Connection;
     std::string Address;
     int Block;
     std::string Ip;
