@@ -11,6 +11,7 @@
 #include <string>
 #include <memory>
 
+namespace notifications {
 // Struct for connecting users
 struct NotificationClient
 {
@@ -22,5 +23,6 @@ struct NotificationClient
     int MainPort;
     int WssPort;
 };
+} // namespace notifications
 
 #endif // POCKETNET_CORE_NOTIFICATIONS_NOTIFYABLECLIENT_H

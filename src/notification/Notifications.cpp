@@ -7,24 +7,24 @@
 #include "notification/NotificationProtocol.h"
 #include "notification/notifyprocessor.h"
 
-Notifications::Notifications()
+notifications::Notifications::Notifications()
 {
     m_clients = std::make_shared<NotifyableStorage>();
     m_protocol = std::make_shared<NotificationProtocol>(m_clients);
     m_queue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
 }
 
-std::shared_ptr<INotificationProtocol> Notifications::GetProtocol() const
+std::shared_ptr<notifications::INotificationProtocol> notifications::Notifications::GetProtocol() const
 {
     return m_protocol;
 }
 
-std::shared_ptr<NotificationQueue> Notifications::GetNotificationQueue() const
+std::shared_ptr<notifications::NotificationQueue> notifications::Notifications::GetNotificationQueue() const
 {
     return m_queue;
 }
 
-UniValue Notifications::CollectStats() const
+UniValue notifications::Notifications::CollectStats() const
 {
     UniValue proxies(UniValue::VARR);
     auto fillProxy = [&proxies](const std::pair<const std::string, NotificationClient>& it) {
@@ -42,7 +42,7 @@ UniValue Notifications::CollectStats() const
     return proxies;
 }
 
-void Notifications::Start(int threads)
+void notifications::Notifications::Start(int threads)
 {
     
     for (int i = 0; i < threads; i++) {
@@ -52,7 +52,7 @@ void Notifications::Start(int threads)
     }
 }
 
-void Notifications::Stop()
+void notifications::Notifications::Stop()
 {
     for (auto& worker : m_workers) {
         worker->Stop();

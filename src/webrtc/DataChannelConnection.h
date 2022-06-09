@@ -9,6 +9,7 @@
 
 #include "rtc/datachannel.hpp"
 
+namespace webrtc {
 class DataChannelConnection : public IConnection
 {
 public:
@@ -20,5 +21,6 @@ private:
     std::shared_ptr<rtc::DataChannel> m_dc;
     std::string m_ip;
 };
+} // namespace webrtc
 
 #endif // POCKETNET_CORE_WEBRTC_DATACHANNELCONNECTION_H

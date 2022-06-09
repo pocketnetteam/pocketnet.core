@@ -6,11 +6,11 @@
 
 #include "validation.h"
 
-NotificationProtocol::NotificationProtocol(std::shared_ptr<NotifyableStorage> clients)
+notifications::NotificationProtocol::NotificationProtocol(std::shared_ptr<NotifyableStorage> clients)
     : m_clients(std::move(clients))
 {}
 
-bool NotificationProtocol::ProcessMessage(const UniValue& msg, std::shared_ptr<IConnection> connection, const std::string& id)
+bool notifications::NotificationProtocol::ProcessMessage(const UniValue& msg, std::shared_ptr<IConnection> connection, const std::string& id)
 {
     std::vector<std::string> keys = msg.getKeys();
     if (std::find(keys.begin(), keys.end(), "addr") != keys.end())
@@ -49,7 +49,7 @@ bool NotificationProtocol::ProcessMessage(const UniValue& msg, std::shared_ptr<I
     return false;
 }
 
-void NotificationProtocol::forceDelete(const std::string& id)
+void notifications::NotificationProtocol::forceDelete(const std::string& id)
 {
     m_clients->erase(id);
 }

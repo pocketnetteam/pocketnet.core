@@ -13,7 +13,7 @@ class CBlockIndex;
 class NotifyBlockProcessor;
 
 typedef std::map<std::string, std::string> custom_fields;
-
+namespace notifications {
 class NotifyBlockProcessor : public IQueueProcessor<std::pair<CBlock, CBlockIndex*>>
 {
 public:
@@ -25,5 +25,6 @@ private:
 
     std::shared_ptr<NotifyableStorage> m_clients;
 };
+} // namespace notifications
 
 #endif // POCKETCOIN_NOTIFYPROCESSOR_H

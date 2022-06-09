@@ -187,8 +187,8 @@ namespace PocketWeb::PocketWebRpc
         entry.pushKV("lastblock", oblock);
 
         UniValue proxies(UniValue::VARR);
-        if (notifications) {
-            proxies = std::move(notifications->CollectStats());
+        if (notificationProcessor) {
+            proxies = std::move(notificationProcessor->CollectStats());
         }
         entry.pushKV("proxies", proxies);
 

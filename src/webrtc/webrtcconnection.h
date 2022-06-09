@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETNET_CORE_WEBRTCCONNECTION_H
-#define POCKETNET_CORE_WEBRTCCONNECTION_H
+#ifndef POCKETNET_CORE_WEBRTC_WEBRTCCONNECTION_H
+#define POCKETNET_CORE_WEBRTC_WEBRTCCONNECTION_H
 
 #include "eventloop.h"
 #include "protectedmap.h"
@@ -15,7 +15,7 @@
 #include <string>
 
 
-
+namespace webrtc {
 class WebRTCConnection
 {
 public:
@@ -33,5 +33,6 @@ private:
     std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> m_clearer;
     ProtectedMap<std::string, std::shared_ptr<rtc::DataChannel>> m_dataChannels;
 };
+} // namespace webrtc
 
-#endif // POCKETNET_CORE_WEBRTCCONNECTION_H
+#endif // POCKETNET_CORE_WEBRTC_WEBRTCCONNECTION_H

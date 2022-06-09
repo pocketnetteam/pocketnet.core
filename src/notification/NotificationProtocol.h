@@ -14,6 +14,7 @@
 #include <memory>
 #include <algorithm>
 
+namespace notifications {
 class NotificationProtocol : public INotificationProtocol
 {
 public:
@@ -25,5 +26,6 @@ public:
 private:
     std::shared_ptr<NotifyableStorage> m_clients;
 };
+} // namespace notifications
 
 #endif // POCKETNET_CORE_NOTIFICATIONS_NOTIFICATIONPROTOCOL_H

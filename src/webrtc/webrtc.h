@@ -21,11 +21,11 @@
 #include <atomic>
 #include <memory>
 
-
+namespace webrtc {
 class WebRTC
 {
 public:
-    WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, std::shared_ptr<INotificationProtocol> notificationProtocol, int port);
+    WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, std::shared_ptr<notifications::INotificationProtocol> notificationProtocol, int port);
     /**
      * Initializing internal thread that is required to
      * corretly freeing memory
@@ -43,7 +43,7 @@ private:
     std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> m_queue;
     std::shared_ptr<QueueEventLoopThread<std::shared_ptr<WebRTCConnection>>> m_eventLoop;
 };
-
-extern std::shared_ptr<WebRTC> g_webrtc;
+} // namespace webrtc
+extern std::shared_ptr<webrtc::WebRTC> g_webrtc;
 
 #endif // POCKETNET_CORE_WEBRTC_H

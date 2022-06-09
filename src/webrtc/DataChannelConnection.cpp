@@ -4,20 +4,20 @@
 
 #include "webrtc/DataChannelConnection.h"
 
-DataChannelConnection::DataChannelConnection(std::shared_ptr<rtc::DataChannel> dc, const std::string& ip)
+webrtc::DataChannelConnection::DataChannelConnection(std::shared_ptr<rtc::DataChannel> dc, const std::string& ip)
     : m_dc(std::move(dc)),
       m_ip(std::move(ip))
 {}
 
-void DataChannelConnection::Send(const std::string& msg) {
+void webrtc::DataChannelConnection::Send(const std::string& msg) {
     m_dc->send(msg);
 }
 
-void DataChannelConnection::Close(int code) {
+void webrtc::DataChannelConnection::Close(int code) {
     m_dc->close();
 }
 
-const std::string& DataChannelConnection::GetRemoteEndpointAddress() const
+const std::string& webrtc::DataChannelConnection::GetRemoteEndpointAddress() const
 {
     return m_ip;
 }

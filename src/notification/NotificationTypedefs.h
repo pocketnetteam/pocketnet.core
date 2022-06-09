@@ -12,10 +12,11 @@
 
 class CBlock;
 class CBlockIndex;
-
+namespace notifications {
 using NotificationQueue = IQueueAdjuster<std::pair<CBlock, CBlockIndex*>>;
 
 class NotificationClient;
 using NotifyableStorage = ProtectedMap<std::string, NotificationClient>;
+} // namespace notifications
 
 #endif // POCKETNET_CORE_NOTIFICATION_TYPEDEFS_H

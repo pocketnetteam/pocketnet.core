@@ -9,6 +9,7 @@
 
 #include "validation.h"
 
+namespace notifications {
 class Notifications : public INotifications
 {
 public:
@@ -24,5 +25,6 @@ private:
     std::vector<std::shared_ptr<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>> m_workers;
     std::shared_ptr<NotifyableStorage> m_clients;
 };
+} // namespace notifications
 
 #endif // POCKETNET_CORE_NOTIFICATIONS_H

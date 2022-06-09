@@ -6,7 +6,7 @@
 
 #include "notification/Notifications.h"
 
-std::unique_ptr<INotifications> NotificationsFactory::NewNotifications()
+std::unique_ptr<notifications::INotifications> notifications::NotificationsFactory::NewNotifications()
 {
     return std::make_unique<Notifications>();
 }

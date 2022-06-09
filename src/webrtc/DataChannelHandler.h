@@ -9,13 +9,15 @@
 #include "notification/INotificationProtocol.h"
 #include "rtc/datachannel.hpp"
 
+namespace webrtc {
 using handlerRet = std::function<void(rtc::message_variant)>;
 
 class DataChannelHandler
 {
 public:
     static handlerRet GetRPCHandler(std::shared_ptr<IRequestProcessor> requestProcessor, std::weak_ptr<rtc::DataChannel> dc, const std::string& ip);
-    static handlerRet GetNotificationsHandler(std::shared_ptr<INotificationProtocol> notificationProtocol, std::weak_ptr<rtc::DataChannel> dc, const std::string& ip);
+    static handlerRet GetNotificationsHandler(std::shared_ptr<notifications::INotificationProtocol> notificationProtocol, std::weak_ptr<rtc::DataChannel> dc, const std::string& ip);
 };
+} // namespace webrtc
 
 #endif // POCKETNET_CORE_WEBRTC_DATACHANNELHANDLER_H

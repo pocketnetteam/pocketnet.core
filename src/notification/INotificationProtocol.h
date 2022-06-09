@@ -11,7 +11,7 @@
 
 #include <univalue.h>
 
-
+namespace notifications {
 class INotificationProtocol
 {
 public:
@@ -19,5 +19,6 @@ public:
 
     virtual void forceDelete(const std::string& id) = 0;
 };
+} // namespace notifications
 
 #endif // POCKETNET_CORE_NOTIFICATIONS_INOTIFICATIONPROTOCOL_H

@@ -45,7 +45,7 @@
 #include "pocketdb/helpers/TransactionHelper.h"
 using namespace PocketHelpers;
 
-extern std::unique_ptr<INotifications> notifications;
+extern std::unique_ptr<notifications::INotifications> notificationProcessor;
 
 class CChainState;
 class BlockValidationState;

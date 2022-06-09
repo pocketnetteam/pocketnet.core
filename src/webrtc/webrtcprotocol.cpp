@@ -10,7 +10,7 @@
 #include "webrtc/webrtcconnection.h"
 
 
-WebRTCProtocol::WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<INotificationProtocol> notificationProtocol, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue) 
+webrtc::WebRTCProtocol::WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<notifications::INotificationProtocol> notificationProtocol, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue) 
     : m_requestHandler(std::move(requestHandler)),
       m_notificationProtocol(std::move(notificationProtocol)),
       m_connections(std::make_shared<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>>()),
@@ -24,7 +24,7 @@ WebRTCProtocol::WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler
 }
 
 
-bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, const std::shared_ptr<rtc::WebSocket>& ws)
+bool webrtc::WebRTCProtocol::Process(const UniValue& message, const std::string& ip, const std::shared_ptr<rtc::WebSocket>& ws)
 {
     if (!message.exists("type"))
         return false;
@@ -123,12 +123,12 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
     }
 }
 
-void WebRTCProtocol::StopAll()
+void webrtc::WebRTCProtocol::StopAll()
 {
     m_connections->clear();
 }
 
-inline UniValue WebRTCProtocol::constructProtocolMessage(const UniValue& message, const std::string& ip)
+inline UniValue webrtc::WebRTCProtocol::constructProtocolMessage(const UniValue& message, const std::string& ip)
 {
     UniValue result(UniValue::VOBJ);
     result.pushKV("type", "protocol");

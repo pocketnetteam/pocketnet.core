@@ -8,11 +8,12 @@
 #include "notification/INotifications.h"
 
 #include <memory>
-
+namespace notifications {
 class NotificationsFactory
 {
 public:
     std::unique_ptr<INotifications> NewNotifications();
 };
+} // namespace notifications
 
 #endif // POCKETNET_CORE_NOTIFICATIONS_NOTIFICATIONSFACTORY_H

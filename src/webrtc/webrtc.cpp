@@ -4,17 +4,17 @@
 #include "protectedmap.h"
 
 
-class PCClearer : public IQueueProcessor<std::shared_ptr<WebRTCConnection>>
+class PCClearer : public IQueueProcessor<std::shared_ptr<webrtc::WebRTCConnection>>
 {
 public:
-    void Process(std::shared_ptr<WebRTCConnection> pc) override
+    void Process(std::shared_ptr<webrtc::WebRTCConnection> pc) override
     {
         // Do nothing. This is just needed to guarantee that memory will be freed in different thread
     }
 };
 
 
-WebRTC::WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, std::shared_ptr<INotificationProtocol> notificationProtocol, int port)
+webrtc::WebRTC::WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, std::shared_ptr<notifications::INotificationProtocol> notificationProtocol, int port)
     : m_port(port),
       m_queue(std::make_shared<Queue<std::shared_ptr<WebRTCConnection>>>())
 {
@@ -24,7 +24,7 @@ WebRTC::WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, std::shared_
 }
 
 
-void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
+void webrtc::WebRTC::InitiateNewSignalingConnection(const std::string& ip)
 {
     if (!m_fRunning) {
         // TODO (losty-rtc): error
@@ -85,18 +85,18 @@ void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
     m_wsConnections->insert(ip, std::move(wsHandler));
 }
 
-void WebRTC::DropConnection(const std::string &ip)
+void webrtc::WebRTC::DropConnection(const std::string &ip)
 {
     m_wsConnections->erase(ip);
 }
 
-void WebRTC::Start()
+void webrtc::WebRTC::Start()
 {
     m_fRunning = true;
     m_eventLoop->Start();
 }
 
-void WebRTC::Stop()
+void webrtc::WebRTC::Stop()
 {
     m_fRunning = false;
     m_eventLoop->Stop();

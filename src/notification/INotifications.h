@@ -12,7 +12,7 @@
 
 #include <memory>
 
-
+namespace notifications {
 class INotifications
 {
 public:
@@ -22,5 +22,6 @@ public:
     virtual void Stop() = 0;
     virtual UniValue CollectStats() const = 0;
 };
+} // namespace notifications
 
 #endif // POCKETNET_CORE_INOTIFICATIONS_H

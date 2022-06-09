@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETNET_CORE_WEBRTCPROTOCOL_H
-#define POCKETNET_CORE_WEBRTCPROTOCOL_H
+#ifndef POCKETNET_CORE_WEBRTC_WEBRTCPROTOCOL_H
+#define POCKETNET_CORE_WEBRTC_WEBRTCPROTOCOL_H
 
 
 #include "protectedmap.h"
@@ -18,7 +18,7 @@
 #include "rtc/rtc.hpp"
 #include "webrtc/webrtcconnection.h"
 
-
+namespace webrtc {
 class DataChannelReplier : public IReplier
 {
 public:
@@ -74,7 +74,7 @@ private:
 class WebRTCProtocol
 {
 public:
-    WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<INotificationProtocol> notificationProtocol, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue);
+    WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<notifications::INotificationProtocol> notificationProtocol, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue);
     bool Process(const UniValue& message, const std::string& ip, const std::shared_ptr<rtc::WebSocket>& ws);
     void StopAll();
 protected:
@@ -84,9 +84,10 @@ private:
     // TODO (losty-rtc): move out from protocol
     std::shared_ptr<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>> m_connections;
     std::shared_ptr<IRequestProcessor> m_requestHandler;
-    std::shared_ptr<INotificationProtocol> m_notificationProtocol;
+    std::shared_ptr<notifications::INotificationProtocol> m_notificationProtocol;
     rtc::Configuration m_config;
     std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> m_clearQueue;
 };
+} // namespace webrtc
 
-#endif // POCKETNET_CORE_WEBRTCPROTOCOL_H
+#endif // POCKETNET_CORE_WEBRTC_WEBRTCPROTOCOL_H

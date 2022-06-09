@@ -111,13 +111,13 @@ static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 Statistic::RequestStatEngine gStatEngineInstance;
 
-std::unique_ptr<INotifications> notifications;
+std::unique_ptr<notifications::INotifications> notificationProcessor;
 
 // TODO (losty-rpc): fixup
 RPC g_rpc;
 Rest g_rest;
 // TODO (losty-rtc): fixup
-std::shared_ptr<WebRTC> g_webrtc;
+std::shared_ptr<webrtc::WebRTC> g_webrtc;
 webrtc::signaling::SignalingServer g_signaling;
 
 #ifdef WIN32
@@ -284,8 +284,8 @@ void Shutdown(NodeContext& node)
     if (g_load_block.joinable()) g_load_block.join();
     threadGroup.interrupt_all();
     threadGroup.join_all();
-    if (notifications) {
-        notifications->Stop();
+    if (notificationProcessor) {
+        notificationProcessor->Stop();
     }
 
     // After the threads that potentially access these pointers have been stopped,
@@ -1003,7 +1003,7 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
         if (!g_rest.StartREST())
             return false;
     }
-    g_webrtc = std::make_shared<WebRTC>(g_rpc.GetWebRequestProcessor(), notifications->GetProtocol(), 13131);
+    g_webrtc = std::make_shared<webrtc::WebRTC>(g_rpc.GetWebRequestProcessor(), notificationProcessor->GetProtocol(), 13131);
     g_webrtc->Start();
     // TODO (losty-rtc): hardcoded. Should be moved somewhere to net_processing on new peers
     g_signaling.Init("^/signaling/?$", 13131);
@@ -1479,7 +1479,7 @@ static void StartWS()
         {
             try
             {
-                notifications->GetProtocol()->ProcessMessage(val, std::make_shared<WSConnection>(connection), connection->ID());
+                notificationProcessor->GetProtocol()->ProcessMessage(val, std::make_shared<WSConnection>(connection), connection->ID());
             }
             catch (const std::exception &e)
             {
@@ -1498,15 +1498,15 @@ static void StartWS()
 
     ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/)
     {
-        if (notifications) {
-            notifications->GetProtocol()->forceDelete(connection->ID());
+        if (notificationProcessor) {
+            notificationProcessor->GetProtocol()->forceDelete(connection->ID());
         }
     };
 
     ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec)
     {
-        if (notifications) {
-            notifications->GetProtocol()->forceDelete(connection->ID());
+        if (notificationProcessor) {
+            notificationProcessor->GetProtocol()->forceDelete(connection->ID());
         }
     };
 
@@ -1515,10 +1515,10 @@ static void StartWS()
 
 static void InitNotifications(int threads)
 {
-    if (!notifications) {
-        notifications = NotificationsFactory().NewNotifications();
+    if (!notificationProcessor) {
+        notificationProcessor = notifications::NotificationsFactory().NewNotifications();
     }
-    notifications->Start(threads);
+    notificationProcessor->Start(threads);
 }
 
 static void InitWS()

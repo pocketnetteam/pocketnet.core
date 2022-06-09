@@ -9,11 +9,11 @@
 #include "pocketdb/pocketnet.h"
 
 
-NotifyBlockProcessor::NotifyBlockProcessor(std::shared_ptr<NotifyableStorage> clients) 
+notifications::NotifyBlockProcessor::NotifyBlockProcessor(std::shared_ptr<NotifyableStorage> clients) 
     : m_clients(std::move(clients))
 {}
 
-void NotifyBlockProcessor::PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields)
+void notifications::NotifyBlockProcessor::PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields)
 {
     UniValue msg(UniValue::VOBJ);
     msg.pushKV("addr", addrTo);
@@ -33,7 +33,7 @@ void NotifyBlockProcessor::PrepareWSMessage(std::map<std::string, std::vector<Un
     messages[addrTo].push_back(msg);
 }
 
-void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
+void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
 {
     if (m_clients->empty()) {
         return;
