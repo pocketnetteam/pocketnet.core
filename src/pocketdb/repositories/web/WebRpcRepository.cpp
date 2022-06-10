@@ -4586,7 +4586,7 @@ namespace PocketDb
         static const auto answers = R"sql(
             -- Comment answers
             select
-                'answer',
+                'answers',
                 c.Hash,
                 c.Type,
                 c.String1,
@@ -4610,10 +4610,10 @@ namespace PocketDb
                 null,
                 null
             from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
-            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1 -- Other answers
+            join Transactions a indexed by Transactions_Type_Last_String5_Height -- Other answers
                 on a.Type in (204, 205) and a.Last = 1
-                and c.Height > ?
-                and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
+                and a.Height > ?
+                and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
                 and a.String5 = c.String2
                 and a.String1 != c.String1
             join Transactions orig indexed by Transactions_Hash_Height
@@ -4750,7 +4750,7 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
 
             join Transactions s indexed by Transactions_Type_Last_String2_Height
                 on s.Type = 301
@@ -4808,7 +4808,7 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
 
             join Transactions s indexed by Transactions_Type_Last_String2_Height
                 on s.Type = 300
