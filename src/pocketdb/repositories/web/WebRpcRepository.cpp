@@ -4605,7 +4605,7 @@ namespace PocketDb
                 a.String1,
                 orig.Height as Height,
                 a.BlockNum as BlockNum,
-                null, -- TODO (losty): value
+                null,
                 pa.String1,
                 paa.String2,
                 paa.String3,
@@ -5095,7 +5095,7 @@ namespace PocketDb
                 {"pocketnetteam", pocketnetteam},
                 {"money", money},
                 {"referal", referals},
-                {"answers", answers},
+                {"answer", answers},
                 {"comment", comments},
                 {"subscriber", subscribers},
                 {"commentscore", commentscores}, // TODO (losty): slow
@@ -5172,7 +5172,7 @@ namespace PocketDb
             }
 
             // Comment answers
-            if (filters.empty() || filters.find("answers") != filters.end()) {
+            if (filters.empty() || filters.find("answer") != filters.end()) {
                 TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
