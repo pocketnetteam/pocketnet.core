@@ -4587,37 +4587,61 @@ namespace PocketDb
             -- Comment answers
             select
                 'answers',
-                c.Hash,
-                c.Type,
-                c.String1,
-                c.Height as Height,
-                c.BlockNum as BlockNum,
+                a.Hash,
+                a.Type,
+                a.String1,
+                orig.Height as Height,
+                a.BlockNum as BlockNum,
                 null, -- TODO (losty): value
-                substr(c.String1, 0, 100),
-                c.String2,
-                c.String3,
-                c.String4,
-                null, -- TODO rep
+                pa.String1,
+                paa.String2,
+                paa.String3,
+                paa.String4,
+                ra.Value,
                 c.Hash,
                 c.Type,
                 null,
                 c.Height,
                 c.BlockNum,
                 null,
-                null,
+                pc.String1,
                 null,
                 null,
                 null,
                 null
+
             from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
+
+            left join Payload pc
+                on pc.TxHash = c.Hash
+
             join Transactions a indexed by Transactions_Type_Last_String5_Height -- Other answers
                 on a.Type in (204, 205) and a.Last = 1
                 and a.Height > ?
                 and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
                 and a.String5 = c.String2
                 and a.String1 != c.String1
+
             join Transactions orig indexed by Transactions_Hash_Height
                 on orig.Hash = a.String2
+
+            left join Payload pa
+                on pa.TxHash = a.Hash
+
+            left join Transactions aa
+                on aa.Type = 100
+                and aa.Last = 1
+                and aa.String1 = a.String1
+                and aa.Height > 0
+
+            left join Payload paa
+                on paa.TxHash = aa.Hash
+
+            left join Ratings ra indexed by Ratings_Type_Id_Last_Height
+                on ra.Type = 0
+                and ra.Id = aa.Id
+                and ra.Last = 1
+
             where c.Type in (204, 205)
               and c.Last = 1
               and c.String1 = ?
