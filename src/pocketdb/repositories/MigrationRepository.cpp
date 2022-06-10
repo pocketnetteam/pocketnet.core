@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/MigrationRepository.h"
+#include <ui_interface.h>
 
 namespace PocketDb
 {
@@ -11,18 +12,19 @@ namespace PocketDb
         if (!CheckNeedSplitLikers())
             return true;
 
-        LogPrint(BCLog::MIGRATION, "SQLDB Migration: SplitLikers starting. Do not turn off your node and PC.\n");
+        uiInterface.InitMessage(_("SQLDB Migration: SplitLikers..."));
+        LogPrint(BCLog::MIGRATION, "SQLDB Migration: SplitLikers...\n");
 
-        TryTransactionBulk(__func__, {
-
+        TryTransactionStep(__func__, [&]()
+        {
             // delete exists data before insert splitted data
-            SetupSqlStatement(R"sql(
+            auto stmtDelete = SetupSqlStatement(R"sql(
                 delete from Ratings where Type in (101,102,103)
-            )sql"),
+            )sql");
+            TryStepStatement(stmtDelete);
 
             // Insert new splitted types of likers
-            SetupSqlStatement(R"sql(
-                insert into Ratings (type, last, height, id, value)
+            auto stmtSelect = SetupSqlStatement(R"sql(
                 select
                 
                     (
@@ -39,20 +41,23 @@ namespace PocketDb
                             end
                 
                         from Transactions sc indexed by Transactions_Height_Type
-                        join Transactions ul indexed by Transactions_Type_Last_String1_Height_Id on ul.Type = 100 and ul.Last = 1 and ul.Height > 0 and ul.String1 = sc.String1
-                        join Transactions c on c.Hash = sc.String2 and (
-                        (sc.Type in (300) and (sc.Time-c.Time) < ((case when sc.height < 322700 then 336 else 30 end) * 24 * 3600))
-                            or
-                        (sc.Type in (301))
-                        )
+                        join Transactions ul indexed by Transactions_Type_Last_String1_Height_Id
+                            on ul.Type = 100 and ul.Last = 1 and ul.Height > 0 and ul.String1 = sc.String1
+                        join Transactions c
+                            on c.Hash = sc.String2
+                            and (
+                                (sc.Type in (300) and (sc.Time-c.Time) < ((case when sc.height < 322700 then 336 else 30 end) * 24 * 3600))
+                                    or
+                                (sc.Type in (301))
+                            )
                         join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
-                        on ua.Type = 100 and ua.Last = 1 and ua.Height > 0 and ua.String1 = c.String1
+                            on ua.Type = 100 and ua.Last = 1 and ua.Height > 0 and ua.String1 = c.String1
                 
                         where sc.Type in (300,301)
-                        and sc.Height = r.Height
-                        and ((sc.Int1 in (4,5) and sc.Type = 300) or (sc.Int1 = 1 and sc.Type = 301))
-                        and ua.Id = r.Id
-                        and ul.Id = r.Value
+                            and sc.Height = r.Height
+                            and ((sc.Int1 in (4,5) and sc.Type = 300) or (sc.Int1 = 1 and sc.Type = 301))
+                            and ua.Id = r.Id
+                            and ul.Id = r.Value
                 
                         and ((
                             sc.Type = 300
@@ -61,26 +66,26 @@ namespace PocketDb
                 
                                 from Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
                                 join Transactions c
-                                on c.Hash = s.String2
-                                and c.String1 = ua.String1
-                                and c.Type in (200,201,202,207)
+                                    on c.Hash = s.String2
+                                        and c.String1 = ua.String1
+                                        and c.Type in (200,201,202,207)
                 
                                 where s.Type = sc.Type
-                                and s.Height <= sc.Height
-                                and s.String1 = sc.String1
-                                and s.Hash != sc.Hash
-                
-                                and s.Time < sc.Time
-                                and s.Time >= sc.Time - ((
-                                    case
-                                    when sc.Height >= 322700 then 2
-                                    when sc.Height >= 292800 then 7
-                                    when sc.Height >= 225000 then 1
-                                    else 336
-                                    end
-                                ) * 24 * 3600)
-                
-                                and s.Int1 in (4,5)
+                                    and s.Height <= sc.Height
+                                    and s.String1 = sc.String1
+                                    and s.Hash != sc.Hash
+                    
+                                    and s.Time < sc.Time
+                                    and s.Time >= sc.Time - ((
+                                        case
+                                            when sc.Height >= 322700 then 2
+                                            when sc.Height >= 292800 then 7
+                                            when sc.Height >= 225000 then 1
+                                            else 336
+                                        end
+                                    ) * 24 * 3600)
+                    
+                                    and s.Int1 in (4,5)
                             ) < (case when sc.Height >= 225000 then 2 else 99999 end)
                             )
                             or
@@ -91,22 +96,22 @@ namespace PocketDb
                 
                                 from Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
                                 join Transactions c
-                                on c.Hash = s.String2
-                                and c.String1 = ua.String1
-                                and c.Type in (204,205,206)
+                                    on c.Hash = s.String2
+                                        and c.String1 = ua.String1
+                                        and c.Type in (204,205,206)
                 
                                 where s.Type = sc.Type
-                                and s.String1 = sc.String1
-                                and s.Height <= sc.Height
-                                and s.Hash != sc.Hash
+                                    and s.String1 = sc.String1
+                                    and s.Height <= sc.Height
+                                    and s.Hash != sc.Hash
                 
                                 and s.Time < sc.Time
                                 and s.Time >= sc.Time - ((
                                     case
-                                    when sc.Height >= 322700 then 2
-                                    when sc.Height >= 292800 then 7
-                                    when sc.Height >= 225000 then 1
-                                    else 336
+                                        when sc.Height >= 322700 then 2
+                                        when sc.Height >= 292800 then 7
+                                        when sc.Height >= 225000 then 1
+                                        else 336
                                     end
                                 ) * 24 * 3600)
                 
@@ -127,7 +132,30 @@ namespace PocketDb
                 
                 from Ratings r
                 where r.Type in (1)
-            )sql")
+            )sql");
+            
+            while (sqlite3_step(*stmtSelect) == SQLITE_ROW)
+            {
+                auto[okType, Type] = TryGetColumnInt(*stmtSelect, 0);
+                auto[okLast, Last] = TryGetColumnInt(*stmtSelect, 1);
+                auto[okHeight, Height] = TryGetColumnInt64(*stmtSelect, 2);
+                auto[okId, Id] = TryGetColumnInt64(*stmtSelect, 3);
+                auto[okValue, Value] = TryGetColumnInt64(*stmtSelect, 4);
+
+                auto stmtInsert = SetupSqlStatement(R"sql(
+                    insert into Ratings (type, last, height, id, value)
+                    values (?,?,?,?,?)
+                )sql");
+
+                TryBindStatementInt(stmtInsert, 1, Type);
+                TryBindStatementInt(stmtInsert, 2, Last);
+                TryBindStatementInt64(stmtInsert, 3, Height);
+                TryBindStatementInt64(stmtInsert, 4, Id);
+                TryBindStatementInt64(stmtInsert, 5, Value);
+                TryStepStatement(stmtInsert);
+            }
+
+            FinalizeSqlStatement(*stmtSelect);
         });
 
         return !CheckNeedSplitLikers();
@@ -178,42 +206,37 @@ namespace PocketDb
     {
         bool result = false;
 
-        TryTransactionStep(__func__, [&]()
-        {
-            if (!CheckNeedAccumulateLikers())
-            {
-                result = true;
-                return;
-            }
+        if (!CheckNeedAccumulateLikers())
+            return true;
 
-            LogPrint(BCLog::MIGRATION, "SQLDB Migration: AccumulateLikers starting. Do not turn off your node and PC.\n");
+        uiInterface.InitMessage(_("SQLDB Migration: AccumulateLikers..."));
+        LogPrint(BCLog::MIGRATION, "SQLDB Migration: AccumulateLikers...\n");
 
-            TryTransactionBulk(__func__, {
+        TryTransactionBulk(__func__, {
 
-                // Clear old data - this first init simple migration
-                SetupSqlStatement(R"sql(     
-                    delete from Ratings
-                    where Type in (111,112,113)
-                )sql"),
+            // Clear old data - this first init simple migration
+            SetupSqlStatement(R"sql(     
+                delete from Ratings
+                where Type in (111,112,113)
+            )sql"),
 
-                // Insert new last values
-                SetupSqlStatement(R"sql(
-                    select
-                        (case r.Type when 101 then 111 when 102 then 112 when 103 then 113 end),
-                        ifnull((select 1 from Ratings ll indexed by Ratings_Type_Id_Height_Value where ll.Type = r.Type and ll.Id = r.Id and ll.Height > r.Height limit 1),0),
-                        r.Height,
-                        r.Id,
-                        (select count() from Ratings l indexed by Ratings_Type_Id_Height_Value where l.Type = r.Type and l.Id = r.Id and l.Height <= r.Height)
-                    from Ratings r
-                    where r.Type in (101,102,103)
-                    group by r.Type, r.Id, r.Height
-                )sql")
+            // Insert new last values
+            SetupSqlStatement(R"sql(
+                insert into Ratings (Type, Last, Height, Id, Value)
+                select
+                    (case r.Type when 101 then 111 when 102 then 112 when 103 then 113 end),
+                    ifnull((select 1 from Ratings ll indexed by Ratings_Type_Id_Height_Value where ll.Type = r.Type and ll.Id = r.Id and ll.Height > r.Height limit 1),0),
+                    r.Height,
+                    r.Id,
+                    (select count() from Ratings l indexed by Ratings_Type_Id_Height_Value where l.Type = r.Type and l.Id = r.Id and l.Height <= r.Height)
+                from Ratings r
+                where r.Type in (101,102,103)
+                group by r.Type, r.Id, r.Height
+            )sql")
 
-            });
-
-            result = !CheckNeedAccumulateLikers();
         });
-        return result;
+
+        return !CheckNeedAccumulateLikers();
     }
 
     bool MigrationRepository::CheckNeedAccumulateLikers()
