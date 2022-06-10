@@ -4939,7 +4939,7 @@ namespace PocketDb
                 on ac.Type = 100
                 and ac.Last = 1
                 and ac.String1 = c.String1
-                and ac.Height is not null
+                and ac.Height > 0
 
             left join Payload pac
                 on pac.TxHash = ac.Hash
