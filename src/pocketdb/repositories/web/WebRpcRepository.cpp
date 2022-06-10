@@ -4618,6 +4618,7 @@ namespace PocketDb
             and c.Last = 1
             and c.Height is not null
             and c.String1 = ?
+            -- TODO losty: height limit
         )sql";
         static const auto comments = R"sql(
             -- Comments for my content
@@ -5086,9 +5087,7 @@ namespace PocketDb
 
             // Comment answers
             if (filters.empty() || filters.find("answers") != filters.end()) {
-                for (auto& address : addresses) {
-                    TryBindStatementText(stmt, i++, address);
-                }
+                TryBindStatementText(stmt, i++, address);
             }
 
             // Comments for my content
