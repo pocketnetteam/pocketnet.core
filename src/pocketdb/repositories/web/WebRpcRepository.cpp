@@ -4708,14 +4708,14 @@ namespace PocketDb
                 on ac.String1 = c.String1
                 and ac.Last = 1
                 and ac.Type = 100
-                and ac.Height is not null
+                and ac.Height > 0
 
             left join Payload pac
                 on pac.TxHash = ac.Hash
 
             where p.Type in (200,201,202)
                 and p.Last = 1
-                and p.Height > ?
+                and p.Height > 0
                 and p.String1 = ?
 
         )sql";
@@ -4754,7 +4754,7 @@ namespace PocketDb
                 on u.Type in (100)
                 and u.Last = 1
                 and u.String1 = subs.String1
-                and u.Height is not null
+                and u.Height > 0
 
             left join Payload pu
                 on pu.TxHash = u.Hash
@@ -4816,7 +4816,7 @@ namespace PocketDb
                 on acs.Type = 100
                 and acs.Last = 1
                 and acs.String1 = s.String1
-                and acs.Height is not null
+                and acs.Height > 0
 
             left join Payload pacs
                 on pacs.TxHash = acs.Hash
@@ -4877,7 +4877,7 @@ namespace PocketDb
                 on acs.Type = 100
                 and acs.Last = 1
                 and acs.String1 = s.String1
-                and acs.Height is not null
+                and acs.Height > 0
 
             left join Payload pacs
                 on pacs.TxHash = acs.Hash
@@ -4989,7 +4989,7 @@ namespace PocketDb
             join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
                 on tContent.Type in (200,201,202)
                 and tContent.Last in (0,1)
-                and tContent.Height > ?
+                and tContent.Height > 0
                 and tContent.String1 = ?
                 and tContent.String2 = tBoost.String2
             left join Payload pContent
@@ -4999,7 +4999,7 @@ namespace PocketDb
                 on ac.String1 = tBoost.String1
                 and ac.Type = 100
                 and ac.Last = 1
-                and ac.Height is not null
+                and ac.Height > 0
 
             left join Payload pac
                 on pac.TxHash = ac.Hash
@@ -5063,7 +5063,7 @@ namespace PocketDb
                 on ar.Type = 100
                 and ar.Last = 1
                 and ar.String1 = r.String1
-                and ar.Height is not null
+                and ar.Height > 0
 
             left join Payload par
                 on par.TxHash = ar.Hash
@@ -5075,7 +5075,7 @@ namespace PocketDb
 
             where p.Type in (200,201,202)
                 and p.Last = 1
-                and p.Height > ?
+                and p.Height > 0
                 and p.String1 = ?
 
         )sql";
@@ -5183,7 +5183,6 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementText(stmt, i++, address);
             }
             // Subscribers and unsubscribers
@@ -5221,7 +5220,6 @@ namespace PocketDb
 
             // Boosts
             if (filters.empty() || filters.find("boost") != filters.end()) {
-                TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementText(stmt, i++, address);
                 TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementInt64(stmt, i++, heightMax);
@@ -5234,7 +5232,6 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementText(stmt, i++, address);
             }
 
