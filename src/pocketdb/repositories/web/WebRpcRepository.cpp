@@ -4503,7 +4503,7 @@ namespace PocketDb
                 ('money')TP,
                 t.Hash,
                 t.Type,
-                t.String2,
+                i.AddressHash,
                 t.Height as Height,
                 t.BlockNum as BlockNum,
                 o.Value,
@@ -4534,7 +4534,8 @@ namespace PocketDb
 
             join TxOutputs i indexed by TxOutputs_SpentTxHash
                 on i.SpentTxHash = o.TxHash
-                and i.AddressHash != o.AddressHash
+                and i.Number = (select min(ii.Number) from TxOutputs ii where ii.SpentTxHash = o.TxHash)
+                and i.AddressHash != o.AddressHash  -- TODO (brangr, lostystyg): exclude coinstake first transaction
 
             where o.AddressHash = ?
                 and o.TxHeight > ?
@@ -4859,7 +4860,7 @@ namespace PocketDb
                 on c.Type in (200,201,202)
                 and c.Last = 1 -- TODO (losty): last = 1 and c.Hash = c.String2 ?????
                 and c.String1 = subs.String2
-                and c.Hash = c.String2 -- Only first content record
+                -- and c.Hash = c.String2 --  TODO (losty): Only first content record
                 and c.Height > ?
                 and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
 
@@ -4880,7 +4881,7 @@ namespace PocketDb
                 
             where subs.Type = 303
             and subs.Last = 1
-            and subs.Height > ?
+            and subs.Height > 0
             and subs.String1 = ?
         )sql";
         static const auto boost = R"sql(
@@ -5062,6 +5063,7 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
             }
+
             // Incoming money
             if (filters.empty() || filters.find("money") != filters.end()) {
                 TryBindStatementInt64(stmt, i++, heightMin);
@@ -5072,6 +5074,7 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementInt64(stmt, i++, heightMax);
             }
+
             // Referals
             if (filters.empty() || filters.find("referal") != filters.end()) {
                 TryBindStatementText(stmt, i++, address);
@@ -5080,12 +5083,13 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
             }
-            // // Comment answers
-            // if (filters.empty() || filters.find("answers") != filters.end()) {
-            //     for (auto& address : addresses) {
-            //         TryBindStatementText(stmt, i++, address);
-            //     }
-            // }
+
+            // Comment answers
+            if (filters.empty() || filters.find("answers") != filters.end()) {
+                for (auto& address : addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
+            }
 
             // Comments for my content
             if (filters.empty() || filters.find("comment") != filters.end()) {
@@ -5128,7 +5132,6 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementText(stmt, i++, address);
             }
 
