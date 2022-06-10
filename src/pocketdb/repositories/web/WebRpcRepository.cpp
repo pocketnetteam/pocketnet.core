@@ -4609,16 +4609,19 @@ namespace PocketDb
                 null,
                 null,
                 null
-            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- My comments
-            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
-                on a.Type in (204, 205) and a.Last = 1 and a.Height > 0 and a.String5 = c.String2 and a.String1 != c.String1
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
+            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1 -- Other answers
+                on a.Type in (204, 205) and a.Last = 1
+                and c.Height > ?
+                and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
+                and a.String5 = c.String2
+                and a.String1 != c.String1
             join Transactions orig indexed by Transactions_Hash_Height
                 on orig.Hash = a.String2
             where c.Type in (204, 205)
-            and c.Last = 1
-            and c.Height is not null
-            and c.String1 = ?
-            -- TODO losty: height limit
+              and c.Last = 1
+              and c.String1 = ?
+              and c.Height > 0
         )sql";
         static const auto comments = R"sql(
             -- Comments for my content
@@ -4747,23 +4750,27 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
 
             join Transactions s indexed by Transactions_Type_Last_String2_Height
                 on s.Type = 301
+                and s.Last = 0
                 and s.String2 = c.String2
                 and s.Height > ?
                 and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
 
             left join Payload ps
                 on ps.TxHash = c.Hash
+
             join Transactions acs
                 on acs.Type = 100
                 and acs.Last = 1
                 and acs.String1 = s.String1
                 and acs.Height is not null
+
             left join Payload pacs
                 on pacs.TxHash = acs.Hash
+
             left join Ratings racs indexed by Ratings_Type_Id_Last_Height
                 on racs.Type = 0
                 and racs.Id = acs.Id
@@ -4771,7 +4778,7 @@ namespace PocketDb
 
             where c.Type in (204,205)
                 and c.Last = 1
-                and c.Height > ?
+                and c.Height > 0
                 and c.String1 = ?
         )sql";
         static const auto contentscores = R"sql(
@@ -4801,23 +4808,27 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
 
             join Transactions s indexed by Transactions_Type_Last_String2_Height
                 on s.Type = 300
+                and s.Last = 0
                 and s.String2 = c.String2
                 and s.Height > ?
                 and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
 
             left join Payload ps
                 on ps.TxHash = c.Hash
+
             join Transactions acs
                 on acs.Type = 100
                 and acs.Last = 1
                 and acs.String1 = s.String1
                 and acs.Height is not null
+
             left join Payload pacs
                 on pacs.TxHash = acs.Hash
+
             left join Ratings racs indexed by Ratings_Type_Id_Last_Height
                 on racs.Type = 0
                 and racs.Id = acs.Id
@@ -4825,7 +4836,7 @@ namespace PocketDb
 
             where c.Type in (200, 201, 202)
                 and c.Last = 1
-                and c.Height > ?
+                and c.Height > 0
                 and c.String1 = ?
         )sql";
         static const auto privatecontent = R"sql(
@@ -5087,6 +5098,10 @@ namespace PocketDb
 
             // Comment answers
             if (filters.empty() || filters.find("answers") != filters.end()) {
+                TryBindStatementInt64(stmt, i++, heightMin);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, heightMax);
+                TryBindStatementInt64(stmt, i++, blockNumMax);
                 TryBindStatementText(stmt, i++, address);
             }
 
@@ -5113,7 +5128,6 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementText(stmt, i++, address);
             }
             // Content scores
@@ -5122,7 +5136,6 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, heightMax);
                 TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementInt64(stmt, i++, heightMin);
                 TryBindStatementText(stmt, i++, address);
             }
             // Content from private subscribers
