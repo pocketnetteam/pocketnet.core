@@ -4461,6 +4461,7 @@ namespace PocketDb
     std::vector<ShortForm> WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<std::string>& filters)
     {
         static const auto pocketnetteam = R"sql(
+
             -- Pocket posts
             select
                 ('pocketnetteam')TP,
@@ -4486,18 +4487,22 @@ namespace PocketDb
                 null,
                 null,
                 null
+
             from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
+
             left join Payload p
                 on p.TxHash = t.Hash
 
             where t.Type in (200,201,202)
-            and t.String1 = ?
-            and t.Last = 1
-            and t.Height > ?
-            and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
+                and t.String1 = ?
+                and t.Last = 1
+                and t.Height > ?
+                and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
 
         )sql";
+
         static const auto money = R"sql(
+
             -- Incoming money
             select
                 ('money')TP,
@@ -4540,8 +4545,11 @@ namespace PocketDb
             where o.AddressHash = ?
                 and o.TxHeight > ?
                 and o.TxHeight < ?
+
         )sql";
+
         static const auto referals =  R"sql(
+
             -- referals
             select
                 ('referal')TP,
@@ -4569,8 +4577,10 @@ namespace PocketDb
                 null
 
             from Transactions t --indexed by Transactions_Type_Last_String2_Height
+
             left join Payload p
                 on p.TxHash = t.Hash
+
             left join Ratings r indexed by Ratings_Type_Id_Last_Height
                 on r.Type = 0
                 and r.Id = t.Id
@@ -4582,8 +4592,11 @@ namespace PocketDb
                 and t.Height > ?
                 and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
                 and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
+
         )sql";
+
         static const auto answers = R"sql(
+
             -- Comment answers
             select
                 'answers',
@@ -4646,8 +4659,11 @@ namespace PocketDb
               and c.Last = 1
               and c.String1 = ?
               and c.Height > 0
+
         )sql";
+
         static const auto comments = R"sql(
+
             -- Comments for my content
             select
                 ('comment')TP,
@@ -4673,7 +4689,6 @@ namespace PocketDb
                 null,
                 null,
                 null
-                
 
             from Transactions p indexed by Transactions_String1_Last_Height
 
@@ -4685,13 +4700,16 @@ namespace PocketDb
                 and c.Hash = c.String2
                 and c.Height > ?
                 and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
+
             left join Payload pc
                 on pC.TxHash = c.Hash
+
             join Transactions ac -- accounts of commentators
                 on ac.String1 = c.String1
                 and ac.Last = 1
                 and ac.Type = 100
                 and ac.Height is not null
+
             left join Payload pac
                 on pac.TxHash = ac.Hash
 
@@ -4699,8 +4717,11 @@ namespace PocketDb
                 and p.Last = 1
                 and p.Height > ?
                 and p.String1 = ?
+
         )sql";
+
         static const auto subscribers = R"sql(
+
             -- Subscribers
             select
                 ('subscriber')TP,
@@ -4734,8 +4755,10 @@ namespace PocketDb
                 and u.Last = 1
                 and u.String1 = subs.String1
                 and u.Height is not null
+
             left join Payload pu
                 on pu.TxHash = u.Hash
+
             left join Ratings ru indexed by Ratings_Type_Id_Last_Height
                 on ru.Type = 0
                 and ru.Id = u.Id
@@ -4746,8 +4769,11 @@ namespace PocketDb
                 and subs.String2 = ?
                 and subs.Height > ?
                 and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
+
         )sql";
+
         static const auto commentscores = R"sql(
+
             -- Comment scores
             select
                 ('commentscore')TP,
@@ -4804,8 +4830,11 @@ namespace PocketDb
                 and c.Last = 1
                 and c.Height > 0
                 and c.String1 = ?
+
         )sql";
+
         static const auto contentscores = R"sql(
+
             -- Content scores
             select
                 ('contentscore')TP,
@@ -4862,8 +4891,11 @@ namespace PocketDb
                 and c.Last = 1
                 and c.Height > 0
                 and c.String1 = ?
+
         )sql";
+
         static const auto privatecontent = R"sql(
+
             -- Content from private subscribers
             select
                 ('privatecontent')TP,
@@ -4908,19 +4940,24 @@ namespace PocketDb
                 and ac.Last = 1
                 and ac.String1 = c.String1
                 and ac.Height is not null
+
             left join Payload pac
                 on pac.TxHash = ac.Hash
+
             left join Ratings rac indexed by Ratings_Type_Id_Last_Height
                 on rac.Type = 0
                 and rac.Id = ac.Id
                 and rac.Last = 1
                 
             where subs.Type = 303
-            and subs.Last = 1
-            and subs.Height > 0
-            and subs.String1 = ?
+                and subs.Last = 1
+                and subs.Height > 0
+                and subs.String1 = ?
+
         )sql";
+
         static const auto boost = R"sql(
+
             -- Boosts for my content
             select
                 ('boost')TP,
@@ -4963,8 +5000,10 @@ namespace PocketDb
                 and ac.Type = 100
                 and ac.Last = 1
                 and ac.Height is not null
+
             left join Payload pac
                 on pac.TxHash = ac.Hash
+
             left join Ratings rac indexed by Ratings_Type_Id_Last_Height
                 on rac.Type = 0
                 and rac.Id = ac.Id
@@ -4974,7 +5013,9 @@ namespace PocketDb
                 and tBoost.Last in (0,1)
                 and tBoost.Height > ?
                 and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
+
         )sql";
+
         static const auto reposts = R"sql(
 
             -- Reposts
@@ -5004,6 +5045,7 @@ namespace PocketDb
                 null
 
             from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
+
             join Payload pp
                 on pp.TxHash = p.Hash 
 
@@ -5013,31 +5055,37 @@ namespace PocketDb
                 and r.String3 = p.Hash
                 and r.Height > ?
                 and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
+
             left join Payload pr
                 on pr.TxHash = r.Hash
+
             join Transactions ar
                 on ar.Type = 100
                 and ar.Last = 1
                 and ar.String1 = r.String1
                 and ar.Height is not null
+
             left join Payload par
                 on par.TxHash = ar.Hash
+
             left join Ratings rar indexed by Ratings_Type_Id_Last_Height
                 on rar.Type = 0
                 and rar.Id = ar.Id
                 and rar.Last = 1
 
-
             where p.Type in (200,201,202)
                 and p.Last = 1
                 and p.Height > ?
                 and p.String1 = ?
+
         )sql";
 
         static const auto footer = R"sql(
+
             -- Global order and limit for pagination
             order by Height desc, BlockNum desc
             limit 10
+
         )sql";
 
         static const std::vector<std::pair<std::string, std::string>> selects = {
