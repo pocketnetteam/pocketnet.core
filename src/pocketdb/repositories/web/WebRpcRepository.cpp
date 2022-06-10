@@ -4610,7 +4610,7 @@ namespace PocketDb
                 null
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- My comments
             join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
-                on a.Type in (204, 205) and a.Last = 1 and and a.Height > 0 a.String5 = c.String2 and a.String1 != c.String1
+                on a.Type in (204, 205) and a.Last = 1 and a.Height > 0 and a.String5 = c.String2 and a.String1 != c.String1
             join Transactions orig indexed by Transactions_Hash_Height
                 on orig.Hash = a.String2
             where c.Type in (204, 205)
