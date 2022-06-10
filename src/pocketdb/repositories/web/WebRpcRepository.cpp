@@ -4454,6 +4454,8 @@ namespace PocketDb
             where r.Type in (200,201,202)
                 and r.Height = ?
         )sql";
+
+        return UniValue(UniValue::VOBJ);
     }
     
     std::vector<ShortForm> WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<std::string>& filters)
@@ -4584,22 +4586,32 @@ namespace PocketDb
             -- Comment answers
             select
                 'answer',
-                c.String1 as AddressOrd,
-                orig.Height as HeightOrd,
-                a.Hash,
-                a.Type,
-                a.String1 as addrFrom,
-                a.String2 as RootTxHash,
-                a.String3 as posttxid,
-                a.String4 as parentid,
-                a.String5 as answerid,
-                a.Time,
+                c.Hash,
+                c.Type,
+                c.String1,
+                c.Height as Height,
+                c.BlockNum as BlockNum,
+                null, -- TODO (losty): value
+                substr(c.String1, 0, 100),
+                c.String2,
+                c.String3,
+                c.String4,
+                null, -- TODO rep
+                c.Hash,
+                c.Type,
+                null,
+                c.Height,
+                c.BlockNum,
+                null,
+                null,
+                null,
+                null,
+                null,
                 null
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- My comments
             join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
-                on a.Type in (204, 205) and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
-            join Transactions orig indexed by Transactions_Hash_Height -- TODO (losty): very slow here. However, even slow without it
-            -- TODO: creating Transactions_Type_Last_Height_String5_String1_String2 for c speed it up a lot
+                on a.Type in (204, 205) and a.Last = 1 and and a.Height > 0 a.String5 = c.String2 and a.String1 != c.String1
+            join Transactions orig indexed by Transactions_Hash_Height
                 on orig.Hash = a.String2
             where c.Type in (204, 205)
             and c.Last = 1
@@ -4995,7 +5007,7 @@ namespace PocketDb
                 {"pocketnetteam", pocketnetteam},
                 {"money", money},
                 {"referal", referals},
-//                {"answers", answers},
+                {"answers", answers},
                 {"comment", comments},
                 {"subscriber", subscribers},
                 {"commentscore", commentscores}, // TODO (losty): slow
