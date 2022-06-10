@@ -4599,7 +4599,7 @@ namespace PocketDb
 
             -- Comment answers
             select
-                'answers',
+                'answer',
                 a.Hash,
                 a.Type,
                 a.String1,
@@ -4672,7 +4672,7 @@ namespace PocketDb
                 c.String1,
                 c.Height as Height,
                 c.BlockNum as BlockNum,
-                null, -- TODO (losty): value
+                oc.Value,
                 substr(pc.String1, 0, 100),
                 pac.String2,
                 pac.String3,
@@ -4700,6 +4700,9 @@ namespace PocketDb
                 and c.Hash = c.String2
                 and c.Height > ?
                 and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
+
+            left join TxOutputs oc indexed by TxOutputs_TxHash_AddressHash_Value
+                on oc.TxHash = c.Hash and oc.AddressHash = p.String1 and oc.AddressHash != c.String1 
 
             left join Payload pc
                 on pC.TxHash = c.Hash
