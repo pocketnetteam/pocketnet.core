@@ -165,6 +165,9 @@ namespace PocketDb
     {
         bool result = false;
 
+        uiInterface.InitMessage(_("Checking SQLDB Migration: SplitLikers..."));
+        LogPrint(BCLog::MIGRATION, "Checking SQLDB Migration: SplitLikers...\n");
+
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
@@ -225,7 +228,7 @@ namespace PocketDb
                 insert into Ratings (Type, Last, Height, Id, Value)
                 select
                     (case r.Type when 101 then 111 when 102 then 112 when 103 then 113 end),
-                    ifnull((select 1 from Ratings ll indexed by Ratings_Type_Id_Height_Value where ll.Type = r.Type and ll.Id = r.Id and ll.Height > r.Height limit 1),0),
+                    ifnull((select 0 from Ratings ll indexed by Ratings_Type_Id_Height_Value where ll.Type = r.Type and ll.Id = r.Id and ll.Height > r.Height limit 1),1),
                     r.Height,
                     r.Id,
                     (select count() from Ratings l indexed by Ratings_Type_Id_Height_Value where l.Type = r.Type and l.Id = r.Id and l.Height <= r.Height)
@@ -242,6 +245,9 @@ namespace PocketDb
     bool MigrationRepository::CheckNeedAccumulateLikers()
     {
         bool result = false;
+
+        uiInterface.InitMessage(_("Checking SQLDB Migration: AccumulateLikers..."));
+        LogPrint(BCLog::MIGRATION, "Checking SQLDB Migration: AccumulateLikers...\n");
 
         TryTransactionStep(__func__, [&]()
         {
