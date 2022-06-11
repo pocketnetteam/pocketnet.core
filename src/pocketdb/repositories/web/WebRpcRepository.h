@@ -78,8 +78,8 @@ namespace PocketDb
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
 
-        map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int firstFlagsDepth = 7);
-        map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int firstFlagsDepth = 7);
+        map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int firstFlagsDepth = 14);
+        map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int firstFlagsDepth = 14);
 
         UniValue GetSubscribesAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
         UniValue GetSubscribersAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
