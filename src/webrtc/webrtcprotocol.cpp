@@ -79,14 +79,13 @@ bool webrtc::WebRTCProtocol::Process(const UniValue& message, const std::string&
             }
         });
         pc->onDataChannel([requestHandler = m_requestHandler, notificationProtocol = m_notificationProtocol, webrtcConnection = std::weak_ptr(webrtcConnectionnn), ip](std::shared_ptr<rtc::DataChannel> dataChannel) {
-            // TODO (losty-rtc): MOST INTERESTED THING.
             // Add dataChannel to class that will setup it and provide rpc handlers to it.
             const auto label = dataChannel->label(); // "notifications" for websocket functional and "rpc" for rpc
             dataChannel->onClosed([webrtcConnection, label, notificationProtocol, ip]() {
                 if (auto lock = webrtcConnection.lock()) {
                     lock->RemoveDataChannel(label);
                 }
-                if (label == "notify") {
+                if (label == "notify") { // TODO (losty-rtc): good reason to create e.x. HandlersByLabelSelector
                     notificationProtocol->forceDelete(ip);
                 }
             });
@@ -94,6 +93,8 @@ bool webrtc::WebRTCProtocol::Process(const UniValue& message, const std::string&
                 dataChannel->onMessage(DataChannelHandlerProvider::GetRPCHandler(requestHandler, dataChannel, ip));
             } else if (label == "notify") {
                 dataChannel->onMessage(DataChannelHandlerProvider::GetNotificationsHandler(notificationProtocol, dataChannel, ip));
+            } else {
+                return;
             }
             if (auto lock = webrtcConnection.lock()) {
                 lock->AddDataChannel(dataChannel);
