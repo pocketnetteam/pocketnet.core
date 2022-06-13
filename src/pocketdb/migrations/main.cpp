@@ -182,8 +182,8 @@ namespace PocketDb
                 primary key (Db)
             );
         )sql");
-
-
+        
+        
         _preProcessing = R"sql(
             insert or ignore into System (Db, Version) values ('main', 0);
         )sql";

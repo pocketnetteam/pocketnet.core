@@ -88,7 +88,6 @@ public:
         consensus.nRuleChangeActivationThreshold = 95;
         consensus.nMinerConfirmationWindow = 100;
         consensus.nPosFirstBlock = 1020;
-        consensus.fPosRequiresPeers = false;
         consensus.nStakeMinAge = 60 * 60;
         consensus.nPosTargetSpacing = consensus.nPowTargetSpacing;
         consensus.nPosTargetTimespan = 7500;
@@ -209,7 +208,6 @@ public:
         consensus.nMinerConfirmationWindow = 100; // nPowTargetTimespan / nPowTargetSpacing
 
         consensus.nPosFirstBlock = 1020;
-        consensus.fPosRequiresPeers = false;
         consensus.nStakeMinAge = 30 * 60;
         consensus.nPosTargetSpacing = consensus.nPowTargetSpacing;
         consensus.nPosTargetTimespan = 7500;

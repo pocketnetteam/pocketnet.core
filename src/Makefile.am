@@ -143,6 +143,7 @@ POCKETDB_H = \
     pocketdb/repositories/RatingsRepository.h \
     pocketdb/repositories/CheckpointRepository.h \
     pocketdb/repositories/SystemRepository.h \
+    pocketdb/repositories/MigrationRepository.h \
     pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/WebRpcRepository.h \
     pocketdb/repositories/web/NotifierRepository.h \
@@ -191,7 +192,7 @@ POCKETDB_H = \
     pocketdb/models/base/SocialTransaction.h \
     pocketdb/models/base/Rating.h \
     pocketdb/models/base/Payload.h \
-    pocketdb/models/base/ReturnDtoModels.h \
+    pocketdb/models/base/DtoModels.h \
     \
     pocketdb/models/dto/Default.h \
     pocketdb/models/dto/Coinbase.h \
@@ -248,6 +249,7 @@ POCKETDB_CPP = \
     pocketdb/repositories/RatingsRepository.cpp \
     pocketdb/repositories/CheckpointRepository.cpp \
     pocketdb/repositories/SystemRepository.cpp \
+    pocketdb/repositories/MigrationRepository.cpp \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/WebRpcRepository.cpp \
     pocketdb/repositories/web/NotifierRepository.cpp \

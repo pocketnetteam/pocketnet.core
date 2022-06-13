@@ -14,6 +14,7 @@ namespace PocketDb
     NotifierRepository NotifierRepoInst(SQLiteDbInst);
     ExplorerRepository ExplorerRepoInst(SQLiteDbInst);
     SystemRepository SystemRepoInst(SQLiteDbInst);
+    MigrationRepository MigrationRepoInst(SQLiteDbInst);
 
     SQLiteDatabase SQLiteDbCheckpointInst(true);
     CheckpointRepository CheckpointRepoInst(SQLiteDbCheckpointInst);

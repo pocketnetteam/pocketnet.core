@@ -65,6 +65,7 @@ namespace BCLog {
         WALLET        = (1 << 27),
         SQLBENCH      = (1 << 28),
         RPCERROR      = (1 << 29),
+        MIGRATION     = (1 << 30),
         ALL           = ~(uint32_t)0,
     };
 

@@ -265,18 +265,6 @@ namespace PocketDb
                 u.Id as AddressId,
                 u.String1 as Address,
 
-                reg.Time as RegistrationDate,
-                reg.Height as RegistrationHeight,
-
-                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
-
-                ifnull((select b.Value from Balances b indexed by Balances_AddressHash_Last
-                    where b.AddressHash=u.String1 and b.Last=1),0) as Balance,
-
-                (select count() from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Type=1 and r.Id=u.Id) as Likers,
-
                 (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (200) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as PostSpent,
 
@@ -303,9 +291,6 @@ namespace PocketDb
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
 
-            cross join Transactions reg indexed by Transactions_Id
-                    on reg.Id = u.Id and reg.Height = (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = reg.Id)
-
             where u.Type in (100, 101, 102)
             and u.Height is not null
             and u.String1 = ?
@@ -323,27 +308,24 @@ namespace PocketDb
             TryBindStatementInt(stmt, 5, heightWindow);
             TryBindStatementInt(stmt, 6, heightWindow);
             TryBindStatementInt(stmt, 7, heightWindow);
-            TryBindStatementText(stmt, 8, address);
+            TryBindStatementInt(stmt, 8, heightWindow);
+            TryBindStatementText(stmt, 9, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result.pushKV("address_id", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.pushKV("user_reg_date", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("user_reg_height", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("balance", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("likers", value);
+                int i = 0;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("address_id", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) result.pushKV("address", value);
 
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("post_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("video_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("article_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("comment_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) result.pushKV("score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 12); ok) result.pushKV("comment_score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 13); ok) result.pushKV("complain_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("post_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("video_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("article_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("complain_spent", value);
                 
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 14); ok) result.pushKV("mod_flag_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("mod_flag_spent", value);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -448,8 +430,11 @@ namespace PocketDb
         return result;
     }
 
-    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses,
-        const vector<int64_t>& ids, bool shortForm)
+    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(
+        const vector<string>& addresses,
+        const vector<int64_t>& ids,
+        bool shortForm,
+        int firstFlagsDepth)
     {
         vector<tuple<string, int64_t, UniValue>> result{};
 
@@ -490,8 +475,8 @@ namespace PocketDb
                   from Transactions ru indexed by Transactions_Type_Last_String2_Height
                   where ru.Type in (100)
                     and ru.Last in (0,1)
-                    and ru.Height > 0
                     and ru.String2 = u.String1
+                    and ru.Height > 0
                     and ru.ROWID = (
                       select min(ru1.ROWID)
                       from Transactions ru1 indexed by Transactions_Id
@@ -500,26 +485,13 @@ namespace PocketDb
                     )
                 ),0) as ReferralsCount
 
-                , u.Hash as AccountHash
-
-                , (
-                    select json_group_object(gr.Type, gr.Cnt)
-                    from (
-                      select (f.Int1)Type, (count())Cnt
-                      from Transactions f indexed by Transactions_Type_Last_String3_Height
-                      where f.Type in ( 410 )
-                        and f.Last = 0
-                        and f.String3 = u.String1
-                      group by f.Int1
-                    )gr
-                ) as FlagsJson
-
             )sql";
         }
 
         string sql = R"sql(
             select
-                  u.String1 as Address
+                  u.Hash as AccountHash
+                , u.String1 as Address
                 , u.Id
                 , p.String2 as Name
                 , p.String3 as Avatar
@@ -527,10 +499,16 @@ namespace PocketDb
                 , ifnull(u.String2,'') as Referrer
 
                 , ifnull((
-                    select count(1)
+                    select count()
                     from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (200,201,202) and po.Last=1 and po.Height is not null and po.String1=u.String1)
+                    where po.Type in (200,201,202) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
                 ,0) as PostsCount
+
+                , ifnull((
+                    select count()
+                    from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
+                    where po.Type in (207) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
+                ,0) as DelCount
 
                 , ifnull((
                     select r.Value
@@ -539,28 +517,28 @@ namespace PocketDb
                 ,0) as Reputation
 
                 , (
-                    select count(*)
+                    select count()
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
+                    where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
                 ) as SubscribesCount
 
                 , (
-                    select count(*)
+                    select count()
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
+                    where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String2 = u.String1
                 ) as SubscribersCount
 
                 , (
-                    select count(*)
+                    select count()
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    where subs.Type in (305) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
+                    where subs.Type in (305) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
                 ) as BlockingsCount
 
-                , (
-                    select count(*)
+                , ifnull((
+                    select sum(lkr.Value)
                     from Ratings lkr indexed by Ratings_Type_Id_Last_Height
-                    where lkr.Type = 1 and lkr.Id = u.Id
-                ) as Likers
+                    where lkr.Type in (111,112,113) and lkr.Id = u.Id and lkr.Last = 1
+                ),0) as Likers
 
                 , p.String6 as Pubkey
                 , p.String4 as About
@@ -574,13 +552,49 @@ namespace PocketDb
                     where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1
                 ) as RegistrationDate
 
+                , (
+                    select json_group_object(gr.Type, gr.Cnt)
+                    from (
+                      select (f.Int1)Type, (count())Cnt
+                      from Transactions f indexed by Transactions_Type_Last_String3_Height
+                      where f.Type in ( 410 )
+                        and f.Last = 0
+                        and f.String3 = u.String1
+                        and f.Height > 0
+                      group by f.Int1
+                    )gr
+                ) as FlagsJson
+
+                , (
+                    select json_group_object(gr.Type, gr.Cnt)
+                    from (
+                      select (f.Int1)Type, (count())Cnt
+                      from Transactions f indexed by Transactions_Type_Last_String3_Height
+                      cross join (
+                        select min(fp.Height)minHeight
+                        from Transactions fp
+                        where fp.Type in (200,201,202)
+                          and fp.String1 = u.String1
+                          and fp.Hash = fp.String2
+                          and fp.Last in (0, 1)
+                          and fp.Height > 0
+                      )fp
+                      where f.Type in (410)
+                        and f.Last = 0
+                        and f.String3 = u.String1
+                        and f.Height >= fp.minHeight
+                        and f.Height <= (fp.minHeight + ?)
+                        group by f.Int1
+                    )gr
+                ) as FirstFlagsCount
+
                 )sql" + fullProfileSql + R"sql(
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             cross join Payload p on p.TxHash=u.Hash
 
             where u.Type in (100,101,102)
-              and u.Last=1
+              and u.Last = 1
               and u.Height is not null
               )sql" + where + R"sql(
         )sql";
@@ -591,6 +605,7 @@ namespace PocketDb
 
             // Bind parameters
             int i = 1;
+            TryBindStatementInt(stmt, i++, firstFlagsDepth * 1440);
             for (const string& address : addresses)
                 TryBindStatementText(stmt, i++, address);
             for (int64_t id : ids)
@@ -599,65 +614,75 @@ namespace PocketDb
             // Fetch data
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto[ok0, address] = TryGetColumnString(*stmt, 0);
-                auto[ok2, id] = TryGetColumnInt64(*stmt, 1);
-
                 UniValue record(UniValue::VOBJ);
 
+                int i = 0;
+                auto[ok0, hash] = TryGetColumnString(*stmt, i++);
+                auto[ok1, address] = TryGetColumnString(*stmt, i++);
+                auto[ok2, id] = TryGetColumnInt64(*stmt, i++);
+
+                record.pushKV("hash", hash);
                 record.pushKV("address", address);
                 record.pushKV("id", id);
                 if (IsDeveloper(address)) record.pushKV("dev", true);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("i", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("b", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("r", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("postcnt", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) record.pushKV("reputation", value / 10.0);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 8); ok) record.pushKV("subscribes_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) record.pushKV("subscribers_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) record.pushKV("blockings_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("likers_count", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("k", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("a", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("l", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("s", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 16); ok) record.pushKV("update", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 17); ok) record.pushKV("regdate", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("i", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("b", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("r", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("postcnt", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("dltdcnt", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("reputation", value / 10.0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribes_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribers_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("blockings_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("likers_count", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("k", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("a", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("l", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("s", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("update", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("regdate", value);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
+                {
+                    UniValue flags(UniValue::VOBJ);
+                    flags.read(value);
+                    record.pushKV("flags", flags);
+                }
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
+                {
+                    UniValue flags(UniValue::VOBJ);
+                    flags.read(value);
+                    record.pushKV("firstFlags", flags);
+                }
 
                 if (!shortForm)
                 {
                     
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribes", subscribes);
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 19); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribers", subscribes);
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 20); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("blocking", subscribes);
                     }
                     
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 21); ok) record.pushKV("rc", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 22); ok) record.pushKV("hash", value);
-
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 23); ok)
-                    {
-                        UniValue flags(UniValue::VOBJ);
-                        flags.read(value);
-                        record.pushKV("flags", flags);
-                    }
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("rc", value);
                 }
 
                 result.emplace_back(address, id, record);
@@ -669,22 +694,22 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, bool shortForm)
+    map<string, UniValue> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, bool shortForm, int firstFlagsDepth)
     {
         map<string, UniValue> result{};
 
-        auto _result = GetAccountProfiles(addresses, {}, shortForm);
+        auto _result = GetAccountProfiles(addresses, {}, shortForm, firstFlagsDepth);
         for (const auto[address, id, record] : _result)
             result.insert_or_assign(address, record);
 
         return result;
     }
 
-    map<int64_t, UniValue> WebRpcRepository::GetAccountProfiles(const vector<int64_t>& ids, bool shortForm)
+    map<int64_t, UniValue> WebRpcRepository::GetAccountProfiles(const vector<int64_t>& ids, bool shortForm, int firstFlagsDepth)
     {
         map<int64_t, UniValue> result{};
 
-        auto _result = GetAccountProfiles({}, ids, shortForm);
+        auto _result = GetAccountProfiles({}, ids, shortForm, firstFlagsDepth);
         for (const auto[address, id, record] : _result)
             result.insert_or_assign(id, record);
 
@@ -2865,7 +2890,7 @@ namespace PocketDb
 
         // ---------------------------------------------
         // Get profiles for posts
-        auto profiles = GetAccountProfiles(authors, true);
+        auto profiles = GetAccountProfiles(authors);
         for (auto& record : tmpResult)
             record.second.pushKV("userprofile", profiles[record.second["address"].get_str()]);
 

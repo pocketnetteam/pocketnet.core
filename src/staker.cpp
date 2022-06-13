@@ -110,7 +110,7 @@ void Staker::run(const util::Ref& context, CChainParams const& chainparams, boos
 
 void Staker::worker(const util::Ref& context, CChainParams const& chainparams, std::string const& walletName)
 {
-    LogPrintf("Staker thread started for %s\n", walletName);
+    LogPrintf("Staker worker thread started for %s\n", walletName);
 
     util::ThreadRename("coin-staker");
 
@@ -119,7 +119,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     int nLastCoinStakeSearchInterval = 0;
 
     auto wallet = GetWallet(walletName);
-    if (!wallet) { return; }
+    if (!wallet) return;
 
     try
     {
@@ -139,29 +139,35 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                 UninterruptibleSleep(std::chrono::milliseconds{1000});
             }
 
-            if (chainparams.GetConsensus().fPosRequiresPeers)
+            if (gArgs.GetBoolArg("-stakingrequirespeers", DEFAULT_STAKINGREQUIRESPEERS))
             {
                 do
                 {
-                    bool fvNodesEmpty;
-                    {
-                        fvNodesEmpty = !node.connman || node.connman->GetNodeCount(
-                            CConnman::CONNECTIONS_ALL
-                        ) == 0;
-                    }
+                    if (ShutdownRequested())
+                        break;
+
+                    bool fvNodesEmpty = !node.connman || node.connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0;
+
                     if (!fvNodesEmpty && !::ChainstateActive().IsInitialBlockDownload())
                         break;
+
                     UninterruptibleSleep(std::chrono::milliseconds{1000});
                 } while (true);
             }
 
             while (!isStaking)
             {
+                if (ShutdownRequested())
+                    break;
+
                 UninterruptibleSleep(std::chrono::milliseconds{1000});
             }
 
             while (chainparams.GetConsensus().nPosFirstBlock > ::ChainActive().Tip()->nHeight)
             {
+                if (ShutdownRequested())
+                    break;
+
                 UninterruptibleSleep(std::chrono::milliseconds{30000});
             }
 
@@ -193,12 +199,12 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     }
     catch (const boost::thread_interrupted&)
     {
-        LogPrintf("Pocketcoin Staker terminated\n");
+        LogPrintf("Staker worker thread terminated\n");
         throw;
     }
     catch (const std::runtime_error& e)
     {
-        LogPrintf("Pocketcoin Staker runtime error: %s\n", e.what());
+        LogPrintf("Staker worker thread runtime error: %s\n", e.what());
         return;
     }
 }
