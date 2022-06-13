@@ -154,13 +154,14 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
         // Check account permissions
+        const AccountData accountData = request.DbConnection()->ConsensusRepoInst->GetAccountData(address);
+        
         auto accountMode = reputationConsensus->GetAccountMode(accountData.Reputation, accountData.Balance);
         result.pushKV("mode", accountMode);
         result.pushKV("trial", accountMode == AccountMode_Trial);
         result.pushKV("reputation", accountData.Reputation / 10.0);
 
         // Extend result data with badges array
-        const AccountData accountData = request.DbConnection()->ConsensusRepoInst->GetAccountData(address);
         auto badgeSet = reputationConsensus->GetBadges(accountData);
         UniValue badges = badgeSet.ToJson();
         result.pushKV("badges", badges);
