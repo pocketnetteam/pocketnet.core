@@ -334,86 +334,7 @@ namespace PocketConsensus
             { NetworkTest, { {0, 10} } }
         } },
 
-        { ConsensusLimit_trial_post, {
-            { NetworkMain, { {0, 15}, {1324655, 5} } },
-            { NetworkTest, { {0, 15} } }
-        } },
-        { ConsensusLimit_trial_video, {
-            { NetworkMain, { {0, 15}, {1324655, 5} } },
-            { NetworkTest, { {0, 15} } }
-        } },
-        { ConsensusLimit_trial_article, {
-            { NetworkMain, { {0, 1} } },
-            { NetworkTest, { {0, 10} } }
-        } },
-        { ConsensusLimit_trial_score, {
-            { NetworkMain, { {0, 45}, {175600, 100}, {1324655, 15} } },
-            { NetworkTest, { {0, 100} } }
-        } },
-        { ConsensusLimit_trial_complain, {
-            { NetworkMain, { {0, 6} } },
-            { NetworkTest, { {0, 6} } }
-        } },
-        { ConsensusLimit_trial_comment, {
-            { NetworkMain, { {0, 150} } },
-            { NetworkTest, { {0, 150} } }
-        } },
-        { ConsensusLimit_trial_comment_score, {
-            { NetworkMain, { {0, 300} } },
-            { NetworkTest, { {0, 300} } }
-        } },
-        
-        { ConsensusLimit_full_post, {
-            { NetworkMain, { {0, 30} } },
-            { NetworkTest, { {0, 30} } }
-        } },
-        { ConsensusLimit_full_video, {
-            { NetworkMain, { {0, 30} } },
-            { NetworkTest, { {0, 30} } }
-        } },
-        { ConsensusLimit_full_article, {
-            { NetworkMain, { {0, 3} } },
-            { NetworkTest, { {0, 30} } }
-        } },
-        { ConsensusLimit_full_score, {
-            { NetworkMain, { {0, 90}, {175600, 200} } },
-            { NetworkTest, { {0, 200} } }
-        } },
-        { ConsensusLimit_full_complain, {
-            { NetworkMain, { {0, 12} } },
-            { NetworkTest, { {0, 12} } }
-        } },
-        { ConsensusLimit_full_comment, {
-            { NetworkMain, { {0, 300} } },
-            { NetworkTest, { {0, 300} } }
-        } },
-        { ConsensusLimit_full_comment_score, {
-            { NetworkMain, { {0, 600} } },
-            { NetworkTest, { {0, 600} } }
-        } },
-        
-        { ConsensusLimit_pro_video, {
-            { NetworkMain, { {0, 0}, {1324655, 100} } },
-            { NetworkTest, { {0, 100} } }
-        } },
-
-        { ConsensusLimit_post_edit_count, {
-            { NetworkMain, { {0, 5} } },
-            { NetworkTest, { {0, 5} } }
-        } },
-        { ConsensusLimit_video_edit_count, {
-            { NetworkMain, { {0, 5} } },
-            { NetworkTest, { {0, 5} } }
-        } },
-        { ConsensusLimit_article_edit_count, {
-            { NetworkMain, { {0, 10} } },
-            { NetworkTest, { {0, 10} } }
-        } },
-        { ConsensusLimit_comment_edit_count, {
-            { NetworkMain, { {0, 4} } },
-            { NetworkTest, { {0, 4} } }
-        } },
-
+        // Other
         { ConsensusLimit_edit_user_depth, {
             { NetworkMain, { {0, 3600}, {1180000, 60} } },
             { NetworkTest, { {0, 30} } }
@@ -438,7 +359,121 @@ namespace PocketConsensus
             { NetworkMain, { {0, 86400}, {1180000, 1440} } },
             { NetworkTest, { {0, 1440} } }
         } },
+        { ConsensusLimit_scores_one_to_one, {
+            { NetworkMain, { {0, 99999}, {225000,  2} } },
+            { NetworkTest, { {0, 2} } }
+        } },
+        { ConsensusLimit_scores_one_to_one_over_comment, {
+            { NetworkMain, { {0, 20} } },
+            { NetworkTest, { {0, 20} } }
+        } },
+        { ConsensusLimit_scores_one_to_one_depth, {
+            { NetworkMain, { {0, 336 * 24 * 3600}, {225000, 1 * 24 * 3600}, {292800, 7 * 24 * 3600},  {322700, 2 * 24 * 3600} } },
+            { NetworkTest, { {0, 2 * 24 * 3600} } }
+        } },
+        { ConsensusLimit_scores_depth_modify_reputation, {
+            { NetworkMain, { {0, 336 * 24 * 3600}, {322700, 30 * 24 * 3600} } },
+            { NetworkTest, { {0, 30 * 24 * 3600} } }
+        } },
+        // TODO (brangr) (v0.21.0): change GetLotteryReferralDepth Time to Height
+        { ConsensusLimit_lottery_referral_depth, {
+            { NetworkMain, { {0, 30 * 24 * 3600} } },
+            { NetworkTest, { {0, 30 * 24 * 3600} } }
+        } },
 
+        // Limits
+        { ConsensusLimit_trial_post, {
+            { NetworkMain, { {0, 15}, {1324655, 5} } },
+            { NetworkTest, { {0, 15} } }
+        } },
+        { ConsensusLimit_trial_video, {
+            { NetworkMain, { {0, 15}, {1324655, 5} } },
+            { NetworkTest, { {0, 15} } }
+        } },
+        { ConsensusLimit_trial_article, {
+            { NetworkMain, { {0, 1} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { ConsensusLimit_trial_score, {
+            { NetworkMain, { {0, 45}, {175600, 100}, {1324655, 15} } },
+            { NetworkTest, { {0, 100} } }
+        } },
+        { ConsensusLimit_trial_complain, {
+            { NetworkMain, { {0, 6} } },
+            { NetworkTest, { {0, 6} } }
+        } },
+        { ConsensusLimit_trial_comment, {
+            { NetworkMain, { {0, 150}, {9999999, 50} } },
+            { NetworkTest, { {0, 150} } }
+        } },
+        { ConsensusLimit_trial_comment_score, {
+            { NetworkMain, { {0, 300}, {9999999, 100} } },
+            { NetworkTest, { {0, 300} } }
+        } },
+        
+        { ConsensusLimit_full_post, {
+            { NetworkMain, { {0, 30}, {9999999, 10} } },
+            { NetworkTest, { {0, 30} } }
+        } },
+        { ConsensusLimit_full_video, {
+            { NetworkMain, { {0, 30}, {9999999, 10} } },
+            { NetworkTest, { {0, 30} } }
+        } },
+        { ConsensusLimit_full_article, {
+            { NetworkMain, { {0, 3} } },
+            { NetworkTest, { {0, 30} } }
+        } },
+        { ConsensusLimit_full_score, {
+            { NetworkMain, { {0, 90}, {175600, 200}, {9999999, 60} } },
+            { NetworkTest, { {0, 200} } }
+        } },
+        { ConsensusLimit_full_complain, {
+            { NetworkMain, { {0, 12} } },
+            { NetworkTest, { {0, 12} } }
+        } },
+        { ConsensusLimit_full_comment, {
+            { NetworkMain, { {0, 300}, {9999999, 100} } },
+            { NetworkTest, { {0, 300} } }
+        } },
+        { ConsensusLimit_full_comment_score, {
+            { NetworkMain, { {0, 600}, {9999999, 200} } },
+            { NetworkTest, { {0, 600} } }
+        } },
+        
+        { ConsensusLimit_pro_video, {
+            { NetworkMain, { {0, 0}, {1324655, 100} } },
+            { NetworkTest, { {0, 100} } }
+        } },
+        
+        // TODO (brangr): implement height fork
+        { ConsensusLimit_moderation_flag_count, {
+            { NetworkMain, { {0, 30}, {9999999, 35} }},
+            { NetworkTest, { {0, 100} }}
+        }},
+
+        { ConsensusLimit_post_edit_count, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 5} } }
+        } },
+        { ConsensusLimit_video_edit_count, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 5} } }
+        } },
+        { ConsensusLimit_article_edit_count, {
+            { NetworkMain, { {0, 10} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { ConsensusLimit_comment_edit_count, {
+            { NetworkMain, { {0, 4} } },
+            { NetworkTest, { {0, 4} } }
+        } },
+        
+        { ConsensusLimit_account_settings_daily_count, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 5} } }
+        } },
+
+        // Size
         { ConsensusLimit_max_user_size, {
             { NetworkMain, { {0, 2000} } },
             { NetworkTest, { {0, 2000} } }
@@ -455,49 +490,14 @@ namespace PocketConsensus
             { NetworkMain, { {0, 120000} } },
             { NetworkTest, { {0, 60000} } }
         } },
-        { ConsensusLimit_scores_one_to_one, {
-            { NetworkMain, { {0, 99999}, {225000,  2} } },
-            { NetworkTest, { {0, 2} } }
-        } },
-        { ConsensusLimit_scores_one_to_one_over_comment, {
-            { NetworkMain, { {0, 20} } },
-            { NetworkTest, { {0, 20} } }
-        } },
-        { ConsensusLimit_scores_one_to_one_depth, {
-            { NetworkMain, { {0, 336 * 24 * 3600}, {225000, 1 * 24 * 3600}, {292800, 7 * 24 * 3600},  {322700, 2 * 24 * 3600} } },
-            { NetworkTest, { {0, 2 * 24 * 3600} } }
-        } },
         { ConsensusLimit_max_comment_size, {
             { NetworkMain, { {0, 2000} } },
             { NetworkTest, { {0, 2000} } }
-        } },
-        { ConsensusLimit_scores_depth_modify_reputation, {
-            { NetworkMain, { {0, 336 * 24 * 3600}, {322700, 30 * 24 * 3600} } },
-            { NetworkTest, { {0, 30 * 24 * 3600} } }
-        } },
-        // TODO (brangr) (v0.21.0): change GetLotteryReferralDepth Time to Height
-        { ConsensusLimit_lottery_referral_depth, {
-            { NetworkMain, { {0, 30 * 24 * 3600} } },
-            { NetworkTest, { {0, 30 * 24 * 3600} } }
         } },
         { ConsensusLimit_max_account_setting_size, {
             { NetworkMain, { {0, 2048} } },
             { NetworkTest, { {0, 2048} } }
         } },
-        { ConsensusLimit_account_settings_daily_count, {
-            { NetworkMain, { {0, 5} } },
-            { NetworkTest, { {0, 5} } }
-        } },
-
-        //
-        // MODERATION
-        //
-
-        // TODO (brangr): implement height fork
-        { ConsensusLimit_moderation_flag_count, {
-            { NetworkMain, { {0, 30}, {9999999, 35} }},
-            { NetworkTest, { {0, 100} }}
-        }},
         
     };
 
