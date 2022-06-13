@@ -464,28 +464,28 @@ namespace PocketDb
                 ,0) as Reputation
 
                 , (
-                    select count(*)
+                    select count()
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
                 ) as SubscribesCount
 
                 , (
-                    select count(*)
+                    select count()
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
                 ) as SubscribersCount
 
                 , (
-                    select count(*)
+                    select count()
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
                     where subs.Type in (305) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
                 ) as BlockingsCount
 
-                , (
-                    select count(*)
+                , ifnull((
+                    select sum(lkr.Value)
                     from Ratings lkr indexed by Ratings_Type_Id_Last_Height
-                    where lkr.Type = 1 and lkr.Id = u.Id
-                ) as Likers
+                    where lkr.Type in (111,112,113) and lkr.Id = u.Id and lkr.Last = 1
+                ),0) as Likers
 
                 , p.String6 as Pubkey
                 , p.String4 as About
