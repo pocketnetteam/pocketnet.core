@@ -749,32 +749,6 @@ namespace PocketDb
         return {result, referrer};
     }
 
-    int ConsensusRepository::GetUserLikersCount(int addressId)
-    {
-        int result = 0;
-
-        string sql = R"sql(
-            select count(1)
-            from Ratings r
-            where r.Type = 1
-              and r.Id = ?
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, addressId);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = value;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
     int ConsensusRepository::GetScoreContentCount(
         int height,
         const shared_ptr<ScoreDataDto>& scoreData,

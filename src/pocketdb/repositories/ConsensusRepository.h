@@ -93,7 +93,6 @@ namespace PocketDb
         ScoreDataDtoRef GetScoreData(const string& txHash);
         shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
         tuple<bool, string> GetReferrer(const string& address);
-        int GetUserLikersCount(int addressId);
 
         int GetScoreContentCount(
             int height,
