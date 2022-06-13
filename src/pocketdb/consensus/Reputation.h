@@ -391,7 +391,7 @@ namespace PocketConsensus
             { 1324655,  65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
             { 1700000, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
             // TODO (brangr): implement height
-            { 9999999, 9999999, [](int height) { return make_shared<ReputationConsensus_checkpoint_badges>(height); }},
+            { 9999999, 947500, [](int height) { return make_shared<ReputationConsensus_checkpoint_badges>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
