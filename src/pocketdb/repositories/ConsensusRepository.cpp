@@ -563,9 +563,6 @@ namespace PocketDb
                 left join Ratings lc indexed by Ratings_Type_Id_Last_Value on lc.Type = 112 and lc.Id = u.Id and lc.Last = 1
                 left join Ratings lca indexed by Ratings_Type_Id_Last_Value on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
 
-                ifnull((select b.Value from Balances b indexed by Balances_AddressHash_Last
-                    where ),0) as Balance,
-
                 where u.Type in (100)
                   and u.Last = 1
                   and u.String1 = ?
