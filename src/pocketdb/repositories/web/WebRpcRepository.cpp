@@ -358,8 +358,11 @@ namespace PocketDb
         return result;
     }
 
-    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses,
-        const vector<int64_t>& ids, bool shortForm)
+    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(
+        const vector<string>& addresses,
+        const vector<int64_t>& ids,
+        bool shortForm,
+        int firstFlagsDepth)
     {
         vector<tuple<string, int64_t, UniValue>> result{};
 
@@ -400,8 +403,8 @@ namespace PocketDb
                   from Transactions ru indexed by Transactions_Type_Last_String2_Height
                   where ru.Type in (100)
                     and ru.Last in (0,1)
-                    and ru.Height > 0
                     and ru.String2 = u.String1
+                    and ru.Height > 0
                     and ru.ROWID = (
                       select min(ru1.ROWID)
                       from Transactions ru1 indexed by Transactions_Id
@@ -410,14 +413,13 @@ namespace PocketDb
                     )
                 ),0) as ReferralsCount
 
-                , u.Hash as AccountHash
-
             )sql";
         }
 
         string sql = R"sql(
             select
-                  u.String1 as Address
+                  u.Hash as AccountHash
+                , u.String1 as Address
                 , u.Id
                 , p.String2 as Name
                 , p.String3 as Avatar
@@ -491,13 +493,36 @@ namespace PocketDb
                     )gr
                 ) as FlagsJson
 
+                , (
+                    select json_group_object(gr.Type, gr.Cnt)
+                    from (
+                      select (f.Int1)Type, (count())Cnt
+                      from Transactions f indexed by Transactions_Type_Last_String3_Height
+                      cross join (
+                        select min(fp.Height)minHeight
+                        from Transactions fp
+                        where fp.Type in (200,201,202)
+                          and fp.String1 = u.String1
+                          and fp.Hash = fp.String2
+                          and fp.Last in (0, 1)
+                          and fp.Height > 0
+                      )fp
+                      where f.Type in (410)
+                        and f.Last = 0
+                        and f.String3 = u.String1
+                        and f.Height >= fp.minHeight
+                        and f.Height <= (fp.minHeight + ?)
+                        group by f.Int1
+                    )gr
+                ) as FirstFlagsCount
+
                 )sql" + fullProfileSql + R"sql(
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             cross join Payload p on p.TxHash=u.Hash
 
             where u.Type in (100,101,102)
-              and u.Last=1
+              and u.Last = 1
               and u.Height is not null
               )sql" + where + R"sql(
         )sql";
@@ -508,6 +533,7 @@ namespace PocketDb
 
             // Bind parameters
             int i = 1;
+            TryBindStatementInt(stmt, i++, firstFlagsDepth * 1440);
             for (const string& address : addresses)
                 TryBindStatementText(stmt, i++, address);
             for (int64_t id : ids)
@@ -516,12 +542,14 @@ namespace PocketDb
             // Fetch data
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                int i = 0;
-                auto[ok0, address] = TryGetColumnString(*stmt, i++);
-                auto[ok2, id] = TryGetColumnInt64(*stmt, i++);
-
                 UniValue record(UniValue::VOBJ);
 
+                int i = 0;
+                auto[ok0, hash] = TryGetColumnString(*stmt, i++);
+                auto[ok1, address] = TryGetColumnString(*stmt, i++);
+                auto[ok2, id] = TryGetColumnInt64(*stmt, i++);
+
+                record.pushKV("hash", hash);
                 record.pushKV("address", address);
                 record.pushKV("id", id);
                 if (IsDeveloper(address)) record.pushKV("dev", true);
@@ -551,6 +579,13 @@ namespace PocketDb
                     record.pushKV("flags", flags);
                 }
 
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
+                {
+                    UniValue flags(UniValue::VOBJ);
+                    flags.read(value);
+                    record.pushKV("firstFlags", flags);
+                }
+
                 if (!shortForm)
                 {
                     
@@ -576,7 +611,6 @@ namespace PocketDb
                     }
                     
                     if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("rc", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("hash", value);
                 }
 
                 result.emplace_back(address, id, record);
@@ -588,22 +622,22 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, bool shortForm)
+    map<string, UniValue> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, bool shortForm, int firstFlagsDepth)
     {
         map<string, UniValue> result{};
 
-        auto _result = GetAccountProfiles(addresses, {}, shortForm);
+        auto _result = GetAccountProfiles(addresses, {}, shortForm, firstFlagsDepth);
         for (const auto[address, id, record] : _result)
             result.insert_or_assign(address, record);
 
         return result;
     }
 
-    map<int64_t, UniValue> WebRpcRepository::GetAccountProfiles(const vector<int64_t>& ids, bool shortForm)
+    map<int64_t, UniValue> WebRpcRepository::GetAccountProfiles(const vector<int64_t>& ids, bool shortForm, int firstFlagsDepth)
     {
         map<int64_t, UniValue> result{};
 
-        auto _result = GetAccountProfiles({}, ids, shortForm);
+        auto _result = GetAccountProfiles({}, ids, shortForm, firstFlagsDepth);
         for (const auto[address, id, record] : _result)
             result.insert_or_assign(id, record);
 
@@ -2784,7 +2818,7 @@ namespace PocketDb
 
         // ---------------------------------------------
         // Get profiles for posts
-        auto profiles = GetAccountProfiles(authors, true);
+        auto profiles = GetAccountProfiles(authors);
         for (auto& record : tmpResult)
             record.second.pushKV("userprofile", profiles[record.second["address"].get_str()]);
 
