@@ -292,7 +292,7 @@ namespace PocketConsensus
 
         // Thresholds for obtaining badges - SHARK
         { threshold_shark_reg_depth, {
-            { NetworkMain, { {0, 103680} } },
+            { NetworkMain, { {0, 129600} } },
             { NetworkTest, { {0, 1} } }
         } },
         { threshold_shark_likers_all, {
