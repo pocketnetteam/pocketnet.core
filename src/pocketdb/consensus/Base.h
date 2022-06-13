@@ -447,7 +447,7 @@ namespace PocketConsensus
         
         // TODO (brangr): implement height fork
         { ConsensusLimit_moderation_flag_count, {
-            { NetworkMain, { {0, 30}, {9999999, 35} }},
+            { NetworkMain, { {0, 30} }},
             { NetworkTest, { {0, 100} }}
         }},
 
