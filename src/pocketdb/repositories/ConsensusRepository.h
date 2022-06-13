@@ -26,10 +26,41 @@ namespace PocketDb
 
     struct AccountData
     {
+        string AddressHash;
         int64_t AddressId;
         int64_t Reputation;
+        int64_t RegistrationTime;
         int64_t RegistrationHeight;
-        int64_t LikersCount;
+        int64_t Balance;
+
+        int64_t LikersContent;
+        int64_t LikersComment;
+        int64_t LikersCommentAnswer;
+
+        int64_t LikersAll() const
+        {
+            return LikersContent + LikersComment + LikersCommentAnswer;
+        }
+    };
+
+    struct BadgeSet
+    {
+        bool Shark = false;
+        bool Whale = false;
+        bool Moderator = false;
+        bool Developer = false;
+
+        UniValue ToJson()
+        {
+            UniValue ret(UniValue::VARR);
+            
+            if (Shark) ret.push_back("shark");
+            if (Whale) ret.push_back("whale");
+            if (Moderator) ret.push_back("moderator");
+            if (Developer) ret.push_back("developer");
+
+            return ret;
+        }
     };
 
     class ConsensusRepository : public TransactionRepository
@@ -140,6 +171,8 @@ namespace PocketDb
         int CountModerationFlag(const string& address, const string& addressTo, bool includeMempool);
 
     };
+
+    typedef shared_ptr<ConsensusRepository> ConsensusRepositoryRef;
 
 } // namespace PocketDb
 
