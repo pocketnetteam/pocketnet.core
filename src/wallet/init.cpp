@@ -6,6 +6,7 @@
 #include <chainparams.h>
 #include <init.h>
 #include <net.h>
+#include <staker.h>
 #include <scheduler.h>
 #include <outputtype.h>
 #include <util.h>
@@ -61,6 +62,7 @@ void WalletInit::AddWalletOptions() const
     gArgs.AddArg("-changetype", "What type of change to use (\"legacy\", \"p2sh-segwit\", or \"bech32\"). Default is same as -addresstype, except when -addresstype=p2sh-segwit a native segwit output is used when sending to a native segwit address)", false, OptionsCategory::WALLET);
     gArgs.AddArg("-disablewallet", "Do not load the wallet and disable wallet RPC calls", false, OptionsCategory::WALLET);
     gArgs.AddArg("-staking", "Use staking thread", true, OptionsCategory::WALLET);
+    gArgs.AddArg("-stakingrequirespeers", "Use the staking logic only if there are peers", DEFAULT_STAKINGREQUIRESPEERS, OptionsCategory::WALLET);
     gArgs.AddArg("-discardfee=<amt>", strprintf("The fee rate (in %s/kB) that indicates your tolerance for discarding change by adding it to the fee (default: %s). "
                                                                 "Note: An output is discarded if it is dust at this rate, but we will always discard up to the dust relay fee and a discard fee above that is limited by the fee estimate for the longest target",
                                                               CURRENCY_UNIT, FormatMoney(DEFAULT_DISCARD_FEE)), false, OptionsCategory::WALLET);

@@ -10,6 +10,8 @@
 #include <unordered_set>
 #include <memory>
 
+static const bool DEFAULT_STAKINGREQUIRESPEERS = false;
+
 class CWallet;
 
 class Staker
