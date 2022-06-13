@@ -166,6 +166,8 @@ namespace PocketConsensus
 
     enum ConsensusLimit
     {
+        ConsensusLimit_depth,
+
         ConsensusLimit_threshold_reputation,
         ConsensusLimit_threshold_reputation_score,
         ConsensusLimit_threshold_balance,
@@ -173,7 +175,20 @@ namespace PocketConsensus
         ConsensusLimit_threshold_likers_count,
         ConsensusLimit_threshold_low_likers_count,
         ConsensusLimit_threshold_low_likers_depth,
-        ConsensusLimit_depth,
+
+        // Thresholds for obtaining badges - SHARK
+        threshold_shark_reg_depth,
+        threshold_shark_likers_all,
+        threshold_shark_likers_content,
+        threshold_shark_likers_comment,
+        threshold_shark_likers_comment_answer,
+
+        // Thresholds for obtaining badges - WHALE
+        threshold_whale_reg_depth,
+        threshold_whale_likers_all,
+        threshold_whale_likers_content,
+        threshold_whale_likers_comment,
+        threshold_whale_likers_comment_answer,
 
         ConsensusLimit_trial_post,
         ConsensusLimit_trial_video,
@@ -273,6 +288,50 @@ namespace PocketConsensus
         { ConsensusLimit_depth, {
             { NetworkMain, { {0, 86400}, {1180000, 1440} } },
             { NetworkTest, { {0, 1440} } }
+        } },
+
+        // Thresholds for obtaining badges - SHARK
+        { threshold_shark_reg_depth, {
+            { NetworkMain, { {0, 103680} } },
+            { NetworkTest, { {0, 1} } }
+        } },
+        { threshold_shark_likers_all, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 1} } }
+        } },
+        { threshold_shark_likers_content, {
+            { NetworkMain, { {0, 0} } },
+            { NetworkTest, { {0, 0} } }
+        } },
+        { threshold_shark_likers_comment, {
+            { NetworkMain, { {0, 15} } },
+            { NetworkTest, { {0, 1} } }
+        } },
+        { threshold_shark_likers_comment_answer, {
+            { NetworkMain, { {0, 0} } },
+            { NetworkTest, { {0, 0} } }
+        } },
+        
+        // Thresholds for obtaining badges - WHALE
+        { threshold_shark_reg_depth, {
+            { NetworkMain, { {0, 207360} } },
+            { NetworkTest, { {0, 1} } }
+        } },
+        { threshold_whale_likers_all, {
+            { NetworkMain, { {0, 1000} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { threshold_whale_likers_content, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { threshold_whale_likers_comment, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { threshold_whale_likers_comment_answer, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 10} } }
         } },
 
         { ConsensusLimit_trial_post, {
@@ -434,8 +493,9 @@ namespace PocketConsensus
         // MODERATION
         //
 
+        // TODO (brangr): implement height fork
         { ConsensusLimit_moderation_flag_count, {
-            { NetworkMain, { {0, 30} }},
+            { NetworkMain, { {0, 30}, {9999999, 35} }},
             { NetworkTest, { {0, 100} }}
         }},
         

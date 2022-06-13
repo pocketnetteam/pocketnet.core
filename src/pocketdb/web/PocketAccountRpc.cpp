@@ -148,15 +148,25 @@ namespace PocketWeb::PocketWebRpc
         if (result["address"].isNull())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
-        // Cechk account permissions
-        AccountData accountData = { result["address_id"].get_int64(), result["reputation"].get_int64(), result["user_reg_height"].get_int64(), result["likers"].get_int64() };
-        auto accountMode = reputationConsensus->GetAccountMode(result["reputation"].get_int(), result["balance"].get_int64());
-        auto accountIsShark = reputationConsensus->IsShark(accountData);
-
+        // Check account permissions
+        auto accountMode = reputationConsensus->GetAccountMode(accountData.Reputation, accountData.Balance);
         result.pushKV("mode", accountMode);
         result.pushKV("trial", accountMode == AccountMode_Trial);
-        result.pushKV("reputation", result["reputation"].get_int() / 10.0);
+        result.pushKV("reputation", accountData.Reputation / 10.0);
 
+        // Extend result data with badges array
+        const AccountData accountData = request.DbConnection()->ConsensusRepoInst->GetAccountData(address);
+        auto badgeSet = reputationConsensus->GetBadges(accountData);
+        UniValue badges = badgeSet.ToJson();
+        result.pushKV("badges", badges);
+
+        result.pushKV("user_reg_date", accountData.RegistrationTime);
+        result.pushKV("user_reg_height", accountData.RegistrationHeight);
+        result.pushKV("reputation", accountData.Reputation);
+        result.pushKV("balance", accountData.Balance);
+        result.pushKV("likers", accountData.LikersAll());
+
+        // Spent/Unspent limits
         int64_t postLimit;
         int64_t videoLimit;
         int64_t articleLimit;
@@ -218,13 +228,6 @@ namespace PocketWeb::PocketWebRpc
 
         if (!result["mod_flag_spent"].isNull())
             result.pushKV("mod_flag_unspent", reputationConsensus->GetConsensusLimit(ConsensusLimit_moderation_flag_count) - result["mod_flag_spent"].get_int());
-
-        if (accountIsShark)
-        {
-            UniValue badges(UniValue::VARR);
-            badges.push_back("shark");
-            result.pushKV("badges", badges);
-        }
 
         return result;
     }

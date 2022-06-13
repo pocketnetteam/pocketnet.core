@@ -20,7 +20,7 @@ namespace PocketConsensus
             return GetConsensusLimit(ConsensusLimit_threshold_likers_count);
         }
         
-        virtual string SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
+        virtual string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery)
         {
             if (lottery)
                 return scoreData->ScoreAddressHash;
@@ -28,10 +28,10 @@ namespace PocketConsensus
             return scoreData->ContentAddressHash;
         }
         
-        virtual bool AllowModifyReputationOverPost(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
+        virtual bool AllowModifyReputationOverPost(ScoreDataDtoRef& scoreData, bool lottery)
         {
             // Check user reputation
-            if (!IsShark(SelectAddressScoreContent(scoreData, lottery), ConsensusLimit_threshold_reputation_score))
+            if (!GetBadges(SelectAddressScoreContent(scoreData, lottery), ConsensusLimit_threshold_reputation_score).Shark)
                 return false;
 
             // Disable reputation increment if from one address to one address > 2 scores over day
@@ -63,10 +63,10 @@ namespace PocketConsensus
             return true;
         }
 
-        virtual bool AllowModifyReputationOverComment(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
+        virtual bool AllowModifyReputationOverComment(ScoreDataDtoRef& scoreData, bool lottery)
         {
             // Check user reputation
-            if (!IsShark(scoreData->ScoreAddressHash, ConsensusLimit_threshold_reputation_score))
+            if (!GetBadges(scoreData->ScoreAddressHash, ConsensusLimit_threshold_reputation_score).Shark)
                 return false;
 
             // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
@@ -133,18 +133,22 @@ namespace PocketConsensus
     public:
         explicit ReputationConsensus(int height) : BaseConsensus(height) {}
 
-        virtual bool IsShark(const AccountData& accountData, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
+        virtual BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
         {
-            auto minReputation = GetConsensusLimit(limit);
-            auto minLikersCount = GetMinLikers(accountData.RegistrationHeight);
+            BadgeSet badgeSet;
 
-            return accountData.Reputation >= minReputation && accountData.LikersCount >= minLikersCount;
+            badgeSet.Developer = IsDeveloper(data.AddressHash);
+            badgeSet.Shark = data.Reputation >= GetConsensusLimit(limit) && data.LikersAll() >= GetMinLikers(data.RegistrationHeight);
+            badgeSet.Whale = false;
+            badgeSet.Moderator = false;
+            
+            return badgeSet;
         }
 
-        virtual bool IsShark(const string& address, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
+        virtual BadgeSet GetBadges(const string& address, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
         {
             auto accountData = ConsensusRepoInst.GetAccountData(address);
-            return IsShark(accountData, limit);
+            return GetBadges(accountData, limit);
         }
 
         virtual AccountMode GetAccountMode(int reputation, int64_t balance)
@@ -164,7 +168,7 @@ namespace PocketConsensus
             return {GetAccountMode(reputation, balance), reputation, balance};
         }
         
-        virtual bool AllowModifyReputation(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
+        virtual bool AllowModifyReputation(ScoreDataDtoRef& scoreData, bool lottery)
         {
             if (scoreData->ScoreType == TxType::ACTION_SCORE_CONTENT)
                 return AllowModifyReputationOverPost(scoreData, lottery);
@@ -273,7 +277,7 @@ namespace PocketConsensus
     public:
         explicit ReputationConsensus_checkpoint_151600(int height) : ReputationConsensus(height) {}
     protected:
-        string SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery) override
+        string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery) override
         {
             return scoreData->ScoreAddressHash;
         }
@@ -346,6 +350,35 @@ namespace PocketConsensus
         }
     };
 
+    // Consensus checkpoint: reducing the impact on the reputation of scores 1,2 for content
+    class ReputationConsensus_checkpoint_badges : public ReputationConsensus_checkpoint_scores_content_author_reducing_impact
+    {
+    public:
+        explicit ReputationConsensus_checkpoint_badges(int height) : ReputationConsensus_checkpoint_scores_content_author_reducing_impact(height) {}
+        BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation) override
+        {
+            BadgeSet badgeSet;
+
+            badgeSet.Developer = IsDeveloper(data.AddressHash);
+
+            badgeSet.Shark = data.LikersAll() >= GetConsensusLimit(threshold_shark_likers_all)
+                          && data.LikersContent >= GetConsensusLimit(threshold_shark_likers_content)
+                          && data.LikersComment >= GetConsensusLimit(threshold_shark_likers_comment)
+                          && data.LikersCommentAnswer >= GetConsensusLimit(threshold_shark_likers_comment_answer)
+                          && data.RegistrationHeight >= GetConsensusLimit(threshold_shark_reg_depth);
+
+            badgeSet.Whale = data.LikersAll() >= GetConsensusLimit(threshold_whale_likers_all)
+                          && data.LikersContent >= GetConsensusLimit(threshold_whale_likers_content)
+                          && data.LikersComment >= GetConsensusLimit(threshold_whale_likers_comment)
+                          && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
+                          && data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
+
+            // badgeSet.Moderator = TODO (brangr): implement for future
+            
+            return badgeSet;
+        }
+    };
+
 
     //  Factory for select actual rules version
     class ReputationConsensusFactory
@@ -357,6 +390,8 @@ namespace PocketConsensus
             { 1180000,      0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
             { 1324655,  65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
             { 1700000, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
+            // TODO (brangr): implement height
+            { 9999999, 9999999, [](int height) { return make_shared<ReputationConsensus_checkpoint_badges>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
