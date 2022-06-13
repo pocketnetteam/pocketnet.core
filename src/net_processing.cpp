@@ -516,10 +516,10 @@ struct CNodeState {
 
 /** Map maintaining per-node state. */
 static std::map<NodeId, CNodeState> mapNodeState GUARDED_BY(cs_main);
-static std::map<NodeId, CNodeState> mapNodeStateView GUARDED_BY(cs_nodestate);
 
-static CNodeState *State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main) {
-    std::map<NodeId, CNodeState>::iterator it = mapNodeState.find(pnode);
+static CNodeState* _state(NodeId pnode)
+{
+    auto it = mapNodeState.find(pnode);
     if (it == mapNodeState.end())
         return nullptr;
     return &it->second;
@@ -587,12 +587,14 @@ static PeerRef GetPeerRef(NodeId id)
     return it != g_peer_map.end() ? it->second : nullptr;
 }
 
+static CNodeState* State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    return _state(pnode);
+}
+
 static CNodeState* StateView(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_nodestate)
 {
-    auto it = mapNodeStateView.find(pnode);
-    if (it == mapNodeStateView.end())
-        return nullptr;
-    return &it->second;
+    return _state(pnode);
 }
 
 static void UpdatePreferredDownload(const CNode& node, CNodeState* state) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
@@ -926,6 +928,7 @@ void PeerManager::InitializeNode(CNode *pnode) {
     
     {
         LOCK(cs_main);
+        LOCK(cs_nodestate);
         mapNodeState.emplace_hint(mapNodeState.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, pnode->IsInboundConn(), pnode->IsManualConn()));
         assert(m_txrequest.Count(nodeid) == 0);
     }
@@ -935,11 +938,6 @@ void PeerManager::InitializeNode(CNode *pnode) {
         g_peer_map.emplace_hint(g_peer_map.end(), nodeid, std::move(peer));
     }
 
-    {
-        LOCK(cs_nodestate);
-        mapNodeStateView.emplace_hint(mapNodeStateView.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, pnode->IsInboundConn(), pnode->IsManualConn()));
-    }
-    
     if (!pnode->IsInboundConn()) {
         PushNodeVersion(*pnode, m_connman, GetTime());
     }
@@ -1002,13 +1000,11 @@ void PeerManager::FinalizeNode(const CNode& node, bool& fUpdateConnectionTime) {
     g_wtxid_relay_peers -= state->m_wtxid_relay;
     assert(g_wtxid_relay_peers >= 0);
 
-    mapNodeState.erase(nodeid);
-
     {
         LOCK(cs_nodestate);
-        mapNodeStateView.erase(nodeid);
+        mapNodeState.erase(nodeid);
     }
-
+    
     if (mapNodeState.empty()) {
         // Do a consistency check after the last peer is removed.
         assert(mapBlocksInFlight.empty());
@@ -1047,7 +1043,7 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats) {
 bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
 {
     {
-        LOCK(cs_main);
+        LOCK(cs_nodestate);
         CNodeState* state = StateView(nodeid);
         if (state == nullptr)
             return false;

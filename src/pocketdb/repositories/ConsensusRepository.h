@@ -26,10 +26,41 @@ namespace PocketDb
 
     struct AccountData
     {
+        string AddressHash;
         int64_t AddressId;
         int64_t Reputation;
+        int64_t RegistrationTime;
         int64_t RegistrationHeight;
-        int64_t LikersCount;
+        int64_t Balance;
+
+        int64_t LikersContent;
+        int64_t LikersComment;
+        int64_t LikersCommentAnswer;
+
+        int64_t LikersAll() const
+        {
+            return LikersContent + LikersComment + LikersCommentAnswer;
+        }
+    };
+
+    struct BadgeSet
+    {
+        bool Shark = false;
+        bool Whale = false;
+        bool Moderator = false;
+        bool Developer = false;
+
+        UniValue ToJson()
+        {
+            UniValue ret(UniValue::VARR);
+            
+            if (Shark) ret.push_back("shark");
+            if (Whale) ret.push_back("whale");
+            if (Moderator) ret.push_back("moderator");
+            if (Developer) ret.push_back("developer");
+
+            return ret;
+        }
     };
 
     class ConsensusRepository : public TransactionRepository
@@ -62,7 +93,6 @@ namespace PocketDb
         ScoreDataDtoRef GetScoreData(const string& txHash);
         shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
         tuple<bool, string> GetReferrer(const string& address);
-        int GetUserLikersCount(int addressId);
 
         int GetScoreContentCount(
             int height,
@@ -77,7 +107,7 @@ namespace PocketDb
             int64_t scoresOneToOneDepth);
 
         // Exists
-        bool ExistsComplain(const string& postHash, const string& address);
+        bool ExistsComplain(const string& postHash, const string& address, bool mempool);
         bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
         bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
         bool ExistsAnotherByName(const string& address, const string& name);
@@ -140,6 +170,8 @@ namespace PocketDb
         int CountModerationFlag(const string& address, const string& addressTo, bool includeMempool);
 
     };
+
+    typedef shared_ptr<ConsensusRepository> ConsensusRepositoryRef;
 
 } // namespace PocketDb
 

@@ -42,6 +42,12 @@ public:
         }
     }
 
+    int count()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_map.size();
+    }
+
 protected:
     std::map<Key, Value> m_map;
     std::mutex m_mutex;

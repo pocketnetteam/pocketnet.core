@@ -544,6 +544,8 @@ private:
         if (mempoolRejectFee > 0 && package_fee < mempoolRejectFee) {
             return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "mempool min fee not met", strprintf("%d < %d", package_fee, mempoolRejectFee));
         }
+        // TODO (o1q): Set minimal fee for several PocketNet transactions to limit bots actions
+        // For PocketNET transaction allow minimal fee
         if (is_pocket_tx) {
             if (package_fee < DEFAULT_MIN_POCKETNET_TX_FEE) {
                 return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "min PocketNet TX fee not met", strprintf("%d < %d", package_fee, DEFAULT_MIN_POCKETNET_TX_FEE));
@@ -618,7 +620,11 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // block; we don't want our mempool filled up with transactions that can't
     // be mined yet.
     if (!CheckFinalTx(tx, STANDARD_LOCKTIME_VERIFY_FLAGS))
-        return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "non-final");
+    {
+        TxType txType = TransactionHelper::ParseType(ptx);
+        if(!TransactionHelper::IsIn(txType, vector<TxType>{TxType::CONTENT_POST, TxType::CONTENT_VIDEO, TxType::CONTENT_ARTICLE}))
+            return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "non-final");
+    }
 
     // is it already in the memory pool?
     if (m_pool.exists(hash)) {

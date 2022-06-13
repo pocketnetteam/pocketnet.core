@@ -13,7 +13,7 @@
 #include "primitives/transaction.h"
 #include "util/strencodings.h"
 
-#include "pocketdb/models/base/ReturnDtoModels.h"
+#include "pocketdb/models/base/DtoModels.h"
 #include "pocketdb/models/base/PocketTypes.h"
 
 #include "pocketdb/models/dto/Blocking.h"
@@ -73,6 +73,7 @@ namespace PocketHelpers
         static bool IsPocketTransaction(const CTransactionRef& tx, TxType& txType);
         static bool IsPocketTransaction(const CTransactionRef& tx);
         static bool IsPocketTransaction(const CTransaction& tx);
+        static bool IsPocketNeededPaymentTransaction(const CTransactionRef& tx);
         static tuple<bool, shared_ptr<ScoreDataDto>> ParseScore(const CTransactionRef& tx);
         static PTransactionRef CreateInstance(TxType txType);
         static PTransactionRef CreateInstance(TxType txType, const CTransactionRef& tx);

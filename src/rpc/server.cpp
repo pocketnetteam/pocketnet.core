@@ -358,17 +358,23 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
 static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& request, UniValue& result, bool last_handler, RPCCache* cache)
 {
     auto start = gStatEngineInstance.GetCurrentSystemTime();
-    auto ret = cache->GetRpcCache(request);
-    if (ret.isNull()) {
+
+    // See if this request reply is cached
+    UniValue ret = cache->GetRpcCache(request);
+    if (ret.isNull())
+    {
         try
         {
             RPCCommandExecution execution(request.strMethod);
             // Execute, convert arguments to array if necessary
             if (request.params.isObject()) {
-                return command.actor(transformNamedArguments(request, command.argNames), result, last_handler);
+                ret = command.actor(transformNamedArguments(request, command.argNames), result, last_handler);
             } else {
-                return command.actor(request, result, last_handler);
+                ret = command.actor(request, result, last_handler);
             }
+
+            // Save return value in cache for later
+            cache->PutRpcCache(request, ret);
         }
         catch (const std::exception& e)
         {

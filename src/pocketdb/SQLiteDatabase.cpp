@@ -64,6 +64,25 @@ namespace PocketDb
         ConsensusRepoInst.Init();
         NotifierRepoInst.Init();
         SystemRepoInst.Init();
+        MigrationRepoInst.Init();
+
+        // Execute migration scripts
+        if (gArgs.GetArg("-reindex", 0) == 0)
+        {
+            if (!MigrationRepoInst.SplitLikers())
+            {
+                LogPrintf("SQLDB Migration: SplitLikers completed.\n");
+                StartShutdown();
+                return;
+            }
+
+            if (!MigrationRepoInst.AccumulateLikers())
+            {
+                LogPrintf("SQLDB Migration: AccumulateLikers completed.\n");
+                StartShutdown();
+                return;
+            }
+        }
 
         // Open, create structure and close `web` db
         PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();
@@ -228,6 +247,8 @@ namespace PocketDb
             while ((pos = sql.find(';')) != std::string::npos)
             {
                 token = sql.substr(0, pos);
+
+                LogPrint(BCLog::MIGRATION, "Migration Sqlite database `%s` structure..\n---\n%s\n---\n", m_file_path, token);
 
                 BeginTransaction();
 

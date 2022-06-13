@@ -139,7 +139,7 @@ namespace PocketDb
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("hash", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("boostAddress", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.pushKV("boostAmount", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("boostAmount", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("boostName", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("boostAvatar", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) result.pushKV("contentAddress", value);

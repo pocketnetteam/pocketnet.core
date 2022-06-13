@@ -757,7 +757,84 @@ namespace PocketDb
         });
 
         return ids;
+    }
 
+    vector<int64_t> SearchRepository::GetContentFromAddressSubscriptions(const string& address, const vector<int>& contentTypes, const string& lang, int cntOut, bool rest)
+    {
+        auto func = __func__;
+        vector<int64_t> ids;
 
+        if (address.empty())
+            return ids;
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string langFilter = "";
+        if (!lang.empty())
+            langFilter = "cross join Payload lang on lang.TxHash = Contents.Hash and lang.String1 = ?";
+
+        string limitFilter = "= floor(? / "
+                             "(select count(s.String2) from Transactions s indexed by Transactions_Type_Last_String1_Height_Id where s.Type in (302, 303) and s.Last = 1 and s.String1 = ? and s.Height > 0)) ";
+        if (rest)
+            limitFilter = limitFilter + " + 1 limit ?";
+        else
+            limitFilter = "<" + limitFilter;
+
+        string sql = R"sql(
+            select
+                result.Id
+            from (
+                    select
+                        Contents.Id,
+                        row_number() over (partition by contents.String1 order by r.Value desc ) as rowNumber
+                    from Transactions Contents indexed by Transactions_Type_Last_String1_Height_Id
+                    cross join Ratings r on contents.Id = r.Id and r.Last = 1 and r.Type = 2
+                    )sql" + langFilter + R"sql(
+                    where Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
+                      and Contents.Last = 1
+                      and Contents.String1 in (
+                        select subscribtions.String2
+                        from Transactions subscribtions indexed by Transactions_Type_Last_String1_Height_Id
+                        where subscribtions.Type in (302, 303)
+                            and subscribtions.Last = 1
+                            and subscribtions.String1 = ?
+                            and subscribtions.Height > 0
+                      )
+                      and Contents.Height > 0
+                )result
+            where result.rowNumber
+        )sql" + limitFilter;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementText(stmt, i++, address);
+
+            TryBindStatementInt(stmt, i++, cntOut);
+
+            TryBindStatementText(stmt, i++, address);
+
+            if (rest)
+                TryBindStatementInt(stmt, i++, cntOut);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return ids;
     }
 }
