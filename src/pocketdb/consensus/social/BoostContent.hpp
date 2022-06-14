@@ -35,6 +35,10 @@ namespace PocketConsensus
             if (*contentTx->GetType() == CONTENT_DELETE)
                 return {false, SocialConsensusResult_CommentDeletedContent};
 
+            // Check Blocking
+            if (auto[ok, result] = ValidateBlocking(*contentTx->GetString1(), ptx); !ok)
+                return {false, result};
+
             return Success;
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const BoostContentRef& ptx) override
@@ -66,6 +70,10 @@ namespace PocketConsensus
         {
             return {*ptx->GetAddress()};
         }
+        virtual ConsensusValidateResult ValidateBlocking(const string& contentAddress, const BoostContentRef& ptx)
+        {
+            return Success;
+        }
     };
 
     /*******************************************************************************************************************
@@ -82,12 +90,29 @@ namespace PocketConsensus
         }
     };
 
+    // Disable scores for blocked accounts
+    class BoostContentConsensus_checkpoint_disable_for_blocked : public BoostContentConsensus_checkpoint_accept
+    {
+    public:
+        BoostContentConsensus_checkpoint_disable_for_blocked(int height) : BoostContentConsensus_checkpoint_accept(height) {}
+    protected:
+        ConsensusValidateResult ValidateBlocking(const string& contentAddress, const BoostContentRef& ptx) override
+        {
+            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
+                contentAddress, *ptx->GetAddress()); existsBlocking && blockingType == ACTION_BLOCKING)
+                return {false, SocialConsensusResult_Blocking};
+
+            return Success;
+        }
+    };
+
     class BoostContentConsensusFactory
     {
     private:
         const vector<ConsensusCheckpoint<BoostContentConsensus>> m_rules = {
             {       0,      0, [](int height) { return make_shared<BoostContentConsensus>(height); }},
             { 1586000, 528100, [](int height) { return make_shared<BoostContentConsensus_checkpoint_accept>(height); }},
+            { 9999999, 953000, [](int height) { return make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<BoostContentConsensus> Instance(int height)

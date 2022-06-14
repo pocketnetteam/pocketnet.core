@@ -43,6 +43,10 @@ namespace PocketConsensus
 
                 if (relayOk && *relayTx->GetType() == CONTENT_DELETE)
                     return {false, SocialConsensusResult_RepostDeletedContent};
+
+                // Check Blocking
+                if (auto[ok, result] = ValidateBlocking(*relayTx->GetString1(), ptx); !ok)
+                    return {false, result};
             }
 
             // Check payload size
@@ -257,6 +261,10 @@ namespace PocketConsensus
 
             return Success;
         }
+        virtual ConsensusValidateResult ValidateBlocking(const string& contentAddress, const PostRef& ptx)
+        {
+            return Success;
+        }
     };
 
     /*******************************************************************************************************************
@@ -298,6 +306,26 @@ namespace PocketConsensus
         }
     };
 
+    // Disable scores for blocked accounts
+    class PostConsensus_checkpoint_disable_for_blocked : public PostConsensus_checkpoint_1180000
+    {
+    public:
+        PostConsensus_checkpoint_disable_for_blocked(int height) : PostConsensus_checkpoint_1180000(height) {}
+    protected:
+        ConsensusValidateResult ValidateBlocking(const string& contentAddress, const PostRef& ptx) override
+        {
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
+                contentAddress,
+                *ptx->GetAddress()
+            );
+
+            if (existsBlocking && blockingType == ACTION_BLOCKING)
+                return {false, SocialConsensusResult_Blocking};
+
+            return Success;
+        }
+    };
+
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
@@ -305,9 +333,10 @@ namespace PocketConsensus
     {
     protected:
         const vector<ConsensusCheckpoint<PostConsensus>> m_rules = {
-            { 0, -1, [](int height) { return make_shared<PostConsensus>(height); }},
-            { 1124000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1124000>(height); }},
-            { 1180000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1180000>(height); }},
+            { 0,           -1, [](int height) { return make_shared<PostConsensus>(height); }},
+            { 1124000,     -1, [](int height) { return make_shared<PostConsensus_checkpoint_1124000>(height); }},
+            { 1180000,     -1, [](int height) { return make_shared<PostConsensus_checkpoint_1180000>(height); }},
+            { 9999999, 953000, [](int height) { return make_shared<PostConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<PostConsensus> Instance(int height)

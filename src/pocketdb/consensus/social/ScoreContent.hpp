@@ -270,6 +270,26 @@ namespace PocketConsensus
         }
     };
 
+    // Disable scores for blocked accounts
+    class ScoreContentConsensus_checkpoint_disable_for_blocked : public ScoreContentConsensus_checkpoint_1324655
+    {
+    public:
+        ScoreContentConsensus_checkpoint_disable_for_blocked(int height) : ScoreContentConsensus_checkpoint_1324655(height) {}
+    protected:
+        ConsensusValidateResult ValidateBlocking(const string& contentAddress, const ScoreContentRef& ptx) override
+        {
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
+                contentAddress,
+                *ptx->GetAddress()
+            );
+
+            if (existsBlocking && blockingType == ACTION_BLOCKING)
+                return {false, SocialConsensusResult_Blocking};
+
+            return Success;
+        }
+    };
+
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
@@ -277,12 +297,13 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < ScoreContentConsensus>> m_rules = {
-            { 0,          -1, [](int height) { return make_shared<ScoreContentConsensus>(height); }},
-            { 430000,     -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_430000>(height); }},
-            { 514184,     -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_514184>(height); }},
-            { 1124000,    -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1124000>(height); }},
-            { 1180000,     0, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1180000>(height); }},
-            { 1324655, 65000, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1324655>(height); }},
+            { 0,           -1, [](int height) { return make_shared<ScoreContentConsensus>(height); }},
+            { 430000,      -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_430000>(height); }},
+            { 514184,      -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_514184>(height); }},
+            { 1124000,     -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1124000>(height); }},
+            { 1180000,      0, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1180000>(height); }},
+            { 1324655,  65000, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1324655>(height); }},
+            { 9999999, 953000, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<ScoreContentConsensus> Instance(int height)
