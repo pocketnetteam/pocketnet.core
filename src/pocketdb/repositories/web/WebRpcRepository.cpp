@@ -341,13 +341,45 @@ namespace PocketDb
                       where ru1.Id = ru.Id
                       limit 1
                     )
-                  ),0) as ReferralsCountHist
+                  ),0) as ReferralsCountHist,
+
+                (
+                  select count()
+                  from Transactions p indexed by Transactions_String1_Last_Height
+                  join Transactions c indexed by Transactions_Type_Last_String3_Height
+                    on c.Type in (204)
+                    and c.Last in (0,1)
+                    and c.String3 = p.String2
+                    and c.Height <= ?
+                    and c.Height > ?
+                    and c.Hash = c.String2
+                  where p.Type in (200,201,202)
+                    and p.Last = 1
+                    and p.String1 = u.String1
+                    and p.Height > 0
+                )Comments,
+
+                (
+                  select count(distinct c.String1)
+                  from Transactions p indexed by Transactions_String1_Last_Height
+                  join Transactions c indexed by Transactions_Type_Last_String3_Height
+                    on c.Type in (204)
+                    and c.Last in (0,1)
+                    and c.String3 = p.String2
+                    and c.Height <= ?
+                    and c.Height > ?
+                    and c.Hash = c.String2
+                  where p.Type in (200,201,202)
+                    and p.Last = 1
+                    and p.String1 = u.String1
+                    and p.Height > 0
+                )Commentators
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             where u.Type in (100)
-            and u.Height is not null
-            and u.String1 in ( )sql" + addressesWhere + R"sql( )
-            and u.Last = 1
+              and u.Last = 1
+              and u.String1 in ( )sql" + addressesWhere + R"sql( )
+              and u.Height is not null
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -355,8 +387,16 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
+            // Referrals
             TryBindStatementInt(stmt, i++, nHeight);
             TryBindStatementInt(stmt, i++, nHeight - depth);
+            // Comments
+            TryBindStatementInt(stmt, i++, nHeight);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
+            // Commentators
+            TryBindStatementInt(stmt, i++, nHeight);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
+            // Addresses
             for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
