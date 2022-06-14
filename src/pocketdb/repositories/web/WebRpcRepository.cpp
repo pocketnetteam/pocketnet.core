@@ -1482,11 +1482,62 @@ namespace PocketDb
         return UniValue(UniValue::VARR);
     }
 
-    UniValue WebRpcRepository::GetBlockingToAddresses(const string& address)
+    UniValue WebRpcRepository::GetBlockings(const string& address)
     {
-        // TODO (brangr) (v0.21): implement
-        // Should return pagination list of account profiles
-        return UniValue(UniValue::VARR);
+        UniValue result(UniValue::VARR);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select
+                  u.Id
+                from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                  on u.Type in (100) and u.Last = 1 and u.String1 = b.String2 and u.Height > 0
+                where b.Type in (305)
+                  and b.Last = 1
+                  and b.String1 = ?
+                  and b.Height > 0
+            )sql");
+            TryBindStatementText(stmt, 1, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    result.push_back(value);
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+    
+    UniValue WebRpcRepository::GetBlockers(const string& address)
+    {
+        UniValue result(UniValue::VARR);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select
+                  u.Id
+                from Transactions b indexed by Transactions_Type_Last_String2_Height
+                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                  on u.Type in (100) and u.Last = 1 and u.String1 = b.String1 and u.Height > 0
+                where b.Type in (305)
+                  and b.Last = 1
+                  and b.String2 = ?
+                  and b.Height > 0
+            )sql");
+            TryBindStatementText(stmt, 1, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    result.push_back(value);
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     vector<string> WebRpcRepository::GetTopAccounts(int topHeight, int countOut, const string& lang,
@@ -4198,5 +4249,4 @@ namespace PocketDb
 
         return result;
     }
-
 }

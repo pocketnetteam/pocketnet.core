@@ -438,13 +438,26 @@ namespace PocketWeb::PocketWebRpc
         if (request.fHelp)
             throw std::runtime_error(
                 "GetAccountBlockings \"address\"\n"
-                "\nReturn blocked accounts list with pagination - NOT IMPLEMENTED\n");
+                "\nReturn blocked accounts list\n");
 
         RPCTypeCheck(request.params, {UniValue::VSTR});
 
         string address = request.params[0].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetBlockingToAddresses(address);
+        return request.DbConnection()->WebRpcRepoInst->GetBlockings(address);
+    }
+
+    UniValue GetAccountBlockers(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "GetAccountBlockers \"address\"\n"
+                "\nReturns a list of accounts that have blocked the specified address\n");
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+        return request.DbConnection()->WebRpcRepoInst->GetBlockers(address);
     }
 
     UniValue GetTopAccounts(const JSONRPCRequest& request)
