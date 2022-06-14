@@ -238,9 +238,6 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1180000 block
-    *******************************************************************************************************************/
     class ScoreCommentConsensus_checkpoint_1180000 : public ScoreCommentConsensus_checkpoint_1124000
     {
     public:
@@ -256,6 +253,26 @@ namespace PocketConsensus
         }
     };
 
+    class ScoreCommentConsensus_checkpoint_disable_for_blocked : public ScoreCommentConsensus_checkpoint_1180000
+    {
+    public:
+        explicit ScoreCommentConsensus_checkpoint_disable_for_blocked(int height) : ScoreCommentConsensus_checkpoint_1180000(height) {}
+    protected:
+        ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& ptx) override
+        {
+
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
+                commentAddress,
+                *ptx->GetAddress()
+            );
+
+            if (existsBlocking && blockingType == ACTION_BLOCKING)
+                return {false, SocialConsensusResult_Blocking};
+
+            return Success;
+        }
+    };
+
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
@@ -268,6 +285,7 @@ namespace PocketConsensus
             { 514184, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_514184>(height); }},
             { 1124000, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_1124000>(height); }},
             { 1180000, 0, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_1180000>(height); }},
+            { 9999999, 953000, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<ScoreCommentConsensus> Instance(int height)
