@@ -1414,6 +1414,70 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetAccountRaters(const string& address)
+    {
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select u.id,
+                   u.String1           address,
+                   up.String2          name,
+                   up.String3          avatar,
+                   up.String4          about,
+                   (
+                    select reg.Time
+                    from Transactions reg indexed by Transactions_Id
+                    where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1
+                   )                   registrationDate,
+                   ifnull(ur.Value, 0) reputation
+            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                     join Payload up on up.TxHash = u.Hash
+                     left join Ratings ur indexed by Ratings_Type_Id_Last_Value on ur.Type = 0 and ur.Id = u.Id and ur.Last = 1
+            where u.Type = 100
+              and u.Last = 1
+              and u.String1 in (
+                select s.String1
+                from Transactions c indexed by Transactions_String1_Last_Height--Transactions_Type_Last_String1_String2_Height
+                         join Transactions s indexed by Transactions_Type_Last_String2_Height
+                              on s.String2 = c.String2 and s.Type in (300, 301) and s.Last in (0, 1) and s.Height is not null and
+                                 s.Int1 = (case when c.Type = 204 then 1 else 5 end)
+                where c.Type in (200, 201, 202, 204)
+                  and c.Last in (0, 1)
+                  and c.String1 = ?
+                  and c.Hash = c.String2
+                  and c.Height is not null
+            )
+              and u.Height is not null
+            order by ifnull(ur.Value, 0) desc
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("id", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("about", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) record.pushKV("regdate", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("reputation", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue WebRpcRepository::GetSubscribesAddresses(const string& address, const vector<TxType>& types)
     {
         UniValue result(UniValue::VARR);
