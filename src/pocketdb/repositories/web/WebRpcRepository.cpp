@@ -1466,8 +1466,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("about", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) record.pushKV("regdate", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("regdate", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) record.pushKV("reputation", value);
 
                 result.push_back(record);
             }
