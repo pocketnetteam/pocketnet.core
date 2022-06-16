@@ -1241,11 +1241,9 @@ if test x$enable_wallet != xno; then
     fi
 fi
 
-echo "Lheeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 if test x$use_webrtc != xno; then
   AC_ARG_VAR(DATACHANNEL_CPPFLAGS, [C compiler flags for libdatachannel, bypasses autodetection])
   AC_ARG_VAR(DATACHANNEL_LIBS, [Linker flags for libdatachannel, bypasses autodetection])
-  echo "Wheeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
   if test "x$DATACHANNEL_CPPFLAGS" = "x"; then
     AC_MSG_CHECKING([for libdatachannel C++ headers])
     AC_CHECK_HEADERS(
@@ -1268,7 +1266,6 @@ if test x$use_webrtc != xno; then
     fi
   fi
 fi
-LIBDATACHANNEL_LIBS="-ldatachannel -ljuice -lusrsctp"
 
 dnl Check for libminiupnpc (optional)
 if test x$use_upnp != xno; then
@@ -1762,13 +1759,12 @@ case ${OS} in
      mv test/config-2.ini test/config.ini
    ;;
 esac
-echo "HAHAHAHAHHAHA = $use_webrtc"
-echo "HIHIHIHIHI $CRYPTO_LIBS $SSL_LIBS"
 echo
 echo "Options used to compile and link:"
 echo "  boost process = $ax_cv_boost_process"
 echo "  multiprocess  = $build_multiprocess"
 echo "  with wallet   = $enable_wallet"
+echo "  with webrtc   = $use_webrtc"
 if test "x$enable_wallet" != "xno"; then
     echo "    with sqlite = $use_sqlite"
 fi
