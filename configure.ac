@@ -243,6 +243,12 @@ AC_ARG_ENABLE([zmq],
   [use_zmq=$enableval],
   [use_zmq=yes])
 
+AC_ARG_ENABLE([webrtc],
+  [AS_HELP_STRING([--disable-webrtc],
+  [disable rpc and web via WebRTC])],
+  [use_webrtc=$enableval],
+  [use_webrtc=yes])
+
 AC_ARG_WITH([libmultiprocess],
   [AS_HELP_STRING([--with-libmultiprocess=yes|no|auto],
   [Build with libmultiprocess library. (default: auto, i.e. detect with pkg-config)])],
@@ -1235,6 +1241,35 @@ if test x$enable_wallet != xno; then
     fi
 fi
 
+echo "Lheeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+if test x$use_webrtc != xno; then
+  AC_ARG_VAR(DATACHANNEL_CPPFLAGS, [C compiler flags for libdatachannel, bypasses autodetection])
+  AC_ARG_VAR(DATACHANNEL_LIBS, [Linker flags for libdatachannel, bypasses autodetection])
+  echo "Wheeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  if test "x$DATACHANNEL_CPPFLAGS" = "x"; then
+    AC_MSG_CHECKING([for libdatachannel C++ headers])
+    AC_CHECK_HEADERS(
+      [rtc/rtc.hpp rtc/datachannel.hpp rtc/peerconnection.hpp],
+      [have_datachannel_headers=yes],
+      [have_datachannel_headers=no]
+    )
+    if test "x$have_datachannel_headers" != "xyes"; then
+      AC_MSG_ERROR([Failed to find datachannel headers, try to set DATACHANNEL_CPPFLAGS or configure with --disable-webrtc])
+    fi
+  fi
+
+  if test "x$DATACHANNEL_LIBS" = "x"; then
+    AC_MSG_CHECKING([for libdatachannel C++ libs])
+    AC_CHECK_LIB([datachannel], [main], [DATACHANNEL_LIBS=-ldatachannel], 
+    AC_CHECK_LIB([datachannel], [main], [DATACHANNEL_LIBS=-ldatachannel -ljuice -lusrsctp], [have_datachannel_libs=no], [-ljuice -lusrsctp]))
+
+    if test "x$have_datachannel_libs" == "xno"; then
+      AC_MSG_ERROR([Failed to find datachannel library, try to set DATACHANNEL_LIBS or configure with --disable-webrtc])
+    fi
+  fi
+fi
+LIBDATACHANNEL_LIBS="-ldatachannel -ljuice -lusrsctp"
+
 dnl Check for libminiupnpc (optional)
 if test x$use_upnp != xno; then
   AC_CHECK_HEADERS(
@@ -1661,6 +1696,8 @@ AC_SUBST(SSL_LIBS)
 AC_SUBST(TESTDEFS)
 AC_SUBST(MINIUPNPC_CPPFLAGS)
 AC_SUBST(MINIUPNPC_LIBS)
+AC_SUBST(DATACHANNEL_CPPFLAGS)
+AC_SUBST(DATACHANNEL_LIBS)
 AC_SUBST(EVENT_LIBS)
 AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(ZMQ_LIBS)
@@ -1725,7 +1762,8 @@ case ${OS} in
      mv test/config-2.ini test/config.ini
    ;;
 esac
-
+echo "HAHAHAHAHHAHA = $use_webrtc"
+echo "HIHIHIHIHI $CRYPTO_LIBS $SSL_LIBS"
 echo
 echo "Options used to compile and link:"
 echo "  boost process = $ax_cv_boost_process"

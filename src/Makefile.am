@@ -20,7 +20,7 @@ else
 LIBUNIVALUE = $(UNIVALUE_LIBS)
 endif
 
-POCKETCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/secp256k1/include $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS)
+POCKETCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/secp256k1/include $(BDB_CPPFLAGS) $(DATACHANNEL_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS)
 
 POCKETCOIN_INCLUDES += -I$(srcdir)/sqlite/include
 POCKETCOIN_INCLUDES += $(UNIVALUE_CFLAGS)
@@ -476,7 +476,26 @@ POCKETCOIN_CORE_H = \
     zmq/zmqrpc.h \
     zmq/zmqutil.h \
     websocket/ws.h \
-    websocket/notifyprocessor.h \
+    rpcapi/rpcapi.h \
+    rpcapi/rpchandler.h \
+    rpcapi/rpcprocessor.h \
+    notification/INotificationProtocol.h \
+    notification/INotifications.h \
+    notification/NotificationClient.h \
+    notification/NotificationProtocol.h \
+    notification/Notifications.h \
+    notification/NotificationsFactory.h \
+    notification/NotificationTypedefs.h \
+    notification/notifyprocessor.h \
+    webrtc/DataChannelConnection.h \
+    webrtc/DataChannelHandlerProvider.h \
+    webrtc/webrtc.h \
+    webrtc/webrtcconnection.h \
+    webrtc/webrtcprotocol.h \
+    webrtc/wsconnectionhandler.h \
+    webrtc/signaling/signalingprocessor.h \
+    webrtc/signaling/signalingserver.h \
+    web/WSConnection.h \
     $(POCKETDB_H)
 
 
@@ -547,7 +566,22 @@ libpocketcoin_server_a_SOURCES = \
     validationinterface.cpp \
     versionbits.cpp \
     websocket/ws.cpp \
-    websocket/notifyprocessor.cpp \
+    rpcapi/rpcapi.cpp \
+    rpcapi/rpchandler.cpp \
+    rpcapi/rpcprocessor.cpp \
+    notification/NotificationProtocol.cpp \
+    notification/Notifications.cpp \
+    notification/NotificationsFactory.cpp \
+    notification/notifyprocessor.cpp \
+    webrtc/DataChannelConnection.cpp \
+    webrtc/DataChannelHandlerProvider.cpp \
+    webrtc/webrtc.cpp \
+    webrtc/webrtcconnection.cpp \
+    webrtc/webrtcprotocol.cpp \
+    webrtc/wsconnectionhandler.cpp \
+    webrtc/signaling/signalingprocessor.cpp \
+    webrtc/signaling/signalingserver.cpp \
+    web/WSConnection.cpp \
     $(POCKETDB_CPP) \
     $(POCKETCOIN_CORE_H)
 
@@ -813,7 +847,7 @@ pocketcoin_bin_ldadd = \
   $(LIBSECP256K1) \
   $(LIBSQLITE3)
 
-pocketcoin_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
+pocketcoin_bin_ldadd += $(BOOST_LIBS) $(DATACHANNEL_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
 
 pocketcoind_SOURCES = $(pocketcoin_daemon_sources)
 pocketcoind_CPPFLAGS = $(pocketcoin_bin_cppflags)
