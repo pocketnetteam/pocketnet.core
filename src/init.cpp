@@ -111,7 +111,7 @@ static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 Statistic::RequestStatEngine gStatEngineInstance;
 
-std::unique_ptr<notifications::INotifications> notificationProcessor;
+std::unique_ptr<notifications::INotifications> notificationProcessor = notifications::NotificationsFactory().NewNotifications();;
 
 // TODO (losty-rpc): fixup
 RPC g_rpc;
@@ -1515,9 +1515,6 @@ static void StartWS()
 
 static void InitNotifications(int threads)
 {
-    if (!notificationProcessor) {
-        notificationProcessor = notifications::NotificationsFactory().NewNotifications();
-    }
     notificationProcessor->Start(threads);
 }
 

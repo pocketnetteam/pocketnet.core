@@ -89,6 +89,7 @@ bool webrtc::WebRTCProtocol::Process(const UniValue& message, const std::string&
                     notificationProtocol->forceDelete(ip);
                 }
             });
+            // TODO (losty-rtc): also check for nullability because one of the processors can be null if e.x. notifications were disabled
             if (label == "rpc") {
                 dataChannel->onMessage(DataChannelHandlerProvider::GetRPCHandler(requestHandler, dataChannel, ip));
             } else if (label == "notify") {
