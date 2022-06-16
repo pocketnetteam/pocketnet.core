@@ -41,12 +41,16 @@ namespace PocketConsensus
                 if (!relayOk && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
                     return {false, SocialConsensusResult_RelayContentNotFound};
 
-                if (relayOk && *relayTx->GetType() == CONTENT_DELETE)
-                    return {false, SocialConsensusResult_RepostDeletedContent};
+                if (relayOk)
+                {
+                    // Repost deleted content not allowed
+                    if (*relayTx->GetType() == CONTENT_DELETE)
+                        return {false, SocialConsensusResult_RepostDeletedContent};
 
-                // Check Blocking
-                if (auto[ok, result] = ValidateBlocking(*relayTx->GetString1(), ptx); !ok)
-                    return {false, result};
+                    // Check Blocking
+                    if (auto[ok, result] = ValidateBlocking(*relayTx->GetString1(), ptx); !ok)
+                        return {false, result};
+                }
             }
 
             // Check payload size
