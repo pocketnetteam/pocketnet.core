@@ -104,6 +104,8 @@ endmacro()
 
 # Find and set the paths of the specific library to the variable
 findpackage_libdatachannel_get_lib(LIBDATACHANNEL_LIB datachannel)
+findpackage_libdatachannel_get_lib(USRSCTP_LIB usrsctp)
+findpackage_libdatachannel_get_lib(JUICE_LIB juice)
 
 # Needed for find_package_handle_standard_args()
 include(FindPackageHandleStandardArgs)
