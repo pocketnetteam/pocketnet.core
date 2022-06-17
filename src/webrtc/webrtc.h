@@ -5,6 +5,8 @@
 #ifndef POCKETNET_CORE_WEBRTC_H
 #define POCKETNET_CORE_WEBRTC_H
 
+#include "webrtc/IWebRTC.h"
+
 #include "protectedmap.h"
 #include "rpcapi/rpcapi.h"
 #include "rtc/rtc.hpp"
@@ -22,7 +24,7 @@
 #include <memory>
 
 namespace webrtc {
-class WebRTC
+class WebRTC : public IWebRTC
 {
 public:
     WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, std::shared_ptr<notifications::INotificationProtocol> notificationProtocol, int port);
@@ -30,10 +32,10 @@ public:
      * Initializing internal thread that is required to
      * corretly freeing memory
      */
-    void Start();
-    void Stop();
-    void InitiateNewSignalingConnection(const std::string& ip);
-    void DropConnection(const std::string& ip);
+    void Start() override;
+    void Stop() override;
+    void InitiateNewSignalingConnection(const std::string& ip) override;
+    void DropConnection(const std::string& ip) override;
 
 private:
     std::atomic_bool m_fRunning = false;
@@ -44,6 +46,5 @@ private:
     std::shared_ptr<QueueEventLoopThread<std::shared_ptr<WebRTCConnection>>> m_eventLoop;
 };
 } // namespace webrtc
-extern std::shared_ptr<webrtc::WebRTC> g_webrtc;
 
 #endif // POCKETNET_CORE_WEBRTC_H

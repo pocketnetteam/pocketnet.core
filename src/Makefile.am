@@ -487,14 +487,11 @@ POCKETCOIN_CORE_H = \
     notification/NotificationsFactory.h \
     notification/NotificationTypedefs.h \
     notification/notifyprocessor.h \
-    webrtc/DataChannelConnection.h \
-    webrtc/DataChannelHandlerProvider.h \
-    webrtc/webrtc.h \
-    webrtc/webrtcconnection.h \
-    webrtc/webrtcprotocol.h \
-    webrtc/wsconnectionhandler.h \
     webrtc/signaling/signalingprocessor.h \
     webrtc/signaling/signalingserver.h \
+    webrtc/webrtcfactory.h \
+    webrtc/webrtcpulp.h
+    webrtc/IWebRTC.h
     web/WSConnection.h \
     $(POCKETDB_H)
 
@@ -573,17 +570,28 @@ libpocketcoin_server_a_SOURCES = \
     notification/Notifications.cpp \
     notification/NotificationsFactory.cpp \
     notification/notifyprocessor.cpp \
+    webrtc/signaling/signalingprocessor.cpp \
+    webrtc/signaling/signalingserver.cpp \
+    web/WSConnection.cpp \
+    webrtc/webrtcfactory.cpp \
+    $(POCKETDB_CPP) \
+    $(POCKETCOIN_CORE_H)
+
+if USE_WEBRTC
+  libpocketcoin_server_a_SOURCES += \
     webrtc/DataChannelConnection.cpp \
     webrtc/DataChannelHandlerProvider.cpp \
     webrtc/webrtc.cpp \
     webrtc/webrtcconnection.cpp \
     webrtc/webrtcprotocol.cpp \
     webrtc/wsconnectionhandler.cpp \
-    webrtc/signaling/signalingprocessor.cpp \
-    webrtc/signaling/signalingserver.cpp \
-    web/WSConnection.cpp \
-    $(POCKETDB_CPP) \
-    $(POCKETCOIN_CORE_H)
+    webrtc/DataChannelConnection.h \
+    webrtc/DataChannelHandlerProvider.h \
+    webrtc/webrtc.h \
+    webrtc/webrtcconnection.h \
+    webrtc/webrtcprotocol.h \
+    webrtc/wsconnectionhandler.h
+endif
 
 if ENABLE_WALLET
 libpocketcoin_server_a_SOURCES += wallet/init.cpp

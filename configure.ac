@@ -1265,6 +1265,9 @@ if test x$use_webrtc != xno; then
       AC_MSG_ERROR([Failed to find datachannel library, try to set DATACHANNEL_LIBS or configure with --disable-webrtc])
     fi
   fi
+  AC_DEFINE([USE_WEBRTC], 1, [Using WebRTC])
+else
+  AC_DEFINE([USE_WEBRTC], 0, [Using WebRTC])
 fi
 
 dnl Check for libminiupnpc (optional)
@@ -1635,6 +1638,7 @@ AM_CONDITIONAL([ENABLE_SHANI],[test x$enable_shani = xyes])
 AM_CONDITIONAL([ENABLE_ARM_CRC],[test x$enable_arm_crc = xyes])
 AM_CONDITIONAL([USE_ASM],[test x$use_asm = xyes])
 AM_CONDITIONAL([WORDS_BIGENDIAN],[test x$ac_cv_c_bigendian = xyes])
+AM_CONDITIONAL([USE_WEBRTC], [test x$use_webrtc = xyes])
 
 AC_DEFINE(CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MAJOR, [Major version])
 AC_DEFINE(CLIENT_VERSION_MINOR, _CLIENT_VERSION_MINOR, [Minor version])

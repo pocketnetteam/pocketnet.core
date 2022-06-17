@@ -21,7 +21,7 @@
 #include <scheduler.h>
 #include <util/strencodings.h>
 #include <util/translation.h>
-#include <webrtc/webrtc.h>
+#include <webrtc/IWebRTC.h>
 
 #ifdef WIN32
 #include <string.h>

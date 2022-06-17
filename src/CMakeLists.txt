@@ -15,6 +15,8 @@ option(DISABLE_GUI "Disable building qt gui (Default is OFF)" OFF)
 
 option(DISABLE_ZMQ "Disable ZMQ notifications (default is OFF)" OFF)
 
+option(DISABLE_WEBRTC "Disable rpc and ws communication via WebRTC" OFF)
+
 option(WITH_SYSTEM_UNIVALUE "Build with system UniValue (default is OFF)" OFF)
 
 option(ENABLE_ASM "Enable assembly routines (default is ON)" ON)
@@ -75,7 +77,9 @@ if(MSVC AND MSVC_FORCE_STATIC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-find_package(LibDataChannel REQUIRED)
+if (NOT DISABLE_WEBRTC)
+    find_package(LibDataChannel REQUIRED)
+endif()
 
 # BerkeleyDB
 if (NOT DISABLE_WALLET)
@@ -1123,22 +1127,14 @@ add_library(${POCKETCOIN_SERVER}
         rpcapi/rpchandler.cpp
         rpcapi/rpcprocessor.h
         rpcapi/rpcprocessor.cpp
-        webrtc/webrtc.h
-        webrtc/webrtc.cpp
-        webrtc/webrtcprotocol.h
-        webrtc/webrtcprotocol.cpp
-        webrtc/webrtcconnection.h
-        webrtc/webrtcconnection.cpp
-        webrtc/wsconnectionhandler.h
-        webrtc/wsconnectionhandler.cpp
-        webrtc/DataChannelConnection.h
-        webrtc/DataChannelConnection.cpp
         webrtc/signaling/signalingserver.h 
         webrtc/signaling/signalingserver.cpp 
         webrtc/signaling/signalingprocessor.h 
         webrtc/signaling/signalingprocessor.cpp
-        webrtc/DataChannelHandlerProvider.h
-        webrtc/DataChannelHandlerProvider.cpp
+        webrtc/IWebRTC.h
+        webrtc/webrtcfactory.h
+        webrtc/webrtcfactory.cpp
+        webrtc/webrtcpulp.h
         web/IConnection.h
         web/WSConnection.h
         web/WSConnection.cpp
@@ -1155,7 +1151,7 @@ add_library(${POCKETCOIN_SERVER}
         notification/NotificationsFactory.cpp
         notification/NotificationTypedefs.h
         )
-target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time LibDataChannel::libdatachannel)
+target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto OpenSSL::SSL ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue leveldb)
 target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -1208,6 +1204,26 @@ if (NOT DISABLE_WALLET)
 else ()
     target_sources(${POCKETCOIN_SERVER} PRIVATE dummywallet.cpp)
 endif ()
+
+if (NOT DISABLE_WEBRTC)
+    add_compile_definitions(USE_WEBRTC=1)
+    target_sources(${POCKETCOIN_SERVER} PRIVATE
+            webrtc/DataChannelHandlerProvider.h
+            webrtc/DataChannelHandlerProvider.cpp
+            webrtc/webrtc.h
+            webrtc/webrtc.cpp
+            webrtc/webrtcprotocol.h
+            webrtc/webrtcprotocol.cpp
+            webrtc/webrtcconnection.h
+            webrtc/webrtcconnection.cpp
+            webrtc/wsconnectionhandler.h
+            webrtc/wsconnectionhandler.cpp
+            webrtc/DataChannelConnection.h
+            webrtc/DataChannelConnection.cpp)
+    target_link_libraries(${POCKETCOIN_SERVER} PRIVATE LibDataChannel::libdatachannel)
+else()
+    add_compile_definitions(USE_WEBRTC=0)
+endif()
 
 if(REQUIRED_SOCKET_LIB)
     # same as for above for POCKETCOIN_UTIL

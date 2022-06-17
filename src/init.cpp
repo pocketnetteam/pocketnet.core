@@ -76,7 +76,7 @@
 #include "pocketdb/migrations/main.h"
 #include "pocketdb/migrations/web.h"
 
-#include "webrtc/webrtc.h"
+#include "webrtc/webrtcfactory.h"
 #include "webrtc/signaling/signalingserver.h"
 #include "web/WSConnection.h"
 #include "notification/NotificationsFactory.h"
@@ -117,7 +117,7 @@ std::unique_ptr<notifications::INotifications> notificationProcessor = notificat
 RPC g_rpc;
 Rest g_rest;
 // TODO (losty-rtc): fixup
-std::shared_ptr<webrtc::WebRTC> g_webrtc;
+std::unique_ptr<webrtc::IWebRTC> g_webrtc;
 webrtc::signaling::SignalingServer g_signaling;
 
 #ifdef WIN32
@@ -677,6 +677,10 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-sqlsharedcache", strprintf("Experimental: enable shared cache for sqlite connections (default: disabled)"), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
 
+    // WebRTC
+    argsman.AddArg("-webrtc", strprintf("Allow rpc and ws connections via WebRTC (default: %u)", true), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-webrtcport", strprintf("Port that will be used to connect to signaling nodes (default: %d)", 13131), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+
 
 #if HAVE_DECL_DAEMON
     argsman.AddArg("-daemon", "Run in the background as a daemon and accept commands", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -1003,10 +1007,11 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
         if (!g_rest.StartREST())
             return false;
     }
-    g_webrtc = std::make_shared<webrtc::WebRTC>(g_rpc.GetWebRequestProcessor(), notificationProcessor->GetProtocol(), 13131);
+    g_webrtc = webrtc::WebRTCFactory().InitNewWebRTC(args.GetBoolArg("-webrtc", true), g_rpc.GetWebRequestProcessor(), notificationProcessor->GetProtocol(), args.GetArg("-webrtcport", 13131));
     g_webrtc->Start();
     // TODO (losty-rtc): hardcoded. Should be moved somewhere to net_processing on new peers
-    g_signaling.Init("^/signaling/?$", 13131);
+    // TODO (losty): allow disable signaling
+    g_signaling.Init("^/signaling/?$", args.GetArg("-webrtcport", 13131));
     g_signaling.Start();
     StartHTTPServer();
     return true;
