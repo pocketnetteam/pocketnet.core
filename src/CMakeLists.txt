@@ -15,7 +15,7 @@ option(DISABLE_GUI "Disable building qt gui (Default is OFF)" OFF)
 
 option(DISABLE_ZMQ "Disable ZMQ notifications (default is OFF)" OFF)
 
-option(DISABLE_WEBRTC "Disable rpc and ws communication via WebRTC" OFF)
+option(DISABLE_WEBRTC "Disable rpc and ws communication via WebRTC (default is OFF)" OFF)
 
 option(WITH_SYSTEM_UNIVALUE "Build with system UniValue (default is OFF)" OFF)
 
