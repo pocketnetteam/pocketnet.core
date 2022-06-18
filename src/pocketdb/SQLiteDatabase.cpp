@@ -194,8 +194,9 @@ namespace PocketDb
             {
                 int ret = SQLITE_OK;
 
+                auto fullPath = dbPath / m_file_path;
                 if (true || isReadOnlyConnect)
-                    ret = sqlite3_open_v2((dbPath / m_file_path).string().c_str(), &m_db, flags, nullptr);
+                    ret = sqlite3_open_v2(fullPath.string().c_str(), &m_db, flags, nullptr);
                 else
                     ret = sqlite3_open_v2(":memory:", &m_db, flags, nullptr);
 
