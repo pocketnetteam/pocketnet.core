@@ -303,7 +303,7 @@ namespace PocketConsensus
             { 1124000,     -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1124000>(height); }},
             { 1180000,      0, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1180000>(height); }},
             { 1324655,  65000, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1324655>(height); }},
-            { 9999999, 953000, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_disable_for_blocked>(height); }},
+            { 1757000, 953000, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<ScoreContentConsensus> Instance(int height)
