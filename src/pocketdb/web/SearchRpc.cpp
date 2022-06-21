@@ -144,7 +144,7 @@ namespace PocketWeb::PocketWebRpc
             auto ids = request.DbConnection()->SearchRepoInst->SearchUsersOld(searchRequest);
             
             // Get accounts data
-            auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
+            auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
 
             UniValue data(UniValue::VARR);
             for (const auto& account : accounts)
@@ -440,7 +440,7 @@ namespace PocketWeb::PocketWebRpc
         auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedAccountByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, nHeight, depth);
         if (!ids.empty())
         {
-            auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
+            auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
             for (const auto[id, record] : profiles)
                 result.push_back(record);
         }
