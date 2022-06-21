@@ -340,7 +340,7 @@ namespace PocketConsensus
             { 0,           -1, [](int height) { return make_shared<PostConsensus>(height); }},
             { 1124000,     -1, [](int height) { return make_shared<PostConsensus_checkpoint_1124000>(height); }},
             { 1180000,     -1, [](int height) { return make_shared<PostConsensus_checkpoint_1180000>(height); }},
-            { 9999999, 953000, [](int height) { return make_shared<PostConsensus_checkpoint_disable_for_blocked>(height); }},
+            { 1757000, 953000, [](int height) { return make_shared<PostConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<PostConsensus> Instance(int height)

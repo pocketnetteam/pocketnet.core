@@ -128,7 +128,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint < SubscribeConsensus>> m_rules = {
             {       0,      0, [](int height) { return make_shared<SubscribeConsensus>(height); }},
-            { 9999999, 953000, [](int height) { return make_shared<SubscribeConsensus_checkpoint_disable_for_blocked>(height); }},
+            { 1757000, 953000, [](int height) { return make_shared<SubscribeConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<SubscribeConsensus> Instance(int height)
