@@ -5,6 +5,10 @@
 #ifndef POCKETNET_CORE_WEBRTC_DATACHANNELCONNECTION_H
 #define POCKETNET_CORE_WEBRTC_DATACHANNELCONNECTION_H
 
+#if defined(HAVE_CONFIG_H)
+#include <config/pocketcoin-config.h>
+#endif
+
 #include "web/IConnection.h"
 
 #include "rtc/datachannel.hpp"

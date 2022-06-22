@@ -5,6 +5,9 @@
 #ifndef POCKETNET_CORE_WEBRTC_WEBRTCPROTOCOL_H
 #define POCKETNET_CORE_WEBRTC_WEBRTCPROTOCOL_H
 
+#if defined(HAVE_CONFIG_H)
+#include <config/pocketcoin-config.h>
+#endif
 
 #include "protectedmap.h"
 #include "rpcapi/rpcapi.h"

@@ -5,6 +5,10 @@
 #ifndef POCKETNET_CORE_WEBRTC_H
 #define POCKETNET_CORE_WEBRTC_H
 
+#if defined(HAVE_CONFIG_H)
+#include <config/pocketcoin-config.h>
+#endif
+
 #include "webrtc/IWebRTC.h"
 
 #include "protectedmap.h"

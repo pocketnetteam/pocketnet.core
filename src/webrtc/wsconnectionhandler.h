@@ -5,6 +5,10 @@
 #ifndef POCKETNET_CORE_WSCONNECTION_HANDLER_H
 #define POCKETNET_CORE_WSCONNECTION_HANDLER_H
 
+#if defined(HAVE_CONFIG_H)
+#include <config/pocketcoin-config.h>
+#endif
+
 #include "rtc/rtc.hpp"
 
 #include "protectedmap.h"

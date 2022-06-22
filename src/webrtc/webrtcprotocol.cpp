@@ -2,7 +2,6 @@
 #include "webrtc/webrtcprotocol.h"
 
 #include <memory>
-#include <rtc/peerconnection.hpp>
 
 #include "webrtc/DataChannelHandlerProvider.h"
 

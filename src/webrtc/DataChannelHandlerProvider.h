@@ -5,6 +5,10 @@
 #ifndef POCKETNET_CORE_WEBRTC_DATACHANNELHANDLER_H
 #define POCKETNET_CORE_WEBRTC_DATACHANNELHANDLER_H
 
+#if defined(HAVE_CONFIG_H)
+#include <config/pocketcoin-config.h>
+#endif
+
 #include "rpcapi/rpcapi.h"
 #include "notification/INotificationProtocol.h"
 #include "rtc/datachannel.hpp"
