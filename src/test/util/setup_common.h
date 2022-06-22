@@ -41,8 +41,6 @@ std::ostream& operator<<(typename std::enable_if<std::is_enum<T>::value, std::os
  */
 extern FastRandomContext g_insecure_rand_ctx;
 
-RPC g_rpc;
-Rest g_rest;
 
 /**
  * Flag to make GetRand in random.h return the same number
@@ -80,6 +78,8 @@ static constexpr CAmount CENT{1000000};
 struct BasicTestingSetup {
     ECCVerifyHandle globalVerifyHandle;
     NodeContext m_node;
+    RPC m_rpc;
+    Rest m_rest;
 
     explicit BasicTestingSetup(const std::string& chainName = CBaseChainParams::MAIN, const std::vector<const char*>& extra_args = {});
     ~BasicTestingSetup();
