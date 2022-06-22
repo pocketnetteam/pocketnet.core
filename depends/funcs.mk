@@ -172,6 +172,12 @@ ifneq ($(host),$(build))
 $(1)_cmake += -DCMAKE_SYSTEM_NAME=$($(host_os)_cmake_system)
 $(1)_cmake += -DCMAKE_C_COMPILER_TARGET=$(host)
 $(1)_cmake += -DCMAKE_CXX_COMPILER_TARGET=$(host)
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH=/usr/$(host)\;$$($($(1)_type)_prefix) # TODO (losty): i hope there is a better way to get path to host environment
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
+
 endif
 endif
 endef
