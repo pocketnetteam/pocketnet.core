@@ -11,7 +11,7 @@ define $(package)_preprocess_cmds
 endef
 
 define $(package)_config_cmds
-  $($(package)_cmake) -DNO_MEDIA=ON -DNO_EXAMPLES=ON -DNO_TESTS=ON
+  $($(package)_cmake) -DNO_MEDIA=ON -DNO_EXAMPLES=ON -DNO_TESTS=ON .
 endef
 
 define $(package)_build_cmds
