@@ -610,6 +610,7 @@ case $host in
      AC_CHECK_LIB([mswsock],  [main],, AC_MSG_ERROR(libmswsock missing))
      AC_CHECK_LIB([shlwapi],  [PathRemoveFileSpecW],, AC_MSG_ERROR(libshlwapi missing))
      AC_CHECK_LIB([iphlpapi], [GetAdaptersAddresses],, AC_MSG_ERROR(libiphlpapi missing))
+     AC_CHECK_LIB([bcrypt],   [BCryptGenRandom],, AC_MSG_ERROR(libbcrypt missing))
 
      dnl -static is interpreted by libtool, where it has a different meaning.
      dnl In libtool-speak, it's -all-static.
@@ -1241,31 +1242,45 @@ if test x$enable_wallet != xno; then
     fi
 fi
 
+dnl Searching for libdatachannel
+DATACHANNEL_LIBS=""
+DATACHANNEL_CPPFLAGS=""
 if test x$use_webrtc != xno; then
   AC_ARG_VAR(DATACHANNEL_CPPFLAGS, [C compiler flags for libdatachannel, bypasses autodetection])
   AC_ARG_VAR(DATACHANNEL_LIBS, [Linker flags for libdatachannel, bypasses autodetection])
-  if test "x$DATACHANNEL_CPPFLAGS" = "x"; then
-    AC_MSG_CHECKING([for libdatachannel C++ headers])
-    AC_CHECK_HEADERS(
-      [rtc/rtc.hpp rtc/datachannel.hpp rtc/peerconnection.hpp],
-      [have_datachannel_headers=yes],
-      [have_datachannel_headers=no]
-    )
-    if test "x$have_datachannel_headers" != "xyes"; then
-      AC_MSG_ERROR([Failed to find datachannel headers, try to set DATACHANNEL_CPPFLAGS or configure with --disable-webrtc])
+  if test "x$DATACHANNEL_CPPFLAGS$DATACHANNEL_LIBS" = "x"; then
+    AC_MSG_CHECKING([for libdatachannel])
+    TEMP_LIBS="$LIBS"
+    dnl datachannel libs depends on openssl, pthreads and other system libs, thus they should be linked firstly
+    LIBS="-ldatachannel $SSL_LIBS $CRYPTO_LIBS $PTHREAD_LIBS $TEMP_LIBS"
+    TEMP_CXXFLAGS="$CXXFLAGS"
+    CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
+    AC_LINK_IFELSE([ AC_LANG_PROGRAM(
+        [[ #include <rtc/rtc.hpp> ]],
+        [[ rtc::WebSocket ws; rtc::PeerConnection pc; ]]
+    )],
+      [DATACHANNEL_LIBS="-ldatachannel"]
+      [have_datachannel=yes],
+      [have_datachannel=no])
+    if test x$have_datachannel = xno; then
+      dnl Probably failed because datachannel static lib doesn't contain its dependencies, try to link them explicitly
+      LIBS="-ldatachannel -lusrsctp -ljuice $SSL_LIBS $CRYPTO_LIBS $PTHREAD_LIBS $TEMP_LIBS"
+      AC_LINK_IFELSE([ AC_LANG_PROGRAM(
+          [[ #include <rtc/rtc.hpp> ]],
+          [[ rtc::WebSocket ws; rtc::PeerConnection pc; ]]
+      )],
+      [have_datachannel=yes]
+      [DATACHANNEL_LIBS="-ldatachannel -lusrsctp -ljuice"])
     fi
-  fi
-
-  if test "x$DATACHANNEL_LIBS" = "x"; then
-    AC_MSG_CHECKING([for libdatachannel C++ libs])
-    AC_CHECK_LIB([datachannel], [main], [DATACHANNEL_LIBS=-ldatachannel], 
-    AC_CHECK_LIB([datachannel], [main], [DATACHANNEL_LIBS=-ldatachannel -ljuice -lusrsctp], [have_datachannel_libs=no], [-ljuice -lusrsctp]))
-
-    if test "x$have_datachannel_libs" == "xno"; then
-      AC_MSG_ERROR([Failed to find datachannel library, try to set DATACHANNEL_LIBS or configure with --disable-webrtc])
+    if test x$have_datachannel = xno; then
+      AC_MSG_RESULT(no)
+      AC_MSG_ERROR([Failed to find libdatachannel. Reconfigure with --disable-webrtc or specify DATACHANNEL_LIBS and DATACHANNEL_CPPFLAGS explicitly])
     fi
+    LIBS="$TEMP_LIBS"
+    CXXFLAGS="$TEMP_CXXFLAGS"
+    AC_MSG_RESULT(yes)
+    AC_DEFINE([USE_WEBRTC], 1, [Using WebRTC])
   fi
-  AC_DEFINE([USE_WEBRTC], 1, [Using WebRTC])
 else
   AC_DEFINE([USE_WEBRTC], 0, [Using WebRTC])
 fi
