@@ -168,7 +168,6 @@ namespace PocketWeb::PocketWebRpc
 
         result.pushKV("user_reg_date", accountData.RegistrationTime);
         result.pushKV("user_reg_height", accountData.RegistrationHeight);
-        result.pushKV("reputation", accountData.Reputation);
         result.pushKV("balance", accountData.Balance);
         result.pushKV("likers", accountData.LikersAll());
 
