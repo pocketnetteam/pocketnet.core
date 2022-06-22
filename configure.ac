@@ -1255,6 +1255,8 @@ if test x$use_webrtc != xno; then
     LIBS="-ldatachannel $SSL_LIBS $CRYPTO_LIBS $PTHREAD_LIBS $TEMP_LIBS"
     TEMP_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
+    TEMP_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -DRTC_ENABLE_MEDIA=0"
     AC_LINK_IFELSE([ AC_LANG_PROGRAM(
         [[ #include <rtc/rtc.hpp> ]],
         [[ rtc::WebSocket ws; rtc::PeerConnection pc; ]]
@@ -1278,6 +1280,7 @@ if test x$use_webrtc != xno; then
     fi
     LIBS="$TEMP_LIBS"
     CXXFLAGS="$TEMP_CXXFLAGS"
+    CPPFLAGS="$TEMP_CPPFLAGS"
     AC_MSG_RESULT(yes)
     AC_DEFINE([USE_WEBRTC], 1, [Using WebRTC])
   fi
