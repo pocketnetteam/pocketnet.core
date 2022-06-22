@@ -1284,6 +1284,7 @@ if test x$use_webrtc != xno; then
 else
   AC_DEFINE([USE_WEBRTC], 0, [Using WebRTC])
 fi
+AC_DEFINE([RTC_ENABLE_MEDIA], 0, [Disable media support for WebRTC])
 
 dnl Check for libminiupnpc (optional)
 if test x$use_upnp != xno; then
