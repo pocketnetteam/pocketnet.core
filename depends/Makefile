@@ -116,6 +116,7 @@ build_id_string+=$(shell $(build_CC) --version 2>/dev/null)
 build_id_string+=$(shell $(build_AR) --version 2>/dev/null)
 build_id_string+=$(shell $(build_CXX) --version 2>/dev/null)
 build_id_string+=$(shell $(build_RANLIB) --version 2>/dev/null)
+build_id_string+=$(shell $(build_WINDRES) --version 2>/dev/null)
 build_id_string+=$(shell $(build_STRIP) --version 2>/dev/null)
 
 $(host_arch)_$(host_os)_id_string:=$(HOST_ID_SALT)
@@ -123,6 +124,7 @@ $(host_arch)_$(host_os)_id_string+=$(shell $(host_CC) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_AR) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_CXX) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_RANLIB) --version 2>/dev/null)
+$(host_arch)_$(host_os)_id_string+=$(shell $(host_WINDRES) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_STRIP) --version 2>/dev/null)
 
 ifneq ($(strip $(FORCE_USE_SYSTEM_CLANG)),)
@@ -187,6 +189,7 @@ $(host_prefix)/share/config.site : config.site.in $(host_prefix)/.stamp_$(final_
             -e 's|@CXX@|$(toolchain_path)$(host_CXX)|' \
             -e 's|@AR@|$(binutils_path)$(host_AR)|' \
             -e 's|@RANLIB@|$(binutils_path)$(host_RANLIB)|' \
+            -e 's|@WINDRES@|$(binutils_path)$(host_WINDRES)|' \
             -e 's|@NM@|$(binutils_path)$(host_NM)|' \
             -e 's|@STRIP@|$(binutils_path)$(host_STRIP)|' \
             -e 's|@build_os@|$(build_os)|' \

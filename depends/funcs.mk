@@ -6,6 +6,7 @@ $(1)_objc=$($($(1)_type)_OBJC)
 $(1)_objcxx=$($($(1)_type)_OBJCXX)
 $(1)_ar=$($($(1)_type)_AR)
 $(1)_ranlib=$($($(1)_type)_RANLIB)
+$(1)_windres=$($($(1)_type)_WINDRES)
 $(1)_libtool=$($($(1)_type)_LIBTOOL)
 $(1)_nm=$($($(1)_type)_NM)
 $(1)_cflags=$($($(1)_type)_CFLAGS) $($($(1)_type)_$(release_type)_CFLAGS)
@@ -140,6 +141,9 @@ $(1)_autoconf += NM="$$($(1)_nm)"
 endif
 ifneq ($($(1)_ranlib),)
 $(1)_autoconf += RANLIB="$$($(1)_ranlib)"
+endif
+ifneq ($($(1)_windres),)
+$(1)_autoconf += WINDRES="$$($(1)_windres)"
 endif
 ifneq ($($(1)_ar),)
 $(1)_autoconf += AR="$$($(1)_ar)"

@@ -81,6 +81,11 @@ if test -n "@RANLIB@"; then
   ac_cv_path_ac_pt_RANLIB=${RANLIB}
 fi
 
+if test -n "@WINDRES@"; then
+  WINDRES=@WINDRES@
+  ac_cv_path_ac_pt_WINDRES=${WINDRES}
+fi
+
 if test -n "@NM@"; then
   NM=@NM@
   ac_cv_path_ac_pt_NM=${NM}
