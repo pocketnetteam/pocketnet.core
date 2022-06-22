@@ -5,7 +5,7 @@ $(package)_file_name=$(package)-$($(package)_version).tar.gz
 $(package)_sha256_hash=9384a2b0570dd80358841464677115df785edb941c71211f75076d72fe6b438f
 
 define $(package)_set_vars
-$(package)_config_env=AR="$($(package)_ar)" RANLIB="$($(package)_ranlib)" CC="$($(package)_cc)"
+$(package)_config_env=AR="$($(package)_ar)" RANLIB="$($(package)_ranlib)" CC="$($(package)_cc)" RC="$($(package)_windres)"
 $(package)_config_opts=--prefix=$(host_prefix) --openssldir=$(host_prefix)/etc/openssl
 $(package)_config_opts+=no-camellia
 $(package)_config_opts+=no-capieng
@@ -51,11 +51,6 @@ $(package)_config_opts_x86_64_mingw32=mingw64
 $(package)_config_opts_i686_mingw32=mingw
 endef
 
-# define $(package)_preprocess_cmds
-#   sed -i.old "/define DATE/d" util/mkbuildinf.pl && \
-#   sed -i.old "s|engines apps test|engines|" Makefile.org
-# endef
-
 define $(package)_config_cmds
   ./Configure $($(package)_config_opts)
 endef
@@ -65,7 +60,7 @@ define $(package)_build_cmds
 endef
 
 define $(package)_stage_cmds
-  $(MAKE) INSTALL_PREFIX=$($(package)_staging_dir) -j1 install_sw
+  $(MAKE) DESTDIR=$($(package)_staging_dir) -j1 install_sw
 endef
 
 define $(package)_postprocess_cmds
