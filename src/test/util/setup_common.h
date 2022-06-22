@@ -15,6 +15,8 @@
 #include <txmempool.h>
 #include <util/check.h>
 #include <util/string.h>
+#include "httprpc.h"
+#include "rest.h"
 
 #include <type_traits>
 
@@ -38,6 +40,9 @@ std::ostream& operator<<(typename std::enable_if<std::is_enum<T>::value, std::os
  * per-thread instance could be used in the multi-threaded test.
  */
 extern FastRandomContext g_insecure_rand_ctx;
+
+RPC g_rpc;
+Rest g_rest;
 
 /**
  * Flag to make GetRand in random.h return the same number

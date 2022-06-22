@@ -141,7 +141,7 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
     const CChainParams& chainparams = Params();
     // Ideally we'd move all the RPC tests to the functional testing framework
     // instead of unit tests, but for now we need these here.
-    InitHTTPServer(m_node);
+    InitHTTPServer(util::Ref(m_node), g_rpc.GetPrivateRequestProcessor(), g_rpc.GetWebRequestProcessor(), g_rest.GetRestRequestProcessor(), g_rest.GetStaticRequestProcessor());
 
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
 

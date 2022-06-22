@@ -72,7 +72,7 @@ bench_bench_pocketcoin_LDADD = \
 
 # TODO (build): this is needed because websocket is included in "validation.h" even it is not used here.
 #                   Fix this in validation.h (probably move openssl headers to pImpl or smth) and remove ssl libs from here
-bench_bench_pocketcoin_LDADD += $(SSL_LIBS) $(CRYPTO_LIBS)
+bench_bench_pocketcoin_LDADD += $(DATACHANNEL_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS)
 
 if ENABLE_ZMQ
 bench_bench_pocketcoin_LDADD += $(LIBPOCKETCOIN_ZMQ) $(ZMQ_LIBS)
