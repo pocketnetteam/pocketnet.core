@@ -490,8 +490,8 @@ POCKETCOIN_CORE_H = \
     webrtc/signaling/signalingprocessor.h \
     webrtc/signaling/signalingserver.h \
     webrtc/webrtcfactory.h \
-    webrtc/webrtcpulp.h
-    webrtc/IWebRTC.h
+    webrtc/webrtcpulp.h \
+    webrtc/IWebRTC.h \
     web/WSConnection.h \
     $(POCKETDB_H)
 
