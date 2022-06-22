@@ -506,7 +506,7 @@ libpocketcoin_util_a-clientversion.$(OBJEXT): obj/build.h
 # Contains code accessing mempool and chain state that is meant to be separated
 # from wallet and gui code (see node/README.md). Shared code should go in
 # libpocketcoin_common or libpocketcoin_util libraries, instead.
-libpocketcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS) $(DATACHANNEL_CPPFLAGS)
+libpocketcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libpocketcoin_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libpocketcoin_server_a_SOURCES = \
     addrdb.cpp \
