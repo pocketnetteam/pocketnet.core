@@ -84,7 +84,9 @@ namespace PocketDb
 
         UniValue GetSubscribesAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
         UniValue GetSubscribersAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
-        UniValue GetBlockingToAddresses(const string& address);
+        UniValue GetBlockings(const string& address);
+        UniValue GetBlockers(const string& address);
+
         vector<string> GetTopAccounts(int topHeight, int countOut, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, int depth,

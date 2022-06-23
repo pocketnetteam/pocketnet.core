@@ -113,7 +113,6 @@ namespace PocketConsensus
             ratingValues[RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER_LAST][scoreData->ContentAddressId] = 0;
         }
 
-        // TODO (brangr): implement new logic for only comments and dislikers
         virtual bool ValidateScoreValue(const ScoreDataDtoRef& scoreData)
         {
             // For scores to posts allowed only 4 and 5 values
@@ -365,13 +364,13 @@ namespace PocketConsensus
                           && data.LikersContent >= GetConsensusLimit(threshold_shark_likers_content)
                           && data.LikersComment >= GetConsensusLimit(threshold_shark_likers_comment)
                           && data.LikersCommentAnswer >= GetConsensusLimit(threshold_shark_likers_comment_answer)
-                          && data.RegistrationHeight >= GetConsensusLimit(threshold_shark_reg_depth);
+                          && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_shark_reg_depth);
 
             badgeSet.Whale = data.LikersAll() >= GetConsensusLimit(threshold_whale_likers_all)
                           && data.LikersContent >= GetConsensusLimit(threshold_whale_likers_content)
                           && data.LikersComment >= GetConsensusLimit(threshold_whale_likers_comment)
                           && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
-                          && data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
+                          && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
 
             // badgeSet.Moderator = TODO (brangr): implement for future
             
@@ -390,8 +389,7 @@ namespace PocketConsensus
             { 1180000,      0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
             { 1324655,  65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
             { 1700000, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
-            // TODO (brangr): implement height
-            { 9999999, 947500, [](int height) { return make_shared<ReputationConsensus_checkpoint_badges>(height); }},
+            { 1757000, 947500, [](int height) { return make_shared<ReputationConsensus_checkpoint_badges>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)

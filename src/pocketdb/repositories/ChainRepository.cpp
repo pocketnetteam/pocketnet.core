@@ -202,6 +202,7 @@ namespace PocketDb
             ) saldo
             left join Balances b indexed by Balances_AddressHash_Last
                 on b.AddressHash = saldo.AddressHash and b.Last = 1
+            where saldo.AddressHash != ''
             group by saldo.AddressHash
         )sql");
         TryBindStatementInt(stmt, 1, height);
@@ -507,16 +508,32 @@ namespace PocketDb
         // Restore Last for deleting balances
         auto stmt3 = SetupSqlStatement(R"sql(
             update Balances set
+
                 Last = 1
+
             from (
-                select b1.AddressHash, max(b2.Height)Height
-                from Balances b1 indexed by Balances_AddressHash_Last_Height
-                join Balances b2 indexed by Balances_AddressHash_Last_Height on b2.Last = 0 and b2.AddressHash = b1.AddressHash and b2.Height < ?
+                select
+
+                    b1.AddressHash
+                    ,(
+                        select max(b2.Height)
+                        from Balances b2 indexed by Balances_AddressHash_Last_Height
+                        where b2.AddressHash = b1.AddressHash
+                          and b2.Last = 0
+                          and b2.Height < ?
+                        limit 1
+                    )Height
+
+                from Balances b1 indexed by Balances_Height
+
                 where b1.Height >= ?
                   and b1.Last = 1
+                  and b1.AddressHash != ''
+
                 group by b1.AddressHash
             )b
-            where Balances.AddressHash = b.AddressHash
+            where b.Height is not null
+              and Balances.AddressHash = b.AddressHash
               and Balances.Height = b.Height
         )sql");
         TryBindStatementInt(stmt3, 1, height);

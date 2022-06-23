@@ -26,6 +26,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetAccountSubscribes();
     RPCHelpMan GetAccountSubscribers();
     RPCHelpMan GetAccountBlockings();
+    RPCHelpMan GetAccountBlockers();
     RPCHelpMan GetTopAccounts();
 }
 

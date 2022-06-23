@@ -237,7 +237,6 @@ namespace PocketWeb::PocketWebRpc
 
         result.pushKV("user_reg_date", accountData.RegistrationTime);
         result.pushKV("user_reg_height", accountData.RegistrationHeight);
-        result.pushKV("reputation", accountData.Reputation);
         result.pushKV("balance", accountData.Balance);
         result.pushKV("likers", accountData.LikersAll());
 
@@ -569,7 +568,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetAccountBlockings()
     {
         return RPCHelpMan{"GetAccountBlockings",
-                "\nReturn blocked accounts list with pagination - NOT IMPLEMENTED\n",
+                "\nReturn blocked accounts list\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
@@ -587,7 +586,32 @@ namespace PocketWeb::PocketWebRpc
 
         string address = request.params[0].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetBlockingToAddresses(address);
+        return request.DbConnection()->WebRpcRepoInst->GetBlockings(address);
+    },
+        };
+    }
+
+    RPCHelpMan GetAccountBlockers()
+    {
+        return RPCHelpMan{"GetAccountBlockers",
+                "\nReturns a list of accounts that have blocked the specified address\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    // TODO (rpc): provide correct examples
+                    HelpExampleCli("GetAccountBlockings", "\"address\"") +
+                    HelpExampleRpc("GetAccountBlockings", "\"address\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+        return request.DbConnection()->WebRpcRepoInst->GetBlockers(address);
     },
         };
     }

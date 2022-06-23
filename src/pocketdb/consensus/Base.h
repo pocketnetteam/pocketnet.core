@@ -292,7 +292,7 @@ namespace PocketConsensus
 
         // Thresholds for obtaining badges - SHARK
         { threshold_shark_reg_depth, {
-            { NetworkMain, { {0, 103680} } },
+            { NetworkMain, { {0, 129600} } },
             { NetworkTest, { {0, 1} } }
         } },
         { threshold_shark_likers_all, {
@@ -403,20 +403,20 @@ namespace PocketConsensus
             { NetworkTest, { {0, 6} } }
         } },
         { ConsensusLimit_trial_comment, {
-            { NetworkMain, { {0, 150}, {9999999, 50} } },
+            { NetworkMain, { {0, 150}, {1757000, 50} } },
             { NetworkTest, { {0, 150} } }
         } },
         { ConsensusLimit_trial_comment_score, {
-            { NetworkMain, { {0, 300}, {9999999, 100} } },
+            { NetworkMain, { {0, 300}, {1757000, 100} } },
             { NetworkTest, { {0, 300} } }
         } },
         
         { ConsensusLimit_full_post, {
-            { NetworkMain, { {0, 30}, {9999999, 10} } },
+            { NetworkMain, { {0, 30}, {1757000, 10} } },
             { NetworkTest, { {0, 30} } }
         } },
         { ConsensusLimit_full_video, {
-            { NetworkMain, { {0, 30}, {9999999, 10} } },
+            { NetworkMain, { {0, 30}, {1757000, 10} } },
             { NetworkTest, { {0, 30} } }
         } },
         { ConsensusLimit_full_article, {
@@ -424,7 +424,7 @@ namespace PocketConsensus
             { NetworkTest, { {0, 30} } }
         } },
         { ConsensusLimit_full_score, {
-            { NetworkMain, { {0, 90}, {175600, 200}, {9999999, 60} } },
+            { NetworkMain, { {0, 90}, {175600, 200}, {1757000, 60} } },
             { NetworkTest, { {0, 200} } }
         } },
         { ConsensusLimit_full_complain, {
@@ -432,11 +432,11 @@ namespace PocketConsensus
             { NetworkTest, { {0, 12} } }
         } },
         { ConsensusLimit_full_comment, {
-            { NetworkMain, { {0, 300}, {9999999, 100} } },
+            { NetworkMain, { {0, 300}, {1757000, 100} } },
             { NetworkTest, { {0, 300} } }
         } },
         { ConsensusLimit_full_comment_score, {
-            { NetworkMain, { {0, 600}, {9999999, 200} } },
+            { NetworkMain, { {0, 600}, {1757000, 200} } },
             { NetworkTest, { {0, 600} } }
         } },
         
@@ -445,7 +445,6 @@ namespace PocketConsensus
             { NetworkTest, { {0, 100} } }
         } },
         
-        // TODO (brangr): implement height fork
         { ConsensusLimit_moderation_flag_count, {
             { NetworkMain, { {0, 30} }},
             { NetworkTest, { {0, 100} }}

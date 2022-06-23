@@ -14,7 +14,6 @@ namespace PocketDb
             return true;
 
         uiInterface.InitMessage(_("SQLDB Migration: SplitLikers...").translated);
-        LogPrint(BCLog::MIGRATION, "SQLDB Migration: SplitLikers...\n");
 
         TryTransactionStep(__func__, [&]()
         {
@@ -167,7 +166,6 @@ namespace PocketDb
         bool result = false;
 
         uiInterface.InitMessage(_("Checking SQLDB Migration: SplitLikers...").translated);
-        LogPrint(BCLog::MIGRATION, "Checking SQLDB Migration: SplitLikers...\n");
 
         TryTransactionStep(__func__, [&]()
         {
@@ -214,7 +212,6 @@ namespace PocketDb
             return true;
 
         uiInterface.InitMessage(_("SQLDB Migration: AccumulateLikers...").translated);
-        LogPrint(BCLog::MIGRATION, "SQLDB Migration: AccumulateLikers...\n");
 
         TryTransactionBulk(__func__, {
 
@@ -248,7 +245,6 @@ namespace PocketDb
         bool result = false;
 
         uiInterface.InitMessage(_("Checking SQLDB Migration: AccumulateLikers...").translated);
-        LogPrint(BCLog::MIGRATION, "Checking SQLDB Migration: AccumulateLikers...\n");
 
         TryTransactionStep(__func__, [&]()
         {
