@@ -811,13 +811,13 @@ static double getEmission(int height)
     return emission;
 }
 
-static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
+static bool rest_emission(const util::Ref& context, HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
     
     req->WriteHeader("Content-Type", "text/plain");
-    req->WriteReply(HTTP_OK, std::to_string(getEmission(chainActive.Height())));
+    req->WriteReply(HTTP_OK, std::to_string(getEmission(ChainActive().Height())));
     return true;
 }
 
