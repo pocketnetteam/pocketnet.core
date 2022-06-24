@@ -19,6 +19,7 @@
 #include "pocketdb/repositories/ConsensusRepository.h"
 #include "pocketdb/repositories/SystemRepository.h"
 #include "pocketdb/repositories/CheckpointRepository.h"
+#include "pocketdb/repositories/MigrationRepository.h"
 
 #include "pocketdb/repositories/web/WebRpcRepository.h"
 #include "pocketdb/repositories/web/ExplorerRepository.h"
@@ -37,6 +38,7 @@ namespace PocketDb
     extern NotifierRepository NotifierRepoInst;
     extern ExplorerRepository ExplorerRepoInst;
     extern SystemRepository SystemRepoInst;
+    extern MigrationRepository MigrationRepoInst;
 
     extern SQLiteDatabase SQLiteDbCheckpointInst;
     extern CheckpointRepository CheckpointRepoInst;

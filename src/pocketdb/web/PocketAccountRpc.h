@@ -26,6 +26,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetAccountSubscribes(const JSONRPCRequest& request);
     UniValue GetAccountSubscribers(const JSONRPCRequest& request);
     UniValue GetAccountBlockings(const JSONRPCRequest& request);
+    UniValue GetAccountBlockers(const JSONRPCRequest& request);
     UniValue GetTopAccounts(const JSONRPCRequest& request);
 }
 

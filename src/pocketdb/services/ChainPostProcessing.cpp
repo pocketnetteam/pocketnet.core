@@ -64,8 +64,10 @@ namespace PocketServices
 
     void ChainPostProcessing::IndexRatings(int height, vector<TransactionIndexingInfo>& txs)
     {
-        map <RatingType, map<int, int>> ratingValues;
-        map<int, vector<int>> accountLikersSrc;
+        map<RatingType, map<int, int>> ratingValues;
+        vector<ScoreDataDtoRef> distinctScores;
+        map<RatingType, map<int, vector<int>>> likersValues;
+        // map<int, vector<int>> accountLikersSrc;
 
         // Actual consensus checker instance by current height
         auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
@@ -113,9 +115,6 @@ namespace PocketServices
                     ratingValues[RatingType::RATING_CONTENT][scoreData->ContentId] +=
                         scoreData->ScoreValue - 3;
 
-                    if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
-                        BuildAccountLikers(scoreData, accountLikersSrc);
-
                     break;
 
                 case PocketTx::ACTION_SCORE_COMMENT:
@@ -125,19 +124,25 @@ namespace PocketServices
                     ratingValues[RatingType::RATING_COMMENT][scoreData->ContentId] +=
                         scoreData->ScoreValue;
 
-                    if (scoreData->ScoreValue == 1)
-                        BuildAccountLikers(scoreData, accountLikersSrc);
-
                     break;
 
-                    // Not supported score type
+                // Not supported score type
                 default:
                     break;
             }
+            
+            // Extend list of ratings with likers values
+            reputationConsensus->DistinctScores(scoreData, distinctScores);
         }
 
-        // Prepare all ratings model records for increase Rating
-        shared_ptr <vector<Rating>> ratings = make_shared < vector < Rating >> ();
+        // Filter all distinct records
+        for (const auto& _scoreData : distinctScores)
+        {
+            reputationConsensus->ValidateAccountLiker(_scoreData, likersValues, ratingValues);
+        }
+            
+        // Prepare all ratings model records for increase ratings
+        shared_ptr<vector<Rating>> ratings = make_shared<vector<Rating>>();
         for (const auto& tp : ratingValues)
         {
             for (const auto& itm : tp.second)
@@ -156,22 +161,30 @@ namespace PocketServices
             }
         }
 
-        // Prepare all ratings model records for Liker type
-        map<int, vector<int>> accountLikers;
-        reputationConsensus->PrepareAccountLikers(accountLikersSrc, accountLikers);
-
-        // Save likers in db
-        for (const auto& acc : accountLikers)
+        // Prepare likers models
+        for (const auto& tp : likersValues)
         {
-            for (const auto& lkrId : acc.second)
+            for (const auto& cnt : tp.second)
             {
-                Rating rtg;
-                rtg.SetType(RatingType::RATING_ACCOUNT_LIKERS);
-                rtg.SetHeight(height);
-                rtg.SetId(acc.first);
-                rtg.SetValue(lkrId);
+                for (const auto& lkr : cnt.second)
+                {
+                    // Skip not changed likers count
+                    if (lkr == 0 && (
+                        tp.first == RatingType::ACCOUNT_LIKERS_POST_LAST ||
+                        tp.first == RatingType::ACCOUNT_LIKERS_COMMENT_ROOT_LAST ||
+                        tp.first == RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER_LAST ||
+                        tp.first == RatingType::ACCOUNT_DISLIKERS_COMMENT_ANSWER_LAST
+                    ))
+                        continue;
+                        
+                    Rating rtg;
+                    rtg.SetType(tp.first);
+                    rtg.SetHeight(height);
+                    rtg.SetId(cnt.first);
+                    rtg.SetValue(lkr);
 
-                ratings->push_back(rtg);
+                    ratings->push_back(rtg);
+                }
             }
         }
 
@@ -182,16 +195,4 @@ namespace PocketServices
         PocketDb::RatingsRepoInst.InsertRatings(ratings);
     }
 
-    void ChainPostProcessing::BuildAccountLikers(const shared_ptr <ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
-    {
-        auto found = find(
-            accountLikers[scoreData->ContentAddressId].begin(),
-            accountLikers[scoreData->ContentAddressId].end(),
-            scoreData->ScoreAddressId
-        );
-
-        if (found == accountLikers[scoreData->ContentAddressId].end())
-            accountLikers[scoreData->ContentAddressId].push_back(scoreData->ScoreAddressId);
-    }
-    
 } // namespace PocketServices

@@ -244,7 +244,7 @@
     <ClCompile Include="..\..\src\pocketdb\models\dto\Complain.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\Default.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\Post.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\models\dto\ReturnDtoModels.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\DtoModels.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\ScoreComment.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\Subscribe.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\SubscribeCancel.hpp" />

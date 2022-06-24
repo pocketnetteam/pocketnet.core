@@ -37,6 +37,10 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_DoubleSubscribe};
             }
 
+            // Check Blocking
+            if (auto[ok, result] = ValidateBlocking(ptx); !ok)
+                return {false, result};
+
             return Success;
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const SubscribePrivateRef& ptx) override
@@ -94,6 +98,26 @@ namespace PocketConsensus
         {
             return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
+        virtual ConsensusValidateResult ValidateBlocking(const SubscribePrivateRef& ptx)
+        {
+            return Success;
+        }
+    };
+
+    // Disable scores for blocked accounts
+    class SubscribePrivateConsensus_checkpoint_disable_for_blocked : public SubscribePrivateConsensus
+    {
+    public:
+        SubscribePrivateConsensus_checkpoint_disable_for_blocked(int height) : SubscribePrivateConsensus(height) {}
+    protected:
+        ConsensusValidateResult ValidateBlocking(const SubscribePrivateRef& ptx) override
+        {
+            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
+                *ptx->GetAddressTo(), *ptx->GetAddress()); existsBlocking && blockingType == ACTION_BLOCKING)
+                return {false, SocialConsensusResult_Blocking};
+
+            return Success;
+        }
     };
 
     /*******************************************************************************************************************
@@ -103,7 +127,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < SubscribePrivateConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<SubscribePrivateConsensus>(height); }},
+            {       0,      0, [](int height) { return make_shared<SubscribePrivateConsensus>(height); }},
+            { 1757000, 953000, [](int height) { return make_shared<SubscribePrivateConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<SubscribePrivateConsensus> Instance(int height)

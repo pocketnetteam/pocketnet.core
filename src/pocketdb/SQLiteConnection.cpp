@@ -18,6 +18,7 @@ namespace PocketDb
         ExplorerRepoInst = make_shared<ExplorerRepository>(*SQLiteDbInst);
         SearchRepoInst = make_shared<SearchRepository>(*SQLiteDbInst);
         TransactionRepoInst = make_shared<TransactionRepository>(*SQLiteDbInst);
+        ConsensusRepoInst = make_shared<ConsensusRepository>(*SQLiteDbInst);
     }
 
     SQLiteConnection::~SQLiteConnection()
@@ -28,6 +29,7 @@ namespace PocketDb
         ExplorerRepoInst->Destroy();
         SearchRepoInst->Destroy();
         TransactionRepoInst->Destroy();
+        ConsensusRepoInst->Destroy();
 
         SQLiteDbInst->DetachDatabase("web");
         SQLiteDbInst->Close();

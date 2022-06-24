@@ -78,12 +78,14 @@ namespace PocketDb
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
 
-        map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true);
-        map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true);
+        map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int firstFlagsDepth = 14);
+        map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int firstFlagsDepth = 14);
 
         UniValue GetSubscribesAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
         UniValue GetSubscribersAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
-        UniValue GetBlockingToAddresses(const string& address);
+        UniValue GetBlockings(const string& address);
+        UniValue GetBlockers(const string& address);
+
         vector<string> GetTopAccounts(int topHeight, int countOut, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, int depth,
@@ -161,7 +163,7 @@ namespace PocketDb
         double dekayVideo = 0.99;
         double dekayContent =  0.96;
 
-        vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm);
+        vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm, int firstFlagsDepth);
     };
 
     typedef shared_ptr<WebRpcRepository> WebRpcRepositoryRef;

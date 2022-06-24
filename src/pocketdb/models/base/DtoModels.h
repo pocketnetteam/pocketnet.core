@@ -85,6 +85,8 @@ namespace PocketTx
         string ContentAddressHash;
         int64_t ContentTime;
 
+        string String5;
+
         shared_ptr<UniValue> Serialize() override
         {
             UniValue ret(UniValue::VOBJ);
@@ -101,6 +103,21 @@ namespace PocketTx
             ret.pushKV("ContentAddressHash", ContentAddressHash);
             ret.pushKV("ContentTime", ContentTime);
             return make_shared<UniValue>(ret);
+        }
+
+        RatingType LikerType(bool last)
+        {
+            if (ScoreType == ACTION_SCORE_CONTENT)
+                return last ? ACCOUNT_LIKERS_POST_LAST : ACCOUNT_LIKERS_POST;
+
+            if (ScoreType == ACTION_SCORE_COMMENT && String5.empty())
+                return last ? ACCOUNT_LIKERS_COMMENT_ROOT_LAST : ACCOUNT_LIKERS_COMMENT_ROOT;
+
+            if (ScoreType == ACTION_SCORE_COMMENT && !String5.empty())
+                return last ? ACCOUNT_LIKERS_COMMENT_ANSWER_LAST : ACCOUNT_LIKERS_COMMENT_ANSWER;
+
+            // You don't have to get to here
+            return ACCOUNT_LIKERS;
         }
     };
 

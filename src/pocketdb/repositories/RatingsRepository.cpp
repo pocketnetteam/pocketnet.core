@@ -10,34 +10,46 @@ namespace PocketDb
     {
         for (const auto& rating: *ratings)
         {
-            if (*rating.GetType() == RatingType::RATING_ACCOUNT_LIKERS)
+            switch (*rating.GetType())
+            {
+            case RatingType::ACCOUNT_LIKERS:
+            case RatingType::ACCOUNT_LIKERS_POST:
+            case RatingType::ACCOUNT_LIKERS_COMMENT_ROOT:
+            case RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER:
+            case RatingType::ACCOUNT_DISLIKERS_COMMENT_ANSWER:
                 InsertLiker(rating);
-            else
+                break;
+            default:
                 InsertRating(rating);
+                break;
+            }
         }
     }
 
-    bool RatingsRepository::ExistsLiker(int addressId, int likerId, int height)
+    bool RatingsRepository::ExistsLiker(int addressId, int likerId, const vector<RatingType>& types)
     {
         bool result = false;
+        
+        string sql = R"sql(
+            select 1
+            from Ratings indexed by Ratings_Type_Id_Value
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                and Id = ?
+                and Value = ?
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
-                select count(*)
-                from Ratings indexed by Ratings_Type_Id_Value
-                where Type = ?
-                  and Id = ?
-                  and Value = ?
-            )sql");
+            auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, RatingType::RATING_ACCOUNT_LIKERS);
-            TryBindStatementInt(stmt, 2, addressId);
-            TryBindStatementInt(stmt, 3, likerId);
+            int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementInt(stmt, i++, addressId);
+            TryBindStatementInt(stmt, i++, likerId);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = (value > 0);
+                result = true;
 
             FinalizeSqlStatement(*stmt);
         });
@@ -97,32 +109,20 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO Ratings (
+            auto stmtInsert = SetupSqlStatement(R"sql(
+                insert or fail into Ratings (
                     Type,
                     Last,
                     Height,
                     Id,
                     Value
-                ) SELECT ?,1,?,?,?
-                WHERE NOT EXISTS (
-                    select 1
-                    from Ratings r indexed by Ratings_Type_Id_Value
-                    where r.Type=?
-                      and r.Id=?
-                      and r.Value=?
-                )
+                ) values ( ?,1,?,?,? )
             )sql");
-
-            TryBindStatementInt(stmt, 1, (int)*rating.GetType());
-            TryBindStatementInt(stmt, 2, rating.GetHeight());
-            TryBindStatementInt64(stmt, 3, rating.GetId());
-            TryBindStatementInt64(stmt, 4, rating.GetValue());
-            TryBindStatementInt(stmt, 5, (int)*rating.GetType());
-            TryBindStatementInt64(stmt, 6, rating.GetId());
-            TryBindStatementInt64(stmt, 7, rating.GetValue());
-
-            TryStepStatement(stmt);
+            TryBindStatementInt(stmtInsert, 1, *rating.GetType());
+            TryBindStatementInt(stmtInsert, 2, rating.GetHeight());
+            TryBindStatementInt64(stmtInsert, 3, rating.GetId());
+            TryBindStatementInt64(stmtInsert, 4, rating.GetValue());
+            TryStepStatement(stmtInsert);
         });
     }
 }
