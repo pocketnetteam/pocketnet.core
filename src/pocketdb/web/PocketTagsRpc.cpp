@@ -30,8 +30,8 @@ namespace PocketWeb::PocketWebRpc
 
         int pageSize = 50;
         if (request.params.size() > 1)
-            // TODO (losty-fur): do not ignore result
-            bool res = ParseInt32(request.params[1].get_str(), &pageSize);
+            if (!ParseInt32(request.params[1].get_str(), &pageSize))
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
 
         int pageStart = 0;
         // if (request.params.size() > 2)
