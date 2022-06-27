@@ -43,6 +43,16 @@ namespace PocketDb
         }
     };
 
+    struct BadgeSharkConditions
+    {
+        int Height;
+        int LikersAll;
+        int LikersContent;
+        int LikersComment;
+        int LikersAnswer;
+        int RegistrationDepth;
+    };
+
     struct BadgeSet
     {
         bool Shark = false;
