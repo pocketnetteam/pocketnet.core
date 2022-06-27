@@ -99,7 +99,6 @@ struct Params {
     int64_t nStakeMinimumThreshold;
     int64_t nStakeMaximumThreshold;
 
-    bool fPosRequiresPeers;
     int nDailyBlockCount;
     unsigned int nModifierInterval;
 

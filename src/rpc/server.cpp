@@ -358,17 +358,25 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
 static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& request, UniValue& result, bool last_handler, RPCCache* cache)
 {
     auto start = gStatEngineInstance.GetCurrentSystemTime();
-    auto ret = cache->GetRpcCache(request);
-    if (ret.isNull()) {
+
+    bool ret = true;
+    // See if this request reply is cached
+    UniValue tmpRes = cache->GetRpcCache(request);
+    if (tmpRes.isNull())
+    {
         try
         {
             RPCCommandExecution execution(request.strMethod);
             // Execute, convert arguments to array if necessary
             if (request.params.isObject()) {
-                return command.actor(transformNamedArguments(request, command.argNames), result, last_handler);
+                ret = command.actor(transformNamedArguments(request, command.argNames), tmpRes, last_handler);
             } else {
-                return command.actor(request, result, last_handler);
+                ret = command.actor(request, tmpRes, last_handler);
             }
+
+            // Save return value in cache for later
+            if (ret)
+                cache->PutRpcCache(request, tmpRes);
         }
         catch (const std::exception& e)
         {
@@ -382,8 +390,8 @@ static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& req
     auto diff = (stop - start);
     LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", request.strMethod, request.peerAddr.substr(0, request.peerAddr.find(':')), diff.count());
 
-    result = std::move(ret);
-    return true;
+    result = std::move(tmpRes);
+    return ret;
 }
 
 std::vector<std::string> CRPCTable::listCommands() const

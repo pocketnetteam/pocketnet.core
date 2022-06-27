@@ -45,7 +45,7 @@ static const CRPCCommand commands[] =
     {"search",          "searchusers",                      &SearchUsers,                   {"keyword", "fieldtypes", "orderbyrank"}},
 
     // Recomendations
-    {"search",          "getrecommendedcontentbyaddress",   &GetRecommendedContentByAddress,   {"address", "addressExclude", "contenttypes", "lang", "count"}},
+    {"search",          "getrecommendedcontentbyaddress",   &GetRecommendedContentByAddress,   {"address", "addressExclude", "contenttypes", "lang", "countRec", "countOthers", "countSubs"}},
     {"search",          "getrecommendedaccountbyaddress",   &GetRecommendedAccountByAddress,   {"address", "addressExclude", "contenttypes", "lang", "count"}},
 
     // WebSocket
@@ -88,7 +88,8 @@ static const CRPCCommand commands[] =
     {"accounts",        "getuserstatistic",                 &GetAccountStatistic,            {"address", "height", "depth"}},
     {"accounts",        "getusersubscribes",                &GetAccountSubscribes,           {"address", "height", "depth"}},
     {"accounts",        "getusersubscribers",               &GetAccountSubscribers,          {"address", "height", "depth"}},
-    {"accounts",        "getuserblockings",                 &GetAccountBlockings,            {"address", "height", "depth"}},
+    {"accounts",        "getuserblockings",                 &GetAccountBlockings,            {"address"}},
+    {"accounts",        "getuserblockers",                  &GetAccountBlockers,             {"address"}},
     {"accounts",        "gettopaccounts",                   &GetTopAccounts,                 {"topHeight","countOut","lang","tags","contentTypes","adrsExcluded","tagsExcluded","depth"}},
 
     // Scores

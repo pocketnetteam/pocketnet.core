@@ -32,7 +32,7 @@ namespace PocketConsensus
 
             // Only `Shark` account can flag content
             auto reputationConsensus = ReputationConsensusFactoryInst.Instance(Height);
-            if (!reputationConsensus->IsShark(*ptx->GetAddress()))
+            if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Shark)
                 return {false, SocialConsensusResult_LowReputation};
 
             // Target transaction must be a exists and is a content and author should be equals ptx->GetContentAddressHash()

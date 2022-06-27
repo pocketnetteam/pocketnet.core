@@ -155,7 +155,7 @@ namespace PocketWeb::PocketWebRpc
             auto ids = request.DbConnection()->SearchRepoInst->SearchUsersOld(searchRequest);
             
             // Get accounts data
-            auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
+            auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
 
             UniValue data(UniValue::VARR);
             for (const auto& account : accounts)
@@ -339,17 +339,19 @@ namespace PocketWeb::PocketWebRpc
                           },
     [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        //   if (request.fHelp)
-        //       throw runtime_error(
-        //               "getrecommendedcontentbyaddress \"address\", \"addressExclude\", \"contenttypes\", \"lang\", count\n"
-        //               "\nContents recommendations by content address.\n"
-        //               "\nArguments:\n"
-        //               "1. \"address\" (string) Address for recommendations\n"
-        //               "2. \"addressExclude\" (string, optional) Address for exclude from recommendations\n"
-        //               "3. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/videos/articles\n"
-        //               "3. \"lang\" (string, optional) Language for recommendations\n"
-        //               "4. \"count\" (int, optional) Number of recommendations records and number of other contents from addres. Default 15\n"
-        //       );
+        // if (request.fHelp)
+        //     throw runtime_error(
+        //         "getrecommendedcontentbyaddress \"address\", \"addressExclude\", \"contenttypes\", \"lang\", count\n"
+        //         "\nContents recommendations by content address.\n"
+        //         "\nArguments:\n"
+        //         "1. \"address\" (string) Address for recommendations\n"
+        //         "2. \"addressExclude\" (string, optional) Address for exclude from recommendations\n"
+        //         "3. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/videos/articles\n"
+        //         "3. \"lang\" (string, optional) Language for recommendations\n"
+        //         "4. \"countRec\" (int, optional) Number of recommendations records. Default 15\n"
+        //         "5. \"countOthers\" (int, optional) Number of other contents from address. Default equal countRec\n"
+        //         "6. \"countSubs\" (int, optional) Number of contents from address subscriptions. Default equal countRec\n"
+        //     );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
         string address = "";
@@ -382,33 +384,63 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 3 && request.params[3].isStr())
             lang = request.params[3].get_str();
 
-        int cntOut = 15;
+        int cntRec = 15;
         if (request.params.size() > 4 && request.params[4].isNum())
-            cntOut = request.params[4].get_int();
+            cntRec = request.params[4].get_int();
+        cntRec = std::min(cntRec, 30);
+
+        int cntOthers = cntRec;
+        if (request.params.size() > 5 && request.params[5].isNum())
+            cntOthers = request.params[5].get_int();
+        cntOthers = std::min(cntOthers, 30);
+
+        int cntSubs = cntRec;
+        if (request.params.size() > 6 && request.params[6].isNum())
+            cntSubs = request.params[6].get_int();
+        cntSubs = std::min(cntSubs, 30);
 
         int nHeight = ChainActive().Height();
-        if (request.params.size() > 5 && request.params[5].isNum() && request.params[5].get_int() > 0)
-            nHeight = request.params[5].get_int();
+        // if (request.params.size() > 5 && request.params[5].isNum() && request.params[5].get_int() > 0)
+        //     nHeight = request.params[5].get_int();
 
         int depth = (60 * 24 * 30 * 3); //about 3 month as default
-        if (request.params.size() > 6 && request.params[6].isNum())
-        {
-            depth = std::max(request.params[6].get_int(), (60 * 24 * 30 * 6)); // not greater than about 6 month
-        }
+        // if (request.params.size() > 6 && request.params[6].isNum())
+        // {
+        //     depth = std::max(request.params[6].get_int(), (60 * 24 * 30 * 6)); // not greater than about 6 month
+        // }
 
         UniValue resultContent(UniValue::VARR);
-        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, nHeight, depth);
+        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntRec, nHeight, depth);
         if (!ids.empty())
         {
             auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
             resultContent.push_backV(contents);
         }
 
-        ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOut);
+        ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOthers);
         if (!ids.empty())
         {
             auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
             resultContent.push_backV(contents);
+        }
+
+        ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, false);
+        if (!ids.empty())
+        {
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+            resultContent.push_backV(contents);
+        }
+
+        if (ids.size() < cntSubs)
+        {
+            int restCntSubs = cntSubs - ids.size();
+            ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, true);
+            if (!ids.empty())
+            {
+                ids = {ids.begin(), ids.begin() + restCntSubs};
+                auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+                resultContent.push_backV(contents);
+            }
         }
 
         UniValue result(UniValue::VOBJ);
@@ -495,7 +527,7 @@ namespace PocketWeb::PocketWebRpc
         auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedAccountByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntOut, nHeight, depth);
         if (!ids.empty())
         {
-            auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
+            auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
             for (const auto[id, record] : profiles)
                 result.push_back(record);
         }

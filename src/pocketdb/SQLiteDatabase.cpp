@@ -64,6 +64,25 @@ namespace PocketDb
         ConsensusRepoInst.Init();
         NotifierRepoInst.Init();
         SystemRepoInst.Init();
+        MigrationRepoInst.Init();
+
+        // Execute migration scripts
+        if (gArgs.GetArg("-reindex", 0) == 0)
+        {
+            if (!MigrationRepoInst.SplitLikers())
+            {
+                LogPrintf("SQLDB Migration: SplitLikers completed.\n");
+                StartShutdown();
+                return;
+            }
+
+            if (!MigrationRepoInst.AccumulateLikers())
+            {
+                LogPrintf("SQLDB Migration: AccumulateLikers completed.\n");
+                StartShutdown();
+                return;
+            }
+        }
 
         // Open, create structure and close `web` db
         PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();
@@ -229,6 +248,8 @@ namespace PocketDb
             {
                 token = sql.substr(0, pos);
 
+                LogPrint(BCLog::MIGRATION, "Migration Sqlite database `%s` structure..\n---\n%s\n---\n", m_file_path, token);
+
                 BeginTransaction();
 
                 if (sqlite3_exec(m_db, token.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK)
@@ -305,8 +326,9 @@ namespace PocketDb
             {
                 int ret = SQLITE_OK;
 
+                auto fullPath = dbPath / m_file_path;
                 if (true || isReadOnlyConnect)
-                    ret = sqlite3_open_v2((dbPath / m_file_path).string().c_str(), &m_db, flags, nullptr);
+                    ret = sqlite3_open_v2(fullPath.string().c_str(), &m_db, flags, nullptr);
                 else
                     ret = sqlite3_open_v2(":memory:", &m_db, flags, nullptr);
 

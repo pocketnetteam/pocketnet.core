@@ -89,8 +89,13 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 1)
             shortForm = request.params[1].get_str() == "1";
 
+        // Count of days for first flags after first content publish
+        int firstFlagsDepth = 7;
+        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
+            firstFlagsDepth = request.params[2].get_int();
+
         // Get data
-        map<string, UniValue> profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm);
+        map<string, UniValue> profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm, firstFlagsDepth);
         for (auto& p : profiles)
             result.push_back(p.second);
 
@@ -217,15 +222,25 @@ namespace PocketWeb::PocketWebRpc
         if (result["address"].isNull())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
-        // Cechk account permissions
-        AccountData accountData = { result["address_id"].get_int64(), result["reputation"].get_int64(), result["user_reg_height"].get_int64(), result["likers"].get_int64() };
-        auto accountMode = reputationConsensus->GetAccountMode(result["reputation"].get_int(), result["balance"].get_int64());
-        auto accountIsShark = reputationConsensus->IsShark(accountData);
-
+        // Check account permissions
+        const AccountData accountData = request.DbConnection()->ConsensusRepoInst->GetAccountData(address);
+        
+        auto accountMode = reputationConsensus->GetAccountMode(accountData.Reputation, accountData.Balance);
         result.pushKV("mode", accountMode);
         result.pushKV("trial", accountMode == AccountMode_Trial);
-        result.pushKV("reputation", result["reputation"].get_int() / 10.0);
+        result.pushKV("reputation", accountData.Reputation / 10.0);
 
+        // Extend result data with badges array
+        auto badgeSet = reputationConsensus->GetBadges(accountData);
+        UniValue badges = badgeSet.ToJson();
+        result.pushKV("badges", badges);
+
+        result.pushKV("user_reg_date", accountData.RegistrationTime);
+        result.pushKV("user_reg_height", accountData.RegistrationHeight);
+        result.pushKV("balance", accountData.Balance);
+        result.pushKV("likers", accountData.LikersAll());
+
+        // Spent/Unspent limits
         int64_t postLimit;
         int64_t videoLimit;
         int64_t articleLimit;
@@ -287,13 +302,6 @@ namespace PocketWeb::PocketWebRpc
 
         if (!result["mod_flag_spent"].isNull())
             result.pushKV("mod_flag_unspent", reputationConsensus->GetConsensusLimit(ConsensusLimit_moderation_flag_count) - result["mod_flag_spent"].get_int());
-
-        if (accountIsShark)
-        {
-            UniValue badges(UniValue::VARR);
-            badges.push_back("shark");
-            result.pushKV("badges", badges);
-        }
 
         return result;
     },
@@ -560,7 +568,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetAccountBlockings()
     {
         return RPCHelpMan{"GetAccountBlockings",
-                "\nReturn blocked accounts list with pagination - NOT IMPLEMENTED\n",
+                "\nReturn blocked accounts list\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
@@ -578,7 +586,32 @@ namespace PocketWeb::PocketWebRpc
 
         string address = request.params[0].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetBlockingToAddresses(address);
+        return request.DbConnection()->WebRpcRepoInst->GetBlockings(address);
+    },
+        };
+    }
+
+    RPCHelpMan GetAccountBlockers()
+    {
+        return RPCHelpMan{"GetAccountBlockers",
+                "\nReturns a list of accounts that have blocked the specified address\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    // TODO (rpc): provide correct examples
+                    HelpExampleCli("GetAccountBlockings", "\"address\"") +
+                    HelpExampleRpc("GetAccountBlockings", "\"address\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+        return request.DbConnection()->WebRpcRepoInst->GetBlockers(address);
     },
         };
     }
@@ -658,10 +691,10 @@ namespace PocketWeb::PocketWebRpc
 
                               UniValue result(UniValue::VARR);
                               auto ids =  request.DbConnection()->WebRpcRepoInst->GetTopAccounts(topHeight, countOut, lang, tags, contentTypes,
-                                                                                                 adrsExcluded, tagsExcluded, depth, badReputationLimit);
+                                adrsExcluded, tagsExcluded, depth, badReputationLimit);
                               if (!ids.empty())
                               {
-                                  auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
+                                  auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
                                   for (const auto[id, record] : profiles)
                                       result.push_back(record);
                               }

@@ -186,6 +186,7 @@ void ShutdownPocketServices()
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
     PocketDb::NotifierRepoInst.Destroy();
+    PocketDb::MigrationRepoInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");
     PocketDb::SQLiteDbInst.Close();
@@ -224,6 +225,9 @@ void Shutdown(NodeContext& node)
 
     PocketServices::WebPostProcessorInst.Stop();
     gStatEngineInstance.Stop();
+
+    if (notifyClientsThread)
+        notifyClientsThread->Stop();
 
     StopHTTPRPC();
     StopREST();
@@ -269,9 +273,6 @@ void Shutdown(NodeContext& node)
     if (g_load_block.joinable()) g_load_block.join();
     threadGroup.interrupt_all();
     threadGroup.join_all();
-    if (notifyClientsThread) {
-        notifyClientsThread->Stop();
-    }
 
     // After the threads that potentially access these pointers have been stopped,
     // destruct and reset all to nullptr.
@@ -841,7 +842,10 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
             int i = (int)args.GetArg("-reindex-start", 0);
             LogPrintf("Start indexing pocketnet part at height %d\n", i);
 
-            PocketServices::ChainPostProcessing::Rollback(i);
+            if (i == 0)
+                PocketDb::ChainRepoInst.ClearDatabase();
+            else
+                PocketServices::ChainPostProcessing::Rollback(i);
 
             while (i <= ChainActive().Height() && !ShutdownRequested())
             {
@@ -947,7 +951,8 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
     // Start staker thread after activate best chain
     #ifdef ENABLE_WALLET
     Staker::getInstance()->setIsStaking(args.GetBoolArg("-staking", true));
-    Staker::getInstance()->startWorkers(threadGroup, context, chainparams);
+    if (Staker::getInstance()->getIsStaking())
+        Staker::getInstance()->startWorkers(threadGroup, context, chainparams);
     #endif
 }
 
@@ -1460,6 +1465,7 @@ static void StartWS()
         std::shared_ptr<WsServer::InMessage> in_message)
     {
         auto out_message = in_message->string();
+
         UniValue val;
         if (val.read(out_message))
         {
@@ -1488,7 +1494,8 @@ static void StartWS()
                     {
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
                         WSConnections->insert_or_assign(connection->ID(), wsUser);
-                    } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
+                    }
+                    else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
@@ -1499,7 +1506,10 @@ static void StartWS()
             }
             catch (const std::exception &e)
             {
-                LogPrintf("Warning: ws.on_message - %s\n", e.what());
+                UniValue m(UniValue::VOBJ);
+                m.pushKV("result", "error");
+                m.pushKV("error", e.what());
+                connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
             }
         }
     };
@@ -1531,7 +1541,7 @@ static void InitWS()
     auto notifyProcessor = std::make_shared<NotifyBlockProcessor>(WSConnections);
     notifyClientsQueue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
     notifyClientsThread = std::make_shared<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>(notifyClientsQueue, notifyProcessor);
-    notifyClientsThread->Start();
+    notifyClientsThread->Start("notifyClientsThread");
     std::thread server_thread(&StartWS);
     server_thread.detach();
 }
@@ -1645,6 +1655,12 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // Always start WEB DB building thread
     if (!args.GetBoolArg("-withoutweb", false))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
+
+    if (ShutdownRequested())
+    {
+        LogPrintf("Shutdown requested. Exiting.\n");
+        return false;
+    }
 
     // ********************************************************* Step 4b: Additional settings
 
