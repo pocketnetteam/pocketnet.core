@@ -97,7 +97,7 @@ BOOST_FIXTURE_TEST_CASE(pocketnet_ratings, TestChain100Setup)
 		throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX deserialize failed");
 
 	// Set required fields
-	ptx->SetAddress(address);
+	ptx->SetString1(address);
 
 	// Insert into mempool
 	//return _accept_transaction(tx, ptx, *node.mempool, *node.connman); // TODO (losty-fur): possible null
