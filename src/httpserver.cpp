@@ -812,12 +812,8 @@ void HTTPWebSocket::StartHTTPSocket(int threadCount, int threadPostCount, bool s
 void HTTPWebSocket::StopHTTPSocket()
 {   
     // Interrupting socket here because stop without interrupting is illegal.
-    InterruptHTTPSocket();
-
-    // Resetting queue as it has done previously that restricts running this socket again.
-    // However this doesn't affect current rpc handlers because they handle their own shared_ptr of queue, but adding new rpc handlers
-    // is UB after this call.
-    m_workQueue.reset();
+    HTTPSocket::InterruptHTTPSocket();
+    HTTPSocket::StopHTTPSocket();
     m_workPostQueue.reset();
 }
 
