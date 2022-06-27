@@ -11,6 +11,7 @@
 #include "core_io.h"
 
 #include "pocketdb/repositories/BaseRepository.h"
+#include "pocketdb/repositories/ConsensusRepository.h"
 #include "pocketdb/models/web/WebTag.h"
 #include "pocketdb/models/web/WebContent.h"
 
@@ -34,6 +35,11 @@ namespace PocketDb
 
         vector<WebContent> GetContent(const string& blockHash);
         void UpsertContent(const vector<WebContent>& contentList);
+
+        void CalculateSharkAccounts(BadgeSharkConditions& cond);
+        void CalculateValidAuthors(int blockHeight);
+
+        // TODO (brangr): расчитать авторов согласно комментариев от акул на их посты
     };
 
     typedef shared_ptr<WebRepository> WebRepositoryRef;
