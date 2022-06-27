@@ -801,8 +801,12 @@ RPCHelpMan SendRawTransaction()
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
 
     auto& node = EnsureNodeContext(request.context);
-    assert (node.mempool);
-    assert (node.connman); // TODO (losty): probably connman is able to be null?
+    if (!node.mempool) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Null mempool");
+    }
+    if (!node.connman) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Null connman");
+    }
 
     CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
     return PocketWeb::PocketWebRpc::_accept_transaction(tx, nullptr, *node.mempool, *node.connman);

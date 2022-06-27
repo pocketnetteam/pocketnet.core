@@ -296,8 +296,8 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[0].isNum())
                 count = request.params[0].get_int();
             else if (request.params[0].isStr())
-                // TODO (losty-fur): do not ignore result
-                bool res = ParseInt32(request.params[0].get_str(), &count);
+                if (!ParseInt32(request.params[0].get_str(), &count))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
         }
 
         // Depth in blocks (default about 3 days)
@@ -308,8 +308,8 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[1].isNum())
                 depthBlocks = request.params[1].get_int();
             else if (request.params[1].isStr())
-                // TODO (losty-fur): do not ignore result
-                bool res = ParseInt32(request.params[1].get_str(), &depthBlocks);
+                if (!ParseInt32(request.params[1].get_str(), &depthBlocks))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
 
             // for old version electron
             if (depthBlocks == 259200)
@@ -330,8 +330,8 @@ namespace PocketWeb::PocketWebRpc
             }
             else if (request.params[2].isStr())
             {
-                // TODO (losty-fur): do not ignore result
-                bool res = ParseInt32(request.params[2].get_str(), &nOffset);
+                if (!ParseInt32(request.params[2].get_str(), &nOffset))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
             }
             nHeightOffset -= nOffset;
         }

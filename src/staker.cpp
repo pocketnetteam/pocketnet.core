@@ -115,6 +115,8 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     util::ThreadRename("coin-staker");
 
     const auto& node = EnsureNodeContext(context);
+    CHECK_NONFATAL(node.mempool); // Mempool should be always available here
+    CHECK_NONFATAL(node.chainman); // Same for this
     bool running = true;
     int nLastCoinStakeSearchInterval = 0;
 
@@ -172,10 +174,9 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             }
 
             uint64_t nFees = 0;
-            // TODO (losty-fur): possible null mempool
             auto assembler = BlockAssembler(*node.mempool, chainparams);
 
-            // TODO (losty): passing here nullopt because coinbase script is only usefull for mining blocks
+            // Nullopt for scriptPubKeyIn because coinbase script is only usefull for mining blocks
             auto blocktemplate = assembler.CreateNewBlock(
                 nullopt, true, &nFees
             );
@@ -187,7 +188,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                 // Extend pocketBlock with coinStake transaction
                 if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
                     blocktemplate->pocketBlock->emplace_back(ptx);
-                // TODO (losty-fur): possible null chainman
+
                 CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
                 UninterruptibleSleep(std::chrono::milliseconds{500});
             }
