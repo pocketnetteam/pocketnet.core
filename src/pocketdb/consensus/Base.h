@@ -412,11 +412,11 @@ namespace PocketConsensus
         } },
         
         { ConsensusLimit_full_post, {
-            { NetworkMain, { {0, 30}, {1757000, 10} } },
+            { NetworkMain, { {0, 30}, {1757000, 10}, {1791787, 30} } },
             { NetworkTest, { {0, 30} } }
         } },
         { ConsensusLimit_full_video, {
-            { NetworkMain, { {0, 30}, {1757000, 10} } },
+            { NetworkMain, { {0, 30}, {1757000, 10}, {1791787, 30} } },
             { NetworkTest, { {0, 30} } }
         } },
         { ConsensusLimit_full_article, {
@@ -424,7 +424,7 @@ namespace PocketConsensus
             { NetworkTest, { {0, 30} } }
         } },
         { ConsensusLimit_full_score, {
-            { NetworkMain, { {0, 90}, {175600, 200}, {1757000, 60} } },
+            { NetworkMain, { {0, 90}, {175600, 200}, {1757000, 60}, {1791787, 100} } },
             { NetworkTest, { {0, 200} } }
         } },
         { ConsensusLimit_full_complain, {
@@ -432,7 +432,7 @@ namespace PocketConsensus
             { NetworkTest, { {0, 12} } }
         } },
         { ConsensusLimit_full_comment, {
-            { NetworkMain, { {0, 300}, {1757000, 100} } },
+            { NetworkMain, { {0, 300}, {1757000, 100}, {1791787, 200} } },
             { NetworkTest, { {0, 300} } }
         } },
         { ConsensusLimit_full_comment_score, {
