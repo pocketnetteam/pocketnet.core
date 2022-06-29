@@ -166,6 +166,8 @@ namespace PocketConsensus
 
     enum ConsensusLimit
     {
+        ConsensusLimit_depth,
+
         ConsensusLimit_threshold_reputation,
         ConsensusLimit_threshold_reputation_score,
         ConsensusLimit_threshold_balance,
@@ -173,7 +175,20 @@ namespace PocketConsensus
         ConsensusLimit_threshold_likers_count,
         ConsensusLimit_threshold_low_likers_count,
         ConsensusLimit_threshold_low_likers_depth,
-        ConsensusLimit_depth,
+
+        // Thresholds for obtaining badges - SHARK
+        threshold_shark_reg_depth,
+        threshold_shark_likers_all,
+        threshold_shark_likers_content,
+        threshold_shark_likers_comment,
+        threshold_shark_likers_comment_answer,
+
+        // Thresholds for obtaining badges - WHALE
+        threshold_whale_reg_depth,
+        threshold_whale_likers_all,
+        threshold_whale_likers_content,
+        threshold_whale_likers_comment,
+        threshold_whale_likers_comment_answer,
 
         ConsensusLimit_trial_post,
         ConsensusLimit_trial_video,
@@ -235,104 +250,26 @@ namespace PocketConsensus
     typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimits;
 
     static inline ConsensusLimits m_consensus_limits = {
-        // ConsensusLimit_bad_reputation
-        {
-            ConsensusLimit_bad_reputation,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, -500}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, -50}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_threshold_reputation
-        {
-            ConsensusLimit_threshold_reputation,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       500},
-                        {292800,  1000}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 100},
-                        {761000, 10}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_threshold_reputation_score
-        {
-            ConsensusLimit_threshold_reputation_score,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       -10000},
-                        {108300,  500},
-                        {292800,  1000}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 0},
-                        {100000, 100}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_threshold_balance
-        {
-            ConsensusLimit_threshold_balance,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 50 * COIN}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 5 * COIN}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_threshold_balance_pro
-        {
-            ConsensusLimit_threshold_balance_pro,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       INT64_MAX},
-                        {65000,   250 * COIN}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, INT64_MAX},
-                        {65000,  25 * COIN}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_threshold_likers_count
+        { ConsensusLimit_bad_reputation, {
+            { NetworkMain, { {0, -500} } },
+            { NetworkTest, { {0, -50} } }
+        } },
+        { ConsensusLimit_threshold_reputation, {
+            { NetworkMain, { {0, 500}, {292800, 1000} } },
+            { NetworkTest, { {0, 100}, {761000, 10} } }
+        } },
+        { ConsensusLimit_threshold_reputation_score, {
+            { NetworkMain, { {0, -10000}, {108300, 500}, {292800, 1000} } },
+            { NetworkTest, { {0, 0}, {100000, 100} } }
+        } },
+        { ConsensusLimit_threshold_balance, {
+            { NetworkMain, { {0, 50 * COIN} } },
+            { NetworkTest, { {0, 5 * COIN} } }
+        } },
+        { ConsensusLimit_threshold_balance_pro, {
+            { NetworkMain, { {0, INT64_MAX}, {65000, 250 * COIN} } },
+            { NetworkTest, { {0, INT64_MAX}, {65000,  25 * COIN} } }
+        } },
         { ConsensusLimit_threshold_likers_count, {
             { NetworkMain, { {0, 0}, {1124000, 100} }},
             { NetworkTest, { {0, 0}, {100000, 10} }},
@@ -342,737 +279,224 @@ namespace PocketConsensus
             { NetworkMain, { {0, 30} }},
             { NetworkTest, { {0, 30}, {761000, 0} }}
         }},
-        // ConsensusLimit_threshold_low_likers_depth
-        {
-            ConsensusLimit_threshold_low_likers_depth,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {1180000, 250'000},
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 250'000},
+        { ConsensusLimit_threshold_low_likers_depth, {
+            { NetworkMain, { {1180000, 250'000}, } },
+            { NetworkTest, { {0, 250'000},
                     }
                 }
-            }
-        },
-        // ConsensusLimit_depth
-        {
-            ConsensusLimit_depth,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       86400},
-                        {1180000, 1440}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 1440}
-                    }
-                }
-            }
-        },
+        } },
+        { ConsensusLimit_depth, {
+            { NetworkMain, { {0, 86400}, {1180000, 1440} } },
+            { NetworkTest, { {0, 1440} } }
+        } },
 
-        // ConsensusLimit_trial_post
-        {
-            ConsensusLimit_trial_post,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       15},
-                        {1324655, 5}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 15}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_trial_video
-        {
-            ConsensusLimit_trial_video,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       15},
-                        {1324655, 5}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 15}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_trial_article
-        {
-            ConsensusLimit_trial_article,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       1}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 10}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_trial_score
-        {
-            ConsensusLimit_trial_score,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       45},
-                        {175600,  100},
-                        {1324655, 15}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 100}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_trial_complain
-        {
-            ConsensusLimit_trial_complain,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 6}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 6}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_post
-        {
-            ConsensusLimit_full_post,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 30}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 30}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_video
-        {
-            ConsensusLimit_full_video,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 30}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 30}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_article
-        {
-            ConsensusLimit_full_article,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 3}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 30}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_score
-        {
-            ConsensusLimit_full_score,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,      90},
-                        {175600, 200}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 200}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_complain
-        {
-            ConsensusLimit_full_complain,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 12}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 12}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_pro_video
-        {
-            ConsensusLimit_pro_video,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       0},
-                        {1324655, 100}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 100}
-                    }
-                }
-            }
-        },
+        // Thresholds for obtaining badges - SHARK
+        { threshold_shark_reg_depth, {
+            { NetworkMain, { {0, 129600} } },
+            { NetworkTest, { {0, 1} } }
+        } },
+        { threshold_shark_likers_all, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 1} } }
+        } },
+        { threshold_shark_likers_content, {
+            { NetworkMain, { {0, 0} } },
+            { NetworkTest, { {0, 0} } }
+        } },
+        { threshold_shark_likers_comment, {
+            { NetworkMain, { {0, 15} } },
+            { NetworkTest, { {0, 1} } }
+        } },
+        { threshold_shark_likers_comment_answer, {
+            { NetworkMain, { {0, 0} } },
+            { NetworkTest, { {0, 0} } }
+        } },
+        
+        // Thresholds for obtaining badges - WHALE
+        { threshold_shark_reg_depth, {
+            { NetworkMain, { {0, 207360} } },
+            { NetworkTest, { {0, 1} } }
+        } },
+        { threshold_whale_likers_all, {
+            { NetworkMain, { {0, 1000} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { threshold_whale_likers_content, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { threshold_whale_likers_comment, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { threshold_whale_likers_comment_answer, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 10} } }
+        } },
 
-        // ConsensusLimit_post_edit_count
-        {
-            ConsensusLimit_post_edit_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 5}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 5}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_video_edit_count
-        {
-            ConsensusLimit_video_edit_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 5}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 5}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_article_edit_count
-        {
-            ConsensusLimit_article_edit_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 10}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 10}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_comment_edit_count
-        {
-            ConsensusLimit_comment_edit_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 4}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 4}
-                    }
-                }
-            }
-        },
-
-        // ConsensusLimit_edit_user_depth
-        {
-            ConsensusLimit_edit_user_depth,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       3600},
-                        {1180000, 60}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 30}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_edit_user_daily_count
-        {
-            ConsensusLimit_edit_user_daily_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 10}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 10}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_edit_post_depth
-        {
-            ConsensusLimit_edit_post_depth,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       86400},
-                        {1180000, 1440}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 1440}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_edit_video_depth
-        {
-            ConsensusLimit_edit_video_depth,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 1440}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 1440}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_edit_article_depth
-        {
-            ConsensusLimit_edit_article_depth,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 4320}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 4320}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_edit_comment_depth
-        {
-            ConsensusLimit_edit_comment_depth,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       86400},
-                        {1180000, 1440}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 1440}
-                    }
-                }
-            }
-        },
-
-        // ConsensusLimit_max_user_size
-        {
-            ConsensusLimit_max_user_size,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 2000}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 2000}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_max_post_size
-        {
-            ConsensusLimit_max_post_size,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 60000}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 60000}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_max_video_size
-        {
-            ConsensusLimit_max_video_size,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 60000}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 60000}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_max_article_size
-        {
-            ConsensusLimit_max_article_size,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 120000}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 60000}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_scores_one_to_one
-        {
-            ConsensusLimit_scores_one_to_one,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,       99999},
-                        {225000,  2}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 2}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_scores_one_to_one_over_comment
-        {
-            ConsensusLimit_scores_one_to_one_over_comment,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 20}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 20}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_scores_one_to_one_depth
-        {
-            ConsensusLimit_scores_one_to_one_depth,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,      336 * 24 * 3600},
-                        {225000, 1 * 24 * 3600},
-                        {292800, 7 * 24 * 3600},
-                        {322700, 2 * 24 * 3600}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 2 * 24 * 3600}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_trial_comment
-        {
-            ConsensusLimit_trial_comment,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 150}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 150}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_trial_comment_score
-        {
-            ConsensusLimit_trial_comment_score,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 300}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 300}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_comment
-        {
-            ConsensusLimit_full_comment,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 300}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 300}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_comment_score
-        {
-            ConsensusLimit_full_comment_score,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 600}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 600}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_max_comment_size
-        {
-            ConsensusLimit_max_comment_size,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 2000}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 2000}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_scores_depth_modify_reputation
-        {
-            ConsensusLimit_scores_depth_modify_reputation,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0,      336 * 24 * 3600},
-                        {322700, 30 * 24 * 3600}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 30 * 24 * 3600}
-                    }
-                }
-            }
-        },
+        // Other
+        { ConsensusLimit_edit_user_depth, {
+            { NetworkMain, { {0, 3600}, {1180000, 60} } },
+            { NetworkTest, { {0, 30} } }
+        } },
+        { ConsensusLimit_edit_user_daily_count, {
+            { NetworkMain, { {0, 10} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { ConsensusLimit_edit_post_depth, {
+            { NetworkMain, { {0, 86400}, {1180000, 1440} } },
+            { NetworkTest, { {0, 1440} } }
+        } },
+        { ConsensusLimit_edit_video_depth, {
+            { NetworkMain, { {0, 1440} } },
+            { NetworkTest, { {0, 1440} } }
+        } },
+        { ConsensusLimit_edit_article_depth, {
+            { NetworkMain, { {0, 4320} } },
+            { NetworkTest, { {0, 4320} } }
+        } },
+        { ConsensusLimit_edit_comment_depth, {
+            { NetworkMain, { {0, 86400}, {1180000, 1440} } },
+            { NetworkTest, { {0, 1440} } }
+        } },
+        { ConsensusLimit_scores_one_to_one, {
+            { NetworkMain, { {0, 99999}, {225000,  2} } },
+            { NetworkTest, { {0, 2} } }
+        } },
+        { ConsensusLimit_scores_one_to_one_over_comment, {
+            { NetworkMain, { {0, 20} } },
+            { NetworkTest, { {0, 20} } }
+        } },
+        { ConsensusLimit_scores_one_to_one_depth, {
+            { NetworkMain, { {0, 336 * 24 * 3600}, {225000, 1 * 24 * 3600}, {292800, 7 * 24 * 3600},  {322700, 2 * 24 * 3600} } },
+            { NetworkTest, { {0, 2 * 24 * 3600} } }
+        } },
+        { ConsensusLimit_scores_depth_modify_reputation, {
+            { NetworkMain, { {0, 336 * 24 * 3600}, {322700, 30 * 24 * 3600} } },
+            { NetworkTest, { {0, 30 * 24 * 3600} } }
+        } },
         // TODO (brangr) (v0.21.0): change GetLotteryReferralDepth Time to Height
-        // ConsensusLimit_lottery_referral_depth
-        {
-            ConsensusLimit_lottery_referral_depth,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 30 * 24 * 3600}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 30 * 24 * 3600}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_max_account_setting_size
-        {
-            ConsensusLimit_max_account_setting_size,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 2048}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 2048}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_account_settings_daily_count
-        {
-            ConsensusLimit_account_settings_daily_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 5}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 5}
-                    }
-                }
-            }
-        },
+        { ConsensusLimit_lottery_referral_depth, {
+            { NetworkMain, { {0, 30 * 24 * 3600} } },
+            { NetworkTest, { {0, 30 * 24 * 3600} } }
+        } },
 
-        //
-        // MODERATION
-        //
-
+        // Limits
+        { ConsensusLimit_trial_post, {
+            { NetworkMain, { {0, 15}, {1324655, 5} } },
+            { NetworkTest, { {0, 15} } }
+        } },
+        { ConsensusLimit_trial_video, {
+            { NetworkMain, { {0, 15}, {1324655, 5} } },
+            { NetworkTest, { {0, 15} } }
+        } },
+        { ConsensusLimit_trial_article, {
+            { NetworkMain, { {0, 1} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { ConsensusLimit_trial_score, {
+            { NetworkMain, { {0, 45}, {175600, 100}, {1324655, 15} } },
+            { NetworkTest, { {0, 100} } }
+        } },
+        { ConsensusLimit_trial_complain, {
+            { NetworkMain, { {0, 6} } },
+            { NetworkTest, { {0, 6} } }
+        } },
+        { ConsensusLimit_trial_comment, {
+            { NetworkMain, { {0, 150}, {1757000, 50} } },
+            { NetworkTest, { {0, 150} } }
+        } },
+        { ConsensusLimit_trial_comment_score, {
+            { NetworkMain, { {0, 300}, {1757000, 100} } },
+            { NetworkTest, { {0, 300} } }
+        } },
+        
+        { ConsensusLimit_full_post, {
+            { NetworkMain, { {0, 30}, {1757000, 10}, {1791787, 30} } },
+            { NetworkTest, { {0, 30} } }
+        } },
+        { ConsensusLimit_full_video, {
+            { NetworkMain, { {0, 30}, {1757000, 10}, {1791787, 30} } },
+            { NetworkTest, { {0, 30} } }
+        } },
+        { ConsensusLimit_full_article, {
+            { NetworkMain, { {0, 3} } },
+            { NetworkTest, { {0, 30} } }
+        } },
+        { ConsensusLimit_full_score, {
+            { NetworkMain, { {0, 90}, {175600, 200}, {1757000, 60}, {1791787, 100} } },
+            { NetworkTest, { {0, 200} } }
+        } },
+        { ConsensusLimit_full_complain, {
+            { NetworkMain, { {0, 12} } },
+            { NetworkTest, { {0, 12} } }
+        } },
+        { ConsensusLimit_full_comment, {
+            { NetworkMain, { {0, 300}, {1757000, 100}, {1791787, 200} } },
+            { NetworkTest, { {0, 300} } }
+        } },
+        { ConsensusLimit_full_comment_score, {
+            { NetworkMain, { {0, 600}, {1757000, 200} } },
+            { NetworkTest, { {0, 600} } }
+        } },
+        
+        { ConsensusLimit_pro_video, {
+            { NetworkMain, { {0, 0}, {1324655, 100} } },
+            { NetworkTest, { {0, 100} } }
+        } },
+        
         { ConsensusLimit_moderation_flag_count, {
             { NetworkMain, { {0, 30} }},
             { NetworkTest, { {0, 100} }}
         }},
+
+        { ConsensusLimit_post_edit_count, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 5} } }
+        } },
+        { ConsensusLimit_video_edit_count, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 5} } }
+        } },
+        { ConsensusLimit_article_edit_count, {
+            { NetworkMain, { {0, 10} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { ConsensusLimit_comment_edit_count, {
+            { NetworkMain, { {0, 4} } },
+            { NetworkTest, { {0, 4} } }
+        } },
+        
+        { ConsensusLimit_account_settings_daily_count, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 5} } }
+        } },
+
+        // Size
+        { ConsensusLimit_max_user_size, {
+            { NetworkMain, { {0, 2000} } },
+            { NetworkTest, { {0, 2000} } }
+        } },
+        { ConsensusLimit_max_post_size, {
+            { NetworkMain, { {0, 60000} } },
+            { NetworkTest, { {0, 60000} } }
+        } },
+        { ConsensusLimit_max_video_size, {
+            { NetworkMain, { {0, 60000} } },
+            { NetworkTest, { {0, 60000} } }
+        } },
+        { ConsensusLimit_max_article_size, {
+            { NetworkMain, { {0, 120000} } },
+            { NetworkTest, { {0, 60000} } }
+        } },
+        { ConsensusLimit_max_comment_size, {
+            { NetworkMain, { {0, 2000} } },
+            { NetworkTest, { {0, 2000} } }
+        } },
+        { ConsensusLimit_max_account_setting_size, {
+            { NetworkMain, { {0, 2048} } },
+            { NetworkTest, { {0, 2048} } }
+        } },
         
     };
 

@@ -434,7 +434,7 @@ namespace PocketDb
         auto sql = R"sql(
             select r.Value
             from Ratings r
-            where r.Type = ?
+            where r.Type = 0
               and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
               and r.Last = 1
         )sql";
@@ -442,8 +442,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
-            TryBindStatementText(stmt, 2, address);
+            TryBindStatementText(stmt, 1, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -462,7 +461,7 @@ namespace PocketDb
         string sql = R"sql(
             select r.Value
             from Ratings r
-            where r.Type = ?
+            where r.Type = 0
               and r.Id = ?
               and r.Last = 1
         )sql";
@@ -470,8 +469,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
-            TryBindStatementInt(stmt, 2, addressId);
+            TryBindStatementInt(stmt, 1, addressId);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -540,31 +538,51 @@ namespace PocketDb
 
     AccountData ConsensusRepository::GetAccountData(const string& address)
     {
-        AccountData result = {-1, 0, 0, 0};
+        AccountData result = {address,-1,0,0,0,0,0};
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select (u.Id)AddressId,
-                       ifnull(r.Value, 0)Reputation,
-                       (select min(uf.Height) from Transactions uf where uf.Id = u.Id)RegistrationBlock,
-                       (select count() from Ratings l where l.Type = 1 and l.Id = u.Id)LikersCount
+                select
+
+                    (u.Id)AddressId,
+                    reg.Time as RegistrationDate,
+                    reg.Height as RegistrationHeight,
+                    ifnull(b.Value,0)Balance,
+                    ifnull(r.Value,0)Reputation,
+                    ifnull(lp.Value,0)LikersContent,
+                    ifnull(lc.Value,0)LikersComment,
+                    ifnull(lca.Value,0)LikersCommentAnswer
+
                 from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                cross join Transactions reg indexed by Transactions_Id
+                    on reg.Id = u.Id and reg.Height = (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = reg.Id)
+                left join Balances b indexed by Balances_AddressHash_Last on b.AddressHash = u.String1 and b.Last = 1
                 left join Ratings r indexed by Ratings_Type_Id_Last_Value on r.Type = 0 and r.Id = u.Id and r.Last = 1
+                left join Ratings lp indexed by Ratings_Type_Id_Last_Value on lp.Type = 111 and lp.Id = u.Id and lp.Last = 1
+                left join Ratings lc indexed by Ratings_Type_Id_Last_Value on lc.Type = 112 and lc.Id = u.Id and lc.Last = 1
+                left join Ratings lca indexed by Ratings_Type_Id_Last_Value on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
+
                 where u.Type in (100)
                   and u.Last = 1
                   and u.String1 = ?
                   and u.Height > 0
+                  
                 limit 1
             )sql");
             TryBindStatementText(stmt, 1, address);
             
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result.AddressId = value;
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) result.Reputation = value;
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.RegistrationHeight = value;
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.LikersCount = value;
+                int i = 0;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.AddressId = value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.RegistrationTime = value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.RegistrationHeight = value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.Balance = value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.Reputation = value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.LikersContent = value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.LikersComment = value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.LikersCommentAnswer = value;
             }
 
             FinalizeSqlStatement(*stmt);
@@ -592,7 +610,9 @@ namespace PocketDb
                 c.Time cTime,
                 c.Id cId,
                 ca.Id caId,
-                ca.String1 caHash
+                ca.String1 caHash,
+
+                c.String5
 
             from Transactions s indexed by Transactions_Hash_Height
 
@@ -633,6 +653,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) data.ContentId = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) data.ContentAddressId = value;
                 if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) data.ContentAddressHash = value;
+                
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) data.String5 = value;
 
                 result = make_shared<ScoreDataDto>(data);
             }
@@ -724,33 +746,6 @@ namespace PocketDb
         return {result, referrer};
     }
 
-    int ConsensusRepository::GetUserLikersCount(int addressId)
-    {
-        int result = 0;
-
-        string sql = R"sql(
-            select count(1)
-            from Ratings r
-            where r.Type = ?
-              and r.Id = ?
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
-            TryBindStatementInt(stmt, 2, addressId);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = value;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
     int ConsensusRepository::GetScoreContentCount(
         int height,
         const shared_ptr<ScoreDataDto>& scoreData,
@@ -793,6 +788,8 @@ namespace PocketDb
             TryBindStatementInt64(stmt, i++, scoreData->ScoreTime - scoresOneToOneDepth);
             TryBindStatementText(stmt, i++, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, i++, scoreData->ContentAddressHash);
+
+            LogPrintf("GetScoreContentCount: %s\n", sqlite3_expanded_sql(*stmt));
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -847,6 +844,8 @@ namespace PocketDb
             TryBindStatementInt64(stmt, i++, (int64_t) scoreData->ScoreTime - scoresOneToOneDepth);
             TryBindStatementText(stmt, i++, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, i++, scoreData->ContentAddressHash);
+
+            LogPrintf("GetScoreCommentCount: %s\n", sqlite3_expanded_sql(*stmt));
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

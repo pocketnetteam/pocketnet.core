@@ -203,22 +203,14 @@ public:
 
 void ToWidePath(const std::string& value, std::wstring& target) {
 	wchar_t buffer[MAX_PATH];
-	MultiByteToWideChar(CP_ACP, 0, value.c_str(), -1, buffer, MAX_PATH);
+	MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, buffer, MAX_PATH);
 	target = buffer;
 }
 
 void ToNarrowPath(const std::wstring& value, std::string& target) {
 	char buffer[MAX_PATH];
-	WideCharToMultiByte(CP_ACP, 0, value.c_str(), -1, buffer, MAX_PATH, NULL, NULL);
+	WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, buffer, MAX_PATH, NULL, NULL);
 	target = buffer;
-}
-
-std::string GetCurrentDir()
-{
-    CHAR path[MAX_PATH];
-    ::GetModuleFileNameA(::GetModuleHandleA(NULL),path,MAX_PATH);
-    *strrchr(path,'\\') = 0;
-    return std::string(path);
 }
 
 std::wstring GetCurrentDirW()
@@ -227,6 +219,13 @@ std::wstring GetCurrentDirW()
     ::GetModuleFileNameW(::GetModuleHandleW(NULL),path,MAX_PATH);
     *wcsrchr(path,L'\\') = 0;
     return std::wstring(path);
+}
+
+std::string GetCurrentDir()
+{
+    std::string path;
+    ToNarrowPath(GetCurrentDirW(), path);
+    return path;
 }
 
 std::string& ModifyPath(std::string& path)

@@ -37,6 +37,10 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_DoubleSubscribe};
             }
 
+            // Check Blocking
+            if (auto[ok, result] = ValidateBlocking(ptx); !ok)
+                return {false, result};
+
             return Success;
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const SubscribeRef& ptx) override
@@ -94,6 +98,26 @@ namespace PocketConsensus
         {
             return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
+        virtual ConsensusValidateResult ValidateBlocking(const SubscribeRef& ptx)
+        {
+            return Success;
+        }
+    };
+
+    // Disable scores for blocked accounts
+    class SubscribeConsensus_checkpoint_disable_for_blocked : public SubscribeConsensus
+    {
+    public:
+        SubscribeConsensus_checkpoint_disable_for_blocked(int height) : SubscribeConsensus(height) {}
+    protected:
+        ConsensusValidateResult ValidateBlocking(const SubscribeRef& ptx) override
+        {
+            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
+                *ptx->GetAddressTo(), *ptx->GetAddress()); existsBlocking && blockingType == ACTION_BLOCKING)
+                return {false, SocialConsensusResult_Blocking};
+
+            return Success;
+        }
     };
 
     /*******************************************************************************************************************
@@ -103,7 +127,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < SubscribeConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<SubscribeConsensus>(height); }},
+            {       0,      0, [](int height) { return make_shared<SubscribeConsensus>(height); }},
+            { 1757000, 953000, [](int height) { return make_shared<SubscribeConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<SubscribeConsensus> Instance(int height)

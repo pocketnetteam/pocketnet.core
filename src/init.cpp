@@ -173,6 +173,7 @@ void ShutdownPocketServices()
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
     PocketDb::NotifierRepoInst.Destroy();
+    PocketDb::MigrationRepoInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");
     PocketDb::SQLiteDbInst.Close();
@@ -236,6 +237,9 @@ void Shutdown()
     if (g_txindex) g_txindex->Stop();
 
     StopTorControl();
+
+    if (notifyClientsThread)
+        notifyClientsThread->Stop();
 
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue threadGroup
@@ -849,7 +853,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             int i = (int)gArgs.GetArg("-reindex-start", 0);
             LogPrintf("Start indexing pocketnet part at height %d\n", i);
 
-            PocketServices::ChainPostProcessing::Rollback(i);
+            if (i == 0)
+                PocketDb::ChainRepoInst.ClearDatabase();
+            else
+                PocketServices::ChainPostProcessing::Rollback(i);
 
             while (i <= chainActive.Height() && !ShutdownRequested())
             {
@@ -1713,6 +1720,12 @@ bool AppInitMain()
     // Always start WEB DB building thread
     if (!gArgs.GetBoolArg("-withoutweb", false))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
+
+    if (ShutdownRequested())
+    {
+        LogPrintf("Shutdown requested. Exiting.\n");
+        return false;
+    }
 
     // ********************************************************* Step 4b: Additional settings
 

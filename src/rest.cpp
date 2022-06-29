@@ -753,6 +753,16 @@ static double getEmission(int height)
     return emission;
 }
 
+static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+    
+    req->WriteHeader("Content-Type", "text/plain");
+    req->WriteReply(HTTP_OK, std::to_string(getEmission(chainActive.Height())));
+    return true;
+}
+
 static bool get_static_status(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
@@ -863,6 +873,7 @@ static const struct
     {"/rest/headers/",           rest_headers},
     {"/rest/getutxos",           rest_getutxos},
     {"/rest/blockhash",          rest_blockhash},
+    {"/rest/emission",           rest_emission},
 };
 
 void StartREST()

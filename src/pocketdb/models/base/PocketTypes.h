@@ -97,9 +97,20 @@ namespace PocketTx
     enum RatingType
     {
         RATING_ACCOUNT = 0,
-        RATING_ACCOUNT_LIKERS = 1,
         RATING_CONTENT = 2,
         RATING_COMMENT = 3,
+        
+        ACCOUNT_LIKERS = 1,
+        
+        ACCOUNT_LIKERS_POST = 101,
+        ACCOUNT_LIKERS_COMMENT_ROOT = 102,
+        ACCOUNT_LIKERS_COMMENT_ANSWER = 103,
+        ACCOUNT_DISLIKERS_COMMENT_ANSWER = 104,
+        
+        ACCOUNT_LIKERS_POST_LAST = 111,
+        ACCOUNT_LIKERS_COMMENT_ROOT_LAST = 112,
+        ACCOUNT_LIKERS_COMMENT_ANSWER_LAST = 113,
+        ACCOUNT_DISLIKERS_COMMENT_ANSWER_LAST = 114,
     };
 
     // Content field types
