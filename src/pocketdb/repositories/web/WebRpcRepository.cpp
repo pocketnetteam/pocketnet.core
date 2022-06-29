@@ -1480,30 +1480,57 @@ namespace PocketDb
                    up.String3          avatar,
                    up.String4          about,
                    (
-                    select reg.Time
-                    from Transactions reg indexed by Transactions_Id
-                    where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1
+                       select reg.Time
+                       from Transactions reg indexed by Transactions_Id
+                       where reg.Id = u.Id
+                         and reg.Height is not null
+                       order by reg.Height asc
+                       limit 1
                    )                   registrationDate,
-                   ifnull(ur.Value, 0) reputation
-            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                     join Payload up on up.TxHash = u.Hash
-                     left join Ratings ur indexed by Ratings_Type_Id_Last_Value on ur.Type = 0 and ur.Id = u.Id and ur.Last = 1
-            where u.Type = 100
-              and u.Last = 1
-              and u.String1 in (
-                select s.String1
-                from Transactions c indexed by Transactions_String1_Last_Height--Transactions_Type_Last_String1_String2_Height
-                         join Transactions s indexed by Transactions_Type_Last_String2_Height
-                              on s.String2 = c.String2 and s.Type in (300, 301) and s.Last in (0, 1) and s.Height is not null and
-                                 s.Int1 = (case when c.Type = 204 then 1 else 5 end)
-                where c.Type in (200, 201, 202, 204)
-                  and c.Last in (0, 1)
-                  and c.String1 = ?
-                  and c.Hash = c.String2
-                  and c.Height is not null
-            )
-              and u.Height is not null
-            order by ifnull(ur.Value, 0) desc
+                   ifnull(ur.Value, 0) reputation,
+                   raters.ratingsCount
+            from (
+                     select address, sum(ratingsCount) ratingsCount
+                     from (
+                              select rating.String1 address, count(1) ratingsCount
+                              from Transactions content indexed by Transactions_Type_Last_String1_String2_Height
+                              join Transactions rating indexed by Transactions_Type_Last_String2_Height
+                                on rating.String2 = content.String2
+                                    and rating.Type = 300
+                                    and rating.Last in (0, 1)
+                                    and rating.Int1 = 5
+                                    and rating.Height is not null
+                              where content.Type in (200, 201, 202)
+                                and content.Last in (0, 1)
+                                and content.Hash = content.String2
+                                and content.String1 = 'PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd'
+                                and content.Height is not null
+                              group by rating.String1
+
+                              union
+
+                              select rating.String1 address, count(1) ratingsCount
+                              from Transactions content indexed by Transactions_Type_Last_String1_String2_Height
+                              join Transactions rating indexed by Transactions_Type_Last_String2_Height
+                                on rating.String2 = content.String2
+                                    and rating.Type = 301
+                                    and rating.Last in (0, 1)
+                                    and rating.Int1 = 1
+                                    and rating.Height is not null
+                              where content.Type in (204)
+                                and content.Last in (0, 1)
+                                and content.Hash = content.String2
+                                and content.String1 = 'PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd'
+                                and content.Height is not null
+                              group by rating.String1
+                         )
+                     group by address
+                ) raters
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+              on u.Type = 100 and u.Last = 1 and u.String1 = raters.address and u.Height is not null
+            cross join Payload up on up.TxHash = u.Hash
+            left join Ratings ur indexed by Ratings_Type_Id_Last_Value on ur.Type = 0 and ur.Id = u.Id and ur.Last = 1
+            order by raters.ratingsCount desc
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -1523,6 +1550,7 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("about", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("regdate", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) record.pushKV("ratingscnt", value);
 
                 result.push_back(record);
             }
