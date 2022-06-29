@@ -4363,6 +4363,49 @@ namespace PocketDb
 
         return result;
     };
+
+    // Method used to construct sql query and required bindings from provided selects based on filters
+    template <class QueryParams>
+    static inline auto _constructSelectsBasedOnFilters(
+                const std::set<ShortTxType>& filters,
+                const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>>& selects,
+                const std::string& footer)
+    {
+        // Choosing predicate for function above based on filters.
+        const static auto choosePredicate = [](const std::set<ShortTxType>& filters) -> std::function<bool(const ShortTxType&)> {
+            if (filters.empty()) {
+                // No filters mean that we should perform all selects
+                return [&filters](...) { return true; };
+            } else {
+                // Perform only selects that are specified in filters.
+                return [&filters](const ShortTxType& select) { return filters.find(select) != filters.end(); };
+            }
+        };
+        
+        auto predicate = choosePredicate(filters);
+
+        // Binds that should be performed to constructed query
+        std::vector<std::function<void(std::shared_ptr<sqlite3_stmt*>&, int&, QueryParams const&)>> binds;
+        // Query elemets that will be used to construct full query
+        std::vector<std::string> queryElems;
+        for (const auto& select: selects) {
+            if (predicate(select.first)) {
+                queryElems.emplace_back(select.second.query);
+                queryElems.emplace_back("union");
+                binds.emplace_back(select.second.binding);
+            }
+        }
+        queryElems.pop_back(); // Dropping last "union"
+
+        std::stringstream ss;
+        for (const auto& elem: queryElems) {
+            ss << elem;
+        }
+        ss << footer;
+
+        // Full query and required binds in correct order
+        return std::pair { ss.str(), binds };
+    }
     
     UniValue WebRpcRepository::GetEventsForBlock(int64_t height, const std::set<ShortTxType>& filters)
     {
@@ -4590,9 +4633,9 @@ namespace PocketDb
         // Static because it will not be changed for entire node run
         static const auto pocketnetteamAddress = GetPocketnetteamAddress();
 
-        static const std::map<ShortTxType, std::pair<std::string, std::function<void(std::shared_ptr<sqlite3_stmt*>&, int&, QueryParams const&)>>> selects = {
+        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
         {
-            ShortTxType::PocketnetTeam, std::pair{ R"sql(
+            ShortTxType::PocketnetTeam, { R"sql(
             -- Pocket posts
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam) + R"sql(')TP,
@@ -4641,7 +4684,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::Money, std::pair{ R"sql(
+            ShortTxType::Money, { R"sql(
             -- Incoming money
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
@@ -4698,7 +4741,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::Referal,  std::pair{ R"sql(
+            ShortTxType::Referal, { R"sql(
             -- referals
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
@@ -4753,7 +4796,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::Answer, std::pair{ R"sql(
+            ShortTxType::Answer, { R"sql(
             -- Comment answers
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
@@ -4828,7 +4871,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::Comment, std::pair{ R"sql(
+            ShortTxType::Comment, { R"sql(
             -- Comments for my content
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
@@ -4897,7 +4940,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::Subscriber, std::pair{ R"sql(
+            ShortTxType::Subscriber, { R"sql(
             -- Subscribers
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
@@ -4957,7 +5000,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::CommentScore, std::pair{ R"sql(
+            ShortTxType::CommentScore, { R"sql(
             -- Comment scores
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
@@ -5026,7 +5069,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::ContentScore, std::pair{ R"sql(
+            ShortTxType::ContentScore, { R"sql(
             -- Content scores
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
@@ -5095,7 +5138,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::PrivateContent, std::pair{ R"sql(
+            ShortTxType::PrivateContent, { R"sql(
             -- Content from private subscribers
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
@@ -5165,7 +5208,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::Boost, std::pair{ R"sql(
+            ShortTxType::Boost, { R"sql(
             -- Boosts for my content
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
@@ -5233,7 +5276,7 @@ namespace PocketDb
         }},
 
         {
-            ShortTxType::Repost, std::pair{ R"sql(
+            ShortTxType::Repost, { R"sql(
             -- Reposts
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
@@ -5311,45 +5354,8 @@ namespace PocketDb
             limit 10
 
         )sql";
-
-        // Constructing full sql query and required bindings based on predicate for each available select. 
-        static const auto constructSelects = [](const auto& predicate) {
-            // Binds that should be performed to constructed query
-            std::vector<std::function<void(std::shared_ptr<sqlite3_stmt*>&, int&, QueryParams const&)>> binds;
-            // Query elemets that will be used to construct full query
-            std::vector<std::string> queryElems;
-            for (const auto& select: selects) {
-                if (predicate(select.first)) {
-                    queryElems.emplace_back(select.second.first);
-                    queryElems.emplace_back("union");
-                    binds.emplace_back(select.second.second);
-                }
-            }
-            queryElems.pop_back(); // Dropping last "union"
-
-            std::stringstream ss;
-            for (const auto& elem: queryElems) {
-                ss << elem;
-            }
-            ss << footer;
-
-            // Full query and required binds in correct order
-            return std::pair {ss.str(), binds };
-        };
-
-        // Choosing predicate for function above based on filters.
-        const static auto choosePredicate = [](const std::set<ShortTxType>& filters) -> std::function<bool(const ShortTxType&)> {
-            if (filters.empty()) {
-                // No filters mean that we should perform all selects
-                return [&filters](...) { return true; };
-            } else {
-                // Perform only selects that are specified in filters.
-                return [&filters](const ShortTxType& select) { return filters.find(select) != filters.end(); };
-            }
-        };
         
-        auto predicate = choosePredicate(filters);
-        auto [elem1, elem2] = constructSelects(predicate);
+        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, footer);
         // A bit dirty hack because structure bindings can't be captured by lambda function.
         auto& sql = elem1;
         auto& binds = elem2;
