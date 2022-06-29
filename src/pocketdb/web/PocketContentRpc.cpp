@@ -6,6 +6,7 @@
 #include "pocketdb/web/PocketContentRpc.h"
 #include "rpc/util.h"
 #include "validation.h"
+#include "pocketdb/helpers/ShortFormHelper.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -978,12 +979,17 @@ namespace PocketWeb::PocketWebRpc
             heightMin = 0;
         }
 
-        std::set<std::string> filters;
+        std::set<ShortTxType> filters;
         if (request.params.size() > 3 && request.params[3].isArray()) {
-            auto rawFilters  = request.params[3].get_array();
+            const auto& rawFilters  = request.params[3].get_array();
             for (int i = 0; i < rawFilters.size(); i++) {
                 if (rawFilters[i].isStr()) {
-                    filters.insert(rawFilters[i].get_str());
+                    const auto& rawFilter = rawFilters[i].get_str();
+                    auto filter = ShortTxTypeConvertor::strToType(rawFilter);
+                    if (filter == ShortTxType::NotSet) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unexpected filter: " + rawFilter);
+                    }
+                    filters.insert(filter);
                 }
             }
         }

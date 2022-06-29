@@ -6,6 +6,8 @@
 
 #include "pocketdb/helpers/ShortFormHelper.h"
 
+#include <functional>
+
 namespace PocketDb
 {
     class EventsReconstructor : public RowAccessor
@@ -4362,7 +4364,7 @@ namespace PocketDb
         return result;
     };
     
-    UniValue WebRpcRepository::GetEventsForBlock(int64_t height, const std::set<std::string>& filters)
+    UniValue WebRpcRepository::GetEventsForBlock(int64_t height, const std::set<ShortTxType>& filters)
     {
         static const auto pocketnetteam = R"sql(
             -- Pocket posts
@@ -4574,13 +4576,26 @@ namespace PocketDb
         return UniValue(UniValue::VOBJ);
     }
     
-    std::vector<ShortForm> WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<std::string>& filters)
+    std::vector<ShortForm> WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
     {
-        static const auto pocketnetteam = R"sql(
+        // This is required because we want static bind functors for optimization so parameters can't be captured there 
+        struct QueryParams {
+            // Handling all by reference
+            const std::string& address;
+            const int64_t& heightMax;
+            const int64_t& heightMin;
+            const int64_t& blockNumMax;
+        } queryParams {address, heightMax, heightMin, blockNumMax};
 
+        // Static because it will not be changed for entire node run
+        static const auto pocketnetteamAddress = GetPocketnetteamAddress();
+
+        static const std::map<ShortTxType, std::pair<std::string, std::function<void(std::shared_ptr<sqlite3_stmt*>&, int&, QueryParams const&)>>> selects = {
+        {
+            ShortTxType::PocketnetTeam, std::pair{ R"sql(
             -- Pocket posts
             select
-                ('pocketnetteam')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam) + R"sql(')TP,
                 t.Hash,
                 t.Type,
                 null,
@@ -4615,13 +4630,21 @@ namespace PocketDb
                 and t.Height > ?
                 and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
 
-        )sql";
+        )sql", 
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
+                TryBindStatementText(stmt, i++, pocketnetteamAddress);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            }
+        }},
 
-        static const auto money = R"sql(
-
+        {
+            ShortTxType::Money, std::pair{ R"sql(
             -- Incoming money
             select
-                ('money')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
                 t.Hash,
                 t.Type,
                 i.AddressHash,
@@ -4662,13 +4685,23 @@ namespace PocketDb
                 and o.TxHeight > ?
                 and o.TxHeight < ?
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+            }
+        }},
 
-        static const auto referals =  R"sql(
-
+        {
+            ShortTxType::Referal,  std::pair{ R"sql(
             -- referals
             select
-                ('referal')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
                 t.Hash,
                 t.Type,
                 t.String1,
@@ -4709,13 +4742,21 @@ namespace PocketDb
                 and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
                 and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementText(stmt, i++, queryParams.address);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            }
+        }},
 
-        static const auto answers = R"sql(
-
+        {
+            ShortTxType::Answer, std::pair{ R"sql(
             -- Comment answers
             select
-                'answer',
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
                 a.Hash,
                 a.Type,
                 a.String1,
@@ -4776,13 +4817,21 @@ namespace PocketDb
               and c.String1 = ?
               and c.Height > 0
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }},
 
-        static const auto comments = R"sql(
-
+        {
+            ShortTxType::Comment, std::pair{ R"sql(
             -- Comments for my content
             select
-                ('comment')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
                 c.Hash,
                 c.Type,
                 c.String1,
@@ -4837,13 +4886,21 @@ namespace PocketDb
                 and p.Height > 0
                 and p.String1 = ?
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }},
 
-        static const auto subscribers = R"sql(
-
+        {
+            ShortTxType::Subscriber, std::pair{ R"sql(
             -- Subscribers
             select
-                ('subscriber')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
                 subs.Hash,
                 subs.Type,
                 subs.String1,
@@ -4889,13 +4946,21 @@ namespace PocketDb
                 and subs.Height > ?
                 and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementText(stmt, i++, queryParams.address);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            }
+        }},
 
-        static const auto commentscores = R"sql(
-
+        {
+            ShortTxType::CommentScore, std::pair{ R"sql(
             -- Comment scores
             select
-                ('commentscore')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
                 s.Hash,
                 s.Type,
                 s.String1,
@@ -4950,13 +5015,21 @@ namespace PocketDb
                 and c.Height > 0
                 and c.String1 = ?
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }},
 
-        static const auto contentscores = R"sql(
-
+        {
+            ShortTxType::ContentScore, std::pair{ R"sql(
             -- Content scores
             select
-                ('contentscore')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
                 s.Hash,
                 s.Type,
                 s.String1,
@@ -5011,13 +5084,21 @@ namespace PocketDb
                 and c.Height > 0
                 and c.String1 = ?
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }},
 
-        static const auto privatecontent = R"sql(
-
+        {
+            ShortTxType::PrivateContent, std::pair{ R"sql(
             -- Content from private subscribers
             select
-                ('privatecontent')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
                 c.Hash,
                 c.Type,
                 c.String1,
@@ -5073,13 +5154,21 @@ namespace PocketDb
                 and subs.Height > 0
                 and subs.String1 = ?
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }},
 
-        static const auto boost = R"sql(
-
+        {
+            ShortTxType::Boost, std::pair{ R"sql(
             -- Boosts for my content
             select
-                ('boost')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
                 tBoost.Hash,
                 tboost.Type,
                 tBoost.String1,
@@ -5133,13 +5222,21 @@ namespace PocketDb
                 and tBoost.Height > ?
                 and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementText(stmt, i++, queryParams.address);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            }
+        }},
 
-        static const auto reposts = R"sql(
-
+        {
+            ShortTxType::Repost, std::pair{ R"sql(
             -- Reposts
             select
-                ('repost')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
                 r.Hash,
                 r.Type,
                 r.String1,
@@ -5197,7 +5294,15 @@ namespace PocketDb
                 and p.Height > 0
                 and p.String1 = ?
 
-        )sql";
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }}};
 
         static const auto footer = R"sql(
 
@@ -5207,50 +5312,47 @@ namespace PocketDb
 
         )sql";
 
-        static const std::vector<std::pair<std::string, std::string>> selects = {
-                {"pocketnetteam", pocketnetteam},
-                {"money", money},
-                {"referal", referals},
-                {"answer", answers},
-                {"comment", comments},
-                {"subscriber", subscribers},
-                {"commentscore", commentscores}, // TODO (losty): slow
-                {"contentscore", contentscores}, // TODO (losty): slow
-                {"privatecontent", privatecontent},
-                {"boost", boost},
-                {"repost", reposts}
-         };
-
-        // TODO (losty): simplify this logic
-        std::vector<std::string> sqlConstructable;
-        if (filters.empty()) {
-            sqlConstructable.reserve(selects.size() * 2 /* "union" after*/ - 1 /* without union after last */);
+        // Constructing full sql query and required bindings based on predicate for each available select. 
+        static const auto constructSelects = [](const auto& predicate) {
+            // Binds that should be performed to constructed query
+            std::vector<std::function<void(std::shared_ptr<sqlite3_stmt*>&, int&, QueryParams const&)>> binds;
+            // Query elemets that will be used to construct full query
+            std::vector<std::string> queryElems;
             for (const auto& select: selects) {
-                sqlConstructable.emplace_back(select.second);
-                sqlConstructable.emplace_back("union");
-            }
-            sqlConstructable.pop_back(); // Remove last union
-        } else {
-            for (const auto& select: selects) {
-                if (filters.find(select.first) != filters.end()) {
-                    sqlConstructable.emplace_back(select.second);
-                    sqlConstructable.emplace_back("union");
+                if (predicate(select.first)) {
+                    queryElems.emplace_back(select.second.first);
+                    queryElems.emplace_back("union");
+                    binds.emplace_back(select.second.second);
                 }
             }
-            if (sqlConstructable.empty()) {
-                // TODO (losty): error
-                return {};
-            }
-            sqlConstructable.pop_back(); // Remove last union
-        }
-        std::stringstream ss;
-        for (const auto& select: sqlConstructable) {
-            ss << select;
-        }
-        ss << footer;
-        std::string sql = ss.str();
+            queryElems.pop_back(); // Dropping last "union"
 
-        std::string pocketnetteamAddress = GetPocketnetteamAddress();
+            std::stringstream ss;
+            for (const auto& elem: queryElems) {
+                ss << elem;
+            }
+            ss << footer;
+
+            // Full query and required binds in correct order
+            return std::pair {ss.str(), binds };
+        };
+
+        // Choosing predicate for function above based on filters.
+        const static auto choosePredicate = [](const std::set<ShortTxType>& filters) -> std::function<bool(const ShortTxType&)> {
+            if (filters.empty()) {
+                // No filters mean that we should perform all selects
+                return [&filters](...) { return true; };
+            } else {
+                // Perform only selects that are specified in filters.
+                return [&filters](const ShortTxType& select) { return filters.find(select) != filters.end(); };
+            }
+        };
+        
+        auto predicate = choosePredicate(filters);
+        auto [elem1, elem2] = constructSelects(predicate);
+        // A bit dirty hack because structure bindings can't be captured by lambda function.
+        auto& sql = elem1;
+        auto& binds = elem2;
 
         EventsReconstructor reconstructor;
         TryTransactionStep(__func__, [&]()
@@ -5258,100 +5360,8 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
 
-            // Pocket posts
-            if (filters.empty() || filters.find("pocketnetteam") != filters.end()) {
-                TryBindStatementText(stmt, i++, pocketnetteamAddress);
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-            }
-
-            // Incoming money
-            if (filters.empty() || filters.find("money") != filters.end()) {
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementText(stmt, i++, address);
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-            }
-
-            // Referals
-            if (filters.empty() || filters.find("referal") != filters.end()) {
-                TryBindStatementText(stmt, i++, address);
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-            }
-
-            // Comment answers
-            if (filters.empty() || filters.find("answer") != filters.end()) {
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementText(stmt, i++, address);
-            }
-
-            // Comments for my content
-            if (filters.empty() || filters.find("comment") != filters.end()) {
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementText(stmt, i++, address);
-            }
-            // Subscribers and unsubscribers
-            if (filters.empty() || filters.find("subscriber") != filters.end()) {
-                TryBindStatementText(stmt, i++, address);
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-            }
-            // Comment scores
-            if (filters.empty() || filters.find("commentscore") != filters.end()) {
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementText(stmt, i++, address);
-            }
-            // Content scores
-            if (filters.empty() || filters.find("contentscore") != filters.end()) {
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementText(stmt, i++, address);
-            }
-            // Content from private subscribers
-            if (filters.empty() || filters.find("privatecontent") != filters.end()) {
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementText(stmt, i++, address);
-            }
-
-            // Boosts
-            if (filters.empty() || filters.find("boost") != filters.end()) {
-                TryBindStatementText(stmt, i++, address);
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-            }
-            // Reposts
-            if (filters.empty() || filters.find("repost") != filters.end()) {
-                TryBindStatementInt64(stmt, i++, heightMin);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, heightMax);
-                TryBindStatementInt64(stmt, i++, blockNumMax);
-                TryBindStatementText(stmt, i++, address);
+            for (const auto& bind: binds) {
+                bind(stmt, i, queryParams);
             }
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
