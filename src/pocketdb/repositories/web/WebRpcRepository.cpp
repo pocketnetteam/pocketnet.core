@@ -3094,6 +3094,160 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetDiscussedFeed(int countOut, const int64_t& topContentId, int topHeight,
+        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const string& address, int depth, int badReputationLimit)
+    {
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        if (contentTypes.empty())
+            return result;
+
+        // --------------------------------------------
+
+        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
+
+        string contentIdWhere;
+        if (topContentId > 0)
+            contentIdWhere = " and t.Id < ? ";
+
+        string langFilter;
+        if (!lang.empty())
+            langFilter += " cross join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
+
+        string sql = R"sql(
+            select t.Id
+
+            from Transactions t indexed by Transactions_Type_Last_Height_Id
+
+            cross join Ratings cr indexed by Ratings_Type_Id_Last_Value
+                on cr.Type = 2 and cr.Last = 1 and cr.Id = t.Id and cr.Value > 0
+
+            )sql" + langFilter + R"sql(
+
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+
+            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
+                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+
+            where t.Type in )sql" + contentTypesWhere + R"sql(
+                and t.Last = 1
+                --and t.String3 is null
+                and t.Height > ?
+                and t.Height <= ?
+
+                -- Do not show posts from users with low reputation
+                and ifnull(ur.Value,0) > ?
+
+                )sql" + contentIdWhere + R"sql(
+        )sql";
+
+        if (!tags.empty())
+        {
+            sql += R"sql(
+                and t.id in (
+                    select tm.ContentId
+                    from web.Tags tag indexed by Tags_Lang_Value_Id
+                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                        on tag.Id = tm.TagId
+                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+                )
+            )sql";
+        }
+
+        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!tagsExcluded.empty())
+        {
+            sql += R"sql( and t.Id not in (
+                select tmEx.ContentId
+                from web.Tags tagEx indexed by Tags_Lang_Value_Id
+                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
+                    on tagEx.Id=tmEx.TagId
+                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
+             ) )sql";
+        }
+
+        sql += " order by cr.Value desc ";
+        sql += " limit ? ";
+
+        // ---------------------------------------------
+
+        vector<int64_t> ids;
+
+        TryTransactionStep(func, [&]()
+        {
+            int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementInt(stmt, i++, topHeight - depth);
+            TryBindStatementInt(stmt, i++, topHeight);
+
+            TryBindStatementInt(stmt, i++, badReputationLimit);
+
+            if (topContentId > 0)
+                TryBindStatementInt64(stmt, i++, topContentId);
+
+            if (!tags.empty())
+            {
+                for (const auto& tag: tags)
+                    TryBindStatementText(stmt, i++, tag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            if (!txidsExcluded.empty())
+                for (const auto& extxid: txidsExcluded)
+                    TryBindStatementText(stmt, i++, extxid);
+
+            if (!adrsExcluded.empty())
+                for (const auto& exadr: adrsExcluded)
+                    TryBindStatementText(stmt, i++, exadr);
+
+            if (!tagsExcluded.empty())
+            {
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, i++, extag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            TryBindStatementInt(stmt, i++, countOut);
+
+            // ---------------------------------------------
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
+                ids.push_back(contentId);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // Get content data
+        if (!ids.empty())
+        {
+            auto contents = GetContentsData(ids, address);
+            result.push_backV(contents);
+        }
+
+        // Complete!
+        return result;
+    }
+
     UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
