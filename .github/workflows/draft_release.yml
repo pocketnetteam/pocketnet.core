@@ -1,0 +1,20 @@
+name: Release Draft
+
+on:
+  push:
+    tags: v*.*.*
+
+permissions:
+  contents: read
+
+jobs:
+
+  create_release_draft:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v5
+        with: github_token: ${{ secrets.release_token }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

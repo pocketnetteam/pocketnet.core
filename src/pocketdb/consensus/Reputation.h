@@ -268,6 +268,20 @@ namespace PocketConsensus
                 ratingValues[scoreData->LikerType(true)][scoreData->ContentAddressId] += 1;
             }
         }
+    
+        virtual BadgeSharkConditions GetBadgeSharkConditions()
+        {
+            BadgeSharkConditions cond = {
+                Height,
+                GetConsensusLimit(threshold_shark_likers_all),
+                GetConsensusLimit(threshold_shark_likers_content),
+                GetConsensusLimit(threshold_shark_likers_comment),
+                GetConsensusLimit(threshold_shark_likers_comment_answer),
+                GetConsensusLimit(threshold_shark_reg_depth)
+            };
+
+            return cond;
+        }
     };
 
     // Consensus checkpoint at 151600 block
