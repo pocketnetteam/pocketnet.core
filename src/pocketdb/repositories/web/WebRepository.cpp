@@ -288,7 +288,7 @@ namespace PocketDb
         });
     }
 
-    void CalculateSharkAccounts(BadgeSharkConditions& cond)
+    void WebRepository::CalculateSharkAccounts(BadgeSharkConditions& cond)
     {
         TryTransactionStep(__func__, [&]()
         {
@@ -314,16 +314,16 @@ namespace PocketDb
             )sql");
             int i = 1;
             TryBindStatementInt(stmtInsert, i++, cond.LikersAll);
-            TryBindStatementInt(stmtInsert, i++, cond.LikersContent);
-            TryBindStatementInt(stmtInsert, i++, cond.LikersComment);
-            TryBindStatementInt(stmtInsert, i++, cond.LikersAnswer);
-            TryBindStatementInt(stmtInsert, i++, cond.Height);
-            TryBindStatementInt(stmtInsert, i++, cond.RegistrationDepth);
+            TryBindStatementInt64(stmtInsert, i++, cond.LikersContent);
+            TryBindStatementInt64(stmtInsert, i++, cond.LikersComment);
+            TryBindStatementInt64(stmtInsert, i++, cond.LikersAnswer);
+            TryBindStatementInt64(stmtInsert, i++, cond.Height);
+            TryBindStatementInt64(stmtInsert, i++, cond.RegistrationDepth);
             TryStepStatement(stmtInsert);
         });
     }
 
-    void CalculateValidAuthors(int blockHeight)
+    void WebRepository::CalculateValidAuthors(int blockHeight)
     {
         TryTransactionStep(__func__, [&]()
         {

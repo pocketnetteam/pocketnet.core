@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/services/WebPostProcessing.h"
+#include "pocketdb/consensus/Reputation.h"
 
 namespace PocketServices
 {
@@ -71,7 +72,8 @@ namespace PocketServices
                 case QueueRecordType::BlockHeight:
                 {
                     ProcessBadges(queueRecord.BlockHeight);
-                    ProcessAuthors(queueRecord.BlockHeight);
+                    // TODO (brangr): implement this
+                    // ProcessAuthors(queueRecord.BlockHeight);
                 }
                 default:
                     break;
