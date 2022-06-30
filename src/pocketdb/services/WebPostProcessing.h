@@ -11,7 +11,6 @@
 #include "utils/html.h"
 
 #include "pocketdb/SQLiteDatabase.h"
-#include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/repositories/web/WebRepository.h"
 #include "pocketdb/models/web/WebTag.h"
 #include "pocketdb/models/web/WebContent.h"
