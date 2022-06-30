@@ -1,0 +1,17 @@
+template: |
+  ## What’s Changed
+
+  $CHANGES
+
+
+  ## SHA256 checksums
+  ```
+  
+  ```
+
+  ## Attention!
+  We distribute our software only through https://github.com/pocketnetteam
+  Any other resources offering to download executables, "installers" or source code are not related to the Pocketnet Team community
+
+  ## Help
+  https://github.com/pocketnetteam/pocketnet.core/issues
