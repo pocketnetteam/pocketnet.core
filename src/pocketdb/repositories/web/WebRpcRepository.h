@@ -77,6 +77,7 @@ namespace PocketDb
         UniValue GetPostScores(const string& postTxHash);
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
+        UniValue GetAccountRaters(const string& address);
 
         map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int firstFlagsDepth = 14);
         map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int firstFlagsDepth = 14);

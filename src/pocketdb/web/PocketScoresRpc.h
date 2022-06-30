@@ -16,6 +16,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetPostScores(const JSONRPCRequest& request);
     UniValue GetPagesScores(const JSONRPCRequest& request);
     UniValue GetCoinInfo(const JSONRPCRequest& request);
+    UniValue GetAccountRaters(const JSONRPCRequest& request);
 
 }
 

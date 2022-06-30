@@ -1458,6 +1458,99 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetAccountRaters(const string& address)
+    {
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select u.id,
+                   u.String1           address,
+                   up.String2          name,
+                   up.String3          avatar,
+                   up.String4          about,
+                   (
+                       select reg.Time
+                       from Transactions reg indexed by Transactions_Id
+                       where reg.Id = u.Id
+                         and reg.Height is not null
+                       order by reg.Height asc
+                       limit 1
+                   )                   registrationDate,
+                   ifnull(ur.Value, 0) reputation,
+                   raters.ratingsCount
+            from (
+                     select address, sum(ratingsCount) ratingsCount
+                     from (
+                              select rating.String1 address, count(1) ratingsCount
+                              from Transactions content indexed by Transactions_Type_Last_String1_String2_Height
+                              join Transactions rating indexed by Transactions_Type_Last_String2_Height
+                                on rating.String2 = content.String2
+                                    and rating.Type = 300
+                                    and rating.Last in (0, 1)
+                                    and rating.Int1 = 5
+                                    and rating.Height is not null
+                              where content.Type in (200, 201, 202)
+                                and content.Last in (0, 1)
+                                and content.Hash = content.String2
+                                and content.String1 = ?
+                                and content.Height is not null
+                              group by rating.String1
+
+                              union
+
+                              select rating.String1 address, count(1) ratingsCount
+                              from Transactions content indexed by Transactions_Type_Last_String1_String2_Height
+                              join Transactions rating indexed by Transactions_Type_Last_String2_Height
+                                on rating.String2 = content.String2
+                                    and rating.Type = 301
+                                    and rating.Last in (0, 1)
+                                    and rating.Int1 = 1
+                                    and rating.Height is not null
+                              where content.Type in (204)
+                                and content.Last in (0, 1)
+                                and content.Hash = content.String2
+                                and content.String1 = ?
+                                and content.Height is not null
+                              group by rating.String1
+                         )
+                     group by address
+                ) raters
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+              on u.Type = 100 and u.Last = 1 and u.String1 = raters.address and u.Height is not null
+            cross join Payload up on up.TxHash = u.Hash
+            left join Ratings ur indexed by Ratings_Type_Id_Last_Value on ur.Type = 0 and ur.Id = u.Id and ur.Last = 1
+            order by raters.ratingsCount desc
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("id", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("about", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("regdate", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) record.pushKV("ratingscnt", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue WebRpcRepository::GetSubscribesAddresses(const string& address, const vector<TxType>& types)
     {
         UniValue result(UniValue::VARR);

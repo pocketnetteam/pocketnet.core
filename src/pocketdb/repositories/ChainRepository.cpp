@@ -336,6 +336,7 @@ namespace PocketDb
 
     void ChainRepository::IndexBlocking(const string& txHash)
     {
+        // TODO (o1q): multiple_blocking
         // Set last=1 for new transaction
         auto setLastStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
@@ -367,6 +368,37 @@ namespace PocketDb
         )sql");
         TryBindStatementText(setLastStmt, 1, txHash);
         TryStepStatement(setLastStmt);
+
+        auto insListStmt = SetupSqlStatement(R"sql(
+            insert into BlockingLists (IdSource, IdTarget)
+            select
+              us.Id,
+              ut.Id
+            from Transactions b
+            join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+            join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+              on ut.Type in (100) and ut.Last = 1 and ut.String1 = b.String2 and ut.Height > 0
+            where b.Type in (305) and b.Hash = ?
+        )sql");
+        TryBindStatementText(insListStmt, 1, txHash);
+        TryStepStatement(insListStmt);
+
+        auto delListStmt = SetupSqlStatement(R"sql(
+            delete from BlockingLists
+            where exists
+            (select
+              1
+            from Transactions b
+            join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Id = BlockingLists.IdSource and us.Height > 0
+            join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+              on ut.Type in (100) and ut.Last = 1 and ut.String1 = b.String2 and ut.Id = BlockingLists.IdTarget and ut.Height > 0
+            where b.Type in (306) and b.Hash = ?
+            )
+        )sql");
+        TryBindStatementText(delListStmt, 1, txHash);
+        TryStepStatement(delListStmt);
 
         // Clear old last records for set new last
         ClearOldLast(txHash);
