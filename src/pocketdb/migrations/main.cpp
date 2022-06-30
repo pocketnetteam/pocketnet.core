@@ -197,7 +197,7 @@ namespace PocketDb
             insert or ignore into System (Db, Version) values ('main', 0);
         )sql";
 
-        _preProcessing = R"sql(
+        _preProcessing += R"sql(
             insert into BlockingLists
             (
                 IdSource,
@@ -214,7 +214,7 @@ namespace PocketDb
             where b.Type in (305)
               and b.Last = 1
               and b.Height > 0
-              and not exists (select 1 from Lists);
+              and not exists (select 1 from BlockingLists);
         )sql";
 
 
