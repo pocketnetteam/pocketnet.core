@@ -210,6 +210,45 @@ namespace PocketDb
         return {blockingExists, blockingType};
     }
 
+    tuple<bool, TxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo, const string& addressesTo)
+    {
+        if (!addressTo.empty())
+            return GetLastBlockingType(address, addressTo);
+
+        //TODO (o1q): multiple_blocking
+        bool blockingExists = false;
+        TxType blockingType = TxType::NOT_SUPPORTED;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                SELECT t.Type
+                FROM Transactions t indexed by Transactions_Type_Last_String1_String2_Height, json_each(t.String3)
+                WHERE t.Type in (305, 306)
+                    and t.String1 = ?
+                    and t.String3 = ?
+                    and t.Height is not null
+                    and t.Last = 1
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+                TryBindStatementText(stmt, 2, addressTo);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                {
+                    blockingExists = true;
+                    blockingType = (TxType) value;
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {blockingExists, blockingType};
+    }
+
     tuple<bool, TxType> ConsensusRepository::GetLastSubscribeType(const string& address,
         const string& addressTo)
     {
@@ -966,6 +1005,55 @@ namespace PocketDb
 
         return result;
     }
+    int ConsensusRepository::CountMempoolBlocking(const string& address, const string& addressTo, const string& addressesTo)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            if(addressesTo.empty())
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions
+                where Type in (305, 306)
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
+                )sql");
+
+                TryBindStatementText(stmt, 1, address);
+                TryBindStatementText(stmt, 2, addressTo);
+
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                        result = value;
+
+                FinalizeSqlStatement(*stmt);
+            }
+            else {
+                auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions
+                where Type in (305, 306)
+                  and Height is null
+                  and String1 = ?
+                  and String2 is not null
+                )sql");
+
+                TryBindStatementText(stmt, 1, address);
+
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                        result = value;
+
+                FinalizeSqlStatement(*stmt);
+            }
+        });
+
+        return result;
+    }
+
     int ConsensusRepository::CountMempoolSubscribe(const string& address, const string& addressTo)
     {
         int result = 0;

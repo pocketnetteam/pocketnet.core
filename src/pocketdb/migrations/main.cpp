@@ -182,10 +182,39 @@ namespace PocketDb
                 primary key (Db)
             );
         )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists BlockingLists
+            (
+                IdSource int not null,
+                IdTarget int not null,
+                primary key (IdSource, IdTarget)
+            );
+        )sql");
         
         
         _preProcessing = R"sql(
             insert or ignore into System (Db, Version) values ('main', 0);
+        )sql";
+
+        _preProcessing = R"sql(
+            insert into BlockingLists
+            (
+                IdSource,
+                IdTarget
+            )
+            select
+              us.Id,
+              ut.Id
+            from Transactions b indexed by Transactions_Type_Last_Height_Id
+            join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+            join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+              on ut.Type in (100) and ut.Last = 1 and ut.String1 = b.String2 and ut.Height > 0
+            where b.Type in (305)
+              and b.Last = 1
+              and b.Height > 0
+              and not exists (select 1 from Lists);
         )sql";
 
 

@@ -336,6 +336,7 @@ namespace PocketDb
 
     void ChainRepository::IndexBlocking(const string& txHash)
     {
+        // TODO (o1q): multiple_blocking
         // Set last=1 for new transaction
         auto setLastStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
@@ -350,6 +351,8 @@ namespace PocketDb
                             and a.String1 = Transactions.String1
                             -- String2 = AddressToHash
                             and a.String2 = Transactions.String2
+                            -- String2 = AddressesToHash
+                            and a.String3 = Transactions.String3
                             and a.Height is not null
                         limit 1
                     ),
@@ -367,6 +370,21 @@ namespace PocketDb
         )sql");
         TryBindStatementText(setLastStmt, 1, txHash);
         TryStepStatement(setLastStmt);
+
+        auto insListStmt = SetupSqlStatement(R"sql(
+            insert into BlockingLists (IdSource, IdTarget)
+            select
+              us.Id,
+              ut.Id
+            from Transactions b
+            join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+            join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+              on ut.Type in (100) and ut.Last = 1 and (ut.String1 = b.String2 or b.String3 like ut.String1) and ut.Height > 0
+            where b.Type in (305) and b.Hash = ?
+        )sql");
+        TryBindStatementText(insListStmt, 1, txHash);
+        TryStepStatement(insListStmt);
 
         // Clear old last records for set new last
         ClearOldLast(txHash);

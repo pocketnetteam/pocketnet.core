@@ -26,7 +26,9 @@ namespace PocketTx
         void SetAddress(const string& value);
 
         shared_ptr<string> GetAddressTo() const;
+        shared_ptr<string> GetAddressesTo() const;
         void SetAddressTo(const string& value);
+        void SetAddressesTo(const string& value);
 
         string BuildHash() override;
 

@@ -433,9 +433,18 @@ namespace PocketDb
                 ) as Subscribers
 
                 , (
-                    select json_group_array(blck.String2)
-                    from Transactions blck indexed by Transactions_Type_Last_String1_Height_Id
-                    where blck.Type in (305) and blck.Height is not null and blck.Last = 1 and blck.String1 = u.String1
+                    select json_group_array(addrs.addr)
+                    from
+                    (
+                        select blck.String2 addr
+                        from Transactions blck indexed by Transactions_Type_Last_String1_Height_Id
+                        where blck.Type in (305) and blck.Height is not null and blck.Last = 1 and blck.String1 = u.String1 and blck.String2 is not null
+                        union
+                        select Value addr
+                        from json_each((select blck.String3
+                                        from Transactions blck indexed by Transactions_Type_Last_String1_Height_Id
+                                        where blck.Type in (305) and blck.Height is not null and blck.Last = 1 and blck.String1 = u.String1 and blck.String3 is not null))
+                    ) addrs
                 ) as Blockings
 
                 , ifnull((
@@ -498,8 +507,15 @@ namespace PocketDb
 
                 , (
                     select count()
-                    from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    where subs.Type in (305) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
+                    from (
+                        select blck.String2 addr
+                        from Transactions blck indexed by Transactions_Type_Last_String1_Height_Id
+                        where blck.Type in (305) and blck.Height is not null and blck.Last = 1 and blck.String1 = u.String1 and blck.String2 is not null
+                        union
+                        select Value addr
+                        from json_each((select blck.String3
+                                        from Transactions blck indexed by Transactions_Type_Last_String1_Height_Id
+                                        where blck.Type in (305) and blck.Height is not null and blck.Last = 1 and blck.String1 = u.String1 and blck.String3 is not null)))
                 ) as BlockingsCount
 
                 , ifnull((

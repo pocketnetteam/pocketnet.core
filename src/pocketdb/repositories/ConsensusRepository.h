@@ -79,6 +79,7 @@ namespace PocketDb
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
 
         tuple<bool, TxType> GetLastBlockingType(const string& address, const string& addressTo);
+        tuple<bool, TxType> GetLastBlockingType(const string& address, const string& addressTo, const string& addressesTo);
         tuple<bool, TxType> GetLastSubscribeType(const string& address, const string& addressTo);
 
         shared_ptr<string> GetContentAddress(const string& postHash);
@@ -116,6 +117,7 @@ namespace PocketDb
 
         // get counts in "mempool" - Height is null
         int CountMempoolBlocking(const string& address, const string& addressTo);
+        int CountMempoolBlocking(const string& address, const string& addressTo, const string& addressesTo);
         int CountMempoolSubscribe(const string& address, const string& addressTo);
 
         int CountMempoolComment(const string& address);
