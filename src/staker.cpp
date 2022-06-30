@@ -238,7 +238,7 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
         int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nLastCoinStakeSearchTime;
         if (wallet->CreateCoinStake(*wallet.get(), block->nBits, nSearchInterval, nFees, txCoinStake, key))
         {
-            if (txCoinStake.nTime >= chainActive.Tip()->GetPastTimeLimit() + 1)
+            if (txCoinStake.nTime > chainActive.Tip()->GetMedianTimePast())
             {
                 // make sure coinstake would meet timestamp protocol
                 // as it would be the same as the block timestamp
