@@ -15,5 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v5
+        with:
+          prerelease: true
+          
         env:
           GITHUB_TOKEN: ${{ secrets.release_token }}
