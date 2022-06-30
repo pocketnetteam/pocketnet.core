@@ -352,7 +352,9 @@ namespace PocketWeb::PocketWebRpc
                 "\nArguments:\n"
                 "1. \"addresses\" (Array of strings) Addresses for statistic\n"
                 "2. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
-                "3. \"depth\" (int, optional) Depth of statistic. Default - whole history\n"
+                "3. \"depthR\" (int, optional) Depth of referral statistic. Default - whole history\n"
+                "4. \"depthC\" (int, optional) Depth of commentator statistic. Default - same as depthR\n"
+                "5. \"cntC\" (int, optional) Count of minimum comments for commentator statistic. Default - 1\n"
             );
 
         std::string address;
@@ -392,16 +394,34 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        int depth = chainActive.Height();
+        int depthR = chainActive.Height();
         if (request.params.size() > 2) {
             if (request.params[2].isNum()) {
                 if (request.params[2].get_int() > 0) {
-                    depth = request.params[2].get_int();
+                    depthR = request.params[2].get_int();
                 }
             }
         }
 
-        return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depth);
+        int depthC = depthR;
+        if (request.params.size() > 3) {
+            if (request.params[3].isNum()) {
+                if (request.params[3].get_int() > 0) {
+                    depthC = request.params[3].get_int();
+                }
+            }
+        }
+
+        int cntC = 1;
+        if (request.params.size() > 4) {
+            if (request.params[4].isNum()) {
+                if (request.params[4].get_int() > 0) {
+                    cntC = request.params[4].get_int();
+                }
+            }
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depthR, depthC, cntC);
     }
 
     UniValue GetAccountSubscribes(const JSONRPCRequest& request)
