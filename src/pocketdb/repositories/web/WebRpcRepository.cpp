@@ -1519,7 +1519,7 @@ namespace PocketDb
                               where content.Type in (200, 201, 202)
                                 and content.Last in (0, 1)
                                 and content.Hash = content.String2
-                                and content.String1 = 'PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd'
+                                and content.String1 = ?
                                 and content.Height is not null
                               group by rating.String1
 
@@ -1536,7 +1536,7 @@ namespace PocketDb
                               where content.Type in (204)
                                 and content.Last in (0, 1)
                                 and content.Hash = content.String2
-                                and content.String1 = 'PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd'
+                                and content.String1 = ?
                                 and content.Height is not null
                               group by rating.String1
                          )
@@ -1554,6 +1554,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
