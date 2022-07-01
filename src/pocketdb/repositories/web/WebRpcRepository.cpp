@@ -422,9 +422,11 @@ namespace PocketDb
                 ) as Subscribers
 
                 , (
-                    select json_group_array(blck.String2)
-                    from Transactions blck indexed by Transactions_Type_Last_String1_Height_Id
-                    where blck.Type in (305) and blck.Height is not null and blck.Last = 1 and blck.String1 = u.String1
+                    select json_group_array(ub.String1)
+                    from BlockingLists bl
+                    join Transactions ub indexed by Transactions_Type_Last_Height_Id
+                    on ub.Id = bl.IdTarget and ub.Type = 100 and ub.Last = 1 and ub.Height is not null
+                    where bl.IdSource = u.id
                 ) as Blockings
 
                 , ifnull((
@@ -487,8 +489,8 @@ namespace PocketDb
 
                 , (
                     select count()
-                    from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    where subs.Type in (305) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
+                    from BlockingLists bl
+                    where bl.IdSource = u.id
                 ) as BlockingsCount
 
                 , ifnull((

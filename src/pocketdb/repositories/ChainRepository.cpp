@@ -350,7 +350,8 @@ namespace PocketDb
                             -- String1 = AddressHash
                             and a.String1 = Transactions.String1
                             -- String2 = AddressToHash
-                            and a.String2 = Transactions.String2
+                            and ifnull(a.String2,'') = ifnull(Transactions.String2,'')
+                            and ifnull(a.String3,'') = ifnull(Transactions.String3,'')
                             and a.Height is not null
                         limit 1
                     ),
@@ -378,7 +379,9 @@ namespace PocketDb
             join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
               on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
             join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100) and ut.Last = 1 and ut.String1 = b.String2 and ut.Height > 0
+              on ut.Type in (100) and ut.Last = 1
+                and ut.String1 in (select b.String2 union select value from json_each(b.String3))
+                and ut.Height > 0
             where b.Type in (305) and b.Hash = ?
         )sql");
         TryBindStatementText(insListStmt, 1, txHash);

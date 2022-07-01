@@ -89,6 +89,7 @@ namespace PocketDb
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
 
         tuple<bool, TxType> GetLastBlockingType(const string& address, const string& addressTo);
+        bool ExistBlocking(const string& address, const string& addressTo, const string& addressesTo);
         tuple<bool, TxType> GetLastSubscribeType(const string& address, const string& addressTo);
 
         shared_ptr<string> GetContentAddress(const string& postHash);

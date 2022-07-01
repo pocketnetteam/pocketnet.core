@@ -86,6 +86,30 @@ namespace PocketConsensus
         }
     };
 
+    class BlockingCancelConsensus_checkpoint_multiple_blocking : public BlockingCancelConsensus
+    {
+    public:
+        BlockingCancelConsensus_checkpoint_multiple_blocking(int height) : BlockingCancelConsensus(height) {}
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const BlockingCancelRef& ptx, const PocketBlockRef& block) override
+        {
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+
+            if (!PocketDb::ConsensusRepoInst.ExistBlocking(
+                *ptx->GetAddress(),
+                IsEmpty(ptx->GetAddressTo()) ? "" : *ptx->GetAddressTo(),
+                "[]"
+            ))
+            {
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_InvalidBlocking))
+                    return {false, SocialConsensusResult_InvalidBlocking};
+            }
+
+            return Success;
+        }
+    };
+
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
@@ -94,6 +118,7 @@ namespace PocketConsensus
     protected:
         const vector<ConsensusCheckpoint < BlockingCancelConsensus>> m_rules = {
             { 0, 0, [](int height) { return make_shared<BlockingCancelConsensus>(height); }},
+            { 5555555,1, [](int height) { return make_shared<BlockingCancelConsensus_checkpoint_multiple_blocking>(height); }}, // TODO (o1q): multiple_blocking
         };
     public:
         shared_ptr<BlockingCancelConsensus> Instance(int height)

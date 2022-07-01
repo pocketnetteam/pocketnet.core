@@ -210,6 +210,42 @@ namespace PocketDb
         return {blockingExists, blockingType};
     }
 
+    bool ConsensusRepository::ExistBlocking(const string& address, const string& addressTo, const string& addressesTo)
+    {
+        bool blockingExists = false;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                SELECT 1
+                FROM BlockingLists b
+                JOIN Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+                ON us.Last = 1 and us.Id = b.IdSource and us.Type = 100 and us.Height is not null
+                JOIN Transactions ut indexed by Transactions_Type_Last_String2_Height
+                ON ut.Last = 1 and ut.Id = b.IdTarget and ut.Type = 100 and ut.Height is not null
+                WHERE us.String1 = ?
+                    and ut.String1 in (select ? union select value from json_each(?))
+                LIMIT 1
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, addressTo);
+            TryBindStatementText(stmt, 3, addressesTo);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok && value > 0)
+                {
+                    blockingExists = true;
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return blockingExists;
+    }
+
     tuple<bool, TxType> ConsensusRepository::GetLastSubscribeType(const string& address,
         const string& addressTo)
     {
@@ -843,8 +879,6 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, i++, scoreData->ContentAddressHash);
 
-            LogPrintf("GetScoreCommentCount: %s\n", sqlite3_expanded_sql(*stmt));
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
@@ -949,7 +983,7 @@ namespace PocketDb
                 where Type in (305, 306)
                   and Height is null
                   and String1 = ?
-                  and String2 = ?
+                  and (String2 = ? or String3 is not null)
             )sql");
 
             TryBindStatementText(stmt, 1, address);
