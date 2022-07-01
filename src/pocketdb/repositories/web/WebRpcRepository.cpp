@@ -395,7 +395,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetUserStatistic(const vector<string>& addresses, const int nHeight, const int depth)
+    UniValue WebRpcRepository::GetUserStatistic(const vector<string>& addresses, const int nHeight, const int depthR, const int depthC, const int cntC)
     {
         UniValue result(UniValue::VARR);
 
@@ -425,36 +425,25 @@ namespace PocketDb
                   ),0) as ReferralsCountHist,
 
                 (
-                  select count()
-                  from Transactions p indexed by Transactions_String1_Last_Height
-                  join Transactions c indexed by Transactions_Type_Last_String3_Height
-                    on c.Type in (204)
-                    and c.Last in (0,1)
-                    and c.String3 = p.String2
-                    and c.Height <= ?
-                    and c.Height > ?
-                    and c.Hash = c.String2
-                  where p.Type in (200,201,202)
-                    and p.Last = 1
-                    and p.String1 = u.String1
-                    and p.Height > 0
-                )Comments,
-
-                (
-                  select count(distinct c.String1)
-                  from Transactions p indexed by Transactions_String1_Last_Height
-                  join Transactions c indexed by Transactions_Type_Last_String3_Height
-                    on c.Type in (204)
-                    and c.Last in (0,1)
-                    and c.String3 = p.String2
-                    and c.Height <= ?
-                    and c.Height > ?
-                    and c.Hash = c.String2
-                  where p.Type in (200,201,202)
-                    and p.Last = 1
-                    and p.String1 = u.String1
-                    and p.Height > 0
-                )Commentators
+                  select count(1)
+                  from (
+                         select c.String1
+                         from Transactions p indexed by Transactions_String1_Last_Height
+                         join Transactions c indexed by Transactions_Type_Last_String3_Height
+                            on c.Type in (204)
+                            and c.Last in (0,1)
+                            and c.String3 = p.String2
+                            and c.Height <= ?
+                            and c.Height > ?
+                            and c.Hash = c.String2
+                            and c.String1 != u.String1
+                         where p.Type in (200,201,202)
+                            and p.Last = 1
+                            and p.String1 = u.String1
+                            and p.Height > 0
+                         group by c.String1
+                         having count(*) > ?)
+                ) as CommentatorsCountHist
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             where u.Type in (100)
@@ -470,13 +459,11 @@ namespace PocketDb
             int i = 1;
             // Referrals
             TryBindStatementInt(stmt, i++, nHeight);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            // Comments
-            TryBindStatementInt(stmt, i++, nHeight);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
+            TryBindStatementInt(stmt, i++, nHeight - depthR);
             // Commentators
             TryBindStatementInt(stmt, i++, nHeight);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
+            TryBindStatementInt(stmt, i++, nHeight - depthC);
+            TryBindStatementInt(stmt, i++, cntC);
             // Addresses
             for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
@@ -486,9 +473,11 @@ namespace PocketDb
                 UniValue record(UniValue::VOBJ);
                 auto[ok0, address] = TryGetColumnString(*stmt, 0);
                 auto[ok1, ReferralsCountHist] = TryGetColumnInt(*stmt, 1);
+                auto[ok2, CommentatorsCountHist] = TryGetColumnInt(*stmt, 2);
 
                 record.pushKV("address", address);
                 record.pushKV("histreferals", ReferralsCountHist);
+                record.pushKV("commentators", CommentatorsCountHist);
                 result.push_back(record);
             }
 
