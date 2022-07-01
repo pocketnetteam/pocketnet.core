@@ -8,7 +8,7 @@
 
 PocketDb::ShortAccount::ShortAccount(std::string name, std::string avatar, std::string badge, int64_t reputation)
     : m_name(std::move(name)),
-      m_avatar(std::move(name)),
+      m_avatar(std::move(avatar)),
       m_badge(std::move(badge)),
       m_reputation(reputation)
 {}
