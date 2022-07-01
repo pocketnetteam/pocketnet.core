@@ -30,6 +30,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetRandomContents();
     RPCHelpMan GetContentActions();
     RPCHelpMan GetEvents(); // TODO (losty): probably move to another place
+    RPCHelpMan GetNotifications();
     
 }
 

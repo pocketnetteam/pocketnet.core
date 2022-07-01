@@ -1004,4 +1004,58 @@ namespace PocketWeb::PocketWebRpc
     },
         };
     }
+
+    RPCHelpMan GetNotifications()
+    {
+        return RPCHelpMan{"GetNotifications",
+                          "\nGet all possible notifications for all addresses for concrete block height.\n",
+                          {
+                                  // TODO (rpc): provide args description
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc)
+                                  HelpExampleCli("getnotifications", "") +
+                                  HelpExampleRpc("getnotifications", "")
+                          },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VNUM});
+
+        auto height = request.params[0].get_int64();
+
+        if (height > ChainActive().Height()) throw JSONRPCError(RPC_INVALID_PARAMETER, "Spefified height is greater than current chain height");
+
+        std::set<ShortTxType> filters;
+        if (request.params.size() > 1 && request.params[1].isArray()) {
+            const auto& rawFilters  = request.params[1].get_array();
+            for (int i = 0; i < rawFilters.size(); i++) {
+                if (rawFilters[i].isStr()) {
+                    const auto& rawFilter = rawFilters[i].get_str();
+                    auto filter = ShortTxTypeConvertor::strToType(rawFilter);
+                    if (filter == ShortTxType::NotSet) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unexpected filter: " + rawFilter);
+                    }
+                    filters.insert(filter);
+                }
+            }
+        }
+
+        auto shortTxMap = request.DbConnection()->WebRpcRepoInst->GetEventsForBlock(height, filters);
+
+        UniValue res {UniValue::VOBJ};
+        for (const auto& addressSpecific: shortTxMap) {
+            UniValue txs {UniValue::VARR};
+            for (const auto& tx: addressSpecific.second) {
+                txs.push_back(tx.Serialize());
+            }
+            res.pushKV(addressSpecific.first, txs);
+        }
+
+        return res;
+    },
+        };
+    }
 }

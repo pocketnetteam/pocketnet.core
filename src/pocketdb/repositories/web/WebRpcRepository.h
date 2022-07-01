@@ -157,7 +157,14 @@ namespace PocketDb
          */
         std::vector<ShortForm> GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNum, const std::set<ShortTxType>& filters);
 
-        UniValue GetEventsForBlock(int64_t height, const std::set<ShortTxType>& filters);
+        /**
+         * Get all possible events for all adresses in concrete block
+         * 
+         * @param height height of block to search
+         * @param filters
+         * @return map where keys are addresses and values are ShortForms of events from given block 
+         */
+        std::map<std::string, std::vector<ShortForm>> GetEventsForBlock(int64_t height, const std::set<ShortTxType>& filters);
 
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);

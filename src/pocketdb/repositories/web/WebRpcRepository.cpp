@@ -10,32 +10,25 @@
 
 namespace PocketDb
 {
-    class EventsReconstructor : public RowAccessor
+    class ShortFormParser : public RowAccessor
     {
     public:
-        bool FeedRow(sqlite3_stmt* stmt)
+        PocketDb::ShortForm ParseRow(sqlite3_stmt* stmt, const int& startIndex)
         {
-            auto [ok, type] = TryGetColumnString(stmt, 0);
+            int index = startIndex;
+            auto [ok, type] = TryGetColumnString(stmt, index++);
             if (!ok) {
                 throw std::runtime_error("Missing row type");
             }
 
-            int currentIndex = 1;
-            auto txData = ProcessTxData(stmt, currentIndex);
+            auto txData = ProcessTxData(stmt, index);
             if (!txData) {
                 throw std::runtime_error("Missing required fields for tx data in a row");
             }
 
-            auto relatedContent = ProcessTxData(stmt, currentIndex);
-            PocketDb::ShortForm form(PocketHelpers::ShortTxTypeConvertor::strToType(type), *txData, relatedContent);
-            m_result.emplace_back(PocketHelpers::ShortTxTypeConvertor::strToType(type), *txData, relatedContent);
+            auto relatedContent = ProcessTxData(stmt, index);
 
-            return true;
-        }
-
-        std::vector<ShortForm> GetResult() const
-        {
-            return m_result;
+            return {PocketHelpers::ShortTxTypeConvertor::strToType(type), *txData, relatedContent};
         }
 
     protected:
@@ -74,9 +67,42 @@ namespace PocketDb
             }
             return std::nullopt;
         }
+    };
 
+    class EventsReconstructor : public RowAccessor
+    {
+    public:
+        void FeedRow(sqlite3_stmt* stmt)
+        {
+            m_result.emplace_back(std::move(m_parser.ParseRow(stmt, 0)));
+        }
+
+        std::vector<PocketDb::ShortForm> GetResult() const
+        {
+            return m_result;
+        }
     private:
-        std::vector<ShortForm> m_result;
+        ShortFormParser m_parser;
+        std::vector<PocketDb::ShortForm> m_result;
+    };
+
+    class NotificationsReconstructor : public RowAccessor
+    {
+    public:
+        void FeedRow(sqlite3_stmt* stmt)
+        {
+            auto [ok, address] = TryGetColumnString(stmt, 0);
+            if (!ok) throw std::runtime_error("Missing address of notifier");
+
+            m_result[address].emplace_back(std::move(m_parser.ParseRow(stmt, 1)));
+        }
+        std::map<std::string, std::vector<PocketDb::ShortForm>> GetResult() const
+        {
+            return m_result;
+        }
+    private:
+        ShortFormParser m_parser;
+        std::map<std::string, std::vector<PocketDb::ShortForm>> m_result;
     };
 
 
@@ -4407,216 +4433,660 @@ namespace PocketDb
         return std::pair { ss.str(), binds };
     }
     
-    UniValue WebRpcRepository::GetEventsForBlock(int64_t height, const std::set<ShortTxType>& filters)
+    std::map<std::string, std::vector<ShortForm>> WebRpcRepository::GetEventsForBlock(int64_t height, const std::set<ShortTxType>& filters)
     {
-        static const auto pocketnetteam = R"sql(
+        struct QueryParams {
+            // Handling all by reference
+            const int64_t& height;
+        } queryParams {height};
+
+        // Static because it will not be changed for entire node run
+        static const auto pocketnetteamAddress = GetPocketnetteamAddress();
+
+        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
+        {
+            ShortTxType::PocketnetTeam, { R"sql(
             -- Pocket posts
             select
-                ('pocketnetteam')TP,
-                t.BlockNum as BlockNum,
+                null, -- related address is null because pocketnetteam posts should be added for every address
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam) + R"sql(')TP,
                 t.Hash,
-                t.String1
+                t.Type,
+                null,
+                t.Height as Height,
+                t.BlockNum as BlockNum,
+                null, -- Address, not required here because we already know it
+                p.String2, -- Caption
+                null,
+                null,
+                null,
+                null,
+                null, -- TODO (losty): related content? If repost etc
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
 
-            from Transactions t indexed by Transactions_Height_Type
+            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
+
+            left join Payload p
+                on p.TxHash = t.Hash
 
             where t.Type in (200,201,202)
-            and t.Height = ?
-
-        )sql";
-        static const auto money = R"sql(
-            -- Incoming money
-            select
-                ('money')TP,
-                t.BlockNum as BlockNum,
-                t.Hash,
-                o.AddressHash
-
-            from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_TxHash
-
-            join Transactions t indexed by Transactions_Hash_Type_Height
-                on t.Hash = o.TxHash
-                and t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
+                and t.String1 = ?
                 and t.Height = ?
 
-            join TxOutputs i indexed by TxOutputs_SpentTxHash
-                on i.SpentTxHash = o.TxHash
-                and i.AddressHash != o.AddressHash
+        )sql", 
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
+                TryBindStatementText(stmt, i++, pocketnetteamAddress);
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+        // {
+        //     ShortTxType::Money, { R"sql(
 
-            where o.TxHeight = ?
-        )sql";
-        static const auto referals =  R"sql(
+        //     )sql",
+        //     [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+
+        //     }
+        // }},
+        {
+            ShortTxType::Referal, { R"sql(
             -- referals
             select
-                ('referals')TP,
-                t.BlockNum as BlockNum,
+                t.String2,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
                 t.Hash,
-                t.String2 = ?
+                t.Type,
+                t.String1,
+                t.Height as Height,
+                t.BlockNum as BlockNum,
+                null,
+                null,
+                p.String2,
+                p.String3,
+                p.String4,
+                ifnull(r.Value,0),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
 
             from Transactions t --indexed by Transactions_Type_Last_String2_Height
 
-            where t.Type = 100
-                and t.Height = ?
+            left join Payload p
+                on p.TxHash = t.Hash
 
-        )sql";
-        static const auto answers = R"sql(
+            left join Ratings r indexed by Ratings_Type_Id_Last_Height
+                on r.Type = 0
+                and r.Id = t.Id
+                and r.Last = 1
+
+            where t.Type = 100
+                and t.String2 is not null
+                and t.Height = ?
+                and (select count(*) from Transactions tt where tt.Id = t.Id) = 1 -- Only original
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+        {
+            ShortTxType::Answer, { R"sql(
             -- Comment answers
             select
-                'answers',
-                c.String1 as AddressOrd,
-                orig.Height as HeightOrd,
+                c.String1,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
                 a.Hash,
                 a.Type,
-                a.String1 as addrFrom,
-                a.String2 as RootTxHash,
-                a.String3 as posttxid,
-                a.String4 as parentid,
-                a.String5 as answerid,
-                a.Time,
+                a.String1,
+                orig.Height as Height,
+                a.BlockNum as BlockNum,
+                null,
+                pa.String1,
+                paa.String2,
+                paa.String3,
+                paa.String4,
+                ifnull(ra.Value,0),
+                c.Hash,
+                c.Type,
+                null,
+                c.Height,
+                c.BlockNum,
+                null,
+                pc.String1,
+                null,
+                null,
+                null,
                 null
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
-            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
-                on a.Type in (204, 205) and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
-            join Transactions orig indexed by Transactions_Hash_Height -- TODO (losty): very slow here. However, even slow without it
-            -- TODO: creating Transactions_Type_Last_Height_String5_String1_String2 for c speed it up a lot
+
+            from Transactions a indexed by Transactions_Type_Last_Height_String5_String1 -- Other answers
+
+            join Transactions c indexed by Transactions_Type_Last_String2_Height -- My comments
+                on c.Type in (204, 205)
+                and c.Last = 1
+                and c.Height > 0
+                and c.String2 = a.String5
+                and c.String1 != a.String1
+
+            left join Payload pc
+                on pc.TxHash = c.Hash
+
+            left join Transactions orig
                 on orig.Hash = a.String2
-            where c.Type in (204, 205)
-            and c.Last = 1
-            and c.Height is not null
-            and c.String1 = ?
-        )sql";
-        static const auto comments = R"sql(
+
+            left join Payload pa
+                on pa.TxHash = a.Hash
+
+            left join Transactions aa
+                on aa.Type = 100
+                and aa.Last = 1
+                and aa.String1 = a.String1
+                and aa.Height > 0
+
+            left join Payload paa
+                on paa.TxHash = aa.Hash
+
+            left join Ratings ra indexed by Ratings_Type_Id_Last_Height
+                on ra.Type = 0
+                and ra.Id = aa.Id
+                and ra.Last = 1
+
+            where a.Type in (204) -- no edit
+                and a.Last in (0,1)
+                and a.Height = ?
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+
+        {
+            ShortTxType::Comment, { R"sql(
             -- Comments for my content
             select
-                ('comments')TP,
-                c.BlockNum as BlockNum,
+                p.String1,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
                 c.Hash,
-                p.String1
-            from Transactions c indexed by Transactions_Hash_Type_Height
-            join Transactions p indexed by Transactions_Type_Last_String1_String2_Height
+                c.Type,
+                c.String1,
+                c.Height as Height,
+                c.BlockNum as BlockNum,
+                oc.Value,
+                substr(pc.String1, 0, 100),
+                pac.String2,
+                pac.String3,
+                pac.String4,
+                ifnull(rac.Value,0), -- TODO rep
+                p.Hash,
+                p.Type,
+                null,
+                p.Height,
+                p.BlockNum,
+                null,
+                pp.String2,
+                null,
+                null,
+                null,
+                null
+
+            from Transactions c
+
+            left join Transactions p
                 on p.Type in (200,201,202)
-                and p.String2 = c.String3
                 and p.Last = 1
-                and c.String1 != p.String1
+                and p.Height > 0
+                and p.String2 = c.String3
+                and p.String1 != c.String1
+
+            left join TxOutputs oc indexed by TxOutputs_TxHash_AddressHash_Value
+                on oc.TxHash = c.Hash and oc.AddressHash = p.String1 and oc.AddressHash != c.String1 
+
+            left join Payload pc
+                on pC.TxHash = c.Hash
+
+            left join Transactions ac -- accounts of commentators
+                on ac.String1 = c.String1
+                and ac.Last = 1
+                and ac.Type = 100
+                and ac.Height > 0
+
+            left join Payload pac
+                on pac.TxHash = ac.Hash
+
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                on rac.Type = 0
+                and rac.Id = ac.Id
+                and rac.Last = 1
+            
+            left join Payload pp
+                on pp.TxHash = p.Hash
+
             where c.Type in (204,205)
+                and c.Hash = c.String2
                 and c.Height = ?
-        )sql";
-        static const auto subscribers = R"sql(
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+
+        {
+            ShortTxType::Subscriber, { R"sql(
             -- Subscribers
             select
-                ('subscribers')TP,
-                subs.BlockNum as BlockNum,
+                subs.String2,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
                 subs.Hash,
-                subs.String2
+                subs.Type,
+                subs.String1,
+                subs.Height as Height,
+                subs.BlockNum as BlockNum,
+                null,
+                null,
+                pu.String2,
+                pu.String3,
+                pu.String4,
+                ifnull(ru.Value,0),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
 
             from Transactions subs --indexed by Transactions_Type_Last_String2_Height
 
-            join Transactions u --indexed by Transactions_Type_Last_String1_Height_Id
+            left join Transactions u --indexed by Transactions_Type_Last_String1_Height_Id
                 on u.Type in (100)
                 and u.Last = 1
                 and u.String1 = subs.String1
-                and u.Height is not null
+                and u.Height > 0
+
+            left join Payload pu
+                on pu.TxHash = u.Hash
+
+            left join Ratings ru indexed by Ratings_Type_Id_Last_Height
+                on ru.Type = 0
+                and ru.Id = u.Id
+                and ru.Last = 1
 
             where subs.Type in (302, 303) -- Ignoring unsubscribers?
                 and subs.Height = ?
-        )sql";
-        static const auto commentscores = R"sql(
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+
+        {
+            ShortTxType::CommentScore, { R"sql(
             -- Comment scores
             select
-                ('commentscores')TP,
-                s.BlockNum as BlockNum,
+                c.String1,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
                 s.Hash,
-                c.String1
+                s.Type,
+                s.String1,
+                s.Height as Height,
+                s.BlockNum as BlockNum,
+                s.Int1,
+                null,
+                pacs.String2,
+                pacs.String3,
+                pacs.String4,
+                ifnull(racs.Value,0),
+                c.Hash,
+                c.Type,
+                null,
+                c.Height, -- TODO (losty): original?
+                c.BlockNum,
+                null,
+                ps.String1,
+                null,
+                null,
+                null,
+                null
 
             from Transactions s indexed by Transactions_Height_Type
 
             join Transactions c indexed by Transactions_Type_Last_String2_Height
                 on c.Type in (204,205)
                 and c.Last = 1
-                and s.String2 = c.String2
-                and c.Height is not null
+                and c.Height > 0
+                and c.String2 = s.String2
 
-            where s.Type in (301)
+            left join Payload ps
+                on ps.TxHash = c.Hash
+
+            join Transactions acs
+                on acs.Type = 100
+                and acs.Last = 1
+                and acs.String1 = s.String1
+                and acs.Height > 0
+
+            left join Payload pacs
+                on pacs.TxHash = acs.Hash
+
+            left join Ratings racs indexed by Ratings_Type_Id_Last_Height
+                on racs.Type = 0
+                and racs.Id = acs.Id
+                and racs.Last = 1
+
+            where s.Type = 301
+                and s.Last = 0
                 and s.Height = ?
-        )sql";
-        static const auto contentscores = R"sql(
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+
+        {
+            ShortTxType::ContentScore, { R"sql(
             -- Content scores
             select
-                ('contentscores')TP,
-                s.BlockNum as BlockNum,
+                c.String1,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
                 s.Hash,
-                c.String1
+                s.Type,
+                s.String1,
+                s.Height as Height,
+                s.BlockNum as BlockNum,
+                s.Int1,
+                null,
+                pacs.String2,
+                pacs.String3,
+                pacs.String4,
+                ifnull(racs.Value,0),
+                c.Hash,
+                c.Type,
+                null,
+                c.Height, -- TODO (losty): original?
+                c.BlockNum,
+                null,
+                ps.String2,
+                null,
+                null,
+                null,
+                null
 
-            from Transactions s indexed by Transactions_Height_Type
+            from Transactions s indexed by Transactions_Type_Last_Height_Id
 
             join Transactions c indexed by Transactions_Type_Last_String2_Height
                 on c.Type in (200, 201, 202)
                 and c.Last = 1
-                and s.String2 = c.String2
+                and c.Height > 0
+                and c.String2 = s.String2
 
-            where s.Type in (300)
+            left join Payload ps
+                on ps.TxHash = c.Hash
+
+            join Transactions acs
+                on acs.Type = 100
+                and acs.Last = 1
+                and acs.String1 = s.String1
+                and acs.Height > 0
+
+            left join Payload pacs
+                on pacs.TxHash = acs.Hash
+
+            left join Ratings racs indexed by Ratings_Type_Id_Last_Height
+                on racs.Type = 0
+                and racs.Id = acs.Id
+                and racs.Last = 1
+
+            where s.Type = 300
+                and s.Last = 0
                 and s.Height = ?
-        )sql";
-        static const auto privatecontent = R"sql(
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+
+        {
+            ShortTxType::PrivateContent, { R"sql(
             -- Content from private subscribers
             select
-                ('privatecontent')TP,
-                cps.BlockNum as BlockNum,
-                cps.Hash,
-                subs.String1
+                subs.String1,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
+                c.Hash,
+                c.Type,
+                c.String1,
+                c.Height as Height,
+                c.BlockNum as BlockNum,
+                null,
+                p.String2,
+                pac.String2,
+                pac.String3,
+                pac.String4,
+                ifnull(rac.Value,0),
+                null, -- TODO (losty): probably reposts here?
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
 
-            from Transactions cps indexed by Transactions_Height_Type -- TODO (losty): change index? -- content for private subscribers
+            from Transactions c indexed by Transactions_Type_Last_Height_Id -- content for private subscribers
 
             join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
                 on subs.Type = 303
                 and subs.Last = 1
-                and subs.String2 = cps.String1
+                and subs.Height > 0
+                and subs.String2 = c.String1
 
             left join Payload p
-                on p.TxHash = cps.Hash
+                on p.TxHash = c.Hash
+            
+            join Transactions ac
+                on ac.Type = 100
+                and ac.Last = 1
+                and ac.String1 = c.String1
+                and ac.Height > 0
 
-            where cps.Type in (200,201,202)
-                and cps.Height = ?
-        )sql";
-        static const auto boost = R"sql(
+            left join Payload pac
+                on pac.TxHash = ac.Hash
+
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                on rac.Type = 0
+                and rac.Id = ac.Id
+                and rac.Last = 1
+                
+            where c.Type in (200,201,202)
+                and c.Last = 1 -- TODO (losty): last = 1 and c.Hash = c.String2 ?????
+                -- and c.Hash = c.String2 --  TODO (losty): Only first content record
+                and c.Height = ?
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+
+        {
+            ShortTxType::Boost, { R"sql(
             -- Boosts for my content
             select
-                ('boost')TP,
-                tBoost.BlockNum as BlockNum,
+                tContent.String1,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
                 tBoost.Hash,
-                tContent.String1
+                tboost.Type,
+                tBoost.String1,
+                tBoost.Height as Height,
+                tBoost.BlockNum as BlockNum,
+                tBoost.Int1,
+                null,
+                pac.String2,
+                pac.String3,
+                pac.String4,
+                ifnull(rac.Value,0),
+                tContent.Hash,
+                tContent.Type,
+                null,
+                tContent.Height,
+                tContent.BlockNum,
+                null,
+                pContent.String2,
+                null,
+                null,
+                null,
+                null
 
             from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
 
-            join Transactions tContent indexed by Transactions_Type_Last_String2_Height
+            join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
                 on tContent.Type in (200,201,202)
                 and tContent.Last in (0,1)
+                and tContent.Height > 0
                 and tContent.String2 = tBoost.String2
+            left join Payload pContent
+                on pContent.TxHash = tContent.Hash
+            
+            join Transactions ac
+                on ac.String1 = tBoost.String1
+                and ac.Type = 100
+                and ac.Last = 1
+                and ac.Height > 0
+
+            left join Payload pac
+                on pac.TxHash = ac.Hash
+
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                on rac.Type = 0
+                and rac.Id = ac.Id
+                and rac.Last = 1
 
             where tBoost.Type in (208)
                 and tBoost.Last in (0,1)
                 and tBoost.Height = ?
-        )sql";
-        static const auto reposts = R"sql(
 
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+
+        {
+            ShortTxType::Repost, { R"sql(
             -- Reposts
             select
-                ('reposts')TP,
-                r.BlockNum as BlockNum,
+                p.String1,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
                 r.Hash,
-                p.String1
+                r.Type,
+                r.String1,
+                r.Height as Height,
+                r.BlockNum as BlockNum,
+                null,
+                pr.String2,
+                par.String2,
+                par.String3,
+                par.String4,
+                ifnull(rar.Value,0),
+                p.Hash,
+                p.Type,
+                null,
+                p.Height,
+                p.BlockNum,
+                null,
+                pp.String2,
+                null,
+                null,
+                null,
+                null
 
-            from Transactions r indexed by Transactions_Height_Type
+            from Transactions r
 
-            join Transactions p indexed by Transactions_Type_Last_String1_Height_Id
+            left join Transactions p indexed by Transactions_Type_Last_String1_Height_Id
                 on p.Type in (200,201,202)
                 and p.Last = 1
+                and p.Height > 0
                 and p.Hash = r.String3
 
-            where r.Type in (200,201,202)
-                and r.Height = ?
-        )sql";
+            left join Payload pp
+                on pp.TxHash = p.Hash 
 
-        return UniValue(UniValue::VOBJ);
+            left join Payload pr
+                on pr.TxHash = r.Hash
+
+            join Transactions ar
+                on ar.Type = 100
+                and ar.Last = 1
+                and ar.String1 = r.String1
+                and ar.Height > 0
+
+            left join Payload par
+                on par.TxHash = ar.Hash
+
+            left join Ratings rar indexed by Ratings_Type_Id_Last_Height
+                on rar.Type = 0
+                and rar.Id = ar.Id
+                and rar.Last = 1
+
+            where r.Type in (200,201,202)
+                and r.Last = 1
+                and r.Height = ?
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }}
+        };
+        
+        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "");
+        auto& sql = elem1;
+        auto& binds = elem2;
+
+        NotificationsReconstructor reconstructor;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+
+            for (const auto& bind: binds) {
+                bind(stmt, i, queryParams);
+            }
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                reconstructor.FeedRow(*stmt);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+        return reconstructor.GetResult();
     }
     
     std::vector<ShortForm> WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
@@ -5372,9 +5842,7 @@ namespace PocketDb
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (!reconstructor.FeedRow(*stmt)) {
-                    break;
-                }
+                reconstructor.FeedRow(*stmt);
             }
 
             FinalizeSqlStatement(*stmt);
