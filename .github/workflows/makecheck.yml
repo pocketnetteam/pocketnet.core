@@ -2,8 +2,8 @@ name: make check
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [ $default-branch, "0.20", "0.21" ]
+  push:
+    tags: v*.*.*
 
 jobs:
   build:
@@ -35,10 +35,3 @@ jobs:
       run: |
         cd src/bench
         ./bench_pocketcoin
-        cd ../..
-    - name: make deploy
-      run: make deploy
-    - uses: actions/upload-artifact@v2
-      with:
-        name: package
-        path: pocketnet*.deb

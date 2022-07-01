@@ -843,8 +843,6 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, i++, scoreData->ContentAddressHash);
 
-            LogPrintf("GetScoreCommentCount: %s\n", sqlite3_expanded_sql(*stmt));
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
