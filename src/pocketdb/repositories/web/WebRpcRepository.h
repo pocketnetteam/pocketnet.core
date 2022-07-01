@@ -65,7 +65,7 @@ namespace PocketDb
         UniValue GetAccountState(const string& address, int heightWindow);
         UniValue GetAccountSetting(const string& address);
 
-        UniValue GetUserStatistic(const vector<string>& addresses, const int nHeight = 0, const int depth = 0);
+        UniValue GetUserStatistic(const vector<string>& addresses, const int nHeight = 0, const int depthR = 0, const int depthC = 0, const int cntC = 1);
 
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
         UniValue GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash);

@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/services/WebPostProcessing.h"
+#include "pocketdb/consensus/Reputation.h"
 
 namespace PocketServices
 {
@@ -46,7 +47,7 @@ namespace PocketServices
         // Start worker infinity loop
         while (true)
         {
-            string blockHash;
+            QueueRecord queueRecord;
 
             {
                 WAIT_LOCK(_queue_mutex, lock);
@@ -56,12 +57,27 @@ namespace PocketServices
 
                 if (shutdown) break;
 
-                blockHash = std::move(_queue_records.front());
+                queueRecord = std::move(_queue_records.front());
                 _queue_records.pop_front();
             }
 
-            ProcessTags(blockHash);
-            ProcessSearchContent(blockHash);
+            switch (queueRecord.Type)
+            {
+                case QueueRecordType::BlockHash:
+                {
+                    ProcessTags(queueRecord.BlockHash);
+                    ProcessSearchContent(queueRecord.BlockHash);
+                    break;
+                }
+                case QueueRecordType::BlockHeight:
+                {
+                    ProcessBadges(queueRecord.BlockHeight);
+                    // TODO (brangr): implement this
+                    // ProcessAuthors(queueRecord.BlockHeight);
+                }
+                default:
+                    break;
+            }
         }
 
         // Shutdown DB
@@ -81,8 +97,17 @@ namespace PocketServices
 
     void WebPostProcessor::Enqueue(const string& blockHash)
     {
+        QueueRecord rcrd = { QueueRecordType::BlockHash, blockHash, -1 };
         LOCK(_queue_mutex);
-        _queue_records.emplace_back(blockHash);
+        _queue_records.emplace_back(rcrd);
+        _queue_cond.notify_one();
+    }
+
+    void WebPostProcessor::Enqueue(int blockHeight)
+    {
+        QueueRecord rcrd = { QueueRecordType::BlockHeight, "", blockHeight };
+        LOCK(_queue_mutex);
+        _queue_records.emplace_back(rcrd);
         _queue_cond.notify_one();
     }
 
@@ -174,5 +199,47 @@ namespace PocketServices
         }
     }
 
+    void WebPostProcessor::ProcessBadges(int blockHeight)
+    {
+        try
+        {
+            int64_t nTime1 = GetTimeMicros();
+
+            // Actual consensus checker instance by current height
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(blockHeight);
+            auto sharkCond = reputationConsensus->GetBadgeSharkConditions();
+
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessBadges (Reputation Consensus instance): %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
+
+            // Clear and calculate all shark accounts
+            webRepoInst->CalculateSharkAccounts(sharkCond);
+
+            int64_t nTime3 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessBadges (Clear & Insert new values): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
+        }
+        catch (const std::exception& e)
+        {
+            LogPrintf("Warning: WebPostProcessor::ProcessBadges - %s\n", e.what());
+        }
+    }
+
+    void WebPostProcessor::ProcessAuthors(int blockHeight)
+    {
+        try
+        {
+            int64_t nTime1 = GetTimeMicros();
+
+            // Clear and calculate new valid authors
+            webRepoInst->CalculateValidAuthors(blockHeight);
+
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessAuthors (Clear & Insert new values): %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
+        }
+        catch (const std::exception& e)
+        {
+            LogPrintf("Warning: WebPostProcessor::ProcessAuthors - %s\n", e.what());
+        }
+    }
 
 } // PocketServices

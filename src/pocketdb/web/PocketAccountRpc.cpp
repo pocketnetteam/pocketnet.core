@@ -450,7 +450,9 @@ namespace PocketWeb::PocketWebRpc
                         }
                     },
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum search height. Default is current chain height"},
-                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of statistic. Default - whole history"},
+                    {"depthR", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of referral statistic. Default - whole history"},
+                    {"depthC", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of commentator statistic. Default - same as depthR"},
+                    {"cntC",   RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Count of minimum comments for commentator statistic. Default - 1"}
                 },
                 {
                     // TODO (rpc): provide return description
@@ -499,16 +501,34 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        int depth = ::ChainActive().Height();
+        int depthR = ChainActive().Height();
         if (request.params.size() > 2) {
             if (request.params[2].isNum()) {
                 if (request.params[2].get_int() > 0) {
-                    depth = request.params[2].get_int();
+                    depthR = request.params[2].get_int();
                 }
             }
         }
 
-        return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depth);
+        int depthC = depthR;
+        if (request.params.size() > 3) {
+            if (request.params[3].isNum()) {
+                if (request.params[3].get_int() > 0) {
+                    depthC = request.params[3].get_int();
+                }
+            }
+        }
+
+        int cntC = 1;
+        if (request.params.size() > 4) {
+            if (request.params[4].isNum()) {
+                if (request.params[4].get_int() > 0) {
+                    cntC = request.params[4].get_int();
+                }
+            }
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depthR, depthC, cntC);
     },
         };
     }
