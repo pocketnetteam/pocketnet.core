@@ -733,12 +733,10 @@ namespace PocketDb
 
               and not exists (
                 select 1
-                from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                where b.Type in (305)
-                  and b.Last = 1
-                  and b.Height > 0
-                  and b.String1 = p.String1
-                  and b.String2 = c.String1
+                from BlockingLists bl
+                join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                where us.String1 = p.String1 and ut.String1 = c.String1
               )
 
             order by c.Height desc
@@ -854,12 +852,10 @@ namespace PocketDb
                           -- exclude commenters blocked by the author of the post 
                           and not exists (
                             select 1
-                            from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                            where b.Type in (305)
-                              and b.Last = 1
-                              and b.Height > 0
-                              and b.String1 = t.String1
-                              and b.String2 = c1.String1
+                            from BlockingLists bl
+                            join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                            join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                            where us.String1 = t.String1 and ut.String1 = c1.String1
                           )
 
                         order by o.Value desc, c1.Id desc
@@ -977,12 +973,10 @@ namespace PocketDb
                       -- exclude commenters blocked by the author of the post
                       and not exists (
                         select 1
-                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                        where b.Type in (305)
-                            and b.Last = 1
-                            and b.Height > 0
-                            and b.String1 = t.String1
-                            and b.String2 = s.String1
+                        from BlockingLists bl
+                        join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                        join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                        where us.String1 = t.String1 and ut.String1 = s.String1
                       )
                 ) AS ChildrenCount,
 
@@ -1009,13 +1003,11 @@ namespace PocketDb
                 and c.String3 = ?
                 -- exclude commenters blocked by the author of the post
                 and not exists (
-                  select 1
-                  from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                  where b.Type in (305)
-                    and b.Last = 1
-                    and b.Height > 0
-                    and b.String1 = t.String1
-                    and b.String2 = c.String1
+                    select 1
+                    from BlockingLists bl
+                    join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                    join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                    where us.String1 = t.String1 and ut.String1 = c.String1
                 )
                 )sql" + parentWhere + R"sql(
         )sql";
@@ -1132,20 +1124,21 @@ namespace PocketDb
                       -- exclude commenters blocked by the author of the post
                       and not exists (
                         select 1
-                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                        where b.Type in (305)
-                            and b.Last = 1
-                            and b.Height > 0
-                            and b.String1 = t.String1
-                            and b.String2 = s.String1
+                        from BlockingLists bl
+                        join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                        join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                        where us.String1 = t.String1 and ut.String1 = s.String1
                       )
                 ) AS ChildrenCount,
 
                 o.Value as Donate,
 
                 (
-                    select 1 from Transactions b  indexed by Transactions_Type_Last_String1_Height_Id
-                    where b.Type in (305) and b.Last = 1 and b.Height is not null and b.String1 = t.String1 and b.String2 = c.String1
+                    select 1
+                    from BlockingLists bl
+                    join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                    join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                    where us.String1 = t.String1 and ut.String1 = c.String1
                     limit 1
                 )Blocked
 
@@ -1614,14 +1607,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select
-                  u.Id
-                from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                  on u.Type in (100) and u.Last = 1 and u.String1 = b.String2 and u.Height > 0
-                where b.Type in (305)
-                  and b.Last = 1
-                  and b.String1 = ?
-                  and b.Height > 0
+                  bl.IdTarget
+                from BlockingLists bl
+                join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                where us.String1 = ?
             )sql");
             TryBindStatementText(stmt, 1, address);
 
@@ -1643,14 +1632,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select
-                  u.Id
-                from Transactions b indexed by Transactions_Type_Last_String2_Height
-                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                  on u.Type in (100) and u.Last = 1 and u.String1 = b.String1 and u.Height > 0
-                where b.Type in (305)
-                  and b.Last = 1
-                  and b.String2 = ?
-                  and b.Height > 0
+                  bl.IdSource
+                from BlockingLists bl
+                join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                where ut.String1 = ?
             )sql");
             TryBindStatementText(stmt, 1, address);
 
@@ -2885,12 +2870,10 @@ namespace PocketDb
                       -- exclude commenters blocked by the author of the post
                       and not exists (
                         select 1
-                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                        where b.Type in (305)
-                            and b.Last = 1
-                            and b.Height > 0
-                            and b.String1 = t.String1
-                            and b.String2 = s.String1
+                        from BlockingLists bl
+                        join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1
+                        join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1
+                        where us.String1 = t.String1 and ut.String1 = s.String1
                       )
                 ) AS CommentsCount,
                 
