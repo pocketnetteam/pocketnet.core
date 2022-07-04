@@ -122,7 +122,7 @@ namespace PocketDb
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
         int badReputationLimit);
 
-        UniValue GetDiscussedFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+        UniValue GetMostCommentedFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
         int badReputationLimit);
