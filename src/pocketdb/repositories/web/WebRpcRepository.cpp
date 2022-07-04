@@ -4432,6 +4432,11 @@ namespace PocketDb
         // Static because it will not be changed for entire node run
         static const auto pocketnetteamAddress = GetPocketnetteamAddress();
 
+        static const auto heightBinder =
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            };
+
         static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
         {
             ShortTxType::PocketnetTeam, { R"sql(
@@ -4530,9 +4535,7 @@ namespace PocketDb
                 and (select count(*) from Transactions tt where tt.Id = t.Id) = 1 -- Only original
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }},
         {
             ShortTxType::Answer, { R"sql(
@@ -4600,9 +4603,7 @@ namespace PocketDb
                 and a.Height = ?
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }},
 
         {
@@ -4671,9 +4672,7 @@ namespace PocketDb
                 and c.Height = ?
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }},
 
         {
@@ -4725,9 +4724,7 @@ namespace PocketDb
                 and subs.Height = ?
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }},
 
         {
@@ -4789,9 +4786,7 @@ namespace PocketDb
                 and s.Height = ?
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }},
 
         {
@@ -4853,9 +4848,7 @@ namespace PocketDb
                 and s.Height = ?
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }},
 
         {
@@ -4918,9 +4911,7 @@ namespace PocketDb
                 and c.Height = ?
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }},
 
         {
@@ -4981,9 +4972,7 @@ namespace PocketDb
                 and tBoost.Height = ?
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }},
 
         {
@@ -5048,9 +5037,7 @@ namespace PocketDb
                 and r.Height = ?
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }}
         };
         
