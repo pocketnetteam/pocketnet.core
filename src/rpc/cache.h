@@ -83,6 +83,7 @@ private:
         { "getcontentactions", 60 },
 
         { "gettopfeed", 60 },
+        { "getmostcommentedfeed", 60 },
         { "gettopaccounts", 60 },
         { "getrecommendedcontentbyaddress", 60 },
         { "getrecommendedaccountbyaddress", 60 },
