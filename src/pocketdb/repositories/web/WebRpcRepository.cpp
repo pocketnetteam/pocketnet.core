@@ -4482,14 +4482,57 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, queryParams.height);
             }
         }},
-        // {
-        //     ShortTxType::Money, { R"sql(
 
-        //     )sql",
-        //     [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+        {
+            ShortTxType::Money, { R"sql(
+            -- Incoming money
+            select
+                o.AddressHash,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
+                t.Hash,
+                t.Type,
+                i.AddressHash,
+                t.Height as Height,
+                t.BlockNum as BlockNum,
+                o.Value,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
 
-        //     }
-        // }},
+            from Transactions t indexed by Transactions_Height_Type
+
+            join TxOutputs o
+                on t.Hash = o.TxHash
+                and o.TxHeight = ?
+
+            join TxOutputs i indexed by TxOutputs_SpentTxHash
+                on i.SpentTxHash = o.TxHash
+                and i.Number = (select min(ii.Number) from TxOutputs ii where ii.SpentTxHash = o.TxHash)
+                and i.AddressHash != o.AddressHash  -- TODO (brangr, lostystyg): exclude coinstake first transaction
+
+            where t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
+                and t.Height = ?
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+            }
+        }},
+
         {
             ShortTxType::Referal, { R"sql(
             -- referals
@@ -4537,6 +4580,7 @@ namespace PocketDb
         )sql",
             heightBinder
         }},
+
         {
             ShortTxType::Answer, { R"sql(
             -- Comment answers
