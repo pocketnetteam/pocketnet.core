@@ -515,11 +515,11 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetDiscussedFeed(const JSONRPCRequest& request)
+    UniValue GetMostCommentedFeed(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetDiscussedFeed\n"
+                "GetMostCommentedFeed\n"
                 "topHeight           (int) - ???\n"
                 "topContentHash      (string, optional) - ???\n"
                 "countOut            (int, optional) - ???\n"
@@ -543,7 +543,7 @@ namespace PocketWeb::PocketWebRpc
         vector<string> adrsExcluded;
         vector<string> tagsExcluded;
         string address;
-        int depth = 60 * 24 * 30 * 12; // about 1 year
+        int depth = 60 * 24 * 30 * 6; // about 6 month
         ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, address);
         // depth
@@ -554,18 +554,18 @@ namespace PocketWeb::PocketWebRpc
         }
 
         int64_t topContentId = 0;
-        if (!topContentHash.empty())
-        {
-            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
-            if (!ids.empty())
-                topContentId = ids[0];
-        }
+        // if (!topContentHash.empty())
+        // {
+        //     auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+        //     if (!ids.empty())
+        //         topContentId = ids[0];
+        // }
 
         auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
-        UniValue content = request.DbConnection()->WebRpcRepoInst->GetDiscussedFeed(
+        UniValue content = request.DbConnection()->WebRpcRepoInst->GetMostCommentedFeed(
             countOut, topContentId, topHeight, lang, tags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded,
             address, depth, badReputationLimit);

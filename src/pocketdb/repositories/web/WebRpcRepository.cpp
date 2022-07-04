@@ -3064,7 +3064,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetDiscussedFeed(int countOut, const int64_t& topContentId, int topHeight,
+    UniValue WebRpcRepository::GetMostCommentedFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int depth, int badReputationLimit)
@@ -3080,8 +3080,8 @@ namespace PocketDb
         string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
 
         string contentIdWhere;
-        if (topContentId > 0)
-            contentIdWhere = " and t.Id < ? ";
+        // if (topContentId > 0)
+        //     contentIdWhere = " and t.Id < ? ";
 
         string langFilter;
         if (!lang.empty())
@@ -3143,8 +3143,21 @@ namespace PocketDb
              ) )sql";
         }
 
-        sql += " order by cr.Value desc ";
-        sql += " limit ? ";
+        // sql += " order by cr.Value desc ";
+        sql +=  R"sql(
+        order by (
+                select count()
+                from Transactions s indexed by Transactions_Type_Last_String3_Height
+                where s.Type in (204, 205) and s.Height is not null and s.String3 = t.String2 and s.Last = 1
+                    -- exclude commenters blocked by the author of the post
+                    and not exists (
+                                    select 1
+                                    from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                                    where b.Type in (305) and b.Last = 1 and b.Height > 0 and b.String1 = t.String1 and b.String2 = s.String1
+                                    )
+                ) desc
+        limit ?
+        )sql";
 
         // ---------------------------------------------
 
@@ -3165,8 +3178,8 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, i++, badReputationLimit);
 
-            if (topContentId > 0)
-                TryBindStatementInt64(stmt, i++, topContentId);
+            // if (topContentId > 0)
+            //     TryBindStatementInt64(stmt, i++, topContentId);
 
             if (!tags.empty())
             {
