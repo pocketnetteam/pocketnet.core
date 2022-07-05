@@ -1037,9 +1037,26 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetEvents()
     {
         return RPCHelpMan{"GetEvents",
-                          "\nGet all events for entire chain assotiated with addresses.\n",
-                          {
-                                  // TODO (rpc): provide args description
+                        "\nGet all events assotiated with addresses. Search depth - 3 months\n",
+                        {
+                            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "address to get events for"},
+                            {"heightMax", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "max height to start search from, including. Default is current chain height"},
+                            {"blockNum", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "number of transaction in block to start search from for specified heightMax, excluding. Default is 999999"},
+                            {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "filters to specify event's types to search for. Default: search for all events",
+                            {
+                                {ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "posts from pocketnet team acc"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "incoming money"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Referal), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "registered referals"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "answers to acc's comments"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Comment), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "comments to acc's content"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Subscriber), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "subscribers"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::CommentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "scores to acc's comments"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::ContentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "scores to acc's content"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "content from private subscriptions"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Boost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "boosts of acc's content"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Repost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "reposts of acc's content"},
+                            }
+                        }
                           },
                           {
                                   // TODO (rpc): provide return description
