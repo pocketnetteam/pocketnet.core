@@ -515,6 +515,66 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
+    UniValue GetMostCommentedFeed(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetMostCommentedFeed\n"
+                "topHeight           (int) - ???\n"
+                "topContentHash      (string, optional) - ???\n"
+                "countOut            (int, optional) - ???\n"
+                "lang                (string, optional) - ???\n"
+                "tags                (vector<string>, optional) - ???\n"
+                "contentTypes        (vector<int>, optional) - ???\n"
+                "txIdsExcluded       (vector<string>, optional) - ???\n"
+                "adrsExcluded        (vector<string>, optional) - ???\n"
+                "tagsExcluded        (vector<string>, optional) - ???\n"
+                "address             (string, optional) - ???\n"
+                "depth               (int, optional) - ???\n"
+            );
+
+        int topHeight;
+        string topContentHash;
+        int countOut;
+        string lang;
+        vector<string> tags;
+        vector<int> contentTypes;
+        vector<string> txIdsExcluded;
+        vector<string> adrsExcluded;
+        vector<string> tagsExcluded;
+        string address;
+        int depth = 60 * 24 * 30 * 6; // about 6 month
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+            adrsExcluded, tagsExcluded, address);
+        // depth
+        if (request.params.size() > 10)
+        {
+            RPCTypeCheckArgument(request.params[10], UniValue::VNUM);
+            depth = std::min(depth, request.params[10].get_int());
+        }
+
+        int64_t topContentId = 0;
+        // if (!topContentHash.empty())
+        // {
+        //     auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+        //     if (!ids.empty())
+        //         topContentId = ids[0];
+        // }
+
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
+        UniValue result(UniValue::VOBJ);
+        UniValue content = request.DbConnection()->WebRpcRepoInst->GetMostCommentedFeed(
+            countOut, topContentId, topHeight, lang, tags, contentTypes,
+            txIdsExcluded, adrsExcluded, tagsExcluded,
+            address, depth, badReputationLimit);
+
+        result.pushKV("height", topHeight);
+        result.pushKV("contents", content);
+        return result;
+    }
+
     UniValue GetSubscribesFeed(const JSONRPCRequest& request)
     {
         if (request.fHelp)
