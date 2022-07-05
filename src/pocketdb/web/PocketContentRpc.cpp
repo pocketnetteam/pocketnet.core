@@ -1117,18 +1117,23 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetNotifications()
     {
         return RPCHelpMan{"GetNotifications",
-                          "\nGet all possible notifications for all addresses for concrete block height.\n",
-                          {
-                                  // TODO (rpc): provide args description
-                          },
-                          {
-                                  // TODO (rpc): provide return description
-                          },
-                          RPCExamples{
+                        "\nGet all possible notifications for all addresses for concrete block height.\n",
+                        {
+                            {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "height of block to search for"},
+                            {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "filters to specify notification's types to search for. Default: search for all notifications. See \ngetevents\n to get available types",
+                                {
+                                    {"filter", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
+                                }
+                            }
+                        },
+                        {
+                                // TODO (rpc): provide return description
+                        },
+                        RPCExamples{
                                   // TODO (rpc)
                                   HelpExampleCli("getnotifications", "") +
                                   HelpExampleRpc("getnotifications", "")
-                          },
+                        },
     [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
         RPCTypeCheck(request.params, {UniValue::VNUM});
