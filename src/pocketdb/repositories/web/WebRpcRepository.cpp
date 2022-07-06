@@ -5409,7 +5409,7 @@ namespace PocketDb
                 p.String2,
                 p.String3,
                 p.String4,
-                r.Value,
+                ifnull(r.Value,0),
                 null,
                 null,
                 null,
@@ -5464,7 +5464,7 @@ namespace PocketDb
                 paa.String2,
                 paa.String3,
                 paa.String4,
-                ra.Value,
+                ifnull(ra.Value,0),
                 c.Hash,
                 c.Type,
                 null,
@@ -5539,7 +5539,7 @@ namespace PocketDb
                 pac.String2,
                 pac.String3,
                 pac.String4,
-                null, -- TODO rep
+                ifnull(rac.Value,0),
                 p.Hash,
                 p.Type,
                 null,
@@ -5578,6 +5578,11 @@ namespace PocketDb
             left join Payload pac
                 on pac.TxHash = ac.Hash
 
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                on rac.Type = 0
+                and rac.Id = ac.Id
+                and rac.Last = 1
+
             where p.Type in (200,201,202)
                 and p.Last = 1
                 and p.Height > 0
@@ -5608,7 +5613,7 @@ namespace PocketDb
                 pu.String2,
                 pu.String3,
                 pu.String4,
-                ru.Value,
+                ifnull(ru.Value,0),
                 null,
                 null,
                 null,
@@ -5668,7 +5673,7 @@ namespace PocketDb
                 pacs.String2,
                 pacs.String3,
                 pacs.String4,
-                racs.Value,
+                ifnull(racs.Value,0),
                 c.Hash,
                 c.Type,
                 null,
@@ -5737,7 +5742,7 @@ namespace PocketDb
                 pacs.String2,
                 pacs.String3,
                 pacs.String4,
-                racs.Value,
+                ifnull(racs.Value,0),
                 c.Hash,
                 c.Type,
                 null,
@@ -5806,7 +5811,7 @@ namespace PocketDb
                 pac.String2,
                 pac.String3,
                 pac.String4,
-                rac.Value,
+                ifnull(rac.Value,0),
                 null, -- TODO (losty): probably reposts here?
                 null,
                 null,
@@ -5876,7 +5881,7 @@ namespace PocketDb
                 pac.String2,
                 pac.String3,
                 pac.String4,
-                rac.Value,
+                ifnull(rac.Value,0),
                 tContent.Hash,
                 tContent.Type,
                 null,
@@ -5944,7 +5949,7 @@ namespace PocketDb
                 par.String2,
                 par.String3,
                 par.String4,
-                rar.Value,
+                ifnull(rar.Value,0),
                 p.Hash,
                 p.Type,
                 null,
