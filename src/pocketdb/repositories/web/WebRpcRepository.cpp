@@ -4641,6 +4641,7 @@ namespace PocketDb
 
             where t.Type in (200,201,202)
                 and t.String1 = ?
+                and t.Hash = t.String2 -- Only orig
                 and t.Height = ?
 
         )sql", 
@@ -4809,7 +4810,7 @@ namespace PocketDb
                 and ra.Id = aa.Id
                 and ra.Last = 1
 
-            where a.Type in (204) -- no edit
+            where a.Type = 204 -- only orig
                 and a.Last in (0,1)
                 and a.Height = ?
 
@@ -4878,8 +4879,7 @@ namespace PocketDb
             left join Payload pp
                 on pp.TxHash = p.Hash
 
-            where c.Type in (204,205)
-                and c.Hash = c.String2
+            where c.Type = 204 -- only orig
                 and c.Height = ?
 
         )sql",
@@ -4993,7 +4993,6 @@ namespace PocketDb
                 and racs.Last = 1
 
             where s.Type = 301
-                and s.Last = 0
                 and s.Height = ?
 
         )sql",
@@ -5029,7 +5028,7 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions s indexed by Transactions_Type_Last_Height_Id
+            from Transactions s indexed by Transactions_Height_Type
 
             join Transactions c indexed by Transactions_Type_Last_String2_Height
                 on c.Type in (200, 201, 202)
@@ -5055,7 +5054,6 @@ namespace PocketDb
                 and racs.Last = 1
 
             where s.Type = 300
-                and s.Last = 0
                 and s.Height = ?
 
         )sql",
@@ -5091,7 +5089,7 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions c indexed by Transactions_Type_Last_Height_Id -- content for private subscribers
+            from Transactions c indexed by Transactions_Height_Type -- content for private subscribers
 
             join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
                 on subs.Type = 303
@@ -5117,8 +5115,7 @@ namespace PocketDb
                 and rac.Last = 1
                 
             where c.Type in (200,201,202)
-                and c.Last = 1 -- TODO (losty): last = 1 and c.Hash = c.String2 ?????
-                -- and c.Hash = c.String2 --  TODO (losty): Only first content record
+                and c.Hash = c.String2 -- only orig
                 and c.Height = ?
 
         )sql",
@@ -5154,7 +5151,7 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
+            from Transactions tBoost indexed by Transactions_Height_Type
 
             join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
                 on tContent.Type in (200,201,202)
@@ -5217,7 +5214,7 @@ namespace PocketDb
 
             from Transactions r
 
-            left join Transactions p indexed by Transactions_Type_Last_String1_Height_Id
+            left join Transactions p indexed by Transactions_Height_Type
                 on p.Type in (200,201,202)
                 and p.Last = 1
                 and p.Height > 0
@@ -5244,7 +5241,7 @@ namespace PocketDb
                 and rar.Last = 1
 
             where r.Type in (200,201,202)
-                and r.Last = 1
+                and r.Hash = r.String2 -- Only orig
                 and r.Height = ?
 
         )sql",
