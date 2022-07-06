@@ -62,7 +62,7 @@ namespace PocketDb
             auto [ok2, avatar] = TryGetColumnString(stmt, index+1);
             auto [ok3, badge] = TryGetColumnString(stmt, index+2);
             auto [ok4, reputation] = TryGetColumnInt64(stmt, index+3);
-            if (ok1 && ok2 && ok3 && ok4) {
+            if (ok1 && ok2 && ok4) {
                 return ShortAccount(name, avatar, badge, reputation);
             }
             return std::nullopt;
