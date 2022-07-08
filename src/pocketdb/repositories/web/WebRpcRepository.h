@@ -171,6 +171,18 @@ namespace PocketDb
          */
         std::map<std::string, std::vector<ShortForm>> GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
 
+        /**
+         * Get all activities (posts, comments, etc) created by address
+         * 
+         * @param address - address to search activities for
+         * @param heightMax - height to start search from, including
+         * @param heightMin - height untill search, excluding
+         * @param blockNumMax - number of tx in block to start search in heightMax, excluding
+         * @param filters 
+         * @return vector of activities in ShortForm
+         */
+        std::vector<ShortForm> GetActivities(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters);
+
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
         UniValue GetSubscribesFeedOld(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);

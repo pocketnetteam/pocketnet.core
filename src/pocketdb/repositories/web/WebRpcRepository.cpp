@@ -4588,7 +4588,121 @@ namespace PocketDb
         // Full query and required binds in correct order
         return std::pair { ss.str(), binds };
     }
-    
+
+    std::vector<ShortForm> WebRpcRepository::GetActivities(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
+    {
+        // This is required because we want static bind functors for optimization so parameters can't be captured there
+        struct QueryParams {
+            // Handling all by reference
+            const std::string& address;
+            const int64_t& heightMax;
+            const int64_t& heightMin;
+            const int64_t& blockNumMax;
+        } queryParams{address, heightMax, heightMin, blockNumMax};
+
+        // Pocketnetteam and referal txs are ignored
+        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
+            // TODO (losty): money {}
+        {
+            ShortTxType::Answer, { R"sql(
+            -- My answers to other's comments
+            select
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
+                a.Hash,
+                a.Type,
+                null,
+                orig.Height as Height,
+                a.BlockNum as BlockNum,
+                null,
+                pa.String1,
+                paa.String2,
+                paa.String3,
+                paa.String4,
+                ifnull(ra.Value,0),
+                c.Hash,
+                c.Type,
+                c.String1,
+                c.Height,
+                c.BlockNum,
+                null,
+                pc.String1,
+                null,
+                null,
+                null,
+                null
+
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
+
+            left join Payload pc
+                on pc.TxHash = c.Hash
+
+            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1 -- Other answers
+                on a.Type in (204, 205) and a.Last = 1
+                and a.Height > ?
+                and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
+                and a.String5 = c.String2
+                and a.String1 != c.String1
+                and a.String1 = ?
+
+            join Transactions orig indexed by Transactions_Hash_Height
+                on orig.Hash = a.String2
+
+            left join Payload pa
+                on pa.TxHash = a.Hash
+
+            left join Transactions aa
+                on aa.Type = 100
+                and aa.Last = 1
+                and aa.String1 = a.String1
+                and aa.Height > 0
+
+            left join Payload paa
+                on paa.TxHash = aa.Hash
+
+            left join Ratings ra indexed by Ratings_Type_Id_Last_Height
+                on ra.Type = 0
+                and ra.Id = aa.Id
+                and ra.Last = 1
+
+            where c.Type in (204, 205)
+              and c.Last = 1
+              and c.Height > 0
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }}
+        };
+
+        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "");
+        auto& sql = elem1;
+        auto& binds = elem2;
+
+        EventsReconstructor reconstructor;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+
+            for (const auto& bind: binds) {
+                bind(stmt, i, queryParams);
+            }
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                reconstructor.FeedRow(*stmt);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return reconstructor.GetResult();
+    }
+
     std::map<std::string, std::vector<ShortForm>> WebRpcRepository::GetNotifications(int64_t height, const std::set<ShortTxType>& filters)
     {
         struct QueryParams {

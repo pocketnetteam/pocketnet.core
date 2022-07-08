@@ -32,7 +32,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetContentActions();
     RPCHelpMan GetEvents(); // TODO (losty): probably move to another place
     RPCHelpMan GetNotifications();
-    
+    RPCHelpMan GetActivities();
 }
 
 #endif //SRC_POCKETDEBUG_H
