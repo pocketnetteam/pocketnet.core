@@ -4589,7 +4589,7 @@ namespace PocketDb
         return std::pair { ss.str(), binds };
     }
     
-    std::map<std::string, std::vector<ShortForm>> WebRpcRepository::GetEventsForBlock(int64_t height, const std::set<ShortTxType>& filters)
+    std::map<std::string, std::vector<ShortForm>> WebRpcRepository::GetNotifications(int64_t height, const std::set<ShortTxType>& filters)
     {
         struct QueryParams {
             // Handling all by reference

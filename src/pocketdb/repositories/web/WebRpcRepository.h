@@ -169,7 +169,7 @@ namespace PocketDb
          * @param filters
          * @return map where keys are addresses and values are ShortForms of events from given block 
          */
-        std::map<std::string, std::vector<ShortForm>> GetEventsForBlock(int64_t height, const std::set<ShortTxType>& filters);
+        std::map<std::string, std::vector<ShortForm>> GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
 
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);

@@ -1157,7 +1157,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxMap = request.DbConnection()->WebRpcRepoInst->GetEventsForBlock(height, filters);
+        auto shortTxMap = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
 
         UniValue res {UniValue::VOBJ};
         for (const auto& addressSpecific: shortTxMap) {
