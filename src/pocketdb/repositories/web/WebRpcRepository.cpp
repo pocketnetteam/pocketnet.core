@@ -4814,6 +4814,72 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
             }
         }},
+
+        {
+            ShortTxType::CommentScore, { R"sql(
+            -- Comment scores
+            select
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
+                s.Hash,
+                s.Type,
+                null,
+                s.Height as Height,
+                s.BlockNum as BlockNum,
+                s.Int1,
+                null,
+                null,
+                null,
+                null,
+                null,
+                c.Hash,
+                c.Type,
+                null,
+                c.Height, -- TODO (losty): original?
+                c.BlockNum,
+                null,
+                ps.String1,
+                pac.String2,
+                pac.String3,
+                pac.String4,
+                ifnull(rac.Value,0)
+
+            from Transactions c indexed by Transactions_Type_Last_String2_Height
+
+            join Transactions s indexed by Transactions_Type_Last_String1_String2_Height
+                on s.Type = 301
+                and s.Last = 0
+                and s.String2 = c.String2
+                and s.Height > ?
+                and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
+                and s.String1 = ?
+
+            join Transactions ac
+                on ac.Type = 100
+                and ac.Last = 1
+                and ac.String1 = c.String1
+                and ac.Height > 0
+
+            left join Payload pac
+                on pac.TxHash = ac.Hash
+
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                on rac.Type = 0
+                and rac.Id = ac.Id
+                and rac.Last = 1
+
+            where c.Type in (204,205)
+                and c.Last = 1
+                and c.Height > 0
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }},
         };
 
         auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "");
