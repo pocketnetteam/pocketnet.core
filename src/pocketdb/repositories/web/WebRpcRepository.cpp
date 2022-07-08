@@ -4615,10 +4615,10 @@ namespace PocketDb
                 a.BlockNum as BlockNum,
                 null,
                 pa.String1,
-                paa.String2,
-                paa.String3,
-                paa.String4,
-                ifnull(ra.Value,0),
+                null,
+                null,
+                null,
+                null,
                 c.Hash,
                 c.Type,
                 c.String1,
@@ -4626,10 +4626,10 @@ namespace PocketDb
                 c.BlockNum,
                 null,
                 pc.String1,
-                null,
-                null,
-                null,
-                null
+                pca.String2,
+                pca.String3,
+                null, -- Badge
+                ifnull(rca.Value,0)
 
             from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
 
@@ -4650,23 +4650,24 @@ namespace PocketDb
             left join Payload pa
                 on pa.TxHash = a.Hash
 
-            left join Transactions aa
-                on aa.Type = 100
-                and aa.Last = 1
-                and aa.String1 = a.String1
-                and aa.Height > 0
+            left join Transactions ca
+                on ca.Type = 100
+                and ca.Last = 1
+                and ca.String1 = c.String1
+                and ca.Height > 0
 
-            left join Payload paa
-                on paa.TxHash = aa.Hash
+            left join Payload pca
+                on pca.TxHash = ca.Hash
 
-            left join Ratings ra indexed by Ratings_Type_Id_Last_Height
-                on ra.Type = 0
-                and ra.Id = aa.Id
-                and ra.Last = 1
+            left join Ratings rca indexed by Ratings_Type_Id_Last_Height
+                on rca.Type = 0
+                and rca.Id = ca.Id
+                and rca.Last = 1
 
             where c.Type in (204, 205)
               and c.Last = 1
               and c.Height > 0
+
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
                 TryBindStatementInt64(stmt, i++, queryParams.heightMin);
