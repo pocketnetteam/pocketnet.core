@@ -4754,6 +4754,66 @@ namespace PocketDb
                 TryBindStatementText(stmt, i++, queryParams.address);
             }
         }},
+
+        {
+            ShortTxType::Subscriber, { R"sql(
+            -- Subscribers
+            select
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
+                subs.Hash,
+                subs.Type,
+                null,
+                subs.Height as Height,
+                subs.BlockNum as BlockNum,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                u.String1,
+                null,
+                null,
+                null,
+                null,
+                null,
+                pu.String2,
+                pu.String3,
+                pu.String4,
+                ifnull(ru.Value,0)
+
+            from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100)
+                and u.Last = 1
+                and u.String1 = subs.String2
+                and u.Height > 0
+
+            left join Payload pu
+                on pu.TxHash = u.Hash
+
+            left join Ratings ru indexed by Ratings_Type_Id_Last_Height
+                on ru.Type = 0
+                and ru.Id = u.Id
+                and ru.Last = 1
+
+            where subs.Type in (302, 303) -- Ignoring unsubscribers?
+                and subs.Last = 1
+                and subs.String1 = ?
+                and subs.Height > ?
+                and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementText(stmt, i++, queryParams.address);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            }
+        }},
         };
 
         auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "");
