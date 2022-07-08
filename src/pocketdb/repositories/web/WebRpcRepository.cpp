@@ -4676,7 +4676,84 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
                 TryBindStatementText(stmt, i++, queryParams.address);
             }
-        }}
+        }},
+
+        {
+            ShortTxType::Comment, { R"sql(
+            -- Comments for my content
+            select
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
+                c.Hash,
+                c.Type,
+                null,
+                c.Height as Height,
+                c.BlockNum as BlockNum,
+                oc.Value,
+                substr(pc.String1, 0, 100),
+                null,
+                null,
+                null,
+                null,
+                p.Hash,
+                p.Type,
+                p.String1,
+                p.Height,
+                p.BlockNum,
+                null,
+                pp.String2,
+                pap.String2,
+                pap.String3,
+                pap.String4,
+                ifnull(rap.Value, 0)
+
+            from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
+
+            cross join Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+                on c.Type in (204,205)
+                and c.Last = 1
+                and c.String3 = p.String2
+                and c.String1 != p.String1
+                and c.Hash = c.String2
+                and c.Height > ?
+                and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
+                and c.String1 = ?
+
+            left join TxOutputs oc indexed by TxOutputs_TxHash_AddressHash_Value
+                on oc.TxHash = c.Hash and oc.AddressHash = p.String1 and oc.AddressHash != c.String1
+
+            left join Payload pc
+                on pc.TxHash = c.Hash
+
+            left join Payload pp
+                on pp.TxHash = p.Hash
+
+            join Transactions ap -- accounts of commentators
+                on ap.String1 = p.String1
+                and ap.Last = 1
+                and ap.Type = 100
+                and ap.Height > 0
+
+            left join Payload pap
+                on pap.TxHash = ap.Hash
+
+            left join Ratings rap indexed by Ratings_Type_Id_Last_Height
+                on rap.Type = 0
+                and rap.Id = ap.Id
+                and rap.Last = 1
+
+            where p.Type in (200,201,202)
+                and p.Last = 1
+                and p.Height > 0
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }},
         };
 
         auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "");
