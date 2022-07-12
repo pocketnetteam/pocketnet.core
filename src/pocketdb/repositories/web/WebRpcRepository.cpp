@@ -4631,12 +4631,12 @@ namespace PocketDb
                 null, -- Badge
                 ifnull(rca.Value,0)
 
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
+            from Transactions c indexed by Transactions_Type_Last_String2_Height -- My comments
 
             left join Payload pc
                 on pc.TxHash = c.Hash
 
-            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1 -- Other answers
+            join Transactions a indexed by Transactions_String1_Last_Height -- Other answers
                 on a.Type in (204, 205) and a.Last = 1
                 and a.Height > ?
                 and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
@@ -4706,7 +4706,7 @@ namespace PocketDb
                 pap.String4,
                 ifnull(rap.Value, 0)
 
-            from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
+            from Transactions p indexed by Transactions_Type_Last_Height_Id
 
             cross join Transactions c indexed by Transactions_Type_Last_String1_Height_Id
                 on c.Type in (204,205)
@@ -4727,7 +4727,7 @@ namespace PocketDb
             left join Payload pp
                 on pp.TxHash = p.Hash
 
-            join Transactions ap -- accounts of commentators
+            left join Transactions ap -- accounts of commentators
                 on ap.String1 = p.String1
                 and ap.Last = 1
                 and ap.Type = 100
@@ -4783,7 +4783,7 @@ namespace PocketDb
                 pu.String4,
                 ifnull(ru.Value,0)
 
-            from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+            from Transactions subs indexed by Transactions_String1_Last_Height
 
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 on u.Type in (100)
@@ -4837,7 +4837,7 @@ namespace PocketDb
                 c.Height, -- TODO (losty): original?
                 c.BlockNum,
                 null,
-                ps.String1,
+                pc.String1,
                 pac.String2,
                 pac.String3,
                 pac.String4,
@@ -4845,7 +4845,10 @@ namespace PocketDb
 
             from Transactions c indexed by Transactions_Type_Last_String2_Height
 
-            join Transactions s indexed by Transactions_Type_Last_String1_String2_Height
+            left join Payload pc
+                on pc.TxHash = c.Hash
+
+            join Transactions s indexed by Transactions_Type_Last_String1_Height_Id
                 on s.Type = 301
                 and s.Last = 0
                 and s.String2 = c.String2
@@ -4853,7 +4856,7 @@ namespace PocketDb
                 and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
                 and s.String1 = ?
 
-            join Transactions ac
+            left join Transactions ac
                 on ac.Type = 100
                 and ac.Last = 1
                 and ac.String1 = c.String1
@@ -4880,9 +4883,227 @@ namespace PocketDb
                 TryBindStatementText(stmt, i++, queryParams.address);
             }
         }},
+
+        {
+            ShortTxType::ContentScore, { R"sql(
+            -- Comment scores
+            select
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
+                s.Hash,
+                s.Type,
+                null,
+                s.Height as Height,
+                s.BlockNum as BlockNum,
+                s.Int1,
+                null,
+                null,
+                null,
+                null,
+                null,
+                c.Hash,
+                c.Type,
+                null,
+                c.Height, -- TODO (losty): original?
+                c.BlockNum,
+                c.String1,
+                pc.String1,
+                pac.String2,
+                pac.String3,
+                pac.String4,
+                ifnull(rac.Value,0)
+
+            from Transactions c indexed by Transactions_Type_Last_String2_Height
+
+            left join Payload pc
+                on pc.TxHash = c.Hash
+
+            join Transactions s indexed by Transactions_Type_Last_String1_Height_Id
+                on s.Type = 300
+                and s.Last = 0
+                and s.String2 = c.String2
+                and s.Height > ?
+                and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
+                and s.String1 = ?
+
+            left join Transactions ac
+                on ac.Type = 100
+                and ac.Last = 1
+                and ac.String1 = c.String1
+                and ac.Height > 0
+
+            left join Payload pac
+                on pac.TxHash = ac.Hash
+
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                on rac.Type = 0
+                and rac.Id = ac.Id
+                and rac.Last = 1
+
+            where c.Type in (200, 201, 202)
+                and c.Last = 1
+                and c.Height > 0
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }},
+
+        {
+            ShortTxType::Boost, { R"sql(
+            -- Boosts for my content
+            select
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
+                tBoost.Hash,
+                tboost.Type,
+                null,
+                tBoost.Height as Height,
+                tBoost.BlockNum as BlockNum,
+                tBoost.Int1,
+                null,
+                null,
+                null,
+                null,
+                null,
+                tContent.Hash,
+                tContent.Type,
+                tContent.String1,
+                tContent.Height,
+                tContent.BlockNum,
+                null,
+                pContent.String2,
+                pac.String2,
+                pac.String3,
+                pac.String4,
+                ifnull(rac.Value,0)
+
+            from Transactions tBoost indexed by Transactions_Type_Last_String1_Height_Id
+
+            join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
+                on tContent.Type in (200,201,202)
+                and tContent.Last in (0,1)
+                and tContent.Height > 0
+                and tContent.String2 = tBoost.String2
+
+            left join Payload pContent
+                on pContent.TxHash = tContent.Hash
+            
+            left join Transactions ac
+                on ac.String1 = tContent.String1
+                and ac.Type = 100
+                and ac.Last = 1
+                and ac.Height > 0
+
+            left join Payload pac
+                on pac.TxHash = ac.Hash
+
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                on rac.Type = 0
+                and rac.Id = ac.Id
+                and rac.Last = 1
+
+            where tBoost.Type in (208)
+                and tBoost.Last in (0,1)
+                and tBoost.String1 = ?
+                and tBoost.Height > ?
+                and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementText(stmt, i++, queryParams.address);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            }
+        }},
+
+        {
+            ShortTxType::Repost, { R"sql(
+            -- Reposts
+            select
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
+                r.Hash,
+                r.Type,
+                null,
+                r.Height as Height,
+                r.BlockNum as BlockNum,
+                null,
+                pr.String2,
+                null,
+                null,
+                null,
+                null,
+                p.Hash,
+                p.Type,
+                p.String1,
+                p.Height,
+                p.BlockNum,
+                null,
+                pp.String2,
+                pap.String2,
+                pap.String3,
+                pap.String4,
+                ifnull(rap.Value,0)
+
+            from Transactions p indexed by Transactions_Type_Last_Height_Id
+
+            left join Payload pp
+                on pp.TxHash = p.Hash
+
+            join Transactions r indexed by Transactions_Type_Last_String1_Height_Id
+                on r.Type in (200,201,202)
+                and r.Last = 1
+                and r.String3 = p.Hash
+                and r.Height > ?
+                and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
+                and r.String1 = ?
+
+            left join Payload pr
+                on pr.TxHash = r.Hash
+
+            join Transactions ap
+                on ap.Type = 100
+                and ap.Last = 1
+                and ap.String1 = p.String1
+                and ap.Height > 0
+
+            left join Payload pap
+                on pap.TxHash = ap.Hash
+
+            left join Ratings rap indexed by Ratings_Type_Id_Last_Height
+                on rap.Type = 0
+                and rap.Id = ap.Id
+                and rap.Last = 1
+
+            where p.Type in (200,201,202)
+                and p.Last = 1
+                and p.Height > 0
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                TryBindStatementText(stmt, i++, queryParams.address);
+            }
+        }}
         };
 
-        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "");
+        static const auto footer = R"sql(
+
+            -- Global order and limit for pagination
+            order by Height desc, BlockNum desc
+            limit 10
+
+        )sql";
+
+        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, footer);
         auto& sql = elem1;
         auto& binds = elem2;
 
