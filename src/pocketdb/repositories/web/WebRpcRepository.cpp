@@ -4708,7 +4708,7 @@ namespace PocketDb
 
             from Transactions p indexed by Transactions_Type_Last_Height_Id
 
-            cross join Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+            join Transactions c indexed by Transactions_Type_Last_String1_Height_Id
                 on c.Type in (204,205)
                 and c.Last = 1
                 and c.String3 = p.String2
@@ -6093,7 +6093,7 @@ namespace PocketDb
 
             from Transactions p indexed by Transactions_String1_Last_Height
 
-            cross join Transactions c indexed by Transactions_Type_Last_String3_Height
+            join Transactions c indexed by Transactions_Type_Last_String3_Height
                 on c.Type in (204,205)
                 and c.Last = 1
                 and c.String3 = p.String2
@@ -6365,7 +6365,7 @@ namespace PocketDb
 
             from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id -- Subscribers private
 
-            cross join Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- content for private subscribers
+            join Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- content for private subscribers
                 on c.Type in (200,201,202)
                 and c.Last = 1 -- TODO (losty): last = 1 and c.Hash = c.String2 ?????
                 and c.String1 = subs.String2
