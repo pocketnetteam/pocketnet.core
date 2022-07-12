@@ -689,6 +689,14 @@ namespace PocketDb
               c.String4   as CommentParent,
               c.String5   as CommentAnswer,
 
+              p.String1   as AddressContent,
+              ifnull(
+                (select String1 from Transactions where Hash = c.String4),
+              '')   as AddressCommentParent,
+              ifnull(
+                (select String1 from Transactions where Hash = c.String5),
+              '')   as AddressCommentAnswer,
+
               (
                 select count(1)
                 from Transactions sc indexed by Transactions_Type_Last_String2_Height
@@ -756,23 +764,27 @@ namespace PocketDb
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("id", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
+                int i = 0;
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("id", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                 {
                     record.pushKV("time", value);
                     record.pushKV("timeUpd", value);
                 }
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("edit", value == 1);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("addressContent", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("addressCommentParent", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("addressCommentAnswer", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("edit", value == 1);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
