@@ -4906,7 +4906,7 @@ namespace PocketDb
                 c.Height, -- TODO (losty): original?
                 c.BlockNum,
                 c.String1,
-                pc.String1,
+                pc.String2,
                 pac.String2,
                 pac.String3,
                 pac.String4,
