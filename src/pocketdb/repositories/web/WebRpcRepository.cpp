@@ -4886,9 +4886,9 @@ namespace PocketDb
 
         {
             ShortTxType::ContentScore, { R"sql(
-            -- Comment scores
+            -- Content scores
             select
-                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
+                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
                 s.Hash,
                 s.Type,
                 null,
