@@ -6288,7 +6288,7 @@ namespace PocketDb
                 c.Height, -- TODO (losty): original?
                 c.BlockNum,
                 null,
-                ps.String2,
+                pc.String2,
                 null,
                 null,
                 null,
@@ -6303,8 +6303,8 @@ namespace PocketDb
                 and s.Height > ?
                 and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
 
-            left join Payload ps
-                on ps.TxHash = c.Hash
+            left join Payload pc
+                on pc.TxHash = c.Hash
 
             join Transactions acs
                 on acs.Type = 100
