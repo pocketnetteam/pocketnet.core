@@ -3320,6 +3320,7 @@ namespace PocketDb
                     join web.ContentMap cm on c.ROWID = cm.ROWID
                     where cm.FieldType in (2, 3, 4, 5)
                         and c.Value match ?
+                )
             )sql";
         }
 
