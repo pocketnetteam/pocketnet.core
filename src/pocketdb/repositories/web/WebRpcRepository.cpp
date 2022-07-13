@@ -3246,7 +3246,7 @@ namespace PocketDb
     UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
-        const string& address)
+        const string& address, const string& keyword)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
@@ -3255,6 +3255,11 @@ namespace PocketDb
             return result;
 
         // ---------------------------------------------
+        string _keyword;
+        if(!keyword.empty())
+        {
+            _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
+        }
 
         string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
 
@@ -3306,6 +3311,18 @@ namespace PocketDb
              ) )sql";
         }
 
+        if(!_keyword.empty())
+        {
+            sql += R"sql(
+                and t.id in (
+                    select cm.ContentId
+                    from web.Content c
+                    join web.ContentMap cm on c.ROWID = cm.ROWID
+                    where cm.FieldType in (2, 3, 4, 5)
+                        and c.Value match ?
+            )sql";
+        }
+
         sql += " order by t.Id desc ";
         sql += " limit ? ";
 
@@ -3354,6 +3371,9 @@ namespace PocketDb
                 if (!lang.empty())
                     TryBindStatementText(stmt, i++, lang);
             }
+
+            if (!_keyword.empty())
+                TryBindStatementText(stmt, i++, _keyword);
 
             TryBindStatementInt(stmt, i++, countOut);
 
