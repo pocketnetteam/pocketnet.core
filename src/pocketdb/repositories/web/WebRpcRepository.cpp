@@ -5161,20 +5161,20 @@ namespace PocketDb
                 null,
                 t.Height as Height,
                 t.BlockNum as BlockNum,
-                null, -- Address, not required here because we already know it
+                null,
                 p.String2, -- Caption
                 null,
                 null,
                 null,
                 null,
-                null, -- TODO (losty): related content? If repost etc
+                r.Hash, -- TODO (losty): related content? If repost etc
+                r.Type,
+                r.String1,
+                r.Height,
+                r.BlockNum,
                 null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                pr.String2,
+                null, -- TODO (losty): no account info
                 null,
                 null,
                 null
@@ -5183,6 +5183,15 @@ namespace PocketDb
 
             left join Payload p
                 on p.TxHash = t.Hash
+
+            left join Transactions r indexed by Transactions_Height_Type -- related content - possible reposts
+                on r.Type in (200,201,202)
+                and r.Last = 1
+                and r.Height > 0
+                and r.Hash = t.String3
+
+            left join Payload pr
+                on pr.TxHash = r.Hash   
 
             where t.Type in (200,201,202)
                 and t.String1 = ?
@@ -5622,14 +5631,14 @@ namespace PocketDb
                 pac.String3,
                 pac.String4,
                 ifnull(rac.Value,0),
-                null, -- TODO (losty): probably reposts here?
+                r.Hash, -- TODO (losty): probably reposts here?
+                r.Type,
+                r.String1,
+                r.Height,
+                r.BlockNum,
                 null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                pr.String2,
+                null, -- TODO (losty): No account info
                 null,
                 null,
                 null
@@ -5658,6 +5667,15 @@ namespace PocketDb
                 on rac.Type = 0
                 and rac.Id = ac.Id
                 and rac.Last = 1
+
+            left join Transactions r indexed by Transactions_Height_Type -- related content - possible reposts
+                on r.Type in (200,201,202)
+                and r.Last = 1
+                and r.Height > 0
+                and r.Hash = c.String3
+
+            left join Payload pr
+                on pr.TxHash = r.Hash
                 
             where c.Type in (200,201,202)
                 and c.Hash = c.String2 -- only orig
