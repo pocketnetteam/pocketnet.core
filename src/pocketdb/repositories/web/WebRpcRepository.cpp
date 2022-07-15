@@ -3243,10 +3243,10 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
+    UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
-        const string& address, const string& keyword)
+        const string& address, const string& keyword, const string& orderby, const string& ascdesc)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
@@ -3270,6 +3270,41 @@ namespace PocketDb
         string langFilter;
         if (!lang.empty())
             langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
+
+        string sorting = "t.Id ";
+        if (orderby == "comment")
+        {
+            sorting = R"sql(
+                (
+                    select count()
+                    from Transactions s indexed by Transactions_Type_Last_String3_Height
+                    where s.Type in (204, 205)
+                      and s.Height is not null
+                      and s.String3 = t.String2
+                      and s.Last = 1
+                      -- exclude commenters blocked by the author of the post
+                      and not exists (
+                        select 1
+                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                        where b.Type in (305)
+                            and b.Last = 1
+                            and b.Height > 0
+                            and b.String1 = t.String1
+                            and b.String2 = s.String1
+                      )
+                )
+            )sql";
+        }
+        if (orderby == "score")
+        {
+            sorting = R"sql(
+                (
+                    select count() from Transactions scr indexed by Transactions_Type_Last_String2_Height
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2
+                )
+            )sql";
+        }
+        sorting += " " + ascdesc;
 
         string sql = R"sql(
             select t.Id
@@ -3324,8 +3359,11 @@ namespace PocketDb
             )sql";
         }
 
-        sql += " order by t.Id desc ";
-        sql += " limit ? ";
+        sql += R"sql( order by
+        )sql" + sorting   + R"sql(
+         limit ?
+         offset ?
+        )sql";
 
         // ---------------------------------------------
 
@@ -3378,8 +3416,11 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, i++, countOut);
 
+            TryBindStatementInt(stmt, i++, pageNumber * countOut);
+
             // ---------------------------------------------
 
+            LogPrintf(sqlite3_expanded_sql(*stmt));
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)

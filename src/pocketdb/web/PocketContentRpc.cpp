@@ -8,7 +8,7 @@
 namespace PocketWeb::PocketWebRpc
 {
     void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
-        vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address, string& address_feed, string& keyword)
+        vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address, string& address_feed, string& keyword, string& orderby, string& ascdesc)
     {
         topHeight = chainActive.Height();
         if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int() > 0)
@@ -113,9 +113,22 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        if (request.params.size() > 11)
+        if (request.params.size() > 11 && request.params[11].isStr())
         {
             keyword = HtmlUtils::UrlDecode(request.params[11].get_str());
+        }
+
+        orderby = "id";
+        if (request.params.size() > 12 && request.params[12].isStr())
+        {
+            if(request.params[12].get_str() == "comment") orderby = "comment";
+            else if(request.params[12].get_str() == "score") orderby = "score";
+        }
+
+        ascdesc = "desc";
+        if (request.params.size() > 13 && request.params[13].isStr())
+        {
+            orderby = request.params[13].get_str() == "asc" ? "asc" : "desc";
         }
     }
 
@@ -123,14 +136,14 @@ namespace PocketWeb::PocketWebRpc
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address, string& address_feed)
     {
         string skipString;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address, address_feed, skipString);
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address, address_feed, skipString, skipString, skipString);
     }
 
     void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address)
     {
         string skipString;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address, skipString, skipString);
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address, skipString, skipString, skipString, skipString);
     }
 
     UniValue GetContent(const JSONRPCRequest& request)
@@ -217,6 +230,8 @@ namespace PocketWeb::PocketWebRpc
                 "address             (string, optional) - ???\n"
                 "address_feed        (string) - ???\n"
                 "keyword             (string) - ???\n"
+                "orderby             (string) - ???\n"
+                "ascdesc             (string) - ???\n"
             );
 
         int topHeight;
@@ -231,24 +246,30 @@ namespace PocketWeb::PocketWebRpc
         string address;
         string address_feed;
         string keyword;
+        string orderby;
+        string ascdesc;
         ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
-            adrsExcluded, tagsExcluded, address, address_feed, keyword);
+            adrsExcluded, tagsExcluded, address, address_feed, keyword, orderby, ascdesc);
 
         if (address_feed.empty())
             throw JSONRPCError(RPC_INVALID_REQUEST, string("No profile address"));
 
         int64_t topContentId = 0;
+        int pageNumber = 0;
         if (!topContentHash.empty())
         {
             auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
             if (!ids.empty())
                 topContentId = ids[0];
+        } else if (topContentHash.empty() && request.params.size() > 1 && request.params[1].isNum())
+        {
+            pageNumber = request.params[1].get_int();
         }
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileFeed(
-            address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
-            txIdsExcluded, adrsExcluded, tagsExcluded, address, keyword);
+            address_feed, countOut, pageNumber, topContentId, topHeight, lang, tags, contentTypes,
+            txIdsExcluded, adrsExcluded, tagsExcluded, address, keyword, orderby, ascdesc);
 
         result.pushKV("height", topHeight);
         result.pushKV("contents", content);
