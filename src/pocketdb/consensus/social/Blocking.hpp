@@ -119,6 +119,7 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetAddressTo()) && IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
             if (!IsEmpty(ptx->GetAddressTo()) && !IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
+            // TODO (o1q): multiple_blocking. Check if addresses field in JSON format
 
             // Blocking self
             auto blockingaddresses = IsEmpty(ptx->GetAddressTo()) ? "" : *ptx->GetAddressTo();
@@ -141,9 +142,20 @@ namespace PocketConsensus
                 if (*blockPtx->GetHash() == *ptx->GetHash())
                     continue;
 
-                if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo() &&
-                    *ptx->GetAddressesTo() == *blockPtx->GetAddressesTo())
-                    return {false, SocialConsensusResult_ManyTransactions};
+                // TODO (o1q): multiple_blocking. Implement duplicate. And do not forget to check if parameter is null
+                // if (*ptx->GetAddress() == *blockPtx->GetAddress() &&
+                //     *ptx->GetAddressTo() == *blockPtx->GetAddressTo() &&
+                //     *ptx->GetAddressesTo() == *blockPtx->GetAddressesTo())
+                //     return {false, SocialConsensusResult_ManyTransactions};
+                if (*ptx->GetAddress() == *blockPtx->GetAddress()) {
+                    if (!IsEmpty(ptx->GetAddressTo()) &&
+                        !IsEmpty(blockPtx->GetAddressTo()) &&
+                        *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
+                        return {false, SocialConsensusResult_ManyTransactions};
+                    if (!IsEmpty(ptx->GetAddressesTo()) &&
+                        !IsEmpty(blockPtx->GetAddressesTo()))
+                        return {false, SocialConsensusResult_ManyTransactions};
+                }
             }
 
             return Success;
