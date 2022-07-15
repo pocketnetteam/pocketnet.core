@@ -91,18 +91,24 @@ namespace PocketDb
     public:
         void FeedRow(sqlite3_stmt* stmt)
         {
-            auto [ok, address] = TryGetColumnString(stmt, 0);
-            if (!ok) throw std::runtime_error("Missing address of notifier");
-
-            m_result[address].emplace_back(std::move(m_parser.ParseRow(stmt, 1)));
+            auto shortForm = m_parser.ParseRow(stmt, 1);
+            if (shortForm.GetType() == ShortTxType::PocketnetTeam) {
+                // Pocketnetteam posts are special case because everyone need to be notified about them
+                m_pocketnetteamPosts.emplace_back(std::move(shortForm));
+            } else {
+                auto [ok, address] = TryGetColumnString(stmt, 0);
+                if (!ok) throw std::runtime_error("Missing address of notifier");
+                m_result[address].emplace_back(std::move(shortForm));
+            }
         }
-        std::map<std::string, std::vector<PocketDb::ShortForm>> GetResult() const
+        WebRpcRepository::NotificationsResult GetResult() const
         {
-            return m_result;
+            return { m_result, m_pocketnetteamPosts };
         }
     private:
         ShortFormParser m_parser;
         std::map<std::string, std::vector<PocketDb::ShortForm>> m_result;
+        std::vector<ShortForm> m_pocketnetteamPosts;
     };
 
 
@@ -5128,7 +5134,7 @@ namespace PocketDb
         return reconstructor.GetResult();
     }
 
-    std::map<std::string, std::vector<ShortForm>> WebRpcRepository::GetNotifications(int64_t height, const std::set<ShortTxType>& filters)
+    WebRpcRepository::NotificationsResult WebRpcRepository::GetNotifications(int64_t height, const std::set<ShortTxType>& filters)
     {
         struct QueryParams {
             // Handling all by reference

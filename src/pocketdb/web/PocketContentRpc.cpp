@@ -1157,16 +1157,25 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxMap = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+        auto [shortTxMap, pocketnetteamPosts] = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
 
-        UniValue res {UniValue::VOBJ};
+        UniValue userNotifications {UniValue::VOBJ};
         for (const auto& addressSpecific: shortTxMap) {
             UniValue txs {UniValue::VARR};
             for (const auto& tx: addressSpecific.second) {
                 txs.push_back(tx.Serialize());
             }
-            res.pushKV(addressSpecific.first, txs);
+            userNotifications.pushKV(addressSpecific.first, txs);
         }
+
+        UniValue pocketnetteam {UniValue::VARR};
+        for (const auto& pocketnetteanPost: pocketnetteamPosts) {
+            pocketnetteam.push_back(pocketnetteanPost.Serialize());
+        }
+
+        UniValue res {UniValue::VOBJ};
+        res.pushKV("users_notifications", userNotifications);
+        res.pushKV("pocketnetteam", pocketnetteam);
 
         return res;
     },
