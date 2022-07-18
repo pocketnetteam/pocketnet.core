@@ -267,6 +267,9 @@ void Shutdown(NodeContext& node)
 
     StopTorControl();
 
+    if (notifyClientsThread)
+        notifyClientsThread->Stop();
+
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue, threadGroup and load block thread.
     if (node.scheduler) node.scheduler->stop();
@@ -2113,6 +2116,9 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         LogPrintf("Shutdown requested. Exiting.\n");
         return false;
     }
+
+    if (!gArgs.GetBoolArg("-withoutweb", false) && gArgs.GetArg("-reindex", 0) == 0)
+        PocketServices::WebPostProcessorInst.Enqueue(ChainActive().Height());
 
     fs::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
     CAutoFile est_filein(fsbridge::fopen(est_path, "rb"), SER_DISK, CLIENT_VERSION);

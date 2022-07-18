@@ -23,13 +23,14 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetHierarchicalFeed();
     RPCHelpMan GetBoostFeed();
     RPCHelpMan GetTopFeed();
+    RPCHelpMan GetMostCommentedFeed();
     RPCHelpMan GetProfileFeed();
     RPCHelpMan GetSubscribesFeed();
     RPCHelpMan FeedSelector();
     RPCHelpMan GetContentsStatistic();
     RPCHelpMan GetRandomContents();
     RPCHelpMan GetContentActions();
-    
+
 }
 
 #endif //SRC_POCKETDEBUG_H

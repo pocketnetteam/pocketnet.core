@@ -65,7 +65,7 @@ namespace PocketDb
         UniValue GetAccountState(const string& address, int heightWindow);
         UniValue GetAccountSetting(const string& address);
 
-        UniValue GetUserStatistic(const vector<string>& addresses, const int nHeight = 0, const int depth = 0);
+        UniValue GetUserStatistic(const vector<string>& addresses, const int nHeight = 0, const int depthR = 0, const int depthC = 0, const int cntC = 1);
 
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
         UniValue GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash);
@@ -118,6 +118,11 @@ namespace PocketDb
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
 
         UniValue GetTopFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+        const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
+        int badReputationLimit);
+
+        UniValue GetMostCommentedFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
         int badReputationLimit);

@@ -369,9 +369,16 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         msg.pushKV("contentsLang", contentsLang);
 
         auto countResponse = PocketDb::NotifierRepoInst.GetPostCountFromMySubscribes(connWS.second.Address, blockIndex->nHeight);
-        if (countResponse.exists("count"))
+        if (countResponse.exists("cntTotal"))
         {
-            msg.pushKV("sharesSubscr", countResponse["count"].get_int());
+            msg.pushKV("sharesSubscr", countResponse["cntTotal"].get_int());
+
+            UniValue contentsSubscribes(UniValue::VOBJ);
+            contentsSubscribes.pushKV("share", (countResponse.exists("cntPost") ? countResponse["cntPost"].get_int() : 0));
+            contentsSubscribes.pushKV("video", (countResponse.exists("cntVideo") ? countResponse["cntVideo"].get_int() : 0));
+            contentsSubscribes.pushKV("article", (countResponse.exists("cntArticle") ? countResponse["cntArticle"].get_int() : 0));
+
+            msg.pushKV("contentsSubscribes", contentsSubscribes);
         }
 
         if (blockIndex->nHeight > connWS.second.Block)
