@@ -5184,7 +5184,7 @@ namespace PocketDb
                 left join Payload p
                     on p.TxHash = t.Hash
 
-                left join Transactions r indexed by Transactions_Height_Type -- related content - possible reposts
+                left join Transactions r indexed by Transactions_Hash_Height -- related content - possible reposts
                     on r.Type in (200,201,202)
                     and r.Last = 1
                     and r.Height > 0
