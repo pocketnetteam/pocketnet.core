@@ -5167,7 +5167,7 @@ namespace PocketDb
                 null,
                 null,
                 null,
-                r.Hash, -- TODO (losty): related content? If repost etc
+                r.Hash, -- repost related data, if any
                 r.Type,
                 r.String1,
                 r.Height,
@@ -5179,7 +5179,7 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
+            from Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
 
             left join Payload p
                 on p.TxHash = t.Hash
@@ -5209,7 +5209,7 @@ namespace PocketDb
             ShortTxType::Money, { R"sql(
             -- Incoming money
             select
-                o.AddressHash,
+                o.AddressHash, -- TODO (losty): empty str here
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
                 t.Hash,
                 t.Type,
@@ -5271,7 +5271,7 @@ namespace PocketDb
                 p.String2,
                 p.String3,
                 p.String4,
-                ifnull(r.Value,0),
+                ifnull(r.Value,0), -- TODO (losty): do we need rating if referal is always a new user?
                 null,
                 null,
                 null,
@@ -5825,6 +5825,8 @@ namespace PocketDb
             for (const auto& bind: binds) {
                 bind(stmt, i, queryParams);
             }
+
+            LogPrintf(sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
