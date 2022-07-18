@@ -40,7 +40,10 @@ jobs:
         run: make check
 
       - name: Launch benchmark
-        run: ./src/bench/bench_pocketcoin
+        run: |
+          cd ./src/bench
+          ./bench_pocketcoin
+          cd ../../
 
       - name: Save Version
         id: save_version
