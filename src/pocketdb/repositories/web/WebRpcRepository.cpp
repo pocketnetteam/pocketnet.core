@@ -5250,7 +5250,6 @@ namespace PocketDb
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
                 TryBindStatementInt64(stmt, i++, queryParams.height);
-                TryBindStatementInt64(stmt, i++, queryParams.height);
             }
         }},
 
