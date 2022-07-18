@@ -15,8 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # - name: Apt Update
-      #   run: sudo apt update
+      - name: Apt Update
+        run: |
+          sudo apt update
+          sudo apt install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
 
       - name: Download dependencies archive
         run: curl -O https://dev.pocketnet.app/x86_64-pc-linux-gnu.bz2
@@ -47,8 +49,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # - name: Apt Update
-      #   run: sudo apt update
+      - name: Apt Update
+        run: |
+          sudo apt update
+          sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils g++-mingw-w64-x86-64
+          sudo update-alternatives --install /usr/bin/x86_64-w64-mingw32-g++ x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix 90
+
+
 
       - name: Download dependencies archive
         run: curl -O https://dev.pocketnet.app/x86_64-w64-mingw32.bz2
