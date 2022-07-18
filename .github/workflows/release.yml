@@ -31,7 +31,7 @@ jobs:
         export BDB_PREFIX='/home/runner/work/pocketnet.core/pocketnet.core/db4'
         ./configure --enable-tests BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" BDB_CFLAGS="-I${BDB_PREFIX}/include"
     - name: make
-      run: make -j16
+      run: make -j8
     - name: make check
       run: make check
     - name: bench
@@ -137,3 +137,10 @@ jobs:
   #       env:
   #         GITHUB_TOKEN: ${{ secrets.release_token }}
   #     - name: 
+
+    # - name: Download artifact
+    #     uses: actions/download-artifact@v3
+    #     with:
+    #       name: bastyon.tgz
+    #   - name: Unpack artifact
+    #     run: tar xzf bastyon.tgz -C /data/gui/ --no-same-owner
