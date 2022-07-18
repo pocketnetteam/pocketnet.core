@@ -41,14 +41,14 @@ jobs:
 
       - name: Launch benchmark
         run: |
-          cd ./src/bench
+          cd ./src/bench/
           ./bench_pocketcoin
           cd ../../
 
       - name: Save Version
         id: save_version
         run: |
-          export VERSION=`./release/usr/local/bin/pocketcoind --version | grep 'Pocketnet Core Daemon version' | sed 's/Pocketnet Core Daemon version v//g'`
+          export VERSION=`./src/pocketcoind --version | grep 'Pocketnet Core Daemon version' | sed 's/Pocketnet Core Daemon version v//g'`
           echo "::set-output name=version::${VERSION}"
 
   BuildUnix:
