@@ -36,20 +36,20 @@ jobs:
       - name: Make
         run: make -j4
 
-    - name: Launch tests
-      run: make check
+      - name: Launch tests
+        run: make check
 
-    - name: Launch benchmark
-      run: ./src/bench/bench_pocketcoin
+      - name: Launch benchmark
+        run: ./src/bench/bench_pocketcoin
 
-    - name: Save Version
-      id: save_version
-      run: |
-        export VERSION=`./release/usr/local/bin/pocketcoind --version | grep 'Pocketnet Core Daemon version' | sed 's/Pocketnet Core Daemon version v//g'`
-        echo "::set-output name=version::${VERSION}"
+      - name: Save Version
+        id: save_version
+        run: |
+          export VERSION=`./release/usr/local/bin/pocketcoind --version | grep 'Pocketnet Core Daemon version' | sed 's/Pocketnet Core Daemon version v//g'`
+          echo "::set-output name=version::${VERSION}"
 
-    outputs:
-      version: ${{ steps.save_version.outputs.version }}
+      outputs:
+        version: ${{ steps.save_version.outputs.version }}
 
   BuildUnix:
     needs: Tests
