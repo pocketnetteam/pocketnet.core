@@ -14,6 +14,7 @@
 #include <timedata.h>
 #include "core_io.h"
 #include "utils/html.h"
+#include "pocketdb/models/shortform/ShortForm.h"
 
 namespace PocketDb
 {
@@ -155,6 +156,16 @@ namespace PocketDb
         vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
 
         UniValue GetContentActions(const string& postTxHash);
+
+        // First - map where keys are addresses and values are ShortForms of events from given block. Second - pocketnetteam posts.
+        using NotificationsResult = std::pair<std::map<std::string, std::vector<PocketDb::ShortForm>>, std::vector<ShortForm>>;
+        /**
+         * Get all possible events for all adresses in concrete block
+         * 
+         * @param height height of block to search
+         * @param filters
+         */
+        NotificationsResult GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
 
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);

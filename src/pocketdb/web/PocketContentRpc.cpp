@@ -4,6 +4,7 @@
 
 #include <pocketdb/consensus/Base.h>
 #include "pocketdb/web/PocketContentRpc.h"
+#include "pocketdb/helpers/ShortFormHelper.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -781,5 +782,60 @@ namespace PocketWeb::PocketWebRpc
 
         auto contentHash = request.params[0].get_str();
         return request.DbConnection()->WebRpcRepoInst->GetContentActions(contentHash);
+    }
+
+    UniValue GetNotifications(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getnotifications\n"
+                "\nGet all possible notifications for all addresses for concrete block height.\n"
+                "\nArguments:\n"
+                "1. \"height\" (int) height of block to search in\n"
+                "2. \"filters\" (array of strings, optional) type(s) of notifications. If empty or null - search for all types\n"
+                );
+
+        RPCTypeCheck(request.params, {UniValue::VNUM});
+
+        auto height = request.params[0].get_int64();
+
+        if (height > chainActive.Height()) throw JSONRPCError(RPC_INVALID_PARAMETER, "Spefified height is greater than current chain height");
+
+        std::set<ShortTxType> filters;
+        if (request.params.size() > 1 && request.params[1].isArray()) {
+            const auto& rawFilters  = request.params[1].get_array();
+            for (int i = 0; i < rawFilters.size(); i++) {
+                if (rawFilters[i].isStr()) {
+                    const auto& rawFilter = rawFilters[i].get_str();
+                    auto filter = ShortTxTypeConvertor::strToType(rawFilter);
+                    if (filter == ShortTxType::NotSet) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unexpected filter: " + rawFilter);
+                    }
+                    filters.insert(filter);
+                }
+            }
+        }
+
+    auto [shortTxMap, pocketnetteamPosts] = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+
+        UniValue userNotifications {UniValue::VOBJ};
+        for (const auto& addressSpecific: shortTxMap) {
+            UniValue txs {UniValue::VARR};
+            for (const auto& tx: addressSpecific.second) {
+                txs.push_back(tx.Serialize());
+            }
+            userNotifications.pushKV(addressSpecific.first, txs);
+        }
+
+        UniValue pocketnetteam {UniValue::VARR};
+        for (const auto& pocketnetteanPost: pocketnetteamPosts) {
+            pocketnetteam.push_back(pocketnetteanPost.Serialize());
+        }
+
+        UniValue res {UniValue::VOBJ};
+        res.pushKV("users_notifications", userNotifications);
+        res.pushKV("pocketnetteam", pocketnetteam);
+
+        return res;
     }
 }

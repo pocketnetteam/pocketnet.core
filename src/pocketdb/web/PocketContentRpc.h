@@ -30,6 +30,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetContentsStatistic(const JSONRPCRequest& request);
     UniValue GetRandomContents(const JSONRPCRequest& request);
     UniValue GetContentActions(const JSONRPCRequest& request);
+    UniValue GetNotifications(const JSONRPCRequest& request);
 
 }
 
