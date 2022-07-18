@@ -5617,71 +5617,69 @@ namespace PocketDb
 
         {
             ShortTxType::PrivateContent, { R"sql(
-            -- Content from private subscribers
-            select
-                subs.String1,
-                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
-                c.Hash,
-                c.Type,
-                c.String1,
-                c.Height as Height,
-                c.BlockNum as BlockNum,
-                null,
-                p.String2,
-                pac.String2,
-                pac.String3,
-                pac.String4,
-                ifnull(rac.Value,0),
-                r.Hash, -- TODO (losty): probably reposts here?
-                r.Type,
-                r.String1,
-                r.Height,
-                r.BlockNum,
-                null,
-                pr.String2,
-                null, -- TODO (losty): No account info
-                null,
-                null,
-                null
+                -- Content from private subscribers
+                select
+                    subs.String1,
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
+                    c.Hash,
+                    c.Type,
+                    c.String1,
+                    c.Height as Height,
+                    c.BlockNum as BlockNum,
+                    null,
+                    p.String2,
+                    pac.String2,
+                    pac.String3,
+                    pac.String4,
+                    ifnull(rac.Value,0),
+                    r.Hash, -- TODO (losty): probably reposts here?
+                    r.Type,
+                    r.String1,
+                    r.Height,
+                    r.BlockNum,
+                    null,
+                    pr.String2,
+                    null, -- TODO (losty): No account info
+                    null,
+                    null,
+                    null
 
-            from Transactions c indexed by Transactions_Height_Type -- content for private subscribers
+                from Transactions c indexed by Transactions_Height_Type -- content for private subscribers
 
-            join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
-                on subs.Type = 303
-                and subs.Last = 1
-                and subs.Height > 0
-                and subs.String2 = c.String1
+                cross join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
+                    on subs.Type = 303
+                    and subs.Last = 1
+                    and subs.String2 = c.String1
+                    and subs.Height > 0
 
-            left join Payload p
-                on p.TxHash = c.Hash
-            
-            join Transactions ac
-                on ac.Type = 100
-                and ac.Last = 1
-                and ac.String1 = c.String1
-                and ac.Height > 0
+                cross join Transactions r -- related content - possible reposts
+                    on r.Hash = c.String3
+                    and r.Type in (200,201,202)
 
-            left join Payload pac
-                on pac.TxHash = ac.Hash
+                cross join Payload pr
+                    on pr.TxHash = r.Hash
 
-            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                on rac.Type = 0
-                and rac.Id = ac.Id
-                and rac.Last = 1
+                cross join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                    on ac.Type = 100
+                    and ac.Last = 1
+                    and ac.String1 = c.String1
+                    and ac.Height > 0
 
-            left join Transactions r indexed by Transactions_Height_Type -- related content - possible reposts
-                on r.Type in (200,201,202)
-                and r.Last = 1
-                and r.Height > 0
-                and r.Hash = c.String3
+                cross join Payload p
+                    on p.TxHash = c.Hash
 
-            left join Payload pr
-                on pr.TxHash = r.Hash
-                
-            where c.Type in (200,201,202)
-                and c.Hash = c.String2 -- only orig
-                and c.Height = ?
+                cross join Payload pac
+                    on pac.TxHash = ac.Hash
 
+                cross join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                    on rac.Type = 0
+                    and rac.Id = ac.Id
+                    and rac.Last = 1
+
+                where c.Type in (200,201,202)
+                    and c.Hash = c.String2 -- only orig
+                    and c.Height = ?
+                    and c.String3 is not null
         )sql",
             heightBinder
         }},
