@@ -75,10 +75,13 @@ jobs:
 
   TestsUnix:
     needs: BuildUnix
+    runs-on: ubuntu-20.04
+    steps:
+      - run: echo "Implement!"
 
 
-  TestsWin:
-    needs: BuildWin
+  # TestsWin:
+  #   needs: BuildWin
 
 
   # ReleaseDraft:
