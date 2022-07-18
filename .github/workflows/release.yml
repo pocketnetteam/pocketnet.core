@@ -12,12 +12,12 @@ jobs:
 
   Tests:
     runs-on: ubuntu-20.04
+    outputs:
+      version: ${{ steps.save_version.outputs.version }}
     steps:
       - uses: actions/checkout@v2
 
-      - run: echo "${{ needs.Tests.outputs.version }}"
-
-      - name: Apt Update
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
@@ -48,9 +48,6 @@ jobs:
           export VERSION=`./release/usr/local/bin/pocketcoind --version | grep 'Pocketnet Core Daemon version' | sed 's/Pocketnet Core Daemon version v//g'`
           echo "::set-output name=version::${VERSION}"
 
-      outputs:
-        version: ${{ steps.save_version.outputs.version }}
-
   BuildUnix:
     needs: Tests
     runs-on: ubuntu-20.04
@@ -59,7 +56,7 @@ jobs:
 
       - run: echo "${{ needs.Tests.outputs.version }}"
 
-      - name: Apt Update
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
@@ -100,7 +97,7 @@ jobs:
 
       - run: echo "${{ needs.Tests.outputs.version }}"
 
-      - name: Apt Update
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils g++-mingw-w64-x86-64 nsis
