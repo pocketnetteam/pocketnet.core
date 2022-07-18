@@ -37,9 +37,9 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: unix
-          path:
-            - ./pocketnetcore_*
-            - ./release
+          path: |
+            ./pocketnetcore_*
+            ./release
 
   BuildWin:
     runs-on: ubuntu-20.04
@@ -68,9 +68,9 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: win
-          path:
-            - ./pocketnetcore_*
-            - ./release
+          path: |
+            ./pocketnetcore_*
+            ./release
 
 
   TestsUnix:
