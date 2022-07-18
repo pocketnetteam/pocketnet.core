@@ -131,7 +131,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: win
-          path: ./release
+          path: ./out
 
   # ReleaseDraft:
   #   needs: build
