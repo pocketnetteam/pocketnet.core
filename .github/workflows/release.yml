@@ -10,10 +10,49 @@ permissions:
 
 jobs:
 
+  Tests:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: apt update
+      run: sudo apt-get update
+    - name: install libdb
+      run: |
+        chmod 777 ./contrib/install_db4.sh 
+        ./contrib/install_db4.sh `pwd`
+    - name: install boost
+      run: sudo apt-get install libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
+    - name: Install dependencies
+      run: sudo apt-get install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 
+    - name: autogen
+      run: ./autogen.sh
+    - name: configure
+      run: |
+        export BDB_PREFIX='/home/runner/work/pocketnet.core/pocketnet.core/db4'
+        ./configure --enable-tests BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" BDB_CFLAGS="-I${BDB_PREFIX}/include"
+    - name: make
+      run: make -j16
+    - name: make check
+      run: make check
+    - name: bench
+      run: |
+        cd src/bench
+        ./bench_pocketcoin
+    - name: Save Version
+      id: save_version
+      run: |
+        export VERSION=`./release/usr/local/bin/pocketcoind --version | grep 'Pocketnet Core Daemon version' | sed 's/Pocketnet Core Daemon version v//g'`
+        echo "::set-output name=version::${VERSION}"
+    outputs:
+      version: ${{ steps.save_version.outputs.version }}
+
   BuildUnix:
+    needs: Tests
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+
+      - run: echo "${{ needs.Tests.outputs.version }}"
 
       - name: Apt Update
         run: |
@@ -32,30 +71,32 @@ jobs:
         run: CONFIG_SITE=$PWD/x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
 
       - name: Make
-        run: make -j8
-      - name: Make Installer
-        run: make deploy
+        run: |
+          make -j8
+          make deploy
+          mv ./pocketnetcore_* ./release/
+
+      - run: ls -lhR ./release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: unix
-          path: |
-            ./pocketnetcore_*
-            ./release
+          path: ./release
 
   BuildWin:
+    needs: Tests
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+
+      - run: echo "${{ needs.Tests.outputs.version }}"
 
       - name: Apt Update
         run: |
           sudo apt update
           sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils g++-mingw-w64-x86-64
           sudo update-alternatives --install /usr/bin/x86_64-w64-mingw32-g++ x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix 90
-
-
 
       - name: Download dependencies archive
         run: curl -O https://dev.pocketnet.app/x86_64-w64-mingw32.bz2
@@ -69,29 +110,18 @@ jobs:
         run: CONFIG_SITE=$PWD/x86_64-w64-mingw32/share/config.site ./configure CPPFLAGS='-D_MSC_VER_CROSS' --prefix=/
 
       - name: Make
-        run: make -j8
-      - name: Make Installer
-        run: make deploy
+        run: |
+          make -j8
+          make deploy
+          mv ./pocketnetcore_* ./release/
+
+      - run: ls -lhR ./release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: win
-          path: |
-            ./pocketnetcore_*
-            ./release
-
-
-  TestsUnix:
-    needs: BuildUnix
-    runs-on: ubuntu-20.04
-    steps:
-      - run: echo "Implement!"
-
-
-  # TestsWin:
-  #   needs: BuildWin
-
+          path: ./release
 
   # ReleaseDraft:
   #   needs: build
@@ -99,8 +129,11 @@ jobs:
   #     contents: write
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: release-drafter/release-drafter@v5
+  #     - name: Create Release
+  #       id: create_release
+  #       uses: release-drafter/release-drafter@v5
   #       with:
   #         prerelease: true
   #       env:
   #         GITHUB_TOKEN: ${{ secrets.release_token }}
+  #     - name: 
