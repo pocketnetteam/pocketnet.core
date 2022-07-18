@@ -29,7 +29,7 @@ jobs:
         run: ./autogen.sh
 
       - name: Configure
-        run: CONFIG_SITE=./x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
+        run: CONFIG_SITE=$PWD/x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
 
       - name: Make
         run: make -j8
@@ -66,7 +66,7 @@ jobs:
         run: ./autogen.sh
 
       - name: Configure
-        run: CONFIG_SITE=./x86_64-w64-mingw32/share/config.site ./configure CPPFLAGS='-D_MSC_VER_CROSS' --prefix=/
+        run: CONFIG_SITE=$PWD/x86_64-w64-mingw32/share/config.site ./configure CPPFLAGS='-D_MSC_VER_CROSS' --prefix=/
 
       - name: Make
         run: make -j8
