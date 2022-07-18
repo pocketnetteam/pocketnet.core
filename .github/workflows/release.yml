@@ -1,6 +1,7 @@
-name: Release Draft
+name: Build & Deploy Release Draft
 
 on:
+  workflow_dispatch:
   push:
     tags: v*.*.*
 
@@ -9,14 +10,85 @@ permissions:
 
 jobs:
 
-  CreateReleaseDraft:
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
+  BuildUnix:
+    runs-on: ubuntu-20.04
     steps:
-      - uses: release-drafter/release-drafter@v5
+      - uses: actions/checkout@v2
+      - name: APT Update
+        run: apt update
+
+      - name: Download dependencies archive
+        run: curl -O https://dev.pocketnet.app/x86_64-pc-linux-gnu.bz2
+      - name: Unpack dependencies archive
+        run: tar xjf x86_64-pc-linux-gnu.bz2
+
+      - name: Prepare source code
+        run: ./autogen.sh
+
+      - name: Configure
+        run: CONFIG_SITE=./x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
+
+      - name: Make
+        run: make -j8
+      - name: Make Installer
+        run: make deploy
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
         with:
-          prerelease: true
-          
-        env:
-          GITHUB_TOKEN: ${{ secrets.release_token }}
+          name: unix
+          path:
+            - ./pocketnetcore_*
+            - ./release
+
+  BuildWin:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: APT Update
+        run: apt update
+
+      - name: Download dependencies archive
+        run: curl -O https://dev.pocketnet.app/x86_64-w64-mingw32.bz2
+      - name: Unpack dependencies archive
+        run: tar xjf x86_64-w64-mingw32.bz2
+
+      - name: Prepare source code
+        run: ./autogen.sh
+
+      - name: Configure
+        run: CONFIG_SITE=./x86_64-w64-mingw32/share/config.site ./configure CPPFLAGS='-D_MSC_VER_CROSS' --prefix=/
+
+      - name: Make
+        run: make -j8
+      - name: Make Installer
+        run: make deploy
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: win
+          path:
+            - ./pocketnetcore_*
+            - ./release
+
+
+  TestsUnix:
+    needs: BuildUnix
+
+
+  TestsWin:
+    needs: BuildWin
+
+
+  # ReleaseDraft:
+  #   needs: build
+  #   permissions:
+  #     contents: write
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: release-drafter/release-drafter@v5
+  #       with:
+  #         prerelease: true
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.release_token }}
