@@ -5652,11 +5652,11 @@ namespace PocketDb
                     and subs.String2 = c.String1
                     and subs.Height > 0
 
-                cross join Transactions r -- related content - possible reposts
+                left join Transactions r -- related content - possible reposts
                     on r.Hash = c.String3
                     and r.Type in (200,201,202)
 
-                cross join Payload pr
+                left join Payload pr
                     on pr.TxHash = r.Hash
 
                 cross join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
@@ -5671,7 +5671,7 @@ namespace PocketDb
                 cross join Payload pac
                     on pac.TxHash = ac.Hash
 
-                cross join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
                     on rac.Type = 0
                     and rac.Id = ac.Id
                     and rac.Last = 1
@@ -5679,7 +5679,6 @@ namespace PocketDb
                 where c.Type in (200,201,202)
                     and c.Hash = c.String2 -- only orig
                     and c.Height = ?
-                    and c.String3 is not null
         )sql",
             heightBinder
         }},
