@@ -13,36 +13,41 @@ jobs:
   Tests:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
-    - name: apt update
-      run: sudo apt-get update
-    - name: install libdb
-      run: |
-        chmod 777 ./contrib/install_db4.sh 
-        ./contrib/install_db4.sh `pwd`
-    - name: install boost
-      run: sudo apt-get install libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
-    - name: Install dependencies
-      run: sudo apt-get install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 
-    - name: autogen
-      run: ./autogen.sh
-    - name: configure
-      run: |
-        export BDB_PREFIX='/home/runner/work/pocketnet.core/pocketnet.core/db4'
-        ./configure --enable-tests BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" BDB_CFLAGS="-I${BDB_PREFIX}/include"
-    - name: make
-      run: make -j8
-    - name: make check
+      - uses: actions/checkout@v2
+
+      - run: echo "${{ needs.Tests.outputs.version }}"
+
+      - name: Apt Update
+        run: |
+          sudo apt update
+          sudo apt install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
+
+      - name: Download dependencies archive
+        run: curl -O https://dev.pocketnet.app/x86_64-pc-linux-gnu.bz2
+      - name: Unpack dependencies archive
+        run: tar xjf x86_64-pc-linux-gnu.bz2
+
+      - name: Prepare source code
+        run: ./autogen.sh
+
+      - name: Configure
+        run: CONFIG_SITE=$PWD/x86_64-pc-linux-gnu/share/config.site ./configure --enable-tests --prefix=/usr/local
+
+      - name: Make
+        run: make -j4
+
+    - name: Launch tests
       run: make check
-    - name: bench
-      run: |
-        cd src/bench
-        ./bench_pocketcoin
+
+    - name: Launch benchmark
+      run: ./src/bench/bench_pocketcoin
+
     - name: Save Version
       id: save_version
       run: |
         export VERSION=`./release/usr/local/bin/pocketcoind --version | grep 'Pocketnet Core Daemon version' | sed 's/Pocketnet Core Daemon version v//g'`
         echo "::set-output name=version::${VERSION}"
+
     outputs:
       version: ${{ steps.save_version.outputs.version }}
 
@@ -72,17 +77,20 @@ jobs:
 
       - name: Make
         run: |
-          make -j8
+          make -j4
           make deploy
-          mv ./pocketnetcore_* ./release/
+          mkdir ./out
+          cp ./pocketnetcore_*_linux_x64_setup.deb ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_linux_x64_setup.deb
+          cp ./pocketnetcore_*_linux_x64.tar.gz ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_linux_x64.tar.gz
+          cp ./release/usr/local/bin/pocketcoind ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_linux_x64_daemon.bin
 
-      - run: ls -lhR ./release
+      - run: ls -lhR ./out
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: unix
-          path: ./release
+          path: ./out
 
   BuildWin:
     needs: Tests
@@ -95,7 +103,7 @@ jobs:
       - name: Apt Update
         run: |
           sudo apt update
-          sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils g++-mingw-w64-x86-64
+          sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils g++-mingw-w64-x86-64 nsis
           sudo update-alternatives --install /usr/bin/x86_64-w64-mingw32-g++ x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix 90
 
       - name: Download dependencies archive
@@ -111,9 +119,11 @@ jobs:
 
       - name: Make
         run: |
-          make -j8
+          make -j4
           make deploy
-          mv ./pocketnetcore_* ./release/
+          mkdir ./out
+          cp ./pocketnetcore_*_win_x64_setup.exe ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_win_x64_setup.exe
+          cp ./release/pocketcoind.exe ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_win_x64_daemon.bin
 
       - run: ls -lhR ./release
 
