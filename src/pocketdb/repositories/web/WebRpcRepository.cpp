@@ -5238,7 +5238,8 @@ namespace PocketDb
 
             join TxOutputs o
                 on t.Hash = o.TxHash
-                and o.TxHeight = ?
+                and o.TxHeight = t.Height
+                and o.AddressHash != ''
 
             join TxOutputs i indexed by TxOutputs_SpentTxHash
                 on i.SpentTxHash = o.TxHash
