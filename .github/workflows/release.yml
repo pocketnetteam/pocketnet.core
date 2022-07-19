@@ -15,7 +15,7 @@ jobs:
       version: ${{ steps.save_version.outputs.version }}
     steps:
       - uses: actions/checkout@v3
-      - run: git fetch --prune --unshallow --tags
+      - run: git fetch --tags --force --prune --unshallow
 
       - run: |
           ./share/genbuild.sh 1
