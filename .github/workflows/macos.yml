@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install automake libtool boost miniupnpc openssl pkg-config protobuf python libevent qrencode librsvg berkeley-db@4 qt@5 libnatpmp zeromq ds_store mac_alias
+          brew install automake libtool boost miniupnpc openssl pkg-config protobuf python libevent qrencode librsvg berkeley-db@4 qt@5 libnatpmp zeromq
 
       # - name: Install Berkley DB
       #   run: ./contrib/install_db4.sh .
