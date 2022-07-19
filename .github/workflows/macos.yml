@@ -1,0 +1,53 @@
+name: Build MacOS Test
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+
+  BuildMac:
+    needs: Tests
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Git fetch tags
+        run: git fetch --tags --force --prune --unshallow
+
+      - name: Retrieve version
+        run: |
+          echo "VERSION=$(./share/genversion.sh)" >> $GITHUB_ENV
+          echo ${{ env.VERSION }}
+
+      - name: Install dependencies
+        run: |
+          brew install automake libtool boost miniupnpc openssl pkg-config protobuf python libevent qrencode librsvg berkeley-db@4 qt@5 libnatpmp zeromq ds_store mac_alias
+
+      # - name: Install Berkley DB
+      #   run: ./contrib/install_db4.sh .
+
+      - name: Prepare source code
+        run: ./autogen.sh
+
+      - name: Configure
+        run: ./configure
+
+      - name: Make
+        run: |
+          make -j4
+          make deploy
+          mkdir ./out
+          cp ./pocketnetcore_* ./out/
+        # cp ./pocketnetcore_*_win_x64_setup.exe ./out/pocketnetcore_${{ env.VERSION }}_win_x64_setup.exe
+        # cp ./release/pocketcoind.exe ./out/pocketnetcore_${{ env.VERSION }}_win_x64_daemon.bin
+
+      - run: ls -lhR ./out
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: mac
+          path: ./out
