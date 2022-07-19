@@ -9,7 +9,7 @@ permissions:
 jobs:
 
   BuildMac:
-    needs: Tests
+    # needs: Tests
     runs-on: macos
     steps:
       - uses: actions/checkout@v3
