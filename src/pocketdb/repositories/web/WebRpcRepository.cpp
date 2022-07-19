@@ -4650,7 +4650,7 @@ namespace PocketDb
                 and a.String1 != c.String1
                 and a.String1 = ?
 
-            join Transactions orig indexed by Transactions_Hash_Height
+            left join Transactions orig
                 on orig.Hash = a.String2
 
             left join Payload pa
@@ -4712,7 +4712,7 @@ namespace PocketDb
                 pap.String4,
                 ifnull(rap.Value, 0)
 
-            from Transactions p indexed by Transactions_Type_Last_Height_Id
+            from Transactions p indexed by Transactions_Type_Last_String2_Height
 
             join Transactions c indexed by Transactions_Type_Last_String1_Height_Id
                 on c.Type in (204,205)
@@ -4989,7 +4989,7 @@ namespace PocketDb
 
             from Transactions tBoost indexed by Transactions_Type_Last_String1_Height_Id
 
-            join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions tContent indexed by Transactions_Type_Last_String2_Height
                 on tContent.Type in (200,201,202)
                 and tContent.Last in (0,1)
                 and tContent.Height > 0
@@ -5812,8 +5812,6 @@ namespace PocketDb
             for (const auto& bind: binds) {
                 bind(stmt, i, queryParams);
             }
-
-            LogPrintf(sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
