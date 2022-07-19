@@ -98,6 +98,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - run: git --no-pager log --decorate=short --pretty=oneline -n1
+
       - run: echo "${{ needs.Tests.outputs.version }}"
 
       - name: Install dependencies
