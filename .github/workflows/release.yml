@@ -17,6 +17,11 @@ jobs:
       - name: Git fetch tags
         run: git fetch --tags --force --prune --unshallow
 
+      - name: Retrieve version
+        run: |
+          echo "VERSION=$(./share/genversion.sh)" >> $GITHUB_ENV
+          echo ${{ env.VERSION }}
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -55,7 +60,7 @@ jobs:
 
       - name: Retrieve version
         run: |
-          echo ::set-env name=VERSION::./share/genversion.sh
+          echo "VERSION=$(./share/genversion.sh)" >> $GITHUB_ENV
           echo ${{ env.VERSION }}
 
       - name: Install dependencies
@@ -102,7 +107,7 @@ jobs:
 
       - name: Retrieve version
         run: |
-          echo ::set-env name=VERSION::./share/genversion.sh
+          echo "VERSION=$(./share/genversion.sh)" >> $GITHUB_ENV
           echo ${{ env.VERSION }}
 
       - name: Install dependencies
