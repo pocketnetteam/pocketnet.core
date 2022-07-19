@@ -19,6 +19,7 @@ jobs:
 
       - name: Retrieve version
         run: |
+          ./share/genversion.sh
           echo "VERSION=$(./share/genversion.sh)" >> $GITHUB_ENV
           echo ${{ env.VERSION }}
 
