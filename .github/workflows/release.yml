@@ -17,6 +17,11 @@ jobs:
       - name: Git fetch tags
         run: git fetch --tags --force --prune --unshallow
 
+      - name: Retrieve version
+        run: |
+          echo ::set-env name=VERSION::./share/genversion.sh
+          echo ${{ env.VERSION }}
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -38,9 +43,9 @@ jobs:
           make -j4
           make deploy
           mkdir ./out
-          cp ./pocketnetcore_*_linux_x64_setup.deb ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_linux_x64_setup.deb
-          cp ./pocketnetcore_*_linux_x64.tar.gz ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_linux_x64.tar.gz
-          cp ./release/usr/local/bin/pocketcoind ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_linux_x64_daemon.bin
+          cp ./pocketnetcore_*_linux_x64_setup.deb ./out/pocketnetcore_${{ env.VERSION }}_linux_x64_setup.deb
+          cp ./pocketnetcore_*_linux_x64.tar.gz ./out/pocketnetcore_${{ env.VERSION }}_linux_x64.tar.gz
+          cp ./release/usr/local/bin/pocketcoind ./out/pocketnetcore_${{ env.VERSION }}_linux_x64_daemon.bin
 
       - run: ls -lhR ./out
 
@@ -57,6 +62,11 @@ jobs:
 
       - name: Git fetch tags
         run: git fetch --tags --force --prune --unshallow
+
+      - name: Retrieve version
+        run: |
+          echo ::set-env name=VERSION::./share/genversion.sh
+          echo ${{ env.VERSION }}
 
       - name: Install dependencies
         run: |
@@ -80,8 +90,8 @@ jobs:
           make -j4
           make deploy
           mkdir ./out
-          cp ./pocketnetcore_*_win_x64_setup.exe ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_win_x64_setup.exe
-          cp ./release/pocketcoind.exe ./out/pocketnetcore_${{ needs.Tests.outputs.version }}_win_x64_daemon.bin
+          cp ./pocketnetcore_*_win_x64_setup.exe ./out/pocketnetcore_${{ env.VERSION }}_win_x64_setup.exe
+          cp ./release/pocketcoind.exe ./out/pocketnetcore_${{ env.VERSION }}_win_x64_daemon.bin
 
       - run: ls -lhR ./release
 
