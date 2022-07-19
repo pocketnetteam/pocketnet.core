@@ -40,11 +40,11 @@ jobs:
           make -j4
           make deploy
           mkdir ./out
-          cp ./pocketnetcore_* ./out/
         # cp ./pocketnetcore_*_win_x64_setup.exe ./out/pocketnetcore_${{ env.VERSION }}_win_x64_setup.exe
         # cp ./release/pocketcoind.exe ./out/pocketnetcore_${{ env.VERSION }}_win_x64_daemon.bin
 
-      - run: ls -lhR ./out
+      - run: ls -lhR ./
+      - run: ls -lhR ./dist/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
