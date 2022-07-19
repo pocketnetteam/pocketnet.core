@@ -20,8 +20,10 @@ jobs:
       - name: Retrieve version
         run: |
           ./share/genversion.sh
-          echo "VERSION=$(./share/genversion.sh)" >> $GITHUB_ENV
-          echo ${{ env.VERSION }}
+          echo "VERSION_SUFFIX=$(./share/genversion.sh)" >> $GITHUB_ENV
+          echo ${{ env.VERSION_SUFFIX }}
+
+      - run: echo ${{ env.VERSION_SUFFIX }}
 
       - name: Install dependencies
         run: |
