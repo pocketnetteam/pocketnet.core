@@ -1,0 +1,45 @@
+name: Tests & Benchmark
+
+on:
+  push:
+    tags: v*.*.*
+
+permissions:
+  contents: read
+
+jobs:
+
+  Tests:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Git fetch tags
+        run: git fetch --tags --force --prune --unshallow
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
+
+      - name: Download dependencies archive
+        run: curl -O https://dev.pocketnet.app/x86_64-pc-linux-gnu.bz2
+      - name: Unpack dependencies archive
+        run: tar xjf x86_64-pc-linux-gnu.bz2
+
+      - name: Prepare source code
+        run: ./autogen.sh
+
+      - name: Configure
+        run: CONFIG_SITE=$PWD/x86_64-pc-linux-gnu/share/config.site ./configure --enable-tests --prefix=/usr/local
+
+      - name: Make
+        run: make -j4
+
+      - name: Launch tests
+        run: make check
+
+      - name: Launch benchmark
+        run: |
+          cd ./src/bench/
+          ./bench_pocketcoin
