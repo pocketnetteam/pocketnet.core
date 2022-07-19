@@ -17,6 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - run: git --no-pager log --decorate=short --pretty=oneline -n1
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -97,8 +99,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-
-      - run: git --no-pager log --decorate=short --pretty=oneline -n1
 
       - run: echo "${{ needs.Tests.outputs.version }}"
 
