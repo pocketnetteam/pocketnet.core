@@ -5058,7 +5058,7 @@ namespace PocketDb
 
             from Transactions r indexed by Transactions_Type_Last_String1_Height_Id
 
-            cross join Transactions p indexed by Transactions_Type_Last_String2_Height
+            join Transactions p indexed by Transactions_Type_Last_String2_Height
                 on p.Type in (200,201,202)
                 and p.Last = 1
                 and p.String2 = r.String3
