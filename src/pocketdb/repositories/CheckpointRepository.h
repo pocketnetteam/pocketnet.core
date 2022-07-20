@@ -16,12 +16,12 @@ namespace PocketDb
     class CheckpointRepository
     {
     private:
-        static map<string, tuple<int, int>> _socialCheckpoints;
-        static map<int, string> _lotteryCheckpoints;
-        static map<string, string> _opReturnCheckpoints;
+        map<string, tuple<int, int>> _socialCheckpoints;
+        map<int, string> _lotteryCheckpoints;
+        map<string, string> _opReturnCheckpoints;
         
     public:
-        explicit CheckpointRepository() {}
+        CheckpointRepository();
 
         bool IsSocialCheckpoint(const string& txHash, TxType txType, int code);
         bool IsLotteryCheckpoint(int height, const string& hash);
