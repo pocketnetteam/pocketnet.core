@@ -8,7 +8,7 @@
 
 namespace PocketDb
 {
-        class ShortFormParser : public RowAccessor
+    class ShortFormParser : public RowAccessor
     {
     public:
         PocketDb::ShortForm ParseRow(sqlite3_stmt* stmt, const int& startIndex)
