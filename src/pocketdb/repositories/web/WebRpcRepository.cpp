@@ -4839,7 +4839,7 @@ namespace PocketDb
                     c.Height as Height,
                     c.BlockNum as BlockNum,
                     oc.Value,
-                    substr(pc.String1, 0, 100),
+                    pc.String1,
                     pac.String2,
                     pac.String3,
                     pac.String4,
