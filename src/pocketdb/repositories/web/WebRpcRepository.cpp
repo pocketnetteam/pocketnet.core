@@ -5056,23 +5056,21 @@ namespace PocketDb
                 pap.String4,
                 ifnull(rap.Value,0)
 
-            from Transactions p indexed by Transactions_Type_Last_Height_Id
+            from Transactions r indexed by Transactions_Type_Last_String1_Height_Id
+
+            cross join Transactions p indexed by Transactions_Type_Last_String2_Height
+                on p.Type in (200,201,202)
+                and p.Last = 1
+                and p.String2 = r.String3
+                and p.Height > 0
 
             left join Payload pp
                 on pp.TxHash = p.Hash
 
-            join Transactions r indexed by Transactions_Type_Last_String1_Height_Id
-                on r.Type in (200,201,202)
-                and r.Last = 1
-                and r.String3 = p.Hash
-                and r.Height > ?
-                and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
-                and r.String1 = ?
-
             left join Payload pr
                 on pr.TxHash = r.Hash
 
-            join Transactions ap
+            left join Transactions ap
                 on ap.Type = 100
                 and ap.Last = 1
                 and ap.String1 = p.String1
@@ -5086,9 +5084,11 @@ namespace PocketDb
                 and rap.Id = ap.Id
                 and rap.Last = 1
 
-            where p.Type in (200,201,202)
-                and p.Last = 1
-                and p.Height > 0
+            where r.Type in (200,201,202)
+                and r.Last = 1
+                and r.Height > ?
+                and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
+                and r.String1 = ?
 
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
@@ -6492,7 +6492,7 @@ namespace PocketDb
                 r.Hash,
                 r.Type,
                 r.String1,
-                r.Height as Height,
+                r.Height as Height, -- TODO (losty): orig height maybe???
                 r.BlockNum as BlockNum,
                 null,
                 pr.String2,
@@ -6520,7 +6520,7 @@ namespace PocketDb
             join Transactions r indexed by Transactions_Type_Last_String3_Height
                 on r.Type in (200,201,202)
                 and r.Last = 1
-                and r.String3 = p.Hash
+                and r.String3 = p.String2
                 and r.Height > ?
                 and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
 
