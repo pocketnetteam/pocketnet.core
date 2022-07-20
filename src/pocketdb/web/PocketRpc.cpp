@@ -86,6 +86,7 @@ static const CRPCCommand commands[] =
     {"scores",          "getpagescores",                    &GetPagesScores,                {"postIds", "address", "cmntIds"}},
 
     // Explorer
+    {"explorer",       "getstatistictransactions",         &GetStatisticTransactions,       {"topTime", "depth", "period"}},
     {"explorer",       "getstatisticbyhours",              &GetStatisticByHours,            {"topHeight", "depth"}},
     {"explorer",       "getstatisticbydays",               &GetStatisticByDays,             {"topHeight", "depth"}},
     {"explorer",       "getstatisticcontentbyhours",       &GetStatisticContentByHours,     {"topHeight", "depth"}},

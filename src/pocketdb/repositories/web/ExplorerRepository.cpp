@@ -43,6 +43,48 @@ namespace PocketDb {
         return result;
     }
 
+    UniValue ExplorerRepository::GetTransactionsStatistic(int64_t top, int depth, int period)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select (t.Time / ?), t.Type, count()
+                from Transactions t
+                where t.Type in (1,100,103,200,201,202,204,205,208,300,301,302,303)
+                  and t.Time >= ?
+                  and t.time < ?
+                group by t.time / ?, t.Type
+            )sql");
+
+            int i = 1;
+            TryBindStatementInt(stmt, i++, period);
+            TryBindStatementInt64(stmt, i++, top - (depth * period));
+            TryBindStatementInt64(stmt, i++, top);
+            TryBindStatementInt(stmt, i++, period);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto [okPart, part] = TryGetColumnString(*stmt, 0);
+                auto [okType, type] = TryGetColumnString(*stmt, 1);
+                auto [okCount, count] = TryGetColumnInt(*stmt, 2);
+
+                if (!okPart || !okType || !okCount)
+                    continue;
+
+                if (result.At(part).isNull())
+                    result.pushKV(part, UniValue(UniValue::VOBJ));
+
+                result.At(part).pushKV(type, count);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue ExplorerRepository::GetTransactionsStatisticByHours(int topHeight, int depth)
     {
         UniValue result(UniValue::VOBJ);

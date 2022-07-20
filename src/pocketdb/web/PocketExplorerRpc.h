@@ -15,6 +15,7 @@ namespace PocketWeb::PocketWebRpc
     using namespace PocketDb;
     using namespace std;
 
+    UniValue GetStatisticTransactions(const JSONRPCRequest& request);
     UniValue GetStatisticByHours(const JSONRPCRequest& request);
     UniValue GetStatisticByDays(const JSONRPCRequest& request);
     UniValue GetStatisticContentByHours(const JSONRPCRequest& request);
