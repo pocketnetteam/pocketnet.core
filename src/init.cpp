@@ -274,6 +274,9 @@ void Shutdown(NodeContext& node)
     // CScheduler/checkqueue, threadGroup and load block thread.
     if (node.scheduler) node.scheduler->stop();
     if (g_load_block.joinable()) g_load_block.join();
+    #ifdef ENABLE_WALLET
+    Staker::getInstance()->stop();
+    #endif
     threadGroup.interrupt_all();
     threadGroup.join_all();
 
