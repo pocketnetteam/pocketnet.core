@@ -94,10 +94,6 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
 
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
 
-    // Go up two directories to access the checkpoints folder, assume we are running in /src/test
-    fs::path checkpointsPath = fs::system_complete("..");
-    PocketDb::InitSQLiteCheckpoints(checkpointsPath / "checkpoints");
-
     ClearDatadirCache();
 
     // We have to run a scheduler thread to prevent ActivateBestChain

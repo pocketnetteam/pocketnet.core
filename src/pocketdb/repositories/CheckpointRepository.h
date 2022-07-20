@@ -6,18 +6,22 @@
 #define SRC_CHECKPOINT_REPOSITORY_H
 
 #include <util.h>
-#include "pocketdb/repositories/BaseRepository.h"
+#include "pocketdb/models/base/PocketTypes.h"
 
 namespace PocketDb
 {
-    class CheckpointRepository : public BaseRepository
+    using namespace std;
+    using namespace PocketTx;
+
+    class CheckpointRepository
     {
+    private:
+        static map<string, tuple<int, int>> _socialCheckpoints;
+        static map<int, string> _lotteryCheckpoints;
+        static map<string, string> _opReturnCheckpoints;
+        
     public:
-        explicit CheckpointRepository(SQLiteDatabase& db) : BaseRepository(db) {}
-
-        void Init() override {}
-
-        void Destroy() override {}
+        explicit CheckpointRepository() {}
 
         bool IsSocialCheckpoint(const string& txHash, TxType txType, int code);
         bool IsLotteryCheckpoint(int height, const string& hash);

@@ -90,24 +90,6 @@ namespace PocketDb
         SQLiteDbInst.AttachDatabase("web");
     }
 
-    void InitSQLiteCheckpoints(fs::path path)
-    {
-        // Intialize Checkpoints DB
-        auto checkpointDbName = Params().NetworkIDString();
-        if (!fs::exists((path / (checkpointDbName + ".sqlite3")).string()))
-        {
-            LogPrintf("Checkpoint DB %s not found!\nDownload actual DB file from %s and place to %s directory.\n",
-                (path / (checkpointDbName + ".sqlite3")).string(),
-                "https://github.com/pocketnetteam/pocketnet.core/tree/master/checkpoints/" + checkpointDbName + ".sqlite3",
-                path.string()
-            );
-
-            throw std::runtime_error(_("Unable to start server. Checkpoints DB not found. See debug log for details."));
-        }
-        SQLiteDbCheckpointInst.Init(path.string(), checkpointDbName);
-
-    }
-
     SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)
     {
     }
