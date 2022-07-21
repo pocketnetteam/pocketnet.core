@@ -10,7 +10,7 @@ jobs:
 
   BuildMac:
     # needs: Tests
-    runs-on: ubuntu-20.04
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -24,35 +24,23 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt-get install build-essential libtool autotools-dev automake curl librsvg2-bin libtiff-tools bsdmainutils cmake imagemagick libcap-dev libz-dev libbz2-dev python3-setuptools libtinfo5
+          brew install automake libtool boost miniupnpc openssl pkg-config protobuf python libevent qrencode librsvg berkeley-db@4 qt@5 libnatpmp zeromq
 
-      - name: Download dependencies archive
-        run: curl -O https://dev.pocketnet.app/x86_64-apple-darwin14.bz2
-      - name: Unpack dependencies archive
-        run: tar xjf x86_64-apple-darwin14.bz2
+      # - name: Install Berkley DB
+      #   run: ./contrib/install_db4.sh .
 
       - name: Prepare source code
         run: ./autogen.sh
 
       - name: Configure
-        run: |
-          CONFIG_SITE=$PWD/x86_64-apple-darwin14/share/config.site ./configure
-          cat config.log
+        run: ./configure --enable-debug
 
       - name: Make
         run: |
           make -j4
-          make deploy
-          mkdir ./out
-          # cp ./pocketnetcore_*_linux_x64_setup.deb ./out/pocketnetcore_${{ env.VERSION }}_linux_x64_setup.deb
-          # cp ./pocketnetcore_*_linux_x64.tar.gz ./out/pocketnetcore_${{ env.VERSION }}_linux_x64.tar.gz
-          # cp ./release/usr/local/bin/pocketcoind ./out/pocketnetcore_${{ env.VERSION }}_linux_x64_daemon.bin
 
-      - run: ls -lhR ./
-
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: mac
-      #     path: ./out
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: mac
+          path: ./src
