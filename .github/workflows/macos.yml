@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt-get install curl librsvg2-bin libtiff-tools bsdmainutils cmake imagemagick libcap-dev libz-dev libbz2-dev python-setuptools
+          sudo apt-get install curl librsvg2-bin libtiff-tools bsdmainutils cmake imagemagick libcap-dev libz-dev libbz2-dev python3-setuptools libtinfo5
 
       - name: Download dependencies archive
         run: curl -O https://dev.pocketnet.app/x86_64-apple-darwin14.bz2
@@ -36,7 +36,9 @@ jobs:
         run: ./autogen.sh
 
       - name: Configure
-        run: CONFIG_SITE=$PWD/x86_64-apple-darwin14/share/config.site ./configure
+        run: |
+          CONFIG_SITE=$PWD/x86_64-apple-darwin14/share/config.site ./configure
+          cat config.log
 
       - name: Make
         run: |
