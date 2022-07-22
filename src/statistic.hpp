@@ -284,12 +284,14 @@ namespace Statistic
         void Run(boost::thread_group& threadGroup, const util::Ref& context)
         {
             shutdown = false;
+            m_interrupt.reset();
             threadGroup.create_thread(boost::bind(&RequestStatEngine::PeriodicStatLogger, this, boost::cref(context)));
         }
 
         void Stop()
         {
             shutdown = true;
+            m_interrupt();
         }
 
         void PeriodicStatLogger(const util::Ref& context)
@@ -305,11 +307,12 @@ namespace Statistic
                     CompileStatsAsJsonSince(chunkSize, context).write(1));
 
                 RemoveSamplesBefore(chunkSize * 2);
-                UninterruptibleSleep(std::chrono::milliseconds{statLoggerSleep});
+                m_interrupt.sleep_for(std::chrono::milliseconds{statLoggerSleep});
             }
         }
 
     private:
+        CThreadInterrupt m_interrupt;
         std::vector<RequestSample> _samples;
         Mutex _samplesLock;
         bool shutdown = false;

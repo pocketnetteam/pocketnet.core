@@ -5,6 +5,7 @@
 #ifndef POCKETCOIN_STAKER_H
 #define POCKETCOIN_STAKER_H
 
+#include "threadinterrupt.h"
 #include <boost/thread.hpp>
 #include <chainparams.h>
 #include <util/ref.h>
@@ -39,7 +40,10 @@ public:
 
     bool signBlock(std::shared_ptr<CBlock>, std::shared_ptr<CWallet>, int64_t);
 
+    void stop();
+
 private:
+    CThreadInterrupt m_interrupt;
     Staker();
 
     Staker(Staker const&);

@@ -59,6 +59,7 @@ void Staker::startWorkers(
 {
     if (workersStarted) { return; }
     workersStarted = true;
+    m_interrupt.reset();
 
     this->minerSleep = minerSleep;
     threadGroup.create_thread(
@@ -104,7 +105,7 @@ void Staker::run(const util::Ref& context, CChainParams const& chainparams, boos
             }
         }
 
-        UninterruptibleSleep(std::chrono::milliseconds{minerSleep * 10});
+        m_interrupt.sleep_for(std::chrono::milliseconds{minerSleep * 10});
     }
 }
 
@@ -138,7 +139,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             while (wallet->IsLocked())
             {
                 nLastCoinStakeSearchInterval = 0;
-                UninterruptibleSleep(std::chrono::milliseconds{1000});
+                m_interrupt.sleep_for(std::chrono::milliseconds{1000});
             }
 
             if (gArgs.GetBoolArg("-stakingrequirespeers", DEFAULT_STAKINGREQUIRESPEERS))
@@ -153,7 +154,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                     if (!fvNodesEmpty && !::ChainstateActive().IsInitialBlockDownload())
                         break;
 
-                    UninterruptibleSleep(std::chrono::milliseconds{1000});
+                    m_interrupt.sleep_for(std::chrono::milliseconds{1000});
                 } while (true);
             }
 
@@ -162,7 +163,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                 if (ShutdownRequested())
                     break;
 
-                UninterruptibleSleep(std::chrono::milliseconds{1000});
+                m_interrupt.sleep_for(std::chrono::milliseconds{1000});
             }
 
             while (chainparams.GetConsensus().nPosFirstBlock > ::ChainActive().Tip()->nHeight)
@@ -170,7 +171,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                 if (ShutdownRequested())
                     break;
 
-                UninterruptibleSleep(std::chrono::milliseconds{30000});
+                m_interrupt.sleep_for(std::chrono::milliseconds{30000});
             }
 
             uint64_t nFees = 0;
@@ -194,14 +195,9 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             }
             else
             {
-                UninterruptibleSleep(std::chrono::milliseconds{minerSleep});
+                m_interrupt.sleep_for(std::chrono::milliseconds{minerSleep});
             }
         }
-    }
-    catch (const boost::thread_interrupted&)
-    {
-        LogPrintf("Staker worker thread terminated\n");
-        throw;
     }
     catch (const std::runtime_error& e)
     {
@@ -315,4 +311,14 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
     }
 #endif
     return false;
+}
+
+
+void Staker::stop()
+{
+    // TODO (losty): this should be called only after shutdown requested
+    //               because otherwise sleeps will be just skipped but thread will
+    //               not exited from it's loop that can result in very big cpu consumption. Probably exit
+    //               loop by checking "if (m_interrupt)" instead of checking for ShutdownRequested?
+    m_interrupt();
 }
