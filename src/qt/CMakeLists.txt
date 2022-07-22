@@ -456,7 +456,7 @@ endif()
 
 add_executable(pocketcoin-qt pocketcoin.cpp)
 if(APPLE)
-    target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_MM} moc_macdockiconhandler.cpp)
+    target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_MM})
 endif()
 if(WIN32)
     target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_RC})
