@@ -5975,7 +5975,7 @@ namespace PocketDb
                     null,
                     null
 
-                from Transactions t --indexed by Transactions_Type_Last_String2_Height
+                from Transactions t indexed by Transactions_Type_Last_String2_Height
 
                 left join Payload p
                     on p.TxHash = t.Hash
@@ -5986,7 +5986,7 @@ namespace PocketDb
                     and r.Last = 1
 
                 where t.Type = 100
-                    and t.Last = 1
+                    and t.Last in (0,1)
                     and t.String2 = ?
                     and t.Height > ?
                     and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
