@@ -33,14 +33,17 @@ jobs:
         run: ./autogen.sh
 
       - name: Configure
-        run: ./configure --enable-debug
+        run: ./configure
 
       - name: Make
         run: |
           make -j4
+          make deploy
+          mkdir ./out
+          ls -lh ./
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: mac
-          path: ./src
+      # - name: Upload artifact
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: mac
+      #     path: ./src
