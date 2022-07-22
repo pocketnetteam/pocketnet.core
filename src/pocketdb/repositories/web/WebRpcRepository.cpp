@@ -4692,7 +4692,7 @@ namespace PocketDb
                 c.Hash,
                 c.Type,
                 null,
-                c.Height as Height,
+                orig.Height as Height,
                 c.BlockNum as BlockNum,
                 oc.Value,
                 pc.String1,
@@ -4723,6 +4723,9 @@ namespace PocketDb
                 and c.Height > ?
                 and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
                 and c.String1 = ?
+
+            left join Transactions orig
+                on orig.Hash = c.String2
 
             left join TxOutputs oc indexed by TxOutputs_TxHash_AddressHash_Value
                 on oc.TxHash = c.Hash and oc.AddressHash = p.String1 and oc.AddressHash != c.String1
@@ -5036,7 +5039,7 @@ namespace PocketDb
                 r.Hash,
                 r.Type,
                 null,
-                r.Height as Height,
+                orig.Height as Height,
                 r.BlockNum as BlockNum,
                 null,
                 pr.String2,
@@ -5057,6 +5060,9 @@ namespace PocketDb
                 ifnull(rap.Value,0)
 
             from Transactions r indexed by Transactions_Type_Last_String1_Height_Id
+
+            left join Transactions orig
+                on orig.Hash = r.String2
 
             join Transactions p indexed by Transactions_Type_Last_String2_Height
                 on p.Type in (200,201,202)
