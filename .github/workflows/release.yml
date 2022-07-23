@@ -138,20 +138,19 @@ jobs:
           name: win
           path: ./out
 
-  # ReleaseDraft:
-  #   needs: build
-  #   permissions:
-  #     contents: write
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Create Release
-  #       id: create_release
-  #       uses: release-drafter/release-drafter@v5
-  #       with:
-  #         prerelease: true
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.release_token }}
-  #     - name: 
+  ReleaseDraft:
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: release-drafter/release-drafter@v5
+        with:
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.release_token }}
 
     # - name: Download artifact
     #     uses: actions/download-artifact@v3

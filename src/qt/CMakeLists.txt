@@ -461,7 +461,7 @@ endif()
 if(WIN32)
     target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_RC})
 endif()
-target_link_libraries(pocketcoin-qt PRIVATE qt_libpocketcoinqt ${Protobuf_LIBRARIES} ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} leveldb memenv ${Protobuf_LIBRARY_DEBUG} libpocketcoin_cli)
+target_link_libraries(pocketcoin-qt PRIVATE qt_libpocketcoinqt ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} leveldb memenv ${Protobuf_LIBRARY_DEBUG} libpocketcoin_cli)
 target_include_directories(pocketcoin-qt PRIVATE ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR}/..)
 
 target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_NO_KEYWORDS)
