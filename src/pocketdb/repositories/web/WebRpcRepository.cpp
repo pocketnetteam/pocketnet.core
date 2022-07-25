@@ -5185,17 +5185,17 @@ namespace PocketDb
                     null,
                     null
 
-                from Transactions tBoost indexed by Transactions_Height_Type
+                from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
 
-                join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
+                left join Transactions tContent indexed by Transactions_Type_Last_String2_Height
                     on tContent.Type in (200,201,202)
                     and tContent.Last in (0,1)
                     and tContent.Height > 0
                     and tContent.String2 = tBoost.String2
                 left join Payload pContent
                     on pContent.TxHash = tContent.Hash
-                
-                join Transactions ac
+
+                left join Transactions ac
                     on ac.String1 = tBoost.String1
                     and ac.Type = 100
                     and ac.Last = 1
