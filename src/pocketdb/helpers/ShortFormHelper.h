@@ -20,7 +20,7 @@ namespace PocketHelpers
     };
 
     // STMT here is used to avoid including here any of sqlite3 headers, however
-    // it is expected it is a correct sqlite3_stmt ptr.
+    // it is expected that STMT is a correct sqlite3_stmt ptr.
     // QueryPrarams can differ between queries.
     template <class STMT, class QueryParams>
     struct ShortFormSqlEntry
