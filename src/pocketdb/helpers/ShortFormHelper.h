@@ -19,6 +19,12 @@ namespace PocketHelpers
         static PocketDb::ShortTxType strToType(const std::string& typeStr);
     };
 
+    class ShortTxFilterValidator
+    {
+    public:
+        static bool IsFilterAllowedForNotifications(PocketDb::ShortTxType type);
+    };
+
     // STMT here is used to avoid including here any of sqlite3 headers, however
     // it is expected that STMT is a correct sqlite3_stmt ptr.
     // QueryPrarams can differ between queries.
