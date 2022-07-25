@@ -32,7 +32,7 @@ std::string PocketHelpers::ShortTxTypeConvertor::toString(PocketDb::ShortTxType 
     return "";
 }
 
-bool PocketHelpers::ShortTxFilterValidator::IsFilterAllowedForNotifications(PocketDb::ShortTxType type)
+bool PocketHelpers::ShortTxFilterValidator::Notifications::IsFilterAllowed(PocketDb::ShortTxType type)
 {
     static const std::set<PocketDb::ShortTxType> allowed = {
         PocketDb::ShortTxType::PocketnetTeam,
