@@ -5119,8 +5119,9 @@ namespace PocketDb
                     and subs.Height > 0
 
                 left join Transactions r -- related content - possible reposts
-                    on r.Hash = c.String3
+                    on r.String2 = c.String3
                     and r.Type in (200,201,202)
+                    and r.Last = 1
 
                 left join Payload pr
                     on pr.TxHash = r.Hash
@@ -5145,8 +5146,14 @@ namespace PocketDb
                 where c.Type in (200,201,202)
                     and c.Hash = c.String2 -- only orig
                     and c.Height = ?
+                    and c.String1 not in ( )sql" + join(vector<string>(pocketnetteamAddresses.size(), "?"), ",") + R"sql( )
         )sql",
-            heightBinder
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.height);
+                for (const auto& pocketnetAddress: pocketnetteamAddresses) {
+                    TryBindStatementText(stmt, i++, pocketnetAddress);
+                }
+            }
         }},
 
         {
