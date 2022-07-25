@@ -816,7 +816,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-    auto [shortTxMap, pocketnetteamPosts] = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+        auto [shortTxMap, pocketnetteamPosts] = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
 
         UniValue userNotifications {UniValue::VOBJ};
         for (const auto& addressSpecific: shortTxMap) {
