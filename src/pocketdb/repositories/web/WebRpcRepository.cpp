@@ -4601,7 +4601,7 @@ namespace PocketDb
         } queryParams {height};
 
         // Static because it will not be changed for entire node run
-        static const auto pocketnetteamAddress = GetPocketnetteamAddress();
+        static const auto pocketnetteamAddresses = GetPocketnetteamAddresses();
 
         static const auto heightBinder =
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
@@ -4617,15 +4617,15 @@ namespace PocketDb
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam) + R"sql(')TP,
                     t.Hash,
                     t.Type,
-                    null,
+                    t.String1,
                     t.Height as Height,
                     t.BlockNum as BlockNum,
                     null,
                     p.String2, -- Caption
+                    pact.String2,
+                    pact.String3,
                     null,
-                    null,
-                    null,
-                    null,
+                    ifnull(ract.Value,0),
                     r.Hash, -- repost related data, if any
                     r.Type,
                     r.String1,
@@ -4650,15 +4650,31 @@ namespace PocketDb
                     and r.Hash = t.String3
 
                 left join Payload pr
-                    on pr.TxHash = r.Hash   
+                    on pr.TxHash = r.Hash
+
+                left join Transactions act
+                    on act.Type = 100
+                    and act.Last = 1
+                    and act.String1 = t.String1
+                    and act.Height > 0
+
+                left join Payload pact
+                    on pact.TxHash = act.Hash
+
+                left join Ratings ract indexed by Ratings_Type_Id_Last_Height
+                    on ract.Type = 0
+                    and ract.Id = act.Id
+                    and ract.Last = 1
 
                 where t.Type in (200,201,202)
-                    and t.String1 = ?
+                    and t.String1 in ( )sql" + join(vector<string>(pocketnetteamAddresses.size(), "?"), ",") + R"sql( )
                     and t.Hash = t.String2 -- Only orig
                     and t.Height = ?
         )sql", 
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
-                TryBindStatementText(stmt, i++, pocketnetteamAddress);
+                for (const auto& pocketnetAddress: pocketnetteamAddresses) {
+                    TryBindStatementText(stmt, i++, pocketnetAddress);
+                }
                 TryBindStatementInt64(stmt, i++, queryParams.height);
             }
         }},
@@ -5272,6 +5288,7 @@ namespace PocketDb
                 bind(stmt, i, queryParams);
             }
 
+            LogPrintf(sqlite3_expanded_sql(*stmt));
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 reconstructor.FeedRow(*stmt);
