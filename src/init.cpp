@@ -1706,9 +1706,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB..."));
-
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
-
     PocketWeb::PocketFrontendInst.Init();
 
     // Always start WEB DB building thread

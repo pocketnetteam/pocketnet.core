@@ -13,15 +13,41 @@ namespace PocketDb
     using namespace std;
     using namespace PocketTx;
 
-    class CheckpointRepository
+
+    class CheckpointSocialDb
     {
     private:
         map<string, tuple<int, int>> _socialCheckpoints;
-        map<int, string> _lotteryCheckpoints;
-        map<string, string> _opReturnCheckpoints;
-        
     public:
-        CheckpointRepository();
+        CheckpointSocialDb();
+        map<string, tuple<int, int>>& Checkpoints() { return _socialCheckpoints; }
+    }; // CheckpointSocialDb
+
+
+    class CheckpointLotteryDb
+    {
+    private:
+        map<int, string> _lotteryCheckpoints;
+    public:
+        CheckpointLotteryDb();
+        map<int, string>& Checkpoints() { return _lotteryCheckpoints; }
+    }; // CheckpointLotteryDb
+
+
+    class CheckpointOpReturnDb
+    {
+    private:
+        map<string, string> _opReturnCheckpoints;
+    public:
+        CheckpointOpReturnDb();
+        map<string, string>& Checkpoints() { return _opReturnCheckpoints; }
+    }; // CheckpointOpReturnDb
+
+
+    class CheckpointRepository
+    {
+    public:
+        CheckpointRepository() = default;
 
         bool IsSocialCheckpoint(const string& txHash, TxType txType, int code);
         bool IsLotteryCheckpoint(int height, const string& hash);
