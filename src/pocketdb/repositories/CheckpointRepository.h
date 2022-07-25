@@ -17,30 +17,30 @@ namespace PocketDb
     class CheckpointSocialDb
     {
     private:
-        map<string, tuple<int, int>> _socialCheckpoints;
+        vector<tuple<string, int, int>> _socialCheckpoints;
     public:
         CheckpointSocialDb();
-        map<string, tuple<int, int>>& Checkpoints() { return _socialCheckpoints; }
+        vector<tuple<string, int, int>>& Checkpoints() { return _socialCheckpoints; }
     }; // CheckpointSocialDb
 
 
     class CheckpointLotteryDb
     {
     private:
-        map<int, string> _lotteryCheckpoints;
+        vector<tuple<int, string>> _lotteryCheckpoints;
     public:
         CheckpointLotteryDb();
-        map<int, string>& Checkpoints() { return _lotteryCheckpoints; }
+        vector<tuple<int, string>>& Checkpoints() { return _lotteryCheckpoints; }
     }; // CheckpointLotteryDb
 
 
     class CheckpointOpReturnDb
     {
     private:
-        map<string, string> _opReturnCheckpoints;
+        vector<tuple<string, string>> _opReturnCheckpoints;
     public:
         CheckpointOpReturnDb();
-        map<string, string>& Checkpoints() { return _opReturnCheckpoints; }
+        vector<tuple<string, string>>& Checkpoints() { return _opReturnCheckpoints; }
     }; // CheckpointOpReturnDb
 
 
