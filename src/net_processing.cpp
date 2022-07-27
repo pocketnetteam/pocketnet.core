@@ -3134,6 +3134,21 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return true;
     }
 
+    if (strCommand == NetMsgType::TRCKR) {
+        TrackerMessageType msg; // TODO (brangr): implement TrackerMessageType
+        vRecv >> msg; // TODO (brangr): implement deserialize/serialize methods
+
+        // TODO (brangr): process incoming message
+
+        // TODO (brangr): dont relay message if data already exists
+
+        // Relay incoming message to another nodes
+        connman->ForEachNode([&](CNode* pnode) {
+            if (pnode != pfrom) // TODO (brangr): check equals uniq id - not pointers
+                connman->PushMessage(pnode, msgMaker.Make(NetMsgType::TRCKR, msg));
+        });
+    }
+
     // Ignore unknown commands for extensibility
     LogPrint(BCLog::NET, "Unknown command \"%s\" from peer=%d\n", SanitizeString(strCommand), pfrom->GetId());
     return true;

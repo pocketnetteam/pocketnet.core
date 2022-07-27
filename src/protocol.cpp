@@ -15,32 +15,37 @@
 static std::atomic<bool> g_initial_block_download_completed(false);
 
 namespace NetMsgType {
-const char *VERSION="version";
-const char *VERACK="verack";
-const char *ADDR="addr";
-const char *INV="inv";
-const char *GETDATA="getdata";
-const char *MERKLEBLOCK="merkleblock";
-const char *GETBLOCKS="getblocks";
-const char *GETHEADERS="getheaders";
-const char *TX="tx";
-const char *HEADERS="headers";
-const char *BLOCK="block";
-const char *GETADDR="getaddr";
-const char *MEMPOOL="mempool";
-const char *PING="ping";
-const char *PONG="pong";
-const char *NOTFOUND="notfound";
-const char *FILTERLOAD="filterload";
-const char *FILTERADD="filteradd";
-const char *FILTERCLEAR="filterclear";
-const char *REJECT="reject";
-const char *SENDHEADERS="sendheaders";
-const char *FEEFILTER="feefilter";
-const char *SENDCMPCT="sendcmpct";
-const char *CMPCTBLOCK="cmpctblock";
-const char *GETBLOCKTXN="getblocktxn";
-const char *BLOCKTXN="blocktxn";
+
+    const char *VERSION="version";
+    const char *VERACK="verack";
+    const char *ADDR="addr";
+    const char *INV="inv";
+    const char *GETDATA="getdata";
+    const char *MERKLEBLOCK="merkleblock";
+    const char *GETBLOCKS="getblocks";
+    const char *GETHEADERS="getheaders";
+    const char *TX="tx";
+    const char *HEADERS="headers";
+    const char *BLOCK="block";
+    const char *GETADDR="getaddr";
+    const char *MEMPOOL="mempool";
+    const char *PING="ping";
+    const char *PONG="pong";
+    const char *NOTFOUND="notfound";
+    const char *FILTERLOAD="filterload";
+    const char *FILTERADD="filteradd";
+    const char *FILTERCLEAR="filterclear";
+    const char *REJECT="reject";
+    const char *SENDHEADERS="sendheaders";
+    const char *FEEFILTER="feefilter";
+    const char *SENDCMPCT="sendcmpct";
+    const char *CMPCTBLOCK="cmpctblock";
+    const char *GETBLOCKTXN="getblocktxn";
+    const char *BLOCKTXN="blocktxn";
+
+    // BitTorrent tracker messages
+    const char *TRCKR="trkr"; // TODO (brangr): announce deannounce register?
+
 } // namespace NetMsgType
 
 /** All known message types. Keep this in the same order as the list of

@@ -229,6 +229,12 @@ extern const char *GETBLOCKTXN;
  * @since protocol version 70014 as described by BIP 152
  */
 extern const char *BLOCKTXN;
+/**
+ * Contains a BitTorrent tracker message.
+ * Required for synchronization of tracker databases.
+ * @since protocol version // TODO (brangr): implement BIP
+ */
+extern const char *TRCKR;
 };
 
 /* Get a vector of all valid message types (see above) */
