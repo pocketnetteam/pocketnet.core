@@ -686,6 +686,29 @@ UniValue getnetstakeweighthist(const JSONRPCRequest& request)
     return result;
 }
 
+UniValue getnetstakeweight(const JSONRPCRequest &request)
+{
+    if (request.fHelp) {
+        throw std::runtime_error(
+            "getnetstakeweight (height))\n"
+            "\nReturns netstakeweight for \"height\".\n"
+            "\nArguments:\n"
+            "1. \"height\"        (int, optional) height of the block for which netstakeweight is calculated (Default is max height)\n"
+        );
+    }
+
+    int nHeight = chainActive.Height();
+    if (request.params.size() > 0) {
+        if (request.params[0].isNum()) {
+            if (request.params[0].get_int() > 0) {
+                nHeight = request.params[0].get_int();
+            }
+        }
+    }
+
+    return GetPoSKernelPSForHeight(nHeight);
+}
+
 static UniValue setnetworkactive(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1) {
@@ -774,6 +797,7 @@ static const CRPCCommand commands[] =
     { "network",            "listbanned",             &listbanned,             {} },
     { "network",            "clearbanned",            &clearbanned,            {} },
     { "network",            "getstakinginfo",         &getstakinginfo,         {} },
+    { "network",            "getnetstakeweight",      &getnetstakeweight,      {"height"} },
     { "network",            "setnetworkactive",       &setnetworkactive,       {"state"} },
     { "network",            "getnodeaddresses",       &getnodeaddresses,       {"count"} },
 

@@ -131,6 +131,52 @@ double GetPoSKernelPS(int nHeight)
     return result;
 }
 
+UniValue GetPoSKernelPSForHeight(int nHeight)
+{
+    UniValue uResult(UniValue::VOBJ);
+    int nPoSInterval = 72;
+    double dStakeKernelsTriedAvg = 0;
+    int nStakesHandled = 0, nStakesTime = 0;
+
+    CBlockIndex* pblockindex = chainActive[nHeight];
+
+    CBlockIndex *pindex = pblockindex;
+    CBlockIndex *pindexPrevStake = NULL;
+
+    while (pindex && nStakesHandled < nPoSInterval)
+    {
+        if (pindex->IsProofOfStake())
+        {
+            if (pindexPrevStake)
+            {
+                dStakeKernelsTriedAvg += GetPosDifficulty(pindexPrevStake) * 4294967296.0;
+                nStakesTime += pindexPrevStake->nTime - pindex->nTime;
+                nStakesHandled++;
+            }
+            pindexPrevStake = pindex;
+        }
+
+        pindex = pindex->pprev;
+    }
+
+    double result = 0;
+
+    if (nStakesTime)
+    {
+        result = dStakeKernelsTriedAvg / nStakesTime;
+    }
+
+    result *= STAKE_TIMESTAMP_MASK + 1;
+
+    uResult.pushKV("nHeight", nHeight);
+    uResult.pushKV("nTime",(int64_t)pindex->nTime);
+    uResult.pushKV("dStakeKernelsTriedAvg", dStakeKernelsTriedAvg);
+    uResult.pushKV("nStakesTime", nStakesTime);
+    uResult.pushKV("netstakeweight", (uint64_t)result);
+
+    return uResult;
+}
+
 int64_t GetProofOfStakeReward(int nHeight, int64_t nFees, const Consensus::Params &consensusParams)
 {
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
