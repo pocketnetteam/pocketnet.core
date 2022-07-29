@@ -4811,7 +4811,9 @@ namespace PocketDb
                     and c.String1 != a.String1
                     
                 left join Transactions p -- Root post
-                    on p.Hash = a.String3
+                    on p.Type in (200, 201, 202)
+                    and p.Last = 1
+                    and p.String2 = a.String3
 
                 left join Transactions orig
                     on orig.Hash = a.String2
