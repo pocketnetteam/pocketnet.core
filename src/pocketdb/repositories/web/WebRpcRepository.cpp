@@ -4632,7 +4632,7 @@ namespace PocketDb
                     r.Height,
                     r.BlockNum,
                     null,
-                    pr.String2,
+                    null,
                     null, -- TODO (losty): no account info
                     null,
                     null,
@@ -4648,9 +4648,6 @@ namespace PocketDb
                     and r.Last = 1
                     and r.Height > 0
                     and r.Hash = t.String3
-
-                left join Payload pr
-                    on pr.TxHash = r.Hash
 
                 left join Transactions act
                     on act.Type = 100
@@ -4787,18 +4784,18 @@ namespace PocketDb
                     orig.Height as Height,
                     a.BlockNum as BlockNum,
                     null,
-                    pa.String1,
+                    null,
                     paa.String2,
                     paa.String3,
                     paa.String4,
                     ifnull(ra.Value,0),
-                    c.Hash,
-                    c.Type,
+                    p.Hash,
+                    p.Type,
                     null,
-                    c.Height,
-                    c.BlockNum,
+                    p.Height,
+                    p.BlockNum,
                     null,
-                    pc.String1,
+                    null,
                     null,
                     null,
                     null,
@@ -4812,9 +4809,9 @@ namespace PocketDb
                     and c.Height > 0
                     and c.String2 = a.String5
                     and c.String1 != a.String1
-
-                left join Payload pc
-                    on pc.TxHash = c.Hash
+                    
+                left join Transactions p -- Root post
+                    on p.Hash = a.String3
 
                 left join Transactions orig
                     on orig.Hash = a.String2
@@ -5093,7 +5090,7 @@ namespace PocketDb
                     c.Height as Height,
                     c.BlockNum as BlockNum,
                     null,
-                    p.String2,
+                    null,
                     pac.String2,
                     pac.String3,
                     pac.String4,
@@ -5104,7 +5101,7 @@ namespace PocketDb
                     r.Height,
                     r.BlockNum,
                     null,
-                    pr.String2,
+                    null,
                     null, -- TODO (losty): No account info
                     null,
                     null,
@@ -5122,9 +5119,6 @@ namespace PocketDb
                     on r.String2 = c.String3
                     and r.Type in (200,201,202)
                     and r.Last = 1
-
-                left join Payload pr
-                    on pr.TxHash = r.Hash
 
                 cross join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                     on ac.Type = 100
@@ -5179,7 +5173,7 @@ namespace PocketDb
                     tContent.Height,
                     tContent.BlockNum,
                     null,
-                    pContent.String2,
+                    null,
                     null,
                     null,
                     null,
@@ -5192,8 +5186,6 @@ namespace PocketDb
                     and tContent.Last in (0,1)
                     and tContent.Height > 0
                     and tContent.String2 = tBoost.String2
-                left join Payload pContent
-                    on pContent.TxHash = tContent.Hash
 
                 left join Transactions ac
                     on ac.String1 = tBoost.String1
