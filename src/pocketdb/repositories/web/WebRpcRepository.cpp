@@ -4789,17 +4789,17 @@ namespace PocketDb
                     paa.String3,
                     paa.String4,
                     ifnull(ra.Value,0),
-                    p.Hash,
-                    p.Type,
-                    null,
-                    p.Height,
-                    p.BlockNum,
-                    null,
-                    null,
+                    post.Hash,
+                    post.Type,
+                    post.String1,
+                    post.Height,
+                    post.BlockNum,
                     null,
                     null,
+                    papost.String2,
+                    papost.String3,
                     null,
-                    null
+                    ifnull(rapost.Value,0)
 
                 from Transactions a indexed by Transactions_Type_Last_Height_String5_String1 -- Other answers
 
@@ -4810,10 +4810,23 @@ namespace PocketDb
                     and c.String2 = a.String5
                     and c.String1 != a.String1
                     
-                left join Transactions p -- Root post
-                    on p.Type in (200, 201, 202)
-                    and p.Last = 1
-                    and p.String2 = a.String3
+                left join Transactions post -- Root post
+                    on post.Type in (200, 201, 202)
+                    and post.Last = 1
+                    and post.String2 = a.String3
+
+                left join Transactions apost
+                    on apost.Type = 100
+                    and apost.Last = 1
+                    and apost.String1 = post.String1
+                
+                left join Payload papost
+                    on papost.TxHash = apost.Hash
+                
+                left join Ratings rapost indexed by Ratings_Type_Id_Last_Height
+                    on rapost.Type = 0
+                    and rapost.Id = apost.Id
+                    and rapost.Last = 1
 
                 left join Transactions orig
                     on orig.Hash = a.String2
