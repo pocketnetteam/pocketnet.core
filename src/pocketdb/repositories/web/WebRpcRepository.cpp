@@ -4621,7 +4621,7 @@ namespace PocketDb
                     t.Height as Height,
                     t.BlockNum as BlockNum,
                     null,
-                    p.String2, -- Caption
+                    null, -- Caption
                     pact.String2,
                     pact.String3,
                     null,
