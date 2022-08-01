@@ -120,6 +120,7 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddressTo()) && IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
             if (!IsEmpty(ptx->GetAddressTo()) && !IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
             // TODO (o1q): multiple_blocking. Check if addresses field in JSON format
+            // TODO (o1q): check max count blocks in array
 
             // Blocking self
             auto blockingaddresses = IsEmpty(ptx->GetAddressTo()) ? "" : *ptx->GetAddressTo();

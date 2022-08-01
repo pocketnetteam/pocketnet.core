@@ -978,7 +978,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select count(*)
+                select count()
                 from Transactions
                 where Type in (305, 306)
                   and Height is null

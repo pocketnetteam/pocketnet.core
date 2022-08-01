@@ -56,7 +56,6 @@ namespace PocketConsensus
     protected:
         ConsensusValidateResult ValidateBlock(const BlockingCancelRef& ptx, const PocketBlockRef& block) override
         {
-
             // Only one transaction (address -> addressTo) allowed in block
             for (auto& blockTx : *block)
             {
@@ -108,6 +107,8 @@ namespace PocketConsensus
 
             return Success;
         }
+
+        // TODO (o1q): check override for block multiple bloks
     };
 
     /*******************************************************************************************************************
