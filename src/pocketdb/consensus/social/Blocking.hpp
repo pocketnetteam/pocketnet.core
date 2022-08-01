@@ -192,7 +192,7 @@ namespace PocketConsensus
     protected:
         const vector<ConsensusCheckpoint<BlockingConsensus>> m_rules = {
             { 0, 0, [](int height) { return make_shared<BlockingConsensus>(height); }},
-            { 5555555,1, [](int height) { return make_shared<BlockingConsensus_checkpoint_multiple_blocking>(height); }}, // TODO (o1q): multiple_blocking
+            { 5555555,1093900, [](int height) { return make_shared<BlockingConsensus_checkpoint_multiple_blocking>(height); }}, // TODO (o1q): multiple_blocking
         };
     public:
         shared_ptr<BlockingConsensus> Instance(int height)
