@@ -186,6 +186,7 @@ namespace PocketDb
         
         _preProcessing = R"sql(
             insert or ignore into System (Db, Version) values ('main', 0);
+            delete from Balances where AddressHash = '';
         )sql";
 
 
