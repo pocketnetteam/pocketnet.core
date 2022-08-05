@@ -19,9 +19,12 @@ namespace PocketDb
     class ShortTxData
     {
     public:
-        ShortTxData(std::string hash, PocketTx::TxType txType, std::optional<std::string> address, std::optional<int64_t> height,
-                    std::optional<int64_t> blockNum, std::optional<ShortAccount> account, std::optional<int> val,
-                    std::optional<std::string> description);
+        ShortTxData(std::string hash, PocketTx::TxType txType, std::optional<std::string> address,
+                    std::optional<int64_t> height, std::optional<int64_t> blockNum,
+                    std::optional<ShortAccount> account, std::optional<int> val,
+                    std::optional<std::string> description,
+                    std::optional<std::string> commentParentId, std::optional<std::string> commentAnswerId);
+
         ShortTxData(std::string hash, PocketTx::TxType txType);
 
         UniValue Serialize() const;
@@ -40,6 +43,11 @@ namespace PocketDb
         void SetVal(const std::optional<int>& val);
         const std::optional<std::string>& GetDescription() const;
         void SetDescription(const std::optional<std::string>& description);
+        void SetCommentParentId(const std::optional<std::string>& commentParentId);
+        const std::optional<std::string>& GetCommentParentId() const;
+        void SetCommentAnswerId(const std::optional<std::string>& commentAnswerId);
+        const std::optional<std::string>& GetCommentAnswerId() const;
+        
     private:
         std::string m_hash;
         PocketTx::TxType m_txType;
@@ -49,6 +57,10 @@ namespace PocketDb
         std::optional<ShortAccount> m_account; // Account data associated with address
         std::optional<int> m_val;
         std::optional<std::string> m_description; // Short description of content, e.x. first lines of post's text
+
+        // Special-case fields for comments 
+        std::optional<std::string> m_commentParentId;
+        std::optional<std::string> m_commentAnswerId;
     };
 }
 

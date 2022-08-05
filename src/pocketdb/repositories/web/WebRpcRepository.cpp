@@ -34,7 +34,7 @@ namespace PocketDb
         {
             const auto i = index;
 
-            static const auto stmtOffset = 11;
+            static const auto stmtOffset = 13;
             index += stmtOffset;
 
             auto [ok1, hash] = TryGetColumnString(stmt, i);
@@ -47,7 +47,9 @@ namespace PocketDb
                 if (auto [ok, val] = TryGetColumnInt64(stmt, i+4); ok) txData.SetBlockNum(val);
                 if (auto [ok, val] = TryGetColumnInt64(stmt, i+5); ok) txData.SetVal(val);
                 if (auto [ok, val] = TryGetColumnString(stmt, i+6); ok) txData.SetDescription(val);
-                txData.SetAccount(_processAccount(stmt, i+7));
+                if (auto [ok, val] = TryGetColumnString(stmt, i+7); ok) txData.SetCommentParentId(val);
+                if (auto [ok, val] = TryGetColumnString(stmt, i+8); ok) txData.SetCommentAnswerId(val);
+                txData.SetAccount(_processAccount(stmt, i+9));
                 return txData;
             }
 
@@ -4622,6 +4624,8 @@ namespace PocketDb
                     t.BlockNum as BlockNum,
                     null,
                     p.String2, -- Caption
+                    null,
+                    null,
                     pact.String2,
                     pact.String3,
                     null,
@@ -4633,6 +4637,8 @@ namespace PocketDb
                     r.BlockNum,
                     null,
                     pr.String2,
+                    null,
+                    null,
                     null, -- TODO (losty): no account info
                     null,
                     null,
@@ -4691,6 +4697,10 @@ namespace PocketDb
                     t.Height as Height,
                     t.BlockNum as BlockNum,
                     o.Value,
+                    null,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -4788,6 +4798,8 @@ namespace PocketDb
                     a.BlockNum as BlockNum,
                     null,
                     pa.String1,
+                    a.String4,
+                    a.String5,
                     paa.String2,
                     paa.String3,
                     paa.String4,
@@ -4797,6 +4809,8 @@ namespace PocketDb
                     post.String1,
                     post.Height,
                     post.BlockNum,
+                    null,
+                    null,
                     null,
                     ppost.String2,
                     papost.String2,
@@ -5111,6 +5125,8 @@ namespace PocketDb
                     c.Height as Height,
                     c.BlockNum as BlockNum,
                     null,
+                    null,
+                    null,
                     p.String2,
                     pac.String2,
                     pac.String3,
@@ -5123,6 +5139,8 @@ namespace PocketDb
                     r.BlockNum,
                     null,
                     pr.String2,
+                    null,
+                    null,
                     null, -- TODO (losty): No account info
                     null,
                     null,
@@ -5187,6 +5205,8 @@ namespace PocketDb
                     tBoost.BlockNum as BlockNum,
                     tBoost.Int1,
                     null,
+                    null,
+                    null,
                     pac.String2,
                     pac.String3,
                     pac.String4,
@@ -5198,6 +5218,8 @@ namespace PocketDb
                     tContent.BlockNum,
                     null,
                     pContent.String2,
+                    null,
+                    null,
                     null,
                     null,
                     null,
