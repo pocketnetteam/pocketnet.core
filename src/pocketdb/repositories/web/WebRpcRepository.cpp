@@ -3444,7 +3444,7 @@ namespace PocketDb
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
-        const string& address)
+        const string& address, const vector<string>& addresses_extended)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
@@ -3476,7 +3476,8 @@ namespace PocketDb
                and subs.Last = 1
                and subs.Height > 0
                and subs.String1 = ?
-               and subs.String2 = cnt.String1
+               and cnt.String1 in ( subs.String2 )sql" + (!addresses_extended.empty() ? ("," + join(vector<string>(addresses_extended.size(), "?"), ",")) : "") + R"sql( )
+               -- and subs.String2 = cnt.String1
 
             where cnt.Type in )sql" + contentTypesWhere + R"sql(
               and cnt.Last = 1
@@ -3529,6 +3530,9 @@ namespace PocketDb
             if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
             TryBindStatementText(stmt, i++, addressFeed);
+            if (!addresses_extended.empty())
+                for (const auto& adr_ex: addresses_extended)
+                    TryBindStatementText(stmt, i++, adr_ex);
 
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
