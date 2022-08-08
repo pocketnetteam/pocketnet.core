@@ -20,7 +20,7 @@ namespace PocketDb
         vector<tuple<string, int, int>> _socialCheckpoints;
     public:
         CheckpointSocialDb();
-        vector<tuple<string, int, int>>& Checkpoints() { return _socialCheckpoints; }
+        const vector<tuple<string, int, int>>& Checkpoints() { return _socialCheckpoints; }
     }; // CheckpointSocialDb
 
 
@@ -30,7 +30,7 @@ namespace PocketDb
         vector<tuple<int, string>> _lotteryCheckpoints;
     public:
         CheckpointLotteryDb();
-        vector<tuple<int, string>>& Checkpoints() { return _lotteryCheckpoints; }
+        const vector<tuple<int, string>>& Checkpoints() { return _lotteryCheckpoints; }
     }; // CheckpointLotteryDb
 
 
@@ -40,7 +40,7 @@ namespace PocketDb
         vector<tuple<string, string>> _opReturnCheckpoints;
     public:
         CheckpointOpReturnDb();
-        vector<tuple<string, string>>& Checkpoints() { return _opReturnCheckpoints; }
+        const vector<tuple<string, string>>& Checkpoints() { return _opReturnCheckpoints; }
     }; // CheckpointOpReturnDb
 
 
