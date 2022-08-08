@@ -222,6 +222,8 @@ namespace PocketConsensus
         ConsensusLimit_edit_user_daily_count,
         ConsensusLimit_account_settings_daily_count,
 
+        ConsensusLimit_multiple_lock_addresses_count,
+
         ConsensusLimit_max_user_size,
         ConsensusLimit_max_post_size,
         ConsensusLimit_max_video_size,
@@ -470,6 +472,11 @@ namespace PocketConsensus
         { ConsensusLimit_account_settings_daily_count, {
             { NetworkMain, { {0, 5} } },
             { NetworkTest, { {0, 5} } }
+        } },
+
+        { ConsensusLimit_multiple_lock_addresses_count, {
+            { NetworkMain, { {0, 100} } }, // TODO (o1q): Set multiple lock addresses count
+            { NetworkTest, { {0, 100} } }
         } },
 
         // Size

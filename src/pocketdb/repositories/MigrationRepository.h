@@ -25,7 +25,11 @@ namespace PocketDb
         void Init() override {}
         void Destroy() override {}
 
+        bool CreateBlockingList();
+
     protected:
+
+        bool CheckNeedCreateBlockingList();
 
     };
 
