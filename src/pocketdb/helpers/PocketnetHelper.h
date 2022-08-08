@@ -45,7 +45,7 @@ namespace PocketHelpers
     {
         switch (Params().NetworkID()) {
             case NetworkMain:
-                return {"PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd", "PJ3nv2jGyW2onqZVDKJf9TmfuLGpmkSK2X"};
+                return {"PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd"};
             case NetworkTest:
                 return {"TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU"};
             default:
