@@ -29,6 +29,8 @@ add_compile_definitions(CLIENT_VERSION_MAJOR=${_CLIENT_VERSION_MAJOR}
                         COPYRIGHT_HOLDERS_FINAL=${_COPYRIGHT_HOLDERS_FINAL}
                         HOMEPAGE=${_HOMEPAGE})
 
+add_compile_options(/bigobj)
+
 # TODO missing bug report url
 project (
         Pocketnet-Core 

@@ -204,7 +204,7 @@ namespace PocketConsensus
                 {
                     return target < itm.Height(Params().NetworkIDString());
                 }
-            ))->m_func(height);
+            ))->m_func(m_height);
         }
     };
 }

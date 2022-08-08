@@ -105,7 +105,7 @@ static std::tuple <RetFormat, std::vector<std::string>> ParseParams(const std::s
     return std::make_tuple(rf, uriParts);
 };
 
-static std::tuple<bool, int> TryGetParamInt(std::vector <std::string>& uriParts, int index)
+static std::tuple<bool, int> TryGetParamInt(std::vector<std::string>& uriParts, int index)
 {
     try
     {
@@ -123,7 +123,7 @@ static std::tuple<bool, int> TryGetParamInt(std::vector <std::string>& uriParts,
     }
 }
 
-static std::tuple<bool, std::string> TryGetParamStr(std::vector <std::string>& uriParts, int index)
+static std::tuple<bool, std::string> TryGetParamStr(std::vector<std::string>& uriParts, int index)
 {
     try
     {
@@ -327,13 +327,8 @@ static bool rest_blockhash(HTTPRequest* req, const std::string& strURIPart)
     auto[rf, uriParts] = ParseParams(strURIPart);
 
     int height = chainActive.Height();
-
-    try
-    {
-        if (!uriParts.empty())
-            height = std::stoi(uriParts[0]);
-    }
-    catch (...) {}
+    if (auto[ok, value] = TryGetParamInt(uriParts, 0); ok)
+        height = value;
 
     if (height < 0 || height > chainActive.Height())
         return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
@@ -757,9 +752,15 @@ static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
+
+    auto[rf, uriParts] = ParseParams(strURIPart);
     
+    int height = chainActive.Height();
+    if (auto[ok, value] = TryGetParamInt(uriParts, 0); ok)
+        height = std::max(value, 0);
+
     req->WriteHeader("Content-Type", "text/plain");
-    req->WriteReply(HTTP_OK, std::to_string(getEmission(chainActive.Height())));
+    req->WriteReply(HTTP_OK, std::to_string(getEmission(height)));
     return true;
 }
 

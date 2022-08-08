@@ -64,26 +64,14 @@ namespace PocketDb
         // Execute migration scripts
         if (gArgs.GetArg("-reindex", 0) == 0)
         {
-            if (!MigrationRepoInst.SplitLikers())
-            {
-                LogPrintf("SQLDB Migration: SplitLikers completed.\n");
-                StartShutdown();
-                return;
-            }
-
-            if (!MigrationRepoInst.AccumulateLikers())
-            {
-                LogPrintf("SQLDB Migration: AccumulateLikers completed.\n");
-                StartShutdown();
-                return;
-            }
-
             if (!MigrationRepoInst.CreateBlockingList())
             {
                 LogPrintf("SQLDB Migration: CreateBlockingList completed.\n");
                 StartShutdown();
                 return;
             }
+            
+            // Any necessary logic for database modification
         }
 
         // Open, create structure and close `web` db
@@ -95,24 +83,6 @@ namespace PocketDb
 
         // Attach `web` db to `main` db
         SQLiteDbInst.AttachDatabase("web");
-    }
-
-    void InitSQLiteCheckpoints(fs::path path)
-    {
-        // Intialize Checkpoints DB
-        auto checkpointDbName = Params().NetworkIDString();
-        if (!fs::exists((path / (checkpointDbName + ".sqlite3")).string()))
-        {
-            LogPrintf("Checkpoint DB %s not found!\nDownload actual DB file from %s and place to %s directory.\n",
-                (path / (checkpointDbName + ".sqlite3")).string(),
-                "https://github.com/pocketnetteam/pocketnet.core/tree/master/checkpoints/" + checkpointDbName + ".sqlite3",
-                path.string()
-            );
-
-            throw std::runtime_error(_("Unable to start server. Checkpoints DB not found. See debug log for details."));
-        }
-        SQLiteDbCheckpointInst.Init(path.string(), checkpointDbName);
-
     }
 
     SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)
@@ -141,8 +111,6 @@ namespace PocketDb
             while ((pos = sql.find(';')) != std::string::npos)
             {
                 token = sql.substr(0, pos);
-
-                LogPrint(BCLog::MIGRATION, "Migration Sqlite database `%s` structure..\n---\n%s\n---\n", m_file_path, token);
 
                 LogPrint(BCLog::MIGRATION, "Migration Sqlite database `%s` structure..\n---\n%s\n---\n", m_file_path, token);
 

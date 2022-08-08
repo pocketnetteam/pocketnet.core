@@ -4,6 +4,7 @@
 
 #include <pocketdb/consensus/Base.h>
 #include "pocketdb/web/PocketContentRpc.h"
+#include "pocketdb/helpers/ShortFormHelper.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -515,6 +516,66 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
+    UniValue GetMostCommentedFeed(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetMostCommentedFeed\n"
+                "topHeight           (int) - ???\n"
+                "topContentHash      (string, optional) - ???\n"
+                "countOut            (int, optional) - ???\n"
+                "lang                (string, optional) - ???\n"
+                "tags                (vector<string>, optional) - ???\n"
+                "contentTypes        (vector<int>, optional) - ???\n"
+                "txIdsExcluded       (vector<string>, optional) - ???\n"
+                "adrsExcluded        (vector<string>, optional) - ???\n"
+                "tagsExcluded        (vector<string>, optional) - ???\n"
+                "address             (string, optional) - ???\n"
+                "depth               (int, optional) - ???\n"
+            );
+
+        int topHeight;
+        string topContentHash;
+        int countOut;
+        string lang;
+        vector<string> tags;
+        vector<int> contentTypes;
+        vector<string> txIdsExcluded;
+        vector<string> adrsExcluded;
+        vector<string> tagsExcluded;
+        string address;
+        int depth = 60 * 24 * 30 * 6; // about 6 month
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+            adrsExcluded, tagsExcluded, address);
+        // depth
+        if (request.params.size() > 10)
+        {
+            RPCTypeCheckArgument(request.params[10], UniValue::VNUM);
+            depth = std::min(depth, request.params[10].get_int());
+        }
+
+        int64_t topContentId = 0;
+        // if (!topContentHash.empty())
+        // {
+        //     auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+        //     if (!ids.empty())
+        //         topContentId = ids[0];
+        // }
+
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
+        UniValue result(UniValue::VOBJ);
+        UniValue content = request.DbConnection()->WebRpcRepoInst->GetMostCommentedFeed(
+            countOut, topContentId, topHeight, lang, tags, contentTypes,
+            txIdsExcluded, adrsExcluded, tagsExcluded,
+            address, depth, badReputationLimit);
+
+        result.pushKV("height", topHeight);
+        result.pushKV("contents", content);
+        return result;
+    }
+
     UniValue GetSubscribesFeed(const JSONRPCRequest& request)
     {
         if (request.fHelp)
@@ -721,5 +782,60 @@ namespace PocketWeb::PocketWebRpc
 
         auto contentHash = request.params[0].get_str();
         return request.DbConnection()->WebRpcRepoInst->GetContentActions(contentHash);
+    }
+
+    UniValue GetNotifications(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getnotifications\n"
+                "\nGet all possible notifications for all addresses for concrete block height.\n"
+                "\nArguments:\n"
+                "1. \"height\" (int) height of block to search in\n"
+                "2. \"filters\" (array of strings, optional) type(s) of notifications. If empty or null - search for all types\n"
+                );
+
+        RPCTypeCheck(request.params, {UniValue::VNUM});
+
+        auto height = request.params[0].get_int64();
+
+        if (height > chainActive.Height()) throw JSONRPCError(RPC_INVALID_PARAMETER, "Spefified height is greater than current chain height");
+
+        std::set<ShortTxType> filters;
+        if (request.params.size() > 1 && request.params[1].isArray()) {
+            const auto& rawFilters  = request.params[1].get_array();
+            for (int i = 0; i < rawFilters.size(); i++) {
+                if (rawFilters[i].isStr()) {
+                    const auto& rawFilter = rawFilters[i].get_str();
+                    auto filter = ShortTxTypeConvertor::strToType(rawFilter);
+                    if (!ShortTxFilterValidator::Notifications::IsFilterAllowed(filter)) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unexpected filter: " + rawFilter);
+                    }
+                    filters.insert(filter);
+                }
+            }
+        }
+
+        auto [shortTxMap, pocketnetteamPosts] = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+
+        UniValue userNotifications {UniValue::VOBJ};
+        for (const auto& addressSpecific: shortTxMap) {
+            UniValue txs {UniValue::VARR};
+            for (const auto& tx: addressSpecific.second) {
+                txs.push_back(tx.Serialize());
+            }
+            userNotifications.pushKV(addressSpecific.first, txs);
+        }
+
+        UniValue pocketnetteam {UniValue::VARR};
+        for (const auto& pocketnetteanPost: pocketnetteamPosts) {
+            pocketnetteam.push_back(pocketnetteanPost.Serialize());
+        }
+
+        UniValue res {UniValue::VOBJ};
+        res.pushKV("users_notifications", userNotifications);
+        res.pushKV("pocketnetteam", pocketnetteam);
+
+        return res;
     }
 }

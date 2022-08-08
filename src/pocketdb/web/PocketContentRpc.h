@@ -23,12 +23,14 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetHierarchicalFeed(const JSONRPCRequest& request);
     UniValue GetBoostFeed(const JSONRPCRequest& request);
     UniValue GetTopFeed(const JSONRPCRequest& request);
+    UniValue GetMostCommentedFeed(const JSONRPCRequest& request);
     UniValue GetProfileFeed(const JSONRPCRequest& request);
     UniValue GetSubscribesFeed(const JSONRPCRequest& request);
     UniValue FeedSelector(const JSONRPCRequest& request);
     UniValue GetContentsStatistic(const JSONRPCRequest& request);
     UniValue GetRandomContents(const JSONRPCRequest& request);
     UniValue GetContentActions(const JSONRPCRequest& request);
+    UniValue GetNotifications(const JSONRPCRequest& request);
 
 }
 

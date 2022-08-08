@@ -8,6 +8,32 @@ namespace PocketWeb::PocketWebRpc
 {
     map<string, UniValue> TransactionsStatisticCache;
 
+    UniValue GetStatisticTransactions(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "getstatistictransactions (topTime, depth, period)\n"
+                "\nGet statistics\n"
+                "\nArguments:\n"
+                "1. \"topTime\"     (int64, optional) Top time in unixtime format (Default: current adjusted time)\n"
+                "2. \"depth\"       (int32, optional) Depth in hours (Default: 24)\n"
+                "2. \"period\"      (int32, optional) Grouping time in seconds (Default: 3600)\n");
+
+        int64_t topTime = GetAdjustedTime();
+        if (request.params[0].isNum())
+            topTime = min(request.params[0].get_int64(), topTime);
+
+        int depth = 24;
+        if (request.params[1].isNum())
+            depth = request.params[1].get_int();
+
+        int period = 3600;
+        if (request.params[2].isNum())
+            period = request.params[2].get_int();
+
+        return request.DbConnection()->ExplorerRepoInst->GetTransactionsStatistic(topTime, depth, period);
+    }
+
     UniValue GetStatisticByHours(const JSONRPCRequest& request)
     {
         if (request.fHelp)
