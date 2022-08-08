@@ -311,7 +311,7 @@ namespace PocketDb
                                     and bc.String2 in (select b.String2 union select value from json_each(b.String3))
                                     and bc.Height > 0
                                     and bc.Id >= b.Id)
-                  and not exists (select 1 from BlockingLists)
+                  and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
             )sql")
 
         });
@@ -345,7 +345,7 @@ namespace PocketDb
                                     and bc.String2 in (select b.String2 union select value from json_each(b.String3))
                                     and bc.Height > 0
                                     and bc.Id >= b.Id)
-                  and not exists (select 1 from BlockingLists)
+                  and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
                 limit 1
             )sql");
 
