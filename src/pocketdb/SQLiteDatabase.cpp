@@ -64,19 +64,7 @@ namespace PocketDb
         // Execute migration scripts
         if (gArgs.GetArg("-reindex", 0) == 0)
         {
-            if (!MigrationRepoInst.SplitLikers())
-            {
-                LogPrintf("SQLDB Migration: SplitLikers completed.\n");
-                StartShutdown();
-                return;
-            }
-
-            if (!MigrationRepoInst.AccumulateLikers())
-            {
-                LogPrintf("SQLDB Migration: AccumulateLikers completed.\n");
-                StartShutdown();
-                return;
-            }
+            // Any necessary logic for database modification
         }
 
         // Open, create structure and close `web` db
@@ -116,8 +104,6 @@ namespace PocketDb
             while ((pos = sql.find(';')) != std::string::npos)
             {
                 token = sql.substr(0, pos);
-
-                LogPrint(BCLog::MIGRATION, "Migration Sqlite database `%s` structure..\n---\n%s\n---\n", m_file_path, token);
 
                 LogPrint(BCLog::MIGRATION, "Migration Sqlite database `%s` structure..\n---\n%s\n---\n", m_file_path, token);
 

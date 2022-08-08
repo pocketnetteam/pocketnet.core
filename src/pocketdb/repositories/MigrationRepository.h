@@ -25,15 +25,7 @@ namespace PocketDb
         void Init() override {}
         void Destroy() override {}
 
-        bool SplitLikers();
-
-        // Calculate last values group by AccountID & Type
-        bool AccumulateLikers();
-
     protected:
-
-        bool CheckNeedSplitLikers();
-        bool CheckNeedAccumulateLikers();
 
     };
 
