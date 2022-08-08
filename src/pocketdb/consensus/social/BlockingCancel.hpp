@@ -107,8 +107,23 @@ namespace PocketConsensus
 
             return Success;
         }
+        ConsensusValidateResult Check(const CTransactionRef& tx, const BlockingCancelRef& ptx) override
+        {
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
 
-        // TODO (o1q): check override for block multiple bloks
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+            // Do not allow multiple addresses
+            if (!IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
+
+            // Blocking self
+            if (*ptx->GetAddress() == *ptx->GetAddressTo())
+                return {false, SocialConsensusResult_SelfBlocking};
+
+            return Success;
+        }
     };
 
     /*******************************************************************************************************************
@@ -119,7 +134,7 @@ namespace PocketConsensus
     protected:
         const vector<ConsensusCheckpoint < BlockingCancelConsensus>> m_rules = {
             { 0, 0, [](int height) { return make_shared<BlockingCancelConsensus>(height); }},
-            { 5555555,1, [](int height) { return make_shared<BlockingCancelConsensus_checkpoint_multiple_blocking>(height); }}, // TODO (o1q): multiple_blocking
+            { 5555555,1, [](int height) { return make_shared<BlockingCancelConsensus_checkpoint_multiple_blocking>(height); }}, // TODO (o1q): set checkpoint height for multiple locks
         };
     public:
         shared_ptr<BlockingCancelConsensus> Instance(int height)

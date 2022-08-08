@@ -77,6 +77,13 @@ namespace PocketDb
                 StartShutdown();
                 return;
             }
+
+            if (!MigrationRepoInst.CreateBlockingList())
+            {
+                LogPrintf("SQLDB Migration: CreateBlockingList completed.\n");
+                StartShutdown();
+                return;
+            }
         }
 
         // Open, create structure and close `web` db

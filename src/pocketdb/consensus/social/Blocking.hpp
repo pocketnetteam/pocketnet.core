@@ -86,7 +86,6 @@ namespace PocketConsensus
         }
     };
 
-    // TODO (o1q): multiple_blocking
     class BlockingConsensus_checkpoint_multiple_blocking : public BlockingConsensus
     {
     public:
@@ -119,8 +118,14 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetAddressTo()) && IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
             if (!IsEmpty(ptx->GetAddressTo()) && !IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
-            // TODO (o1q): multiple_blocking. Check if addresses field in JSON format
-            // TODO (o1q): check max count blocks in array
+            if (!IsEmpty(ptx->GetAddressesTo()))
+            {
+                UniValue addrs(UniValue::VARR);
+                if (!addrs.read(*ptx->GetAddressesTo()))
+                    return {false, SocialConsensusResult_Failed};
+                if (addrs.size() > GetConsensusLimit(ConsensusLimit_multiple_lock_addresses_count))
+                    return {false, SocialConsensusResult_Failed};
+            }
 
             // Blocking self
             auto blockingaddresses = IsEmpty(ptx->GetAddressTo()) ? "" : *ptx->GetAddressTo();
@@ -143,11 +148,6 @@ namespace PocketConsensus
                 if (*blockPtx->GetHash() == *ptx->GetHash())
                     continue;
 
-                // TODO (o1q): multiple_blocking. Implement duplicate. And do not forget to check if parameter is null
-                // if (*ptx->GetAddress() == *blockPtx->GetAddress() &&
-                //     *ptx->GetAddressTo() == *blockPtx->GetAddressTo() &&
-                //     *ptx->GetAddressesTo() == *blockPtx->GetAddressesTo())
-                //     return {false, SocialConsensusResult_ManyTransactions};
                 if (*ptx->GetAddress() == *blockPtx->GetAddress()) {
                     if (!IsEmpty(ptx->GetAddressTo()) &&
                         !IsEmpty(blockPtx->GetAddressTo()) &&
@@ -193,7 +193,7 @@ namespace PocketConsensus
     protected:
         const vector<ConsensusCheckpoint<BlockingConsensus>> m_rules = {
             { 0, 0, [](int height) { return make_shared<BlockingConsensus>(height); }},
-            { 5555555,1093900, [](int height) { return make_shared<BlockingConsensus_checkpoint_multiple_blocking>(height); }}, // TODO (o1q): multiple_blocking
+            { 5555555,1093900, [](int height) { return make_shared<BlockingConsensus_checkpoint_multiple_blocking>(height); }}, // TODO (o1q): set checkpoint height for multiple locks
         };
     public:
         shared_ptr<BlockingConsensus> Instance(int height)

@@ -336,7 +336,7 @@ namespace PocketDb
 
     void ChainRepository::IndexBlocking(const string& txHash)
     {
-        // TODO (o1q): multiple_blocking
+        // TODO (o1q): double check multiple locks
         // Set last=1 for new transaction
         auto setLastStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
