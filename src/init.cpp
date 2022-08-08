@@ -1556,10 +1556,16 @@ static void StartWS()
     ws.on_message = [](std::shared_ptr<WsServer::Connection> connection,
         std::shared_ptr<WsServer::InMessage> in_message)
     {
+        UniValue val;
         auto out_message = in_message->string();
 
-        UniValue val;
-        if (val.read(out_message))
+    try
+    {
+        if (out_message == "0") // Ping/Pong
+        {
+            connection->send("1", [](const SimpleWeb::error_code& ec) {});
+        }
+        else if (val.read(out_message)) // Messages with data
         {
             try
             {
