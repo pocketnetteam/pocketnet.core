@@ -136,10 +136,6 @@ int main(int argc, char** argv)
 
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
 
-    // Go up two directories to access the checkpoints folder, assume we are running in /src/test
-    fs::path checkpointsPath = fs::system_complete("../..");
-    PocketDb::InitSQLiteCheckpoints(checkpointsPath / "checkpoints");
-
     benchmark::Args args;
     args.asymptote = parseAsymptote(argsman.GetArg("-asymptote", ""));
     args.is_list_only = argsman.GetBoolArg("-list", false);

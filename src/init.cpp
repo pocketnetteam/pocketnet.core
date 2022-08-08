@@ -179,11 +179,6 @@ void ShutdownPocketServices()
     PocketDb::SQLiteDbInst.Close();
 
     PocketDb::SQLiteDbInst.m_connection_mutex.unlock();
-
-    PocketDb::SQLiteDbCheckpointInst.m_connection_mutex.lock();
-    PocketDb::CheckpointRepoInst.Destroy();
-    PocketDb::SQLiteDbCheckpointInst.Close();
-    PocketDb::SQLiteDbCheckpointInst.m_connection_mutex.unlock();
 }
 
 void Interrupt()
@@ -1717,10 +1712,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB..."));
-
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
-    PocketDb::InitSQLiteCheckpoints(GetDataDir()  / "checkpoints");
-
     PocketWeb::PocketFrontendInst.Init();
 
     // Always start WEB DB building thread

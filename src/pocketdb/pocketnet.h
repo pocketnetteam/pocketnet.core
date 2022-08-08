@@ -40,7 +40,6 @@ namespace PocketDb
     extern SystemRepository SystemRepoInst;
     extern MigrationRepository MigrationRepoInst;
 
-    extern SQLiteDatabase SQLiteDbCheckpointInst;
     extern CheckpointRepository CheckpointRepoInst;
 } // namespace PocketDb
 
