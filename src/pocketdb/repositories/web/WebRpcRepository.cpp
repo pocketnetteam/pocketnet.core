@@ -797,6 +797,14 @@ namespace PocketDb
               c.String4   as CommentParent,
               c.String5   as CommentAnswer,
 
+              p.String1   as AddressContent,
+              ifnull(
+                (select String1 from Transactions where Hash = c.String4),
+              '')   as AddressCommentParent,
+              ifnull(
+                (select String1 from Transactions where Hash = c.String5),
+              '')   as AddressCommentAnswer,
+
               (
                 select count(1)
                 from Transactions sc indexed by Transactions_Type_Last_String2_Height
@@ -862,23 +870,27 @@ namespace PocketDb
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("id", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
+                int i = 0;
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("id", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                 {
                     record.pushKV("time", value);
                     record.pushKV("timeUpd", value);
                 }
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("edit", value == 1);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("addressContent", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("addressCommentParent", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("addressCommentAnswer", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("edit", value == 1);
+                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
@@ -3415,10 +3427,10 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
+    UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
-        const string& address)
+        const string& address, const string& keyword, const string& orderby, const string& ascdesc)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
@@ -3427,6 +3439,11 @@ namespace PocketDb
             return result;
 
         // ---------------------------------------------
+        string _keyword;
+        if(!keyword.empty())
+        {
+            _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
+        }
 
         string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
 
@@ -3437,6 +3454,41 @@ namespace PocketDb
         string langFilter;
         if (!lang.empty())
             langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
+
+        string sorting = "t.Id ";
+        if (orderby == "comment")
+        {
+            sorting = R"sql(
+                (
+                    select count()
+                    from Transactions s indexed by Transactions_Type_Last_String3_Height
+                    where s.Type in (204, 205)
+                      and s.Height is not null
+                      and s.String3 = t.String2
+                      and s.Last = 1
+                      -- exclude commenters blocked by the author of the post
+                      and not exists (
+                        select 1
+                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                        where b.Type in (305)
+                            and b.Last = 1
+                            and b.Height > 0
+                            and b.String1 = t.String1
+                            and b.String2 = s.String1
+                      )
+                )
+            )sql";
+        }
+        if (orderby == "score")
+        {
+            sorting = R"sql(
+                (
+                    select count() from Transactions scr indexed by Transactions_Type_Last_String2_Height
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2
+                )
+            )sql";
+        }
+        sorting += " " + ascdesc;
 
         string sql = R"sql(
             select t.Id
@@ -3478,8 +3530,24 @@ namespace PocketDb
              ) )sql";
         }
 
-        sql += " order by t.Id desc ";
-        sql += " limit ? ";
+        if(!_keyword.empty())
+        {
+            sql += R"sql(
+                and t.id in (
+                    select cm.ContentId
+                    from web.Content c
+                    join web.ContentMap cm on c.ROWID = cm.ROWID
+                    where cm.FieldType in (2, 3, 4, 5)
+                        and c.Value match ?
+                )
+            )sql";
+        }
+
+        sql += R"sql( order by
+        )sql" + sorting   + R"sql(
+         limit ?
+         offset ?
+        )sql";
 
         // ---------------------------------------------
 
@@ -3527,10 +3595,16 @@ namespace PocketDb
                     TryBindStatementText(stmt, i++, lang);
             }
 
+            if (!_keyword.empty())
+                TryBindStatementText(stmt, i++, _keyword);
+
             TryBindStatementInt(stmt, i++, countOut);
+
+            TryBindStatementInt(stmt, i++, pageNumber * countOut);
 
             // ---------------------------------------------
 
+            LogPrintf(sqlite3_expanded_sql(*stmt));
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
@@ -3554,7 +3628,7 @@ namespace PocketDb
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
-        const string& address)
+        const string& address, const vector<string>& addresses_extended)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
@@ -3586,7 +3660,8 @@ namespace PocketDb
                and subs.Last = 1
                and subs.Height > 0
                and subs.String1 = ?
-               and subs.String2 = cnt.String1
+               and cnt.String1 in ( subs.String2 )sql" + (!addresses_extended.empty() ? ("," + join(vector<string>(addresses_extended.size(), "?"), ",")) : "") + R"sql( )
+               -- and subs.String2 = cnt.String1
 
             where cnt.Type in )sql" + contentTypesWhere + R"sql(
               and cnt.Last = 1
@@ -3639,6 +3714,9 @@ namespace PocketDb
             if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
             TryBindStatementText(stmt, i++, addressFeed);
+            if (!addresses_extended.empty())
+                for (const auto& adr_ex: addresses_extended)
+                    TryBindStatementText(stmt, i++, adr_ex);
 
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
