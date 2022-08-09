@@ -8,6 +8,52 @@ namespace PocketWeb::PocketWebRpc
 {
     map<string, UniValue> TransactionsStatisticCache;
 
+    RPCHelpMan GetStatisticTransactions()
+    {
+        return RPCHelpMan{"getstatistictransactions",
+                "\nGet statistics\n",
+                {
+                    {"topTime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Top time in unixtime format (Default: current adjusted time)"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth in hours (Default: 24)"},
+                    {"period", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Grouping time in seconds (Default: 3600)"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    // TODO (rpc): provide correct examples
+                    // HelpExampleCli("getstatisticbyhours", "") +
+                    // HelpExampleRpc("getstatisticbyhours", "")
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        // if (request.fHelp)
+        //     throw runtime_error(
+        //         "getstatistictransactions (topTime, depth, period)\n"
+        //         "\nGet statistics\n"
+        //         "\nArguments:\n"
+        //         "1. \"topTime\"     (int64, optional) Top time in unixtime format (Default: current adjusted time)\n"
+        //         "2. \"depth\"       (int32, optional) Depth in hours (Default: 24)\n"
+        //         "2. \"period\"      (int32, optional) Grouping time in seconds (Default: 3600)\n");
+
+        int64_t topTime = GetAdjustedTime();
+        if (request.params[0].isNum())
+            topTime = min(request.params[0].get_int64(), topTime);
+
+        int depth = 24;
+        if (request.params[1].isNum())
+            depth = request.params[1].get_int();
+
+        int period = 3600;
+        if (request.params[2].isNum())
+            period = request.params[2].get_int();
+
+        return request.DbConnection()->ExplorerRepoInst->GetTransactionsStatistic(topTime, depth, period);
+    },
+        };
+    }
+
     RPCHelpMan GetStatisticByHours()
     {
         return RPCHelpMan{"getstatisticbyhours",

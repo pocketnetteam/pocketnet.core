@@ -192,11 +192,6 @@ void ShutdownPocketServices()
     PocketDb::SQLiteDbInst.Close();
 
     PocketDb::SQLiteDbInst.m_connection_mutex.unlock();
-
-    PocketDb::SQLiteDbCheckpointInst.m_connection_mutex.lock();
-    PocketDb::CheckpointRepoInst.Destroy();
-    PocketDb::SQLiteDbCheckpointInst.Close();
-    PocketDb::SQLiteDbCheckpointInst.m_connection_mutex.unlock();
 }
 
 void Interrupt(NodeContext& node)
@@ -1470,10 +1465,14 @@ static void StartWS()
     ws.on_message = [](std::shared_ptr<WsServer::Connection> connection,
         std::shared_ptr<WsServer::InMessage> in_message)
     {
+        UniValue val;
         auto out_message = in_message->string();
 
-        UniValue val;
-        if (val.read(out_message))
+        if (out_message == "0") // Ping/Pong
+        {
+            connection->send("1", [](const SimpleWeb::error_code& ec) {});
+        }
+        else if (val.read(out_message)) // Messages with data
         {
             try
             {
@@ -1652,10 +1651,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
 
     // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB...").translated);
-
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
-    PocketDb::InitSQLiteCheckpoints(GetDataDir()  / "checkpoints");
-    
     PocketWeb::PocketFrontendInst.Init();
 
     // Always start WEB DB building thread

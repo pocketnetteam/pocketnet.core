@@ -60,7 +60,7 @@ static const CRPCCommand commands[] =
     {"contents",        "getboostfeed",                     &GetBoostFeed,                  {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     {"contents",        "gettopfeed",                       &GetTopFeed,                    {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","depth"}},
     {"contents",        "getmostcommentedfeed",             &GetMostCommentedFeed,          {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","depth"}},
-    {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed"}},
+    {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed", "keyword"}},
     {"contents",        "getsubscribesfeed",                &GetSubscribesFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed"}},
     {"contents",        "getrawtransactionwithmessage",     &FeedSelector,                  {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"contents",        "getrawtransactionwithmessagebyid", &GetContent,                    {"ids", "address"}},
@@ -69,6 +69,7 @@ static const CRPCCommand commands[] =
     {"contents",        "getcontents",                      &GetContents,                   {"address"}},
     {"contents",        "getrandomcontents",                &GetRandomContents,             {}},
     {"contents",        "getcontentactions",                &GetContentActions,             {"contentHash"}},
+    {"contents",        "getnotifications",                 &GetNotifications,              {"height", "filters"}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
@@ -97,8 +98,10 @@ static const CRPCCommand commands[] =
     {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},
     {"scores",          "getpostscores",                    &GetPostScores,                 {"txHash"}},
     {"scores",          "getpagescores",                    &GetPagesScores,                {"postIds", "address", "cmntIds"}},
+    {"scores",          "getaccountraters",                 &GetAccountRaters,              {"address"}},
 
     // Explorer
+    {"explorer",       "getstatistictransactions",         &GetStatisticTransactions,       {"topTime", "depth", "period"}},
     {"explorer",       "getstatisticbyhours",              &GetStatisticByHours,            {"topHeight", "depth"}},
     {"explorer",       "getstatisticbydays",               &GetStatisticByDays,             {"topHeight", "depth"}},
     {"explorer",       "getstatisticcontentbyhours",       &GetStatisticContentByHours,     {"topHeight", "depth"}},

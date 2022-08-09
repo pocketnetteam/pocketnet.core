@@ -14,6 +14,7 @@
 #include <timedata.h>
 #include "core_io.h"
 #include "util/html.h"
+#include "pocketdb/models/shortform/ShortForm.h"
 
 namespace PocketDb
 {
@@ -77,6 +78,7 @@ namespace PocketDb
         UniValue GetPostScores(const string& postTxHash);
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
+        UniValue GetAccountRaters(const string& address);
 
         map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int firstFlagsDepth = 14);
         map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int firstFlagsDepth = 14);
@@ -127,13 +129,14 @@ namespace PocketDb
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
         int badReputationLimit);
         
-        UniValue GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+        UniValue GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
-            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
+            const string& keyword, const string& orderby, const string& ascdesc);
         
         UniValue GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
-            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, const vector<string>& addresses_extended);
 
         UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
@@ -155,6 +158,16 @@ namespace PocketDb
         vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
 
         UniValue GetContentActions(const string& postTxHash);
+
+        // First - map where keys are addresses and values are ShortForms of events from given block. Second - pocketnetteam posts.
+        using NotificationsResult = std::pair<std::map<std::string, std::vector<PocketDb::ShortForm>>, std::vector<ShortForm>>;
+        /**
+         * Get all possible events for all adresses in concrete block
+         * 
+         * @param height height of block to search
+         * @param filters
+         */
+        NotificationsResult GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
 
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
