@@ -1554,8 +1554,6 @@ static void StartWS()
         UniValue val;
         auto out_message = in_message->string();
 
-    try
-    {
         if (out_message == "0") // Ping/Pong
         {
             connection->send("1", [](const SimpleWeb::error_code& ec) {});
