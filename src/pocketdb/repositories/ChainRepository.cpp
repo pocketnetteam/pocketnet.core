@@ -577,6 +577,13 @@ namespace PocketDb
 
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
+
+        // ----------------------------------------
+        // Rollback blocking list
+        RollbackBlockingList(height);
+
+        int64_t nTime4 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Rollback blocking list): %.2fms\n", 0.001 * (nTime4 - nTime3));
     }
 
     void ChainRepository::RollbackHeight(int height)
@@ -650,6 +657,60 @@ namespace PocketDb
 
         int64_t nTime5 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime5 - nTime4));
+    }
+
+    void ChainRepository::RollbackBlockingList(int height)
+    {
+        auto delListStmt = SetupSqlStatement(R"sql(
+            delete from BlockingLists where ROWID in
+            (
+                select bl.ROWID
+                from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+                  on us.Type in (100) and us.Last = 1
+                    and us.String1 = b.String1
+                    and us.Height > 0
+                join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+                  on ut.Type in (100) and ut.Last = 1
+                    and ut.String1 in (select b.String2 union select value from json_each(b.String3))
+                    and ut.Height > 0
+                join BlockingLists bl on bl.IdSource = us.Id and bl.IdTarget = ut.Id
+                where b.Type in (305)
+                  and b.Height > ?
+            )
+        )sql");
+        TryBindStatementInt(delListStmt, 1, height);
+        TryStepStatement(delListStmt);
+
+        auto insListStmt = SetupSqlStatement(R"sql(
+            insert into BlockingLists
+            (
+                IdSource,
+                IdTarget
+            )
+            select distinct
+              us.Id,
+              ut.Id
+            from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+            join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+            join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+              on ut.Type in (100) and ut.Last = 1
+                --and ut.String1 = b.String2
+                and ut.String1 in (select b.String2 union select value from json_each(b.String3))
+                and ut.Height > 0
+            where b.Type in (305)
+              -- and b.Last = 1
+              and b.Height > ?
+              and not exists (select 1 from Transactions bc indexed by Transactions_Type_Last_String1_String2_Height
+                              where bc.Type in (306) and bc.Last = 1 and bc.String1 = b.String1
+                                and bc.String2 in (select b.String2 union select value from json_each(b.String3))
+                                and bc.Height > 0
+                                and bc.Id >= b.Id)
+              and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
+        )sql");
+        TryBindStatementInt(insListStmt, 1, height);
+        TryStepStatement(insListStmt);
     }
 
 
