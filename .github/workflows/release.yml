@@ -139,7 +139,7 @@ jobs:
           path: ./out
 
   ReleaseDraft:
-    needs: build
+    needs: [ BuildUnix, BuildWin ]
     permissions:
       contents: write
     runs-on: ubuntu-latest
