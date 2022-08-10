@@ -5013,7 +5013,7 @@ namespace PocketDb
                 null,
                 c.Hash,
                 c.Type,
-                null,
+                c.String1,
                 c.Height, -- TODO (losty): original?
                 c.BlockNum,
                 null,
@@ -5086,10 +5086,10 @@ namespace PocketDb
                 null,
                 c.Hash,
                 c.Type,
-                null,
+                c.String1,
                 c.Height, -- TODO (losty): original?
                 c.BlockNum,
-                c.String1,
+                null,
                 pc.String2,
                 null,
                 null,
