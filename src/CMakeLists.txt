@@ -66,12 +66,16 @@ option(WITH_UTILS "build pocketcoin-cli pocketcoin-tx (default=ON)" ON)
 option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
 option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want to statically link internal libraries. Ignored for non-MSVC build (default=ON)" ON)
 
-if(MSVC AND MSVC_FORCE_STATIC)
-    set(Protobuf_USE_STATIC_LIBS ON)
-    set(Boost_USE_STATIC_LIBS ON)
-    set(Boost_USE_STATIC_RUNTIME ON)
-    set(Boost_USE_DEBUG_RUNTIME ON)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# Specific msvc options
+if(MSVC)
+    add_compile_options(/bigobj)
+    if (MSVC_FORCE_STATIC)
+        set(Protobuf_USE_STATIC_LIBS ON)
+        set(Boost_USE_STATIC_LIBS ON)
+        set(Boost_USE_STATIC_RUNTIME ON)
+        set(Boost_USE_DEBUG_RUNTIME ON)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
 endif()
 
 # BerkeleyDB
@@ -621,6 +625,13 @@ add_library(${POCKETDB}
         pocketdb/models/web/WebContent.h
         pocketdb/models/dto/BoostContent.cpp
         pocketdb/models/web/SearchRequest.h
+        pocketdb/models/shortform/ShortForm.h
+        pocketdb/models/shortform/ShortForm.cpp
+        pocketdb/models/shortform/ShortTxData.h
+        pocketdb/models/shortform/ShortTxData.cpp
+        pocketdb/models/shortform/ShortAccount.h
+        pocketdb/models/shortform/ShortAccount.cpp
+        pocketdb/models/shortform/ShortTxType.h
         )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
 
@@ -1027,6 +1038,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/helpers/PocketnetHelper.h
         pocketdb/helpers/TransactionHelper.h
         pocketdb/helpers/TransactionHelper.cpp
+        pocketdb/helpers/ShortFormHelper.h
+        pocketdb/helpers/ShortFormHelper.cpp
         pocketdb/SQLiteDatabase.h
         pocketdb/SQLiteConnection.h
         pocketdb/SQLiteDatabase.cpp

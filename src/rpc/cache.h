@@ -48,8 +48,8 @@ private:
     int m_maxCacheSize;
     // <methodName, lifeTime>
     std::map<std::string, int> m_supportedMethods = {
-        { "getlastcomments", 15 },
-        { "getcomments", 5 },
+        { "getlastcomments", 1 },
+        { "getcomments", 1 },
         { "getuseraddress", 60 },
         { "search", 60 },
         { "gettags", 60 },

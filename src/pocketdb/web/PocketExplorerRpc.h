@@ -14,6 +14,7 @@ namespace PocketWeb::PocketWebRpc
     using namespace PocketDb;
     using namespace std;
 
+    RPCHelpMan GetStatisticTransactions();
     RPCHelpMan GetStatisticByHours();
     RPCHelpMan GetStatisticByDays();
     RPCHelpMan GetStatisticContentByHours();

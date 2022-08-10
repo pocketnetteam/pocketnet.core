@@ -6,18 +6,48 @@
 #define SRC_CHECKPOINT_REPOSITORY_H
 
 #include <util/system.h>
-#include "pocketdb/repositories/BaseRepository.h"
+#include "pocketdb/models/base/PocketTypes.h"
 
 namespace PocketDb
 {
-    class CheckpointRepository : public BaseRepository
+    using namespace std;
+    using namespace PocketTx;
+
+
+    class CheckpointSocialDb
+    {
+    private:
+        vector<tuple<string, int, int>> _socialCheckpoints;
+    public:
+        CheckpointSocialDb();
+        const vector<tuple<string, int, int>>& Checkpoints() { return _socialCheckpoints; }
+    }; // CheckpointSocialDb
+
+
+    class CheckpointLotteryDb
+    {
+    private:
+        vector<tuple<int, string>> _lotteryCheckpoints;
+    public:
+        CheckpointLotteryDb();
+        const vector<tuple<int, string>>& Checkpoints() { return _lotteryCheckpoints; }
+    }; // CheckpointLotteryDb
+
+
+    class CheckpointOpReturnDb
+    {
+    private:
+        vector<tuple<string, string>> _opReturnCheckpoints;
+    public:
+        CheckpointOpReturnDb();
+        const vector<tuple<string, string>>& Checkpoints() { return _opReturnCheckpoints; }
+    }; // CheckpointOpReturnDb
+
+
+    class CheckpointRepository
     {
     public:
-        explicit CheckpointRepository(SQLiteDatabase& db) : BaseRepository(db) {}
-
-        void Init() override {}
-
-        void Destroy() override {}
+        CheckpointRepository() = default;
 
         bool IsSocialCheckpoint(const string& txHash, TxType txType, int code);
         bool IsLotteryCheckpoint(int height, const string& hash);

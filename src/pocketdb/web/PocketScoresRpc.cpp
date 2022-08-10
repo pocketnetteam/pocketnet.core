@@ -185,4 +185,47 @@ namespace PocketWeb::PocketWebRpc
     },
         };
     }
+
+    RPCHelpMan GetAccountRaters()
+    {
+        return RPCHelpMan{"getaccountraters",
+                "\nGet accounts who rated address.\n",
+                {
+                    // TODO (rpc): args description
+                },
+                {
+                    // TODO (rpc): return description
+                },
+                RPCExamples{
+                    // TODO (rpc): provide correct examples
+                    // HelpExampleCli("getaccountraters", "") +
+                    // HelpExampleRpc("getaccountraters", "")
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        // if (request.fHelp)
+        //     throw std::runtime_error(
+        //             "getaccountraters\n"
+        //             "\nGet accounts who rated address.\n");
+
+        std::string address;
+        if (!request.params.empty() && request.params[0].isStr())
+        {
+            CTxDestination dest = DecodeDestination(request.params[0].get_str());
+
+            if (!IsValidDestination(dest))
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[0].get_str());
+
+            address = request.params[0].get_str();
+        }
+        else
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "There is no address.");
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->GetAccountRaters(address);
+    },
+        };
+    }
 }

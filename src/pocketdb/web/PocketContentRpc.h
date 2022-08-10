@@ -30,6 +30,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetContentsStatistic();
     RPCHelpMan GetRandomContents();
     RPCHelpMan GetContentActions();
+    RPCHelpMan GetNotifications();
 
 }
 
