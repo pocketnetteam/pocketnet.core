@@ -6,6 +6,7 @@
 
 #include <map>
 #include <algorithm>
+#include <set>
 
 
 static const std::map<PocketDb::ShortTxType, std::string> typesMap = {
@@ -29,6 +30,19 @@ std::string PocketHelpers::ShortTxTypeConvertor::toString(PocketDb::ShortTxType 
         return str->second;
     }
     return "";
+}
+
+bool PocketHelpers::ShortTxFilterValidator::Notifications::IsFilterAllowed(PocketDb::ShortTxType type)
+{
+    static const std::set<PocketDb::ShortTxType> allowed = {
+        PocketDb::ShortTxType::PocketnetTeam,
+        PocketDb::ShortTxType::Money,
+        PocketDb::ShortTxType::Answer,
+        PocketDb::ShortTxType::PrivateContent,
+        PocketDb::ShortTxType::Boost
+    };
+
+    return allowed.find(type) != allowed.end();
 }
 
 PocketDb::ShortTxType PocketHelpers::ShortTxTypeConvertor::strToType(const std::string& typeStr)

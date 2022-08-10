@@ -9,7 +9,9 @@
 
 PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType, std::optional<std::string> address, std::optional<int64_t> height,
                                     std::optional<int64_t> blockNum, std::optional<ShortAccount> account, std::optional<int> val,
-                                    std::optional<std::string> description)
+                                    std::optional<std::string> description, std::optional<std::string> commentParentId,
+                                    std::optional<std::string> commentAnswerId
+                                  )
     : m_hash(std::move(hash)),
       m_txType(txType),
       m_height(std::move(height)),
@@ -17,7 +19,9 @@ PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType, st
       m_address(std::move(address)),
       m_account(std::move(account)),
       m_val(std::move(val)),
-      m_description(std::move(description))
+      m_description(std::move(description)),
+      m_commentParentId(std::move(commentParentId)),
+      m_commentAnswerId(std::move(commentAnswerId))
 {}
 
 PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType)
@@ -37,6 +41,8 @@ UniValue PocketDb::ShortTxData::Serialize() const
     if (m_account) data.pushKV("account", m_account->Serialize());
     if (m_val) data.pushKV("val", m_val.value());
     if (m_description) data.pushKV("description", m_description.value());
+    if (m_commentParentId) data.pushKV("commentParentId", m_commentParentId.value());
+    if (m_commentAnswerId) data.pushKV("commentAnswerId", m_commentAnswerId.value());
 
     return data;
 }
@@ -68,3 +74,11 @@ void PocketDb::ShortTxData::SetVal(const std::optional<int>& val) { m_val = val;
 const std::optional<std::string>& PocketDb::ShortTxData::GetDescription() const { return m_description; }
 
 void PocketDb::ShortTxData::SetDescription(const std::optional<std::string>& description) { m_description = description; }
+
+void PocketDb::ShortTxData::SetCommentParentId(const std::optional<std::string>& commentParentId) { m_commentParentId = commentParentId; }
+
+const std::optional<std::string>& PocketDb::ShortTxData::GetCommentParentId() const { return m_commentParentId; }
+
+void PocketDb::ShortTxData::SetCommentAnswerId(const std::optional<std::string>& commentAnswerId) { m_commentAnswerId = commentAnswerId; }
+
+const std::optional<std::string>& PocketDb::ShortTxData::GetCommentAnswerId() const { return m_commentAnswerId; }

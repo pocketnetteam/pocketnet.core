@@ -16,16 +16,19 @@
       <option name="SPACE_AFTER_REFERENCE_IN_DECLARATION" value="true" />
       <option name="SPACE_BEFORE_DICTIONARY_LITERAL_COLON" value="true" />
     </Objective-C>
-    <Objective-C-extensions>
+    <SqlCodeStyleSettings version="6">
+      <option name="VIEW_WRAP_QUERY" value="false" />
+    </SqlCodeStyleSettings>
+    <clangFormatSettings>
+      <option name="ENABLED" value="true" />
+    </clangFormatSettings>
+    <files>
       <extensions>
         <pair source="cpp" header="hpp" fileNamingConvention="NONE" />
         <pair source="c" header="h" fileNamingConvention="NONE" />
         <pair source="cu" header="cuh" fileNamingConvention="NONE" />
       </extensions>
-    </Objective-C-extensions>
-    <SqlCodeStyleSettings version="6">
-      <option name="VIEW_WRAP_QUERY" value="false" />
-    </SqlCodeStyleSettings>
+    </files>
     <codeStyleSettings language="ObjectiveC">
       <option name="LINE_COMMENT_AT_FIRST_COLUMN" value="false" />
       <option name="BLOCK_COMMENT_AT_FIRST_COLUMN" value="false" />

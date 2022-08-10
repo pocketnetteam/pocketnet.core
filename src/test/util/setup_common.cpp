@@ -145,8 +145,6 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
 
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
 
-    PocketDb::InitSQLiteCheckpoints(fs::system_complete("."));
-
     m_node.scheduler = MakeUnique<CScheduler>();
 
     // We have to run a scheduler thread to prevent ActivateBestChain

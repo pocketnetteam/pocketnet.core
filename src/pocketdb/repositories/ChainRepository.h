@@ -50,6 +50,7 @@ namespace PocketDb
 
     private:
 
+        void RollbackBlockingList(int height);
         void RollbackHeight(int height);
         void RestoreOldLast(int height);
 

@@ -225,6 +225,7 @@ POCKETDB_H = \
     pocketdb/models/shortform/ShortAccount.h \
     pocketdb/models/shortform/ShortTxData.h \
     pocketdb/models/shortform/ShortTxType.h
+
 # PocketDb CPP
 POCKETDB_CPP = \
     pocketdb/SQLiteDatabase.cpp \

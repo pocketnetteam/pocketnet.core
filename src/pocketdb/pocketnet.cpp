@@ -16,8 +16,7 @@ namespace PocketDb
     SystemRepository SystemRepoInst(SQLiteDbInst);
     MigrationRepository MigrationRepoInst(SQLiteDbInst);
 
-    SQLiteDatabase SQLiteDbCheckpointInst(true);
-    CheckpointRepository CheckpointRepoInst(SQLiteDbCheckpointInst);
+    CheckpointRepository CheckpointRepoInst;
 } // PocketDb
 
 namespace PocketWeb

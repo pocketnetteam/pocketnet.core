@@ -182,10 +182,20 @@ namespace PocketDb
                 primary key (Db)
             );
         )sql");
-        
+
+        _tables.emplace_back(R"sql(
+            create table if not exists BlockingLists
+            (
+                IdSource int not null,
+                IdTarget int not null,
+                primary key (IdSource, IdTarget)
+            );
+        )sql");
+
         
         _preProcessing = R"sql(
             insert or ignore into System (Db, Version) values ('main', 0);
+            delete from Balances where AddressHash = '';
         )sql";
 
 

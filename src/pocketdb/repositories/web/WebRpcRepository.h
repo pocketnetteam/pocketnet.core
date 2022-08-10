@@ -78,6 +78,7 @@ namespace PocketDb
         UniValue GetPostScores(const string& postTxHash);
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
+        UniValue GetAccountRaters(const string& address);
 
         map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int firstFlagsDepth = 14);
         map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int firstFlagsDepth = 14);
@@ -128,13 +129,14 @@ namespace PocketDb
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
         int badReputationLimit);
         
-        UniValue GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+        UniValue GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
-            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
+            const string& keyword, const string& orderby, const string& ascdesc);
         
         UniValue GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
-            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, const vector<string>& addresses_extended);
 
         UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,

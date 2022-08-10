@@ -66,12 +66,16 @@ option(WITH_UTILS "build pocketcoin-cli pocketcoin-tx (default=ON)" ON)
 option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
 option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want to statically link internal libraries. Ignored for non-MSVC build (default=ON)" ON)
 
-if(MSVC AND MSVC_FORCE_STATIC)
-    set(Protobuf_USE_STATIC_LIBS ON)
-    set(Boost_USE_STATIC_LIBS ON)
-    set(Boost_USE_STATIC_RUNTIME ON)
-    set(Boost_USE_DEBUG_RUNTIME ON)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# Specific msvc options
+if(MSVC)
+    add_compile_options(/bigobj)
+    if (MSVC_FORCE_STATIC)
+        set(Protobuf_USE_STATIC_LIBS ON)
+        set(Boost_USE_STATIC_LIBS ON)
+        set(Boost_USE_STATIC_RUNTIME ON)
+        set(Boost_USE_DEBUG_RUNTIME ON)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
 endif()
 
 # BerkeleyDB

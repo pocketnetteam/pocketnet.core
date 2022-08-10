@@ -437,6 +437,7 @@ namespace PocketWeb::PocketWebRpc
             ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, true);
             if (!ids.empty())
             {
+                restCntSubs = std::min(restCntSubs, static_cast<int>(ids.size()));
                 ids = {ids.begin(), ids.begin() + restCntSubs};
                 auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
                 resultContent.push_backV(contents);
