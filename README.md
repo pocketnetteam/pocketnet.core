@@ -1,5 +1,9 @@
+<p align="center">
+   <img src="./share/pixmaps/logo_color/sky_250.png">
+ </p>
 
-# Pocketnet CORE
+ <h1 align="center">Pocketnet Core</h1>
+ 
 ![GitHub](https://img.shields.io/github/license/pocketnetteam/pocketnet.api)
 ![contributors](https://img.shields.io/github/contributors/pocketnetteam/pocketnet.core)
 ![last_commit](https://img.shields.io/github/last-commit/pocketnetteam/pocketnet.core)
