@@ -676,7 +676,7 @@ namespace PocketDb
                     and ut.Height > 0
                 join BlockingLists bl on bl.IdSource = us.Id and bl.IdTarget = ut.Id
                 where b.Type in (305)
-                  and b.Height > ?
+                  and b.Height >= ?
             )
         )sql");
         TryBindStatementInt(delListStmt, 1, height);
@@ -696,12 +696,10 @@ namespace PocketDb
               on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
             join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
               on ut.Type in (100) and ut.Last = 1
-                --and ut.String1 = b.String2
                 and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                 and ut.Height > 0
             where b.Type in (305)
-              -- and b.Last = 1
-              and b.Height > ?
+              and b.Height >= ?
               and not exists (select 1 from Transactions bc indexed by Transactions_Type_Last_String1_String2_Height
                               where bc.Type in (306) and bc.Last = 1 and bc.String1 = b.String1
                                 and bc.String2 in (select b.String2 union select value from json_each(b.String3))
