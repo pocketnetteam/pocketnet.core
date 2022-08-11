@@ -4817,7 +4817,7 @@ namespace PocketDb
             left join Payload pa
                 on pa.TxHash = a.Hash
 
-            left join Transactions ca
+            left join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
                 on ca.Type = 100
                 and ca.Last = 1
                 and ca.String1 = c.String1
@@ -4901,7 +4901,7 @@ namespace PocketDb
             left join Payload pp
                 on pp.TxHash = p.Hash
 
-            left join Transactions ap -- accounts of commentators
+            left join Transactions ap indexed by Transactions_Type_Last_String1_Height_Id -- accounts of commentators
                 on ap.String1 = p.String1
                 and ap.Last = 1
                 and ap.Type = 100
@@ -5038,7 +5038,7 @@ namespace PocketDb
                 and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
                 and s.String1 = ?
 
-            left join Transactions ac
+            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                 on ac.Type = 100
                 and ac.Last = 1
                 and ac.String1 = c.String1
@@ -5111,7 +5111,7 @@ namespace PocketDb
                 and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
                 and s.String1 = ?
 
-            left join Transactions ac
+            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                 on ac.Type = 100
                 and ac.Last = 1
                 and ac.String1 = c.String1
@@ -5182,7 +5182,7 @@ namespace PocketDb
             left join Payload pContent
                 on pContent.TxHash = tContent.Hash
             
-            left join Transactions ac
+            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                 on ac.String1 = tContent.String1
                 and ac.Type = 100
                 and ac.Last = 1
@@ -5261,7 +5261,7 @@ namespace PocketDb
             left join Payload pr
                 on pr.TxHash = r.Hash
 
-            left join Transactions ap
+            left join Transactions ap indexed by Transactions_Type_Last_String1_Height_Id
                 on ap.Type = 100
                 and ap.Last = 1
                 and ap.String1 = p.String1
