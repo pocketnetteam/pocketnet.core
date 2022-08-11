@@ -2,7 +2,7 @@ name: Build & Deploy Release Draft
 
 on:
   push:
-    tags: v*.*.*
+    tags: '*.*.*'
 
 permissions:
   contents: read
