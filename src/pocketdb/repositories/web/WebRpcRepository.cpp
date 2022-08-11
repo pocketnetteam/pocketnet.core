@@ -4947,7 +4947,7 @@ namespace PocketDb
                 null,
                 null,
                 null,
-                u.Hash, -- TODO (losty): do we need here full tx data? Or only address and account data?
+                u.Hash,
                 u.Type,
                 u.String1,
                 u.Height,
@@ -5014,7 +5014,7 @@ namespace PocketDb
                 c.Hash,
                 c.Type,
                 c.String1,
-                c.Height, -- TODO (losty): original?
+                c.Height,
                 c.BlockNum,
                 null,
                 pc.String1,
@@ -5087,7 +5087,7 @@ namespace PocketDb
                 c.Hash,
                 c.Type,
                 c.String1,
-                c.Height, -- TODO (losty): original?
+                c.Height,
                 c.BlockNum,
                 null,
                 pc.String2,
