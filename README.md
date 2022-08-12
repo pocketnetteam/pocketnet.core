@@ -1,5 +1,5 @@
 <p align="center">
-   <img src="./share/pixmaps/logo_color/sky_250.png">
+   <img src="./share/pixmaps/logo_color/sky_250.png" width="150px">
  </p>
 
  <h1 align="center">Pocketnet Core</h1>
