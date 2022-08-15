@@ -8,12 +8,10 @@ namespace PocketTx
 {
     ModerationRequest::ModerationRequest() : SocialTransaction()
     {
-        SetType(TxType::MODERATOR_REQUEST);
     }
 
     ModerationRequest::ModerationRequest(const CTransactionRef& tx) : SocialTransaction(tx)
     {
-        SetType(TxType::MODERATOR_REQUEST);
     }
     
     string ModerationRequest::BuildHash()
