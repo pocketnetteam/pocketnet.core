@@ -46,6 +46,13 @@ namespace PocketTx
     #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
 
     #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
+    #define OR_MODERATION_VOTE "6d6f64566f7465"
+    #define OR_MODERATION_REQUEST_SUBS "6d6f6452657153756273"
+    #define OR_MODERATION_REQUEST_COIN "6d6f64526571436f696e"
+    #define OR_MODERATION_REQUEST_CANCEL "6d6f6452657143616e63656c"
+    #define OR_MODERATION_REGISTER_SELF "6d6f6452656753656c66"
+    #define OR_MODERATION_REGISTER_SUBS "6d6f6452656753756273"
+    #define OR_MODERATION_REGISTER_COIN "6d6f64526567436f696e"
     
 
     // Int tx type
@@ -87,11 +94,16 @@ namespace PocketTx
 
         ACTION_COMPLAIN = 307,
 
-        MODERATOR_REQUEST = 400, // Some users have the right to choose a moderator
-        MODERATOR_REQUEST_CANCEL = 401, // Users have the right to cancel the status of the moderator they have appointed
-        MODERATOR_REGISTER = 402, // Each moderator must define a list of public key hashes for voting
+        MODERATOR_REQUEST_SUBS = 400, // Some users have the right to choose a moderator
+        MODERATOR_REQUEST_COIN = 401, // Some users have the right to choose a moderator
+        MODERATOR_REQUEST_CANCEL = 409, // Users have the right to cancel the status of the moderator they have appointed
+        
         MODERATION_FLAG = 410, // Flags are used to mark content that needs moderation
         MODERATION_VOTE = 420, // Votes is used by moderators in the jury process
+
+        MODERATOR_REGISTER_SELF = 430, // Each moderator must register in the system to perform their functions
+        MODERATOR_REGISTER_SUBS = 431, // Each moderator must register in the system to perform their functions
+        MODERATOR_REGISTER_COIN = 432, // Each moderator must register in the system to perform their functions
     };
 
     // Rating types
