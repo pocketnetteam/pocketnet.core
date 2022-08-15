@@ -1385,7 +1385,7 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet all possible notifications for all addresses for concrete block height.\n",
                 {
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "height of block to search in"},
-                    {"filters", RPCArg::Type::ARR, RPCArg::Optional::NO, "type(s) of notifications. If empty or null - search for all types",
+                    {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of notifications. If empty or null - search for all types",
                         {
                             {ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Posts from PocketnetTeam acc"},
                             {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "recieved money"},
