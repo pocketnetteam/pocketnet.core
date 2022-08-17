@@ -113,6 +113,28 @@ namespace PocketDb
         std::vector<ShortForm> m_pocketnetteamPosts;
     };
 
+    class NotificationSummaryReconstructor : public RowAccessor
+    {
+    public:
+        void FeedRow(sqlite3_stmt* stmt)
+        {
+            auto [ok1, typeStr] = TryGetColumnString(stmt, 0);
+            auto [ok2, address] = TryGetColumnString(stmt, 1);
+            if (!ok1 || !ok2) return;
+
+            if (auto type = PocketHelpers::ShortTxTypeConvertor::strToType(typeStr); type != ShortTxType::NotSet) {
+                m_result[address][type]++;
+            }
+        }
+
+        auto GetResult() const
+        {
+            return m_result;
+        }
+    private:
+        std::map<std::string, std::map<ShortTxType, int>> m_result;  
+    };
+
 
     void WebRpcRepository::Init() {}
 
@@ -6821,6 +6843,206 @@ namespace PocketDb
         auto& binds = elem2;
 
         EventsReconstructor reconstructor;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+
+            for (const auto& bind: binds) {
+                bind(stmt, i, queryParams);
+            }
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                reconstructor.FeedRow(*stmt);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+        return reconstructor.GetResult();
+    }
+
+
+    std::map<std::string, std::map<ShortTxType, int>> WebRpcRepository::GetNotificationsSummary(int64_t heightMax, int64_t heightMin, const std::set<std::string>& addresses, const std::set<ShortTxType>& filters)
+    {
+        struct QueryParams {
+            // Handling all by reference
+            const int64_t& heightMax;
+            const int64_t& heightMin;
+            const std::set<std::string>& addresses;
+        } queryParams {heightMax, heightMin, addresses};
+
+        const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
+        {
+            ShortTxType::Referal, { R"sql(
+                -- referals
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
+                    t.String2
+
+                from Transactions t --indexed by Transactions_Type_Last_String2_Height
+
+                where t.Type = 100
+                    and t.Height between ? and ?
+                    and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                    and (select count(*) from Transactions tt where tt.Id = t.Id) = 1 -- Only original
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                for (const auto& address: queryParams.addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
+            }
+        }},
+
+        {
+            ShortTxType::Comment, { R"sql(
+                -- Comments for my content
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
+                    p.String1
+
+                from Transactions c indexed by Transactions_Type_String1_String3_Height
+
+                join Transactions p indexed by Transactions_Type_Last_String1_String2_Height
+                    on p.Type in (200,201,202)
+                    and p.Last = 1
+                    and p.Height > 0
+                    and p.String2 = c.String3
+                    and p.String1 != c.String1
+                    and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                where c.Type = 204 -- only orig
+                    and c.Height between ? and ?
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                for (const auto& address: queryParams.addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+            }
+        }},
+
+        {
+            ShortTxType::Subscriber, { R"sql(
+                -- Subscribers
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
+                    subs.String2
+
+                from Transactions subs --indexed by Transactions_Type_Last_String2_Height
+
+                where subs.Type in (302, 303) -- Ignoring unsubscribers?
+                    and subs.Height between ? and ?
+                    and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                for (const auto& address: queryParams.addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
+            }
+        }},
+
+        {
+            ShortTxType::CommentScore, { R"sql(
+                -- Comment scores
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
+                    c.String1
+
+                from Transactions s
+
+                join Transactions c
+                    on c.Type in (204,205)
+                    and c.Last = 1
+                    and c.Height > 0
+                    and c.String2 = s.String2
+                    and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                where s.Type = 301
+                    and s.Height between ? and ?
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                for (const auto& address: queryParams.addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+            }
+        }},
+
+        {
+            ShortTxType::ContentScore, { R"sql(
+                -- Content scores
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
+                    c.String1
+
+                from Transactions s indexed by Transactions_Type_Last_String2_Height
+
+                join Transactions c
+                    on c.Type in (200, 201, 202)
+                    and c.Last = 1
+                    and c.Height > 0
+                    and c.String2 = s.String2
+                    and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                where s.Type = 300
+                    and s.Last = 1
+                    and s.Height between ? and ?
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                for (const auto& address: queryParams.addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+            }
+        }},
+
+
+        {
+            ShortTxType::Repost, { R"sql(
+                -- Reposts
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
+                    p.String1
+
+                from Transactions r indexed by Transactions_Type_Last_String3_Height
+
+                cross join Transactions p
+                    on p.String2 = r.String3
+                    and p.Last = 1
+                    and p.Type in (200,201,202)
+                    and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
+                where r.Type in (200,201,202)
+                  and r.Last in (0,1)
+                    and r.Hash = r.String2 -- Only orig
+                    and r.Height between ? and ?
+                    and r.String3 is not null
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                for (const auto& address: queryParams.addresses) {
+                    TryBindStatementText(stmt, i++, address);
+                }
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+            }
+        }}
+        };
+        
+        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "");
+        auto& sql = elem1;
+        auto& binds = elem2;
+
+        NotificationSummaryReconstructor reconstructor;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);

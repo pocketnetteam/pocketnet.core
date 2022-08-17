@@ -1536,4 +1536,73 @@ namespace PocketWeb::PocketWebRpc
     },
         };
     }
+
+    RPCHelpMan GetNotificationsSummary()
+    {
+        return RPCHelpMan{"GetNotificationsSummary",
+                        "\\n", // TODO (losty)
+                        {
+
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc)
+                                  HelpExampleCli("getnotificationssummary", "") +
+                                  HelpExampleRpc("getnotificationssummary", "")
+                          },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VARR});
+
+
+        std::set<std::string> addresses;
+        auto addressesRaw = request.params[0].get_array();
+        for (int i = 0; i < addressesRaw.size(); i++) {
+            addresses.insert(addressesRaw[i].get_str());
+        }
+
+        int64_t heightMax = ChainActive().Height(); // TODO (losty): deadlock here wtf
+        if (request.params.size() > 1 && request.params[1].isNum()) {
+            heightMax = request.params[1].get_int64();
+        }
+
+
+        static const int64_t depth = 480; // 8 hours
+        int64_t heightMin = heightMax - depth;
+        if (heightMin < 0) {
+            heightMin = 0;
+        }
+
+        std::set<ShortTxType> filters;
+        if (request.params.size() > 3 && request.params[3].isArray()) {
+            const auto& rawFilters  = request.params[3].get_array();
+            for (int i = 0; i < rawFilters.size(); i++) {
+                if (rawFilters[i].isStr()) {
+                    const auto& rawFilter = rawFilters[i].get_str();
+                    auto filter = ShortTxTypeConvertor::strToType(rawFilter);
+                    if (filter == ShortTxType::NotSet) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unexpected filter: " + rawFilter);
+                    }
+                    filters.insert(filter);
+                }
+            }
+        }
+
+        auto res = request.DbConnection()->WebRpcRepoInst->GetNotificationsSummary(heightMax, heightMin, addresses, filters);
+        UniValue response(UniValue::VOBJ);
+
+        for (const auto& addressEntry: res) {
+            UniValue addressRelated(UniValue::VOBJ);
+            for (const auto& summaryEntry: addressEntry.second) {
+                addressRelated.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(summaryEntry.first), summaryEntry.second);
+            }
+            response.pushKV(addressEntry.first, addressRelated);
+        }
+
+        return response;
+    },
+        };
+    }
 }
