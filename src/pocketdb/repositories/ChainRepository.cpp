@@ -383,6 +383,7 @@ namespace PocketDb
                 and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                 and ut.Height > 0
             where b.Type in (305) and b.Hash = ?
+                and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
         )sql");
         TryBindStatementText(insListStmt, 1, txHash);
         TryStepStatement(insListStmt);
