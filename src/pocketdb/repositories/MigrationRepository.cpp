@@ -48,8 +48,7 @@ namespace PocketDb
                   and not exists (select 1 from Transactions bc indexed by Transactions_Type_Last_String1_String2_Height
                                   where bc.Type in (306) and bc.Last = 1 and bc.String1 = b.String1
                                     and bc.String2 in (select b.String2 union select value from json_each(b.String3))
-                                    and bc.Height > 0
-                                    and bc.Id >= b.Id)
+                                    and bc.Height >= b.Height)
                   and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
             )sql")
 
@@ -82,8 +81,7 @@ namespace PocketDb
                   and not exists (select 1 from Transactions bc indexed by Transactions_Type_Last_String1_String2_Height
                                   where bc.Type in (306) and bc.Last = 1 and bc.String1 = b.String1
                                     and bc.String2 in (select b.String2 union select value from json_each(b.String3))
-                                    and bc.Height > 0
-                                    and bc.Id >= b.Id)
+                                    and bc.Height >= b.Height)
                   and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
                 limit 1
             )sql");
