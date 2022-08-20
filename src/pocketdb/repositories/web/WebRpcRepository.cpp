@@ -4736,7 +4736,7 @@ namespace PocketDb
     static inline auto _constructSelectsBasedOnFilters(
                 const std::set<ShortTxType>& filters,
                 const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>>& selects,
-                const std::string& footer)
+                const std::string& footer, const std::string& separator = "union")
     {
         // Choosing predicate for function above based on filters.
         const static auto choosePredicate = [](const std::set<ShortTxType>& filters) -> std::function<bool(const ShortTxType&)> {
@@ -4758,7 +4758,7 @@ namespace PocketDb
         for (const auto& select: selects) {
             if (predicate(select.first)) {
                 queryElems.emplace_back(select.second.query);
-                queryElems.emplace_back("union");
+                queryElems.emplace_back(separator);
                 binds.emplace_back(select.second.binding);
             }
         }
@@ -7038,7 +7038,7 @@ namespace PocketDb
         }}
         };
         
-        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "");
+        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "", "union all");
         auto& sql = elem1;
         auto& binds = elem2;
 
