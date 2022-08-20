@@ -221,7 +221,7 @@ namespace PocketDb
                 FROM BlockingLists b
                 JOIN Transactions us indexed by Transactions_Type_Last_String1_Height_Id
                 ON us.Last = 1 and us.Id = b.IdSource and us.Type = 100 and us.Height is not null
-                JOIN Transactions ut indexed by Transactions_Type_Last_String2_Height
+                JOIN Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
                 ON ut.Last = 1 and ut.Id = b.IdTarget and ut.Type = 100 and ut.Height is not null
                 WHERE us.String1 = ?
                     and ut.String1 in (select ? union select value from json_each(?))
