@@ -6880,12 +6880,13 @@ namespace PocketDb
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
                     t.String2
 
-                from Transactions t --indexed by Transactions_Type_Last_String2_Height
+                from Transactions t indexed by Transactions_Type_Last_String2_Height
 
                 where t.Type = 100
+                    and t.Last in (0,1)
                     and t.Height between ? and ?
                     and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                    and (select count(*) from Transactions tt where tt.Id = t.Id) = 1 -- Only original
+                    and t.ROWID = (select min(tt.ROWID) from Transactions tt indexed by Transactions_Id where tt.Id = t.Id)
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
                 TryBindStatementInt64(stmt, i++, queryParams.heightMin);
@@ -6903,9 +6904,9 @@ namespace PocketDb
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
                     p.String1
 
-                from Transactions c indexed by Transactions_Type_String1_String3_Height
+                from Transactions c indexed by Transactions_Type_Last_String3_Height
 
-                join Transactions p indexed by Transactions_Type_Last_String1_String2_Height
+                join Transactions p indexed by Transactions_String1_Last_Height
                     on p.Type in (200,201,202)
                     and p.Last = 1
                     and p.Height > 0
@@ -6914,6 +6915,7 @@ namespace PocketDb
                     and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 where c.Type = 204 -- only orig
+                    and c.Last in (0,1)
                     and c.Height between ? and ?
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
@@ -6932,9 +6934,10 @@ namespace PocketDb
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
                     subs.String2
 
-                from Transactions subs --indexed by Transactions_Type_Last_String2_Height
+                from Transactions subs indexed by Transactions_Type_Last_String2_Height
 
                 where subs.Type in (302, 303) -- Ignoring unsubscribers?
+                    and subs.Last in (0,1)
                     and subs.Height between ? and ?
                     and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
@@ -6955,9 +6958,9 @@ namespace PocketDb
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
                     c.String1
 
-                from Transactions s
+                from Transactions s indexed by Transactions_Type_Last_String2_Height
 
-                join Transactions c
+                join Transactions c indexed by Transactions_Type_Last_String1_String2_Height
                     on c.Type in (204,205)
                     and c.Last = 1
                     and c.Height > 0
@@ -6965,6 +6968,7 @@ namespace PocketDb
                     and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 where s.Type = 301
+                    and c.Last = 1
                     and s.Height between ? and ?
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
@@ -6985,7 +6989,7 @@ namespace PocketDb
 
                 from Transactions s indexed by Transactions_Type_Last_String2_Height
 
-                join Transactions c
+                join Transactions c indexed by Transactions_Type_Last_String1_String2_Height
                     on c.Type in (200, 201, 202)
                     and c.Last = 1
                     and c.Height > 0
@@ -6993,7 +6997,7 @@ namespace PocketDb
                     and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 where s.Type = 300
-                    and s.Last = 1
+                    and s.Last = 0
                     and s.Height between ? and ?
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
@@ -7015,14 +7019,14 @@ namespace PocketDb
 
                 from Transactions r indexed by Transactions_Type_Last_String3_Height
 
-                cross join Transactions p
+                join Transactions p indexed by Transactions_Type_Last_String1_String2_Height
                     on p.String2 = r.String3
                     and p.Last = 1
                     and p.Type in (200,201,202)
                     and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 where r.Type in (200,201,202)
-                  and r.Last in (0,1)
+                    and r.Last in (0,1)
                     and r.Hash = r.String2 -- Only orig
                     and r.Height between ? and ?
                     and r.String3 is not null
