@@ -27,6 +27,12 @@ namespace PocketHelpers
         public:
             static bool IsFilterAllowed(PocketDb::ShortTxType type);
         };
+
+        class NotificationsSummary
+        {
+        public:
+            static bool IsFilterAllowed(PocketDb::ShortTxType type);
+        };
     };
 
     // STMT here is used to avoid including here any of sqlite3 headers, however

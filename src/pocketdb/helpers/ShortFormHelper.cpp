@@ -49,6 +49,20 @@ bool PocketHelpers::ShortTxFilterValidator::Notifications::IsFilterAllowed(Pocke
     return allowed.find(type) != allowed.end();
 }
 
+bool PocketHelpers::ShortTxFilterValidator::NotificationsSummary::IsFilterAllowed(PocketDb::ShortTxType type)
+{
+    static const std::set<PocketDb::ShortTxType> allowed = {
+        PocketDb::ShortTxType::Referal,
+        PocketDb::ShortTxType::Comment,
+        PocketDb::ShortTxType::Subscriber,
+        PocketDb::ShortTxType::CommentScore,
+        PocketDb::ShortTxType::ContentScore,
+        PocketDb::ShortTxType::Repost,
+    };
+
+    return allowed.find(type) != allowed.end();
+}
+
 PocketDb::ShortTxType PocketHelpers::ShortTxTypeConvertor::strToType(const std::string& typeStr)
 {
     static const auto& typesMap = GetTypesMap();
