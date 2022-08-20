@@ -6619,7 +6619,7 @@ namespace PocketDb
                     and c.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
                 where s.Type = 301
-                    and c.Last = 1
+                    and s.Last = 0
                     and s.Height between ? and ?
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
