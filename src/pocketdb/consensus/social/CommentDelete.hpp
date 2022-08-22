@@ -152,8 +152,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < CommentDeleteConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<CommentDeleteConsensus>(height); }},
-            { 9999999, 9999999, [](int height) { return make_shared<CommentDeleteConsensus_checkpoint_check_author>(height); }},
+            {       0,       0, [](int height) { return make_shared<CommentDeleteConsensus>(height); }},
+            { 1862000, 1155000, [](int height) { return make_shared<CommentDeleteConsensus_checkpoint_check_author>(height); }},
         };
     public:
         shared_ptr<CommentDeleteConsensus> Instance(int height)

@@ -224,9 +224,9 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < CommentEditConsensus>> m_rules = {
-            { 0, -1, [](int height) { return make_shared<CommentEditConsensus>(height); }},
-            { 1180000, 0, [](int height) { return make_shared<CommentEditConsensus_checkpoint_1180000>(height); }},
-            { 9999999, 9999999, [](int height) { return make_shared<CommentEditConsensus_checkpoint_check_author>(height); }},
+            {       0,      -1, [](int height) { return make_shared<CommentEditConsensus>(height); }},
+            { 1180000,       0, [](int height) { return make_shared<CommentEditConsensus_checkpoint_1180000>(height); }},
+            { 1862000, 1155000, [](int height) { return make_shared<CommentEditConsensus_checkpoint_check_author>(height); }},
         };
     public:
         shared_ptr<CommentEditConsensus> Instance(int height)
