@@ -41,7 +41,11 @@ namespace PocketConsensus
             if (!actuallTxOk || !originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
-            auto originalPtx = static_pointer_cast<CommentEdit>(originalTx);
+            auto originalPtx = static_pointer_cast<Comment>(originalTx);
+
+            // Check author of comment
+            if (auto[ok, result] = CheckAuthor(ptx, originalPtx); !ok)
+                return {false, result};
 
             // Parent comment
             {
@@ -157,7 +161,7 @@ namespace PocketConsensus
             return {*ptx->GetAddress()};
         }
 
-        virtual bool AllowEditWindow(const CommentEditRef& ptx, const CommentEditRef& blockPtx)
+        virtual bool AllowEditWindow(const CommentEditRef& ptx, const CommentRef& blockPtx)
         {
             return (*ptx->GetTime() - *blockPtx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_comment_depth);
         }
@@ -178,21 +182,38 @@ namespace PocketConsensus
 
             return Success;
         }
+        virtual ConsensusValidateResult CheckAuthor(const CommentEditRef& ptx, const CommentRef& originalPtx)
+        {
+            return Success;
+        }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1180000 block
-    *******************************************************************************************************************/
+
     class CommentEditConsensus_checkpoint_1180000 : public CommentEditConsensus
     {
     public:
         CommentEditConsensus_checkpoint_1180000(int height) : CommentEditConsensus(height) {}
     protected:
-        bool AllowEditWindow(const CommentEditRef& ptx, const CommentEditRef& originalTx) override
+        bool AllowEditWindow(const CommentEditRef& ptx, const CommentRef& originalTx) override
         {
             auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
             if (!ok) return false;
             return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_comment_depth);
+        }
+    };
+
+
+    class CommentEditConsensus_checkpoint_check_author : public CommentEditConsensus_checkpoint_1180000
+    {
+    public:
+        CommentEditConsensus_checkpoint_check_author(int height) : CommentEditConsensus_checkpoint_1180000(height) {}
+    protected:
+        ConsensusValidateResult CheckAuthor(const CommentEditRef& ptx, const CommentRef& originalPtx) override
+        {
+            if (*ptx->GetAddress() != *originalPtx->GetAddress())
+                return {false, SocialConsensusResult_ContentEditUnauthorized};
+            
+            return Success;
         }
     };
 
@@ -205,6 +226,7 @@ namespace PocketConsensus
         const vector<ConsensusCheckpoint < CommentEditConsensus>> m_rules = {
             { 0, -1, [](int height) { return make_shared<CommentEditConsensus>(height); }},
             { 1180000, 0, [](int height) { return make_shared<CommentEditConsensus_checkpoint_1180000>(height); }},
+            { 9999999, 9999999, [](int height) { return make_shared<CommentEditConsensus_checkpoint_check_author>(height); }},
         };
     public:
         shared_ptr<CommentEditConsensus> Instance(int height)
