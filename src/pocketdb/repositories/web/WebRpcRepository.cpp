@@ -4787,7 +4787,6 @@ namespace PocketDb
 
         // Pocketnetteam and referal txs are ignored
         static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
-            // TODO (losty): money {}
         {
             ShortTxType::Answer, { R"sql(
             -- My answers to other's comments
