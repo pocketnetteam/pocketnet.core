@@ -40,8 +40,8 @@ namespace PocketConsensus
             if (!actuallTxOk || !originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
-            auto originalPtx = static_pointer_cast<CommentDelete>(originalTx);
-
+            auto originalPtx = static_pointer_cast<Comment>(originalTx);
+        
             // Parent comment
             {
                 auto currParentTxHash = IsEmpty(ptx->GetParentTxHash()) ? "" : *ptx->GetParentTxHash();
@@ -68,6 +68,17 @@ namespace PocketConsensus
                     if (!PocketDb::TransRepoInst.Exists(origAnswerTxHash))
                         return {false, SocialConsensusResult_InvalidAnswerComment};
             }
+
+            // Check exists content transaction
+            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(
+                *ptx->GetPostTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE });
+
+            if (!contentOk)
+                return {false, SocialConsensusResult_NotFound};
+            
+            // Check author of comment
+            if (auto[ok, result] = CheckAuthor(ptx, originalPtx, contentTx); !ok)
+                return {false, result}; 
 
             return Success;
         }
@@ -113,6 +124,25 @@ namespace PocketConsensus
         {
             return {*ptx->GetString1()};
         }
+        virtual ConsensusValidateResult CheckAuthor(const CommentDeleteRef& ptx, const CommentRef& originalPtx, const PTransactionRef& contentTx)
+        {
+            return Success;
+        }
+    };
+
+    // Protect deleting comment only for authors and authors of content
+    class CommentDeleteConsensus_checkpoint_check_author : public CommentDeleteConsensus
+    {
+    public:
+        CommentDeleteConsensus_checkpoint_check_author(int height) : CommentDeleteConsensus(height) {}
+    protected:
+        ConsensusValidateResult CheckAuthor(const CommentDeleteRef& ptx, const CommentRef& originalPtx, const PTransactionRef& contentTx) override
+        {
+            if (*ptx->GetAddress() != *originalPtx->GetAddress() && *ptx->GetAddress() != *contentTx->GetString1())
+                return {false, SocialConsensusResult_ContentEditUnauthorized};
+            
+            return Success;
+        }
     };
 
     /*******************************************************************************************************************
@@ -122,7 +152,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < CommentDeleteConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<CommentDeleteConsensus>(height); }},
+            {       0,       0, [](int height) { return make_shared<CommentDeleteConsensus>(height); }},
+            { 1862000, 1155000, [](int height) { return make_shared<CommentDeleteConsensus_checkpoint_check_author>(height); }},
         };
     public:
         shared_ptr<CommentDeleteConsensus> Instance(int height)
