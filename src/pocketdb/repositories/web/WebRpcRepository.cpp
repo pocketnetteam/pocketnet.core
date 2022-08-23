@@ -92,18 +92,16 @@ namespace PocketDb
         void FeedRow(sqlite3_stmt* stmt)
         {
             auto shortForm = m_parser.ParseRow(stmt, 1);
-            if (shortForm.GetType() == ShortTxType::PocketnetTeam) {
-                // Pocketnetteam posts are special case because everyone need to be notified about them
-                m_pocketnetteamPosts.emplace_back(std::move(shortForm));
-            } else {
-                auto [ok, address] = TryGetColumnString(stmt, 0);
-                if (!ok) throw std::runtime_error("Missing address of notifier");
-                m_result[address].emplace_back(std::move(shortForm));
-            }
+
+            auto [ok, address] = TryGetColumnString(stmt, 0);
+            if (!ok) throw std::runtime_error("Missing address of notifier");
+
+            m_result[address].emplace_back(std::move(shortForm));
+            
         }
         WebRpcRepository::NotificationsResult GetResult() const
         {
-            return { m_result, m_pocketnetteamPosts };
+            return m_result;
         }
     private:
         ShortFormParser m_parser;
@@ -4718,25 +4716,26 @@ namespace PocketDb
         return result;
     }
 
+
+    // Choosing predicate for function above based on filters.
+    std::function<bool(const ShortTxType&)> _choosePredicate(const std::set<ShortTxType>& filters) {
+        if (filters.empty()) {
+            // No filters mean that we should perform all selects
+            return [&filters](...) { return true; };
+        } else {
+            // Perform only selects that are specified in filters.
+            return [&filters](const ShortTxType& select) { return filters.find(select) != filters.end(); };
+        }
+    };
+
     // Method used to construct sql query and required bindings from provided selects based on filters
     template <class QueryParams>
     static inline auto _constructSelectsBasedOnFilters(
                 const std::set<ShortTxType>& filters,
                 const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>>& selects,
                 const std::string& footer)
-    {
-        // Choosing predicate for function above based on filters.
-        const static auto choosePredicate = [](const std::set<ShortTxType>& filters) -> std::function<bool(const ShortTxType&)> {
-            if (filters.empty()) {
-                // No filters mean that we should perform all selects
-                return [&filters](...) { return true; };
-            } else {
-                // Perform only selects that are specified in filters.
-                return [&filters](const ShortTxType& select) { return filters.find(select) != filters.end(); };
-            }
-        };
-        
-        auto predicate = choosePredicate(filters);
+    {   
+        auto predicate = _choosePredicate(filters);
 
         // Binds that should be performed to constructed query
         std::vector<std::function<void(std::shared_ptr<sqlite3_stmt*>&, int&, QueryParams const&)>> binds;
@@ -4768,9 +4767,7 @@ namespace PocketDb
             const int64_t& height;
         } queryParams {height};
 
-        // TODO: Notification from POCKETNET_TEAM
         // Static because it will not be changed for entire node run
-        // static const auto pocketnetteamAddresses = GetPocketnetteamAddresses();
 
         static const auto heightBinder =
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
@@ -4778,81 +4775,6 @@ namespace PocketDb
             };
 
         static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
-            // TODO: Notification from POCKETNET_TEAM
-        // {
-        //     ShortTxType::PocketnetTeam, { R"sql(
-        //         -- Pocket posts
-        //         select
-        //             null, -- related address is null because pocketnetteam posts should be added for every address
-        //             (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam) + R"sql(')TP,
-        //             t.Hash,
-        //             t.Type,
-        //             t.String1,
-        //             t.Height as Height,
-        //             t.BlockNum as BlockNum,
-        //             null,
-        //             p.String2, -- Caption
-        //             null,
-        //             null,
-        //             pact.String2,
-        //             pact.String3,
-        //             null,
-        //             ifnull(ract.Value,0),
-        //             r.Hash, -- repost related data, if any
-        //             r.Type,
-        //             r.String1,
-        //             r.Height,
-        //             r.BlockNum,
-        //             null,
-        //             pr.String2,
-        //             null,
-        //             null,
-        //             null, -- TODO (losty): no account info
-        //             null,
-        //             null,
-        //             null
-        //
-        //         from Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
-        //
-        //         left join Payload p
-        //             on p.TxHash = t.Hash
-        //
-        //         left join Transactions r indexed by Transactions_Hash_Height -- related content - possible reposts
-        //             on r.Type in (200,201,202)
-        //             and r.Last = 1
-        //             and r.Height > 0
-        //             and r.Hash = t.String3
-        //
-        //         left join Payload pr
-        //             on pr.TxHash = r.Hash
-        //
-        //         left join Transactions act
-        //             on act.Type = 100
-        //             and act.Last = 1
-        //             and act.String1 = t.String1
-        //             and act.Height > 0
-        //
-        //         left join Payload pact
-        //             on pact.TxHash = act.Hash
-        //
-        //         left join Ratings ract indexed by Ratings_Type_Id_Last_Height
-        //             on ract.Type = 0
-        //             and ract.Id = act.Id
-        //             and ract.Last = 1
-        //
-        //         where t.Type in (200,201,202)
-        //             and t.String1 in ( )sql" + join(vector<string>(pocketnetteamAddresses.size(), "?"), ",") + R"sql( )
-        //             and t.Hash = t.String2 -- Only orig
-        //             and t.Height = ?
-        // )sql",
-        //     [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
-        //         for (const auto& pocketnetAddress: pocketnetteamAddresses) {
-        //             TryBindStatementText(stmt, i++, pocketnetAddress);
-        //         }
-        //         TryBindStatementInt64(stmt, i++, queryParams.height);
-        //     }
-        // }},
-
         {
             ShortTxType::Money, { R"sql(
                 -- Incoming money
@@ -5350,16 +5272,8 @@ namespace PocketDb
                 where c.Type in (200,201,202)
                     and c.Hash = c.String2 -- only orig
                     and c.Height = ?
-                    -- Do not include POCKETNET_TEAM
-                    -- and c.String1 not in ( 'pocketnetteamAddresses' )
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-                // TODO: Notification from POCKETNET_TEAM
-                // for (const auto& pocketnetAddress: pocketnetteamAddresses) {
-                //     TryBindStatementText(stmt, i++, pocketnetAddress);
-                // }
-            }
+            heightBinder
         }},
 
         {
@@ -5491,28 +5405,31 @@ namespace PocketDb
         //     heightBinder
         // }}
         };
+
+        auto predicate = _choosePredicate(filters);
         
-        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "");
-        auto& sql = elem1;
-        auto& binds = elem2;
-
         NotificationsReconstructor reconstructor;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            int i = 1;
+        for(const auto& select: selects) {
+            if (predicate(select.first)) {
+                const auto& selectData = select.second;
+                TryTransactionStep(__func__, [&]()
+                {
+                    auto stmt = SetupSqlStatement(selectData.query);
 
-            for (const auto& bind: binds) {
-                bind(stmt, i, queryParams);
+                    int i = 1;
+                    selectData.binding(stmt, i, queryParams);
+
+                    // LogPrintf(sqlite3_expanded_sql(*stmt));
+                    while (sqlite3_step(*stmt) == SQLITE_ROW)
+                    {
+                        reconstructor.FeedRow(*stmt);
+                    }
+
+                    FinalizeSqlStatement(*stmt);
+                });
             }
+        }
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                reconstructor.FeedRow(*stmt);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
         return reconstructor.GetResult();
     }
 }
