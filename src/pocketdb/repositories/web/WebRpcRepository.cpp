@@ -3284,12 +3284,24 @@ namespace PocketDb
             langFilter += " cross join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
 
         string sql = R"sql(
-            select t.Id
+            select t.Id,
+
+            (
+            select count()
+            from Transactions s --indexed by Transactions_Type_Last_String3_Height
+            where s.Type in (204, 205) and s.Last = 1 and s.String3 = t.String2 and s.Height is not null
+                -- exclude commenters blocked by the author of the post
+                and not exists (
+                                select 1
+                                from Transactions b --indexed by Transactions_Type_Last_String1_String2_Height
+                                where b.Type in (305) and b.Last = 1 and b.String1 = t.String1 and b.String2 = s.String1 and b.Height > 0
+                                )
+            ) commentsCount
 
             from Transactions t indexed by Transactions_Type_Last_Height_Id
 
-            cross join Ratings cr indexed by Ratings_Type_Id_Last_Value
-                on cr.Type = 2 and cr.Last = 1 and cr.Id = t.Id and cr.Value > 0
+            --cross join Ratings cr indexed by Ratings_Type_Id_Last_Value
+            --    on cr.Type = 2 and cr.Last = 1 and cr.Id = t.Id and cr.Value > 0
 
             )sql" + langFilter + R"sql(
 
@@ -3339,24 +3351,9 @@ namespace PocketDb
              ) )sql";
         }
 
-        // sql += " order by cr.Value desc ";
-        sql +=  R"sql(
-        order by (
-                select count()
-                from Transactions s indexed by Transactions_Type_Last_String3_Height
-                where s.Type in (204, 205) and s.Height is not null and s.String3 = t.String2 and s.Last = 1
-                    -- exclude commenters blocked by the author of the post
-                    and not exists (
-                                    select 1
-                                    from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                                    where b.Type in (305) and b.Last = 1 and b.Height > 0 and b.String1 = t.String1 and b.String2 = s.String1
-                                    )
-                ) desc
-        limit ?
-        )sql";
-
         // ---------------------------------------------
 
+        vector<pair<int64_t, int>> idswithcomments;
         vector<int64_t> ids;
 
         TryTransactionStep(func, [&]()
@@ -3403,24 +3400,38 @@ namespace PocketDb
                     TryBindStatementText(stmt, i++, lang);
             }
 
-            TryBindStatementInt(stmt, i++, countOut);
-
             // ---------------------------------------------
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
-                ids.push_back(contentId);
+                auto[ok1, commentsCount] = TryGetColumnInt(*stmt, 1);
+
+                idswithcomments.emplace_back(contentId, commentsCount);
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        // Get content data
-        if (!ids.empty())
+        if (!idswithcomments.empty())
         {
-            auto contents = GetContentsData(ids, address);
-            result.push_backV(contents);
+            std::sort(idswithcomments.begin(), idswithcomments.end(),
+                [] (const auto &x, const auto &y) {return x.second > y.second;});
+
+            std::transform(idswithcomments.begin(), idswithcomments.end(), std::back_inserter(ids),
+                [](decltype(idswithcomments)::value_type const &pair) {
+                    return pair.first;
+                });
+
+            if (ids.size() > countOut)
+                ids = {ids.begin(), ids.begin() + countOut};
+
+            // Get content data
+            if (!ids.empty())
+            {
+                auto contents = GetContentsData(ids, address);
+                result.push_backV(contents);
+            }
         }
 
         // Complete!
@@ -4757,8 +4768,9 @@ namespace PocketDb
             const int64_t& height;
         } queryParams {height};
 
+        // TODO: Notification from POCKETNET_TEAM
         // Static because it will not be changed for entire node run
-        static const auto pocketnetteamAddresses = GetPocketnetteamAddresses();
+        // static const auto pocketnetteamAddresses = GetPocketnetteamAddresses();
 
         static const auto heightBinder =
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
@@ -4766,79 +4778,80 @@ namespace PocketDb
             };
 
         static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
-        {
-            ShortTxType::PocketnetTeam, { R"sql(
-                -- Pocket posts
-                select
-                    null, -- related address is null because pocketnetteam posts should be added for every address
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam) + R"sql(')TP,
-                    t.Hash,
-                    t.Type,
-                    t.String1,
-                    t.Height as Height,
-                    t.BlockNum as BlockNum,
-                    null,
-                    p.String2, -- Caption
-                    null,
-                    null,
-                    pact.String2,
-                    pact.String3,
-                    null,
-                    ifnull(ract.Value,0),
-                    r.Hash, -- repost related data, if any
-                    r.Type,
-                    r.String1,
-                    r.Height,
-                    r.BlockNum,
-                    null,
-                    pr.String2,
-                    null,
-                    null,
-                    null, -- TODO (losty): no account info
-                    null,
-                    null,
-                    null
-
-                from Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
-
-                left join Payload p
-                    on p.TxHash = t.Hash
-
-                left join Transactions r indexed by Transactions_Hash_Height -- related content - possible reposts
-                    on r.Type in (200,201,202)
-                    and r.Last = 1
-                    and r.Height > 0
-                    and r.Hash = t.String3
-
-                left join Payload pr
-                    on pr.TxHash = r.Hash
-
-                left join Transactions act
-                    on act.Type = 100
-                    and act.Last = 1
-                    and act.String1 = t.String1
-                    and act.Height > 0
-
-                left join Payload pact
-                    on pact.TxHash = act.Hash
-
-                left join Ratings ract indexed by Ratings_Type_Id_Last_Height
-                    on ract.Type = 0
-                    and ract.Id = act.Id
-                    and ract.Last = 1
-
-                where t.Type in (200,201,202)
-                    and t.String1 in ( )sql" + join(vector<string>(pocketnetteamAddresses.size(), "?"), ",") + R"sql( )
-                    and t.Hash = t.String2 -- Only orig
-                    and t.Height = ?
-        )sql", 
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
-                for (const auto& pocketnetAddress: pocketnetteamAddresses) {
-                    TryBindStatementText(stmt, i++, pocketnetAddress);
-                }
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
-        }},
+            // TODO: Notification from POCKETNET_TEAM
+        // {
+        //     ShortTxType::PocketnetTeam, { R"sql(
+        //         -- Pocket posts
+        //         select
+        //             null, -- related address is null because pocketnetteam posts should be added for every address
+        //             (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam) + R"sql(')TP,
+        //             t.Hash,
+        //             t.Type,
+        //             t.String1,
+        //             t.Height as Height,
+        //             t.BlockNum as BlockNum,
+        //             null,
+        //             p.String2, -- Caption
+        //             null,
+        //             null,
+        //             pact.String2,
+        //             pact.String3,
+        //             null,
+        //             ifnull(ract.Value,0),
+        //             r.Hash, -- repost related data, if any
+        //             r.Type,
+        //             r.String1,
+        //             r.Height,
+        //             r.BlockNum,
+        //             null,
+        //             pr.String2,
+        //             null,
+        //             null,
+        //             null, -- TODO (losty): no account info
+        //             null,
+        //             null,
+        //             null
+        //
+        //         from Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
+        //
+        //         left join Payload p
+        //             on p.TxHash = t.Hash
+        //
+        //         left join Transactions r indexed by Transactions_Hash_Height -- related content - possible reposts
+        //             on r.Type in (200,201,202)
+        //             and r.Last = 1
+        //             and r.Height > 0
+        //             and r.Hash = t.String3
+        //
+        //         left join Payload pr
+        //             on pr.TxHash = r.Hash
+        //
+        //         left join Transactions act
+        //             on act.Type = 100
+        //             and act.Last = 1
+        //             and act.String1 = t.String1
+        //             and act.Height > 0
+        //
+        //         left join Payload pact
+        //             on pact.TxHash = act.Hash
+        //
+        //         left join Ratings ract indexed by Ratings_Type_Id_Last_Height
+        //             on ract.Type = 0
+        //             and ract.Id = act.Id
+        //             and ract.Last = 1
+        //
+        //         where t.Type in (200,201,202)
+        //             and t.String1 in ( )sql" + join(vector<string>(pocketnetteamAddresses.size(), "?"), ",") + R"sql( )
+        //             and t.Hash = t.String2 -- Only orig
+        //             and t.Height = ?
+        // )sql",
+        //     [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
+        //         for (const auto& pocketnetAddress: pocketnetteamAddresses) {
+        //             TryBindStatementText(stmt, i++, pocketnetAddress);
+        //         }
+        //         TryBindStatementInt64(stmt, i++, queryParams.height);
+        //     }
+        // }},
 
         {
             ShortTxType::Money, { R"sql(
@@ -5337,13 +5350,15 @@ namespace PocketDb
                 where c.Type in (200,201,202)
                     and c.Hash = c.String2 -- only orig
                     and c.Height = ?
-                    and c.String1 not in ( )sql" + join(vector<string>(pocketnetteamAddresses.size(), "?"), ",") + R"sql( )
+                    -- Do not include POCKETNET_TEAM
+                    -- and c.String1 not in ( 'pocketnetteamAddresses' )
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
                 TryBindStatementInt64(stmt, i++, queryParams.height);
-                for (const auto& pocketnetAddress: pocketnetteamAddresses) {
-                    TryBindStatementText(stmt, i++, pocketnetAddress);
-                }
+                // TODO: Notification from POCKETNET_TEAM
+                // for (const auto& pocketnetAddress: pocketnetteamAddresses) {
+                //     TryBindStatementText(stmt, i++, pocketnetAddress);
+                // }
             }
         }},
 
