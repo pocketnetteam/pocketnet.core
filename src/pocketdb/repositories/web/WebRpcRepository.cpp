@@ -3402,7 +3402,6 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            LogPrintf(sqlite3_expanded_sql(*stmt));
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
