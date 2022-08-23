@@ -873,7 +873,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxMap = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+        auto [shortTxMap, pcNotifiers, pcData] = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
 
         UniValue userNotifications {UniValue::VOBJ};
         userNotifications.reserveKVSize(shortTxMap.size());
@@ -887,8 +887,36 @@ namespace PocketWeb::PocketWebRpc
             userNotifications.pushKV(addressSpecific.first, txs, false /*searchDuplicate*/);
         }
 
+        UniValue pcNotifiersUni(UniValue::VOBJ);
+        pcNotifiersUni.reserveKVSize(pcNotifiers.size());
+        for (const auto& notifier: pcNotifiers) {
+            const auto& pcHash = notifier.first;
+            std::vector<UniValue> tmp;
+            for (const auto& address: notifier.second) {
+                UniValue addressUni;
+                addressUni.setStr(address);
+                tmp.emplace_back(std::move(addressUni));
+            }
+            UniValue notifiers(UniValue::VARR);
+            notifiers.push_backV(tmp);
+            pcNotifiersUni.pushKV(pcHash, std::move(notifiers), false);
+        }
+
+        UniValue pcDataUni(UniValue::VOBJ);
+        pcDataUni.reserveKVSize(pcData.size());
+        for (const auto& privateContentEntry: pcData) {
+            pcDataUni.pushKV(privateContentEntry.first, privateContentEntry.second.Serialize(), false);
+        }
+
+        UniValue privateContent(UniValue::VOBJ);
+        privateContent.pushKV("data", pcDataUni);
+        privateContent.pushKV("notifiers", pcNotifiersUni);
+
+
         UniValue res {UniValue::VOBJ};
+
         res.pushKV("users_notifications", userNotifications);
+        res.pushKV("privatecontent", privateContent);
 
         return res;
     }
