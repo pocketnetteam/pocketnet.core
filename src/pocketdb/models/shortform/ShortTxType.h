@@ -10,7 +10,6 @@ namespace PocketDb
     enum class ShortTxType
     {
         NotSet,
-        PocketnetTeam,
         Money,
         Referal,
         Answer,
