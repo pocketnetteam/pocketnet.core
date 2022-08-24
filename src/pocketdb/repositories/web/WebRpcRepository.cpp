@@ -4762,6 +4762,10 @@ namespace PocketDb
                 binds.emplace_back(select.second.binding);
             }
         }
+
+        if (queryElems.empty()) {
+            throw std::runtime_error("Failed to construct query for requested filters");
+        }
         queryElems.pop_back(); // Dropping last "union"
 
         std::stringstream ss;
