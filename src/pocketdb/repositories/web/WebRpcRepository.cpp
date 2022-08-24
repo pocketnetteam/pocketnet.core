@@ -91,30 +91,22 @@ namespace PocketDb
     public:
         void FeedRow(sqlite3_stmt* stmt)
         {
+            // TODO (losty): optimize - do not parse the whole row if short form already exists in internal map
             auto shortForm = m_parser.ParseRow(stmt, 1);
             auto [ok, address] = TryGetColumnString(stmt, 0);
             if (!ok) throw std::runtime_error("Missing address of notifier");
 
-            if (shortForm.GetType() == ShortTxType::PrivateContent) {
-                const auto& hash = shortForm.GetTxData().GetHash();
-                if (m_privateContent.find(hash) == m_privateContent.end()) {
-                    m_privateContent.insert({hash, shortForm.GetTxData()});
-                }
-                m_privateContentNotifiers[hash].emplace_back(address);
-            } else {
-                m_result[address].emplace_back(std::move(shortForm));
-            }
+            auto& m_typeEntry = m_notifications[shortForm.GetType()];
+            m_typeEntry.Insert(shortForm, address);
+
         }
         WebRpcRepository::NotificationsResult GetResult() const
         {
-            return { m_result, m_privateContentNotifiers, m_privateContent };
+            return m_notifications;
         }
     private:
         ShortFormParser m_parser;
-        std::map<std::string, std::vector<PocketDb::ShortForm>> m_result;
-        std::vector<ShortForm> m_pocketnetteamPosts;
-        std::map<std::string, std::vector<std::string>> m_privateContentNotifiers;
-        std::map<std::string, ShortTxData> m_privateContent;
+        std::map<ShortTxType, WebRpcRepository::NotificationResultTypeEntry> m_notifications;
     };
 
 

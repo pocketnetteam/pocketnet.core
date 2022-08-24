@@ -159,8 +159,53 @@ namespace PocketDb
 
         UniValue GetContentActions(const string& postTxHash);
 
+        // TODO (losty): move to different place
+        class NotificationResultTypeEntry
+        {
+        public:
+            void Insert(const ShortForm& shortForm, const std::string& address)
+            {
+                // TODO (losty): remove this dirty hack when logic with including outputs to shortforms will be implemented
+                auto hash = shortForm.GetTxData().GetHash() + (shortForm.GetTxData().GetVal() ? std::to_string(*shortForm.GetTxData().GetVal()): "");
+                if (m_data.find(hash) == m_data.end()) {
+                    m_data.insert({hash, shortForm});
+                }
+
+                m_notifiers[hash].emplace_back(address);
+            }
+
+            UniValue Serialize() const
+            {
+                UniValue data (UniValue::VOBJ);
+                data.reserveKVSize(m_data.size());
+                for (const auto& shortForm: m_data) {
+                    data.pushKV(shortForm.first, shortForm.second.Serialize());
+                }
+
+                UniValue notifiers (UniValue::VOBJ);
+                notifiers.reserveKVSize(m_notifiers.size());
+                for (const auto& notifiersEntry: m_notifiers) {
+                    UniValue notifiersUni (UniValue::VARR);
+                    std::vector<UniValue> notifiersVec;
+                    std::transform(notifiersEntry.second.begin(), notifiersEntry.second.end(), std::back_inserter(notifiersVec), [](const std::string& elem) {
+                        return UniValue(elem);
+                    });
+                    notifiersUni.push_backV(std::move(notifiersVec));
+                    notifiers.pushKV(notifiersEntry.first, std::move(notifiersUni));
+                }
+
+                UniValue result (UniValue::VOBJ);
+                result.pushKV("data", data);
+                result.pushKV("notifiers", notifiers);
+
+                return result;
+            }
+        private:
+            std::map<std::string, ShortForm> m_data;
+            std::map<std::string, std::vector<std::string>> m_notifiers;
+        };
         // First - map where keys are addresses and values are ShortForms of events from given block. Second - pocketnetteam posts.
-        using NotificationsResult = std::tuple<std::map<std::string, std::vector<PocketDb::ShortForm>>, std::map<std::string, std::vector<std::string>>, std::map<std::string, ShortTxData>>;
+        using NotificationsResult = std::map<ShortTxType, NotificationResultTypeEntry>;
         /**
          * Get all possible events for all adresses in concrete block
          * 

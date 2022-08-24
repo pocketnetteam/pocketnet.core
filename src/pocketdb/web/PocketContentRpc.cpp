@@ -873,51 +873,14 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto [shortTxMap, pcNotifiers, pcData] = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+        auto notifications = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
 
-        UniValue userNotifications {UniValue::VOBJ};
-        userNotifications.reserveKVSize(shortTxMap.size());
-        for (const auto& addressSpecific: shortTxMap) {
-            UniValue txs {UniValue::VARR};
-            std::vector<UniValue> tmp;
-            for (const auto& tx: addressSpecific.second) {
-                tmp.emplace_back(tx.Serialize());
-            }
-            txs.push_backV(std::move(tmp));
-            userNotifications.pushKV(addressSpecific.first, txs, false /*searchDuplicate*/);
+        UniValue result (UniValue::VOBJ);
+
+        for (const auto& notificationType: notifications) {
+            result.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(notificationType.first), notificationType.second.Serialize());
         }
 
-        UniValue pcNotifiersUni(UniValue::VOBJ);
-        pcNotifiersUni.reserveKVSize(pcNotifiers.size());
-        for (const auto& notifier: pcNotifiers) {
-            const auto& pcHash = notifier.first;
-            std::vector<UniValue> tmp;
-            for (const auto& address: notifier.second) {
-                UniValue addressUni;
-                addressUni.setStr(address);
-                tmp.emplace_back(std::move(addressUni));
-            }
-            UniValue notifiers(UniValue::VARR);
-            notifiers.push_backV(tmp);
-            pcNotifiersUni.pushKV(pcHash, std::move(notifiers), false);
-        }
-
-        UniValue pcDataUni(UniValue::VOBJ);
-        pcDataUni.reserveKVSize(pcData.size());
-        for (const auto& privateContentEntry: pcData) {
-            pcDataUni.pushKV(privateContentEntry.first, privateContentEntry.second.Serialize(), false);
-        }
-
-        UniValue privateContent(UniValue::VOBJ);
-        privateContent.pushKV("data", pcDataUni);
-        privateContent.pushKV("notifiers", pcNotifiersUni);
-
-
-        UniValue res {UniValue::VOBJ};
-
-        res.pushKV("users_notifications", userNotifications);
-        res.pushKV("privatecontent", privateContent);
-
-        return res;
+        return result;
     }
 }
