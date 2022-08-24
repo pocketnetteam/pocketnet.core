@@ -1359,7 +1359,7 @@ namespace PocketWeb::PocketWebRpc
                 if (rawFilters[i].isStr()) {
                     const auto& rawFilter = rawFilters[i].get_str();
                     auto filter = ShortTxTypeConvertor::strToType(rawFilter);
-                    if (filter == ShortTxType::NotSet) {
+                    if (!PocketHelpers::ShortTxFilterValidator::Events::IsFilterAllowed(filter)) {
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unexpected filter: " + rawFilter);
                     }
                     filters.insert(filter);
