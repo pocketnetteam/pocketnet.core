@@ -1309,7 +1309,6 @@ namespace PocketWeb::PocketWebRpc
                             {"blockNum", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "number of transaction in block to start search from for specified heightMax, excluding. Default is 999999"},
                             {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "filters to specify event's types to search for. Default: search for all events",
                             {
-                                {ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "posts from pocketnet team acc"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "incoming money"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Referal), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "registered referals"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "answers to acc's comments"},
@@ -1470,7 +1469,6 @@ namespace PocketWeb::PocketWebRpc
                             {"blockNum", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "number of transaction in block to start search from for specified heightMax, excluding. Default is 999999"},
                             {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "filters to specify event's types to search for. Default: search for all activities",
                             {
-                                {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "money sended by acc"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "acc's answers to comments"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Comment), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "acc's comments"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Subscriber), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "acc's subscribes"},

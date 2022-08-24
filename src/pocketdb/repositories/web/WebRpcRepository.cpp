@@ -4789,7 +4789,6 @@ namespace PocketDb
             const int64_t& blockNumMax;
         } queryParams{address, heightMax, heightMin, blockNumMax};
 
-        // Pocketnetteam and referal txs are ignored
         static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
         {
             ShortTxType::Answer, { R"sql(
@@ -5770,60 +5769,7 @@ namespace PocketDb
             const int64_t& blockNumMax;
         } queryParams {address, heightMax, heightMin, blockNumMax};
 
-        // Static because it will not be changed for entire node run
-        static const auto pocketnetteamAddresses = GetPocketnetteamAddresses();
-
         static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
-        {
-            ShortTxType::PocketnetTeam, { R"sql(
-                -- Pocket posts
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam) + R"sql(')TP,
-                    t.Hash,
-                    t.Type,
-                    null,
-                    t.Height as Height,
-                    t.BlockNum as BlockNum,
-                    null, -- Address, not required here because we already know it
-                    p.String2, -- Caption
-                    null,
-                    null,
-                    null,
-                    null,
-                    null, -- TODO (losty): related content? If repost etc
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-
-                left join Payload p
-                    on p.TxHash = t.Hash
-
-                where t.Type in (200,201,202)
-                    and t.String1 in ( )sql" + join(vector<string>(pocketnetteamAddresses.size(), "?"), ",") + R"sql( )
-                    and t.Last = 1
-                    and t.Height > ?
-                    and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
-        )sql", 
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
-                for(const auto& pocketnetteamAddress: pocketnetteamAddresses) {
-                    TryBindStatementText(stmt, i++, pocketnetteamAddress);
-                }
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-            }
-        }},
-
         {
             ShortTxType::Money, { R"sql(
                 -- Incoming money
