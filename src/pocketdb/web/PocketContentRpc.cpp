@@ -1386,7 +1386,6 @@ namespace PocketWeb::PocketWebRpc
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "height of block to search in"},
                     {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of notifications. If empty or null - search for all types",
                         {
-                            {ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Posts from PocketnetTeam acc"},
                             {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "recieved money"},
                             {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "answers to acc's comments"},
                             {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "content from acc's private subscriptions`"},
@@ -1434,25 +1433,22 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto [shortTxMap, pocketnetteamPosts] = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+        auto shortTxMap = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
 
         UniValue userNotifications {UniValue::VOBJ};
+        userNotifications.reserveKVSize(shortTxMap.size());
         for (const auto& addressSpecific: shortTxMap) {
             UniValue txs {UniValue::VARR};
+            std::vector<UniValue> tmp;
             for (const auto& tx: addressSpecific.second) {
-                txs.push_back(tx.Serialize());
+                tmp.emplace_back(tx.Serialize());
             }
-            userNotifications.pushKV(addressSpecific.first, txs);
-        }
-
-        UniValue pocketnetteam {UniValue::VARR};
-        for (const auto& pocketnetteanPost: pocketnetteamPosts) {
-            pocketnetteam.push_back(pocketnetteanPost.Serialize());
+            txs.push_backV(std::move(tmp));
+            userNotifications.pushKV(addressSpecific.first, txs, false /*searchDuplicate*/);
         }
 
         UniValue res {UniValue::VOBJ};
         res.pushKV("users_notifications", userNotifications);
-        res.pushKV("pocketnetteam", pocketnetteam);
 
         return res;
     },

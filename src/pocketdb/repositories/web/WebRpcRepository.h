@@ -166,7 +166,7 @@ namespace PocketDb
 
 
         // First - map where keys are addresses and values are ShortForms of events from given block. Second - pocketnetteam posts.
-        using NotificationsResult = std::pair<std::map<std::string, std::vector<PocketDb::ShortForm>>, std::vector<ShortForm>>;
+        using NotificationsResult = std::map<std::string, std::vector<PocketDb::ShortForm>>;
         /**
          * Get all possible events for all adresses in concrete block
          * 

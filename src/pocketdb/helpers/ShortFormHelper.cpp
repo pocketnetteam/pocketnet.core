@@ -11,7 +11,6 @@
 
 static const std::map<PocketDb::ShortTxType, std::string>& GetTypesMap() {
     static const std::map<PocketDb::ShortTxType, std::string> typesMap = {
-        { PocketDb::ShortTxType::PocketnetTeam, "pocketnetteam" },
         { PocketDb::ShortTxType::Money, "money" },
         { PocketDb::ShortTxType::Referal, "referal" },
         { PocketDb::ShortTxType::Answer, "answer" },
@@ -39,7 +38,6 @@ std::string PocketHelpers::ShortTxTypeConvertor::toString(PocketDb::ShortTxType 
 bool PocketHelpers::ShortTxFilterValidator::Notifications::IsFilterAllowed(PocketDb::ShortTxType type)
 {
     static const std::set<PocketDb::ShortTxType> allowed = {
-        PocketDb::ShortTxType::PocketnetTeam,
         PocketDb::ShortTxType::Money,
         PocketDb::ShortTxType::Answer,
         PocketDb::ShortTxType::PrivateContent,
