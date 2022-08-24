@@ -124,19 +124,25 @@ bool UniValue::push_backV(const std::vector<UniValue>& vec)
     return true;
 }
 
+void UniValue::reserveKVSize(size_t size)
+{
+    keys.reserve(size);
+    values.reserve(size);
+}
+
 void UniValue::__pushKV(const std::string& key, const UniValue& val_)
 {
     keys.push_back(key);
     values.push_back(val_);
 }
 
-bool UniValue::pushKV(const std::string& key, const UniValue& val_)
+bool UniValue::pushKV(const std::string& key, const UniValue& val_, bool searchDuplicate)
 {
     if (typ != VOBJ)
         return false;
 
     size_t idx;
-    if (findKey(key, idx))
+    if (searchDuplicate && findKey(key, idx))
         values[idx] = val_;
     else
         __pushKV(key, val_);
