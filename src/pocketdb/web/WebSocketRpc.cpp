@@ -60,15 +60,16 @@ namespace PocketWeb::PocketWebRpc
 
         // ---------------------------------------------------------------------
 
+        // TODO: Notification from POCKETNET_TEAM
         // Pocketnet Team content
-        std::string teamAddress = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
-        auto[teamCount, teamData] = request.DbConnection()->WebRpcRepoInst->GetLastAddressContent(teamAddress, blockNumber, 99);
-        for (size_t i = 0; i < teamData.size(); i++)
-        {
-            teamData.At(i).pushKV("msg", "sharepocketnet");
-            teamData.At(i).pushKV("addrFrom", teamAddress);
-            result.push_back(teamData[i]);
-        }
+        // std::string teamAddress = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
+        // auto[teamCount, teamData] = request.DbConnection()->WebRpcRepoInst->GetLastAddressContent(teamAddress, blockNumber, 99);
+        // for (size_t i = 0; i < teamData.size(); i++)
+        // {
+        //     teamData.At(i).pushKV("msg", "sharepocketnet");
+        //     teamData.At(i).pushKV("addrFrom", teamAddress);
+        //     result.push_back(teamData[i]);
+        // }
 
         // ---------------------------------------------------------------------
 

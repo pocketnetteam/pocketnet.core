@@ -45,9 +45,10 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
 
     int sharesCnt = 0;
     std::map<std::string, std::map<std::string, int>> contentLangCnt;
-    std::string txidpocketnet;
-    std::string addrespocketnet = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
-    auto pocketnetaccinfo = PocketDb::NotifierRepoInst.GetAccountInfoByAddress(addrespocketnet);
+    // TODO: Notification from POCKETNET_TEAM
+    // std::string txidpocketnet;
+    // std::string addrespocketnet = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
+    // auto pocketnetaccinfo = PocketDb::NotifierRepoInst.GetAccountInfoByAddress(addrespocketnet);
 
     for (const auto& tx : block.vtx) {
         std::map<std::string, std::pair<int, int64_t>> addrs;
@@ -153,30 +154,31 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                 if (response.exists("hash") && response.exists("rootHash") && response["hash"].get_str() != response["rootHash"].get_str())
                     continue;
 
-                if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
-                {
-                    txidpocketnet += txid + ",";
-                }
-                else
-                {
-                    auto response = PocketDb::NotifierRepoInst.GetOriginalPostAddressByRepost(txid);
-                    if (response.exists("hash"))
+                // TODO: Notification from POCKETNET_TEAM
+                // if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
+                // {
+                //     txidpocketnet += txid + ",";
+                // }
+                // else
+                // {
+                    auto repostResponse = PocketDb::NotifierRepoInst.GetOriginalPostAddressByRepost(txid);
+                    if (repostResponse.exists("hash"))
                     {
-                        std::string address = response["address"].get_str();
+                        std::string address = repostResponse["address"].get_str();
 
                         custom_fields cFields
                         {
                             {"mesType",    "reshare"},
-                            {"txidRepost", response["hash"].get_str()},
-                            {"addrFrom",   response["addressRepost"].get_str()},
-                            {"nameFrom",   response["nameRepost"].get_str()}
+                            {"txidRepost", repostResponse["hash"].get_str()},
+                            {"addrFrom",   repostResponse["addressRepost"].get_str()},
+                            {"nameFrom",   repostResponse["nameRepost"].get_str()}
                         };
-                        if (response.exists("avatarRepost"))
-                            cFields.emplace("avatarFrom",response["avatarRepost"].get_str());
+                        if (repostResponse.exists("avatarRepost"))
+                            cFields.emplace("avatarFrom",repostResponse["avatarRepost"].get_str());
 
                         PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                     }
-                }
+                // } // TODO: Notification from POCKETNET_TEAM
 
                 auto subscribesResponse = PocketDb::NotifierRepoInst.GetPrivateSubscribeAddressesByAddressTo(addr.first);
                 for (size_t i = 0; i < subscribesResponse.size(); ++i)
@@ -392,24 +394,25 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                 LogPrintf("Error: CChainState::NotifyWSClients (1) - %s\n", e.what());
             }
 
-            if (txidpocketnet != "")
-            {
-                try
-                {
-                    UniValue m(UniValue::VOBJ);
-                    m.pushKV("msg", "sharepocketnet");
-                    m.pushKV("time", std::to_string(block.nTime));
-                    m.pushKV("addrFrom", addrespocketnet);
-                    if (pocketnetaccinfo.exists("name")) m.pushKV("nameFrom", pocketnetaccinfo["name"].get_str());
-                    if (pocketnetaccinfo.exists("avatar")) m.pushKV("avatarFrom", pocketnetaccinfo["avatar"].get_str());
-                    m.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
-                    connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
-                }
-                catch (const std::exception& e)
-                {
-                    LogPrintf("Error: CChainState::NotifyWSClients (1) - %s\n", e.what());
-                }
-            }
+            // TODO: Notification from POCKETNET_TEAM
+            // if (txidpocketnet != "")
+            // {
+            //     try
+            //     {
+            //         UniValue m(UniValue::VOBJ);
+            //         m.pushKV("msg", "sharepocketnet");
+            //         m.pushKV("time", std::to_string(block.nTime));
+            //         m.pushKV("addrFrom", addrespocketnet);
+            //         if (pocketnetaccinfo.exists("name")) m.pushKV("nameFrom", pocketnetaccinfo["name"].get_str());
+            //         if (pocketnetaccinfo.exists("avatar")) m.pushKV("avatarFrom", pocketnetaccinfo["avatar"].get_str());
+            //         m.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
+            //         connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+            //     }
+            //     catch (const std::exception& e)
+            //     {
+            //         LogPrintf("Error: CChainState::NotifyWSClients (1) - %s\n", e.what());
+            //     }
+            // }
 
             if (messages.find(connWS.second.Address) != messages.end())
             {

@@ -114,8 +114,10 @@ public:
     }
     bool push_backV(const std::vector<UniValue>& vec);
 
+    void reserveKVSize(size_t size);
+
     void __pushKV(const std::string& key, const UniValue& val);
-    bool pushKV(const std::string& key, const UniValue& val);
+    bool pushKV(const std::string& key, const UniValue& val, bool searchDuplicate = true);
     bool pushKV(const std::string& key, const std::string& val_) {
         UniValue tmpVal(VSTR, val_);
         return pushKV(key, tmpVal);

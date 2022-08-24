@@ -41,17 +41,18 @@ namespace PocketHelpers
         return find(PocketnetDevelopers[net].begin(), PocketnetDevelopers[net].end(), address) != PocketnetDevelopers[net].end();
     }
 
-    static inline std::vector<std::string> GetPocketnetteamAddresses()
-    {
-        switch (Params().NetworkID()) {
-            case NetworkMain:
-                return {"PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd"};
-            case NetworkTest:
-                return {"TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU"};
-            default:
-                return {};
-        }
-    }
+    // TODO: Notification from POCKETNET_TEAM
+    // static inline std::vector<std::string> GetPocketnetteamAddresses()
+    // {
+    //     switch (Params().NetworkID()) {
+    //         case NetworkMain:
+    //             return {"PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd"};
+    //         case NetworkTest:
+    //             return {"TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU"};
+    //         default:
+    //             return {};
+    //     }
+    // }
 }
 
 #endif // POCKETHELPERS_POCKETNET_HELPER_H

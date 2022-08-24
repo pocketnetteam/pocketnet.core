@@ -220,6 +220,11 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[5].isNum())
             fee = request.params[5].get_int64();
 
+        // Content Author address
+        string contentAddressValue = "";
+        if (request.params[6].isStr() && txPayload.exists("value") && txPayload["value"].isNum())
+            contentAddressValue = request.params[6].get_str() + " " + to_string(txPayload["value"].get_int());
+
         // Build template for transaction
         auto txType = PocketHelpers::TransactionHelper::ConvertOpReturnToType(txTypeHex);
         shared_ptr<Transaction> _ptx = PocketHelpers::TransactionHelper::CreateInstance(txType);
@@ -260,7 +265,9 @@ namespace PocketWeb::PocketWebRpc
         }
 
         // generate transaction
-        CTxOut _dataOut(0, CScript() << OP_RETURN << ParseHex(txTypeHex) << ParseHex(_ptx->BuildHash()));
+        auto _opReturn = CScript() << OP_RETURN << ParseHex(txTypeHex) << ParseHex(_ptx->BuildHash());
+        if (contentAddressValue != "") _opReturn = _opReturn << ParseHex(HexStr(contentAddressValue));
+        CTxOut _dataOut(0, _opReturn);
         CMutableTransaction mTx = ConstructPocketnetTransaction(_inputs, _dataOut, _outputs, NullUniValue, NullUniValue);
 
         // Decode private keys
