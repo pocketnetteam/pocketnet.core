@@ -19,9 +19,6 @@ namespace PocketTx
     string ModeratorRegister::BuildHash()
     {
         string data;
-
-        data += GetRequestId() ? *GetRequestId() : "";
-
         return SocialTransaction::GenerateHash(data);
     }
 

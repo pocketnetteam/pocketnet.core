@@ -98,7 +98,8 @@ namespace PocketTx
         MODERATOR_REQUEST_COIN = 401, // Some users have the right to choose a moderator
         MODERATOR_REQUEST_CANCEL = 402, // Users have the right to cancel the status of the moderator they have appointed
         MODERATOR_REGISTER = 403, // Each moderator must register in the system to perform their functions
-        MODERATOR_REGISTER_CANCEL = 404, // Each moderator have the right to cancel self moderation status
+        MODERATOR_REGISTER_REQUEST = 404, // Each moderator must register with request in the system to perform their functions
+        MODERATOR_REGISTER_CANCEL = 405, // Each moderator have the right to cancel self moderation status
                 
         MODERATION_FLAG = 410, // Flags are used to mark content that needs moderation
         MODERATION_VOTE = 420, // Votes is used by moderators in the jury process

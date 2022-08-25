@@ -15,9 +15,6 @@ namespace PocketTx
         ModeratorRegister();
         ModeratorRegister(const CTransactionRef& tx);
 
-        shared_ptr<string> GetRequestId() const;
-        void SetRequestId(const string& value);
-
         string BuildHash() override;
 
     }; // class ModeratorRegister

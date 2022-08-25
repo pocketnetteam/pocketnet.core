@@ -632,6 +632,8 @@ add_library(${POCKETDB}
         pocketdb/models/dto/moderation/RequestCancel.cpp
         pocketdb/models/dto/moderation/Register.h
         pocketdb/models/dto/moderation/Register.cpp
+        pocketdb/models/dto/moderation/RegisterRequest.h
+        pocketdb/models/dto/moderation/RegisterRequest.cpp
         pocketdb/models/dto/moderation/RegisterCancel.h
         pocketdb/models/dto/moderation/RegisterCancel.cpp
         pocketdb/models/web/WebTag.h
