@@ -6,12 +6,12 @@
 
 namespace PocketTx
 {
-    ModerationRequestCancel::ModerationRequestCancel() : ModerationRequest()
+    ModeratorRequestCancel::ModeratorRequestCancel() : ModeratorRequest()
     {
         SetType(TxType::MODERATOR_REQUEST_CANCEL);
     }
 
-    ModerationRequestCancel::ModerationRequestCancel(const CTransactionRef& tx) : ModerationRequest(tx)
+    ModeratorRequestCancel::ModeratorRequestCancel(const CTransactionRef& tx) : ModeratorRequest(tx)
     {
         SetType(TxType::MODERATOR_REQUEST_CANCEL);
     }

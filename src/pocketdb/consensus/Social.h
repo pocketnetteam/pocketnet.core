@@ -118,7 +118,7 @@ namespace PocketConsensus
         }
 
         // Get addresses from transaction for check registration
-        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& tx)
+        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& ptx)
         {
             return { *ptx->GetAddress() };
         }

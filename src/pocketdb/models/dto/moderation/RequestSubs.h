@@ -9,12 +9,12 @@
 
 namespace PocketTx
 {
-    class ModerationRequestSubs : public ModerationRequest
+    class ModeratorRequestSubs : public ModeratorRequest
     {
     public:
-        ModerationRequestSubs();
-        ModerationRequestSubs(const CTransactionRef& tx);
-    }; // class ModerationRequestSubs
+        ModeratorRequestSubs();
+        ModeratorRequestSubs(const CTransactionRef& tx);
+    }; // class ModeratorRequestSubs
 
 } // namespace PocketTx
 

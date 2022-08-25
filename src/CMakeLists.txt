@@ -558,6 +558,8 @@ add_library(${POCKETDB}
         pocketdb/migrations/base.h
         pocketdb/migrations/main.h
         pocketdb/migrations/web.h
+        pocketdb/migrations/main.cpp
+        pocketdb/migrations/web.cpp
         pocketdb/models/base/PocketTypes.h
         pocketdb/models/base/Base.h
         pocketdb/models/base/Payload.h
@@ -566,6 +568,12 @@ add_library(${POCKETDB}
         pocketdb/models/base/TransactionOutput.h
         pocketdb/models/base/SocialTransaction.h
         pocketdb/models/base/Rating.h
+        pocketdb/models/base/Base.cpp
+        pocketdb/models/base/Payload.cpp
+        pocketdb/models/base/Transaction.cpp
+        pocketdb/models/base/TransactionInput.cpp
+        pocketdb/models/base/TransactionOutput.cpp
+        pocketdb/models/base/SocialTransaction.cpp
         pocketdb/models/base/DtoModels.h
         pocketdb/models/dto/Default.h
         pocketdb/models/dto/Coinbase.h
@@ -586,14 +594,7 @@ add_library(${POCKETDB}
         pocketdb/models/dto/AccountSetting.h
         pocketdb/models/dto/ContentDelete.h
         pocketdb/models/dto/BoostContent.h
-        pocketdb/migrations/main.cpp
-        pocketdb/migrations/web.cpp
-        pocketdb/models/base/Base.cpp
-        pocketdb/models/base/Payload.cpp
-        pocketdb/models/base/Transaction.cpp
-        pocketdb/models/base/TransactionInput.cpp
-        pocketdb/models/base/TransactionOutput.cpp
-        pocketdb/models/base/SocialTransaction.cpp
+        pocketdb/models/dto/BoostContent.cpp
         pocketdb/models/base/Rating.cpp
         pocketdb/models/dto/Default.cpp
         pocketdb/models/dto/Coinbase.cpp
@@ -621,9 +622,20 @@ add_library(${POCKETDB}
         pocketdb/models/dto/ContentDelete.cpp
         pocketdb/models/dto/moderation/Flag.h
         pocketdb/models/dto/moderation/Flag.cpp
+        pocketdb/models/dto/moderation/Request.h
+        pocketdb/models/dto/moderation/Request.cpp
+        pocketdb/models/dto/moderation/RequestCoin.h
+        pocketdb/models/dto/moderation/RequestCoin.cpp
+        pocketdb/models/dto/moderation/RequestSubs.h
+        pocketdb/models/dto/moderation/RequestSubs.cpp
+        pocketdb/models/dto/moderation/RequestCancel.h
+        pocketdb/models/dto/moderation/RequestCancel.cpp
+        pocketdb/models/dto/moderation/Register.h
+        pocketdb/models/dto/moderation/Register.cpp
+        pocketdb/models/dto/moderation/RegisterCancel.h
+        pocketdb/models/dto/moderation/RegisterCancel.cpp
         pocketdb/models/web/WebTag.h
         pocketdb/models/web/WebContent.h
-        pocketdb/models/dto/BoostContent.cpp
         pocketdb/models/web/SearchRequest.h
         pocketdb/models/shortform/ShortForm.h
         pocketdb/models/shortform/ShortForm.cpp

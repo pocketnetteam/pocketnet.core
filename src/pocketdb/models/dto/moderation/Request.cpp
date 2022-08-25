@@ -6,18 +6,14 @@
 
 namespace PocketTx
 {
-    ModerationRequest::ModerationRequest() : SocialTransaction()
-    {
-    }
+    ModeratorRequest::ModeratorRequest() : SocialTransaction() {}
 
-    ModerationRequest::ModerationRequest(const CTransactionRef& tx) : SocialTransaction(tx)
-    {
-    }
+    ModeratorRequest::ModeratorRequest(const CTransactionRef& tx) : SocialTransaction(tx) {}
 
-    shared_ptr<string> ModerationRequest::GetDestionationAddress() const { return m_string2; }
-    void ModerationRequest::SetDestionationAddress(const string& value) { m_string2 = make_shared<string>(value); }
+    shared_ptr<string> ModeratorRequest::GetDestionationAddress() const { return m_string2; }
+    void ModeratorRequest::SetDestionationAddress(const string& value) { m_string2 = make_shared<string>(value); }
     
-    string ModerationRequest::BuildHash()
+    string ModeratorRequest::BuildHash()
     {
         string data;
 

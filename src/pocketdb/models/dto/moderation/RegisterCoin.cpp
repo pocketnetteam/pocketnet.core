@@ -8,12 +8,12 @@ namespace PocketTx
 {
     ModerationRegisterCoin::ModerationRegisterCoin() : SocialTransaction()
     {
-        SetType(TxType::MODERATION_REGISTER_COIN);
+        SetType(TxType::MODERATOR_REGISTER_COIN);
     }
 
     ModerationRegisterCoin::ModerationRegisterCoin(const CTransactionRef& tx) : SocialTransaction(tx)
     {
-        SetType(TxType::MODERATION_REGISTER_COIN);
+        SetType(TxType::MODERATOR_REGISTER_COIN);
     }
 
 } // namespace PocketTx

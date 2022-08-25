@@ -6,20 +6,20 @@
 
 namespace PocketTx
 {
-    ModerationRegisterCancel::ModerationRegisterCancel() : ModerationRegister()
+    ModeratorRegisterCancel::ModeratorRegisterCancel() : ModeratorRegister()
     {
-        SetType(TxType::MODERATION_REGISTER_CANCEL);
+        SetType(TxType::MODERATOR_REGISTER_CANCEL);
     }
 
-    ModerationRegisterCancel::ModerationRegisterCancel(const CTransactionRef& tx) : ModerationRegister(tx)
+    ModeratorRegisterCancel::ModeratorRegisterCancel(const CTransactionRef& tx) : ModeratorRegister(tx)
     {
-        SetType(TxType::MODERATION_REGISTER_CANCEL);
+        SetType(TxType::MODERATOR_REGISTER_CANCEL);
     }
     
-    shared_ptr<string> ModerationRegisterCancel::GetDestionationAddress() const { return m_string2; }
-    void ModerationRegisterCancel::SetDestionationAddress(const string& value) { m_string2 = make_shared<string>(value); }
+    shared_ptr<string> ModeratorRegisterCancel::GetDestionationAddress() const { return m_string2; }
+    void ModeratorRegisterCancel::SetDestionationAddress(const string& value) { m_string2 = make_shared<string>(value); }
     
-    string ModerationRegisterCancel::BuildHash()
+    string ModeratorRegisterCancel::BuildHash()
     {
         string data;
 

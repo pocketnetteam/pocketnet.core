@@ -9,18 +9,18 @@
 
 namespace PocketTx
 {
-    class ModerationRegisterCancel : public ModerationRegister
+    class ModeratorRegisterCancel : public ModeratorRegister
     {
     public:
-        ModerationRegisterCancel();
-        ModerationRegisterCancel(const CTransactionRef& tx);
+        ModeratorRegisterCancel();
+        ModeratorRegisterCancel(const CTransactionRef& tx);
 
         string BuildHash() override;
 
         shared_ptr<string> GetDestionationAddress() const;
         void SetDestionationAddress(const string& value);
 
-    }; // class ModerationRegisterCancel
+    }; // class ModeratorRegisterCancel
 
 } // namespace PocketTx
 

@@ -9,12 +9,12 @@
 
 namespace PocketTx
 {
-    class ModerationRequestCoin : public ModerationRequest
+    class ModeratorRequestCoin : public ModeratorRequest
     {
     public:
-        ModerationRequestCoin();
-        ModerationRequestCoin(const CTransactionRef& tx);
-    }; // class ModerationRequestCoin
+        ModeratorRequestCoin();
+        ModeratorRequestCoin(const CTransactionRef& tx);
+    }; // class ModeratorRequestCoin
 
 } // namespace PocketTx
 

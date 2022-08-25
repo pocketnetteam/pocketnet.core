@@ -6,12 +6,12 @@
 
 namespace PocketTx
 {
-    ModerationRequestCoin::ModerationRequestCoin() : SocialTransaction()
+    ModeratorRequestCoin::ModeratorRequestCoin() : ModeratorRequest()
     {
         SetType(TxType::MODERATOR_REQUEST_COIN);
     }
 
-    ModerationRequestCoin::ModerationRequestCoin(const CTransactionRef& tx) : SocialTransaction(tx)
+    ModeratorRequestCoin::ModeratorRequestCoin(const CTransactionRef& tx) : ModeratorRequest(tx)
     {
         SetType(TxType::MODERATOR_REQUEST_COIN);
     }

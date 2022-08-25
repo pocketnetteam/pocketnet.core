@@ -9,18 +9,18 @@
 
 namespace PocketTx
 {
-    class ModerationRequest : public SocialTransaction
+    class ModeratorRequest : public SocialTransaction
     {
     public:
-        ModerationRequest();
-        ModerationRequest(const CTransactionRef& tx);
+        ModeratorRequest();
+        ModeratorRequest(const CTransactionRef& tx);
 
         string BuildHash() override;
 
         shared_ptr<string> GetDestionationAddress() const;
         void SetDestionationAddress(const string& value);
 
-    }; // class ModerationRequest
+    }; // class ModeratorRequest
 
 } // namespace PocketTx
 

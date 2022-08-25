@@ -9,12 +9,12 @@
 
 namespace PocketTx
 {
-    class ModerationRequestCancel : public ModerationRequest
+    class ModeratorRequestCancel : public ModeratorRequest
     {
     public:
-        ModerationRequestCancel();
-        ModerationRequestCancel(const CTransactionRef& tx);
-    }; // class ModerationRequestCancel
+        ModeratorRequestCancel();
+        ModeratorRequestCancel(const CTransactionRef& tx);
+    }; // class ModeratorRequestCancel
 
 } // namespace PocketTx
 

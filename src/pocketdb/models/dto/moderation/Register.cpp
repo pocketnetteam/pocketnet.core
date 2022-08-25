@@ -6,17 +6,17 @@
 
 namespace PocketTx
 {
-    ModerationRegister::ModerationRegister() : SocialTransaction()
+    ModeratorRegister::ModeratorRegister() : SocialTransaction()
     {
-        SetType(TxType::MODERATION_REGISTER);
+        SetType(TxType::MODERATOR_REGISTER);
     }
 
-    ModerationRegister::ModerationRegister(const CTransactionRef& tx) : SocialTransaction(tx)
+    ModeratorRegister::ModeratorRegister(const CTransactionRef& tx) : SocialTransaction(tx)
     {
-        SetType(TxType::MODERATION_REGISTER);
+        SetType(TxType::MODERATOR_REGISTER);
     }
     
-    string ModerationRegister::BuildHash()
+    string ModeratorRegister::BuildHash()
     {
         string data;
 
@@ -24,8 +24,6 @@ namespace PocketTx
 
         return SocialTransaction::GenerateHash(data);
     }
-
-    // TODO (brangr): implement
 
 } // namespace PocketTx
 
