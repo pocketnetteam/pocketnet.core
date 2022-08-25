@@ -1488,7 +1488,7 @@ namespace PocketWeb::PocketWebRpc
 
         auto address = request.params[0].get_str();
 
-        int64_t heightMax = ChainActive().Height(); // TODO (losty): deadlock here wtf
+        int64_t heightMax = ChainActive().Height();
         if (request.params.size() > 1 && request.params[1].isNum()) {
             heightMax = request.params[1].get_int64();
         }
