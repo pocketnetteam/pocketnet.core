@@ -81,6 +81,9 @@ namespace PocketConsensus
             if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
                 return {false, result};
 
+            // All social transactions must have an address
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+
             return Success;
         }
 
@@ -115,7 +118,10 @@ namespace PocketConsensus
         }
 
         // Get addresses from transaction for check registration
-        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& tx) = 0;
+        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& tx)
+        {
+            return { *ptx->GetAddress() };
+        }
 
         // Check empty pointer
         bool IsEmpty(const shared_ptr<string>& ptr) const
