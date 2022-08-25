@@ -20,7 +20,7 @@ namespace PocketTx
     {
         string data;
 
-        data += GetContentTxHash() ? *GetContentTxHash() : "";
+        data += GetRequestId() ? *GetRequestId() : "";
 
         return SocialTransaction::GenerateHash(data);
     }

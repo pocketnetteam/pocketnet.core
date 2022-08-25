@@ -17,6 +17,9 @@ namespace PocketTx
 
         string BuildHash() override;
 
+        shared_ptr<string> GetDestionationAddress() const;
+        void SetDestionationAddress(const string& value);
+
     }; // class ModerationRegisterCancel
 
 } // namespace PocketTx

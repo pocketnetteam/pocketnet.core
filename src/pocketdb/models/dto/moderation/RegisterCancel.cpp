@@ -16,16 +16,17 @@ namespace PocketTx
         SetType(TxType::MODERATION_REGISTER_CANCEL);
     }
     
+    shared_ptr<string> ModerationRegisterCancel::GetDestionationAddress() const { return m_string2; }
+    void ModerationRegisterCancel::SetDestionationAddress(const string& value) { m_string2 = make_shared<string>(value); }
+    
     string ModerationRegisterCancel::BuildHash()
     {
         string data;
 
-        // TODO (brangr): implement
+        data += GetDestionationAddress() ? *GetDestionationAddress() : "";
 
         return SocialTransaction::GenerateHash(data);
     }
-
-    // TODO (brangr): implement
 
 } // namespace PocketTx
 

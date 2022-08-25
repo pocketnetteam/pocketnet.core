@@ -14,8 +14,8 @@ namespace PocketTx
     {
     }
 
-    shared_ptr<string> SocialTransaction::GetDestionationAddress() const { return m_string2; }
-    void SocialTransaction::SetDestionationAddress(const string& value) { m_string2 = make_shared<string>(value); }
+    shared_ptr<string> ModerationRequest::GetDestionationAddress() const { return m_string2; }
+    void ModerationRequest::SetDestionationAddress(const string& value) { m_string2 = make_shared<string>(value); }
     
     string ModerationRequest::BuildHash()
     {
