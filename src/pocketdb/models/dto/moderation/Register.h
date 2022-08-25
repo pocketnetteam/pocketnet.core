@@ -15,9 +15,10 @@ namespace PocketTx
         ModerationRegister();
         ModerationRegister(const CTransactionRef& tx);
 
-        string BuildHash() override;
+        shared_ptr<string> GetRequestId() const;
+        void SetRequestId(const string& value);
 
-        // TODO (brangr): address type? expiration?
+        string BuildHash() override;
 
     }; // class ModerationRegister
 

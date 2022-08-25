@@ -8,19 +8,19 @@ namespace PocketTx
 {
     ModerationRegister::ModerationRegister() : SocialTransaction()
     {
-        SetType(TxType::MODERATION_FLAG);
+        SetType(TxType::MODERATION_REGISTER);
     }
 
     ModerationRegister::ModerationRegister(const CTransactionRef& tx) : SocialTransaction(tx)
     {
-        SetType(TxType::MODERATION_FLAG);
+        SetType(TxType::MODERATION_REGISTER);
     }
     
     string ModerationRegister::BuildHash()
     {
         string data;
 
-        // TODO (brangr): implement
+        data += GetContentTxHash() ? *GetContentTxHash() : "";
 
         return SocialTransaction::GenerateHash(data);
     }
