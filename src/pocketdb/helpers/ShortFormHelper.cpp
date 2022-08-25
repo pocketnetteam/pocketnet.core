@@ -21,6 +21,7 @@ static const std::map<PocketDb::ShortTxType, std::string>& GetTypesMap() {
         { PocketDb::ShortTxType::PrivateContent, "privatecontent" },
         { PocketDb::ShortTxType::Boost, "boost" },
         { PocketDb::ShortTxType::Repost, "repost" },
+        { PocketDb::ShortTxType::Blocking, "blocking" }
     };
     return typesMap;
 }
