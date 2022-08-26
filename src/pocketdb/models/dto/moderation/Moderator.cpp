@@ -2,34 +2,25 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "pocketdb/models/dto/moderation/RegisterRequest.h"
+#include "pocketdb/models/dto/moderation/Moderator.h"
 
 namespace PocketTx
 {
-    ModeratorRegisterRequest::ModeratorRegisterRequest() : Moderator()
-    {
-        SetType(TxType::MODERATOR_REGISTER_REQUEST);
-    }
+    Moderator::Moderator() : SocialTransaction() {}
 
-    ModeratorRegisterRequest::ModeratorRegisterRequest(const CTransactionRef& tx) : Moderator(tx)
-    {
-        SetType(TxType::MODERATOR_REGISTER_REQUEST);
-    }
+    Moderator::Moderator(const CTransactionRef& tx) : SocialTransaction(tx) {}
 
     shared_ptr<string> Moderator::GetModeratorAddress() const { return m_string2; }
     void Moderator::SetModeratorAddress(const string& value) { m_string2 = make_shared<string>(value); }
-    
-    shared_ptr<string> Moderator::GetRequestTxHash() const { return m_string3; }
-    void Moderator::SetRequestTxHash(const string& value) { m_string3 = make_shared<string>(value); }
     
     string Moderator::BuildHash()
     {
         string data;
 
         data += GetModeratorAddress() ? *GetModeratorAddress() : "";
-        data += GetRequestTxHash() ? *GetRequestTxHash() : "";
 
         return SocialTransaction::GenerateHash(data);
     }
+
 } // namespace PocketTx
 

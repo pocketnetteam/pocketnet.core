@@ -6,12 +6,12 @@
 
 namespace PocketTx
 {
-    ModeratorRequestSubs::ModeratorRequestSubs() : ModeratorRequest()
+    ModeratorRequestSubs::ModeratorRequestSubs() : Moderator()
     {
         SetType(TxType::MODERATOR_REQUEST_SUBS);
     }
 
-    ModeratorRequestSubs::ModeratorRequestSubs(const CTransactionRef& tx) : ModeratorRequest(tx)
+    ModeratorRequestSubs::ModeratorRequestSubs(const CTransactionRef& tx) : Moderator(tx)
     {
         SetType(TxType::MODERATOR_REQUEST_SUBS);
     }

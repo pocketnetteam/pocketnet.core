@@ -47,12 +47,12 @@ namespace PocketTx
 
     #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
     #define OR_MODERATION_VOTE "6d6f64566f7465"
-    #define OR_MODERATION_REQUEST_SUBS "6d6f6452657153756273"
-    #define OR_MODERATION_REQUEST_COIN "6d6f64526571436f696e"
-    #define OR_MODERATION_REQUEST_CANCEL "6d6f6452657143616e63656c"
-    #define OR_MODERATION_REGISTER_SELF "6d6f6452656753656c66"
-    #define OR_MODERATION_REGISTER_SUBS "6d6f6452656753756273"
-    #define OR_MODERATION_REGISTER_COIN "6d6f64526567436f696e"
+    #define OR_MODERATOR_REQUEST_SUBS "6d6f6452657153756273"
+    #define OR_MODERATOR_REQUEST_COIN "6d6f64526571436f696e"
+    #define OR_MODERATOR_REQUEST_CANCEL "6d6f64526571436e"
+    #define OR_MODERATOR_REGISTER_SELF "6d6f6452656753656c66"
+    #define OR_MODERATOR_REGISTER_REQUEST "6d6f64526567526571"
+    #define OR_MODERATOR_REGISTER_CANCEL "6d6f64526567436e"
     
 
     // Int tx type
@@ -97,7 +97,7 @@ namespace PocketTx
         MODERATOR_REQUEST_SUBS = 400, // Some users have the right to choose a moderator
         MODERATOR_REQUEST_COIN = 401, // Some users have the right to choose a moderator
         MODERATOR_REQUEST_CANCEL = 402, // Users have the right to cancel the status of the moderator they have appointed
-        MODERATOR_REGISTER = 403, // Each moderator must register in the system to perform their functions
+        MODERATOR_REGISTER_SELF = 403, // Each moderator must register in the system to perform their functions
         MODERATOR_REGISTER_REQUEST = 404, // Each moderator must register with request in the system to perform their functions
         MODERATOR_REGISTER_CANCEL = 405, // Each moderator have the right to cancel self moderation status
                 

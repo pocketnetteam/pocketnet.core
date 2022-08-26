@@ -2,14 +2,14 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_MODERATION_REQUEST_SUBS_H
-#define POCKETTX_MODERATION_REQUEST_SUBS_H
+#ifndef POCKETTX_MODERATOR_REQUEST_SUBS_H
+#define POCKETTX_MODERATOR_REQUEST_SUBS_H
 
-#include "pocketdb/models/dto/moderation/Request.h"
+#include "pocketdb/models/dto/moderation/Moderator.h"
 
 namespace PocketTx
 {
-    class ModeratorRequestSubs : public ModeratorRequest
+    class ModeratorRequestSubs : public Moderator
     {
     public:
         ModeratorRequestSubs();
@@ -18,4 +18,4 @@ namespace PocketTx
 
 } // namespace PocketTx
 
-#endif // POCKETTX_MODERATION_REQUEST_SUBS_H
+#endif // POCKETTX_MODERATOR_REQUEST_SUBS_H

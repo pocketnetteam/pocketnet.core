@@ -19,15 +19,15 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  ModerationRegisterCancel consensus base class
     *******************************************************************************************************************/
-    class ModerationRegisterCancelConsensus : public SocialConsensus<ModerationRegisterCancel>
+    class ModerationRegisterCancelConsensus : public ModeratorRegisterConsensus<ModerationRegisterCancel>
     {
     public:
-        ModerationRegisterCancelConsensus(int height) : SocialConsensus<ModerationRegisterCancel>(height) {}
+        ModerationRegisterCancelConsensus(int height) : ModeratorRegisterConsensus<ModerationRegisterCancel>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModerationRegisterCancelRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = ModeratorRegisterConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // // Only `Shark` account can flag content
@@ -44,11 +44,6 @@ namespace PocketConsensus
             //     return {false, SocialConsensusResult_NotFound};
 
             return Success;
-        }
-
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModerationRegisterCancelRef& ptx) override
-        {
-            return {false, SocialConsensusResult_NotAllowed};
         }
 
     protected:
@@ -89,12 +84,7 @@ namespace PocketConsensus
             // // Check limit
             // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
-
-        vector<string> GetAddressesForCheckRegistration(const ModerationRegisterCancelRef& ptx) override
-        {
-            return { *ptx->GetAddress() };
-        }
-
+        
         virtual ConsensusValidateResult ValidateLimit(const ModerationRegisterCancelRef& ptx, int count)
         {
             // if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
@@ -103,27 +93,6 @@ namespace PocketConsensus
             return Success;
         }
     };
-
-    /*******************************************************************************************************************
-    *  Enable ModerationRegisterCancel consensus rules
-    *******************************************************************************************************************/
-    class ModerationRegisterCancelConsensus_checkpoint_enable : public ModerationRegisterCancelConsensus
-    {
-    public:
-        ModerationRegisterCancelConsensus_checkpoint_enable(int height) : ModerationRegisterCancelConsensus(height) {}
-    protected:
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModerationRegisterCancelRef& ptx) override
-        {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
-                return {false, baseCheckCode};
-
-            // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-
-            return Success;
-        }
-    };
-
 
     /*******************************************************************************************************************
     *  Factory for select actual rules version

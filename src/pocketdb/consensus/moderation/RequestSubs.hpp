@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_MODERATION_REQUEST_HPP
-#define POCKETCONSENSUS_MODERATION_REQUEST_HPP
+#ifndef POCKETCONSENSUS_MODERATION_REQUEST_SUBS_HPP
+#define POCKETCONSENSUS_MODERATION_REQUEST_SUBS_HPP
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/moderation/Request.hpp"
@@ -44,11 +44,6 @@ namespace PocketConsensus
             //     return {false, SocialConsensusResult_NotFound};
 
             return Success;
-        }
-
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModerationRequestSubsRef& ptx) override
-        {
-            return {false, SocialConsensusResult_NotAllowed};
         }
 
     protected:
@@ -123,4 +118,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_MODERATION_REQUEST_HPP
+#endif // POCKETCONSENSUS_MODERATION_REQUEST_SUBS_HPP

@@ -2,26 +2,23 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_MODERATION_REGISTER_REQUEST_H
-#define POCKETTX_MODERATION_REGISTER_REQUEST_H
+#ifndef POCKETTX_MODERATOR_REGISTER_REQUEST_H
+#define POCKETTX_MODERATOR_REGISTER_REQUEST_H
 
 #include "pocketdb/models/dto/moderation/Register.h"
 
 namespace PocketTx
 {
-    class ModeratorRegisterRequest : public ModeratorRegister
+    class ModeratorRegisterRequest : public Moderator
     {
     public:
         ModeratorRegisterRequest();
         ModeratorRegisterRequest(const CTransactionRef& tx);
 
-        shared_ptr<string> GetRequestId() const;
-        void SetRequestId(const string& value);
-
-        string BuildHash() override;
-
+        shared_ptr<string> GetRequestTxHash() const;
+        void SetRequestTxHash(const string& value);
     }; // class ModeratorRegisterRequest
 
 } // namespace PocketTx
 
-#endif // POCKETTX_MODERATION_REGISTER_REQUEST_H
+#endif // POCKETTX_MODERATOR_REGISTER_REQUEST_H

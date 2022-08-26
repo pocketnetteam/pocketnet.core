@@ -2,29 +2,29 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_MODERATION_REQUEST_COIN_HPP
-#define POCKETCONSENSUS_MODERATION_REQUEST_COIN_HPP
+#ifndef POCKETCONSENSUS_MODERATION_REGISTER_SELF_HPP
+#define POCKETCONSENSUS_MODERATION_REGISTER_SELF_HPP
 
 #include "pocketdb/consensus/Reputation.h"
-#include "pocketdb/consensus/moderation/Request.hpp"
-#include "pocketdb/models/dto/moderation/RequestCoin.h"
+#include "pocketdb/consensus/Social.h"
+#include "pocketdb/models/dto/moderation/RegisterSelf.h"
 
 namespace PocketConsensus
 {
     using namespace std;
     using namespace PocketDb;
     using namespace PocketConsensus;
-    typedef shared_ptr<ModerationRequestCoin> ModerationRequestCoinRef;
+    typedef shared_ptr<ModeratorRegister> ModeratorRegisterSelfRef;
 
     /*******************************************************************************************************************
-    *  ModerationRequestCoin consensus base class
+    *  ModeratorRegister consensus base class
     *******************************************************************************************************************/
-    class ModerationRequestCoinConsensus : public ModerationRequestConsensus<ModerationRequestCoin>
+    class ModeratorRegisterSelfConsensus : public ModeratorRegisterConsensus<ModeratorRegisterSelf>
     {
     public:
-        ModerationRequestCoinConsensus(int height) : SocialConsensus<ModerationRequestCoin>(height) {}
+        ModeratorRegisterSelfConsensus(int height) : ModeratorRegisterConsensus<ModeratorRegisterSelf>(height) {}
 
-        ConsensusValidateResult Validate(const CTransactionRef& tx, const ModerationRequestCoinRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
@@ -46,9 +46,17 @@ namespace PocketConsensus
             return Success;
         }
 
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx) override
+        {
+            if (auto[baseCheck, baseCheckCode] = ModeratorRegisterConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
+            return Success;
+        }
+
     protected:
 
-        ConsensusValidateResult ValidateBlock(const ModerationRequestCoinRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const ModeratorRegisterSelfRef& ptx, const PocketBlockRef& block) override
         {
             // // Check flag from one to one
             // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0)
@@ -75,7 +83,7 @@ namespace PocketConsensus
             // return ValidateLimit(ptx, count);
         }
 
-        ConsensusValidateResult ValidateMempool(const ModerationRequestCoinRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const ModeratorRegisterSelfRef& ptx) override
         {
             // // Check flag from one to one
             // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), true) > 0)
@@ -85,10 +93,35 @@ namespace PocketConsensus
             // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const ModerationRequestCoinRef& ptx, int count)
+        vector<string> GetAddressesForCheckRegistration(const ModeratorRegisterSelfRef& ptx) override
+        {
+            return { *ptx->GetAddress() };
+        }
+
+        virtual ConsensusValidateResult ValidateLimit(const ModeratorRegisterSelfRef& ptx, int count)
         {
             // if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
             //     return {false, SocialConsensusResult_ExceededLimit};
+
+            return Success;
+        }
+    };
+
+    /*******************************************************************************************************************
+    *  Enable ModeratorRegister consensus rules
+    *******************************************************************************************************************/
+    class ModeratorRegisterSelfConsensus_checkpoint_enable : public ModeratorRegisterSelfConsensus
+    {
+    public:
+        ModeratorRegisterSelfConsensus_checkpoint_enable(int height) : ModeratorRegisterSelfConsensus(height) {}
+    protected:
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx) override
+        {
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
@@ -98,18 +131,19 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class ModerationRequestCoinConsensusFactory
+    class ModeratorRegisterSelfConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint<ModerationRequestCoinConsensus>> m_rules = {
-            { 9999999, 9999999, [](int height) { return make_shared<ModerationRequestCoinConsensus>(height); }},
+        const vector<ConsensusCheckpoint<ModeratorRegisterSelfConsensus>> m_rules = {
+            {       0,      -1, [](int height) { return make_shared<ModeratorRegisterSelfConsensus>(height); }},
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRegisterSelfConsensus_checkpoint_enable>(height); }},
         };
     public:
-        shared_ptr<ModerationRequestCoinConsensus> Instance(int height)
+        shared_ptr<ModeratorRegisterSelfConsensus> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ModerationRequestCoinConsensus>& itm)
+                [&](int target, const ConsensusCheckpoint<ModeratorRegisterSelfConsensus>& itm)
                 {
                     return target < itm.Height(Params().NetworkIDString());
                 }
@@ -118,4 +152,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_MODERATION_REQUEST_COIN_HPP
+#endif // POCKETCONSENSUS_MODERATION_REGISTER_SELF_HPP

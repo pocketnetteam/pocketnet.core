@@ -14,111 +14,60 @@ namespace PocketConsensus
     using namespace std;
     using namespace PocketDb;
     using namespace PocketConsensus;
-    typedef shared_ptr<ModerationRegister> ModerationRegisterRef;
 
     /*******************************************************************************************************************
-    *  ModerationRegister consensus base class
+    *  ModeratorRegister consensus base class
     *******************************************************************************************************************/
-    class ModerationRegisterConsensus : public SocialConsensus<ModerationRegister>
+    template<class T>
+    class ModeratorRegisterConsensus : public SocialConsensus<T>
     {
     public:
-        ModerationRegisterConsensus(int height) : SocialConsensus<ModerationRegister>(height) {}
+        ModeratorRegisterConsensus(int height) : SocialConsensus<T>(height) {}
 
-        ConsensusValidateResult Validate(const CTransactionRef& tx, const ModerationRegisterRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
-            // // Only `Shark` account can flag content
-            // auto reputationConsensus = ReputationConsensusFactoryInst.Instance(Height);
-            // if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Shark)
-            //     return {false, SocialConsensusResult_LowReputation};
-
-            // // Target transaction must be a exists and is a content and author should be equals ptx->GetContentAddressHash()
-            // if (!ConsensusRepoInst.ExistsNotDeleted(
-            //     *ptx->GetContentTxHash(),
-            //     *ptx->GetContentAddressHash(),
-            //     { ACCOUNT_USER, CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
-            // ))
-            //     return {false, SocialConsensusResult_NotFound};
-
             return Success;
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModerationRegisterRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx) override
         {
             return {false, SocialConsensusResult_NotAllowed};
         }
 
     protected:
 
-        ConsensusValidateResult ValidateBlock(const ModerationRegisterRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
-            // // Check flag from one to one
-            // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0)
-            //     return {false, SocialConsensusResult_Duplicate};
-
-            // // Count flags in chain
-            // int count = ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), false);
-
-            // // Count flags in block
-            // for (auto& blockTx : *block)
-            // {
-            //     if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATION_FLAG }) || *blockTx->GetHash() == *ptx->GetHash())
-            //         continue;
-
-            //     auto blockPtx = static_pointer_cast<ModerationFlag>(blockTx);
-            //     if (*ptx->GetAddress() == *blockPtx->GetAddress())
-            //         if (*ptx->GetContentTxHash() == *blockPtx->GetContentTxHash())
-            //             return {false, SocialConsensusResult_Duplicate};
-            //         else
-            //             count += 1;
-            // }
-
-            // // Check limit
-            // return ValidateLimit(ptx, count);
         }
 
-        ConsensusValidateResult ValidateMempool(const ModerationRegisterRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
-            // // Check flag from one to one
-            // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), true) > 0)
-            //     return {false, SocialConsensusResult_Duplicate};
-
-            // // Check limit
-            // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
 
-        vector<string> GetAddressesForCheckRegistration(const ModerationRegisterRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& ptx) override
         {
             return { *ptx->GetAddress() };
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const ModerationRegisterRef& ptx, int count)
-        {
-            // if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
-            //     return {false, SocialConsensusResult_ExceededLimit};
-
-            return Success;
-        }
+        virtual ConsensusValidateResult ValidateLimit(const shared_ptr<T>& ptx, int count) = 0;
     };
 
     /*******************************************************************************************************************
-    *  Enable ModerationRegister consensus rules
+    *  Enable ModeratorRegister consensus rules
     *******************************************************************************************************************/
-    class ModerationRegisterConsensus_checkpoint_enable : public ModerationRegisterConsensus
+    class ModeratorRegisterConsensus_checkpoint_enable : public ModeratorRegisterConsensus
     {
     public:
-        ModerationRegisterConsensus_checkpoint_enable(int height) : ModerationRegisterConsensus(height) {}
+        ModeratorRegisterConsensus_checkpoint_enable(int height) : ModeratorRegisterConsensus(height) {}
     protected:
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModerationRegisterRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
-
-            // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
@@ -128,19 +77,19 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class ModerationRegisterConsensusFactory
+    class ModeratorRegisterConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint<ModerationRegisterConsensus>> m_rules = {
-            {       0,      -1, [](int height) { return make_shared<ModerationRegisterConsensus>(height); }},
-            { 9999999, 9999999, [](int height) { return make_shared<ModerationRegisterConsensus_checkpoint_enable>(height); }},
+        const vector<ConsensusCheckpoint<ModeratorRegisterConsensus>> m_rules = {
+            {       0,      -1, [](int height) { return make_shared<ModeratorRegisterConsensus>(height); }},
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRegisterConsensus_checkpoint_enable>(height); }},
         };
     public:
-        shared_ptr<ModerationRegisterConsensus> Instance(int height)
+        shared_ptr<ModeratorRegisterConsensus> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ModerationRegisterConsensus>& itm)
+                [&](int target, const ConsensusCheckpoint<ModeratorRegisterConsensus>& itm)
                 {
                     return target < itm.Height(Params().NetworkIDString());
                 }
