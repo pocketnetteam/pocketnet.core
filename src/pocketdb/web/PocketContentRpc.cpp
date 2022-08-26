@@ -1307,7 +1307,6 @@ namespace PocketWeb::PocketWebRpc
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "height of block to search in"},
                     {"filters", RPCArg::Type::ARR, RPCArg::Optional::NO, "type(s) of notifications. If empty or null - search for all types",
                         {
-                            {ShortTxTypeConvertor::toString(ShortTxType::PocketnetTeam), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Posts from PocketnetTeam acc"},
                             {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "recieved money"},
                             {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "answers to acc's comments"},
                             {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "content from acc's private subscriptions`"},
