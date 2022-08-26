@@ -4879,7 +4879,7 @@ namespace PocketDb
                     p.String4,
                     ifnull(r.Value,0) -- TODO (losty): do we need rating if referal is always a new user?
 
-                from Transactions t --indexed by Transactions_Type_Last_String2_Height
+                from Transactions t indexed by Transactions_Height_Type
 
                 left join Payload p
                     on p.TxHash = t.Hash
@@ -4892,7 +4892,7 @@ namespace PocketDb
                 where t.Type = 100
                     and t.String2 is not null
                     and t.Height = ?
-                    and (select count(*) from Transactions tt where tt.Id = t.Id) = 1 -- Only original
+                    and (select count(*) from Transactions tt indexed by Transactions_Id_Last where tt.Id = t.Id) = 1 -- Only original
         )sql",
             heightBinder
         }},
@@ -4934,7 +4934,7 @@ namespace PocketDb
                     null,
                     ifnull(rapost.Value,0)
 
-                from Transactions a indexed by Transactions_Type_Last_Height_String5_String1 -- Other answers
+                from Transactions a indexed by Transactions_Height_Type -- Other answers
 
                 join Transactions c indexed by Transactions_Type_Last_String2_Height -- My comments
                     on c.Type in (204, 205)
@@ -4943,7 +4943,7 @@ namespace PocketDb
                     and c.String2 = a.String5
                     and c.String1 != a.String1
                     
-                left join Transactions post -- Root post
+                left join Transactions post indexed by Transactions_Type_Last_String2_Height
                     on post.Type in (200, 201, 202)
                     and post.Last = 1
                     and post.String2 = a.String3
@@ -4951,7 +4951,7 @@ namespace PocketDb
                 left join Payload ppost
                     on ppost.TxHash = post.Hash
 
-                left join Transactions apost
+                left join Transactions apost indexed by Transactions_Type_Last_String1_String2_Height
                     on apost.Type = 100
                     and apost.Last = 1
                     and apost.String1 = post.String1
@@ -4970,7 +4970,7 @@ namespace PocketDb
                 left join Payload pa
                     on pa.TxHash = a.Hash
 
-                left join Transactions aa
+                left join Transactions aa indexed by Transactions_Type_Last_String1_Height_Id
                     on aa.Type = 100
                     and aa.Last = 1
                     and aa.String1 = a.String1
@@ -4985,7 +4985,6 @@ namespace PocketDb
                     and ra.Last = 1
 
                 where a.Type = 204 -- only orig
-                    and a.Last in (0,1)
                     and a.Height = ?
         )sql",
             heightBinder
@@ -5040,9 +5039,9 @@ namespace PocketDb
                     null,
                     pp.String2
 
-                from Transactions c
+                from Transactions c indexed by Transactions_Height_Type
 
-                left join Transactions p
+                left join Transactions p indexed by Transactions_Type_Last_String2_Height
                     on p.Type in (200,201,202)
                     and p.Last = 1
                     and p.Height > 0
@@ -5052,7 +5051,7 @@ namespace PocketDb
                 left join Payload pc
                     on pC.TxHash = c.Hash
 
-                left join Transactions ac -- accounts of commentators
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                     on ac.String1 = c.String1
                     and ac.Last = 1
                     and ac.Type = 100
@@ -5097,9 +5096,9 @@ namespace PocketDb
                     pu.String4,
                     ifnull(ru.Value,0)
 
-                from Transactions subs --indexed by Transactions_Type_Last_String2_Height
+                from Transactions subs indexed by Transactions_Height_Type
 
-                left join Transactions u --indexed by Transactions_Type_Last_String1_Height_Id
+                left join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                     on u.Type in (100)
                     and u.Last = 1
                     and u.String1 = subs.String1
@@ -5159,7 +5158,7 @@ namespace PocketDb
                 left join Payload ps
                     on ps.TxHash = c.Hash
 
-                join Transactions acs
+                join Transactions acs indexed by Transactions_Type_Last_String1_Height_Id
                     on acs.Type = 100
                     and acs.Last = 1
                     and acs.String1 = s.String1
@@ -5219,7 +5218,7 @@ namespace PocketDb
                 left join Payload ps
                     on ps.TxHash = c.Hash
 
-                join Transactions acs
+                join Transactions acs indexed by Transactions_Type_Last_String1_Height_Id
                     on acs.Type = 100
                     and acs.Last = 1
                     and acs.String1 = s.String1
@@ -5272,7 +5271,7 @@ namespace PocketDb
 
                 from Transactions c indexed by Transactions_Height_Type -- content for private subscribers
 
-                cross join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
+                join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
                     on subs.Type = 303
                     and subs.Last = 1
                     and subs.String2 = c.String1
@@ -5352,7 +5351,7 @@ namespace PocketDb
                 left join Payload pContent
                     on pContent.TxHash = tContent.Hash
 
-                left join Transactions ac
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                     on ac.String1 = tBoost.String1
                     and ac.Type = 100
                     and ac.Last = 1
@@ -5404,9 +5403,11 @@ namespace PocketDb
 
                 from Transactions r
 
-                cross join Transactions p
-                    on p.Hash = r.String3
-                    and p.Type in (200,201,202)
+                join Transactions p indexed by Transactions_Type_Last_String2_Height
+                    on p.Type in (200,201,202)
+                    and p.Last = 1
+                    and p.String2 = r.String3
+                    and p.Height > 0
 
                 left join Payload pp
                     on pp.TxHash = p.Hash
