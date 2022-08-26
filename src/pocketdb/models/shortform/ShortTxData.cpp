@@ -43,6 +43,24 @@ UniValue PocketDb::ShortTxData::Serialize() const
     if (m_description) data.pushKV("description", m_description.value());
     if (m_commentParentId) data.pushKV("commentParentId", m_commentParentId.value());
     if (m_commentAnswerId) data.pushKV("commentAnswerId", m_commentAnswerId.value());
+    if (m_inputs) {
+        UniValue inputs (UniValue::VARR);
+        std::vector<UniValue> tmp;
+        for (const auto& input: *m_inputs) {
+            tmp.emplace_back(std::move(input.Serialize()));
+        }
+        inputs.push_backV(tmp);
+        data.pushKV("inputs", inputs);
+    }
+    if (m_outputs) {
+        UniValue outputs (UniValue::VARR);
+        std::vector<UniValue> tmp;
+        for (const auto& output: *m_outputs) {
+            tmp.emplace_back(std::move(output.Serialize()));
+        }
+        outputs.push_backV(tmp);
+        data.pushKV("outputs", outputs);
+    }
 
     return data;
 }
@@ -82,3 +100,10 @@ const std::optional<std::string>& PocketDb::ShortTxData::GetCommentParentId() co
 void PocketDb::ShortTxData::SetCommentAnswerId(const std::optional<std::string>& commentAnswerId) { m_commentAnswerId = commentAnswerId; }
 
 const std::optional<std::string>& PocketDb::ShortTxData::GetCommentAnswerId() const { return m_commentAnswerId; }
+void PocketDb::ShortTxData::SetOutputs(const std::optional<std::vector<ShortTxOutput>>& outputs) { m_outputs = outputs; }
+
+const std::optional<std::vector<PocketDb::ShortTxOutput>>& PocketDb::ShortTxData::GetOutputs() const { return m_outputs; }
+
+void PocketDb::ShortTxData::SetInputs(const std::optional<std::vector<ShortTxOutput>>& inputs) { m_inputs = inputs; }
+
+const std::optional<std::vector<PocketDb::ShortTxOutput>>& PocketDb::ShortTxData::GetInputs() const { return m_inputs; }

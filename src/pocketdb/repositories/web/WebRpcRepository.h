@@ -163,7 +163,7 @@ namespace PocketDb
         class NotificationResultTypeEntry
         {
         public:
-            void Insert(const ShortForm& shortForm, const std::string& address)
+            void Insert(const ShortForm& shortForm, std::set<std::string> address)
             {
                 // TODO (losty): remove this dirty hack when logic with including outputs to shortforms will be implemented
                 auto hash = shortForm.GetTxData().GetHash() + (shortForm.GetTxData().GetVal() ? std::to_string(*shortForm.GetTxData().GetVal()): "");
@@ -171,7 +171,8 @@ namespace PocketDb
                     m_data.insert({hash, shortForm});
                 }
 
-                m_notifiers[hash].emplace_back(address);
+                auto& entry = m_notifiers[hash];
+                entry.merge(address);
             }
 
             UniValue Serialize() const
@@ -202,7 +203,7 @@ namespace PocketDb
             }
         private:
             std::map<std::string, ShortForm> m_data;
-            std::map<std::string, std::vector<std::string>> m_notifiers;
+            std::map<std::string, std::set<std::string>> m_notifiers;
         };
         // First - map where keys are addresses and values are ShortForms of events from given block. Second - pocketnetteam posts.
         using NotificationsResult = std::map<ShortTxType, NotificationResultTypeEntry>;

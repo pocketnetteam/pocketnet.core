@@ -8,6 +8,8 @@
 #include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/models/shortform/ShortAccount.h"
 
+#include "pocketdb/models/shortform/ShortTxOutput.h"
+
 #include <univalue.h>
 
 #include <string>
@@ -47,6 +49,10 @@ namespace PocketDb
         const std::optional<std::string>& GetCommentParentId() const;
         void SetCommentAnswerId(const std::optional<std::string>& commentAnswerId);
         const std::optional<std::string>& GetCommentAnswerId() const;
+        void SetOutputs(const std::optional<std::vector<ShortTxOutput>>& outputs);
+        const std::optional<std::vector<ShortTxOutput>>& GetOutputs() const;
+        void SetInputs(const std::optional<std::vector<ShortTxOutput>>& inputs);
+        const std::optional<std::vector<ShortTxOutput>>& GetInputs() const;
         
     private:
         std::string m_hash;
@@ -56,6 +62,8 @@ namespace PocketDb
         std::optional<int64_t> m_blockNum; // TODO (losty): probably some filters for these fields 
         std::optional<ShortAccount> m_account; // Account data associated with address
         std::optional<int> m_val;
+        std::optional<std::vector<ShortTxOutput>> m_inputs;
+        std::optional<std::vector<ShortTxOutput>> m_outputs;
         std::optional<std::string> m_description; // Short description of content, e.x. first lines of post's text
 
         // Special-case fields for comments 

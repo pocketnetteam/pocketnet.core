@@ -34,7 +34,7 @@ namespace PocketDb
         {
             const auto i = index;
 
-            static const auto stmtOffset = 13;
+            static const auto stmtOffset = 15;
             index += stmtOffset;
 
             auto [ok1, hash] = TryGetColumnString(stmt, i);
@@ -46,14 +46,39 @@ namespace PocketDb
                 if (auto [ok, val] = TryGetColumnInt64(stmt, i+3); ok) txData.SetHeight(val);
                 if (auto [ok, val] = TryGetColumnInt64(stmt, i+4); ok) txData.SetBlockNum(val);
                 if (auto [ok, val] = TryGetColumnInt64(stmt, i+5); ok) txData.SetVal(val);
-                if (auto [ok, val] = TryGetColumnString(stmt, i+6); ok) txData.SetDescription(val);
-                if (auto [ok, val] = TryGetColumnString(stmt, i+7); ok) txData.SetCommentParentId(val);
-                if (auto [ok, val] = TryGetColumnString(stmt, i+8); ok) txData.SetCommentAnswerId(val);
-                txData.SetAccount(_processAccount(stmt, i+9));
+                if (auto [ok, val] = TryGetColumnString(stmt, i+6); ok) txData.SetInputs(_parseOutputs(val));
+                if (auto [ok, val] = TryGetColumnString(stmt, i+7); ok) txData.SetOutputs(_parseOutputs(val));
+                if (auto [ok, val] = TryGetColumnString(stmt, i+8); ok) txData.SetDescription(val);
+                if (auto [ok, val] = TryGetColumnString(stmt, i+9); ok) txData.SetCommentParentId(val);
+                if (auto [ok, val] = TryGetColumnString(stmt, i+10); ok) txData.SetCommentAnswerId(val);
+                txData.SetAccount(_processAccount(stmt, i+11));
                 return txData;
             }
 
             return std::nullopt;
+        }
+
+        std::optional<std::vector<ShortTxOutput>> _parseOutputs(const std::string& jsonStr)
+        {
+            UniValue json (UniValue::VOBJ);
+            if (!json.read(jsonStr) || !json.isArray()) return std::nullopt;
+            std::vector<ShortTxOutput> res;
+            res.reserve(json.size());
+            for (int i = 0; i < json.size(); i++) {
+                const auto& elem = json[i];
+                ShortTxOutput output;
+
+                if (elem.exists("TxHash") && elem["TxHash"].isStr()) output.SetTxHash(elem["TxHash"].get_str());
+                if (elem.exists("Value") && elem["Value"].isNum()) output.SetValue(elem["Value"].get_int64());
+                if (elem.exists("SpentTxHash") && elem["SpentTxHash"].isStr()) output.SetSpentTxHash(elem["SpentTxHash"].get_str());
+                if (elem.exists("AddressHash") && elem["AddressHash"].isStr()) output.SetAddressHash(elem["AddressHash"].get_str());
+                if (elem.exists("Number") && elem["Number"].isNum()) output.SetNumber(elem["Number"].get_int());
+                if (elem.exists("ScriptPubKey") && elem["ScriptPubKey"].isStr()) output.SetScriptPubKey(elem["ScriptPubKey"].get_str());
+
+                res.emplace_back(std::move(output));
+            }
+
+            return res;
         }
 
         std::optional<ShortAccount> _processAccount(sqlite3_stmt* stmt, const int& index)
@@ -93,11 +118,23 @@ namespace PocketDb
         {
             // TODO (losty): optimize - do not parse the whole row if short form already exists in internal map
             auto shortForm = m_parser.ParseRow(stmt, 1);
-            auto [ok, address] = TryGetColumnString(stmt, 0);
-            if (!ok) throw std::runtime_error("Missing address of notifier");
+            std::set<std::string> notifiers;
+            auto [ok, addressOne] = TryGetColumnString(stmt, 0);
+            if (ok) {
+                notifiers.insert(addressOne);
+            } else {
+                if (shortForm.GetTxData().GetOutputs()) {
+                    for (const auto& output: *shortForm.GetTxData().GetOutputs()) {
+                        if (output.GetAddressHash() && !output.GetAddressHash()->empty()) {
+                            notifiers.insert(*output.GetAddressHash());
+                        }
+                    }
+                }
+            }
+            if (notifiers.empty()) throw std::runtime_error("Missing address of notifier");
 
             auto& m_typeEntry = m_notifications[shortForm.GetType()];
-            m_typeEntry.Insert(shortForm, address);
+            m_typeEntry.Insert(shortForm, std::move(notifiers));
 
         }
         WebRpcRepository::NotificationsResult GetResult() const
@@ -4779,14 +4816,39 @@ namespace PocketDb
             ShortTxType::Money, { R"sql(
                 -- Incoming money
                 select
-                    o.AddressHash, -- TODO (losty): empty str here
+                    null, -- Will be filled 
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
                     t.Hash,
                     t.Type,
-                    i.AddressHash,
+                    null,
                     t.Height as Height,
                     t.BlockNum as BlockNum,
-                    o.Value,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'SpentTxHash', SpentTxHash,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = t.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'SpentTxHash', SpentTxHash,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs o
+                        where o.TxHash = t.Hash
+                            and o.TxHeight = t.Height
+                    ),
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -4809,16 +4871,6 @@ namespace PocketDb
                     null
 
                 from Transactions t indexed by Transactions_Height_Type
-
-                join TxOutputs o
-                    on t.Hash = o.TxHash
-                    and o.TxHeight = t.Height
-                    and o.AddressHash != ''
-
-                join TxOutputs i indexed by TxOutputs_SpentTxHash
-                    on i.SpentTxHash = o.TxHash
-                    and i.Number = (select min(ii.Number) from TxOutputs ii where ii.SpentTxHash = o.TxHash)
-                    and i.AddressHash != o.AddressHash  -- TODO (brangr, lostystyg): exclude coinstake first transaction
 
                 where t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
                     and t.Height = ?
@@ -4887,6 +4939,8 @@ namespace PocketDb
                     orig.Height as Height,
                     a.BlockNum as BlockNum,
                     null,
+                    null,
+                    null,
                     pa.String1,
                     a.String4,
                     a.String5,
@@ -4899,6 +4953,8 @@ namespace PocketDb
                     post.String1,
                     post.Height,
                     post.BlockNum,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -5215,6 +5271,8 @@ namespace PocketDb
                     c.Height as Height,
                     c.BlockNum as BlockNum,
                     null,
+                    null,
+                    null,
                     p.String2,
                     null,
                     null,
@@ -5227,6 +5285,8 @@ namespace PocketDb
                     r.String1,
                     r.Height,
                     r.BlockNum,
+                    null,
+                    null,
                     null,
                     pr.String2,
                     null,
@@ -5291,6 +5351,8 @@ namespace PocketDb
                     null,
                     null,
                     null,
+                    null,
+                    null,
                     pac.String2,
                     pac.String3,
                     pac.String4,
@@ -5300,6 +5362,8 @@ namespace PocketDb
                     null,
                     tContent.Height,
                     tContent.BlockNum,
+                    null,
+                    null,
                     null,
                     pContent.String2,
                     null,
@@ -5419,6 +5483,7 @@ namespace PocketDb
                     int i = 1;
                     selectData.binding(stmt, i, queryParams);
 
+                    LogPrintf(sqlite3_expanded_sql(*stmt));
                     while (sqlite3_step(*stmt) == SQLITE_ROW)
                     {
                         reconstructor.FeedRow(*stmt);
