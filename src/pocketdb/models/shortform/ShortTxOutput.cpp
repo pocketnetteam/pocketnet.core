@@ -14,6 +14,7 @@ UniValue PocketDb::ShortTxOutput::Serialize() const
     if (m_addressHash) data.pushKV("addresshash", *m_addressHash);
     if (m_number) data.pushKV("number", *m_number);
     if (m_value) data.pushKV("value", *m_value);
+    if (m_scriptPubKey) data.pushKV("scriptpubkey", *m_scriptPubKey);
 
     return data;
 }
