@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_MODERATION_REQUEST_SUBS_HPP
-#define POCKETCONSENSUS_MODERATION_REQUEST_SUBS_HPP
+#ifndef POCKETCONSENSUS_MODERATOR_REQUEST_SUBS_HPP
+#define POCKETCONSENSUS_MODERATOR_REQUEST_SUBS_HPP
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/moderation/Request.hpp"
@@ -14,20 +14,20 @@ namespace PocketConsensus
     using namespace std;
     using namespace PocketDb;
     using namespace PocketConsensus;
-    typedef shared_ptr<ModerationRequestSubs> ModerationRequestSubsRef;
+    typedef shared_ptr<ModeratorRequestSubs> ModeratorRequestSubsRef;
 
     /*******************************************************************************************************************
-    *  ModerationRequestSubs consensus base class
+    *  ModeratorRequestSubs consensus base class
     *******************************************************************************************************************/
-    class ModerationRequestSubsConsensus : public ModerationRequestConsensus<ModerationRequestSubs>
+    class ModeratorRequestSubsConsensus : public ModeratorRequestConsensus<Moderator>
     {
     public:
-        ModerationRequestSubsConsensus(int height) : ModerationRequestConsensus<ModerationRequestSubs>(height) {}
+        ModeratorRequestSubsConsensus(int height) : ModeratorRequestConsensus<Moderator>(height) {}
 
-        ConsensusValidateResult Validate(const CTransactionRef& tx, const ModerationRequestSubsRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestSubsRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = ModerationRequestConsensus::Validate(tx, ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = ModeratorRequestConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // // Only `Shark` account can flag content
@@ -48,7 +48,7 @@ namespace PocketConsensus
 
     protected:
 
-        ConsensusValidateResult ValidateBlock(const ModerationRequestSubsRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const ModeratorRequestSubsRef& ptx, const PocketBlockRef& block) override
         {
             // // Check flag from one to one
             // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0)
@@ -75,7 +75,7 @@ namespace PocketConsensus
             // return ValidateLimit(ptx, count);
         }
 
-        ConsensusValidateResult ValidateMempool(const ModerationRequestSubsRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const ModeratorRequestSubsRef& ptx) override
         {
             // // Check flag from one to one
             // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), true) > 0)
@@ -85,7 +85,7 @@ namespace PocketConsensus
             // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const ModerationRequestSubsRef& ptx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const ModeratorRequestSubsRef& ptx, int count)
         {
             // if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
             //     return {false, SocialConsensusResult_ExceededLimit};
@@ -98,18 +98,18 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class ModerationRequestSubsConsensusFactory
+    class ModeratorRequestSubsConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint<ModerationRequestSubsConsensus>> m_rules = {
-            { 9999999, 9999999, [](int height) { return make_shared<ModerationRequestSubsConsensus>(height); }},
+        const vector<ConsensusCheckpoint<ModeratorRequestSubsConsensus>> m_rules = {
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestSubsConsensus>(height); }},
         };
     public:
-        shared_ptr<ModerationRequestSubsConsensus> Instance(int height)
+        shared_ptr<ModeratorRequestSubsConsensus> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ModerationRequestSubsConsensus>& itm)
+                [&](int target, const ConsensusCheckpoint<ModeratorRequestSubsConsensus>& itm)
                 {
                     return target < itm.Height(Params().NetworkIDString());
                 }
@@ -118,4 +118,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_MODERATION_REQUEST_SUBS_HPP
+#endif // POCKETCONSENSUS_MODERATOR_REQUEST_SUBS_HPP

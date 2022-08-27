@@ -2,12 +2,12 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_MODERATION_REQUEST_HPP
-#define POCKETCONSENSUS_MODERATION_REQUEST_HPP
+#ifndef POCKETCONSENSUS_MODERATOR_REQUEST_HPP
+#define POCKETCONSENSUS_MODERATOR_REQUEST_HPP
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/moderation/Request.h"
+#include "pocketdb/models/dto/moderation/Moderator.h"
 
 namespace PocketConsensus
 {
@@ -16,13 +16,13 @@ namespace PocketConsensus
     using namespace PocketConsensus;
 
     /*******************************************************************************************************************
-    *  ModerationRequest consensus base class
+    *  ModeratorRequest consensus base class
     *******************************************************************************************************************/
-    template<class T>
-    class ModerationRequestConsensus : public SocialConsensus<T>
+    template<Moderator T>
+    class ModeratorRequestConsensus : public SocialConsensus<T>
     {
     public:
-        ModerationRequestConsensus(int height) : SocialConsensus<T>(height) {}
+        ModeratorRequestConsensus(int height) : SocialConsensus<T>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
@@ -57,12 +57,12 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *  Enable ModerationRequest consensus rules
+    *  Enable ModeratorRequest consensus rules
     *******************************************************************************************************************/
-    class ModerationRequestConsensus_checkpoint_enable : public ModerationRequestConsensus
+    class ModeratorRequestConsensus_checkpoint_enable : public ModeratorRequestConsensus
     {
     public:
-        ModerationRequestConsensus_checkpoint_enable(int height) : ModerationRequestConsensus(height) {}
+        ModeratorRequestConsensus_checkpoint_enable(int height) : ModeratorRequestConsensus(height) {}
     protected:
         ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx) override
         {
@@ -80,19 +80,19 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class ModerationRequestConsensusFactory
+    class ModeratorRequestConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint<ModerationRequestConsensus>> m_rules = {
-            {       0,      -1, [](int height) { return make_shared<ModerationRequestConsensus>(height); }},
-            { 9999999, 9999999, [](int height) { return make_shared<ModerationRequestConsensus_checkpoint_enable>(height); }},
+        const vector<ConsensusCheckpoint<ModeratorRequestConsensus>> m_rules = {
+            {       0,      -1, [](int height) { return make_shared<ModeratorRequestConsensus>(height); }},
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestConsensus_checkpoint_enable>(height); }},
         };
     public:
-        shared_ptr<ModerationRequestConsensus> Instance(int height)
+        shared_ptr<ModeratorRequestConsensus> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ModerationRequestConsensus>& itm)
+                [&](int target, const ConsensusCheckpoint<ModeratorRequestConsensus>& itm)
                 {
                     return target < itm.Height(Params().NetworkIDString());
                 }
@@ -101,4 +101,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_MODERATION_REQUEST_HPP
+#endif // POCKETCONSENSUS_MODERATOR_REQUEST_HPP

@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_MODERATION_REQUEST_CANCEL_HPP
-#define POCKETCONSENSUS_MODERATION_REQUEST_CANCEL_HPP
+#ifndef POCKETCONSENSUS_MODERATOR_REQUEST_CANCEL_HPP
+#define POCKETCONSENSUS_MODERATOR_REQUEST_CANCEL_HPP
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
@@ -14,20 +14,20 @@ namespace PocketConsensus
     using namespace std;
     using namespace PocketDb;
     using namespace PocketConsensus;
-    typedef shared_ptr<ModerationRequestCancel> ModerationRequestCancelRef;
+    typedef shared_ptr<ModeratorRequestCancel> ModeratorRequestCancelRef;
 
     /*******************************************************************************************************************
-    *  ModerationRequestCancel consensus base class
+    *  ModeratorRequestCancel consensus base class
     *******************************************************************************************************************/
-    class ModerationRequestCancelConsensus : public ModerationRequestConsensus<ModerationRequestCancel>
+    class ModeratorRequestCancelConsensus : public ModeratorRequestConsensus<Moderator>
     {
     public:
-        ModerationRequestCancelConsensus(int height) : ModerationRequestConsensus<ModerationRequestCancel>(height) {}
+        ModeratorRequestCancelConsensus(int height) : ModeratorRequestConsensus<Moderator>(height) {}
 
-        ConsensusValidateResult Validate(const CTransactionRef& tx, const ModerationRequestCancelRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestCancelRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = ModerationRequestConsensus::Validate(tx, ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = ModeratorRequestConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // // Only `Shark` account can flag content
@@ -48,7 +48,7 @@ namespace PocketConsensus
 
     protected:
 
-        ConsensusValidateResult ValidateBlock(const ModerationRequestCancelRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const ModeratorRequestCancelRef& ptx, const PocketBlockRef& block) override
         {
             // // Check flag from one to one
             // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0)
@@ -75,7 +75,7 @@ namespace PocketConsensus
             // return ValidateLimit(ptx, count);
         }
 
-        ConsensusValidateResult ValidateMempool(const ModerationRequestCancelRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const ModeratorRequestCancelRef& ptx) override
         {
             // // Check flag from one to one
             // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), true) > 0)
@@ -85,12 +85,12 @@ namespace PocketConsensus
             // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
 
-        vector<string> GetAddressesForCheckRegistration(const ModerationRequestCancelRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const ModeratorRequestCancelRef& ptx) override
         {
             return { *ptx->GetAddress(), *ptx->GetDestinationAddress() };
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const ModerationRequestCancelRef& ptx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const ModeratorRequestCancelRef& ptx, int count)
         {
             // if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
             //     return {false, SocialConsensusResult_ExceededLimit};
@@ -103,18 +103,18 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class ModerationRequestCancelConsensusFactory
+    class ModeratorRequestCancelConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint<ModerationRequestCancelConsensus>> m_rules = {
-            { 9999999, 9999999, [](int height) { return make_shared<ModerationRequestCancelConsensus>(height); }},
+        const vector<ConsensusCheckpoint<ModeratorRequestCancelConsensus>> m_rules = {
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestCancelConsensus>(height); }},
         };
     public:
-        shared_ptr<ModerationRequestCancelConsensus> Instance(int height)
+        shared_ptr<ModeratorRequestCancelConsensus> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ModerationRequestCancelConsensus>& itm)
+                [&](int target, const ConsensusCheckpoint<ModeratorRequestCancelConsensus>& itm)
                 {
                     return target < itm.Height(Params().NetworkIDString());
                 }
@@ -123,4 +123,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_MODERATION_REQUEST_CANCEL_HPP
+#endif // POCKETCONSENSUS_MODERATOR_REQUEST_CANCEL_HPP

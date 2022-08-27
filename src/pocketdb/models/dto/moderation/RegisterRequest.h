@@ -5,7 +5,7 @@
 #ifndef POCKETTX_MODERATOR_REGISTER_REQUEST_H
 #define POCKETTX_MODERATOR_REGISTER_REQUEST_H
 
-#include "pocketdb/models/dto/moderation/Register.h"
+#include "pocketdb/models/dto/moderation/Moderator.h"
 
 namespace PocketTx
 {
@@ -17,6 +17,8 @@ namespace PocketTx
 
         shared_ptr<string> GetRequestTxHash() const;
         void SetRequestTxHash(const string& value);
+
+        string BuildHash() override;
     }; // class ModeratorRegisterRequest
 
 } // namespace PocketTx

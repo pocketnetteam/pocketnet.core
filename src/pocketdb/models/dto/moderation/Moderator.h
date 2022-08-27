@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_MODERATION_MODERATOR_H
-#define POCKETTX_MODERATION_MODERATOR_H
+#ifndef POCKETTX_MODERATOR_H
+#define POCKETTX_MODERATOR_H
 
 #include "pocketdb/models/base/SocialTransaction.h"
 
@@ -24,4 +24,4 @@ namespace PocketTx
 
 } // namespace PocketTx
 
-#endif // POCKETTX_MODERATION_MODERATOR_H
+#endif // POCKETTX_MODERATOR_H

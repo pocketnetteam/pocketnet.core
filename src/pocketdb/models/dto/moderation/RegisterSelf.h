@@ -2,20 +2,20 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_MODERATION_REGISTER_SELF_H
-#define POCKETTX_MODERATION_REGISTER_SELF_H
+#ifndef POCKETTX_MODERATOR_REGISTER_SELF_H
+#define POCKETTX_MODERATOR_REGISTER_SELF_H
 
-#include "pocketdb/models/dto/moderation/Register.h"
+#include "pocketdb/models/dto/moderation/Moderator.h"
 
 namespace PocketTx
 {
-    class ModeratorRegister : public SocialTransaction
+    class ModeratorRegisterSelf : public SocialTransaction
     {
     public:
-        ModeratorRegister();
-        ModeratorRegister(const CTransactionRef& tx);
-    }; // class ModeratorRegister
+        ModeratorRegisterSelf();
+        ModeratorRegisterSelf(const CTransactionRef& tx);
+    }; // class ModeratorRegisterSelf
 
 } // namespace PocketTx
 
-#endif // POCKETTX_MODERATION_REGISTER_SELF_H
+#endif // POCKETTX_MODERATOR_REGISTER_SELF_H

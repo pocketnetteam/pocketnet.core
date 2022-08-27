@@ -19,10 +19,10 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  ModeratorRegisterRequest consensus base class
     *******************************************************************************************************************/
-    class ModeratorRegisterRequestConsensus : public ModeratorRegisteConsensus<ModeratorRegisterRequest>
+    class ModeratorRegisterRequestConsensus : public ModeratorRegisteConsensus<Moderator>
     {
     public:
-        ModeratorRegisterRequestConsensus(int height) : ModeratorRegisterConsensus<ModeratorRegisterRequest>(height) {}
+        ModeratorRegisterRequestConsensus(int height) : ModeratorRegisterConsensus<Moderator>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterRequestRef& ptx, const PocketBlockRef& block) override
         {

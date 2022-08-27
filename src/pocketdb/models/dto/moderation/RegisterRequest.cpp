@@ -16,13 +16,10 @@ namespace PocketTx
         SetType(TxType::MODERATOR_REGISTER_REQUEST);
     }
 
-    shared_ptr<string> Moderator::GetModeratorAddress() const { return m_string2; }
-    void Moderator::SetModeratorAddress(const string& value) { m_string2 = make_shared<string>(value); }
+    shared_ptr<string> ModeratorRegisterRequest::GetRequestTxHash() const { return m_string3; }
+    void ModeratorRegisterRequest::SetRequestTxHash(const string& value) { m_string3 = make_shared<string>(value); }
     
-    shared_ptr<string> Moderator::GetRequestTxHash() const { return m_string3; }
-    void Moderator::SetRequestTxHash(const string& value) { m_string3 = make_shared<string>(value); }
-    
-    string Moderator::BuildHash()
+    string ModeratorRegisterRequest::BuildHash()
     {
         string data;
 

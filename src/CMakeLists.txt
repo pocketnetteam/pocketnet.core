@@ -622,16 +622,16 @@ add_library(${POCKETDB}
         pocketdb/models/dto/ContentDelete.cpp
         pocketdb/models/dto/moderation/Flag.h
         pocketdb/models/dto/moderation/Flag.cpp
-        pocketdb/models/dto/moderation/Request.h
-        pocketdb/models/dto/moderation/Request.cpp
+        pocketdb/models/dto/moderation/Moderator.h
+        pocketdb/models/dto/moderation/Moderator.cpp
         pocketdb/models/dto/moderation/RequestCoin.h
         pocketdb/models/dto/moderation/RequestCoin.cpp
         pocketdb/models/dto/moderation/RequestSubs.h
         pocketdb/models/dto/moderation/RequestSubs.cpp
         pocketdb/models/dto/moderation/RequestCancel.h
         pocketdb/models/dto/moderation/RequestCancel.cpp
-        pocketdb/models/dto/moderation/Register.h
-        pocketdb/models/dto/moderation/Register.cpp
+        pocketdb/models/dto/moderation/RegisterSelf.h
+        pocketdb/models/dto/moderation/RegisterSelf.cpp
         pocketdb/models/dto/moderation/RegisterRequest.h
         pocketdb/models/dto/moderation/RegisterRequest.cpp
         pocketdb/models/dto/moderation/RegisterCancel.h
@@ -1144,6 +1144,14 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/ContentDelete.hpp
         pocketdb/consensus/social/BoostContent.hpp
         pocketdb/consensus/moderation/Flag.hpp
+        pocketdb/consensus/moderation/Register.hpp
+        pocketdb/consensus/moderation/RegisterSelf.hpp
+        pocketdb/consensus/moderation/RegisterRequest.hpp
+        pocketdb/consensus/moderation/RegisterCancel.hpp
+        pocketdb/consensus/moderation/Request.hpp
+        pocketdb/consensus/moderation/RequestCoin.hpp
+        pocketdb/consensus/moderation/RequestSubs.hpp
+        pocketdb/consensus/moderation/RequestCancel.hpp
         pocketdb/consensus/Helper.cpp
         pocketdb/consensus/Base.cpp
         pocketdb/consensus/Lottery.cpp

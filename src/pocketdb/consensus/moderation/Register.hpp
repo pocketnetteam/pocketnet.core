@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_MODERATION_REGISTER_HPP
-#define POCKETCONSENSUS_MODERATION_REGISTER_HPP
+#ifndef POCKETCONSENSUS_MODERATOR_REGISTER_HPP
+#define POCKETCONSENSUS_MODERATOR_REGISTER_HPP
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
@@ -98,4 +98,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_MODERATION_REGISTER_HPP
+#endif // POCKETCONSENSUS_MODERATOR_REGISTER_HPP
