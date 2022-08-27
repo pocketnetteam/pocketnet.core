@@ -5433,8 +5433,7 @@ namespace PocketDb
                     and r.Hash = r.String2 -- Only orig
                     and r.Height = ?
                     and r.String3 is not null
-
-        )sql",
+            )sql",
             heightBinder
         }}
         };
@@ -5452,11 +5451,8 @@ namespace PocketDb
                     int i = 1;
                     selectData.binding(stmt, i, queryParams);
 
-                    LogPrintf(sqlite3_expanded_sql(*stmt));
                     while (sqlite3_step(*stmt) == SQLITE_ROW)
-                    {
                         reconstructor.FeedRow(*stmt);
-                    }
 
                     FinalizeSqlStatement(*stmt);
                 });
