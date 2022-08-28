@@ -38,13 +38,10 @@ namespace PocketConsensus
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = Base::Check(tx, ptx); !baseCheck)
-                return {false, baseCheckCode};
+            if (Base::IsEmpty(ptx->GetModeratorAddress()))
+                return {false, SocialConsensusResult_Failed};
 
-            // Check required fields
-            if (Base::IsEmpty(ptx->GetModeratorAddress())) return {false, SocialConsensusResult_Failed};
-
-            return Base::Success;
+            return Base::Check(tx, ptx);
         }
 
     protected:

@@ -46,6 +46,11 @@ namespace PocketConsensus
             return Success;
         }
 
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestCoinRef& ptx) override
+        {
+            return ModeratorRequestConsensus::Check(tx, ptx);
+        }
+
     protected:
 
         ConsensusValidateResult ValidateBlock(const ModeratorRequestCoinRef& ptx, const PocketBlockRef& block) override
@@ -86,20 +91,6 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Enable ModeratorRegisterSelf consensus rules
-    *******************************************************************************************************************/
-    class ModeratorRequestCoinConsensus_checkpoint_enable : public ModeratorRequestCoinConsensus
-    {
-    public:
-        ModeratorRequestCoinConsensus_checkpoint_enable(int height) : ModeratorRequestCoinConsensus(height) {}
-    protected:
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestCoinRef& ptx) override
-        {
-            return ModeratorRequestConsensus::Check(tx, ptx);
-        }
-    };
-
 
     /*******************************************************************************************************************
     *  Factory for select actual rules version
@@ -108,8 +99,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestCoinConsensus>> m_rules = {
-            {       0,      -1, [](int height) { return make_shared<ModeratorRequestCoinConsensus>(height); }},
-            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestCoinConsensus_checkpoint_enable>(height); }},
+            { 0, 0, [](int height) { return make_shared<ModeratorRequestCoinConsensus>(height); }},
         };
     public:
         shared_ptr<ModeratorRequestCoinConsensus> Instance(int height)

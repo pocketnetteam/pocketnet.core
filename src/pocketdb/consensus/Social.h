@@ -78,11 +78,12 @@ namespace PocketConsensus
         // Generic transactions validating
         virtual ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx)
         {
+            // All social transactions must have an address
+            if (IsEmpty(ptx->GetAddress()))
+                return {false, SocialConsensusResult_Failed};
+
             if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
                 return {false, result};
-
-            // All social transactions must have an address
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
 
             return Success;
         }

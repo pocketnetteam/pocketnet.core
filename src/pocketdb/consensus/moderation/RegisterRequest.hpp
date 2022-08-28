@@ -48,12 +48,10 @@ namespace PocketConsensus
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterRequestRef& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = ModeratorRegisterConsensus::Check(tx, ptx); !baseCheck)
-                return {false, baseCheckCode};
+            if (IsEmpty(ptx->GetRequestTxHash()))
+                return {false, SocialConsensusResult_Failed};
 
-            // TODO (brangr): check request field
-
-            return Success;
+            return ModeratorRegisterConsensus::Check(tx, ptx);
         }
 
     protected:
@@ -97,29 +95,13 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *  Enable ModeratorRegisterSelf consensus rules
-    *******************************************************************************************************************/
-    class ModeratorRegisterRequestConsensus_checkpoint_enable : public ModeratorRegisterRequestConsensus
-    {
-    public:
-        ModeratorRegisterRequestConsensus_checkpoint_enable(int height) : ModeratorRegisterRequestConsensus(height) {}
-    protected:
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterRequestRef& ptx) override
-        {
-            return ModeratorRegisterConsensus::Check(tx, ptx);
-        }
-    };
-
-
-    /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
     class ModeratorRegisterRequestConsensusFactory
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRegisterRequestConsensus>> m_rules = {
-            {       0,      -1, [](int height) { return make_shared<ModeratorRegisterRequestConsensus>(height); }},
-            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRegisterRequestConsensus_checkpoint_enable>(height); }},
+            { 0, 0, [](int height) { return make_shared<ModeratorRegisterRequestConsensus>(height); }},
         };
     public:
         shared_ptr<ModeratorRegisterRequestConsensus> Instance(int height)

@@ -48,7 +48,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx) override
         {
-            return {false, SocialConsensusResult_NotAllowed};
+            return ModeratorRegisterConsensus::Check(tx, ptx);
         }
 
     protected:
@@ -91,20 +91,6 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Enable ModeratorRegisterSelf consensus rules
-    *******************************************************************************************************************/
-    class ModeratorRegisterSelfConsensus_checkpoint_enable : public ModeratorRegisterSelfConsensus
-    {
-    public:
-        ModeratorRegisterSelfConsensus_checkpoint_enable(int height) : ModeratorRegisterSelfConsensus(height) {}
-    protected:
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx) override
-        {
-            return ModeratorRegisterConsensus::Check(tx, ptx);
-        }
-    };
-
 
     /*******************************************************************************************************************
     *  Factory for select actual rules version
@@ -113,8 +99,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRegisterSelfConsensus>> m_rules = {
-            {       0,      -1, [](int height) { return make_shared<ModeratorRegisterSelfConsensus>(height); }},
-            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRegisterSelfConsensus_checkpoint_enable>(height); }},
+            { 0, 0, [](int height) { return make_shared<ModeratorRegisterSelfConsensus>(height); }},
         };
     public:
         shared_ptr<ModeratorRegisterSelfConsensus> Instance(int height)
