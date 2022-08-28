@@ -6,7 +6,8 @@
 #define POCKETCONSENSUS_MODERATOR_REQUEST_CANCEL_HPP
 
 #include "pocketdb/consensus/Reputation.h"
-#include "pocketdb/consensus/Social.h"
+#include "pocketdb/consensus/moderation/Request.hpp"
+#include "pocketdb/models/dto/moderation/Moderator.h"
 #include "pocketdb/models/dto/moderation/RequestCancel.h"
 
 namespace PocketConsensus
@@ -19,10 +20,10 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  ModeratorRequestCancel consensus base class
     *******************************************************************************************************************/
-    class ModeratorRequestCancelConsensus : public ModeratorRequestConsensus<Moderator>
+    class ModeratorRequestCancelConsensus : public ModeratorRequestConsensus<ModeratorRequestCancel>
     {
     public:
-        ModeratorRequestCancelConsensus(int height) : ModeratorRequestConsensus<Moderator>(height) {}
+        ModeratorRequestCancelConsensus(int height) : ModeratorRequestConsensus<ModeratorRequestCancel>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestCancelRef& ptx, const PocketBlockRef& block) override
         {
@@ -84,18 +85,19 @@ namespace PocketConsensus
             // // Check limit
             // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
+    };
 
-        vector<string> GetAddressesForCheckRegistration(const ModeratorRequestCancelRef& ptx) override
+    /*******************************************************************************************************************
+    *  Enable ModeratorRegisterSelf consensus rules
+    *******************************************************************************************************************/
+    class ModeratorRequestCancelConsensus_checkpoint_enable : public ModeratorRequestCancelConsensus
+    {
+    public:
+        ModeratorRequestCancelConsensus_checkpoint_enable(int height) : ModeratorRequestCancelConsensus(height) {}
+    protected:
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestCancelRef& ptx) override
         {
-            return { *ptx->GetAddress(), *ptx->GetDestinationAddress() };
-        }
-
-        virtual ConsensusValidateResult ValidateLimit(const ModeratorRequestCancelRef& ptx, int count)
-        {
-            // if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
-            //     return {false, SocialConsensusResult_ExceededLimit};
-
-            return Success;
+            return ModeratorRequestConsensus::Check(tx, ptx);
         }
     };
 
@@ -107,7 +109,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestCancelConsensus>> m_rules = {
-            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestCancelConsensus>(height); }},
+            {       0,      -1, [](int height) { return make_shared<ModeratorRequestCancelConsensus>(height); }},
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestCancelConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRequestCancelConsensus> Instance(int height)

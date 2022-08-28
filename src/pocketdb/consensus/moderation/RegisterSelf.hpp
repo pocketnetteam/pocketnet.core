@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_MODERATION_REGISTER_SELF_HPP
 
 #include "pocketdb/consensus/Reputation.h"
-#include "pocketdb/consensus/Social.h"
+#include "pocketdb/consensus/moderation/Register.hpp"
 #include "pocketdb/models/dto/moderation/RegisterSelf.h"
 
 namespace PocketConsensus
@@ -14,20 +14,20 @@ namespace PocketConsensus
     using namespace std;
     using namespace PocketDb;
     using namespace PocketConsensus;
-    typedef shared_ptr<ModeratorRegister> ModeratorRegisterSelfRef;
+    typedef shared_ptr<ModeratorRegisterSelf> ModeratorRegisterSelfRef;
 
     /*******************************************************************************************************************
     *  ModeratorRegister consensus base class
     *******************************************************************************************************************/
-    class ModeratorRegisterSelfConsensus : public ModeratorRegisterConsensus<Moderator>
+    class ModeratorRegisterSelfConsensus : public ModeratorRegisterConsensus<ModeratorRegisterSelf>
     {
     public:
-        ModeratorRegisterSelfConsensus(int height) : ModeratorRegisterConsensus<Moderator>(height) {}
+        ModeratorRegisterSelfConsensus(int height) : ModeratorRegisterConsensus<ModeratorRegisterSelf>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = ModeratorRegisterConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // // Only `Shark` account can flag content
@@ -48,10 +48,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = ModeratorRegisterConsensus::Check(tx, ptx); !baseCheck)
-                return {false, baseCheckCode};
-
-            return Success;
+            return {false, SocialConsensusResult_NotAllowed};
         }
 
     protected:
@@ -92,23 +89,10 @@ namespace PocketConsensus
             // // Check limit
             // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
-
-        vector<string> GetAddressesForCheckRegistration(const ModeratorRegisterSelfRef& ptx) override
-        {
-            return { *ptx->GetAddress() };
-        }
-
-        virtual ConsensusValidateResult ValidateLimit(const ModeratorRegisterSelfRef& ptx, int count)
-        {
-            // if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
-            //     return {false, SocialConsensusResult_ExceededLimit};
-
-            return Success;
-        }
     };
 
     /*******************************************************************************************************************
-    *  Enable ModeratorRegister consensus rules
+    *  Enable ModeratorRegisterSelf consensus rules
     *******************************************************************************************************************/
     class ModeratorRegisterSelfConsensus_checkpoint_enable : public ModeratorRegisterSelfConsensus
     {
@@ -117,13 +101,7 @@ namespace PocketConsensus
     protected:
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
-                return {false, baseCheckCode};
-
-            // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-
-            return Success;
+            return ModeratorRegisterConsensus::Check(tx, ptx);
         }
     };
 

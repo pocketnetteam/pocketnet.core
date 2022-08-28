@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_MODERATOR_REGISTER_CANCEL_HPP
 
 #include "pocketdb/consensus/Reputation.h"
-#include "pocketdb/consensus/Social.h"
+#include "pocketdb/consensus/moderation/Register.hpp"
 #include "pocketdb/models/dto/moderation/RegisterCancel.h"
 
 namespace PocketConsensus
@@ -19,10 +19,10 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  ModeratorRegisterCancel consensus base class
     *******************************************************************************************************************/
-    class ModeratorRegisterCancelConsensus : public ModeratorRegisterConsensus<Moderator>
+    class ModeratorRegisterCancelConsensus : public ModeratorRegisterConsensus<ModeratorRegisterCancel>
     {
     public:
-        ModeratorRegisterCancelConsensus(int height) : ModeratorRegisterConsensus<Moderator>(height) {}
+        ModeratorRegisterCancelConsensus(int height) : ModeratorRegisterConsensus<ModeratorRegisterCancel>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterCancelRef& ptx, const PocketBlockRef& block) override
         {
@@ -84,13 +84,19 @@ namespace PocketConsensus
             // // Check limit
             // return ValidateLimit(ptx, ConsensusRepoInst.CountModeratorFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
-        
-        virtual ConsensusValidateResult ValidateLimit(const ModeratorRegisterCancelRef& ptx, int count)
-        {
-            // if (count >= GetConsensusLimit(ConsensusLimit_moderator_flag_count))
-            //     return {false, SocialConsensusResult_ExceededLimit};
+    };
 
-            return Success;
+    /*******************************************************************************************************************
+    *  Enable ModeratorRegisterSelf consensus rules
+    *******************************************************************************************************************/
+    class ModeratorRegisterCancelConsensus_checkpoint_enable : public ModeratorRegisterCancelConsensus
+    {
+    public:
+        ModeratorRegisterCancelConsensus_checkpoint_enable(int height) : ModeratorRegisterCancelConsensus(height) {}
+    protected:
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterCancelRef& ptx) override
+        {
+            return ModeratorRegisterConsensus::Check(tx, ptx);
         }
     };
 

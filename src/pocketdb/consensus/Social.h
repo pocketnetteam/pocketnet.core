@@ -102,6 +102,14 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) = 0;
 
+        virtual ConsensusValidateResult ValidateLimit(ConsensusLimit limit, int count)
+        {
+            if (count >= GetConsensusLimit(limit))
+                return {false, SocialConsensusResult_ExceededLimit};
+
+            return Success;
+        }
+        
         // Generic check consistence Transaction and Payload
         virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const shared_ptr<T>& ptx)
         {

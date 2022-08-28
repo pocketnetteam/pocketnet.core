@@ -18,86 +18,42 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  ModeratorRequest consensus base class
     *******************************************************************************************************************/
-    template<Moderator T>
+    template<class T = Moderator>
     class ModeratorRequestConsensus : public SocialConsensus<T>
     {
+    private:
+        using Base = SocialConsensus<T>;
+
     public:
         ModeratorRequestConsensus(int height) : SocialConsensus<T>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = Base::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
-            return Success;
+            return Base::Success;
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx) override
         {
-            return {false, SocialConsensusResult_NotAllowed};
+            if (auto[baseCheck, baseCheckCode] = Base::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
+            // Check required fields
+            if (Base::IsEmpty(ptx->GetModeratorAddress())) return {false, SocialConsensusResult_Failed};
+
+            return Base::Success;
         }
 
     protected:
-
-        ConsensusValidateResult ValidateBlock(const shared_ptr<T>& ptx, const PocketBlockRef& block) override
-        {
-        }
-
-        ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
-        {
-        }
 
         vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& ptx) override
         {
-            return { *ptx->GetAddress(), *ptx->GetDestinationAddress() };
+            return { *ptx->GetAddress(), *ptx->GetModeratorAddress() };
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const shared_ptr<T>& ptx, int count) = 0;
-    };
-
-    /*******************************************************************************************************************
-    *  Enable ModeratorRequest consensus rules
-    *******************************************************************************************************************/
-    class ModeratorRequestConsensus_checkpoint_enable : public ModeratorRequestConsensus
-    {
-    public:
-        ModeratorRequestConsensus_checkpoint_enable(int height) : ModeratorRequestConsensus(height) {}
-    protected:
-        ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx) override
-        {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
-                return {false, baseCheckCode};
-
-            // Request transaction must have an destination address - who is invited to become a moderator
-            if (IsEmpty(ptx->GetDestinationAddress())) return {false, SocialConsensusResult_Failed};
-
-            return Success;
-        }
-    };
-
-
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class ModeratorRequestConsensusFactory
-    {
-    private:
-        const vector<ConsensusCheckpoint<ModeratorRequestConsensus>> m_rules = {
-            {       0,      -1, [](int height) { return make_shared<ModeratorRequestConsensus>(height); }},
-            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestConsensus_checkpoint_enable>(height); }},
-        };
-    public:
-        shared_ptr<ModeratorRequestConsensus> Instance(int height)
-        {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ModeratorRequestConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkIDString());
-                }
-            ))->m_func(m_height);
-        }
     };
 }
 

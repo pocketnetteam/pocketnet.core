@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_MODERATION_REGISTER_REQUEST_HPP
 
 #include "pocketdb/consensus/Reputation.h"
-#include "pocketdb/consensus/Social.h"
+#include "pocketdb/consensus/moderation/Register.hpp"
 #include "pocketdb/models/dto/moderation/RegisterRequest.h"
 
 namespace PocketConsensus
@@ -19,10 +19,10 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  ModeratorRegisterRequest consensus base class
     *******************************************************************************************************************/
-    class ModeratorRegisterRequestConsensus : public ModeratorRegisteConsensus<Moderator>
+    class ModeratorRegisterRequestConsensus : public ModeratorRegisterConsensus<ModeratorRegisterRequest>
     {
     public:
-        ModeratorRegisterRequestConsensus(int height) : ModeratorRegisterConsensus<Moderator>(height) {}
+        ModeratorRegisterRequestConsensus(int height) : ModeratorRegisterConsensus<ModeratorRegisterRequest>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterRequestRef& ptx, const PocketBlockRef& block) override
         {
@@ -94,13 +94,19 @@ namespace PocketConsensus
             // // Check limit
             // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
+    };
 
-        virtual ConsensusValidateResult ValidateLimit(const ModeratorRegisterRequestRef& ptx, int count)
+    /*******************************************************************************************************************
+    *  Enable ModeratorRegisterSelf consensus rules
+    *******************************************************************************************************************/
+    class ModeratorRegisterRequestConsensus_checkpoint_enable : public ModeratorRegisterRequestConsensus
+    {
+    public:
+        ModeratorRegisterRequestConsensus_checkpoint_enable(int height) : ModeratorRegisterRequestConsensus(height) {}
+    protected:
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterRequestRef& ptx) override
         {
-            // if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
-            //     return {false, SocialConsensusResult_ExceededLimit};
-
-            return Success;
+            return ModeratorRegisterConsensus::Check(tx, ptx);
         }
     };
 
@@ -112,7 +118,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRegisterRequestConsensus>> m_rules = {
-            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRegisterRequestConsensus>(height); }},
+            {       0,      -1, [](int height) { return make_shared<ModeratorRegisterRequestConsensus>(height); }},
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRegisterRequestConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRegisterRequestConsensus> Instance(int height)

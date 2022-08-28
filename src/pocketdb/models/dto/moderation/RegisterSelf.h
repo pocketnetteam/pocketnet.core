@@ -9,7 +9,7 @@
 
 namespace PocketTx
 {
-    class ModeratorRegisterSelf : public SocialTransaction
+    class ModeratorRegisterSelf : public Moderator
     {
     public:
         ModeratorRegisterSelf();

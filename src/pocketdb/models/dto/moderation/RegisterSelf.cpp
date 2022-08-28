@@ -6,12 +6,12 @@
 
 namespace PocketTx
 {
-    ModeratorRegisterSelf::ModeratorRegisterSelf() : SocialTransaction()
+    ModeratorRegisterSelf::ModeratorRegisterSelf() : Moderator()
     {
         SetType(TxType::MODERATOR_REGISTER_SELF);
     }
 
-    ModeratorRegisterSelf::ModeratorRegisterSelf(const CTransactionRef& tx) : SocialTransaction(tx)
+    ModeratorRegisterSelf::ModeratorRegisterSelf(const CTransactionRef& tx) : Moderator(tx)
     {
         SetType(TxType::MODERATOR_REGISTER_SELF);
     }

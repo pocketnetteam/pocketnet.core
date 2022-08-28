@@ -19,10 +19,10 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  ModeratorRequestSubs consensus base class
     *******************************************************************************************************************/
-    class ModeratorRequestSubsConsensus : public ModeratorRequestConsensus<Moderator>
+    class ModeratorRequestSubsConsensus : public ModeratorRequestConsensus<ModeratorRequestSubs>
     {
     public:
-        ModeratorRequestSubsConsensus(int height) : ModeratorRequestConsensus<Moderator>(height) {}
+        ModeratorRequestSubsConsensus(int height) : ModeratorRequestConsensus<ModeratorRequestSubs>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestSubsRef& ptx, const PocketBlockRef& block) override
         {
@@ -84,13 +84,19 @@ namespace PocketConsensus
             // // Check limit
             // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
         }
+    };
 
-        virtual ConsensusValidateResult ValidateLimit(const ModeratorRequestSubsRef& ptx, int count)
+    /*******************************************************************************************************************
+    *  Enable ModeratorRegisterSelf consensus rules
+    *******************************************************************************************************************/
+    class ModeratorRequestSubsConsensus_checkpoint_enable : public ModeratorRequestSubsConsensus
+    {
+    public:
+        ModeratorRequestSubsConsensus_checkpoint_enable(int height) : ModeratorRequestSubsConsensus(height) {}
+    protected:
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestSubsRef& ptx) override
         {
-            // if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
-            //     return {false, SocialConsensusResult_ExceededLimit};
-
-            return Success;
+            return ModeratorRequestConsensus::Check(tx, ptx);
         }
     };
 
@@ -102,7 +108,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestSubsConsensus>> m_rules = {
-            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestSubsConsensus>(height); }},
+            {       0,      -1, [](int height) { return make_shared<ModeratorRequestSubsConsensus>(height); }},
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestSubsConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRequestSubsConsensus> Instance(int height)
