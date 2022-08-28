@@ -386,7 +386,8 @@ namespace PocketConsensus
                           && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
                           && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
 
-            // badgeSet.Moderator = TODO (brangr): implement for future
+            // badgeSet.Moderator = TODO (moderation): implement detect moderator register transaction
+            // maybe over AccountData::data.ActiveModerator == 1 ?
             
             return badgeSet;
         }
