@@ -1111,6 +1111,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/SystemRepository.cpp
         pocketdb/repositories/MigrationRepository.h
         pocketdb/repositories/MigrationRepository.cpp
+        pocketdb/repositories/ModerationRepository.h
+        pocketdb/repositories/ModerationRepository.cpp
         pocketdb/repositories/web/NotifierRepository.h
         pocketdb/repositories/web/NotifierRepository.cpp
         pocketdb/repositories/web/WebRepository.h
@@ -1121,6 +1123,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/web/ExplorerRepository.cpp
         pocketdb/repositories/web/SearchRepository.h
         pocketdb/repositories/web/SearchRepository.cpp
+        pocketdb/repositories/web/ModerationRepository.h
+        pocketdb/repositories/web/ModerationRepository.cpp
         pocketdb/consensus/Base.h
         pocketdb/consensus/Helper.h
         pocketdb/consensus/Social.h
