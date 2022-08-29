@@ -30,12 +30,9 @@ namespace PocketConsensus
             if (auto[baseValidate, baseValidateCode] = ModeratorRegisterRequestConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
-            // // Only `Shark` account can flag content
-            // auto reputationConsensus = ReputationConsensusFactoryInst.Instance(Height);
-            // if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Shark)
-            //     return {false, SocialConsensusResult_LowReputation};
-
-            // // Target transaction must be a exists and is a content and author should be equals ptx->GetContentAddressHash()
+            // Registration of a moderator by invitation is allowed only if there is an actual and not canceled invitation
+            // TODO (moderation): implement exists ModeratorRequestCoin or ModeratorRequestSubs transactions
+            
             // if (!ConsensusRepoInst.ExistsNotDeleted(
             //     *ptx->GetContentTxHash(),
             //     *ptx->GetContentAddressHash(),
