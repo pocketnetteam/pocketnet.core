@@ -133,8 +133,7 @@ namespace PocketDb
             }
             if (notifiers.empty()) throw std::runtime_error("Missing address of notifier");
 
-            auto& m_typeEntry = m_notifications[shortForm.GetType()];
-            m_typeEntry.Insert(shortForm, std::move(notifiers));
+            m_notifications.Insert(shortForm, std::move(notifiers));
 
         }
         WebRpcRepository::NotificationsResult GetResult() const
@@ -143,7 +142,7 @@ namespace PocketDb
         }
     private:
         ShortFormParser m_parser;
-        std::map<ShortTxType, WebRpcRepository::NotificationResultTypeEntry> m_notifications;
+        WebRpcRepository::NotificationResultTypeEntry m_notifications;
     };
 
 

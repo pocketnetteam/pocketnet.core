@@ -163,7 +163,7 @@ namespace PocketDb
         class NotificationResultTypeEntry
         {
         public:
-            void Insert(const ShortForm& shortForm, std::set<std::string> address)
+            void Insert(const ShortForm& shortForm, std::set<std::string> addresses)
             {
                 // TODO (losty): remove this dirty hack when logic with including outputs to shortforms will be implemented
                 auto hash = shortForm.GetTxData().GetHash() + (shortForm.GetTxData().GetVal() ? std::to_string(*shortForm.GetTxData().GetVal()): "");
@@ -171,28 +171,33 @@ namespace PocketDb
                     m_data.insert({hash, shortForm});
                 }
 
-                auto& entry = m_notifiers[hash];
-                entry.merge(address);
+                for (const auto& address: addresses) {
+                    m_notifiers[address].insert(hash);
+                }
             }
 
             UniValue Serialize() const
             {
-                UniValue data (UniValue::VOBJ);
-                data.reserveKVSize(m_data.size());
+                std::map<std::string, int> hashToIndexMap;
+                UniValue data (UniValue::VARR);
+                std::vector<UniValue> tmp;
+                tmp.reserve(m_data.size());
                 for (const auto& shortForm: m_data) {
-                    data.pushKV(shortForm.first, shortForm.second.Serialize());
+                    hashToIndexMap.insert({shortForm.first, tmp.size()});
+                    tmp.emplace_back(shortForm.second.Serialize());
                 }
+                data.push_backV(tmp);
 
                 UniValue notifiers (UniValue::VOBJ);
                 notifiers.reserveKVSize(m_notifiers.size());
                 for (const auto& notifiersEntry: m_notifiers) {
-                    UniValue notifiersUni (UniValue::VARR);
-                    std::vector<UniValue> notifiersVec;
-                    std::transform(notifiersEntry.second.begin(), notifiersEntry.second.end(), std::back_inserter(notifiersVec), [](const std::string& elem) {
-                        return UniValue(elem);
-                    });
-                    notifiersUni.push_backV(std::move(notifiersVec));
-                    notifiers.pushKV(notifiersEntry.first, std::move(notifiersUni));
+                    UniValue txIndiciesUni (UniValue::VARR);
+                    std::vector<UniValue> txIndicies;
+                    for (const auto& txHash: notifiersEntry.second) {
+                        txIndicies.emplace_back(hashToIndexMap.at(txHash));
+                    }
+                    txIndiciesUni.push_backV(std::move(txIndicies));
+                    notifiers.pushKV(notifiersEntry.first, std::move(txIndiciesUni), false);
                 }
 
                 UniValue result (UniValue::VOBJ);
@@ -206,7 +211,7 @@ namespace PocketDb
             std::map<std::string, std::set<std::string>> m_notifiers;
         };
         // First - map where keys are addresses and values are ShortForms of events from given block. Second - pocketnetteam posts.
-        using NotificationsResult = std::map<ShortTxType, NotificationResultTypeEntry>;
+        using NotificationsResult = NotificationResultTypeEntry;
         /**
          * Get all possible events for all adresses in concrete block
          * 

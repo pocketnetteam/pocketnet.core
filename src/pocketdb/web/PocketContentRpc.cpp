@@ -875,12 +875,6 @@ namespace PocketWeb::PocketWebRpc
 
         auto notifications = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
 
-        UniValue result (UniValue::VOBJ);
-
-        for (const auto& notificationType: notifications) {
-            result.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(notificationType.first), notificationType.second.Serialize());
-        }
-
-        return result;
+        return notifications.Serialize();
     }
 }
