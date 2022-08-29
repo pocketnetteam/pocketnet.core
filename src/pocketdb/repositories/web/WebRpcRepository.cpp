@@ -5317,8 +5317,28 @@ namespace PocketDb
                     tBoost.String1,
                     tBoost.Height as Height,
                     tBoost.BlockNum as BlockNum,
-                    tBoost.Int1,
                     null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = tBoost.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs o
+                        where o.TxHash = tBoost.Hash
+                            and o.TxHeight = tBoost.Height
+                    ),
                     null,
                     null,
                     null,
