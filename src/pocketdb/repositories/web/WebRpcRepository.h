@@ -163,14 +163,18 @@ namespace PocketDb
         class NotificationResultTypeEntry
         {
         public:
-            void Insert(const ShortForm& shortForm, std::set<std::string> addresses)
+            bool HasData(const std::string& hash)
             {
-                // TODO (losty): remove this dirty hack when logic with including outputs to shortforms will be implemented
-                auto hash = shortForm.GetTxData().GetHash() + (shortForm.GetTxData().GetVal() ? std::to_string(*shortForm.GetTxData().GetVal()): "");
-                if (m_data.find(hash) == m_data.end()) {
-                    m_data.insert({hash, shortForm});
-                }
+                return m_data.find(hash) != m_data.end();
+            }
 
+            void InsertData(const ShortForm& shortForm)
+            {
+                m_data.insert({shortForm.GetTxData().GetHash(), shortForm});
+            }
+
+            void InsertNotifiers(const std::string& hash, std::set<std::string> addresses)
+            {
                 for (const auto& address: addresses) {
                     m_notifiers[address].insert(hash);
                 }

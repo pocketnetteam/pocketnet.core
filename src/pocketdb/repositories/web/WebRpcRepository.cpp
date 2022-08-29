@@ -11,9 +11,14 @@ namespace PocketDb
     class ShortFormParser : public RowAccessor
     {
     public:
-        PocketDb::ShortForm ParseRow(sqlite3_stmt* stmt, const int& startIndex)
+        void Reset(const int& startIndex)
         {
-            int index = startIndex;
+            m_startIndex = startIndex;
+        }
+
+        PocketDb::ShortForm ParseFull(sqlite3_stmt* stmt)
+        {
+            int index = m_startIndex;
             auto [ok, type] = TryGetColumnString(stmt, index++);
             if (!ok) {
                 throw std::runtime_error("Missing row type");
@@ -27,6 +32,25 @@ namespace PocketDb
             auto relatedContent = ProcessTxData(stmt, index);
 
             return {PocketHelpers::ShortTxTypeConvertor::strToType(type), *txData, relatedContent};
+        }
+
+        std::string ParseHash(sqlite3_stmt* stmt)
+        {
+            auto [ok, hash] = TryGetColumnString(stmt, m_startIndex+1);
+            if (!ok) {
+                throw std::runtime_error("Failed to extract tx hash from stmt");
+            }
+
+            return hash;
+        }
+
+        std::optional<std::vector<ShortTxOutput>> ParseOutputs(sqlite3_stmt* stmt)
+        {
+            auto [ok, str] = TryGetColumnString(stmt, m_startIndex + 7);
+            if (ok) {
+                return _parseOutputs(str);
+            }
+            return std::nullopt;
         }
 
     protected:
@@ -92,14 +116,21 @@ namespace PocketDb
             }
             return std::nullopt;
         }
+
+    private:
+        int m_startIndex = 0;
     };
 
     class EventsReconstructor : public RowAccessor
     {
     public:
+        EventsReconstructor()
+        {
+            m_parser.Reset(0);
+        }
         void FeedRow(sqlite3_stmt* stmt)
         {
-            m_result.emplace_back(std::move(m_parser.ParseRow(stmt, 0)));
+            m_result.emplace_back(std::move(m_parser.ParseFull(stmt)));
         }
 
         std::vector<PocketDb::ShortForm> GetResult() const
@@ -114,17 +145,19 @@ namespace PocketDb
     class NotificationsReconstructor : public RowAccessor
     {
     public:
+        NotificationsReconstructor() {
+            m_parser.Reset(1);
+        }
+
         void FeedRow(sqlite3_stmt* stmt)
         {
-            // TODO (losty): optimize - do not parse the whole row if short form already exists in internal map
-            auto shortForm = m_parser.ParseRow(stmt, 1);
             std::set<std::string> notifiers;
             auto [ok, addressOne] = TryGetColumnString(stmt, 0);
             if (ok) {
                 notifiers.insert(addressOne);
             } else {
-                if (shortForm.GetTxData().GetOutputs()) {
-                    for (const auto& output: *shortForm.GetTxData().GetOutputs()) {
+                if (auto outputs = m_parser.ParseOutputs(stmt); outputs) {
+                    for (const auto& output: *outputs) {
                         if (output.GetAddressHash() && !output.GetAddressHash()->empty()) {
                             notifiers.insert(*output.GetAddressHash());
                         }
@@ -133,8 +166,11 @@ namespace PocketDb
             }
             if (notifiers.empty()) throw std::runtime_error("Missing address of notifier");
 
-            m_notifications.Insert(shortForm, std::move(notifiers));
-
+            auto txHash = m_parser.ParseHash(stmt);
+            if (!m_notifications.HasData(txHash)) {
+                m_notifications.InsertData(m_parser.ParseFull(stmt));
+            }
+            m_notifications.InsertNotifiers(txHash, notifiers);
         }
         WebRpcRepository::NotificationsResult GetResult() const
         {
