@@ -4827,7 +4827,6 @@ namespace PocketDb
                     (
                         select json_group_array(json_object(
                                 'Value', Value,
-                                'SpentTxHash', SpentTxHash,
                                 'Number', Number,
                                 'AddressHash', AddressHash,
                                 'ScriptPubKey', ScriptPubKey
@@ -5005,7 +5004,6 @@ namespace PocketDb
                     (
                         select json_group_array(json_object(
                                 'Value', Value,
-                                'SpentTxHash', SpentTxHash,
                                 'Number', Number,
                                 'AddressHash', AddressHash,
                                 'ScriptPubKey', ScriptPubKey
