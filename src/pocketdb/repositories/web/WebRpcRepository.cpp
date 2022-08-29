@@ -5039,7 +5039,7 @@ namespace PocketDb
 
                 from Transactions c indexed by Transactions_Height_Type
 
-                left join Transactions p indexed by Transactions_Type_Last_String2_Height
+                join Transactions p indexed by Transactions_Type_Last_String2_Height
                     on p.Type in (200,201,202)
                     and p.Last = 1
                     and p.Height > 0
