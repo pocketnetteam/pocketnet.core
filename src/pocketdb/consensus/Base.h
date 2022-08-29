@@ -315,7 +315,7 @@ namespace PocketConsensus
         } },
         
         // Thresholds for obtaining badges - WHALE
-        { threshold_shark_reg_depth, {
+        { threshold_whale_reg_depth, {
             { NetworkMain, { {0, 207360} } },
             { NetworkTest, { {0, 1} } }
         } },
