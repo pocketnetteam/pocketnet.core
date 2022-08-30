@@ -4,10 +4,64 @@
 
 #include "pocketdb/repositories/web/WebRpcRepository.h"
 
-#include "pocketdb/helpers/ShortFormHelper.h"
-
 namespace PocketDb
 {
+    class NotificationsResult
+    {
+    public:
+        bool HasData(const std::string& hash)
+        {
+            return m_data.find(hash) != m_data.end();
+        }
+
+        void InsertData(const PocketDb::ShortForm& shortForm)
+        {
+            m_data.insert({shortForm.GetTxData().GetHash(), shortForm});
+        }
+
+        void InsertNotifiers(const std::string& hash, std::set<std::string> addresses)
+        {
+            for (const auto& address: addresses) {
+                m_notifiers[address].insert(hash);
+            }
+        }
+
+        UniValue Serialize() const
+        {
+            std::map<std::string, int> hashToIndexMap;
+            UniValue data (UniValue::VARR);
+            std::vector<UniValue> tmp;
+            tmp.reserve(m_data.size());
+            for (const auto& shortForm: m_data) {
+                hashToIndexMap.insert({shortForm.first, tmp.size()});
+                tmp.emplace_back(shortForm.second.Serialize());
+            }
+            data.push_backV(tmp);
+
+            UniValue notifiers (UniValue::VOBJ);
+            notifiers.reserveKVSize(m_notifiers.size());
+            for (const auto& notifiersEntry: m_notifiers) {
+                UniValue txIndiciesUni (UniValue::VARR);
+                std::vector<UniValue> txIndicies;
+                for (const auto& txHash: notifiersEntry.second) {
+                    txIndicies.emplace_back(hashToIndexMap.at(txHash));
+                }
+                txIndiciesUni.push_backV(std::move(txIndicies));
+                notifiers.pushKV(notifiersEntry.first, std::move(txIndiciesUni), false);
+            }
+
+            UniValue result (UniValue::VOBJ);
+            result.pushKV("data", data);
+            result.pushKV("notifiers", notifiers);
+
+            return result;
+        }
+
+    private:
+        std::map<std::string, PocketDb::ShortForm> m_data;
+        std::map<std::string, std::set<std::string>> m_notifiers;
+    };
+
     class ShortFormParser : public RowAccessor
     {
     public:
@@ -172,13 +226,13 @@ namespace PocketDb
             }
             m_notifications.InsertNotifiers(txHash, notifiers);
         }
-        WebRpcRepository::NotificationsResult GetResult() const
+        NotificationsResult GetResult() const
         {
             return m_notifications;
         }
     private:
         ShortFormParser m_parser;
-        WebRpcRepository::NotificationResultTypeEntry m_notifications;
+        NotificationsResult m_notifications;
     };
 
 
@@ -4832,7 +4886,7 @@ namespace PocketDb
         return std::pair { ss.str(), binds };
     }
 
-    WebRpcRepository::NotificationsResult WebRpcRepository::GetNotifications(int64_t height, const std::set<ShortTxType>& filters)
+    UniValue WebRpcRepository::GetNotifications(int64_t height, const std::set<ShortTxType>& filters)
     {
         struct QueryParams {
             // Handling all by reference
@@ -5512,6 +5566,6 @@ namespace PocketDb
             }
         }
 
-        return reconstructor.GetResult();
+        return reconstructor.GetResult().Serialize();
     }
 }

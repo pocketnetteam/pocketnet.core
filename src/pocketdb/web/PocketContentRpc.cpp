@@ -873,8 +873,6 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto notifications = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
-
-        return notifications.Serialize();
+        return request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
     }
 }

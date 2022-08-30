@@ -15,6 +15,8 @@
 #include "core_io.h"
 #include "utils/html.h"
 #include "pocketdb/models/shortform/ShortForm.h"
+#include "pocketdb/helpers/ShortFormHelper.h"
+
 
 namespace PocketDb
 {
@@ -159,70 +161,13 @@ namespace PocketDb
 
         UniValue GetContentActions(const string& postTxHash);
 
-        // TODO (losty): move to different place
-        class NotificationResultTypeEntry
-        {
-        public:
-            bool HasData(const std::string& hash)
-            {
-                return m_data.find(hash) != m_data.end();
-            }
-
-            void InsertData(const ShortForm& shortForm)
-            {
-                m_data.insert({shortForm.GetTxData().GetHash(), shortForm});
-            }
-
-            void InsertNotifiers(const std::string& hash, std::set<std::string> addresses)
-            {
-                for (const auto& address: addresses) {
-                    m_notifiers[address].insert(hash);
-                }
-            }
-
-            UniValue Serialize() const
-            {
-                std::map<std::string, int> hashToIndexMap;
-                UniValue data (UniValue::VARR);
-                std::vector<UniValue> tmp;
-                tmp.reserve(m_data.size());
-                for (const auto& shortForm: m_data) {
-                    hashToIndexMap.insert({shortForm.first, tmp.size()});
-                    tmp.emplace_back(shortForm.second.Serialize());
-                }
-                data.push_backV(tmp);
-
-                UniValue notifiers (UniValue::VOBJ);
-                notifiers.reserveKVSize(m_notifiers.size());
-                for (const auto& notifiersEntry: m_notifiers) {
-                    UniValue txIndiciesUni (UniValue::VARR);
-                    std::vector<UniValue> txIndicies;
-                    for (const auto& txHash: notifiersEntry.second) {
-                        txIndicies.emplace_back(hashToIndexMap.at(txHash));
-                    }
-                    txIndiciesUni.push_backV(std::move(txIndicies));
-                    notifiers.pushKV(notifiersEntry.first, std::move(txIndiciesUni), false);
-                }
-
-                UniValue result (UniValue::VOBJ);
-                result.pushKV("data", data);
-                result.pushKV("notifiers", notifiers);
-
-                return result;
-            }
-        private:
-            std::map<std::string, ShortForm> m_data;
-            std::map<std::string, std::set<std::string>> m_notifiers;
-        };
-        // First - map where keys are addresses and values are ShortForms of events from given block. Second - pocketnetteam posts.
-        using NotificationsResult = NotificationResultTypeEntry;
         /**
          * Get all possible events for all adresses in concrete block
          * 
          * @param height height of block to search
          * @param filters
          */
-        NotificationsResult GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
+        UniValue GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
 
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
