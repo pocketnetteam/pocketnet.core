@@ -4878,7 +4878,7 @@ namespace PocketDb
                 c.Height as Height,
                 c.BlockNum as BlockNum,
                 c.String2,
-                oc.Value,
+                oc.Value, -- TODO (losty): replace with inputs/outputs after merge with branch where they are located
                 pc.String1,
                 c.String4,
                 c.String5,
@@ -5174,7 +5174,7 @@ namespace PocketDb
                 tBoost.Height as Height,
                 tBoost.BlockNum as BlockNum,
                 null,
-                tBoost.Int1,
+                tBoost.Int1, -- TODO (losty): replace with inputs/outputs after merge with branch where they are located
                 null,
                 null,
                 null,
