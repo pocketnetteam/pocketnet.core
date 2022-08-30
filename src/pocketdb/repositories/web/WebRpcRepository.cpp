@@ -4988,7 +4988,7 @@ namespace PocketDb
                 pu.String4,
                 ifnull(ru.Value,0)
 
-            from Transactions subs indexed by Transactions_String1_Last_Height
+            from Transactions subs indexed by Transactions_Type_String1_Height_Time_Int1
 
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 on u.Type in (100)
@@ -5004,8 +5004,7 @@ namespace PocketDb
                 and ru.Id = u.Id
                 and ru.Last = 1
 
-            where subs.Type in (302, 303) -- Ignoring unsubscribers?
-                and subs.Last = 1
+            where subs.Type in (302, 303, 304) -- Ignoring unsubscribers?
                 and subs.String1 = ?
                 and subs.Height > ?
                 and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
