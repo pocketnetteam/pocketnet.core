@@ -23,7 +23,8 @@ namespace PocketDb
                     std::optional<int64_t> height, std::optional<int64_t> blockNum,
                     std::optional<ShortAccount> account, std::optional<int> val,
                     std::optional<std::string> description,
-                    std::optional<std::string> commentParentId, std::optional<std::string> commentAnswerId);
+                    std::optional<std::string> commentParentId, std::optional<std::string> commentAnswerId,
+                    std::optional<std::string> rootTxHash);
 
         ShortTxData(std::string hash, PocketTx::TxType txType);
 
@@ -47,6 +48,8 @@ namespace PocketDb
         const std::optional<std::string>& GetCommentParentId() const;
         void SetCommentAnswerId(const std::optional<std::string>& commentAnswerId);
         const std::optional<std::string>& GetCommentAnswerId() const;
+        void SetRootTxHash(const std::optional<std::string>& rootTxHash);
+        const std::optional<std::string>& GetRootTxHash() const;
         
     private:
         std::string m_hash;
@@ -57,6 +60,7 @@ namespace PocketDb
         std::optional<ShortAccount> m_account; // Account data associated with address
         std::optional<int> m_val;
         std::optional<std::string> m_description; // Short description of content, e.x. first lines of post's text
+        std::optional<std::string> m_rootTxHash;
 
         // Special-case fields for comments 
         std::optional<std::string> m_commentParentId;

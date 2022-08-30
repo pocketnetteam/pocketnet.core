@@ -10,7 +10,7 @@
 PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType, std::optional<std::string> address, std::optional<int64_t> height,
                                     std::optional<int64_t> blockNum, std::optional<ShortAccount> account, std::optional<int> val,
                                     std::optional<std::string> description, std::optional<std::string> commentParentId,
-                                    std::optional<std::string> commentAnswerId
+                                    std::optional<std::string> commentAnswerId, std::optional<std::string> rootTxHash
                                   )
     : m_hash(std::move(hash)),
       m_txType(txType),
@@ -21,7 +21,8 @@ PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType, st
       m_val(std::move(val)),
       m_description(std::move(description)),
       m_commentParentId(std::move(commentParentId)),
-      m_commentAnswerId(std::move(commentAnswerId))
+      m_commentAnswerId(std::move(commentAnswerId)),
+      m_rootTxHash(std::move(rootTxHash))
 {}
 
 PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType)
@@ -43,6 +44,7 @@ UniValue PocketDb::ShortTxData::Serialize() const
     if (m_description) data.pushKV("description", m_description.value());
     if (m_commentParentId) data.pushKV("commentParentId", m_commentParentId.value());
     if (m_commentAnswerId) data.pushKV("commentAnswerId", m_commentAnswerId.value());
+    if (m_rootTxHash) data.pushKV("rootTxHash", *m_rootTxHash);
 
     return data;
 }
@@ -82,3 +84,7 @@ const std::optional<std::string>& PocketDb::ShortTxData::GetCommentParentId() co
 void PocketDb::ShortTxData::SetCommentAnswerId(const std::optional<std::string>& commentAnswerId) { m_commentAnswerId = commentAnswerId; }
 
 const std::optional<std::string>& PocketDb::ShortTxData::GetCommentAnswerId() const { return m_commentAnswerId; }
+
+void PocketDb::ShortTxData::SetRootTxHash(const std::optional<std::string>& rootTxHash) { m_rootTxHash = rootTxHash; }
+
+const std::optional<std::string>& PocketDb::ShortTxData::GetRootTxHash() const { return m_rootTxHash; }
