@@ -4794,16 +4794,16 @@ namespace PocketDb
             -- My answers to other's comments
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                alast.Hash,
-                alast.Type,
+                a.Hash,
+                a.Type,
                 null,
                 a.Height as Height,
                 a.BlockNum as BlockNum,
                 a.String2,
                 null,
                 pa.String1,
-                alast.String4,
-                alast.String5,
+                a.String4,
+                a.String5,
                 null,
                 null,
                 null,
@@ -4829,21 +4829,15 @@ namespace PocketDb
                 on pc.TxHash = c.Hash
 
             join Transactions a indexed by Transactions_Type_String1_Height_Time_Int1 -- Other answers
-                on a.Type = 204
-                and a.Hash = a.String2
+                on a.Type in (204, 205, 206)
                 and a.Height > ?
                 and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
                 and a.String5 = c.String2
                 and a.String1 != c.String1
                 and a.String1 = ?
 
-            join Transactions alast indexed by Transactions_Type_Last_String2_Height
-                on alast.Last = 1
-                and alast.Type in (204, 205)
-                and alast.String2 = a.Hash
-
             left join Payload pa
-                on pa.TxHash = aLast.Hash
+                on pa.TxHash = a.Hash
 
             left join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
                 on ca.Type = 100
@@ -4878,16 +4872,16 @@ namespace PocketDb
             -- Comments for my content
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
-                clast.Hash,
-                clast.Type,
+                c.Hash,
+                c.Type,
                 null,
                 c.Height as Height,
                 c.BlockNum as BlockNum,
                 c.String2,
                 oc.Value,
                 pc.String1,
-                clast.String4,
-                clast.String5,
+                c.String4,
+                c.String5,
                 null,
                 null,
                 null,
@@ -4910,25 +4904,18 @@ namespace PocketDb
             from Transactions p indexed by Transactions_Type_Last_String2_Height
 
             join Transactions c indexed by Transactions_Type_String1_Height_Time_Int1
-                on c.Type = 204
-                and c.String2 = c.Hash
+                on c.Type in (204, 205, 206)
                 and c.String3 = p.String2
                 and c.String1 != p.String1
-                and c.Hash = c.String2
                 and c.Height > ?
                 and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
                 and c.String1 = ?
-
-            join Transactions clast indexed by Transactions_Type_Last_String2_Height
-                on clast.Type in (204,205)
-                and clast.Last = 1
-                and clast.String2 = c.Hash
 
             left join TxOutputs oc indexed by TxOutputs_TxHash_AddressHash_Value
                 on oc.TxHash = c.Hash and oc.AddressHash = p.String1 and oc.AddressHash != c.String1 -- TODO: c.Hash or c.String2 or clast.Hash???
 
             left join Payload pc
-                on pc.TxHash = clast.Hash
+                on pc.TxHash = c.Hash
 
             left join Payload pp
                 on pp.TxHash = p.Hash
