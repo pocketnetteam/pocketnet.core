@@ -36,7 +36,7 @@ namespace PocketDb
         {
             const auto i = index;
 
-            static const auto stmtOffset = 13;
+            static const auto stmtOffset = 14;
             index += stmtOffset;
 
             auto [ok1, hash] = TryGetColumnString(stmt, i);
@@ -47,11 +47,12 @@ namespace PocketDb
                 if (auto [ok, val] = TryGetColumnString(stmt, i+2); ok) txData.SetAddress(val);
                 if (auto [ok, val] = TryGetColumnInt64(stmt, i+3); ok) txData.SetHeight(val);
                 if (auto [ok, val] = TryGetColumnInt64(stmt, i+4); ok) txData.SetBlockNum(val);
-                if (auto [ok, val] = TryGetColumnInt64(stmt, i+5); ok) txData.SetVal(val);
-                if (auto [ok, val] = TryGetColumnString(stmt, i+6); ok) txData.SetDescription(val);
-                if (auto [ok, val] = TryGetColumnString(stmt, i+7); ok) txData.SetCommentParentId(val);
-                if (auto [ok, val] = TryGetColumnString(stmt, i+8); ok) txData.SetCommentAnswerId(val);
-                txData.SetAccount(_processAccount(stmt, i+9));
+                if (auto [ok, val] = TryGetColumnString(stmt, i+5); ok) txData.SetRootTxHash(val);
+                if (auto [ok, val] = TryGetColumnInt64(stmt, i+6); ok) txData.SetVal(val);
+                if (auto [ok, val] = TryGetColumnString(stmt, i+7); ok) txData.SetDescription(val);
+                if (auto [ok, val] = TryGetColumnString(stmt, i+8); ok) txData.SetCommentParentId(val);
+                if (auto [ok, val] = TryGetColumnString(stmt, i+9); ok) txData.SetCommentAnswerId(val);
+                txData.SetAccount(_processAccount(stmt, i+10));
                 return txData;
             }
 
@@ -4798,6 +4799,7 @@ namespace PocketDb
                 null,
                 a.Height as Height,
                 a.BlockNum as BlockNum,
+                a.String2,
                 null,
                 pa.String1,
                 alast.String4,
@@ -4811,6 +4813,7 @@ namespace PocketDb
                 c.String1,
                 c.Height,
                 c.BlockNum,
+                c.String2,
                 null,
                 pc.String1,
                 c.String4,
@@ -4880,6 +4883,7 @@ namespace PocketDb
                 null,
                 c.Height as Height,
                 c.BlockNum as BlockNum,
+                c.String2,
                 oc.Value,
                 pc.String1,
                 clast.String4,
@@ -4893,6 +4897,7 @@ namespace PocketDb
                 p.String1,
                 p.Height,
                 p.BlockNum,
+                null,
                 null,
                 pp.String2,
                 null,
@@ -4974,11 +4979,13 @@ namespace PocketDb
                 null,
                 null,
                 null,
+                null,
                 u.Hash,
                 u.Type,
                 u.String1,
                 u.Height,
                 u.BlockNum,
+                null,
                 null,
                 null,
                 null,
@@ -5029,6 +5036,7 @@ namespace PocketDb
                 null,
                 s.Height as Height,
                 s.BlockNum as BlockNum,
+                null,
                 s.Int1,
                 null,
                 null,
@@ -5042,6 +5050,7 @@ namespace PocketDb
                 c.String1,
                 c.Height,
                 c.BlockNum,
+                c.String2,
                 null,
                 pc.String1,
                 c.String4,
@@ -5102,6 +5111,7 @@ namespace PocketDb
                 null,
                 s.Height as Height,
                 s.BlockNum as BlockNum,
+                null,
                 s.Int1,
                 null,
                 null,
@@ -5115,6 +5125,7 @@ namespace PocketDb
                 c.String1,
                 c.Height,
                 c.BlockNum,
+                c.String2,
                 null,
                 pc.String2,
                 null,
@@ -5175,6 +5186,7 @@ namespace PocketDb
                 null,
                 tBoost.Height as Height,
                 tBoost.BlockNum as BlockNum,
+                null,
                 tBoost.Int1,
                 null,
                 null,
@@ -5188,6 +5200,7 @@ namespace PocketDb
                 tContent.String1,
                 tContent.Height,
                 tContent.BlockNum,
+                tContent.String2,
                 null,
                 pContent.String2,
                 null,
