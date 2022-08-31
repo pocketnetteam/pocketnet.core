@@ -10,7 +10,8 @@
 PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType, std::optional<std::string> address, std::optional<int64_t> height,
                                     std::optional<int64_t> blockNum, std::optional<ShortAccount> account, std::optional<int> val,
                                     std::optional<std::string> description, std::optional<std::string> commentParentId,
-                                    std::optional<std::string> commentAnswerId, std::optional<std::string> rootTxHash
+                                    std::optional<std::string> commentAnswerId, std::optional<std::string> rootTxHash,
+                                    std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>> multipleAddresses
                                   )
     : m_hash(std::move(hash)),
       m_txType(txType),
@@ -22,7 +23,8 @@ PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType, st
       m_description(std::move(description)),
       m_commentParentId(std::move(commentParentId)),
       m_commentAnswerId(std::move(commentAnswerId)),
-      m_rootTxHash(std::move(rootTxHash))
+      m_rootTxHash(std::move(rootTxHash)),
+      m_multipleAddresses(std::move(multipleAddresses))
 {}
 
 PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType)
@@ -45,6 +47,18 @@ UniValue PocketDb::ShortTxData::Serialize() const
     if (m_commentParentId) data.pushKV("commentParentId", m_commentParentId.value());
     if (m_commentAnswerId) data.pushKV("commentAnswerId", m_commentAnswerId.value());
     if (m_rootTxHash) data.pushKV("rootTxHash", *m_rootTxHash);
+    if (m_multipleAddresses) {
+        UniValue multipleAddresses(UniValue::VARR);
+        std::vector<UniValue> tmp;
+        for (const auto& addressData: *m_multipleAddresses) {
+            UniValue addressDataUni(UniValue::VOBJ);
+            addressDataUni.pushKV("address", addressData.first);
+            addressDataUni.pushKVs(addressData.second->Serialize());
+            tmp.emplace_back(std::move(addressDataUni));
+        }
+        multipleAddresses.push_backV(tmp);
+        data.pushKV("multipleAddresses", multipleAddresses);
+    }
 
     return data;
 }

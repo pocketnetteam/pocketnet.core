@@ -24,7 +24,7 @@ namespace PocketDb
                     std::optional<ShortAccount> account, std::optional<int> val,
                     std::optional<std::string> description,
                     std::optional<std::string> commentParentId, std::optional<std::string> commentAnswerId,
-                    std::optional<std::string> rootTxHash);
+                    std::optional<std::string> rootTxHash, std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>> multipleAddresses);
 
         ShortTxData(std::string hash, PocketTx::TxType txType);
 
@@ -50,6 +50,8 @@ namespace PocketDb
         const std::optional<std::string>& GetCommentAnswerId() const;
         void SetRootTxHash(const std::optional<std::string>& rootTxHash);
         const std::optional<std::string>& GetRootTxHash() const;
+        void SetMultipleAddresses(const std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>>& multipleAddresses);
+        const std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>>& GetMultipleAddresses();
         
     private:
         std::string m_hash;
@@ -58,6 +60,7 @@ namespace PocketDb
         std::optional<int64_t> m_height; // This field is optional if we are requesting a lot of txs for one height and want to not duplicate meaningless data 
         std::optional<int64_t> m_blockNum; // TODO (losty): probably some filters for these fields 
         std::optional<ShortAccount> m_account; // Account data associated with address
+        std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>> m_multipleAddresses;
         std::optional<int> m_val;
         std::optional<std::string> m_description; // Short description of content, e.x. first lines of post's text
         std::optional<std::string> m_rootTxHash;

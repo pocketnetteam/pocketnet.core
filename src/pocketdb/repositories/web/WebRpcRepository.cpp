@@ -36,7 +36,7 @@ namespace PocketDb
         {
             const auto i = index;
 
-            static const auto stmtOffset = 14;
+            static const auto stmtOffset = 15;
             index += stmtOffset;
 
             auto [ok1, hash] = TryGetColumnString(stmt, i);
@@ -53,6 +53,7 @@ namespace PocketDb
                 if (auto [ok, val] = TryGetColumnString(stmt, i+8); ok) txData.SetCommentParentId(val);
                 if (auto [ok, val] = TryGetColumnString(stmt, i+9); ok) txData.SetCommentAnswerId(val);
                 txData.SetAccount(_processAccount(stmt, i+10));
+                if (auto [ok, val] = TryGetColumnString(stmt, i+14); ok) txData.SetMultipleAddresses(_processMultipleAddresses(val));
                 return txData;
             }
 
@@ -70,6 +71,38 @@ namespace PocketDb
             }
             return std::nullopt;
         }
+        std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>> _processMultipleAddresses(const std::string& jsonStr)
+        {
+            UniValue json;
+            if (!json.read(jsonStr) || !json.isArray() || json.size() <= 0) return std::nullopt;
+
+            std::vector<std::pair<std::string, std::optional<ShortAccount>>> multipleAddresses;
+            for (int i = 0; i < json.size(); i++) {
+                const auto& entry = json[i];
+                if (!entry.isObject() || !entry.exists("address") || !entry["address"].isStr()) {
+                    continue;
+                }
+
+                auto address = entry["address"].get_str();
+                std::optional<ShortAccount> accountData;
+                if (entry.exists("account")) {
+                    const auto& account = entry["account"];
+                    if (account["name"].isStr()) {
+                        ShortAccount accData;
+                        accData.SetName(account["name"].get_str());
+                        if (account["avatar"].isStr()) accData.SetAvatar(account["avatar"].get_str());
+                        if (account["badge"].isStr()) accData.SetBadge(account["badge"].get_str());
+                        if (account["reputation"].isNull()) accData.SetReputation(account["reputation"].get_int64());
+                        accountData = std::move(accData);
+                    }
+                }
+
+                multipleAddresses.emplace_back(std::make_pair(std::move(address), std::move(accountData)));
+            }
+
+            return multipleAddresses;
+        }
+
     };
 
     class EventsReconstructor : public RowAccessor
@@ -4808,6 +4841,7 @@ namespace PocketDb
                 null,
                 null,
                 null,
+                null,
                 c.Hash,
                 c.Type,
                 c.String1,
@@ -4821,7 +4855,8 @@ namespace PocketDb
                 pca.String2,
                 pca.String3,
                 null, -- Badge
-                ifnull(rca.Value,0)
+                ifnull(rca.Value,0),
+                null
 
             from Transactions c indexed by Transactions_Type_Last_String2_Height -- My comments
 
@@ -4886,6 +4921,7 @@ namespace PocketDb
                 null,
                 null,
                 null,
+                null,
                 p.Hash,
                 p.Type,
                 p.String1,
@@ -4899,7 +4935,8 @@ namespace PocketDb
                 pap.String2,
                 pap.String3,
                 pap.String4,
-                ifnull(rap.Value, 0)
+                ifnull(rap.Value, 0),
+                null
 
             from Transactions p indexed by Transactions_Type_Last_String2_Height
 
@@ -4967,6 +5004,7 @@ namespace PocketDb
                 null,
                 null,
                 null,
+                null,
                 u.Hash,
                 u.Type,
                 u.String1,
@@ -4980,7 +5018,8 @@ namespace PocketDb
                 pu.String2,
                 pu.String3,
                 pu.String4,
-                ifnull(ru.Value,0)
+                ifnull(ru.Value,0),
+                null
 
             from Transactions subs indexed by Transactions_Type_String1_Height_Time_Int1
 
@@ -5032,6 +5071,7 @@ namespace PocketDb
                 null,
                 null,
                 null,
+                null,
                 c.Hash,
                 c.Type,
                 c.String1,
@@ -5045,7 +5085,8 @@ namespace PocketDb
                 pac.String2,
                 pac.String3,
                 pac.String4,
-                ifnull(rac.Value,0)
+                ifnull(rac.Value,0),
+                null
 
             from Transactions c indexed by Transactions_Type_Last_String2_Height
 
@@ -5107,6 +5148,7 @@ namespace PocketDb
                 null,
                 null,
                 null,
+                null,
                 c.Hash,
                 c.Type,
                 c.String1,
@@ -5120,7 +5162,8 @@ namespace PocketDb
                 pac.String2,
                 pac.String3,
                 pac.String4,
-                ifnull(rac.Value,0)
+                ifnull(rac.Value,0),
+                null
 
             from Transactions c indexed by Transactions_Type_Last_String2_Height
 
@@ -5182,6 +5225,7 @@ namespace PocketDb
                 null,
                 null,
                 null,
+                null,
                 tContent.Hash,
                 tContent.Type,
                 tContent.String1,
@@ -5195,7 +5239,8 @@ namespace PocketDb
                 pac.String2,
                 pac.String3,
                 pac.String4,
-                ifnull(rac.Value,0)
+                ifnull(rac.Value,0),
+                null
 
             from Transactions tBoost indexed by Transactions_Type_Last_String1_Height_Id
 
