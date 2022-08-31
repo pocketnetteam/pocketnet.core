@@ -8,6 +8,7 @@ namespace PocketDb
 {
     void ChainRepository::IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
+        // TODO (brangr) (v0.21.1): optimizations
         TryTransactionStep(__func__, [&]()
         {
             int64_t nTime1 = GetTimeMicros();
@@ -19,7 +20,7 @@ namespace PocketDb
                 UpdateTransactionHeight(blockHash, txInfo.BlockNumber, height, txInfo.Hash);
 
                 // The outputs are needed for the explorer
-                // TODO (brangr) (v0.20.19+): replace with update inputs spent with TxInputs table over loop
+                // TODO (brangr) (v0.21.1): replace with update inputs spent with TxInputs table over loop
                 UpdateTransactionOutputs(txInfo, height);
 
                 // Account and Content must have unique ID
