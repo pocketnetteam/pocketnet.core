@@ -306,7 +306,7 @@ namespace PocketConsensus
             { NetworkTest, { {0, 0} } }
         } },
         { threshold_shark_likers_comment, {
-            { NetworkMain, { {0, 15}, {1862000, 25} } },
+            { NetworkMain, { {0, 15}, {1873500, 25} } },
             { NetworkTest, { {0, 1} } }
         } },
         { threshold_shark_likers_comment_answer, {
@@ -315,7 +315,7 @@ namespace PocketConsensus
         } },
         
         // Thresholds for obtaining badges - WHALE
-        { threshold_shark_reg_depth, {
+        { threshold_whale_reg_depth, {
             { NetworkMain, { {0, 207360} } },
             { NetworkTest, { {0, 1} } }
         } },
@@ -426,7 +426,7 @@ namespace PocketConsensus
             { NetworkTest, { {0, 30} } }
         } },
         { ConsensusLimit_full_score, {
-            { NetworkMain, { {0, 90}, {175600, 200}, {1757000, 60}, {1791787, 100}, {1862000, 200} } },
+            { NetworkMain, { {0, 90}, {175600, 200}, {1757000, 60}, {1791787, 100}, {1873500, 200} } },
             { NetworkTest, { {0, 200} } }
         } },
         { ConsensusLimit_full_complain, {
@@ -438,7 +438,7 @@ namespace PocketConsensus
             { NetworkTest, { {0, 300} } }
         } },
         { ConsensusLimit_full_comment_score, {
-            { NetworkMain, { {0, 600}, {1757000, 200}, {1862000, 300} } },
+            { NetworkMain, { {0, 600}, {1757000, 200}, {1873500, 300} } },
             { NetworkTest, { {0, 600} } }
         } },
         

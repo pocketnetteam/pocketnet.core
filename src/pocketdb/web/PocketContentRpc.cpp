@@ -931,7 +931,7 @@ namespace PocketWeb::PocketWebRpc
         vector<string> adrsExcluded;
         vector<string> tagsExcluded;
         string address;
-        int depth = 60 * 24 * 30 * 6; // about 6 month
+        int depth = 60 * 24 * 30 * 1; // about 1 month
         ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, address);
         // depth
