@@ -15,6 +15,8 @@ namespace PocketConsensus
     using namespace PocketDb;
     using namespace PocketConsensus;
 
+    typedef shared_ptr<PocketConsensus::ReputationConsensus> ReputationConsensusRef;
+
     /*******************************************************************************************************************
     *  ModeratorRegister consensus base class
     *******************************************************************************************************************/
@@ -26,10 +28,17 @@ namespace PocketConsensus
 
     public:
 
-        ModeratorRegisterConsensus(int height) : SocialConsensus<T>(height) {}
+        ModeratorRegisterConsensus(int height) : SocialConsensus<T>(height)
+        {
+            reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+        }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
+            // Already `Moderator` cant't register again
+            if (reputationConsensus->GetBadges(*ptx->GetAddress()).Moderator)
+                return {false, SocialConsensusResult_AlreadyExists};
+
             return Base::Validate(tx, ptx, block);
         }
 
@@ -42,13 +51,16 @@ namespace PocketConsensus
         }
 
     protected:
+        ReputationConsensusRef reputationConsensus;
 
         ConsensusValidateResult ValidateBlock(const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
+            return Base::Success;
         }
 
         ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
+            return Base::Success;
         }
         
     };

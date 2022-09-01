@@ -388,6 +388,8 @@ namespace PocketConsensus
 
             // badgeSet.Moderator = TODO (moderation): implement detect moderator register transaction
             // maybe over AccountData::data.ActiveModerator == 1 ?
+
+            // TODO (moderation): Blogger implement check
             
             return badgeSet;
         }

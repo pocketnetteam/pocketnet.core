@@ -57,6 +57,7 @@ namespace PocketDb
     {
         bool Shark = false;
         bool Whale = false;
+        bool Blogger = false;
         bool Moderator = false;
         bool Developer = false;
 
@@ -66,6 +67,7 @@ namespace PocketDb
             
             if (Shark) ret.push_back("shark");
             if (Whale) ret.push_back("whale");
+            if (Blogger) ret.push_back("blogger");
             if (Moderator) ret.push_back("moderator");
             if (Developer) ret.push_back("developer");
 

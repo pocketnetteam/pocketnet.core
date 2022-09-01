@@ -26,24 +26,13 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestSubsRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = ModeratorRequestConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
+            // Only `Blogger` can invite moderators
+            if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Blogger)
+                return {false, SocialConsensusResult_LowReputation};
 
-            // // Only `Shark` account can flag content
-            // auto reputationConsensus = ReputationConsensusFactoryInst.Instance(Height);
-            // if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Shark)
-            //     return {false, SocialConsensusResult_LowReputation};
+            // TODO (moderation): implement check allowed requests count > 0
 
-            // // Target transaction must be a exists and is a content and author should be equals ptx->GetContentAddressHash()
-            // if (!ConsensusRepoInst.ExistsNotDeleted(
-            //     *ptx->GetContentTxHash(),
-            //     *ptx->GetContentAddressHash(),
-            //     { ACCOUNT_USER, CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
-            // ))
-            //     return {false, SocialConsensusResult_NotFound};
-
-            return Success;
+            return ModeratorRequestConsensus::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestSubsRef& ptx) override
@@ -55,39 +44,26 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateBlock(const ModeratorRequestSubsRef& ptx, const PocketBlockRef& block) override
         {
-            // // Check flag from one to one
-            // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0)
-            //     return {false, SocialConsensusResult_Duplicate};
+            for (auto& blockTx : *block)
+            {
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_CANCEL }) || *blockTx->GetHash() == *ptx->GetHash())
+                    continue;
 
-            // // Count flags in chain
-            // int count = ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), false);
+                auto blockPtx = static_pointer_cast<Moderator>(blockTx);
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                    return {false, SocialConsensusResult_ManyTransactions};
+            }
 
-            // // Count flags in block
-            // for (auto& blockTx : *block)
-            // {
-            //     if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATION_FLAG }) || *blockTx->GetHash() == *ptx->GetHash())
-            //         continue;
-
-            //     auto blockPtx = static_pointer_cast<ModerationFlag>(blockTx);
-            //     if (*ptx->GetAddress() == *blockPtx->GetAddress())
-            //         if (*ptx->GetContentTxHash() == *blockPtx->GetContentTxHash())
-            //             return {false, SocialConsensusResult_Duplicate};
-            //         else
-            //             count += 1;
-            // }
-
-            // // Check limit
-            // return ValidateLimit(ptx, count);
+            return Success;
         }
 
         ConsensusValidateResult ValidateMempool(const ModeratorRequestSubsRef& ptx) override
         {
-            // // Check flag from one to one
-            // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), true) > 0)
+            // TODO (moderation): implement
+            // if (ConsensusRepoInst.ExistsModeratorRequest(*ptx->GetAddress(), true))
             //     return {false, SocialConsensusResult_Duplicate};
 
-            // // Check limit
-            // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
+            return Success;
         }
     };
 

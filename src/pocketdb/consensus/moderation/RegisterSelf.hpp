@@ -31,9 +31,7 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Only `Whale` account can register moderator badge
-            // Also already `Moderator` cant't register again
-            auto reputationConsensus = ReputationConsensusFactoryInst.Instance(Height);
-            if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Whale && !reputationConsensus->GetBadges(*ptx->GetAddress()).Moderator)
+            if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Whale)
                 return {false, SocialConsensusResult_LowReputation};
 
             return Success;
@@ -64,7 +62,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const ModeratorRegisterSelfRef& ptx) override
         {
             // TODO (moderation): implement
-            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), *ptx->GetModeratorAddress()))
+            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), *ptx->GetModeratorAddress(), true))
             //     return {false, SocialConsensusResult_Duplicate};
 
             return Success;
