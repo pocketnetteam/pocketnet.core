@@ -48,15 +48,11 @@ UniValue PocketDb::ShortTxData::Serialize() const
     if (m_commentAnswerId) data.pushKV("commentAnswerId", m_commentAnswerId.value());
     if (m_rootTxHash) data.pushKV("rootTxHash", *m_rootTxHash);
     if (m_multipleAddresses) {
-        UniValue multipleAddresses(UniValue::VARR);
-        std::vector<UniValue> tmp;
+        UniValue multipleAddresses(UniValue::VOBJ);
+        multipleAddresses.reserveKVSize(m_multipleAddresses->size());
         for (const auto& addressData: *m_multipleAddresses) {
-            UniValue addressDataUni(UniValue::VOBJ);
-            addressDataUni.pushKV("address", addressData.first);
-            addressDataUni.pushKVs(addressData.second->Serialize());
-            tmp.emplace_back(std::move(addressDataUni));
+            multipleAddresses.pushKV(addressData.first, std::move(addressData.second->Serialize()), false);
         }
-        multipleAddresses.push_backV(tmp);
         data.pushKV("multipleAddresses", multipleAddresses);
     }
 
@@ -102,3 +98,7 @@ const std::optional<std::string>& PocketDb::ShortTxData::GetCommentAnswerId() co
 void PocketDb::ShortTxData::SetRootTxHash(const std::optional<std::string>& rootTxHash) { m_rootTxHash = rootTxHash; }
 
 const std::optional<std::string>& PocketDb::ShortTxData::GetRootTxHash() const { return m_rootTxHash; }
+
+void PocketDb::ShortTxData::SetMultipleAddresses(const std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>>& multipleAddresses) { m_multipleAddresses = multipleAddresses; }
+
+const std::optional<std::vector<std::pair<std::string, std::optional<PocketDb::ShortAccount>>>>& PocketDb::ShortTxData::GetMultipleAddresses() { return m_multipleAddresses; }

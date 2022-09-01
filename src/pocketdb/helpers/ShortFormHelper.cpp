@@ -71,6 +71,7 @@ bool PocketHelpers::ShortTxFilterValidator::Activities::IsFilterAllowed(PocketDb
         PocketDb::ShortTxType::CommentScore,
         PocketDb::ShortTxType::ContentScore,
         PocketDb::ShortTxType::Boost,
+        PocketDb::ShortTxType::Blocking,
     };
 
     return allowed.find(type) != allowed.end();

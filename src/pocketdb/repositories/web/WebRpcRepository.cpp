@@ -5282,6 +5282,97 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
             }
         }},
+
+        {
+            ShortTxType::Blocking, { R"sql(
+            -- My blockings and unblockings
+            select
+                ('blocking')TP,
+                b.Hash,
+                b.Type,
+                ac.String1,
+                b.Height as Height,
+                b.BlockNum as BlockNum,
+                null,
+                null,
+                null,
+                null,
+                null,
+                pac.String2,
+                pac.String3,
+                null,
+                ifnull(rac.Value,0),
+                (
+                    select json_group_array(
+                        json_object(
+                            'address', mac.String1,
+                            'account', json_object(
+                                'name', pmac.String2,
+                                'avatar', pmac.String3,
+                                'reputation', ifnull(rmac.Value,0)
+                            )
+                        )
+                    )   from Transactions mac indexed by Transactions_Type_Last_String1_Height_Id
+
+                        left join Payload pmac
+                            on pmac.TxHash = mac.Hash
+
+                        left join Ratings rmac indexed by Ratings_Type_Id_Last_Height
+                            on rmac.Type = 0
+                            and rmac.Id = mac.Id
+                            and rmac.Last = 1
+
+                        where mac.String1 in (select value from json_each(b.String3))
+                            and mac.Type = 100
+                            and mac.Last = 1
+                            and mac.Height > 0
+                ),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+
+            from Transactions b indexed by Transactions_Type_String1_Height_Time_Int1
+
+            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                on ac.String1 = b.String2
+                and ac.Type = 100
+                and ac.Last = 1
+                and ac.Height > 0
+
+            left join Payload pac
+                on pac.TxHash = ac.Hash
+
+            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                on rac.Type = 0
+                and rac.Id = ac.Id
+                and rac.Last = 1
+
+            where b.Type in (305,306)
+                and b.String1 = ?
+                and b.Height > ?
+                and (b.Height < ? or (b.Height = ? and b.BlockNum < ?))
+
+        )sql",
+            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                TryBindStatementText(stmt, i++, queryParams.address);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            }
+        }},
         };
 
         static const auto footer = R"sql(
