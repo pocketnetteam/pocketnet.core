@@ -5720,7 +5720,7 @@ namespace PocketDb
                     null,
                     p.String2,
                     p.String3,
-                    p.String4,
+                    null,
                     ifnull(r.Value,0) -- TODO (losty): do we need rating if referal is always a new user?
 
                 from Transactions t indexed by Transactions_Height_Type
@@ -5761,7 +5761,7 @@ namespace PocketDb
                     a.String5,
                     paa.String2,
                     paa.String3,
-                    paa.String4,
+                    null,
                     ifnull(ra.Value,0),
                     null,
                     post.Hash,
@@ -5874,7 +5874,7 @@ namespace PocketDb
                     null,
                     pac.String2,
                     pac.String3,
-                    pac.String4,
+                    null,
                     ifnull(rac.Value,0),
                     null,
                     p.Hash,
@@ -5943,7 +5943,7 @@ namespace PocketDb
                     null,
                     pu.String2,
                     pu.String3,
-                    pu.String4,
+                    null,
                     ifnull(ru.Value,0)
 
                 from Transactions subs indexed by Transactions_Height_Type
@@ -5988,7 +5988,7 @@ namespace PocketDb
                     null,
                     pacs.String2,
                     pacs.String3,
-                    pacs.String4,
+                    null,
                     ifnull(racs.Value,0),
                     null,
                     c.Hash,
@@ -6055,7 +6055,7 @@ namespace PocketDb
                     null,
                     pacs.String2,
                     pacs.String3,
-                    pacs.String4,
+                    null,
                     ifnull(racs.Value,0),
                     null,
                     c.Hash,
@@ -6213,7 +6213,7 @@ namespace PocketDb
                     null,
                     pac.String2,
                     pac.String3,
-                    pac.String4,
+                    null,
                     ifnull(rac.Value,0),
                     null,
                     tContent.Hash,
@@ -6279,7 +6279,7 @@ namespace PocketDb
                     null,
                     par.String2,
                     par.String3,
-                    par.String4,
+                    null,
                     ifnull(rar.Value,0),
                     null,
                     p.Hash,
