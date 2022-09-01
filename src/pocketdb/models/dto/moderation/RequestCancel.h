@@ -14,6 +14,11 @@ namespace PocketTx
     public:
         ModeratorRequestCancel();
         ModeratorRequestCancel(const CTransactionRef& tx);
+
+        shared_ptr<string> GetRequestTxHash() const;
+        void SetRequestTxHash(const string& value);
+
+        string BuildHash() override;
     }; // class ModeratorRequestCancel
 
 } // namespace PocketTx

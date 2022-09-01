@@ -27,28 +27,16 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestCancelRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = ModeratorRequestConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
+            // TODO (moderation): check not registered with canceled request
 
-            // // Only `Shark` account can flag content
-            // auto reputationConsensus = ReputationConsensusFactoryInst.Instance(Height);
-            // if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Shark)
-            //     return {false, SocialConsensusResult_LowReputation};
-
-            // // Target transaction must be a exists and is a content and author should be equals ptx->GetContentAddressHash()
-            // if (!ConsensusRepoInst.ExistsNotDeleted(
-            //     *ptx->GetContentTxHash(),
-            //     *ptx->GetContentAddressHash(),
-            //     { ACCOUNT_USER, CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
-            // ))
-            //     return {false, SocialConsensusResult_NotFound};
-
-            return Success;
+            return ModeratorRequestConsensus::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestCancelRef& ptx) override
         {
+            if (IsEmpty(ptx->GetRequestTxHash()))
+                return {false, SocialConsensusResult_Failed};
+
             return ModeratorRequestConsensus::Check(tx, ptx);
         }
 

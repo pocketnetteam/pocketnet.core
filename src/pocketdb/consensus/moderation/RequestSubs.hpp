@@ -26,8 +26,8 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestSubsRef& ptx, const PocketBlockRef& block) override
         {
-            // Only `Blogger` can invite moderators
-            if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Blogger)
+            // Only `Author` can invite moderators
+            if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Author)
                 return {false, SocialConsensusResult_LowReputation};
 
             // TODO (moderation): implement check allowed requests count > 0

@@ -15,6 +15,17 @@ namespace PocketTx
     {
         SetType(TxType::MODERATOR_REQUEST_CANCEL);
     }
+
+    shared_ptr<string> ModeratorRequestCancel::GetRequestTxHash() const { return m_string3; }
+    void ModeratorRequestCancel::SetRequestTxHash(const string& value) { m_string3 = make_shared<string>(value); }
+    
+    string ModeratorRequestCancel::BuildHash()
+    {
+        string data;
+        data += *GetModeratorAddress();
+        data += *GetRequestTxHash();
+        return SocialTransaction::GenerateHash(data);
+    }
     
 } // namespace PocketTx
 

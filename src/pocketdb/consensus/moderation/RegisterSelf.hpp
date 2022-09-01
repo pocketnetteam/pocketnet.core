@@ -26,15 +26,11 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = ModeratorRegisterConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Only `Whale` account can register moderator badge
             if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Whale)
                 return {false, SocialConsensusResult_LowReputation};
 
-            return Success;
+            return ModeratorRegisterConsensus::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx) override
@@ -52,7 +48,7 @@ namespace PocketConsensus
                     continue;
 
                 auto blockPtx = static_pointer_cast<Moderator>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetModeratorAddress() == *blockPtx->GetModeratorAddress())
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
                     return {false, SocialConsensusResult_Duplicate};
             }
 
@@ -62,7 +58,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const ModeratorRegisterSelfRef& ptx) override
         {
             // TODO (moderation): implement
-            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), *ptx->GetModeratorAddress(), true))
+            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), true))
             //     return {false, SocialConsensusResult_Duplicate};
 
             return Success;
