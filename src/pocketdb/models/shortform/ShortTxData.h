@@ -7,6 +7,7 @@
 
 #include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/models/shortform/ShortAccount.h"
+#include "pocketdb/models/shortform/ShortTxOutput.h"
 
 #include <univalue.h>
 
@@ -52,6 +53,10 @@ namespace PocketDb
         const std::optional<std::string>& GetRootTxHash() const;
         void SetMultipleAddresses(const std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>>& multipleAddresses);
         const std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>>& GetMultipleAddresses();
+        void SetOutputs(const std::optional<std::vector<ShortTxOutput>>& outputs);
+        const std::optional<std::vector<ShortTxOutput>>& GetOutputs() const;
+        void SetInputs(const std::optional<std::vector<ShortTxOutput>>& inputs);
+        const std::optional<std::vector<ShortTxOutput>>& GetInputs() const;
         
     private:
         std::string m_hash;
@@ -62,6 +67,8 @@ namespace PocketDb
         std::optional<ShortAccount> m_account; // Account data associated with address
         std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>> m_multipleAddresses;
         std::optional<int> m_val;
+        std::optional<std::vector<ShortTxOutput>> m_inputs;
+        std::optional<std::vector<ShortTxOutput>> m_outputs;
         std::optional<std::string> m_description; // Short description of content, e.x. first lines of post's text
         std::optional<std::string> m_rootTxHash;
 

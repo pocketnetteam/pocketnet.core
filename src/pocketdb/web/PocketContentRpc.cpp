@@ -1386,10 +1386,16 @@ namespace PocketWeb::PocketWebRpc
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "height of block to search in"},
                     {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of notifications. If empty or null - search for all types",
                         {
-                            {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "recieved money"},
-                            {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "answers to acc's comments"},
-                            {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "content from acc's private subscriptions`"},
-                            {ShortTxTypeConvertor::toString(ShortTxType::Boost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "boosts of acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new incoming coins"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new answers to acc's comments"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Boost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new boosts of acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Referal), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new registration with my referal link"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Comment), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new comments under acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Subscriber), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new subscribers to acc"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::CommentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new scores to acc's comments"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::ContentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new scores to acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new content from acc's private subscriptions"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Repost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new reposts of acc's content"},
                         }
                     },
                 },
@@ -1403,15 +1409,6 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getnotifications\n"
-                "\nGet all possible notifications for all addresses for concrete block height.\n"
-                "\nArguments:\n"
-                "1. \"height\" (int) height of block to search in\n"
-                "2. \"filters\" (array of strings, optional) type(s) of notifications. If empty or null - search for all types\n"
-                );
-
         RPCTypeCheck(request.params, {UniValue::VNUM});
 
         auto height = request.params[0].get_int64();
@@ -1433,24 +1430,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxMap = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
-
-        UniValue userNotifications {UniValue::VOBJ};
-        userNotifications.reserveKVSize(shortTxMap.size());
-        for (const auto& addressSpecific: shortTxMap) {
-            UniValue txs {UniValue::VARR};
-            std::vector<UniValue> tmp;
-            for (const auto& tx: addressSpecific.second) {
-                tmp.emplace_back(tx.Serialize());
-            }
-            txs.push_backV(std::move(tmp));
-            userNotifications.pushKV(addressSpecific.first, txs, false /*searchDuplicate*/);
-        }
-
-        UniValue res {UniValue::VOBJ};
-        res.pushKV("users_notifications", userNotifications);
-
-        return res;
+        return request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
     },
        };
     }

@@ -164,16 +164,13 @@ namespace PocketDb
          */
         std::vector<ShortForm> GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNum, const std::set<ShortTxType>& filters);
 
-
-        // First - map where keys are addresses and values are ShortForms of events from given block. Second - pocketnetteam posts.
-        using NotificationsResult = std::map<std::string, std::vector<PocketDb::ShortForm>>;
         /**
          * Get all possible events for all adresses in concrete block
          * 
          * @param height height of block to search
          * @param filters
          */
-        NotificationsResult GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
+        UniValue GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
 
         /**
          * Get all activities (posts, comments, etc) created by address

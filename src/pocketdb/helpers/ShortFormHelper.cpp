@@ -42,7 +42,13 @@ bool PocketHelpers::ShortTxFilterValidator::Notifications::IsFilterAllowed(Pocke
         PocketDb::ShortTxType::Money,
         PocketDb::ShortTxType::Answer,
         PocketDb::ShortTxType::PrivateContent,
-        PocketDb::ShortTxType::Boost
+        PocketDb::ShortTxType::Boost,
+        PocketDb::ShortTxType::Referal,
+        PocketDb::ShortTxType::Comment,
+        PocketDb::ShortTxType::Subscriber,
+        PocketDb::ShortTxType::CommentScore,
+        PocketDb::ShortTxType::ContentScore,
+        PocketDb::ShortTxType::Repost
     };
 
     return allowed.find(type) != allowed.end();
