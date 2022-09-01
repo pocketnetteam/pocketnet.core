@@ -5108,7 +5108,7 @@ namespace PocketDb
                 null,
                 pap.String2,
                 pap.String3,
-                pap.String4,
+                null,
                 ifnull(rap.Value, 0),
                 null
 
@@ -5195,7 +5195,7 @@ namespace PocketDb
                 null,
                 pu.String2,
                 pu.String3,
-                pu.String4,
+                null,
                 ifnull(ru.Value,0),
                 null
 
@@ -5285,7 +5285,7 @@ namespace PocketDb
                 c.String5,
                 pac.String2,
                 pac.String3,
-                pac.String4,
+                null,
                 ifnull(rac.Value,0),
                 null
 
@@ -5366,7 +5366,7 @@ namespace PocketDb
                 null,
                 pac.String2,
                 pac.String3,
-                pac.String4,
+                null,
                 ifnull(rac.Value,0),
                 null
 
@@ -5466,7 +5466,7 @@ namespace PocketDb
                 null,
                 pac.String2,
                 pac.String3,
-                pac.String4,
+                null,
                 ifnull(rac.Value,0),
                 null
 
