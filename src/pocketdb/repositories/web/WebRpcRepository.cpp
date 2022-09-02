@@ -4999,6 +4999,7 @@ namespace PocketDb
                     from TxOutputs o
                     where o.TxHash = c.Hash
                         and o.TxHeight = c.Height
+                    order by o.Number
                 ),
                 pc.String1,
                 c.String4,
@@ -5085,6 +5086,7 @@ namespace PocketDb
                     from TxOutputs o
                     where o.TxHash = c.Hash
                         and o.TxHeight = c.Height
+                    order by o.Number
                 ),
                 pc.String1,
                 c.String4,
@@ -5279,6 +5281,7 @@ namespace PocketDb
                     from TxOutputs o
                     where o.TxHash = c.Hash
                         and o.TxHeight = c.Height
+                    order by o.Number
                 ),
                 pc.String1,
                 c.String4,
@@ -5443,6 +5446,7 @@ namespace PocketDb
                     from TxOutputs o
                     where o.TxHash = tBoost.Hash
                         and o.TxHeight = tBoost.Height
+                    order by o.Number
                 ),
                 null,
                 null,
@@ -5688,6 +5692,7 @@ namespace PocketDb
                         from TxOutputs o
                         where o.TxHash = t.Hash
                             and o.TxHeight = t.Height
+                        order by o.Number
                     )
 
                 from Transactions t indexed by Transactions_Height_Type
@@ -5867,7 +5872,7 @@ namespace PocketDb
                         from TxOutputs o
                         where o.TxHash = c.Hash
                             and o.TxHeight = c.Height
-                        -- TODO (losty): order by o.Number?
+                        order by o.Number
                     ),
                     pc.String1,
                     null,
@@ -6207,6 +6212,7 @@ namespace PocketDb
                         from TxOutputs o
                         where o.TxHash = tBoost.Hash
                             and o.TxHeight = tBoost.Height
+                        order by o.Number
                     ),
                     null,
                     null,
