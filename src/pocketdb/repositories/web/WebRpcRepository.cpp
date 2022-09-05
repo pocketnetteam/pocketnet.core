@@ -5542,20 +5542,21 @@ namespace PocketDb
                                 'reputation', ifnull(rmac.Value,0)
                             )
                         )
-                    )   from Transactions mac indexed by Transactions_Type_Last_String1_Height_Id
+                    )
+                    from Transactions mac indexed by Transactions_Type_Last_String1_Height_Id
 
-                        left join Payload pmac
-                            on pmac.TxHash = mac.Hash
+                    left join Payload pmac
+                        on pmac.TxHash = mac.Hash
 
-                        left join Ratings rmac indexed by Ratings_Type_Id_Last_Height
-                            on rmac.Type = 0
-                            and rmac.Id = mac.Id
-                            and rmac.Last = 1
+                    left join Ratings rmac indexed by Ratings_Type_Id_Last_Height
+                        on rmac.Type = 0
+                        and rmac.Id = mac.Id
+                        and rmac.Last = 1
 
-                        where mac.String1 in (select value from json_each(b.String3))
-                            and mac.Type = 100
-                            and mac.Last = 1
-                            and mac.Height > 0
+                    where mac.String1 in (select value from json_each(b.String3))
+                        and mac.Type = 100
+                        and mac.Last = 1
+                        and mac.Height > 0
                 ),
                 null,
                 null,
