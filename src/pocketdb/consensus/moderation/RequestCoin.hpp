@@ -33,29 +33,6 @@ namespace PocketConsensus
 
     protected:
 
-        ConsensusValidateResult ValidateBlock(const ModeratorRequestCoinRef& ptx, const PocketBlockRef& block) override
-        {
-            for (auto& blockTx : *block)
-            {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_COIN }) || *blockTx->GetHash() == *ptx->GetHash())
-                    continue;
-
-                auto blockPtx = static_pointer_cast<Moderator>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    return {false, SocialConsensusResult_ManyTransactions};
-            }
-
-            return Success;
-        }
-
-        ConsensusValidateResult ValidateMempool(const ModeratorRequestCoinRef& ptx) override
-        {
-            // TODO (moderation): implement
-            // if (ConsensusRepoInst.ExistsModeratorRequest(*ptx->GetAddress(), true))
-            //     return {false, SocialConsensusResult_Duplicate};
-
-            return Success;
-        }
     };
 
 

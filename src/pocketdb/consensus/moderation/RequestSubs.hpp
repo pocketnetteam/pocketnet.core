@@ -35,36 +35,8 @@ namespace PocketConsensus
             return ModeratorRequestConsensus::Validate(tx, ptx, block);
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestSubsRef& ptx) override
-        {
-            return ModeratorRequestConsensus::Check(tx, ptx);
-        }
-
     protected:
 
-        ConsensusValidateResult ValidateBlock(const ModeratorRequestSubsRef& ptx, const PocketBlockRef& block) override
-        {
-            for (auto& blockTx : *block)
-            {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_COIN }) || *blockTx->GetHash() == *ptx->GetHash())
-                    continue;
-
-                auto blockPtx = static_pointer_cast<Moderator>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    return {false, SocialConsensusResult_ManyTransactions};
-            }
-
-            return Success;
-        }
-
-        ConsensusValidateResult ValidateMempool(const ModeratorRequestSubsRef& ptx) override
-        {
-            // TODO (moderation): implement
-            // if (ConsensusRepoInst.ExistsModeratorRequest(*ptx->GetAddress(), true))
-            //     return {false, SocialConsensusResult_Duplicate};
-
-            return Success;
-        }
     };
 
 
