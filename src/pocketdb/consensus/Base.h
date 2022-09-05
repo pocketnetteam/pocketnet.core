@@ -241,6 +241,7 @@ namespace PocketConsensus
         ConsensusLimit_bad_reputation,
 
         ConsensusLimit_moderation_flag_count,
+        threshold_moderator_register,
     };
 
     /*********************************************************************************************/
@@ -446,11 +447,6 @@ namespace PocketConsensus
             { NetworkMain, { {0, 0}, {1324655, 100} } },
             { NetworkTest, { {0, 100} } }
         } },
-        
-        { ConsensusLimit_moderation_flag_count, {
-            { NetworkMain, { {0, 30} }},
-            { NetworkTest, { {0, 100} }}
-        }},
 
         { ConsensusLimit_post_edit_count, {
             { NetworkMain, { {0, 5} } },
@@ -504,6 +500,17 @@ namespace PocketConsensus
             { NetworkMain, { {0, 2048} } },
             { NetworkTest, { {0, 2048} } }
         } },
+
+        // MODERATION
+
+        { ConsensusLimit_moderation_flag_count, {
+            { NetworkMain, { {0, 30} }},
+            { NetworkTest, { {0, 100} }}
+        }},
+        { threshold_moderator_register, {
+            { NetworkMain, { {0, 129600} }},
+            { NetworkTest, { {0, 10080} }}
+        }},
         
     };
 

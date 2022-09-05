@@ -386,10 +386,9 @@ namespace PocketConsensus
                           && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
                           && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
 
-            // badgeSet.Moderator = TODO (moderation): implement detect moderator register transaction
-            // maybe over AccountData::data.ActiveModerator == 1 ?
+            badgeSet.Moderator = (Height - data.ModeratorRegisterHeight) >= GetConsensusLimit(threshold_moderator_register);
 
-            // TODO (moderation): Blogger implement check
+            // TODO (moderation): Author implement check
             
             return badgeSet;
         }

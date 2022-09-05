@@ -574,7 +574,7 @@ namespace PocketDb
 
     AccountData ConsensusRepository::GetAccountData(const string& address)
     {
-        AccountData result = {address,-1,0,0,0,0,0};
+        AccountData result = {address,-1,0,0,0,0,0,0};
 
         TryTransactionStep(__func__, [&]()
         {
@@ -588,16 +588,31 @@ namespace PocketDb
                     ifnull(r.Value,0)Reputation,
                     ifnull(lp.Value,0)LikersContent,
                     ifnull(lc.Value,0)LikersComment,
-                    ifnull(lca.Value,0)LikersCommentAnswer
+                    ifnull(lca.Value,0)LikersCommentAnswer,
+                    ifnull(m.Height, 0)ModeratorRegisterHeight
 
                 from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+
                 cross join Transactions reg indexed by Transactions_Id
                     on reg.Id = u.Id and reg.Height = (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = reg.Id)
-                left join Balances b indexed by Balances_AddressHash_Last on b.AddressHash = u.String1 and b.Last = 1
-                left join Ratings r indexed by Ratings_Type_Id_Last_Value on r.Type = 0 and r.Id = u.Id and r.Last = 1
-                left join Ratings lp indexed by Ratings_Type_Id_Last_Value on lp.Type = 111 and lp.Id = u.Id and lp.Last = 1
-                left join Ratings lc indexed by Ratings_Type_Id_Last_Value on lc.Type = 112 and lc.Id = u.Id and lc.Last = 1
-                left join Ratings lca indexed by Ratings_Type_Id_Last_Value on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
+
+                left join Balances b indexed by Balances_AddressHash_Last
+                    on b.AddressHash = u.String1 and b.Last = 1
+
+                left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                    on r.Type = 0 and r.Id = u.Id and r.Last = 1
+
+                left join Ratings lp indexed by Ratings_Type_Id_Last_Value
+                    on lp.Type = 111 and lp.Id = u.Id and lp.Last = 1
+
+                left join Ratings lc indexed by Ratings_Type_Id_Last_Value
+                    on lc.Type = 112 and lc.Id = u.Id and lc.Last = 1
+
+                left join Ratings lca indexed by Ratings_Type_Id_Last_Value
+                    on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
+
+                left join Transactions m indexed by Transactions_Type_Last_String2_Height
+                    on m.Type in (403,404) and m.Last = 1 and m.String2 = u.String1 and m.Height > 0
 
                 where u.Type in (100)
                   and u.Last = 1
@@ -619,6 +634,7 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.LikersContent = value;
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.LikersComment = value;
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.LikersCommentAnswer = value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.ModeratorRegisterHeight = value;
             }
 
             FinalizeSqlStatement(*stmt);
