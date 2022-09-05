@@ -9,15 +9,17 @@
 
 namespace PocketDb
 {
-    class RpcModerationRepository : public BaseRepository
+    class ModerationRepository : public BaseRepository
     {
     public:
-        explicit RpcModerationRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit ModerationRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
         void Init() override;
         void Destroy() override;
 
     };
+
+    typedef std::shared_ptr<ModerationRepository> ModerationRepositoryRef;
 }
 
 #endif //SRC_RPC_MODERATION_REPOSITORY_H

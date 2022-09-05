@@ -1109,8 +1109,6 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/SystemRepository.cpp
         pocketdb/repositories/MigrationRepository.h
         pocketdb/repositories/MigrationRepository.cpp
-        pocketdb/repositories/ModerationRepository.h
-        pocketdb/repositories/ModerationRepository.cpp
         pocketdb/repositories/web/NotifierRepository.h
         pocketdb/repositories/web/NotifierRepository.cpp
         pocketdb/repositories/web/WebRepository.h

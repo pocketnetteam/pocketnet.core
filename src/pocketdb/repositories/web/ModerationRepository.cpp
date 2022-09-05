@@ -3,10 +3,11 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/web/ModerationRepository.h"
-#include <node/ui_interface.h>
-#include <util/translation.h>
 
 namespace PocketDb
 {
+    void ModerationRepository::Init() {}
+
+    void ModerationRepository::Destroy() {}
 
 }

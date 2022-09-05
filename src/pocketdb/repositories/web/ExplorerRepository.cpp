@@ -4,10 +4,9 @@
 
 #include "ExplorerRepository.h"
 
-namespace PocketDb {
-
+namespace PocketDb
+{
     void ExplorerRepository::Init() {}
-
     void ExplorerRepository::Destroy() {}
 
     map<int, map<int, int>> ExplorerRepository::GetBlocksStatistic(int bottomHeight, int topHeight)
