@@ -5700,9 +5700,7 @@ namespace PocketDb
                 where t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
                     and t.Height = ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
-            }
+            heightBinder
         }},
 
         {
