@@ -1922,6 +1922,7 @@ namespace PocketDb
 
     /* MODERATION */
 
+    // TODO (moderation): объединить оба метода
     int ConsensusRepository::CountModerationFlag(const string& address, int height, bool includeMempool)
     {
         int result = 0;
@@ -1948,7 +1949,6 @@ namespace PocketDb
 
         return result;
     }
-    
     int ConsensusRepository::CountModerationFlag(const string& address, const string& addressTo, bool includeMempool)
     {
         int result = 0;
@@ -1976,4 +1976,16 @@ namespace PocketDb
 
         return result;
     }
+
+    bool ConsensusRepository::ExistsModeratorRegister(const string& address, bool includeMempool)
+    {
+        // TODO (moderation): implement sql
+    }
+    bool ExistsModeratorRequest(const string& requestTxHash, bool includeMempool)
+    {
+        // TODO (moderation): implement sql
+    }
+
+
+
 }

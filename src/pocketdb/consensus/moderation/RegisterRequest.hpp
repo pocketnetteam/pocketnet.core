@@ -28,43 +28,28 @@ namespace PocketConsensus
         {
             // Registration of a moderator by invitation is allowed only if there is an actual and not canceled invitation
             // TODO (moderation): implement exists ModeratorRequestCoin or ModeratorRequestSubs transactions
+            if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetRequestTxHash(), true))
+                return {false, SocialConsensusResult_NotFound};
             
             return ModeratorRegisterRequestConsensus::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterRequestRef& ptx) override
         {
+            if (auto[baseCheck, baseCheckCode] = ModeratorRegisterConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
             if (IsEmpty(ptx->GetRequestTxHash()))
                 return {false, SocialConsensusResult_Failed};
 
-            return ModeratorRegisterConsensus::Check(tx, ptx);
+            if (*ptx->GetAddress() != *ptx->GetModeratorAddress())
+                return {false, SocialConsensusResult_Failed};
+
+            return Success;
         }
 
     protected:
 
-        ConsensusValidateResult ValidateBlock(const ModeratorRegisterRequestRef& ptx, const PocketBlockRef& block) override
-        {
-            for (auto& blockTx : *block)
-            {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REGISTER_SELF, MODERATOR_REGISTER_REQUEST, MODERATOR_REGISTER_CANCEL }) || *blockTx->GetHash() == *ptx->GetHash())
-                    continue;
-
-                auto blockPtx = static_pointer_cast<Moderator>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetModeratorAddress() == *blockPtx->GetModeratorAddress())
-                    return {false, SocialConsensusResult_Duplicate};
-            }
-
-            return Success;
-        }
-
-        ConsensusValidateResult ValidateMempool(const ModeratorRegisterRequestRef& ptx) override
-        {
-            // TODO (moderation): implement
-            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), true))
-            //     return {false, SocialConsensusResult_Duplicate};
-
-            return Success;
-        }
     };
 
     /*******************************************************************************************************************

@@ -55,11 +55,24 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateBlock(const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
+            for (auto& blockTx : *block)
+            {
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REGISTER_SELF, MODERATOR_REGISTER_REQUEST, MODERATOR_REGISTER_CANCEL }) || *blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                auto blockPtx = static_pointer_cast<Moderator>(blockTx);
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                    return {false, SocialConsensusResult_Duplicate};
+            }
+
             return Base::Success;
         }
 
         ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
+            if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), true))
+                return {false, SocialConsensusResult_Duplicate};
+
             return Base::Success;
         }
         
