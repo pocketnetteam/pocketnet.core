@@ -248,6 +248,7 @@ namespace PocketConsensus
         ConsensusLimit_bad_reputation,
 
         ConsensusLimit_moderation_flag_count,
+        threshold_moderator_request,
         threshold_moderator_register,
     };
 
@@ -536,6 +537,10 @@ namespace PocketConsensus
         { ConsensusLimit_moderation_flag_count, {
             { NetworkMain, { {0, 30} }},
             { NetworkTest, { {0, 100} }}
+        }},
+        { threshold_moderator_request, {
+            { NetworkMain, { {0, 10080} }},
+            { NetworkTest, { {0, 1440} }}
         }},
         { threshold_moderator_register, {
             { NetworkMain, { {0, 129600} }},

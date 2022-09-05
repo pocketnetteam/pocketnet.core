@@ -22,11 +22,19 @@ namespace PocketConsensus
     class ModeratorRegisterSelfConsensus : public ModeratorRegisterConsensus<ModeratorRegisterSelf>
     {
     public:
-        ModeratorRegisterSelfConsensus(int height) : ModeratorRegisterConsensus<ModeratorRegisterSelf>(height) {}
+        ModeratorRegisterSelfConsensus(int height) : ModeratorRegisterConsensus<ModeratorRegisterSelf>(height)
+        {
+            // ReputationConsensusRef reputationConsensus;
+            // reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+            // // Already `Moderator` cant't register again
+            // if (reputationConsensus->GetBadges(*ptx->GetAddress()).Moderator)
+            //     return {false, SocialConsensusResult_AlreadyExists};
+        }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx, const PocketBlockRef& block) override
         {
             // Only `Whale` account can register moderator badge
+            auto reputationConsensus = ReputationConsensusFactoryInst.Instance(Height);
             if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Whale)
                 return {false, SocialConsensusResult_LowReputation};
 

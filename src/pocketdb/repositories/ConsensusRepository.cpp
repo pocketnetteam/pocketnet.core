@@ -1981,7 +1981,20 @@ namespace PocketDb
     {
         // TODO (moderation): implement sql
     }
-    bool ExistsModeratorRequest(const string& requestTxHash, bool includeMempool)
+    
+    bool ConsensusRepository::ExistsModeratorRequest(const string& address, int minHeight)
+    {
+        // TODO (moderation): implement sql
+    }
+    bool ConsensusRepository::ExistsModeratorRequest(const string& address, bool includeMempool)
+    {
+        // TODO (moderation): implement sql
+    }
+    bool ConsensusRepository::ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight)
+    {
+        // TODO (moderation): implement sql
+    }
+    bool ConsensusRepository::ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight, bool includeMempool)
     {
         // TODO (moderation): implement sql
     }

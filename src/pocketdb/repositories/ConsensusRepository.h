@@ -185,7 +185,12 @@ namespace PocketDb
         int CountModerationFlag(const string& address, const string& addressTo, bool includeMempool);
 
         bool ExistsModeratorRegister(const string& address, bool includeMempool);
-        bool ExistsModeratorRequest(const string& requestTxHash, bool includeMempool);
+        bool ExistsModeratorRequest(const string& address, int minHeight);
+        bool ExistsModeratorRequest(const string& address, bool includeMempool);
+        bool ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight);
+
+    protected:
+        bool ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight, bool includeMempool);
 
     };
 

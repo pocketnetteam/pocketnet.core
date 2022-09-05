@@ -27,8 +27,7 @@ namespace PocketConsensus
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterRequestRef& ptx, const PocketBlockRef& block) override
         {
             // Registration of a moderator by invitation is allowed only if there is an actual and not canceled invitation
-            // TODO (moderation): implement exists ModeratorRequestCoin or ModeratorRequestSubs transactions
-            if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetRequestTxHash(), true))
+            if (!ConsensusRepoInst.ExistsModeratorRequest(*ptx->GetAddress(), *ptx->GetRequestTxHash(), Height - GetConsensusLimit(threshold_moderator_request)))
                 return {false, SocialConsensusResult_NotFound};
             
             return ModeratorRegisterRequestConsensus::Validate(tx, ptx, block);
