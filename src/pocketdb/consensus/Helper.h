@@ -31,7 +31,6 @@
 #include "pocketdb/consensus/moderation/Flag.hpp"
 #include "pocketdb/consensus/moderation/RequestCoin.hpp"
 #include "pocketdb/consensus/moderation/RequestSubs.hpp"
-#include "pocketdb/consensus/moderation/RequestCancel.hpp"
 #include "pocketdb/consensus/moderation/RegisterSelf.hpp"
 #include "pocketdb/consensus/moderation/RegisterRequest.hpp"
 #include "pocketdb/consensus/moderation/RegisterCancel.hpp"
@@ -78,7 +77,6 @@ namespace PocketConsensus
         static ModerationFlagConsensusFactory m_moderationFlagFactory;
         static ModeratorRequestCoinConsensusFactory m_moderatorRequestCoinFactory;
         static ModeratorRequestSubsConsensusFactory m_moderatorRequestSubsFactory;
-        static ModeratorRequestCancelConsensusFactory m_moderatorRequestCancelFactory;
         static ModeratorRegisterSelfConsensusFactory m_moderatRegisterSelfFactory;
         static ModeratorRegisterRequestConsensusFactory m_moderatRegisterRequestFactory;
         static ModeratorRegisterCancelConsensusFactory m_moderatRegisterCancelFactory;

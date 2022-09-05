@@ -1155,7 +1155,6 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/moderation/Request.hpp
         pocketdb/consensus/moderation/RequestCoin.hpp
         pocketdb/consensus/moderation/RequestSubs.hpp
-        pocketdb/consensus/moderation/RequestCancel.hpp
         pocketdb/consensus/Helper.cpp
         pocketdb/consensus/Base.cpp
         pocketdb/consensus/Lottery.cpp
