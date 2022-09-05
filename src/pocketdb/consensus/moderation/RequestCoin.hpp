@@ -37,7 +37,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_CANCEL }) || *blockTx->GetHash() == *ptx->GetHash())
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_COIN }) || *blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
                 auto blockPtx = static_pointer_cast<Moderator>(blockTx);

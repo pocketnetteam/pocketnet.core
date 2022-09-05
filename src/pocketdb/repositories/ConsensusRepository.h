@@ -37,7 +37,7 @@ namespace PocketDb
         int64_t LikersComment;
         int64_t LikersCommentAnswer;
 
-        inte64_t ModeratorRegisterHeight;
+        int64_t ModeratorRegisterHeight;
 
         int64_t LikersAll() const
         {

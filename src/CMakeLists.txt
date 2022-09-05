@@ -628,8 +628,6 @@ add_library(${POCKETDB}
         pocketdb/models/dto/moderation/RequestCoin.cpp
         pocketdb/models/dto/moderation/RequestSubs.h
         pocketdb/models/dto/moderation/RequestSubs.cpp
-        pocketdb/models/dto/moderation/RequestCancel.h
-        pocketdb/models/dto/moderation/RequestCancel.cpp
         pocketdb/models/dto/moderation/RegisterSelf.h
         pocketdb/models/dto/moderation/RegisterSelf.cpp
         pocketdb/models/dto/moderation/RegisterRequest.h

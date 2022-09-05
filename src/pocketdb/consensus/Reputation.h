@@ -386,9 +386,13 @@ namespace PocketConsensus
                           && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
                           && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
 
-            badgeSet.Moderator = (Height - data.ModeratorRegisterHeight) >= GetConsensusLimit(threshold_moderator_register);
+            badgeSet.Author = data.LikersAll() >= GetConsensusLimit(threshold_author_likers_all)
+                          && data.LikersContent >= GetConsensusLimit(threshold_author_likers_content)
+                          && data.LikersComment >= GetConsensusLimit(threshold_author_likers_comment)
+                          && data.LikersCommentAnswer >= GetConsensusLimit(threshold_author_likers_comment_answer)
+                          && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_author_reg_depth);
 
-            // TODO (moderation): Author implement check
+            badgeSet.Moderator = (Height - data.ModeratorRegisterHeight) >= GetConsensusLimit(threshold_moderator_register);
             
             return badgeSet;
         }

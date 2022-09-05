@@ -190,6 +190,13 @@ namespace PocketConsensus
         threshold_whale_likers_comment,
         threshold_whale_likers_comment_answer,
 
+        // Thresholds for obtaining badges - AUTHOR
+        threshold_author_reg_depth,
+        threshold_author_likers_all,
+        threshold_author_likers_content,
+        threshold_author_likers_comment,
+        threshold_author_likers_comment_answer,
+
         ConsensusLimit_trial_post,
         ConsensusLimit_trial_video,
         ConsensusLimit_trial_article,
@@ -333,6 +340,29 @@ namespace PocketConsensus
             { NetworkTest, { {0, 10} } }
         } },
         { threshold_whale_likers_comment_answer, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        
+        // Thresholds for obtaining badges - AUTHOR
+        // TODO (moderation): set actual heights
+        { threshold_author_reg_depth, {
+            { NetworkMain, { {0, 207360} } },
+            { NetworkTest, { {0, 1} } }
+        } },
+        { threshold_author_likers_all, {
+            { NetworkMain, { {0, 1000} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { threshold_author_likers_content, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { threshold_author_likers_comment, {
+            { NetworkMain, { {0, 100} } },
+            { NetworkTest, { {0, 10} } }
+        } },
+        { threshold_author_likers_comment_answer, {
             { NetworkMain, { {0, 100} } },
             { NetworkTest, { {0, 10} } }
         } },
