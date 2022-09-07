@@ -32,7 +32,7 @@ PocketnetCore is distributed in two ways: binary installer and build from source
 Minimum system requirements:
 - 2 core x86-64 CPU
 - 4GB RAM
-- 100 GB harddrive
+- 150 GB harddrive
 - 10 Mbps internet connection
 
 Recommended System Requirements
@@ -100,7 +100,6 @@ $ pocketcoind --help
     
     # Latest snapshot archive
     https://snapshot.pocketnet.app/latest.tgz
-    https://snapshot.pocketnet.app/latest.bz2
     ```
 4. There must be archive tgz with 5 directories:
     ```shell
