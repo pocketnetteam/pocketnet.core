@@ -61,13 +61,14 @@ namespace PocketDb
 
     bool ChainRepository::ClearDatabase()
     {
-        LogPrintf("Full reindexing database. This can take several days.\n");
+        LogPrintf("Full reindexing database..\n");
 
         LogPrintf("Deleting database indexes..\n");
         m_database.DropIndexes();
 
         LogPrintf("Rollback to first block..\n");
         RollbackHeight(0);
+        RollbackBlockingList(0);
 
         m_database.CreateStructure();
 
@@ -82,6 +83,7 @@ namespace PocketDb
             TryTransactionStep(__func__, [&]()
             {
                 RestoreOldLast(height);
+                RollbackBlockingList(height);
                 RollbackHeight(height);
             });
 
@@ -578,13 +580,6 @@ namespace PocketDb
 
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
-
-        // ----------------------------------------
-        // Rollback blocking list
-        RollbackBlockingList(height);
-
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Rollback blocking list): %.2fms\n", 0.001 * (nTime4 - nTime3));
     }
 
     void ChainRepository::RollbackHeight(int height)
@@ -662,6 +657,8 @@ namespace PocketDb
 
     void ChainRepository::RollbackBlockingList(int height)
     {
+        int64_t nTime0 = GetTimeMicros();
+
         auto delListStmt = SetupSqlStatement(R"sql(
             delete from BlockingLists where ROWID in
             (
@@ -682,6 +679,9 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(delListStmt, 1, height);
         TryStepStatement(delListStmt);
+        
+        int64_t nTime1 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
         auto insListStmt = SetupSqlStatement(R"sql(
             insert into BlockingLists
@@ -706,6 +706,9 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(insListStmt, 1, height);
         TryStepStatement(insListStmt);
+        
+        int64_t nTime2 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackList (Insert blocking list): %.2fms\n", 0.001 * (nTime2 - nTime1));
     }
 
 
