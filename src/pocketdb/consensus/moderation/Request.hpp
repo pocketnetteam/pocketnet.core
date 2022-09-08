@@ -34,8 +34,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
-            int depth = Base::Height - Base::GetConsensusLimit(threshold_moderator_request);
-            if (ConsensusRepoInst.ExistsModeratorRequest(*ptx->GetModeratorAddress(), depth))
+            if (ConsensusRepoInst.ExistsModeratorRequest(*ptx->GetModeratorAddress(), false))
                 return {false, SocialConsensusResult_Duplicate};
             
             return Base::Validate(tx, ptx, block);
@@ -61,7 +60,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_COIN }) || *blockTx->GetHash() == *ptx->GetHash())
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_CANCEL }) || *blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
                 auto blockPtx = static_pointer_cast<Moderator>(blockTx);

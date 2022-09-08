@@ -44,39 +44,12 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateBlock(const ModeratorRequestCancelRef& ptx, const PocketBlockRef& block) override
         {
-            // // Check flag from one to one
-            // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0)
-            //     return {false, SocialConsensusResult_Duplicate};
-
-            // // Count flags in chain
-            // int count = ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), false);
-
-            // // Count flags in block
-            // for (auto& blockTx : *block)
-            // {
-            //     if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATION_FLAG }) || *blockTx->GetHash() == *ptx->GetHash())
-            //         continue;
-
-            //     auto blockPtx = static_pointer_cast<ModerationFlag>(blockTx);
-            //     if (*ptx->GetAddress() == *blockPtx->GetAddress())
-            //         if (*ptx->GetContentTxHash() == *blockPtx->GetContentTxHash())
-            //             return {false, SocialConsensusResult_Duplicate};
-            //         else
-            //             count += 1;
-            // }
-
-            // // Check limit
-            // return ValidateLimit(ptx, count);
+            
         }
 
         ConsensusValidateResult ValidateMempool(const ModeratorRequestCancelRef& ptx) override
         {
-            // // Check flag from one to one
-            // if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), true) > 0)
-            //     return {false, SocialConsensusResult_Duplicate};
-
-            // // Check limit
-            // return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
+            
         }
     };
 

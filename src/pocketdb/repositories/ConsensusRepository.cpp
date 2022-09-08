@@ -1984,19 +1984,43 @@ namespace PocketDb
     
     bool ConsensusRepository::ExistsModeratorRequest(const string& address, int minHeight)
     {
-        // TODO (moderation): implement sql
+        return ExistsModeratorRequest(address, "", minHeight, false);
     }
     bool ConsensusRepository::ExistsModeratorRequest(const string& address, bool includeMempool)
     {
-        // TODO (moderation): implement sql
+        return ExistsModeratorRequest(address, "", 0, includeMempool);
     }
     bool ConsensusRepository::ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight)
     {
-        // TODO (moderation): implement sql
+        return ExistsModeratorRequest(address, requestTxHash, minHeight, false);
     }
     bool ConsensusRepository::ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight, bool includeMempool)
     {
-        // TODO (moderation): implement sql
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions
+            ...
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            TryBindStatementText(stmt, i++, txHash);
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i++, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
 

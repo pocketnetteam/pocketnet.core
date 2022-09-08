@@ -28,6 +28,7 @@ namespace PocketConsensus
     ModerationFlagConsensusFactory SocialConsensusHelper::m_moderationFlagFactory;
     ModeratorRequestCoinConsensusFactory SocialConsensusHelper::m_moderatorRequestCoinFactory;
     ModeratorRequestSubsConsensusFactory SocialConsensusHelper::m_moderatorRequestSubsFactory;
+    ModeratorRequestCancelConsensusFactory SocialConsensusHelper::m_moderatorRequestCancelFactory;
     ModeratorRegisterSelfConsensusFactory SocialConsensusHelper::m_moderatRegisterSelfFactory;
     ModeratorRegisterRequestConsensusFactory SocialConsensusHelper::m_moderatRegisterRequestFactory;
     ModeratorRegisterCancelConsensusFactory SocialConsensusHelper::m_moderatRegisterCancelFactory;
@@ -208,6 +209,8 @@ namespace PocketConsensus
                 return m_moderatorRequestCoinFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRequestCoin>(ptx));
             case MODERATOR_REQUEST_SUBS:
                 return m_moderatorRequestSubsFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRequestSubs>(ptx));
+            case MODERATOR_REQUEST_CANCEL:
+                return m_moderatorRequestCancelFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRequestCancel>(ptx));
             case MODERATOR_REGISTER_SELF:
                 return m_moderatRegisterSelfFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRegisterSelf>(ptx));
             case MODERATOR_REGISTER_REQUEST:
@@ -273,6 +276,8 @@ namespace PocketConsensus
                 return m_moderatorRequestCoinFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRequestCoin>(ptx), pBlock);
             case MODERATOR_REQUEST_SUBS:
                 return m_moderatorRequestSubsFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRequestSubs>(ptx), pBlock);
+            case MODERATOR_REQUEST_CANCEL:
+                return m_moderatorRequestCancelFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRequestCancel>(ptx), pBlock);
             case MODERATOR_REGISTER_SELF:
                 return m_moderatRegisterSelfFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRegisterSelf>(ptx), pBlock);
             case MODERATOR_REGISTER_REQUEST:
