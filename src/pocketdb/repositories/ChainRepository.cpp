@@ -68,7 +68,7 @@ namespace PocketDb
 
         LogPrintf("Rollback to first block..\n");
         RollbackHeight(0);
-        RollbackBlockingList(0);
+        ClearBlockingList();
 
         m_database.CreateStructure();
 
@@ -710,6 +710,20 @@ namespace PocketDb
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackList (Insert blocking list): %.2fms\n", 0.001 * (nTime2 - nTime1));
     }
+
+    void ChainRepository::ClearBlockingList()
+    {
+        int64_t nTime0 = GetTimeMicros();
+
+        auto stmt = SetupSqlStatement(R"sql(
+            delete from BlockingLists
+        )sql");
+        TryStepStatement(stmt);
+        
+        int64_t nTime1 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - ClearBlockingList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
+    }
+
 
 
 } // namespace PocketDb
