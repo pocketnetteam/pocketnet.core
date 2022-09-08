@@ -32,12 +32,12 @@ namespace PocketDb
 
         UniValue Serialize() const
         {
-            std::map<std::string, int> hashToIndexMap;
+            std::map<std::string, std::pair<ShortTxType, int>> hashToIndexMap;
             UniValue data (UniValue::VARR);
             std::vector<UniValue> tmp;
             tmp.reserve(m_data.size());
             for (const auto& shortForm: m_data) {
-                hashToIndexMap.insert({shortForm.first, tmp.size()});
+                hashToIndexMap.insert({shortForm.first, {shortForm.second.GetType(), tmp.size()}});
                 tmp.emplace_back(shortForm.second.Serialize());
             }
             data.push_backV(tmp);
@@ -45,13 +45,21 @@ namespace PocketDb
             UniValue notifiers (UniValue::VOBJ);
             notifiers.reserveKVSize(m_notifiers.size());
             for (const auto& notifiersEntry: m_notifiers) {
-                UniValue txIndiciesUni (UniValue::VARR);
-                std::vector<UniValue> txIndicies;
+                std::map<ShortTxType, std::vector<UniValue>> txIndicies;
                 for (const auto& txHash: notifiersEntry.second) {
-                    txIndicies.emplace_back(hashToIndexMap.at(txHash));
+                    const auto& txEntry = hashToIndexMap.at(txHash);
+                    txIndicies[txEntry.first].emplace_back(txEntry.second);
                 }
-                txIndiciesUni.push_backV(std::move(txIndicies));
-                notifiers.pushKV(notifiersEntry.first, std::move(txIndiciesUni), false);
+                UniValue e (UniValue::VOBJ);
+                for (const auto& lol: txIndicies) {
+                    UniValue indicies (UniValue::VARR);
+                    indicies.push_backV(lol.second);
+                    e.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(lol.first), indicies, false);
+                }
+                UniValue notifier (UniValue::VOBJ);
+                notifier.pushKV("e", e);
+                notifier.pushKV("i", "TODO");
+                notifiers.pushKV(notifiersEntry.first, notifier);
             }
 
             UniValue result (UniValue::VOBJ);
