@@ -71,7 +71,7 @@ namespace PocketDb
                 if (auto acc = accsData.find(notifiersEntry.first); acc != accsData.end()) {
                     notifier.pushKV("i", acc->second.Serialize());
                 }
-                notifiers.pushKV(notifiersEntry.first, notifier);
+                notifiers.pushKV(notifiersEntry.first, notifier, false);
             }
 
             UniValue result (UniValue::VOBJ);
