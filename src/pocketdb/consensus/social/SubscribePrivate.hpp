@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_SUBSCRIBEPRIVATE_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/SubscribePrivate.h"
+#include "pocketdb/models/dto/action/SubscribePrivate.h"
 
 namespace PocketConsensus
 {

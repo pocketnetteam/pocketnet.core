@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_POST_H
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Post.h"
+#include "pocketdb/models/dto/content/Post.h"
 
 namespace PocketConsensus
 {

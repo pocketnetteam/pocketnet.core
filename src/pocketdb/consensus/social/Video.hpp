@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Video.h"
+#include "pocketdb/models/dto/content/Video.h"
 
 namespace PocketConsensus
 {

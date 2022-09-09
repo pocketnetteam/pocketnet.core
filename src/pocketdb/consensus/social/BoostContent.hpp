@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_BOOSTCONTENT_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/BoostContent.h"
+#include "pocketdb/models/dto/action/BoostContent.h"
 
 namespace PocketConsensus
 {

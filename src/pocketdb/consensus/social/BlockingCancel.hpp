@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_BLOCKINGCANCEL_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/BlockingCancel.h"
+#include "pocketdb/models/dto/action/BlockingCancel.h"
 
 namespace PocketConsensus
 {

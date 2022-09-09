@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_BLOCKING_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Blocking.h"
+#include "pocketdb/models/dto/action/Blocking.h"
 
 namespace PocketConsensus
 {

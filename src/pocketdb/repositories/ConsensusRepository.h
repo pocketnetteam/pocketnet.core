@@ -123,6 +123,8 @@ namespace PocketDb
         bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
         bool ExistsAnotherByName(const string& address, const string& name);
         bool Exists(const string& txHash, const vector<TxType>& types, bool inChain);
+        bool ExistsInMempool(const string& string1, const vector<TxType>& types);
+        bool ExistsInMempool(const string& string1, const string& string2, const vector<TxType>& types);
         bool ExistsNotDeleted(const string& txHash, const string& address, const vector<TxType>& types);
 
         // get counts in "mempool" - Height is null

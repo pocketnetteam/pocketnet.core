@@ -403,6 +403,48 @@ namespace PocketDb
         return result;
     }
 
+    bool ConsensusRepository::ExistsInMempool(const string& string1, const vector<TxType>& types)
+    {
+        return ExistsInMempool(string1, "", types);
+    }
+
+    bool ConsensusRepository::ExistsInMempool(const string& string1, const string& string2, const vector<TxType>& types)
+    {
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by Transactions_Type_String1_String2_Height
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+        )sql";
+
+        if (string1 != "")
+            sql += " and String1 = ?";
+
+        if (string2 != "")
+            sql += " and String2 = ?";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            if (string1 != "")
+                TryBindStatementText(stmt, i++, string1);
+            if (string2 != "")
+                TryBindStatementText(stmt, i++, string2);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     bool ConsensusRepository::ExistsNotDeleted(const string& txHash, const string& address, const vector<TxType>& types)
     {
         bool result = false;

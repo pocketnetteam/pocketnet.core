@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_ARTICLE_H
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Article.h"
+#include "pocketdb/models/dto/content/Article.h"
 
 namespace PocketConsensus
 {

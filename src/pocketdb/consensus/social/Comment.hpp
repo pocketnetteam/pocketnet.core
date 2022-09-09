@@ -8,7 +8,7 @@
 #include "util/html.h"
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Comment.h"
+#include "pocketdb/models/dto/content/Comment.h"
 
 namespace PocketConsensus
 {

@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_ACCOUNT_SETTING_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/AccountSetting.h"
+#include "pocketdb/models/dto/account/Setting.h"
 
 namespace PocketConsensus
 {

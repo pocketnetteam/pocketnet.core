@@ -5,9 +5,9 @@
 #ifndef POCKETCONSENSUS_SCORECOMMENT_HPP
 #define POCKETCONSENSUS_SCORECOMMENT_HPP
 
-#include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/ScoreComment.h"
 #include "pocketdb/consensus/Reputation.h"
+#include "pocketdb/consensus/Social.h"
+#include "pocketdb/models/dto/action/ScoreComment.h"
 
 namespace PocketConsensus
 {

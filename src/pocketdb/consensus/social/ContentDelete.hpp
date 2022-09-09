@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_CONTENT_DELETE_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/ContentDelete.h"
+#include "pocketdb/models/dto/content/ContentDelete.h"
 
 namespace PocketConsensus
 {

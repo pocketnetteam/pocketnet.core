@@ -10,7 +10,7 @@
 #include "script/signingprovider.h"
 #include "util/rbf.h"
 #include "rpc/rawtransaction_util.h"
-#include "pocketdb/consensus/social/User.hpp"
+#include "pocketdb/consensus/social/AccountUser.hpp"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -53,12 +53,12 @@ namespace PocketWeb::PocketWebRpc
         // Set required fields
         ptx->SetString1(address);
 
-        // TODO (team): TEMPORARY
+        // TODO (0.21.0): TEMPORARY
         // Temporary check for UserConsensus_checkpoint_login_limitation checkpoint
         // Remove this after 1647000 in main net
         if (*ptx->GetType() == ACCOUNT_USER)
         {
-            std::shared_ptr<PocketConsensus::UserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::UserConsensus_checkpoint_login_limitation>(ChainActive().Height());
+            std::shared_ptr<PocketConsensus::AccountUserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::AccountUserConsensus_checkpoint_login_limitation>(ChainActive().Height());
             if (auto[ok, result] = accountUserConsensus->Check(tx, static_pointer_cast<User>(ptx)); !ok)
                 throw JSONRPCError((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
         }
