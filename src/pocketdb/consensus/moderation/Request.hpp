@@ -34,7 +34,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
-            if (ConsensusRepoInst.ExistsModeratorRequest(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }, false))
+            if (ConsensusRepoInst.ExistsInChain(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }))
                 return {false, SocialConsensusResult_Duplicate};
             
             return Base::Validate(tx, ptx, block);
@@ -73,7 +73,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
-            if (ConsensusRepoInst.ExistsModeratorRequest(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_CANCEL }, true))
+            if (ConsensusRepoInst.ExistsInMempool(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_CANCEL }))
                 return {false, SocialConsensusResult_Duplicate};
 
             return Base::Success;

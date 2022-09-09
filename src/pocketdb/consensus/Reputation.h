@@ -392,7 +392,7 @@ namespace PocketConsensus
                           && data.LikersCommentAnswer >= GetConsensusLimit(threshold_author_likers_comment_answer)
                           && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_author_reg_depth);
 
-            badgeSet.Moderator = (Height - data.ModeratorRegisterHeight) >= GetConsensusLimit(threshold_moderator_register);
+            badgeSet.Moderator = data.ModeratorRegisterHeight > 0;
             
             return badgeSet;
         }

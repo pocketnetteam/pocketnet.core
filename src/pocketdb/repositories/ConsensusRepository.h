@@ -127,6 +127,10 @@ namespace PocketDb
         bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
         bool ExistsAnotherByName(const string& address, const string& name);
         bool Exists(const string& txHash, const vector<TxType>& types, bool inChain);
+        bool ExistsInMempool(const string& string1, const vector<TxType>& types);
+        bool ExistsInMempool(const string& string1, const string& string2, const vector<TxType>& types);
+        bool ExistsInChain(const string& string1, const vector<TxType>& types);
+        bool ExistsInChain(const string& string1, const string& string2, const vector<TxType>& types);
         bool ExistsNotDeleted(const string& txHash, const string& address, const vector<TxType>& types);
 
         // get counts in "mempool" - Height is null
@@ -183,10 +187,6 @@ namespace PocketDb
         /* MODERATION */
         int CountModerationFlag(const string& address, int height, bool includeMempool);
         int CountModerationFlag(const string& address, const string& addressTo, bool includeMempool);
-
-        bool ExistsModeratorRegister(const string& address, bool includeMempool);
-        bool ExistsModeratorRequest(const string& address, const string& moderatorAddress, const vector<TxType>& types, bool includeMempool);
-        bool ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight);
 
     protected:
         bool ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight, bool includeMempool);
