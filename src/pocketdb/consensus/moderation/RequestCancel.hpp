@@ -40,17 +40,6 @@ namespace PocketConsensus
             return ModeratorRequestConsensus::Check(tx, ptx);
         }
 
-    protected:
-
-        ConsensusValidateResult ValidateBlock(const ModeratorRequestCancelRef& ptx, const PocketBlockRef& block) override
-        {
-            
-        }
-
-        ConsensusValidateResult ValidateMempool(const ModeratorRequestCancelRef& ptx) override
-        {
-            
-        }
     };
 
 

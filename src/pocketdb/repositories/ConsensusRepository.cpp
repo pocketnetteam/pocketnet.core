@@ -1982,13 +1982,35 @@ namespace PocketDb
         // TODO (moderation): implement sql
     }
     
-    bool ConsensusRepository::ExistsModeratorRequest(const string& address, int minHeight)
+    bool ConsensusRepository::ExistsModeratorRequest(const string& address, const string& moderatorAddress, const vector<TxType>& types, bool includeMempool)
     {
-        return ExistsModeratorRequest(address, "", minHeight, false);
-    }
-    bool ConsensusRepository::ExistsModeratorRequest(const string& address, bool includeMempool)
-    {
-        return ExistsModeratorRequest(address, "", 0, includeMempool);
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by Transactions_Type_Last_String1_String2_Height
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and Last = 1
+              and String1 = ?
+              and String2 = ?
+        )sql";
+
+        if (!mempool)
+            sql += " and Height > 0";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, moderatorAddress);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     bool ConsensusRepository::ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight)
     {
