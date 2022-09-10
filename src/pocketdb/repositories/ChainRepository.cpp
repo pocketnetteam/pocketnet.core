@@ -477,13 +477,14 @@ namespace PocketDb
 
     bool ChainRepository::ClearDatabase()
     {
-        LogPrintf("Full reindexing database. This can take several days.\n");
+        LogPrintf("Full reindexing database..\n");
 
         LogPrintf("Deleting database indexes..\n");
         m_database.DropIndexes();
 
         LogPrintf("Rollback to first block..\n");
         RollbackHeight(0);
+        ClearBlockingList();
 
         m_database.CreateStructure();
 
@@ -498,6 +499,7 @@ namespace PocketDb
             TryTransactionStep(__func__, [&]()
             {
                 RestoreOldLast(height);
+                RollbackBlockingList(height);
                 RollbackHeight(height);
             });
 
@@ -509,7 +511,7 @@ namespace PocketDb
             return false;
         }
     }
-
+    
     void ChainRepository::ClearOldLast(const string& txHash)
     {
         auto stmt = SetupSqlStatement(R"sql(
@@ -760,6 +762,7 @@ namespace PocketDb
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - ClearBlockingList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
     }
+
 
 
 
