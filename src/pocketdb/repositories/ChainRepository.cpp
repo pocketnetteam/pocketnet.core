@@ -617,13 +617,6 @@ namespace PocketDb
 
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
-
-        // ----------------------------------------
-        // Rollback blocking list
-        RollbackBlockingList(height);
-
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Rollback blocking list): %.2fms\n", 0.001 * (nTime4 - nTime3));
     }
 
     void ChainRepository::RollbackHeight(int height)
@@ -701,6 +694,8 @@ namespace PocketDb
 
     void ChainRepository::RollbackBlockingList(int height)
     {
+        int64_t nTime0 = GetTimeMicros();
+
         auto delListStmt = SetupSqlStatement(R"sql(
             delete from BlockingLists where ROWID in
             (
@@ -721,6 +716,9 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(delListStmt, 1, height);
         TryStepStatement(delListStmt);
+        
+        int64_t nTime1 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
         auto insListStmt = SetupSqlStatement(R"sql(
             insert into BlockingLists
@@ -745,7 +743,24 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(insListStmt, 1, height);
         TryStepStatement(insListStmt);
+        
+        int64_t nTime2 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackList (Insert blocking list): %.2fms\n", 0.001 * (nTime2 - nTime1));
     }
+
+    void ChainRepository::ClearBlockingList()
+    {
+        int64_t nTime0 = GetTimeMicros();
+
+        auto stmt = SetupSqlStatement(R"sql(
+            delete from BlockingLists
+        )sql");
+        TryStepStatement(stmt);
+        
+        int64_t nTime1 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - ClearBlockingList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
+    }
+
 
 
 } // namespace PocketDb

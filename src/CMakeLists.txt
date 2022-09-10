@@ -640,6 +640,8 @@ add_library(${POCKETDB}
         pocketdb/models/shortform/ShortAccount.h
         pocketdb/models/shortform/ShortAccount.cpp
         pocketdb/models/shortform/ShortTxType.h
+        pocketdb/models/shortform/ShortTxOutput.h
+        pocketdb/models/shortform/ShortTxOutput.cpp
         )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
 

@@ -935,8 +935,9 @@ static bool debug_index_block(const util::Ref& context, HTTPRequest* req, const 
             {
                 arith_uint256 hashProof;
                 arith_uint256 targetProofOfStake;
+                CHECK_NONFATAL(node.mempool);
                 CheckProofOfStake(pblockindex->pprev, block.vtx[1], block.nBits, hashProof, hashProofOfStakeSource,
-                    targetProofOfStake, NULL, *node.mempool, false); // TODO (losty-fur): possible null nmempool
+                    targetProofOfStake, NULL, *node.mempool, false);
 
                 int64_t nReward = GetProofOfStakeReward(pblockindex->nHeight, 0, Params().GetConsensus());
                 if (!CheckBlockRatingRewards(block, pblockindex->pprev, nReward, hashProofOfStakeSource))

@@ -31,6 +31,9 @@ namespace PocketWeb::PocketWebRpc
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
         auto& node = EnsureNodeContext(request.context);
+        if (!node.mempool) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Null mempool");
+        }
 
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
 
@@ -64,7 +67,7 @@ namespace PocketWeb::PocketWebRpc
         }
 
         // Insert into mempool
-        return _accept_transaction(tx, ptx, *node.mempool, *node.connman); // TODO (losty-fur): possible null
+        return _accept_transaction(tx, ptx, *node.mempool, *node.connman);
     },
         };
     }
@@ -234,8 +237,12 @@ namespace PocketWeb::PocketWebRpc
         _ptx->SetHash("");
         _ptx->DeserializeRpc(txPayload);
         auto& node = EnsureNodeContext(request.context);
-        // TODO (losty): probably bad assert like this
-        assert(node.mempool);
+        if (!node.mempool) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Null mempool");
+        }
+        if (!node.connman) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Null connman");
+        }
         // Get unspents
         vector<pair<string, uint32_t>> mempoolInputs;
         node.mempool->GetAllInputs(mempoolInputs);
@@ -312,7 +319,6 @@ namespace PocketWeb::PocketWebRpc
         // Set required fields
         ptx->SetString1(address);
 
-        // TODO (losty-fur): possible null mempool and connman
         // Insert into mempool
         return _accept_transaction(tx, ptx, *node.mempool, *node.connman);
         //const CTransaction& ctx = *tx;

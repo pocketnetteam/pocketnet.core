@@ -21,6 +21,7 @@ UniValue PocketDb::ShortAccount::Serialize() const
     data.pushKV("avatar", m_avatar);
     data.pushKV("badge", m_badge);
     data.pushKV("reputation", m_reputation);
+    if (m_lang) data.pushKV("lang", *m_lang);
 
     return data;
 }
@@ -63,4 +64,14 @@ const int64_t& PocketDb::ShortAccount::GetReputation() const
 void PocketDb::ShortAccount::SetReputation(const int64_t& reputation)
 {
     m_reputation = reputation;
+}
+
+const std::optional<std::string>& PocketDb::ShortAccount::GetLang() const
+{
+    return m_lang;
+}
+
+void PocketDb::ShortAccount::SetLang(const std::optional<std::string>& lang)
+{
+    m_lang = lang;
 }

@@ -404,7 +404,7 @@ namespace PocketWeb::PocketWebRpc
         const auto& node = EnsureNodeContext(request.context);
         // Get exclude inputs already used in mempool
         vector<pair<string, uint32_t>> mempoolInputs;
-        // TODO (losty-fur): possible null mempool
+        CHECK_NONFATAL(node.mempool);
         node.mempool->GetAllInputs(mempoolInputs);
 
         // Get unspents from DB
