@@ -22,7 +22,7 @@ namespace PocketDb
                 select count(*)
                 from Payload ap indexed by Payload_String2_nocase_TxHash
                 cross join Transactions t indexed by Transactions_Hash_Height
-                  on t.Type in (100, 101, 102) and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
+                  on t.Type = 100 and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
                 where ap.String2 like ? escape '\'
                   and t.String1 != ?
             )sql");
@@ -152,7 +152,7 @@ namespace PocketDb
         string sql = R"sql(
             select count(distinct(String1))
             from Transactions
-            where Type in (100, 101, 102)
+            where Type = 100
               and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
               )sql" + (mempool ? "" : " and Height is not null ") + R"sql(
         )sql";
@@ -537,7 +537,7 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = 0
-              and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
+              and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type = 100 and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
               and r.Last = 1
         )sql";
 
@@ -590,7 +590,7 @@ namespace PocketDb
         string sql = R"sql(
             select min(Height)
             from Transactions
-            where Type in (100, 101, 102)
+            where Type in (100)
               and Id = ?
         )sql";
 
@@ -720,7 +720,7 @@ namespace PocketDb
 
             -- Score Address
             join Transactions sa indexed by Transactions_Type_Last_String1_Height_Id
-                on sa.Type in (100,101,102) and sa.Height > 0 and sa.String1 = s.String1 and sa.Last = 1
+                on sa.Type in (100) and sa.Height > 0 and sa.String1 = s.String1 and sa.Last = 1
 
             -- Content
             join Transactions c indexed by Transactions_Hash_Height
@@ -728,7 +728,7 @@ namespace PocketDb
 
             -- Content Address
             join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
-                on ca.Type in (100,101,102) and ca.Height > 0 and ca.String1 = c.String1 and ca.Last = 1
+                on ca.Type in (100) and ca.Height > 0 and ca.String1 = c.String1 and ca.Last = 1
 
             where s.Hash = ?
         )sql";
@@ -779,10 +779,10 @@ namespace PocketDb
         string sql = R"sql(
             select u.String1, u.String2
             from Transactions u
-            where u.Type in (100, 101, 102)
+            where u.Type in (100)
               and u.Height is not null
               and u.Height >= ?
-              and u.Height = (select min(u1.Height) from Transactions u1 where u1.Type in (100, 101, 102) and u1.Height is not null and u1.String1=u.String1)
+              and u.Height = (select min(u1.Height) from Transactions u1 where u1.Type in (100) and u1.Height is not null and u1.String1=u.String1)
               and u.String2 is not null
         )sql";
 
@@ -955,16 +955,17 @@ namespace PocketDb
         return result;
     }
 
-    tuple<bool, int64_t> ConsensusRepository::GetLastAccountTime(const string& address)
+    tuple<bool, TxType> ConsensusRepository::GetLastAccountType(const string& address)
     {
-        tuple<bool, int64_t> result = {false, 0};
+        tuple<bool, TxType> result = {false, TxType::ACCOUNT_DELETE};
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select Time
+                select
+                  Type
                 from Transactions indexed by Transactions_Type_Last_String1_Height_Id
-                where Type in (100, 101, 102)
+                where Type in (100,170)
                   and String1 = ?
                   and Last = 1
                   and Height is not null
@@ -973,35 +974,10 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
-                    result = {true, value};
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    tuple<bool, int64_t> ConsensusRepository::GetLastAccountHeight(const string& address)
-    {
-        tuple<bool, int64_t> result = {false, 0};
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(R"sql(
-                select Height
-                from Transactions indexed by Transactions_Type_Last_String1_Height_Id
-                where Type in (100, 101, 102)
-                  and String1 = ?
-                  and Last = 1
-                  and Height is not null
-            )sql");
-
-            TryBindStatementText(stmt, 1, address);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
-                    result = {true, value};
+            {
+                if (auto[ok, type] = TryGetColumnInt64(*stmt, 0); ok)
+                    result = {true, (TxType)type};
+            }
 
             FinalizeSqlStatement(*stmt);
         });

@@ -24,9 +24,9 @@ namespace PocketConsensus
         AccountUserConsensus(int height) : SocialConsensus<User>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
+            // Check payload size
+            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
+                return {false, code};
 
             // Duplicate name
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
@@ -35,11 +35,12 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_NicknameDouble};
             }
 
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
+            // The deleted account cannot be restored
+            if (auto[ok, type] = ConsensusRepoInst.GetLastAccountType(*ptx->GetAddress()); ok)
+                if (type == TxType::ACCOUNT_DELETE)
+                    return {false, SocialConsensusResult_NotFound};
 
-            return ValidateEdit(ptx);
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const UserRef& ptx) override
         {
@@ -110,33 +111,6 @@ namespace PocketConsensus
             return {};
         }
 
-        virtual ConsensusValidateResult ValidateEdit(const UserRef& ptx)
-        {
-            // First user account transaction allowed without next checks
-            if (auto[ok, prevTxHeight] = ConsensusRepoInst.GetLastAccountHeight(*ptx->GetAddress()); !ok)
-                return Success;
-
-            // Check editing limits
-            if (auto[ok, code] = ValidateEditLimit(ptx); !ok)
-                return {false, code};
-
-            return Success;
-        }
-
-        virtual ConsensusValidateResult ValidateEditLimit(const UserRef& ptx)
-        {
-            // First user account transaction allowed without next checks
-            auto[prevOk, prevTime] = ConsensusRepoInst.GetLastAccountTime(*ptx->GetAddress());
-            if (!prevOk)
-                return Success;
-
-            // We allow edit profile only with delay
-            if ((*ptx->GetTime() - prevTime) <= GetConsensusLimit(ConsensusLimit_edit_user_depth))
-                return {false, SocialConsensusResult_ChangeInfoLimit};
-
-            return Success;
-        }
-
         virtual int GetChainCount(const UserRef& ptx)
         {
             return 0;
@@ -181,40 +155,11 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1180000 block
-    *******************************************************************************************************************/
-    class AccountUserConsensus_checkpoint_1180000 : public AccountUserConsensus
+    class AccountUserConsensus_checkpoint_chain_count : public AccountUserConsensus
     {
     public:
-        AccountUserConsensus_checkpoint_1180000(int height) : AccountUserConsensus(height) {}
+        AccountUserConsensus_checkpoint_chain_count(int height) : AccountUserConsensus(height) {}
     protected:
-        ConsensusValidateResult ValidateEditLimit(const UserRef& ptx) override
-        {
-            // First user account transaction allowed without next checks
-            auto[ok, prevTxHeight] = ConsensusRepoInst.GetLastAccountHeight(*ptx->GetAddress());
-            if (!ok) return Success;
-
-            // We allow edit profile only with delay
-            if ((Height - prevTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_user_depth))
-                return {false, SocialConsensusResult_ChangeInfoLimit};
-
-            return Success;
-        }
-    };
-
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1381841 block
-    *******************************************************************************************************************/
-    class AccountUserConsensus_checkpoint_1381841 : public AccountUserConsensus_checkpoint_1180000
-    {
-    public:
-        AccountUserConsensus_checkpoint_1381841(int height) : AccountUserConsensus_checkpoint_1180000(height) {}
-    protected:
-        ConsensusValidateResult ValidateEditLimit(const UserRef& ptx) override
-        {
-            return Success;
-        }
         int GetChainCount(const UserRef& ptx) override
         {
             return ConsensusRepoInst.CountChainAccount(
@@ -225,13 +170,10 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Limitations for username
-    *******************************************************************************************************************/
-    class AccountUserConsensus_checkpoint_login_limitation : public AccountUserConsensus_checkpoint_1381841
+    class AccountUserConsensus_checkpoint_login_limitation : public AccountUserConsensus_checkpoint_chain_count
     {
     public:
-        AccountUserConsensus_checkpoint_login_limitation(int height) : AccountUserConsensus_checkpoint_1381841(height) {}
+        AccountUserConsensus_checkpoint_login_limitation(int height) : AccountUserConsensus_checkpoint_chain_count(height) {}
 
     protected:
         ConsensusValidateResult CheckLogin(const UserRef& ptx) override
@@ -280,16 +222,12 @@ namespace PocketConsensus
     };
 
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
     class AccountUserConsensusFactory
     {
     private:
         const vector<ConsensusCheckpoint<AccountUserConsensus>> m_rules = {
             {       0,     -1, [](int height) { return make_shared<AccountUserConsensus>(height); }},
-            { 1180000,      0, [](int height) { return make_shared<AccountUserConsensus_checkpoint_1180000>(height); }},
-            { 1381841, 162000, [](int height) { return make_shared<AccountUserConsensus_checkpoint_1381841>(height); }},
+            { 1381841, 162000, [](int height) { return make_shared<AccountUserConsensus_checkpoint_chain_count>(height); }},
             { 1647000, 650000, [](int height) { return make_shared<AccountUserConsensus_checkpoint_login_limitation>(height); }}, // ~ 03/25/2022
         };
     public:

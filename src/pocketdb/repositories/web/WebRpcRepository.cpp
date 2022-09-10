@@ -121,7 +121,7 @@ namespace PocketDb
         string sql = R"sql(
             SELECT String1, Id
             FROM Transactions
-            WHERE Type in (100, 101, 102)
+            WHERE Type in (100)
               and Height is not null
               and Last = 1
               and String1 = ?
@@ -152,7 +152,7 @@ namespace PocketDb
         string sql = R"sql(
             SELECT String1, Id
             FROM Transactions
-            WHERE Type in (100, 101, 102)
+            WHERE Type in (100)
               and Height is not null
               and Last = 1
               and Id = ?
@@ -186,7 +186,7 @@ namespace PocketDb
             select p.String2, u.String1
             from Payload p indexed by Payload_String2_nocase_TxHash
             cross join Transactions u indexed by Transactions_Hash_Height
-                on u.Type in (100, 101, 102) and u.Height > 0 and u.Hash = p.TxHash and u.Last = 1
+                on u.Type in (100) and u.Height > 0 and u.Hash = p.TxHash and u.Last = 1
             where p.String2 like ? escape '\'
             limit 1
         )sql";
@@ -223,7 +223,7 @@ namespace PocketDb
         string sql = R"sql(
             select u.String1, u.Time, u.Hash
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            where u.Type in (100, 101, 102)
+            where u.Type in (100)
             and u.Last in (0,1)
             and u.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
             and u.Height = (
@@ -323,7 +323,7 @@ namespace PocketDb
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
 
-            where u.Type in (100, 101, 102)
+            where u.Type in (100)
             and u.Height is not null
             and u.String1 = ?
             and u.Last = 1
@@ -656,7 +656,7 @@ namespace PocketDb
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             cross join Payload p on p.TxHash=u.Hash
 
-            where u.Type in (100,101,102)
+            where u.Type in (100)
               and u.Last = 1
               and u.Height is not null
               )sql" + where + R"sql(
@@ -2176,7 +2176,7 @@ namespace PocketDb
                     p.String3 as avatarFrom
                 from Transactions t
                 cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    on u.String1 = t.String1 and u.Type in (100, 101, 102) and u.Last = 1 and u.Height > 0
+                    on u.String1 = t.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
                 cross join Payload p on p.TxHash = u.Hash
                 where t.Type in (200, 201, 202)
                     and t.Last = 1

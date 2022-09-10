@@ -142,9 +142,12 @@ namespace PocketTx
         bool IsAccount() const
         {
             return Type == TxType::ACCOUNT_USER ||
-                   Type == TxType::ACCOUNT_VIDEO_SERVER ||
-                   Type == TxType::ACCOUNT_MESSAGE_SERVER ||
-                   Type == TxType::ACCOUNT_SETTING;
+                   Type == TxType::ACCOUNT_DELETE;
+        }
+
+        bool IsAccountSetting() const
+        {
+            return Type == TxType::ACCOUNT_SETTING;
         }
 
         bool IsContent() const

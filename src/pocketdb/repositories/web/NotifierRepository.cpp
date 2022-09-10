@@ -20,7 +20,7 @@ namespace PocketDb
                 p.String3 as Avatar
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             cross join Payload p on p.TxHash = u.Hash
-            where u.Type in (100,101,102)
+            where u.Type in (100)
               and u.Last=1
               and u.Last=1
               and u.Height is not null
@@ -168,7 +168,7 @@ namespace PocketDb
             join Payload p on p.TxHash = u.Hash
             where tRepost.Type in (200, 201, 202, 203)
               and tRepost.Hash = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last = 1
               and u.Height is not null
         )sql";
@@ -209,7 +209,7 @@ namespace PocketDb
               and s.Last = 1
               and s.Height is not null
               and s.String2 = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last=1
               and u.Height is not null
         )sql";
@@ -250,7 +250,7 @@ namespace PocketDb
             where r.Type in (100)
               and r.String2 is not null
               and r.Hash = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last=1
               and u.Height is not null
         )sql";
@@ -290,7 +290,7 @@ namespace PocketDb
             join Payload p on p.TxHash = u.Hash
             where score.Type in (300)
               and score.Hash = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last=1
               and u.Height is not null
         )sql";
@@ -329,7 +329,7 @@ namespace PocketDb
             join Payload p on p.TxHash = u.Hash
             where s.Type in (302, 303, 304)
               and s.Hash = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last=1
               and u.Height is not null
         )sql";
@@ -369,7 +369,7 @@ namespace PocketDb
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = score.String1
             join Payload p on p.TxHash = u.Hash
             where score.Hash = ?
-                and u.Type in (100,101,102)
+                and u.Type in (100)
                 and u.Last=1
                 and u.Height is not null
         )sql";
@@ -422,7 +422,7 @@ namespace PocketDb
                 on answer.Type in (204, 205) and answer.Last = 1 and answer.String2 = comment.String5
             WHERE comment.Type in (204, 205)
               and comment.Hash = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last=1
               and u.Height is not null
         )sql";
