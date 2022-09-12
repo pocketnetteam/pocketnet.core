@@ -12,10 +12,10 @@ PocketDb::ShortForm::ShortForm(PocketDb::ShortTxType type, ShortTxData txData, s
       m_relatedContent(std::move(relatedContent))
 {}
 
-UniValue PocketDb::ShortForm::Serialize() const
+UniValue PocketDb::ShortForm::Serialize(bool includeType) const
 {
     auto data = m_txData.Serialize();
-    data.pushKV("type", PocketHelpers::ShortTxTypeConvertor::toString(m_type));
+    if (includeType && m_type != ShortTxType::NotSet) data.pushKV("type", PocketHelpers::ShortTxTypeConvertor::toString(m_type));
     if (m_relatedContent) data.pushKV("relatedContent", m_relatedContent->Serialize());
 
     return data;
