@@ -46,11 +46,14 @@ namespace PocketConsensus
                         bool inBlock = false;
                         for (auto& blockTx: *block)
                         {
-                            if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                            if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
                                 continue;
 
                             if (*blockTx->GetString1() == address)
                             {
+                                if (*blockTx->GetType() == ACCOUNT_DELETE)
+                                    return {false, SocialConsensusResult_AccountDeleted};
+
                                 inBlock = true;
                                 break;
                             }
@@ -67,7 +70,7 @@ namespace PocketConsensus
 
                 // Check registrations in DB
                 if (!addressesForCheck.empty() &&
-                    !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck, false))
+                    !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck))
                     return {false, SocialConsensusResult_NotRegistered};
             }
 
@@ -115,7 +118,10 @@ namespace PocketConsensus
         }
 
         // Get addresses from transaction for check registration
-        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& tx) = 0;
+        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& tx)
+        {
+            return { *tx->GetAddress() };
+        }
 
         // Check empty pointer
         bool IsEmpty(const shared_ptr<string>& ptr) const

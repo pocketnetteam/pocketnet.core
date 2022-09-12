@@ -117,7 +117,7 @@ namespace PocketDb
         // Exists
         bool ExistsComplain(const string& postHash, const string& address, bool mempool);
         bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
-        bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
+        bool ExistsUserRegistrations(vector<string>& addresses);
         bool ExistsAnotherByName(const string& address, const string& name);
         bool Exists(const string& txHash, const vector<TxType>& types, bool inChain);
         bool ExistsInMempool(const string& string1, const vector<TxType>& types);

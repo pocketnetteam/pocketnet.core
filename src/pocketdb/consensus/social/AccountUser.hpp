@@ -22,6 +22,7 @@ namespace PocketConsensus
     {
     public:
         AccountUserConsensus(int height) : SocialConsensus<User>(height) {}
+        
         ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
@@ -38,10 +39,11 @@ namespace PocketConsensus
             // The deleted account cannot be restored
             if (auto[ok, type] = ConsensusRepoInst.GetLastAccountType(*ptx->GetAddress()); ok)
                 if (type == TxType::ACCOUNT_DELETE)
-                    return {false, SocialConsensusResult_NotFound};
+                    return {false, SocialConsensusResult_AccountDeleted};
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
+
         ConsensusValidateResult Check(const CTransactionRef& tx, const UserRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -63,6 +65,7 @@ namespace PocketConsensus
 
             return Success;
         }
+
         ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
         {
             auto ptxORHash = ptx->BuildHash();
@@ -77,6 +80,7 @@ namespace PocketConsensus
         }
 
     protected:
+
         ConsensusValidateResult ValidateBlock(const UserRef& ptx, const PocketBlockRef& block) override
         {
             // Only one transaction allowed in block
@@ -104,6 +108,7 @@ namespace PocketConsensus
 
             return Success;
         }
+
         ConsensusValidateResult ValidateMempool(const UserRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolUser(*ptx->GetAddress()) > 0)
@@ -116,7 +121,7 @@ namespace PocketConsensus
         }
         vector<string> GetAddressesForCheckRegistration(const UserRef& ptx) override
         {
-            return {};
+            return { };
         }
 
         virtual int GetChainCount(const UserRef& ptx)

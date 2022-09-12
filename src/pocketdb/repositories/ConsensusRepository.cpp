@@ -141,7 +141,7 @@ namespace PocketDb
         return {tx != nullptr, tx};
     }
 
-    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, bool mempool)
+    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
     {
         auto result = false;
 
@@ -151,10 +151,11 @@ namespace PocketDb
         // Build sql string
         string sql = R"sql(
             select count(distinct(String1))
-            from Transactions
+            from Transactions indexed by Transactions_Type_Last_String1_Height_Id
             where Type = 100
+              and Last = 1
               and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-              )sql" + (mempool ? "" : " and Height is not null ") + R"sql(
+              and Height is not null
         )sql";
 
         // Execute
