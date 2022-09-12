@@ -763,9 +763,9 @@ namespace PocketDb
                 , u.String1 as Address
                 , u.Id
                 , u.Type
-                , p.String2 as Name
-                , p.String3 as Avatar
-                , p.String7 as Donations
+                , ifnull(p.String2,'') as Name
+                , ifnull(p.String3,'') as Avatar
+                , ifnull(p.String7,'') as Donations
                 , ifnull(u.String2,'') as Referrer
 
                 , ifnull((
@@ -810,10 +810,10 @@ namespace PocketDb
                     where lkr.Type in (111,112,113) and lkr.Id = u.Id and lkr.Last = 1
                 ),0) as Likers
 
-                , p.String6 as Pubkey
-                , p.String4 as About
-                , p.String1 as Lang
-                , p.String5 as Url
+                , ifnull(p.String6,'') as Pubkey
+                , ifnull(p.String4,'') as About
+                , ifnull(p.String1,'') as Lang
+                , ifnull(p.String5,'') as Url
                 , u.Time
 
                 , (
@@ -861,7 +861,7 @@ namespace PocketDb
                 )sql" + fullProfileSql + R"sql(
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            cross join Payload p on p.TxHash=u.Hash
+            left join Payload p on p.TxHash=u.Hash
 
             where u.Type in (100, 170)
               and u.Last = 1
