@@ -13,28 +13,30 @@ namespace PocketDb
     class NotificationsResult
     {
     public:
-        bool HasData(const std::string& hash)
+        bool HasData(const int64_t& blocknum)
         {
-            return m_data.find(hash) != m_data.end();
+            return m_txArrIndicies.find(blocknum) != m_txArrIndicies.end();
         }
 
         void InsertData(const PocketDb::ShortForm& shortForm)
         {
-            m_data.insert({shortForm.GetTxData().GetHash(), shortForm});
+            if (HasData(*shortForm.GetTxData().GetBlockNum())) return;
+            m_txArrIndicies.insert({*shortForm.GetTxData().GetBlockNum(), m_data.size()});
+            m_data.emplace_back(shortForm.Serialize(false));
         }
 
-        void InsertNotifiers(const std::string& hash, std::set<std::string> addresses)
+        void InsertNotifiers(const int64_t& blocknum, ShortTxType contextType, std::set<std::string> addresses)
         {
             for (const auto& address: addresses) {
-                m_notifiers[address].insert(hash);
+                m_notifiers[address][contextType].emplace_back(m_txArrIndicies.at(blocknum));
             }
         }
 
-        std::set<std::string> GetNotifiersAddresses() const
+        std::vector<std::string> GetNotifiersAddresses() const
         {
-            std::set<std::string> res;
+            std::vector<std::string> res;
             for (const auto& notifierEntry: m_notifiers) {
-                res.insert(notifierEntry.first);
+                res.emplace_back(notifierEntry.first);
             }
 
             return res;
@@ -42,48 +44,35 @@ namespace PocketDb
 
         UniValue Serialize(const std::map<std::string, ShortAccount> accsData) const
         {
-            std::map<std::string, std::pair<ShortTxType, int>> hashToIndexMap;
-            UniValue data (UniValue::VARR);
-            std::vector<UniValue> tmp;
-            tmp.reserve(m_data.size());
-            for (const auto& shortForm: m_data) {
-                hashToIndexMap.insert({shortForm.first, {shortForm.second.GetType(), tmp.size()}});
-                tmp.emplace_back(shortForm.second.Serialize());
-            }
-            data.push_backV(tmp);
-
-            UniValue notifiers (UniValue::VOBJ);
-            notifiers.reserveKVSize(m_notifiers.size());
-            for (const auto& notifiersEntry: m_notifiers) {
-                std::map<ShortTxType, std::vector<UniValue>> txIndicies;
-                for (const auto& txHash: notifiersEntry.second) {
-                    const auto& txEntry = hashToIndexMap.at(txHash);
-                    txIndicies[txEntry.first].emplace_back(txEntry.second);
-                }
-                UniValue e (UniValue::VOBJ);
-                for (const auto& lol: txIndicies) {
+            UniValue notifiersUni (UniValue::VOBJ);
+            for (const auto& notifier: m_notifiers) {
+                UniValue notifierData (UniValue::VOBJ);
+                for (const auto& contextTypeIndicies: notifier.second) {
                     UniValue indicies (UniValue::VARR);
-                    indicies.push_backV(lol.second);
-                    e.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(lol.first), indicies, false);
+                    indicies.push_backV(contextTypeIndicies.second);
+                    notifierData.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(contextTypeIndicies.first), indicies, false);
                 }
-                UniValue notifier (UniValue::VOBJ);
-                notifier.pushKV("e", e);
-                if (auto acc = accsData.find(notifiersEntry.first); acc != accsData.end()) {
-                    notifier.pushKV("i", acc->second.Serialize());
+                // TODO (losty): e and i!!!
+                UniValue notifierUni (UniValue::VOBJ);
+                notifierUni.pushKV("e", notifierData);
+                if (auto accData = accsData.find(notifier.first); accData != accsData.end()) {
+                    notifierUni.pushKV("i", accData->second.Serialize());
                 }
-                notifiers.pushKV(notifiersEntry.first, notifier, false);
+                notifiersUni.pushKV(notifier.first, notifierUni, false);
             }
+            UniValue data (UniValue::VARR);
+            data.push_backV(m_data);
 
-            UniValue result (UniValue::VOBJ);
-            result.pushKV("data", data);
-            result.pushKV("notifiers", notifiers);
-
-            return result;
+            UniValue res (UniValue::VOBJ);
+            res.pushKV("data", data);
+            res.pushKV("notifiers", notifiersUni);
+            return res;
         }
 
     private:
-        std::map<std::string, PocketDb::ShortForm> m_data;
-        std::map<std::string, std::set<std::string>> m_notifiers;
+        std::map<std::string, std::map<ShortTxType, std::vector<UniValue>>> m_notifiers;
+        std::map<int64_t, int64_t> m_txArrIndicies;
+        std::vector<UniValue> m_data;
     };
 
     class ShortFormParser : public RowAccessor
@@ -110,6 +99,31 @@ namespace PocketDb
             auto relatedContent = ProcessTxData(stmt, index);
 
             return {PocketHelpers::ShortTxTypeConvertor::strToType(type), *txData, relatedContent};
+        }
+
+        int64_t ParseBlockNum(sqlite3_stmt* stmt)
+        {
+            auto [ok, val] = TryGetColumnInt64(stmt, m_startIndex+5);
+            if (!ok) {
+                throw std::runtime_error("Failed to extract blocknum from stmt");
+            }
+
+            return val;
+        }
+
+        ShortTxType ParseType(sqlite3_stmt* stmt)
+        {
+            auto [ok, val] = TryGetColumnString(stmt, m_startIndex);
+            if (!ok) {
+                throw std::runtime_error("Failed to extract short tx type");
+            }
+
+            auto type = PocketHelpers::ShortTxTypeConvertor::strToType(val);
+            if (type == ShortTxType::NotSet) {
+                throw std::runtime_error("Failed to parse extracted short tx type");
+            }
+
+            return type;
         }
 
         std::string ParseHash(sqlite3_stmt* stmt)
@@ -278,11 +292,11 @@ namespace PocketDb
             }
             if (notifiers.empty()) throw std::runtime_error("Missing address of notifier");
 
-            auto txHash = m_parser.ParseHash(stmt);
-            if (!m_notifications.HasData(txHash)) {
+            auto blockNum = m_parser.ParseBlockNum(stmt);
+            if (!m_notifications.HasData(blockNum)) {
                 m_notifications.InsertData(m_parser.ParseFull(stmt));
             }
-            m_notifications.InsertNotifiers(txHash, notifiers);
+            m_notifications.InsertNotifiers(blockNum, m_parser.ParseType(stmt), notifiers);
         }
         NotificationsResult GetResult() const
         {
@@ -5682,7 +5696,7 @@ namespace PocketDb
         return reconstructor.GetResult();
     }
 
-    std::map<std::string, ShortAccount> WebRpcRepository::GetShortAccountsForAddresses(const std::set<std::string>& addresses)
+    std::map<std::string, ShortAccount> WebRpcRepository::GetShortAccountsForAddresses(const std::vector<std::string>& addresses)
     {
         auto sql = R"sql(
             select
@@ -5692,7 +5706,7 @@ namespace PocketDb
                 p.String3,
                 ifnull(r.Value,0)
 
-            from Transactions ac
+            from Transactions ac indexed by Transactions_Type_Last_String1_String2_Height
 
             left join Payload p
                 on p.TxHash = ac.Hash
@@ -5717,6 +5731,8 @@ namespace PocketDb
                 TryBindStatementText(stmt, i, address);
                 i++;
             }
+
+            // LogPrintf(sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -6447,7 +6463,6 @@ namespace PocketDb
                 });
             }
         }
-
         auto notificationResult = reconstructor.GetResult();
         auto accsData = GetShortAccountsForAddresses(notificationResult.GetNotifiersAddresses());
         return notificationResult.Serialize(accsData);
