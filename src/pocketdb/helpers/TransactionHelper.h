@@ -16,27 +16,31 @@
 #include "pocketdb/models/base/DtoModels.h"
 #include "pocketdb/models/base/PocketTypes.h"
 
-#include "pocketdb/models/dto/action/Blocking.h"
-#include "pocketdb/models/dto/action/BlockingCancel.h"
-#include "pocketdb/models/dto/action/BoostContent.h"
 #include "pocketdb/models/dto/money/Coinbase.h"
 #include "pocketdb/models/dto/money/Coinstake.h"
 #include "pocketdb/models/dto/money/Default.h"
+
 #include "pocketdb/models/dto/content/Post.h"
 #include "pocketdb/models/dto/content/Video.h"
 #include "pocketdb/models/dto/content/Article.h"
 #include "pocketdb/models/dto/content/Comment.h"
 #include "pocketdb/models/dto/content/CommentEdit.h"
 #include "pocketdb/models/dto/content/CommentDelete.h"
+#include "pocketdb/models/dto/content/ContentDelete.h"
+
 #include "pocketdb/models/dto/action/Subscribe.h"
 #include "pocketdb/models/dto/action/SubscribeCancel.h"
 #include "pocketdb/models/dto/action/SubscribePrivate.h"
 #include "pocketdb/models/dto/action/Complain.h"
-#include "pocketdb/models/dto/account/Setting.h"
-#include "pocketdb/models/dto/account/User.h"
 #include "pocketdb/models/dto/action/ScoreContent.h"
 #include "pocketdb/models/dto/action/ScoreComment.h"
-#include "pocketdb/models/dto/content/ContentDelete.h"
+#include "pocketdb/models/dto/action/Blocking.h"
+#include "pocketdb/models/dto/action/BlockingCancel.h"
+#include "pocketdb/models/dto/action/BoostContent.h"
+
+#include "pocketdb/models/dto/account/Setting.h"
+#include "pocketdb/models/dto/account/User.h"
+#include "pocketdb/models/dto/account/Delete.h"
 
 #include "pocketdb/models/dto/moderation/Flag.h"
 

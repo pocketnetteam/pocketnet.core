@@ -589,6 +589,8 @@ add_library(${POCKETDB}
         pocketdb/models/dto/account/User.cpp
         pocketdb/models/dto/account/Setting.h
         pocketdb/models/dto/account/Setting.cpp
+        pocketdb/models/dto/account/Delete.h
+        pocketdb/models/dto/account/Delete.cpp
 
         pocketdb/models/dto/content/Content.h
         pocketdb/models/dto/content/Content.cpp

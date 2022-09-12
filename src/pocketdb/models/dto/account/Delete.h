@@ -14,6 +14,8 @@ namespace PocketTx
     public:
         AccountDelete();
         AccountDelete(const CTransactionRef& tx);
+
+        string BuildHash() override;
     }; // class AccountDelete
 
 } // namespace PocketTx

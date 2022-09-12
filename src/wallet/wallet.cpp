@@ -4676,9 +4676,7 @@ void CWallet::AvailableCoinsForStaking(std::vector<COutput>& vCoins, unsigned in
 	vCoins.clear();
 
 	{
-        // TODO (brangr, team): change LOCK(cs_wallet); to LOCK2(cs_main, cs_wallet);
 		LOCK(cs_wallet);
-		// LOCK2(cs_main, cs_wallet);
 		for (std::map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
 			const CWalletTx* pcoin = &(*it).second;
 			const uint256& wtxid = it->first;

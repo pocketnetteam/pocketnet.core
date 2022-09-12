@@ -16,5 +16,12 @@ namespace PocketTx
     {
         SetType(TxType::ACCOUNT_DELETE);
     }
+
+    string AccountDelete::BuildHash()
+    {
+        std::string data;
+        return Transaction::GenerateHash(data);
+    }
+
 } // namespace PocketTx
 

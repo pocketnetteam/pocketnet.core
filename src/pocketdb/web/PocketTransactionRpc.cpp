@@ -260,6 +260,9 @@ namespace PocketWeb::PocketWebRpc
             i += 1;
         }
 
+        if (totalAmount <= (fee + outputCount + 1000))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Insufficient funds");
+
         // Build outputs
         UniValue _outputs(UniValue::VARR);
         int64_t returned = totalAmount - fee;
@@ -274,7 +277,7 @@ namespace PocketWeb::PocketWebRpc
 
         // generate transaction
         auto _opReturn = CScript() << OP_RETURN << ParseHex(txTypeHex) << ParseHex(_ptx->BuildHash());
-        // if (contentAddressValue != "") _opReturn = _opReturn << ParseHex(HexStr(contentAddressValue));
+        if (contentAddressValue != "") _opReturn = _opReturn << ParseHex(HexStr(contentAddressValue));
         CTxOut _dataOut(0, _opReturn);
         CMutableTransaction mTx = ConstructPocketnetTransaction(_inputs, _dataOut, _outputs, NullUniValue, NullUniValue);
 
