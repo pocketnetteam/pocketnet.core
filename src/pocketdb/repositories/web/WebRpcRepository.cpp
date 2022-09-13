@@ -502,6 +502,7 @@ namespace PocketDb
             select
                 u.Id as AddressId,
                 u.String1 as Address,
+                u.Type,
 
                 (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (200) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as PostSpent,
@@ -529,7 +530,7 @@ namespace PocketDb
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
 
-            where u.Type in (100)
+            where u.Type in (100, 170)
             and u.Height is not null
             and u.String1 = ?
             and u.Last = 1
@@ -555,15 +556,25 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("address_id", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) result.pushKV("address", value);
 
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("post_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("video_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("article_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("complain_spent", value);
-                
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("mod_flag_spent", value);
+                bool isDeleted = false;
+                if (auto[ok, Type] = TryGetColumnInt(*stmt, i++); ok)
+                {
+                    isDeleted = (Type==TxType::ACCOUNT_DELETE);
+                    if (isDeleted) result.pushKV("deleted", true);
+                }
+
+                if (!isDeleted) {
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("post_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("video_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("article_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("score_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok)
+                        result.pushKV("comment_score_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("complain_spent", value);
+
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("mod_flag_spent", value);
+                }
             }
 
             FinalizeSqlStatement(*stmt);
