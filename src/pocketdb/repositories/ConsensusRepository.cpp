@@ -96,7 +96,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             string sql = R"sql(
-                SELECT
+                select
                     t.Type,
                     t.Hash,
                     t.Time,
@@ -116,12 +116,12 @@ namespace PocketDb
                     p.String5 pString5,
                     p.String6 pString6,
                     p.String7 pString7
-                FROM Transactions t indexed by Transactions_Type_Last_String2_Height
-                LEFT JOIN Payload p on t.Hash = p.TxHash
-                WHERE t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-                    and t.String2 = ?
-                    and t.Last = 1
-                    and t.Height is not null
+                from Transactions t indexed by Transactions_Type_Last_String2_Height
+                left join Payload p on t.Hash = p.TxHash
+                where t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                  and t.String2 = ?
+                  and t.Last = 1
+                  and t.Height is not null
             )sql";
 
             auto stmt = SetupSqlStatement(sql);
