@@ -374,7 +374,7 @@ namespace PocketDb
         TryBindStatementText(setLastStmt, 1, txHash);
         TryStepStatement(setLastStmt);
 
-        // TODO (brangr): delete
+        // TODO (brangr): delete - Done(o1q)
         auto insListStmt = SetupSqlStatement(R"sql(
             insert into BlockingLists (IdSource, IdTarget)
             select
@@ -382,9 +382,9 @@ namespace PocketDb
               ut.Id
             from Transactions b
             join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
             join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100) and ut.Last = 1
+              on ut.Type in (100, 170) and ut.Last = 1
                 and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                 and ut.Height > 0
             where b.Type in (305) and b.Hash = ?
@@ -393,7 +393,7 @@ namespace PocketDb
         TryBindStatementText(insListStmt, 1, txHash);
         TryStepStatement(insListStmt);
 
-        // TODO (brangr): delete
+        // TODO (brangr): delete - Done(o1q)
         auto delListStmt = SetupSqlStatement(R"sql(
             delete from BlockingLists
             where exists
@@ -401,9 +401,9 @@ namespace PocketDb
               1
             from Transactions b
             join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Id = BlockingLists.IdSource and us.Height > 0
+              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Id = BlockingLists.IdSource and us.Height > 0
             join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100) and ut.Last = 1 and ut.String1 = b.String2 and ut.Id = BlockingLists.IdTarget and ut.Height > 0
+              on ut.Type in (100, 170) and ut.Last = 1 and ut.String1 = b.String2 and ut.Id = BlockingLists.IdTarget and ut.Height > 0
             where b.Type in (306) and b.Hash = ?
             )
         )sql");
@@ -700,18 +700,18 @@ namespace PocketDb
     {
         int64_t nTime0 = GetTimeMicros();
 
-        // TODO (brangr): delete
+        // TODO (brangr): delete - Done(o1q)
         auto delListStmt = SetupSqlStatement(R"sql(
             delete from BlockingLists where ROWID in
             (
                 select bl.ROWID
                 from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
                 join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-                  on us.Type in (100) and us.Last = 1
+                  on us.Type in (100, 170) and us.Last = 1
                     and us.String1 = b.String1
                     and us.Height > 0
                 join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-                  on ut.Type in (100) and ut.Last = 1
+                  on ut.Type in (100, 170) and ut.Last = 1
                     and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                     and ut.Height > 0
                 join BlockingLists bl on bl.IdSource = us.Id and bl.IdTarget = ut.Id
@@ -725,7 +725,7 @@ namespace PocketDb
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
-        // TODO (brangr): delete
+        // TODO (brangr): delete - Done(o1q)
         auto insListStmt = SetupSqlStatement(R"sql(
             insert into BlockingLists
             (
@@ -737,9 +737,9 @@ namespace PocketDb
               ut.Id
             from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
             join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100) and ut.Last = 1
+              on ut.Type in (100, 170) and ut.Last = 1
                 --and ut.String1 = b.String2
                 and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                 and ut.Height > 0

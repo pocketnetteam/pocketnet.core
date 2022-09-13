@@ -211,7 +211,7 @@ namespace PocketDb
         return {blockingExists, blockingType};
     }
 
-    // TODO (brangr): delete
+    // TODO (brangr): delete - Done(o1q)
     bool ConsensusRepository::ExistBlocking(const string& address, const string& addressTo, const string& addressesTo)
     {
         bool blockingExists = false;
@@ -222,9 +222,9 @@ namespace PocketDb
                 SELECT 1
                 FROM BlockingLists b
                 JOIN Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-                ON us.Last = 1 and us.Id = b.IdSource and us.Type = 100 and us.Height is not null
+                ON us.Last = 1 and us.Id = b.IdSource and us.Type in (100, 170) and us.Height is not null
                 JOIN Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-                ON ut.Last = 1 and ut.Id = b.IdTarget and ut.Type = 100 and ut.Height is not null
+                ON ut.Last = 1 and ut.Id = b.IdTarget and ut.Type in (100, 170) and ut.Height is not null
                 WHERE us.String1 = ?
                     and ut.String1 in (select ? union select value from json_each(?))
                 LIMIT 1
