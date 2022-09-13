@@ -3655,7 +3655,7 @@ namespace PocketDb
         if (topContentId > 0)
             contentIdWhere = " and t.Id < ? ";
 
-        string accountExistence = " join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id "
+        string accountExistence = " join Transaction1s ua indexed by Transactions_Type_Last_String1_Height_Id "
                                   " on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null ";
 
         string langFilter;
