@@ -1033,6 +1033,9 @@ namespace PocketDb
 
             from Transactions c indexed by Transactions_Height_Id
 
+            cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
+              on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
+
             cross join Transactions p indexed by Transactions_Type_Last_String2_Height
               on p.Type in (200,201,202) and p.Last = 1 and p.Height > 0 and p.String2 = c.String3
 
@@ -1162,6 +1165,9 @@ namespace PocketDb
                         
                         from Transactions c1 indexed by Transactions_Type_Last_String3_Height
 
+                        cross join Transactions uac indexed by Transactions_Type_Last_String1_Height_Id
+                          on uac.String1 = c1.String1 and uac.Type = 100 and uac.Last = 1 and uac.Height is not null
+
                         left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
                             on o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1 and o.Value > ?
 
@@ -1185,6 +1191,9 @@ namespace PocketDb
                     )commentId
 
                 from Transactions t indexed by Transactions_Last_Id_Height
+
+                cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
+                  on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
 
                 where t.Type in (200,201,202,207)
                     and t.Last = 1
