@@ -3212,6 +3212,8 @@ namespace PocketDb
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore
 
             from Transactions t indexed by Transactions_Last_Id_Height
+            cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
+                on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
             left join Payload p on t.Hash = p.TxHash
             where t.Height is not null
               and t.Last = 1
@@ -3868,6 +3870,9 @@ namespace PocketDb
             select cnt.Id
 
             from Transactions cnt indexed by Transactions_Type_Last_String1_Height_Id
+
+            cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
+                on ua.String1 = cnt.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
 
             )sql" + langFilter + R"sql(
 
