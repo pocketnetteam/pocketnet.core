@@ -51,9 +51,6 @@ namespace PocketConsensus
 
                             if (*blockTx->GetString1() == address)
                             {
-                                if (*blockTx->GetType() == ACCOUNT_DELETE)
-                                    return {false, SocialConsensusResult_AccountDeleted};
-
                                 inBlock = true;
                                 break;
                             }
