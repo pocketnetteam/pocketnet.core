@@ -400,10 +400,7 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
         // Look for an existing connection
         CNode* pnode = FindNode(static_cast<CService>(addrConnect));
         if (pnode)
-        {
-            LogPrintf("Failed to open new connection, already connected\n");
             return nullptr;
-        }
     }
 
     /// debug print
@@ -430,7 +427,6 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
             if (pnode)
             {
                 pnode->MaybeSetAddrName(std::string(pszDest));
-                LogPrintf("Failed to open new connection, already connected\n");
                 return nullptr;
             }
         }
