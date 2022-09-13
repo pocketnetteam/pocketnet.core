@@ -51,6 +51,10 @@ namespace PocketConsensus
 
                             if (*blockTx->GetString1() == address)
                             {
+                                // TODO (brangr): delete - подумать для всех ли подходит
+                                if (*blockTx->GetType() == ACCOUNT_DELETE)
+                                    return {false, SocialConsensusResult_AccountDeleted};
+
                                 inBlock = true;
                                 break;
                             }

@@ -8,6 +8,7 @@
 
 namespace PocketDb
 {
+  // TODO (brangr): delete
     bool MigrationRepository::CreateBlockingList()
     {
         bool result = false;

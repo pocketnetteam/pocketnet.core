@@ -211,6 +211,7 @@ namespace PocketDb
         return {blockingExists, blockingType};
     }
 
+    // TODO (brangr): delete
     bool ConsensusRepository::ExistBlocking(const string& address, const string& addressTo, const string& addressesTo)
     {
         bool blockingExists = false;
@@ -530,6 +531,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (brangr): delete
     int ConsensusRepository::GetUserReputation(const string& address)
     {
         int result = 0;
@@ -538,7 +540,7 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = 0
-              and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type = 100 and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
+              and r.Id = (select u.Id from Transactions u where u.Type = 100 and u.Height is not null and u.Last = 1 and u.String1 = ? limit 1)
               and r.Last = 1
         )sql";
 
@@ -584,6 +586,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (brangr): delete
     int ConsensusRepository::GetAccountRegistrationHeight(int addressId)
     {
         int result = 0;
@@ -610,6 +613,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (brangr): delete
     int64_t ConsensusRepository::GetAccountRegistrationTime(int addressId)
     {
         int64_t result = 0;
@@ -639,6 +643,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (brangr): delete
     AccountData ConsensusRepository::GetAccountData(const string& address)
     {
         AccountData result = {address,-1,0,0,0,0,0};
@@ -729,7 +734,7 @@ namespace PocketDb
 
             -- Content Address
             join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
-                on ca.Type in (100) and ca.Height > 0 and ca.String1 = c.String1 and ca.Last = 1
+                on ca.Type in (100,170) and ca.Height > 0 and ca.String1 = c.String1 and ca.Last = 1
 
             where s.Hash = ?
         )sql";
@@ -769,6 +774,7 @@ namespace PocketDb
     }
 
     // Select many referrers
+    // TODO (brangr): delete - где используется
     shared_ptr<map<string, string>> ConsensusRepository::GetReferrers(const vector<string>& addresses, int minHeight)
     {
         shared_ptr<map<string, string>> result = make_shared<map<string, string>>();
@@ -814,6 +820,7 @@ namespace PocketDb
     }
 
     // Select referrer for one account
+    // TODO (brangr): delete - где используется
     tuple<bool, string> ConsensusRepository::GetReferrer(const string& address)
     {
         bool result = false;
@@ -1585,6 +1592,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (brangr): delete - нужна еще?
     int ConsensusRepository::CountMempoolUser(const string& address)
     {
         int result = 0;

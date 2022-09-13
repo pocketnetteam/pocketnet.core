@@ -374,6 +374,7 @@ namespace PocketDb
         TryBindStatementText(setLastStmt, 1, txHash);
         TryStepStatement(setLastStmt);
 
+        // TODO (brangr): delete
         auto insListStmt = SetupSqlStatement(R"sql(
             insert into BlockingLists (IdSource, IdTarget)
             select
@@ -392,6 +393,7 @@ namespace PocketDb
         TryBindStatementText(insListStmt, 1, txHash);
         TryStepStatement(insListStmt);
 
+        // TODO (brangr): delete
         auto delListStmt = SetupSqlStatement(R"sql(
             delete from BlockingLists
             where exists
@@ -698,6 +700,7 @@ namespace PocketDb
     {
         int64_t nTime0 = GetTimeMicros();
 
+        // TODO (brangr): delete
         auto delListStmt = SetupSqlStatement(R"sql(
             delete from BlockingLists where ROWID in
             (
@@ -722,6 +725,7 @@ namespace PocketDb
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
+        // TODO (brangr): delete
         auto insListStmt = SetupSqlStatement(R"sql(
             insert into BlockingLists
             (

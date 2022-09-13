@@ -21,6 +21,8 @@ namespace PocketConsensus
     public:
         AccountDeleteConsensus(int height) : SocialConsensus<AccountDelete>(height) {}
 
+        // TODO (brangr): delete - validate exists not deleted account
+
         ConsensusValidateResult Check(const CTransactionRef& tx, const AccountDeleteRef& ptx) override
         {
             if (IsEmpty(ptx->GetAddress()))
@@ -36,8 +38,9 @@ namespace PocketConsensus
             // Only one transaction allowed in block
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_SETTING, ACCOUNT_DELETE }))
-                    continue;
+                // TODO (brangr): delete - любая транзакция несовместима с операцией удаления
+                // if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_SETTING, ACCOUNT_DELETE }))
+                //     continue;
 
                 auto blockPtx = static_pointer_cast<AccountSetting>(blockTx);
                 if (*blockPtx->GetHash() == *ptx->GetHash())
@@ -60,7 +63,7 @@ namespace PocketConsensus
 
         vector<string> GetAddressesForCheckRegistration(const AccountDeleteRef& ptx) override
         {
-            return { *ptx->GetAddress() };
+            return { };
         }
     };
 
