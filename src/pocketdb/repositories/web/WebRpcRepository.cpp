@@ -385,6 +385,8 @@ namespace PocketDb
     UniValue WebRpcRepository::GetUserAddress(const string& name)
     {
         UniValue result(UniValue::VARR);
+        
+        if (name.empty()) return result;
 
         auto _name = EscapeValue(name);
 
