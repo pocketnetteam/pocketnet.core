@@ -22,7 +22,7 @@ namespace PocketDb
                 select count(*)
                 from Payload ap indexed by Payload_String2_nocase_TxHash
                 cross join Transactions t indexed by Transactions_Hash_Height
-                  on t.Type = 100 and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
+                  on t.Type in (100) and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
                 where ap.String2 like ? escape '\'
                   and t.String1 != ?
             )sql");
@@ -152,7 +152,7 @@ namespace PocketDb
         string sql = R"sql(
             select count(distinct(String1))
             from Transactions indexed by Transactions_Type_Last_String1_Height_Id
-            where Type = 100
+            where Type in (100)
               and Last = 1
               and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
               and Height is not null
@@ -716,7 +716,7 @@ namespace PocketDb
 
             -- Score Address
             join Transactions sa indexed by Transactions_Type_Last_String1_Height_Id
-                on sa.Type in (100) and sa.Height > 0 and sa.String1 = s.String1 and sa.Last = 1
+                on sa.Type in (100,170) and sa.Height > 0 and sa.String1 = s.String1 and sa.Last = 1
 
             -- Content
             join Transactions c indexed by Transactions_Hash_Height
