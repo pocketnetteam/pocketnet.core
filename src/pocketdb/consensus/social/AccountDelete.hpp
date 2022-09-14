@@ -21,8 +21,6 @@ namespace PocketConsensus
     public:
         AccountDeleteConsensus(int height) : SocialConsensus<AccountDelete>(height) {}
 
-        // TODO (brangr): delete - validate exists not deleted account
-
         ConsensusValidateResult Check(const CTransactionRef& tx, const AccountDeleteRef& ptx) override
         {
             if (IsEmpty(ptx->GetAddress()))
@@ -59,11 +57,6 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;
-        }
-
-        vector<string> GetAddressesForCheckRegistration(const AccountDeleteRef& ptx) override
-        {
-            return { };
         }
     };
 

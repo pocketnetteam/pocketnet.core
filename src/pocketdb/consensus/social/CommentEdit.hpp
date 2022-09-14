@@ -57,7 +57,6 @@ namespace PocketConsensus
 
                 if (!origParentTxHash.empty())
                 {
-                    // TODO (brangr): replace to check exists not deleted comment
                     if (auto[ok, origParentTx] = ConsensusRepoInst.GetLastContent(
                         origParentTxHash, { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }); !ok)
                         return {false, SocialConsensusResult_InvalidParentComment};
@@ -74,7 +73,6 @@ namespace PocketConsensus
 
                 if (!origAnswerTxHash.empty())
                 {
-                    // TODO (brangr): replace to check exists not deleted comment
                     if (auto[ok, origAnswerTx] = ConsensusRepoInst.GetLastContent(
                         origAnswerTxHash, { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }); !ok)
                         return {false, SocialConsensusResult_InvalidAnswerComment};
@@ -94,9 +92,6 @@ namespace PocketConsensus
 
             if (*contentTx->GetType() == CONTENT_DELETE)
                 return {false, SocialConsensusResult_CommentDeletedContent};
-
-            // TODO (brangr): convert to Content base class
-
             
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(

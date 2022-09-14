@@ -211,7 +211,6 @@ namespace PocketDb
         return {blockingExists, blockingType};
     }
 
-    // TODO (brangr): delete - Done(o1q)
     bool ConsensusRepository::ExistBlocking(const string& address, const string& addressTo, const string& addressesTo)
     {
         bool blockingExists = false;
@@ -531,7 +530,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (brangr): delete
     int ConsensusRepository::GetUserReputation(const string& address)
     {
         int result = 0;
@@ -540,7 +538,15 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = 0
-              and r.Id = (select u.Id from Transactions u where u.Type = 100 and u.Height is not null and u.Last = 1 and u.String1 = ? limit 1)
+              and r.Id = (
+                select u.Id
+                from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                where u.Type in (100,170)
+                  and u.Last = 1
+                  and u.String1 = ?
+                  and u.Height is not null
+                  limit 1
+              )
               and r.Last = 1
         )sql";
 

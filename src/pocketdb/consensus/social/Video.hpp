@@ -119,7 +119,6 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
         {
-            // TODO (brangr): change with check deleted content
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
                 { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
