@@ -1308,6 +1308,9 @@ namespace PocketDb
                 (
                     select count(1)
                     from Transactions s indexed by Transactions_Type_Last_String4_Height
+                    -- exclude deleted accounts
+                    cross join Transactions uac indexed by Transactions_Type_Last_String1_Height_Id
+                    on uac.String1 = s.String1 and uac.Type = 100 and uac.Last = 1 and uac.Height is not null
                     where s.Type in (204, 205)
                       and s.Height is not null
                       and s.String4 = c.String2
@@ -1325,6 +1328,10 @@ namespace PocketDb
                 o.Value as Donate
 
             from Transactions c indexed by Transactions_Type_Last_String3_Height
+
+            -- exclude deleted accounts
+            cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
+                on ua.String1 = c.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
 
             join Transactions r ON c.String2 = r.Hash
 
