@@ -4918,7 +4918,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 			}
 
             // Do not add additional significant input
-            if (pcoin.first->tx->vout[pcoin.second].nValue >= Params().GetConsensus().nStakeCombineThreshold && nCredit >= Params().GetConsensus().nStakeMinimumThreshold) {
+            if (pcoin.first->tx->vout[pcoin.second].nValue >= Params().GetConsensus().nStakeMinimumThreshold && nCredit >= Params().GetConsensus().nStakeCombineThreshold) {
                 continue;
             }
 
@@ -4933,7 +4933,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 		}
 	}
 
-	if (nCredit < Params().GetConsensus().nStakeMinimumThreshold) {
+	if (nCredit < Params().GetConsensus().nStakeCombineThreshold) {
 		LogPrintf("CreateCoinStake : Credit does not meet minimum threshold=%d\n", nCredit);
 		return false;
 	}
