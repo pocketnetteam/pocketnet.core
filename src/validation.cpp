@@ -5819,10 +5819,10 @@ bool LoadMempool(CTxMemPool& pool)
             pool.PrioritiseTransaction(i.first, i.second);
         }
 
-        LOCK(pool.cs);
         pool.CleanSQLite(expiredHashes, MemPoolRemovalReason::EXPIRY);
 
         // TODO: remove this try except in v0.22
+        LOCK(pool.cs);
         std::set<uint256> unbroadcast_txids;
         try {
           file >> unbroadcast_txids;
