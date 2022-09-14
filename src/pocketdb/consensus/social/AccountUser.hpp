@@ -86,7 +86,7 @@ namespace PocketConsensus
             // Only one transaction allowed in block
             for (auto& blockTx: *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())
