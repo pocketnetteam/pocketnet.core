@@ -111,7 +111,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateMempool(const UserRef& ptx) override
         {
-            if (ConsensusRepoInst.CountMempoolUser(*ptx->GetAddress()) > 0)
+            if (ConsensusRepoInst.ExistsInMempool(*ptx->GetAddress(), { ACCOUNT_USER, ACCOUNT_DELETE }))
                 return {false, SocialConsensusResult_ChangeInfoDoubleInMempool};
 
             if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))

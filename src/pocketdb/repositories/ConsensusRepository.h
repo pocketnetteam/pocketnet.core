@@ -93,7 +93,6 @@ namespace PocketDb
         int64_t GetUserBalance(const string& address);
         int GetUserReputation(const string& addressId);
         int GetUserReputation(int addressId);
-        int GetAccountRegistrationHeight(int addressId);
         int64_t GetAccountRegistrationTime(int addressId);
 
         AccountData GetAccountData(const string& address);
@@ -153,8 +152,6 @@ namespace PocketDb
         int CountMempoolScoreContent(const string& address);
         int CountChainScoreContentTime(const string& address, int64_t time);
         int CountChainScoreContentHeight(const string& address, int height);
-
-        int CountMempoolUser(const string& address);
 
         int CountMempoolAccountSetting(const string& address);
         int CountChainAccountSetting(const string& address, int height);

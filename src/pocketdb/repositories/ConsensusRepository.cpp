@@ -592,34 +592,7 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (brangr): delete
-    int ConsensusRepository::GetAccountRegistrationHeight(int addressId)
-    {
-        int result = 0;
-
-        string sql = R"sql(
-            select min(Height)
-            from Transactions
-            where Type in (100)
-              and Id = ?
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, addressId);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = value;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    // TODO (brangr): delete
+    // TODO (brangr): maybe remove in future?
     int64_t ConsensusRepository::GetAccountRegistrationTime(int addressId)
     {
         int64_t result = 0;
@@ -627,7 +600,7 @@ namespace PocketDb
         string sql = R"sql(
             select Time
             from Transactions indexed by Transactions_Id
-            where Type in (100)
+            where Type in (100, 170)
               and Height is not null
               and Id = ?
             order by Height asc
@@ -649,7 +622,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (brangr): delete
     AccountData ConsensusRepository::GetAccountData(const string& address)
     {
         AccountData result = {address,-1,0,0,0,0,0};
@@ -669,15 +641,27 @@ namespace PocketDb
                     ifnull(lca.Value,0)LikersCommentAnswer
 
                 from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+
                 cross join Transactions reg indexed by Transactions_Id
                     on reg.Id = u.Id and reg.Height = (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = reg.Id)
-                left join Balances b indexed by Balances_AddressHash_Last on b.AddressHash = u.String1 and b.Last = 1
-                left join Ratings r indexed by Ratings_Type_Id_Last_Value on r.Type = 0 and r.Id = u.Id and r.Last = 1
-                left join Ratings lp indexed by Ratings_Type_Id_Last_Value on lp.Type = 111 and lp.Id = u.Id and lp.Last = 1
-                left join Ratings lc indexed by Ratings_Type_Id_Last_Value on lc.Type = 112 and lc.Id = u.Id and lc.Last = 1
-                left join Ratings lca indexed by Ratings_Type_Id_Last_Value on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
 
-                where u.Type in (100)
+                left join Balances b indexed by Balances_AddressHash_Last
+                    on b.AddressHash = u.String1 and b.Last = 1
+
+                left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                    on r.Type = 0 and r.Id = u.Id and r.Last = 1
+
+                left join Ratings lp indexed by Ratings_Type_Id_Last_Value
+                    on lp.Type = 111 and lp.Id = u.Id and lp.Last = 1
+
+                left join Ratings lc indexed by Ratings_Type_Id_Last_Value
+                    on lc.Type = 112 and lc.Id = u.Id and lc.Last = 1
+
+                left join Ratings lca indexed by Ratings_Type_Id_Last_Value
+                    on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
+
+
+                where u.Type in (100, 170)
                   and u.Last = 1
                   and u.String1 = ?
                   and u.Height > 0
@@ -780,7 +764,6 @@ namespace PocketDb
     }
 
     // Select many referrers
-    // TODO (brangr): delete - где используется
     shared_ptr<map<string, string>> ConsensusRepository::GetReferrers(const vector<string>& addresses, int minHeight)
     {
         shared_ptr<map<string, string>> result = make_shared<map<string, string>>();
@@ -792,10 +775,16 @@ namespace PocketDb
         string sql = R"sql(
             select u.String1, u.String2
             from Transactions u
-            where u.Type in (100)
+            where u.Type in (100, 170)
               and u.Height is not null
               and u.Height >= ?
-              and u.Height = (select min(u1.Height) from Transactions u1 where u1.Type in (100) and u1.Height is not null and u1.String1=u.String1)
+              and u.Height = (
+                select min(u1.Height)
+                from Transactions u1 indexed by Transactions_Type_String1_Height_Time_Int1
+                where u1.Type in (100, 170)
+                  and u1.Height is not null
+                  and u1.String1 = u.String1
+              )
               and u.String2 is not null
         )sql";
 
@@ -826,7 +815,6 @@ namespace PocketDb
     }
 
     // Select referrer for one account
-    // TODO (brangr): delete - где используется
     tuple<bool, string> ConsensusRepository::GetReferrer(const string& address)
     {
         bool result = false;
@@ -835,9 +823,9 @@ namespace PocketDb
         string sql = R"sql(
             select String2
             from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-            where Type in (100)
-              and Height is not null
+            where Type in (100, 170)
               and String1 = ?
+              and Height is not null
             order by Height asc
             limit 1
         )sql";
@@ -1587,33 +1575,6 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, 1, height);
             TryBindStatementText(stmt, 2, address);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = value;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    // TODO (brangr): delete - нужна еще?
-    int ConsensusRepository::CountMempoolUser(const string& address)
-    {
-        int result = 0;
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(R"sql(
-                select count(*)
-                from Transactions
-                where Type in (100)
-                  and Height is null
-                  and String1 = ?
-            )sql");
-
-            TryBindStatementText(stmt, 1, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

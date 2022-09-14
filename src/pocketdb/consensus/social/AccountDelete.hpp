@@ -36,9 +36,8 @@ namespace PocketConsensus
             // Only one transaction allowed in block
             for (auto& blockTx : *block)
             {
-                // TODO (brangr): delete - любая транзакция несовместима с операцией удаления
-                // if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_SETTING, ACCOUNT_DELETE }))
-                //     continue;
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
+                    continue;
 
                 auto blockPtx = static_pointer_cast<AccountSetting>(blockTx);
                 if (*blockPtx->GetHash() == *ptx->GetHash())
@@ -53,7 +52,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateMempool(const AccountDeleteRef& ptx) override
         {
-            if (ConsensusRepoInst.ExistsInMempool(*ptx->GetAddress(), { ACCOUNT_USER, ACCOUNT_SETTING, ACCOUNT_DELETE }))
+            if (ConsensusRepoInst.ExistsInMempool(*ptx->GetAddress(), { ACCOUNT_USER, ACCOUNT_DELETE }))
                 return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;
