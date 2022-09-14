@@ -24,10 +24,6 @@ namespace PocketConsensus
         CommentEditConsensus(int height) : SocialConsensus<CommentEdit>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentEditRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Actual comment not deleted
             auto[actuallTxOk, actuallTx] = ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
@@ -104,7 +100,10 @@ namespace PocketConsensus
                 return {false, code};
 
             // Check edit limit
-            return ValidateEditOneLimit(ptx);
+            if (auto[checkResult, checkCode] = ValidateEditOneLimit(ptx); !checkResult)
+                return {false, checkCode};
+
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const CommentEditRef& ptx) override
         {

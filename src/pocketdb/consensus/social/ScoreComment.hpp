@@ -24,10 +24,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ScoreCommentRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
                 *ptx->GetAddress(), *ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, false))
@@ -86,7 +82,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_FailedOpReturn};
             }
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const ScoreCommentRef& ptx) override
         {

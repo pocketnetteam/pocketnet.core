@@ -24,10 +24,6 @@ namespace PocketConsensus
         CommentConsensus(int height) : SocialConsensus<Comment>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Parent comment
             if (!IsEmpty(ptx->GetParentTxHash()))
             {
@@ -69,7 +65,7 @@ namespace PocketConsensus
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const CommentRef& ptx) override
         {

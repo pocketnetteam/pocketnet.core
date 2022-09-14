@@ -23,10 +23,13 @@ namespace PocketConsensus
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const AccountDeleteRef& ptx) override
         {
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
             if (IsEmpty(ptx->GetAddress()))
                 return {false, SocialConsensusResult_Failed};
 
-            return SocialConsensus::Check(tx, ptx);
+            return Success;
         }
 
     protected:

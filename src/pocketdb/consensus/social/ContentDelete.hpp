@@ -22,10 +22,6 @@ namespace PocketConsensus
         ContentDeleteConsensus(int height) : SocialConsensus<ContentDelete>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ContentDeleteRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Actual content not deleted
             auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
@@ -43,7 +39,7 @@ namespace PocketConsensus
             if (*ptx->GetAddress() != *actuallTx->GetString1())
                 return {false, SocialConsensusResult_ContentDeleteUnauthorized};
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const ContentDeleteRef& ptx) override
         {

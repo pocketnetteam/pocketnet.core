@@ -325,8 +325,6 @@ namespace PocketWeb::PocketWebRpc
 
         // Insert into mempool
         return _accept_transaction(tx, ptx, *node.mempool, *node.connman);
-        //const CTransaction& ctx = *tx;
-        //return ctx.ToString();
     },
         };
     }
