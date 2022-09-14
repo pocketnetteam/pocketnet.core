@@ -42,10 +42,10 @@ namespace PocketConsensus
                 if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
                     continue;
 
-                auto blockPtx = static_pointer_cast<AccountSetting>(blockTx);
-                if (*blockPtx->GetHash() == *ptx->GetHash())
+                if (*ptx->GetHash() == *blockTx->GetHash())
                     continue;
 
+                auto blockPtx = static_pointer_cast<SocialTransaction>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                     return {false, SocialConsensusResult_ManyTransactions};
             }
