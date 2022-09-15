@@ -68,15 +68,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
         {
-            auto ptxORHash = ptx->BuildHash();
-            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
-            if (ptxORHash == txORHash)
-                return Success;
-
-            if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                return Success;
-
-            return {false, SocialConsensusResult_FailedOpReturn};
+            return Success;
         }
 
     protected:
@@ -213,6 +205,35 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_Failed};
 
             return Success;
+        }
+        
+        // TODO (brangr): move to base class after this checkpoint - set test checkpoint records
+        ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx) override
+        {
+            auto ptxName = *ptx->GetPayloadName();
+            boost::algorithm::to_lower(ptxName);
+
+            auto blockPtxName = *blockPtx->GetPayloadName();
+            boost::algorithm::to_lower(blockPtxName);
+
+            if (ptxName == blockPtxName)
+                return {false, SocialConsensusResult_NicknameDouble};
+
+            return Success;
+        }
+
+        // TODO (brangr): move to base class after this checkpoint - set test checkpoint records
+        ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
+        {
+            auto ptxORHash = ptx->BuildHash();
+            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
+            if (ptxORHash == txORHash)
+                return Success;
+
+            if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
+                return Success;
+
+            return {false, SocialConsensusResult_FailedOpReturn};
         }
     };
 
