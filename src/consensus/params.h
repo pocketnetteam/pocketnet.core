@@ -94,10 +94,10 @@ struct Params {
     unsigned int nStakeMinAge;
     int64_t nPosTargetSpacing;
     int64_t nPosTargetTimespan;
-    int64_t nStakeCombineThreshold;
+    int64_t nStakeCombineThreshold; // Minimum required SUM of coinstake inputs
     int64_t nStakeSplitThreshold;
-    int64_t nStakeMinimumThreshold;
-    int64_t nStakeMaximumThreshold;
+    int64_t nStakeMinimumThreshold; // Minimum required value if single (!) coinstake input
+    int64_t nStakeMaximumThreshold; // Maximum meaningful sum of coinstake inputs
 
     int nDailyBlockCount;
     unsigned int nModifierInterval;
