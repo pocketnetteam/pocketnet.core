@@ -156,15 +156,6 @@ namespace PocketConsensus
     
         virtual ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx)
         {
-            auto ptxName = *ptx->GetPayloadName();
-            boost::algorithm::to_lower(ptxName);
-
-            auto blockPtxName = *blockPtx->GetPayloadName();
-            boost::algorithm::to_lower(blockPtxName);
-
-            if (ptxName == blockPtxName)
-                return {false, SocialConsensusResult_NicknameDouble};
-
             return Success;
         }
     };
@@ -217,7 +208,8 @@ namespace PocketConsensus
             boost::algorithm::to_lower(blockPtxName);
 
             if (ptxName == blockPtxName)
-                return {false, SocialConsensusResult_NicknameDouble};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameDouble))
+                    return {false, SocialConsensusResult_NicknameDouble};
 
             return Success;
         }
