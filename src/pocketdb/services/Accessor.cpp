@@ -39,6 +39,9 @@ namespace PocketServices
         if (!GetBlock(block, pocketBlock))
             return false;
 
+        if (!pocketBlock)
+            return true;
+
         auto dataPtr = PocketServices::Serializer::SerializeBlock(*pocketBlock);
         if (dataPtr)
             data = dataPtr->write();
@@ -48,6 +51,9 @@ namespace PocketServices
 
     bool Accessor::GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
     {
+        if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
+            return true;
+            
         pocketTx = PocketDb::TransRepoInst.Get(tx.GetHash().GetHex(), true);
         return pocketTx != nullptr;
     }
@@ -55,12 +61,12 @@ namespace PocketServices
     // Read transaction data for send via network
     bool Accessor::GetTransaction(const CTransaction& tx, string& data)
     {
-        if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
-            return true;
-
         PTransactionRef pocketTx;
-        if (!GetTransaction(tx, pocketTx) || !pocketTx)
+        if (!GetTransaction(tx, pocketTx))
             return false;
+
+        if (!pocketTx)
+            return true;
             
         auto dataPtr = PocketServices::Serializer::SerializeTransaction(*pocketTx);
         if (dataPtr)

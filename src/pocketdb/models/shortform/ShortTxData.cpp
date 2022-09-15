@@ -10,7 +10,8 @@
 PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType, std::optional<std::string> address, std::optional<int64_t> height,
                                     std::optional<int64_t> blockNum, std::optional<ShortAccount> account, std::optional<int> val,
                                     std::optional<std::string> description, std::optional<std::string> commentParentId,
-                                    std::optional<std::string> commentAnswerId
+                                    std::optional<std::string> commentAnswerId, std::optional<std::string> rootTxHash,
+                                    std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>> multipleAddresses
                                   )
     : m_hash(std::move(hash)),
       m_txType(txType),
@@ -21,7 +22,9 @@ PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType, st
       m_val(std::move(val)),
       m_description(std::move(description)),
       m_commentParentId(std::move(commentParentId)),
-      m_commentAnswerId(std::move(commentAnswerId))
+      m_commentAnswerId(std::move(commentAnswerId)),
+      m_rootTxHash(std::move(rootTxHash)),
+      m_multipleAddresses(std::move(multipleAddresses))
 {}
 
 PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType)
@@ -43,6 +46,33 @@ UniValue PocketDb::ShortTxData::Serialize() const
     if (m_description) data.pushKV("description", m_description.value());
     if (m_commentParentId) data.pushKV("commentParentId", m_commentParentId.value());
     if (m_commentAnswerId) data.pushKV("commentAnswerId", m_commentAnswerId.value());
+    if (m_rootTxHash) data.pushKV("rootTxHash", *m_rootTxHash);
+    if (m_inputs) {
+        UniValue inputs (UniValue::VARR);
+        std::vector<UniValue> tmp;
+        for (const auto& input: *m_inputs) {
+            tmp.emplace_back(std::move(input.Serialize()));
+        }
+        inputs.push_backV(tmp);
+        data.pushKV("inputs", inputs);
+    }
+    if (m_outputs) {
+        UniValue outputs (UniValue::VARR);
+        std::vector<UniValue> tmp;
+        for (const auto& output: *m_outputs) {
+            tmp.emplace_back(std::move(output.Serialize()));
+        }
+        outputs.push_backV(tmp);
+        data.pushKV("outputs", outputs);
+    }
+    if (m_multipleAddresses) {
+        UniValue multipleAddresses(UniValue::VOBJ);
+        multipleAddresses.reserveKVSize(m_multipleAddresses->size());
+        for (const auto& addressData: *m_multipleAddresses) {
+            multipleAddresses.pushKV(addressData.first, std::move(addressData.second->Serialize()), false);
+        }
+        data.pushKV("multipleAddresses", multipleAddresses);
+    }
 
     return data;
 }
@@ -82,3 +112,19 @@ const std::optional<std::string>& PocketDb::ShortTxData::GetCommentParentId() co
 void PocketDb::ShortTxData::SetCommentAnswerId(const std::optional<std::string>& commentAnswerId) { m_commentAnswerId = commentAnswerId; }
 
 const std::optional<std::string>& PocketDb::ShortTxData::GetCommentAnswerId() const { return m_commentAnswerId; }
+
+void PocketDb::ShortTxData::SetRootTxHash(const std::optional<std::string>& rootTxHash) { m_rootTxHash = rootTxHash; }
+
+const std::optional<std::string>& PocketDb::ShortTxData::GetRootTxHash() const { return m_rootTxHash; }
+
+void PocketDb::ShortTxData::SetMultipleAddresses(const std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>>& multipleAddresses) { m_multipleAddresses = multipleAddresses; }
+
+const std::optional<std::vector<std::pair<std::string, std::optional<PocketDb::ShortAccount>>>>& PocketDb::ShortTxData::GetMultipleAddresses() { return m_multipleAddresses; }
+
+void PocketDb::ShortTxData::SetOutputs(const std::optional<std::vector<ShortTxOutput>>& outputs) { m_outputs = outputs; }
+
+const std::optional<std::vector<PocketDb::ShortTxOutput>>& PocketDb::ShortTxData::GetOutputs() const { return m_outputs; }
+
+void PocketDb::ShortTxData::SetInputs(const std::optional<std::vector<ShortTxOutput>>& inputs) { m_inputs = inputs; }
+
+const std::optional<std::vector<PocketDb::ShortTxOutput>>& PocketDb::ShortTxData::GetInputs() const { return m_inputs; }

@@ -15,7 +15,6 @@ namespace PocketDb
     class ShortForm
     {
     public:
-        // TODO tomorrow: serialize me correctly!!!
         ShortForm(PocketDb::ShortTxType type, ShortTxData txData, std::optional<ShortTxData> relatedContent);
 
         UniValue Serialize() const;

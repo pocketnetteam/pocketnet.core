@@ -8,7 +8,7 @@
 #include "utils/html.h"
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Comment.h"
+#include "pocketdb/models/dto/content/Comment.h"
 
 namespace PocketConsensus
 {
@@ -24,14 +24,9 @@ namespace PocketConsensus
         CommentConsensus(int height) : SocialConsensus<Comment>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Parent comment
             if (!IsEmpty(ptx->GetParentTxHash()))
             {
-                // TODO (brangr): replace to check exists not deleted comment
                 auto[ok, parentTx] = ConsensusRepoInst.GetLastContent(*ptx->GetParentTxHash(), { CONTENT_COMMENT, CONTENT_COMMENT_EDIT });
 
                 if (!ok)
@@ -41,11 +36,7 @@ namespace PocketConsensus
             // Answer comment
             if (!IsEmpty(ptx->GetAnswerTxHash()))
             {
-                // TODO (brangr): replace to check exists not deleted comment
-                auto[ok, answerTx] = ConsensusRepoInst.GetLastContent(
-                    *ptx->GetAnswerTxHash(),
-                    { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
-                );
+                auto[ok, answerTx] = ConsensusRepoInst.GetLastContent(*ptx->GetAnswerTxHash(), { CONTENT_COMMENT, CONTENT_COMMENT_EDIT });
 
                 if (!ok)
                     return {false, SocialConsensusResult_InvalidParentComment};
@@ -74,7 +65,7 @@ namespace PocketConsensus
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const CommentRef& ptx) override
         {

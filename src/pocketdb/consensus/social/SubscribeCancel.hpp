@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/base/Transaction.h"
-#include "pocketdb/models/dto/SubscribeCancel.h"
+#include "pocketdb/models/dto/action/SubscribeCancel.h"
 
 namespace PocketConsensus
 {
@@ -23,10 +23,6 @@ namespace PocketConsensus
         SubscribeCancelConsensus(int height) : SocialConsensus<SubscribeCancel>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const SubscribeCancelRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Last record not valid subscribe
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
                 *ptx->GetAddress(),
@@ -38,7 +34,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_InvalideSubscribe};
             }
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const SubscribeCancelRef& ptx) override
         {

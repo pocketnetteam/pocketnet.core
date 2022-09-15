@@ -5,9 +5,9 @@
 #ifndef POCKETCONSENSUS_SCORECOMMENT_HPP
 #define POCKETCONSENSUS_SCORECOMMENT_HPP
 
-#include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/ScoreComment.h"
 #include "pocketdb/consensus/Reputation.h"
+#include "pocketdb/consensus/Social.h"
+#include "pocketdb/models/dto/action/ScoreComment.h"
 
 namespace PocketConsensus
 {
@@ -24,10 +24,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ScoreCommentRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
                 *ptx->GetAddress(), *ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, false))
@@ -80,13 +76,13 @@ namespace PocketConsensus
             if (auto[ok, txOpReturnPayload] = TransactionHelper::ExtractOpReturnPayload(tx); ok)
             {
                 string opReturnPayloadData = *lastContent->GetString1() + " " + to_string(*ptx->GetValue());
-                string opReturnPayloadHex = HexStr(opReturnPayloadData.begin(), opReturnPayloadData.end());
+                string opReturnPayloadHex = HexStr(opReturnPayloadData);
 
                 if (txOpReturnPayload != opReturnPayloadHex)
                     return {false, SocialConsensusResult_FailedOpReturn};
             }
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const ScoreCommentRef& ptx) override
         {

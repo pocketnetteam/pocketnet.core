@@ -159,15 +159,35 @@ namespace PocketDb
 
         UniValue GetContentActions(const string& postTxHash);
 
-        // First - map where keys are addresses and values are ShortForms of events from given block. Second - pocketnetteam posts.
-        using NotificationsResult = std::map<std::string, std::vector<PocketDb::ShortForm>>;
+        /**
+         * Returns map where key is address. Value is map, where key - height, value - vector of transactions for this height.
+         */
+        std::vector<ShortForm> GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNum, const std::set<ShortTxType>& filters);
+
         /**
          * Get all possible events for all adresses in concrete block
          * 
          * @param height height of block to search
          * @param filters
          */
-        NotificationsResult GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
+        UniValue GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
+
+        std::map<std::string, ShortAccount> GetShortAccountsForAddresses(const std::set<std::string>& addresses);
+
+        /**
+         * Get all activities (posts, comments, etc) created by address
+         * 
+         * @param address - address to search activities for
+         * @param heightMax - height to start search from, including
+         * @param heightMin - height untill search, excluding
+         * @param blockNumMax - number of tx in block to start search in heightMax, excluding
+         * @param filters 
+         * @return vector of activities in ShortForm
+         */
+        std::vector<ShortForm> GetActivities(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters);
+
+        // TODO (losty): convert return type to class of smth. + docs
+        std::map<std::string, std::map<ShortTxType, int>> GetNotificationsSummary(int64_t heightMax, int64_t heightMin, const std::set<std::string>& addresses, const std::set<ShortTxType>& filters);
 
         // TODO (o1q): Remove this two methods when the client gui switches to new methods
         UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);

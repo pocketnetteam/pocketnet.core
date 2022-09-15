@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_POST_H
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Post.h"
+#include "pocketdb/models/dto/content/Post.h"
 
 namespace PocketConsensus
 {
@@ -26,10 +26,6 @@ namespace PocketConsensus
         PostConsensus(int height) : SocialConsensus<Post>(height) {}
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PostRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Check if this post relay another
             if (!IsEmpty(ptx->GetRelayTxHash()))
             {
@@ -60,7 +56,7 @@ namespace PocketConsensus
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PostRef& ptx) override
         {

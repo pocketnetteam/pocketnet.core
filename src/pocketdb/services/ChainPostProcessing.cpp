@@ -37,8 +37,6 @@ namespace PocketServices
             auto& tx = block.vtx[i];
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
 
-            if (txType != TxType::NOT_SUPPORTED)
-            {
                 TransactionIndexingInfo txInfo;
                 txInfo.Hash = tx->GetHash().GetHex();
                 txInfo.BlockNumber = (int) i;
@@ -54,7 +52,6 @@ namespace PocketServices
                 txs.emplace_back(txInfo);
             }
         }
-    }
 
     // Set block height for all transactions in block
     void ChainPostProcessing::IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
