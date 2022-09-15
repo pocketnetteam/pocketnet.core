@@ -5,6 +5,8 @@
 #ifndef POCKETDB_SHORTTXOUTPUT_H
 #define POCKETDB_SHORTTXOUTPUT_H
 
+#include "pocketdb/models/shortform/ShortAccount.h"
+
 #include "univalue.h"
 
 #include <vector>
@@ -30,6 +32,8 @@ namespace PocketDb
         const std::optional<std::string>& GetcriptPubKey() const;
         void SetValue(const std::optional<int64_t>& value);
         const std::optional<int64_t>& GetValue() const;
+        void SetAccount(const std::optional<ShortAccount>& account);
+        const std::optional<ShortAccount>& GetAccount() const;
 
     private:
         std::optional<std::string> m_txHash;
@@ -38,6 +42,7 @@ namespace PocketDb
         std::optional<std::string> m_addressHash;
         std::optional<std::string> m_scriptPubKey;
         std::optional<int64_t> m_value;
+        std::optional<ShortAccount> m_account; // Account data related to addressHash
     };
 }
 
