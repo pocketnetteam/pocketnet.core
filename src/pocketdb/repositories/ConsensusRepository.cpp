@@ -150,7 +150,7 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            select count(distinct(String1))
+            select count()
             from Transactions indexed by Transactions_Type_Last_String1_Height_Id
             where Type in (100)
               and Last = 1
@@ -510,7 +510,7 @@ namespace PocketDb
 
         auto sql = R"sql(
             select Value
-            from Balances
+            from Balances indexed by Balances_AddressHash_Last
             where AddressHash = ?
               and Last = 1
         )sql";
@@ -536,7 +536,7 @@ namespace PocketDb
 
         auto sql = R"sql(
             select r.Value
-            from Ratings r
+            from Ratings r indexed by Ratings_Type_Id_Last_Value
             where r.Type = 0
               and r.Id = (
                 select u.Id
@@ -1297,8 +1297,8 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+                select count()
+                from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200)
                   and String1 = ?
                   and Height >= ?
