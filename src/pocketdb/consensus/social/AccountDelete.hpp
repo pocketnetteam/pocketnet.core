@@ -68,10 +68,10 @@ namespace PocketConsensus
     };
 
     // TODO (brangr): remove after fork enabled
-    class AccountDeleteConsensusFactory_checkpoint_enable : public AccountDeleteConsensusFactory
+    class AccountDeleteConsensus_checkpoint_enable : public AccountDeleteConsensus
     {
     public:
-        AccountDeleteConsensusFactory_checkpoint_enable(int height) : AccountDeleteConsensusFactory(height) {}
+        AccountDeleteConsensus_checkpoint_enable(int height) : AccountDeleteConsensus(height) {}
     protected:
         ConsensusValidateResult EnableTransaction()
         {
@@ -87,7 +87,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<AccountDeleteConsensus>> m_rules = {
             {       0, -1, [](int height) { return make_shared<AccountDeleteConsensus>(height); }},
-            { 9999999,  0, [](int height) { return make_shared<AccountDeleteConsensusFactory_checkpoint_enable>(height); }}, // TODO (brangr): set fork height
+            { 9999999,  0, [](int height) { return make_shared<AccountDeleteConsensus_checkpoint_enable>(height); }}, // TODO (brangr): set fork height
         };
     public:
         shared_ptr<AccountDeleteConsensus> Instance(int height)
