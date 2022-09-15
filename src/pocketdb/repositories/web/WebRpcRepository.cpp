@@ -752,21 +752,6 @@ namespace PocketDb
                     where bl.IdSource = u.id
                 ) as Blockings
 
-                , ifnull((
-                  select count(1)
-                  from Transactions ru indexed by Transactions_Type_Last_String2_Height
-                  where ru.Type in (100)
-                    and ru.Last in (0,1)
-                    and ru.String2 = u.String1
-                    and ru.Height > 0
-                    and ru.ROWID = (
-                      select min(ru1.ROWID)
-                      from Transactions ru1 indexed by Transactions_Id
-                      where ru1.Id = ru.Id
-                      limit 1
-                    )
-                ),0) as ReferralsCount
-
             )sql";
         }
 
@@ -962,8 +947,6 @@ namespace PocketDb
                             subscribes.read(value);
                             record.pushKV("blocking", subscribes);
                         }
-
-                        if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("rc", value);
                     }
                 }
 
