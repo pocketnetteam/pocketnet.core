@@ -45,10 +45,20 @@ namespace PocketConsensus
 
             return Success;
         }
-
+        
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModerationFlagRef& ptx) override
         {
-            return {false, SocialConsensusResult_NotAllowed};
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentAddressHash())) return {false, SocialConsensusResult_Failed};
+            if (*ptx->GetAddress() == *ptx->GetContentAddressHash()) return {false, SocialConsensusResult_SelfFlag};
+            if (IsEmpty(ptx->GetReason()) || *ptx->GetReason() < 1 || *ptx->GetReason() > 4) return {false, SocialConsensusResult_Failed};
+
+            return Success;
         }
 
     protected:
@@ -104,40 +114,12 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Enable ModerationFlag consensus rules
-    *******************************************************************************************************************/
-    class ModerationFlagConsensus_checkpoint_enable : public ModerationFlagConsensus
-    {
-    public:
-        ModerationFlagConsensus_checkpoint_enable(int height) : ModerationFlagConsensus(height) {}
-    protected:
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ModerationFlagRef& ptx) override
-        {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
-                return {false, baseCheckCode};
 
-            // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetContentAddressHash())) return {false, SocialConsensusResult_Failed};
-            if (*ptx->GetAddress() == *ptx->GetContentAddressHash()) return {false, SocialConsensusResult_SelfFlag};
-            if (IsEmpty(ptx->GetReason()) || *ptx->GetReason() < 1 || *ptx->GetReason() > 4) return {false, SocialConsensusResult_Failed};
-
-            return Success;
-        }
-    };
-
-
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
     class ModerationFlagConsensusFactory
     {
     private:
         const vector<ConsensusCheckpoint<ModerationFlagConsensus>> m_rules = {
-            {       0,     -1, [](int height) { return make_shared<ModerationFlagConsensus>(height); }},
-            { 1700000, 761000, [](int height) { return make_shared<ModerationFlagConsensus_checkpoint_enable>(height); }},
+            { 0, 0, [](int height) { return make_shared<ModerationFlagConsensus>(height); }},
         };
     public:
         shared_ptr<ModerationFlagConsensus> Instance(int height)

@@ -9,7 +9,7 @@
 #include "validation.h"
 #include <node/ui_interface.h>
 
-#include "pocketdb/services/Serializer.h"
+// #include "pocketdb/services/Serializer.h"
 
 namespace PocketDb
 {
