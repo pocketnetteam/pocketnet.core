@@ -185,7 +185,6 @@ void ShutdownPocketServices()
     PocketDb::ChainRepoInst.Destroy();
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
-    PocketDb::NotifierRepoInst.Destroy();
     PocketDb::MigrationRepoInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");
@@ -223,7 +222,7 @@ void Shutdown(NodeContext& node)
 
     if (notifyClientsThread)
         notifyClientsThread->Stop();
-
+        
     StopHTTPRPC();
     StopREST();
     StopSTATIC();
