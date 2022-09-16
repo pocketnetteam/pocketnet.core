@@ -5073,9 +5073,9 @@ namespace PocketDb
                 pc.String1,
                 c.String4,
                 c.String5,
+                null, -- Badge
                 pca.String2,
                 pca.String3,
-                null, -- Badge
                 ifnull(rca.Value,0),
                 null
 
@@ -5176,9 +5176,9 @@ namespace PocketDb
                 pp.String2,
                 null,
                 null,
+                null,
                 pap.String2,
                 pap.String3,
-                null,
                 ifnull(rap.Value, 0),
                 null
 
@@ -5263,9 +5263,9 @@ namespace PocketDb
                 null,
                 null,
                 null,
+                null,
                 pu.String2,
                 pu.String3,
-                null,
                 ifnull(ru.Value,0),
                 null
 
@@ -5353,9 +5353,9 @@ namespace PocketDb
                 pc.String1,
                 c.String4,
                 c.String5,
+                null,
                 pac.String2,
                 pac.String3,
-                null,
                 ifnull(rac.Value,0),
                 null
 
@@ -5434,9 +5434,9 @@ namespace PocketDb
                 pc.String2,
                 null,
                 null,
+                null,
                 pac.String2,
                 pac.String3,
-                null,
                 ifnull(rac.Value,0),
                 null
 
@@ -5534,9 +5534,9 @@ namespace PocketDb
                 pContent.String2,
                 null,
                 null,
+                null,
                 pac.String2,
                 pac.String3,
-                null,
                 ifnull(rac.Value,0),
                 null
 
@@ -5598,9 +5598,9 @@ namespace PocketDb
                 null,
                 null,
                 null,
+                null,
                 pac.String2,
                 pac.String3,
-                null,
                 ifnull(rac.Value,0),
                 (
                     select json_group_array(
