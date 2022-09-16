@@ -4810,7 +4810,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 
 	int64_t nValueIn = 0;
 
-	if (nBalance < Params().GetConsensus().nStakeCombineThreshold) {
+	if (nBalance < Params().GetConsensus().nStakeMinimumThreshold) {
 		return false;
 	}
 
@@ -4917,15 +4917,10 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 				break;
 			}
 
-			// Credit more than nStakeCombineThreshold is not necessary!
-			if (nCredit >= Params().GetConsensus().nStakeCombineThreshold) {
-				break;
-			}
-
-            // // // Do not add additional significant input
-            // if (pcoin.first->tx->vout[pcoin.second].nValue <= Params().GetConsensus().nStakeMinimumThreshold) {
-            //     continue;
-            // }
+            // Do not add additional significant input
+            if (pcoin.first->tx->vout[pcoin.second].nValue >= Params().GetConsensus().nStakeCombineThreshold && nCredit >= Params().GetConsensus().nStakeMinimumThreshold) {
+                continue;
+            }
 
 			// Do not add input that is still too young
 			if (nTimeWeight < Params().GetConsensus().nStakeMinAge) {
@@ -4938,7 +4933,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 		}
 	}
 
-	if (nCredit < Params().GetConsensus().nStakeCombineThreshold) {
+	if (nCredit < Params().GetConsensus().nStakeMinimumThreshold) {
 		LogPrintf("CreateCoinStake : Credit does not meet minimum threshold=%d\n", nCredit);
 		return false;
 	}

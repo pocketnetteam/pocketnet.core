@@ -2366,7 +2366,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             {
                 nStakeReward = tx.GetValueOut() - view.GetValueIn(tx);
 
-                if (view.GetValueIn(tx) < Params().GetConsensus().nStakeCombineThreshold)
+                if (view.GetValueIn(tx) < Params().GetConsensus().nStakeMinimumThreshold)
                 {
                     error("ConnectBlock(): Stake input is below threshold");
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-stake-inputs");
