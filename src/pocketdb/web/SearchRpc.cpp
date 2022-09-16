@@ -333,10 +333,9 @@ namespace PocketWeb::PocketWebRpc
         //     nHeight = request.params[5].get_int();
 
         int depth = (60 * 24 * 30 * 3); //about 3 month as default
-        // if (request.params.size() > 6 && request.params[6].isNum())
-        // {
-        //     depth = std::max(request.params[6].get_int(), (60 * 24 * 30 * 6)); // not greater than about 6 month
-        // }
+        if (request.params.size() > 7 && request.params[7].isNum())
+            depth = request.params[7].get_int();
+        depth = std::min(depth, (60 * 24 * 30 * 3)); // not greater than about 3 month
 
         UniValue resultContent(UniValue::VARR);
         auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntRec, nHeight, depth);
@@ -346,30 +345,30 @@ namespace PocketWeb::PocketWebRpc
             resultContent.push_backV(contents);
         }
 
-        ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOthers);
-        if (!ids.empty())
-        {
-            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
-            resultContent.push_backV(contents);
-        }
-
-        ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, false);
-        if (!ids.empty())
-        {
-            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
-            resultContent.push_backV(contents);
-        }
-
-        if (ids.size() < cntSubs)
-        {
-            int restCntSubs = cntSubs - ids.size();
-            ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, true);
-            if (!ids.empty())
-            {
-                restCntSubs = std::min(restCntSubs, static_cast<int>(ids.size()));
-                ids = {ids.begin(), ids.begin() + restCntSubs};
+        if (cntOthers > 0) {
+            ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOthers);
+            if (!ids.empty()) {
                 auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
                 resultContent.push_backV(contents);
+            }
+        }
+
+        if (cntSubs > 0) {
+            ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, false);
+            if (!ids.empty()) {
+                auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+                resultContent.push_backV(contents);
+            }
+
+            if (ids.size() < cntSubs) {
+                int restCntSubs = cntSubs - ids.size();
+                ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, true);
+                if (!ids.empty()) {
+                    restCntSubs = std::min(restCntSubs, static_cast<int>(ids.size()));
+                    ids = {ids.begin(), ids.begin() + restCntSubs};
+                    auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+                    resultContent.push_backV(contents);
+                }
             }
         }
 
