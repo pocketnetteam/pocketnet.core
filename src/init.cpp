@@ -207,7 +207,7 @@ void Shutdown()
 
     if (notifyClientsThread)
         notifyClientsThread->Stop();
-        
+
     StopHTTPRPC();
     StopREST();
     StopSTATIC();
