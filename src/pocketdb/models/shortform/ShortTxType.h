@@ -19,7 +19,8 @@ namespace PocketDb
         ContentScore,
         PrivateContent,
         Boost,
-        Repost
+        Repost,
+        Blocking
     };
 }
 

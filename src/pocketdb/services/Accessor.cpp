@@ -6,6 +6,7 @@
 
 namespace PocketServices
 {
+    // Important! The method can return true with empty data, keep this in mind when using.
     bool Accessor::GetBlock(const CBlock& block, PocketBlockRef& pocketBlock)
     {
         try
@@ -33,11 +34,15 @@ namespace PocketServices
     }
 
     // Read block data for send via network
+    // Important! The method can return true with empty data, keep this in mind when using.
     bool Accessor::GetBlock(const CBlock& block, string& data)
     {
         PocketBlockRef pocketBlock;
         if (!GetBlock(block, pocketBlock))
             return false;
+
+        if (!pocketBlock)
+            return true;
 
         auto dataPtr = PocketServices::Serializer::SerializeBlock(*pocketBlock);
         if (dataPtr)
@@ -46,21 +51,26 @@ namespace PocketServices
         return true;
     }
 
+    // Important! The method can return true with empty data, keep this in mind when using.
     bool Accessor::GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
     {
+        if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
+            return true;
+            
         pocketTx = PocketDb::TransRepoInst.Get(tx.GetHash().GetHex(), true);
         return pocketTx != nullptr;
     }
 
     // Read transaction data for send via network
+    // Important! The method can return true with empty data, keep this in mind when using.
     bool Accessor::GetTransaction(const CTransaction& tx, string& data)
     {
-        if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
-            return true;
-
         PTransactionRef pocketTx;
-        if (!GetTransaction(tx, pocketTx) || !pocketTx)
+        if (!GetTransaction(tx, pocketTx))
             return false;
+
+        if (!pocketTx)
+            return true;
             
         auto dataPtr = PocketServices::Serializer::SerializeTransaction(*pocketTx);
         if (dataPtr)

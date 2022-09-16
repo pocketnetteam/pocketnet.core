@@ -8,7 +8,7 @@
 #include <univalue.h>
 
 #include <string>
-
+#include <optional>
 
 namespace PocketDb
 {
@@ -27,10 +27,13 @@ namespace PocketDb
         void SetBadge(const std::string& name);
         const int64_t& GetReputation() const;
         void SetReputation(const int64_t& reputation);
+        const std::optional<std::string>& GetLang() const;
+        void SetLang(const std::optional<std::string>& lang);
     private:
         std::string m_avatar;
         std::string m_name;
         std::string m_badge;
+        std::optional<std::string> m_lang;
         int64_t m_reputation {0};
     };
 }

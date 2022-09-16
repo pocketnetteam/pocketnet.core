@@ -10,7 +10,8 @@ namespace PocketConsensus
     VideoConsensusFactory SocialConsensusHelper::m_videoFactory;
     ArticleConsensusFactory SocialConsensusHelper::m_articleFactory;
     AccountSettingConsensusFactory SocialConsensusHelper::m_accountSettingFactory;
-    UserConsensusFactory SocialConsensusHelper::m_userFactory;
+    AccountDeleteConsensusFactory SocialConsensusHelper::m_accountDeleteFactory;
+    AccountUserConsensusFactory SocialConsensusHelper::m_accountUserFactory;
     CommentConsensusFactory SocialConsensusHelper::m_commentFactory;
     CommentEditConsensusFactory SocialConsensusHelper::m_commentEditFactory;
     CommentDeleteConsensusFactory SocialConsensusHelper::m_commentDeleteFactory;
@@ -161,8 +162,10 @@ namespace PocketConsensus
         {
             case ACCOUNT_SETTING:
                 return m_accountSettingFactory.Instance(height)->Check(tx, static_pointer_cast<AccountSetting>(ptx));
+            case ACCOUNT_DELETE:
+                return m_accountDeleteFactory.Instance(height)->Check(tx, static_pointer_cast<AccountDelete>(ptx));
             case ACCOUNT_USER:
-                return m_userFactory.Instance(height)->Check(tx, static_pointer_cast<User>(ptx));
+                return m_accountUserFactory.Instance(height)->Check(tx, static_pointer_cast<User>(ptx));
             case CONTENT_POST:
                 return m_postFactory.Instance(height)->Check(tx, static_pointer_cast<Post>(ptx));
             case CONTENT_VIDEO:
@@ -216,8 +219,10 @@ namespace PocketConsensus
         {
             case ACCOUNT_SETTING:
                 return m_accountSettingFactory.Instance(height)->Validate(tx, static_pointer_cast<AccountSetting>(ptx), pBlock);
+            case ACCOUNT_DELETE:
+                return m_accountDeleteFactory.Instance(height)->Validate(tx, static_pointer_cast<AccountDelete>(ptx), pBlock);
             case ACCOUNT_USER:
-                return m_userFactory.Instance(height)->Validate(tx, static_pointer_cast<User>(ptx), pBlock);
+                return m_accountUserFactory.Instance(height)->Validate(tx, static_pointer_cast<User>(ptx), pBlock);
             case CONTENT_POST:
                 return m_postFactory.Instance(height)->Validate(tx, static_pointer_cast<Post>(ptx), pBlock);
             case CONTENT_VIDEO:
@@ -264,6 +269,7 @@ namespace PocketConsensus
     {
         switch (txType)
         {
+            case NOT_SUPPORTED:
             case TX_COINBASE:
             case TX_COINSTAKE:
             case TX_DEFAULT:

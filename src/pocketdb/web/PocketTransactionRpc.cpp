@@ -3,7 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketTransactionRpc.h"
-#include "pocketdb/consensus/social/User.hpp"
+#include "pocketdb/consensus/social/AccountUser.hpp"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -41,7 +41,7 @@ namespace PocketWeb::PocketWebRpc
         // Remove this after 1647000 in main net
         if (*ptx->GetType() == ACCOUNT_USER)
         {
-            std::shared_ptr<PocketConsensus::UserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::UserConsensus_checkpoint_login_limitation>(chainActive.Height());
+            std::shared_ptr<PocketConsensus::AccountUserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::AccountUserConsensus_checkpoint_login_limitation>(chainActive.Height());
             if (auto[ok, result] = accountUserConsensus->Check(tx, static_pointer_cast<User>(ptx)); !ok)
                 throw JSONRPCError((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
         }

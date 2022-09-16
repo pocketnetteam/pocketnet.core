@@ -5,6 +5,8 @@
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/pocketnet.h"
 #include "util.h"
+#include "validation.h"
+#include <ui_interface.h>
 
 namespace PocketDb
 {
@@ -57,7 +59,6 @@ namespace PocketDb
         ChainRepoInst.Init();
         RatingsRepoInst.Init();
         ConsensusRepoInst.Init();
-        NotifierRepoInst.Init();
         SystemRepoInst.Init();
         MigrationRepoInst.Init();
 
@@ -234,7 +235,8 @@ namespace PocketDb
 
         try
         {
-            LogPrintf("Migration Sqlite database `%s` structure..\n", m_file_path);
+            uiInterface.InitMessage(tfm::format("Updating Pocket DB `%s` structure..", m_file_path));
+            LogPrintf("Updating Pocket DB`%s` structure..\n", m_file_path);
 
             if (sqlite3_get_autocommit(m_db) == 0)
                 throw std::runtime_error(strprintf("%s: Database `%s` not opened?\n", __func__, m_file_path));

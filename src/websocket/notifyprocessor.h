@@ -6,6 +6,11 @@
 #include "univalue.h"
 #include "websocket/ws.h"
 
+#include "pocketdb/SQLiteDatabase.h"
+#include "pocketdb/repositories/web/NotifierRepository.h"
+
+using namespace PocketDb;
+
 class CBlock;
 class CBlockIndex;
 class WSUser;
@@ -16,11 +21,15 @@ class NotifyBlockProcessor : public IQueueProcessor<std::pair<CBlock, CBlockInde
 {
 public:
     explicit NotifyBlockProcessor(std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections);
+    ~NotifyBlockProcessor() override;
     void Process(std::pair<CBlock, CBlockIndex*> entry) override;
 
 private:
     void PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields);
     std::shared_ptr<ProtectedMap<std::string, WSUser>> m_WSConnections;
+    
+    SQLiteDatabaseRef sqliteDbInst;
+    NotifierRepositoryRef notifierRepoInst;
 };
 
 #endif // POCKETCOIN_NOTIFYPROCESSOR_H

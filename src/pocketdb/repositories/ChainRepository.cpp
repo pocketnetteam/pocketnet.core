@@ -27,6 +27,9 @@ namespace PocketDb
                 if (txInfo.IsAccount())
                     IndexAccount(txInfo.Hash);
 
+                if (txInfo.IsAccountSetting())
+                    IndexAccountSetting(txInfo.Hash);
+
                 if (txInfo.IsContent())
                     IndexContent(txInfo.Hash);
 
@@ -57,41 +60,6 @@ namespace PocketDb
                 0.001 * double(nTime3 - nTime1)
             );
         });
-    }
-
-    bool ChainRepository::ClearDatabase()
-    {
-        LogPrintf("Full reindexing database. This can take several days.\n");
-
-        LogPrintf("Deleting database indexes..\n");
-        m_database.DropIndexes();
-
-        LogPrintf("Rollback to first block..\n");
-        RollbackHeight(0);
-
-        m_database.CreateStructure();
-
-        return true;
-    }
-
-    bool ChainRepository::Rollback(int height)
-    {
-        try
-        {
-            // Update transactions
-            TryTransactionStep(__func__, [&]()
-            {
-                RestoreOldLast(height);
-                RollbackHeight(height);
-            });
-
-            return true;
-        }
-        catch (std::exception& ex)
-        {
-            LogPrintf("Error: Rollback to height %d failed with message: %s\n", height, ex.what());
-            return false;
-        }
     }
 
     tuple<bool, bool> ChainRepository::ExistsBlock(const string& blockHash, int height)
@@ -126,6 +94,7 @@ namespace PocketDb
 
         return {exists, last};
     }
+
 
     void ChainRepository::UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash)
     {
@@ -170,6 +139,7 @@ namespace PocketDb
             TryStepStatement(stmt);
         }
     }
+
 
     void ChainRepository::IndexBalances(int height)
     {
@@ -237,9 +207,43 @@ namespace PocketDb
                     (
                         select a.Id
                         from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
-                        where a.Type in (Transactions.Type)
+                        where a.Type in (100,170)
                             and a.Last = 1
-                            -- String1 = AddressHash
+                            and a.String1 = Transactions.String1
+                            and a.Height is not null
+                        limit 1
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select max( a.Id ) + 1
+                            from Transactions a indexed by Transactions_Id
+                        ),
+                        0 -- for first record
+                    )
+                ),
+                Last = 1
+            WHERE Hash = ?
+        )sql");
+        TryBindStatementText(setIdStmt, 1, txHash);
+        TryStepStatement(setIdStmt);
+
+        // Clear old last records for set new last
+        ClearOldLast(txHash);
+    }
+
+    void ChainRepository::IndexAccountSetting(const string& txHash)
+    {
+        // Get new ID or copy previous
+        auto setIdStmt = SetupSqlStatement(R"sql(
+            UPDATE Transactions SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select a.Id
+                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
+                        where a.Type in (103)
+                            and a.Last = 1
                             and a.String1 = Transactions.String1
                             and a.Height is not null
                         limit 1
@@ -309,7 +313,7 @@ namespace PocketDb
                     (
                         select max( c.Id )
                         from Transactions c indexed by Transactions_Type_Last_String2_Height
-                        where c.Type in (204, 205, 206)
+                        where c.Type in (204,205,206)
                             and c.Last = 1
                             -- String2 = RootTxHash
                             and c.String2 = Transactions.String2
@@ -377,9 +381,9 @@ namespace PocketDb
               ut.Id
             from Transactions b
             join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
             join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100) and ut.Last = 1
+              on ut.Type in (100, 170) and ut.Last = 1
                 and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                 and ut.Height > 0
             where b.Type in (305) and b.Hash = ?
@@ -395,9 +399,9 @@ namespace PocketDb
               1
             from Transactions b
             join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Id = BlockingLists.IdSource and us.Height > 0
+              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Id = BlockingLists.IdSource and us.Height > 0
             join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100) and ut.Last = 1 and ut.String1 = b.String2 and ut.Id = BlockingLists.IdTarget and ut.Height > 0
+              on ut.Type in (100, 170) and ut.Last = 1 and ut.String1 = b.String2 and ut.Id = BlockingLists.IdTarget and ut.Height > 0
             where b.Type in (306) and b.Hash = ?
             )
         )sql");
@@ -470,6 +474,44 @@ namespace PocketDb
         TryStepStatement(stmt);
     }
 
+
+    bool ChainRepository::ClearDatabase()
+    {
+        LogPrintf("Full reindexing database..\n");
+
+        LogPrintf("Deleting database indexes..\n");
+        m_database.DropIndexes();
+
+        LogPrintf("Rollback to first block..\n");
+        RollbackHeight(0);
+        ClearBlockingList();
+
+        m_database.CreateStructure();
+
+        return true;
+    }
+
+    bool ChainRepository::Rollback(int height)
+    {
+        try
+        {
+            // Update transactions
+            TryTransactionStep(__func__, [&]()
+            {
+                RestoreOldLast(height);
+                RollbackBlockingList(height);
+                RollbackHeight(height);
+            });
+
+            return true;
+        }
+        catch (std::exception& ex)
+        {
+            LogPrintf("Error: Rollback to height %d failed with message: %s\n", height, ex.what());
+            return false;
+        }
+    }
+    
     void ChainRepository::ClearOldLast(const string& txHash)
     {
         auto stmt = SetupSqlStatement(R"sql(
@@ -488,7 +530,6 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, txHash);
         TryStepStatement(stmt);
     }
-
 
     void ChainRepository::RestoreOldLast(int height)
     {
@@ -578,13 +619,6 @@ namespace PocketDb
 
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
-
-        // ----------------------------------------
-        // Rollback blocking list
-        RollbackBlockingList(height);
-
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Rollback blocking list): %.2fms\n", 0.001 * (nTime4 - nTime3));
     }
 
     void ChainRepository::RollbackHeight(int height)
@@ -662,17 +696,19 @@ namespace PocketDb
 
     void ChainRepository::RollbackBlockingList(int height)
     {
+        int64_t nTime0 = GetTimeMicros();
+
         auto delListStmt = SetupSqlStatement(R"sql(
             delete from BlockingLists where ROWID in
             (
                 select bl.ROWID
                 from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
                 join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-                  on us.Type in (100) and us.Last = 1
+                  on us.Type in (100, 170) and us.Last = 1
                     and us.String1 = b.String1
                     and us.Height > 0
                 join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-                  on ut.Type in (100) and ut.Last = 1
+                  on ut.Type in (100, 170) and ut.Last = 1
                     and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                     and ut.Height > 0
                 join BlockingLists bl on bl.IdSource = us.Id and bl.IdTarget = ut.Id
@@ -682,6 +718,9 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(delListStmt, 1, height);
         TryStepStatement(delListStmt);
+        
+        int64_t nTime1 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
         auto insListStmt = SetupSqlStatement(R"sql(
             insert into BlockingLists
@@ -694,9 +733,9 @@ namespace PocketDb
               ut.Id
             from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
             join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100) and ut.Last = 1
+              on ut.Type in (100, 170) and ut.Last = 1
                 --and ut.String1 = b.String2
                 and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                 and ut.Height > 0
@@ -706,7 +745,22 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(insListStmt, 1, height);
         TryStepStatement(insListStmt);
+        
+        int64_t nTime2 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackList (Insert blocking list): %.2fms\n", 0.001 * (nTime2 - nTime1));
     }
 
+    void ChainRepository::ClearBlockingList()
+    {
+        int64_t nTime0 = GetTimeMicros();
+
+        auto stmt = SetupSqlStatement(R"sql(
+            delete from BlockingLists
+        )sql");
+        TryStepStatement(stmt);
+        
+        int64_t nTime1 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - ClearBlockingList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
+    }
 
 } // namespace PocketDb

@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_BLOCKINGCANCEL_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/BlockingCancel.h"
+#include "pocketdb/models/dto/action/BlockingCancel.h"
 
 namespace PocketConsensus
 {
@@ -22,10 +22,6 @@ namespace PocketConsensus
         BlockingCancelConsensus(int height) : SocialConsensus<BlockingCancel>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BlockingCancelRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                     *ptx->GetAddress(),
                     *ptx->GetAddressTo()
@@ -35,7 +31,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_InvalidBlocking};
             }
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const BlockingCancelRef& ptx) override
         {

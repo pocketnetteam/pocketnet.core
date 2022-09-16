@@ -21,6 +21,7 @@ static const std::map<PocketDb::ShortTxType, std::string>& GetTypesMap() {
         { PocketDb::ShortTxType::PrivateContent, "privatecontent" },
         { PocketDb::ShortTxType::Boost, "boost" },
         { PocketDb::ShortTxType::Repost, "repost" },
+        { PocketDb::ShortTxType::Blocking, "blocking" }
     };
     return typesMap;
 }
@@ -41,7 +42,60 @@ bool PocketHelpers::ShortTxFilterValidator::Notifications::IsFilterAllowed(Pocke
         PocketDb::ShortTxType::Money,
         PocketDb::ShortTxType::Answer,
         PocketDb::ShortTxType::PrivateContent,
-        PocketDb::ShortTxType::Boost
+        PocketDb::ShortTxType::Boost,
+        PocketDb::ShortTxType::Referal,
+        PocketDb::ShortTxType::Comment,
+        PocketDb::ShortTxType::Subscriber,
+        PocketDb::ShortTxType::CommentScore,
+        PocketDb::ShortTxType::ContentScore,
+        PocketDb::ShortTxType::Repost
+    };
+
+    return allowed.find(type) != allowed.end();
+}
+
+bool PocketHelpers::ShortTxFilterValidator::NotificationsSummary::IsFilterAllowed(PocketDb::ShortTxType type)
+{
+    static const std::set<PocketDb::ShortTxType> allowed = {
+        PocketDb::ShortTxType::Referal,
+        PocketDb::ShortTxType::Comment,
+        PocketDb::ShortTxType::Subscriber,
+        PocketDb::ShortTxType::CommentScore,
+        PocketDb::ShortTxType::ContentScore,
+        PocketDb::ShortTxType::Repost,
+    };
+
+    return allowed.find(type) != allowed.end();
+}
+
+bool PocketHelpers::ShortTxFilterValidator::Activities::IsFilterAllowed(PocketDb::ShortTxType type)
+{
+    static const std::set<PocketDb::ShortTxType> allowed = {
+        PocketDb::ShortTxType::Answer,
+        PocketDb::ShortTxType::Comment,
+        PocketDb::ShortTxType::Subscriber,
+        PocketDb::ShortTxType::CommentScore,
+        PocketDb::ShortTxType::ContentScore,
+        PocketDb::ShortTxType::Boost,
+        PocketDb::ShortTxType::Blocking,
+    };
+
+    return allowed.find(type) != allowed.end();
+}
+
+bool PocketHelpers::ShortTxFilterValidator::Events::IsFilterAllowed(PocketDb::ShortTxType type)
+{
+    static const std::set<PocketDb::ShortTxType> allowed = {
+        PocketDb::ShortTxType::Money,
+        PocketDb::ShortTxType::Referal,
+        PocketDb::ShortTxType::Answer,
+        PocketDb::ShortTxType::Comment,
+        PocketDb::ShortTxType::Subscriber,
+        PocketDb::ShortTxType::CommentScore,
+        PocketDb::ShortTxType::ContentScore,
+        PocketDb::ShortTxType::PrivateContent,
+        PocketDb::ShortTxType::Boost,
+        PocketDb::ShortTxType::Repost,
     };
 
     return allowed.find(type) != allowed.end();

@@ -162,7 +162,7 @@ POCKETDB_H = \
     pocketdb/consensus/social/Subscribe.hpp \
     pocketdb/consensus/social/SubscribeCancel.hpp \
     pocketdb/consensus/social/SubscribePrivate.hpp \
-    pocketdb/consensus/social/User.hpp \
+    pocketdb/consensus/social/AccountUser.hpp \
     pocketdb/consensus/social/AccountSetting.hpp \
     pocketdb/consensus/social/ContentDelete.hpp \
     \
@@ -179,28 +179,29 @@ POCKETDB_H = \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/DtoModels.h \
     \
-    pocketdb/models/dto/Default.h \
-    pocketdb/models/dto/Coinbase.h \
-    pocketdb/models/dto/Coinstake.h \
-    pocketdb/models/dto/Content.h \
-    pocketdb/models/dto/Post.h \
-    pocketdb/models/dto/ContentDelete.h \
-    pocketdb/models/dto/BoostContent.h \
-    pocketdb/models/dto/AccountSetting.h \
-    pocketdb/models/dto/User.h \
-    pocketdb/models/dto/ScoreContent.h \
-    pocketdb/models/dto/ScoreComment.h \
-    pocketdb/models/dto/Blocking.h \
-    pocketdb/models/dto/BlockingCancel.h \
-    pocketdb/models/dto/Comment.h \
-    pocketdb/models/dto/CommentEdit.h \
-    pocketdb/models/dto/CommentDelete.h \
-    pocketdb/models/dto/Subscribe.h \
-    pocketdb/models/dto/SubscribePrivate.h \
-    pocketdb/models/dto/SubscribeCancel.h \
-    pocketdb/models/dto/Complain.h \
-    pocketdb/models/dto/Video.h \
-    pocketdb/models/dto/Article.h \
+    pocketdb/models/dto/money/Default.h \
+    pocketdb/models/dto/money/Coinbase.h \
+    pocketdb/models/dto/money/Coinstake.h \
+    pocketdb/models/dto/content/Content.h \
+    pocketdb/models/dto/content/Post.h \
+    pocketdb/models/dto/content/ContentDelete.h \
+    pocketdb/models/dto/action/BoostContent.h \
+    pocketdb/models/dto/account/Delete.h \
+    pocketdb/models/dto/account/Setting.h \
+    pocketdb/models/dto/account/User.h \
+    pocketdb/models/dto/action/ScoreContent.h \
+    pocketdb/models/dto/action/ScoreComment.h \
+    pocketdb/models/dto/action/Blocking.h \
+    pocketdb/models/dto/action/BlockingCancel.h \
+    pocketdb/models/dto/content/Comment.h \
+    pocketdb/models/dto/content/CommentEdit.h \
+    pocketdb/models/dto/content/CommentDelete.h \
+    pocketdb/models/dto/action/Subscribe.h \
+    pocketdb/models/dto/action/SubscribePrivate.h \
+    pocketdb/models/dto/action/SubscribeCancel.h \
+    pocketdb/models/dto/action/Complain.h \
+    pocketdb/models/dto/content/Video.h \
+    pocketdb/models/dto/content/Article.h \
     pocketdb/models/dto/moderation/Flag.h \
     \
     pocketdb/models/web/WebTag.h \
@@ -209,7 +210,8 @@ POCKETDB_H = \
     pocketdb/models/shortform/ShortForm.h \
     pocketdb/models/shortform/ShortAccount.h \
     pocketdb/models/shortform/ShortTxData.h \
-    pocketdb/models/shortform/ShortTxType.h
+    pocketdb/models/shortform/ShortTxType.h \
+    pocketdb/models/shortform/ShortTxOutput.h
 
 # PocketDb CPP
 POCKETDB_CPP = \
@@ -269,33 +271,35 @@ POCKETDB_CPP = \
     pocketdb/web/PocketRpc.cpp \
     pocketdb/web/WebRpcUtils.cpp \
     \
-    pocketdb/models/dto/Default.cpp \
-    pocketdb/models/dto/Coinbase.cpp \
-    pocketdb/models/dto/Coinstake.cpp \
-    pocketdb/models/dto/Content.cpp \
-    pocketdb/models/dto/Post.cpp \
-    pocketdb/models/dto/ContentDelete.cpp \
-    pocketdb/models/dto/BoostContent.cpp \
-    pocketdb/models/dto/AccountSetting.cpp \
-    pocketdb/models/dto/User.cpp \
-    pocketdb/models/dto/ScoreContent.cpp \
-    pocketdb/models/dto/ScoreComment.cpp \
-    pocketdb/models/dto/Blocking.cpp \
-    pocketdb/models/dto/BlockingCancel.cpp \
-    pocketdb/models/dto/Comment.cpp \
-    pocketdb/models/dto/CommentEdit.cpp \
-    pocketdb/models/dto/CommentDelete.cpp \
-    pocketdb/models/dto/Subscribe.cpp \
-    pocketdb/models/dto/SubscribePrivate.cpp \
-    pocketdb/models/dto/SubscribeCancel.cpp \
-    pocketdb/models/dto/Complain.cpp \
-    pocketdb/models/dto/Video.cpp \
-    pocketdb/models/dto/BoostContent.cpp \
-    pocketdb/models/dto/Article.cpp \
+    pocketdb/models/dto/money/Default.cpp \
+    pocketdb/models/dto/money/Coinbase.cpp \
+    pocketdb/models/dto/money/Coinstake.cpp \
+    pocketdb/models/dto/content/Content.cpp \
+    pocketdb/models/dto/content/Post.cpp \
+    pocketdb/models/dto/content/ContentDelete.cpp \
+    pocketdb/models/dto/action/BoostContent.cpp \
+    pocketdb/models/dto/account/Setting.cpp \
+    pocketdb/models/dto/account/Delete.cpp \
+    pocketdb/models/dto/account/User.cpp \
+    pocketdb/models/dto/action/ScoreContent.cpp \
+    pocketdb/models/dto/action/ScoreComment.cpp \
+    pocketdb/models/dto/action/Blocking.cpp \
+    pocketdb/models/dto/action/BlockingCancel.cpp \
+    pocketdb/models/dto/content/Comment.cpp \
+    pocketdb/models/dto/content/CommentEdit.cpp \
+    pocketdb/models/dto/content/CommentDelete.cpp \
+    pocketdb/models/dto/action/Subscribe.cpp \
+    pocketdb/models/dto/action/SubscribePrivate.cpp \
+    pocketdb/models/dto/action/SubscribeCancel.cpp \
+    pocketdb/models/dto/action/Complain.cpp \
+    pocketdb/models/dto/content/Video.cpp \
+    pocketdb/models/dto/action/BoostContent.cpp \
+    pocketdb/models/dto/content/Article.cpp \
     pocketdb/models/dto/moderation/Flag.cpp \
     pocketdb/models/shortform/ShortForm.cpp \
     pocketdb/models/shortform/ShortAccount.cpp \
-    pocketdb/models/shortform/ShortTxData.cpp
+    pocketdb/models/shortform/ShortTxData.cpp \
+    pocketdb/models/shortform/ShortTxOutput.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \

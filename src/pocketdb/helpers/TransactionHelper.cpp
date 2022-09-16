@@ -51,14 +51,12 @@ namespace PocketHelpers
         else if (op == OR_UNSUBSCRIBE)
             return TxType::ACTION_SUBSCRIBE_CANCEL;
 
-        else if (op == OR_ACCOUNT_SETTING)
-            return TxType::ACCOUNT_SETTING;
         else if (op == OR_USERINFO)
             return TxType::ACCOUNT_USER;
-        else if (op == OR_VIDEO_SERVER)
-            return TxType::ACCOUNT_VIDEO_SERVER;
-        else if (op == OR_MESSAGE_SERVER)
-            return TxType::ACCOUNT_MESSAGE_SERVER;
+        else if (op == OR_ACCOUNT_SETTING)
+            return TxType::ACCOUNT_SETTING;
+        else if (op == OR_ACCOUNT_DELETE)
+            return TxType::ACCOUNT_DELETE;
 
         else if (op == OR_BLOCKING)
             return TxType::ACTION_BLOCKING;
@@ -134,10 +132,12 @@ namespace PocketHelpers
         // TODO (brangr) (v0.21.0): need remove for next generation serialization
         switch (*transaction.GetType())
         {
-            case TxType::ACCOUNT_SETTING:
-                return "AccountSettings";
             case TxType::ACCOUNT_USER:
                 return "Users";
+            case TxType::ACCOUNT_SETTING:
+                return "AccountSettings";
+            case TxType::ACCOUNT_DELETE:
+                return "AccountDelete";
             case TxType::CONTENT_POST:
             case TxType::CONTENT_VIDEO:
             case TxType::CONTENT_ARTICLE:
@@ -293,6 +293,9 @@ namespace PocketHelpers
             case ACCOUNT_SETTING:
                 ptx = make_shared<AccountSetting>(tx);
                 break;
+            case ACCOUNT_DELETE:
+                ptx = make_shared<AccountDelete>(tx);
+                break;
             case ACCOUNT_USER:
                 ptx = make_shared<User>(tx);
                 break;
@@ -370,6 +373,9 @@ namespace PocketHelpers
                 break;
             case ACCOUNT_SETTING:
                 ptx = make_shared<AccountSetting>();
+                break;
+            case ACCOUNT_DELETE:
+                ptx = make_shared<AccountDelete>();
                 break;
             case ACCOUNT_USER:
                 ptx = make_shared<User>();
@@ -453,8 +459,6 @@ namespace PocketHelpers
                 return "video";
             case CONTENT_ARTICLE:
                 return "article";
-            case ACCOUNT_SETTING:
-                return "accSet";
             case ACTION_SCORE_CONTENT:
                 return "upvoteShare";
             case ACTION_SUBSCRIBE:
@@ -465,6 +469,10 @@ namespace PocketHelpers
                 return "unsubscribe";
             case ACCOUNT_USER:
                 return "userInfo";
+            case ACCOUNT_SETTING:
+                return "accSet";
+            case ACCOUNT_DELETE:
+                return "accDel";
             case CONTENT_COMMENT:
                 return "comment";
             case CONTENT_COMMENT_EDIT:
@@ -488,12 +496,13 @@ namespace PocketHelpers
         else if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return TxType::CONTENT_POST;
         else if (type == "video" || type == OR_VIDEO) return TxType::CONTENT_VIDEO;
         else if (type == "article" || type == OR_ARTICLE) return TxType::CONTENT_ARTICLE;
-        else if (type == "accSet" || type == OR_ACCOUNT_SETTING) return TxType::ACCOUNT_SETTING;
         else if (type == "upvoteShare" || type == OR_SCORE) return TxType::ACTION_SCORE_CONTENT;
         else if (type == "subscribe" || type == OR_SUBSCRIBE) return TxType::ACTION_SUBSCRIBE;
         else if (type == "subscribePrivate" || type == OR_SUBSCRIBEPRIVATE) return TxType::ACTION_SUBSCRIBE_PRIVATE;
         else if (type == "unsubscribe" || type == OR_UNSUBSCRIBE) return TxType::ACTION_SUBSCRIBE_CANCEL;
         else if (type == "userInfo" || type == OR_USERINFO) return TxType::ACCOUNT_USER;
+        else if (type == "accSet" || type == OR_ACCOUNT_SETTING) return TxType::ACCOUNT_SETTING;
+        else if (type == "accDel" || type == OR_ACCOUNT_DELETE) return TxType::ACCOUNT_DELETE;
         else if (type == "comment" || type == OR_COMMENT) return TxType::CONTENT_COMMENT;
         else if (type == "commentEdit" || type == OR_COMMENT_EDIT) return TxType::CONTENT_COMMENT_EDIT;
         else if (type == "commentDelete" || type == OR_COMMENT_DELETE) return TxType::CONTENT_COMMENT_DELETE;

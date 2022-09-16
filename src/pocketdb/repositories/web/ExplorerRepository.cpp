@@ -262,9 +262,9 @@ namespace PocketDb {
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select t.Type, count()Count
+                select t.Type, count()
                 from Transactions t indexed by Transactions_Type_Last_Height_Id
-                where t.Type in (100,101,102,200,201,202,208)
+                where t.Type in (100,200,201,202,208)
                   and t.Last = 1
                   and t.Height > 0
                 group by t.Type

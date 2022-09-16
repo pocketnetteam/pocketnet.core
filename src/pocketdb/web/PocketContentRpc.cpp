@@ -873,23 +873,6 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxMap = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
-
-        UniValue userNotifications {UniValue::VOBJ};
-        userNotifications.reserveKVSize(shortTxMap.size());
-        for (const auto& addressSpecific: shortTxMap) {
-            UniValue txs {UniValue::VARR};
-            std::vector<UniValue> tmp;
-            for (const auto& tx: addressSpecific.second) {
-                tmp.emplace_back(tx.Serialize());
-            }
-            txs.push_backV(std::move(tmp));
-            userNotifications.pushKV(addressSpecific.first, txs, false /*searchDuplicate*/);
-        }
-
-        UniValue res {UniValue::VOBJ};
-        res.pushKV("users_notifications", userNotifications);
-
-        return res;
+        return request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
     }
 }

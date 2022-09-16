@@ -8,6 +8,21 @@
 NotifyBlockProcessor::NotifyBlockProcessor(std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections) 
 {
     m_WSConnections = std::move(WSConnections);
+
+    auto dbBasePath = (GetDataDir() / "pocketdb").string();
+    sqliteDbInst = make_shared<SQLiteDatabase>(true);
+    sqliteDbInst->Init(dbBasePath, "main");
+    notifierRepoInst = make_shared<NotifierRepository>(*sqliteDbInst);
+}
+
+NotifyBlockProcessor::~NotifyBlockProcessor()
+{
+    sqliteDbInst->m_connection_mutex.lock();
+    notifierRepoInst->Destroy();
+    notifierRepoInst = nullptr;
+    sqliteDbInst->Close();
+    sqliteDbInst->m_connection_mutex.unlock();
+    sqliteDbInst = nullptr;
 }
 
 void NotifyBlockProcessor::PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields)
@@ -48,7 +63,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
     // TODO: Notification from POCKETNET_TEAM
     // std::string txidpocketnet;
     // std::string addrespocketnet = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
-    // auto pocketnetaccinfo = PocketDb::NotifierRepoInst.GetAccountInfoByAddress(addrespocketnet);
+    // auto pocketnetaccinfo = notifierRepoInst->GetAccountInfoByAddress(addrespocketnet);
 
     for (const auto& tx : block.vtx) {
         std::map<std::string, std::pair<int, int64_t>> addrs;
@@ -69,7 +84,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                         optype = "share";
                         sharesCnt += 1;
 
-                        auto response = PocketDb::NotifierRepoInst.GetPostLang(txid);
+                        auto response = notifierRepoInst->GetPostLang(txid);
 
                         if (response.exists("lang"))
                         {
@@ -82,7 +97,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                         optype = "video";
                         sharesCnt += 1;
 
-                        auto response = PocketDb::NotifierRepoInst.GetPostLang(txid);
+                        auto response = notifierRepoInst->GetPostLang(txid);
 
                         if (response.exists("lang"))
                         {
@@ -95,7 +110,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                         optype = "article";
                         sharesCnt += 1;
 
-                        auto response = PocketDb::NotifierRepoInst.GetPostLang(txid);
+                        auto response = notifierRepoInst->GetPostLang(txid);
 
                         if (response.exists("lang"))
                         {
@@ -150,7 +165,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             // Event for new PocketNET transaction
             if (optype == "share" || optype == "video" || optype == "article")
             {
-                auto response = PocketDb::NotifierRepoInst.GetPostInfo(txid);
+                auto response = notifierRepoInst->GetPostInfo(txid);
                 if (response.exists("hash") && response.exists("rootHash") && response["hash"].get_str() != response["rootHash"].get_str())
                     continue;
 
@@ -161,7 +176,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                 // }
                 // else
                 // {
-                    auto repostResponse = PocketDb::NotifierRepoInst.GetOriginalPostAddressByRepost(txid);
+                    auto repostResponse = notifierRepoInst->GetOriginalPostAddressByRepost(txid);
                     if (repostResponse.exists("hash"))
                     {
                         std::string address = repostResponse["address"].get_str();
@@ -180,7 +195,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     }
                 // } // TODO: Notification from POCKETNET_TEAM
 
-                auto subscribesResponse = PocketDb::NotifierRepoInst.GetPrivateSubscribeAddressesByAddressTo(addr.first);
+                auto subscribesResponse = notifierRepoInst->GetPrivateSubscribeAddressesByAddressTo(addr.first);
                 for (size_t i = 0; i < subscribesResponse.size(); ++i)
                 {
                     auto address = subscribesResponse[i]["addressTo"].get_str();
@@ -199,7 +214,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             }
             else if (optype == "contentBoost")
             {
-                auto response = PocketDb::NotifierRepoInst.GetBoostInfo(txid);
+                auto response = notifierRepoInst->GetBoostInfo(txid);
                 if (response.exists("contentHash"))
                 {
                     if(response["contentAddress"].get_str() == addr.first)
@@ -223,7 +238,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             }
             else if (optype == "userInfo")
             {
-                auto response = PocketDb::NotifierRepoInst.GetUserReferrerAddress(txid);
+                auto response = notifierRepoInst->GetUserReferrerAddress(txid);
                 if (response.exists("referrerAddress"))
                 {
                     custom_fields cFields
@@ -240,7 +255,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             }
             else if (optype == "upvoteShare")
             {
-                auto response = PocketDb::NotifierRepoInst.GetPostInfoAddressByScore(txid);
+                auto response = notifierRepoInst->GetPostInfoAddressByScore(txid);
                 if (response.exists("postTxHash"))
                 {
                     custom_fields cFields
@@ -260,7 +275,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             }
             else if (optype == "subscribe" || optype == "subscribePrivate" || optype == "unsubscribe")
             {
-                auto response = PocketDb::NotifierRepoInst.GetSubscribeAddressTo(txid);
+                auto response = notifierRepoInst->GetSubscribeAddressTo(txid);
                 if (response.exists("addressTo"))
                 {
                     custom_fields cFields
@@ -278,7 +293,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             }
             else if (optype == "cScore")
             {
-                auto response = PocketDb::NotifierRepoInst.GetCommentInfoAddressByScore(txid);
+                auto response = notifierRepoInst->GetCommentInfoAddressByScore(txid);
                 if (response.exists("commentHash"))
                 {
                     custom_fields cFields
@@ -298,7 +313,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             }
             else if (optype == "comment" || optype == "commentEdit" || optype == "commentDelete")
             {
-                auto response = PocketDb::NotifierRepoInst.GetFullCommentInfo(txid);
+                auto response = notifierRepoInst->GetFullCommentInfo(txid);
                 if (response.exists("postHash"))
                 {
                     if (response.exists("answerAddress") && !response["answerAddress"].get_str().empty())
@@ -370,7 +385,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         msg.pushKV("shares", sharesCnt);
         msg.pushKV("contentsLang", contentsLang);
 
-        auto countResponse = PocketDb::NotifierRepoInst.GetPostCountFromMySubscribes(connWS.second.Address, blockIndex->nHeight);
+        auto countResponse = notifierRepoInst->GetPostCountFromMySubscribes(connWS.second.Address, blockIndex->nHeight);
         if (countResponse.exists("cntTotal"))
         {
             msg.pushKV("sharesSubscr", countResponse["cntTotal"].get_int());

@@ -8,7 +8,7 @@
 #include "utils/html.h"
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/CommentEdit.h"
+#include "pocketdb/models/dto/content/CommentEdit.h"
 
 namespace PocketConsensus
 {
@@ -24,10 +24,6 @@ namespace PocketConsensus
         CommentEditConsensus(int height) : SocialConsensus<CommentEdit>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentEditRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Actual comment not deleted
             auto[actuallTxOk, actuallTx] = ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
@@ -57,7 +53,6 @@ namespace PocketConsensus
 
                 if (!origParentTxHash.empty())
                 {
-                    // TODO (brangr): replace to check exists not deleted comment
                     if (auto[ok, origParentTx] = ConsensusRepoInst.GetLastContent(
                         origParentTxHash, { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }); !ok)
                         return {false, SocialConsensusResult_InvalidParentComment};
@@ -74,7 +69,6 @@ namespace PocketConsensus
 
                 if (!origAnswerTxHash.empty())
                 {
-                    // TODO (brangr): replace to check exists not deleted comment
                     if (auto[ok, origAnswerTx] = ConsensusRepoInst.GetLastContent(
                         origAnswerTxHash, { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }); !ok)
                         return {false, SocialConsensusResult_InvalidAnswerComment};
@@ -94,9 +88,6 @@ namespace PocketConsensus
 
             if (*contentTx->GetType() == CONTENT_DELETE)
                 return {false, SocialConsensusResult_CommentDeletedContent};
-
-            // TODO (brangr): convert to Content base class
-
             
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
@@ -109,7 +100,10 @@ namespace PocketConsensus
                 return {false, code};
 
             // Check edit limit
-            return ValidateEditOneLimit(ptx);
+            if (auto[checkResult, checkCode] = ValidateEditOneLimit(ptx); !checkResult)
+                return {false, checkCode};
+
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const CommentEditRef& ptx) override
         {
