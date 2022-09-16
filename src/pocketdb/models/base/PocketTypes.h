@@ -53,7 +53,7 @@ namespace PocketTx
     enum TxType
     {
         NOT_SUPPORTED = 0,
-        
+
         TX_DEFAULT = 1,
         TX_COINBASE = 2,
         TX_COINSTAKE = 3,
