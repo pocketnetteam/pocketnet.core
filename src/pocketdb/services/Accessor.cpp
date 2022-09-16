@@ -6,6 +6,7 @@
 
 namespace PocketServices
 {
+    // Important! The method can return true with empty data, keep this in mind when using.
     bool Accessor::GetBlock(const CBlock& block, PocketBlockRef& pocketBlock)
     {
         try
@@ -33,6 +34,7 @@ namespace PocketServices
     }
 
     // Read block data for send via network
+    // Important! The method can return true with empty data, keep this in mind when using.
     bool Accessor::GetBlock(const CBlock& block, string& data)
     {
         PocketBlockRef pocketBlock;
@@ -49,6 +51,7 @@ namespace PocketServices
         return true;
     }
 
+    // Important! The method can return true with empty data, keep this in mind when using.
     bool Accessor::GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
     {
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
@@ -59,6 +62,7 @@ namespace PocketServices
     }
 
     // Read transaction data for send via network
+    // Important! The method can return true with empty data, keep this in mind when using.
     bool Accessor::GetTransaction(const CTransaction& tx, string& data)
     {
         PTransactionRef pocketTx;
