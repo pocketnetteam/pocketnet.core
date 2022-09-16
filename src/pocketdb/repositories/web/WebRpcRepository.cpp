@@ -566,16 +566,15 @@ namespace PocketDb
                 }
 
                 if (!isDeleted) {
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("post_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("video_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("article_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("score_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok)
-                        result.pushKV("comment_score_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("complain_spent", value);
-
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("mod_flag_spent", value);
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("post_spent", value);
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("video_spent", value);
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("article_spent", value);
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_spent", value);
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("score_spent", value);
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_score_spent", value);
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("complain_spent", value);
+                
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("mod_flag_spent", value);
                 }
             }
 
@@ -906,31 +905,31 @@ namespace PocketDb
                 if (isDeleted) record.pushKV("deleted", true);
 
                 if(!isDeleted) {
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("name", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("i", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("b", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("r", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("postcnt", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("dltdcnt", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("reputation", value / 10.0);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribes_count", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribers_count", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("blockings_count", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("likers_count", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("k", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("a", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("l", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("s", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("update", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("regdate", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("name", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("i", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("b", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("r", value);
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("postcnt", value);
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("dltdcnt", value);
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("reputation", value / 10.0);
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribes_count", value);
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribers_count", value);
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("blockings_count", value);
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("likers_count", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("k", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("a", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("l", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("s", value);
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("update", value);
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("regdate", value);
 
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) {
                         UniValue flags(UniValue::VOBJ);
                         flags.read(value);
                         record.pushKV("flags", flags);
                     }
 
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                    if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) {
                         UniValue flags(UniValue::VOBJ);
                         flags.read(value);
                         record.pushKV("firstFlags", flags);
@@ -938,19 +937,19 @@ namespace PocketDb
 
                     if (!shortForm) {
 
-                        if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                        if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) {
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("subscribes", subscribes);
                         }
 
-                        if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                        if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) {
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("subscribers", subscribes);
                         }
 
-                        if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                        if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) {
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("blocking", subscribes);
