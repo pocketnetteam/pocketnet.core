@@ -20,7 +20,7 @@ namespace PocketDb
                 p.String3 as Avatar
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             cross join Payload p on p.TxHash = u.Hash
-            where u.Type in (100,101,102)
+            where u.Type in (100)
               and u.Last=1
               and u.Last=1
               and u.Height is not null
@@ -168,7 +168,7 @@ namespace PocketDb
             join Payload p on p.TxHash = u.Hash
             where tRepost.Type in (200, 201, 202, 203)
               and tRepost.Hash = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last = 1
               and u.Height is not null
         )sql";
@@ -209,7 +209,7 @@ namespace PocketDb
               and s.Last = 1
               and s.Height is not null
               and s.String2 = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last=1
               and u.Height is not null
         )sql";
@@ -250,7 +250,7 @@ namespace PocketDb
             where r.Type in (100)
               and r.String2 is not null
               and r.Hash = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last=1
               and u.Height is not null
         )sql";
@@ -290,7 +290,7 @@ namespace PocketDb
             join Payload p on p.TxHash = u.Hash
             where score.Type in (300)
               and score.Hash = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last=1
               and u.Height is not null
         )sql";
@@ -321,17 +321,19 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            select s.String2 addressTo,
-                  p.String2 as nameFrom,
-                  p.String3 as avatarFrom
+            select
+              s.String2 addressTo,
+              p.String2 as nameFrom,
+              p.String3 as avatarFrom
             from Transactions s
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = s.String1
-            join Payload p on p.TxHash = u.Hash
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100)
+               and u.Last=1
+               and u.String1 = s.String1
+               and u.Height is not null
+            cross join Payload p on p.TxHash = u.Hash
             where s.Type in (302, 303, 304)
               and s.Hash = ?
-              and u.Type in (100,101,102)
-              and u.Last=1
-              and u.Height is not null
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -369,7 +371,7 @@ namespace PocketDb
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = score.String1
             join Payload p on p.TxHash = u.Hash
             where score.Hash = ?
-                and u.Type in (100,101,102)
+                and u.Type in (100)
                 and u.Last=1
                 and u.Height is not null
         )sql";
@@ -414,15 +416,15 @@ namespace PocketDb
                     where o.TxHash = comment.Hash and o.AddressHash = content.String1 and o.AddressHash != comment.String1
                 ) as Donate
             from Transactions comment -- sqlite_autoindex_Transactions_1 (Hash)
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = comment.String1
-            join Payload p on p.TxHash = u.Hash
-            join Transactions content -- sqlite_autoindex_Transactions_1 (Hash)
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = comment.String1
+            cross join Payload p on p.TxHash = u.Hash
+            cross join Transactions content -- sqlite_autoindex_Transactions_1 (Hash)
                 on content.Type in (200, 201, 202) and content.Hash = comment.String3
             left join Transactions answer indexed by Transactions_Type_Last_String2_Height
                 on answer.Type in (204, 205) and answer.Last = 1 and answer.String2 = comment.String5
-            WHERE comment.Type in (204, 205)
+            where comment.Type in (204, 205)
               and comment.Hash = ?
-              and u.Type in (100,101,102)
+              and u.Type in (100)
               and u.Last=1
               and u.Height is not null
         )sql";

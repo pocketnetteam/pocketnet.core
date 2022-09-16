@@ -30,6 +30,8 @@ namespace PocketDb
         UniValue GetFullCommentInfo(const string& commentHash);
         UniValue GetPostCountFromMySubscribes(const string& address, int height);
     };
+
+    typedef shared_ptr<NotifierRepository> NotifierRepositoryRef;
 }
 
 #endif //POCKETNET_CORE_NOTIFIERREPOSITORY_H

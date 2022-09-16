@@ -2545,9 +2545,6 @@ bool CWallet::SignTransaction(CMutableTransaction& tx) const
 			return false;
 		}
 		const CWalletTx& wtx = mi->second;
-		// TODO (losty-fur): seems good
-        // Хороший вопрос, нужно тестировать
-                LogPrintf("CWallet::SignTransaction: DEBUG: creating coin!");
 		coins[input.prevout] = Coin(wtx.tx->vout[input.prevout.n], wtx.m_confirm.block_height, wtx.IsCoinBase(), wtx.IsCoinStake(), PocketHelpers::TransactionHelper::IsPocketTransaction(wtx.tx));
 	}
 	std::map<int, std::string> input_errors;
@@ -4679,7 +4676,7 @@ void CWallet::AvailableCoinsForStaking(std::vector<COutput>& vCoins, unsigned in
 	vCoins.clear();
 
 	{
-        LOCK(cs_wallet);
+		LOCK(cs_wallet);
 		for (std::map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
 			const CWalletTx* pcoin = &(*it).second;
 			const uint256& wtxid = it->first;
@@ -5048,14 +5045,11 @@ tuple<uint64_t, uint64_t> CWallet::GetStakeWeight() const
 {
 	// Choose coins to use
 	int64_t nBalance = GetBalance().m_mine_trusted;
-	LogPrintf("GetStakeWeight: DEBUG: using mine_trusted coins: %d", nBalance);
-
 	if (nBalance <= 0) {
 		return {0, 0};
 	}
 
 	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
-
 	std::set<std::pair<const CWalletTx*, unsigned int> > setCoins;
 	int64_t nValueIn = 0;
 

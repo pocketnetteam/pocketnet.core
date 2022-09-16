@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/base/Transaction.h"
-#include "pocketdb/models/dto/Subscribe.h"
+#include "pocketdb/models/dto/action/Subscribe.h"
 
 namespace PocketConsensus
 {
@@ -23,10 +23,6 @@ namespace PocketConsensus
         SubscribeConsensus(int height) : SocialConsensus<Subscribe>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const SubscribeRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
                 *ptx->GetAddress(),
                 *ptx->GetAddressTo());
@@ -41,7 +37,7 @@ namespace PocketConsensus
             if (auto[ok, result] = ValidateBlocking(ptx); !ok)
                 return {false, result};
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const SubscribeRef& ptx) override
         {

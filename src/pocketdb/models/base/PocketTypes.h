@@ -44,6 +44,7 @@ namespace PocketTx
     #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
     #define OR_CONTENT_BOOST "636f6e74656e74426f6f7374" // Boost content
     #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
+    #define OR_ACCOUNT_DELETE "61636344656c" // Public account settings (accSet)
 
     #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
     
@@ -61,6 +62,7 @@ namespace PocketTx
         ACCOUNT_VIDEO_SERVER = 101,
         ACCOUNT_MESSAGE_SERVER = 102,
         ACCOUNT_SETTING = 103,
+        ACCOUNT_DELETE = 170,
 
         CONTENT_POST = 200,
         CONTENT_VIDEO = 201,
@@ -140,9 +142,12 @@ namespace PocketTx
         bool IsAccount() const
         {
             return Type == TxType::ACCOUNT_USER ||
-                   Type == TxType::ACCOUNT_VIDEO_SERVER ||
-                   Type == TxType::ACCOUNT_MESSAGE_SERVER ||
-                   Type == TxType::ACCOUNT_SETTING;
+                   Type == TxType::ACCOUNT_DELETE;
+        }
+
+        bool IsAccountSetting() const
+        {
+            return Type == TxType::ACCOUNT_SETTING;
         }
 
         bool IsContent() const

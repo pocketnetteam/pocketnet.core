@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Complain.h"
+#include "pocketdb/models/dto/action/Complain.h"
 
 namespace PocketConsensus
 {
@@ -23,10 +23,6 @@ namespace PocketConsensus
         ComplainConsensus(int height) : SocialConsensus<Complain>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ComplainRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Author or post must be exists
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetPostTxHash(),
@@ -63,7 +59,7 @@ namespace PocketConsensus
             if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetPostTxHash(), *ptx->GetAddress(), false))
                 return {false, SocialConsensusResult_DoubleComplain};
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const ComplainRef& ptx) override
         {

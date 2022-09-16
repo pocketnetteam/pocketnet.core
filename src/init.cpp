@@ -185,7 +185,6 @@ void ShutdownPocketServices()
     PocketDb::ChainRepoInst.Destroy();
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
-    PocketDb::NotifierRepoInst.Destroy();
     PocketDb::MigrationRepoInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");
@@ -223,7 +222,7 @@ void Shutdown(NodeContext& node)
 
     if (notifyClientsThread)
         notifyClientsThread->Stop();
-
+        
     StopHTTPRPC();
     StopREST();
     StopSTATIC();
@@ -485,6 +484,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-reindex-start", "Start block for -reindex logic (Deafult: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-disconnectlast", "Disconnect latest blocks up to the specified height (Default: -1)", false, OptionsCategory::COMMANDS);
 
 #if HAVE_SYSTEM
     argsman.AddArg("-startupnotify=<cmd>", "Execute command on startup.", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);

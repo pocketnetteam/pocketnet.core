@@ -82,6 +82,7 @@ namespace PocketConsensus
         SocialConsensusResult_SelfFlag = 64,
         SocialConsensusResult_ExceededLimit = 65,
         SocialConsensusResult_LowReputation = 66,
+        SocialConsensusResult_AccountDeleted = 67,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)

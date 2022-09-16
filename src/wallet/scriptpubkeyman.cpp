@@ -329,9 +329,9 @@ bool LegacyScriptPubKeyMan::TopUpInactiveHDChain(const CKeyID seed_id, int64_t i
             GenerateNewKey(batch, chain, internal);
         }
         if (internal) {
-            WalletLogPrintf("inactive seed with id %s added %d internal keys\n", HexStr(seed_id), missing);
+            LogPrint(BCLog::WALLET, "inactive seed with id %s added %d internal keys\n", HexStr(seed_id), missing);
         } else {
-            WalletLogPrintf("inactive seed with id %s added %d keys\n", HexStr(seed_id), missing);
+            LogPrint(BCLog::WALLET, "inactive seed with id %s added %d keys\n", HexStr(seed_id), missing);
         }
     }
     return true;
@@ -344,11 +344,11 @@ void LegacyScriptPubKeyMan::MarkUnusedAddresses(const CScript& script)
     for (const auto& keyid : GetAffectedKeys(script, *this)) {
         std::map<CKeyID, int64_t>::const_iterator mi = m_pool_key_to_index.find(keyid);
         if (mi != m_pool_key_to_index.end()) {
-            WalletLogPrintf("%s: Detected a used keypool key, mark all keypool keys up to this key as used\n", __func__);
+            LogPrint(BCLog::WALLET, "%s: Detected a used keypool key, mark all keypool keys up to this key as used\n", __func__);
             MarkReserveKeysAsUsed(mi->second);
 
             if (!TopUp()) {
-                WalletLogPrintf("%s: Topping up keypool failed (locked wallet)\n", __func__);
+                LogPrint(BCLog::WALLET, "%s: Topping up keypool failed (locked wallet)\n", __func__);
             }
         }
 
@@ -362,7 +362,7 @@ void LegacyScriptPubKeyMan::MarkUnusedAddresses(const CScript& script)
                 int64_t index = meta.key_origin.path[2] & ~BIP32_HARDENED_KEY_LIMIT;
 
                 if (!TopUpInactiveHDChain(meta.hd_seed_id, index, internal)) {
-                    WalletLogPrintf("%s: Adding inactive seed keys failed\n", __func__);
+                    LogPrint(BCLog::WALLET, "%s: Adding inactive seed keys failed\n", __func__);
                 }
             }
         }
@@ -445,7 +445,7 @@ bool LegacyScriptPubKeyMan::Upgrade(int prev_version, int new_version, bilingual
     bool hd_upgrade = false;
     bool split_upgrade = false;
     if (IsFeatureSupported(new_version, FEATURE_HD) && !IsHDEnabled()) {
-        WalletLogPrintf("Upgrading wallet to HD\n");
+        LogPrint(BCLog::WALLET, "Upgrading wallet to HD\n");
         m_storage.SetMinVersion(FEATURE_HD);
 
         // generate a new master key
@@ -455,7 +455,7 @@ bool LegacyScriptPubKeyMan::Upgrade(int prev_version, int new_version, bilingual
     }
     // Upgrade to HD chain split if necessary
     if (!IsFeatureSupported(prev_version, FEATURE_HD_SPLIT) && IsFeatureSupported(new_version, FEATURE_HD_SPLIT)) {
-        WalletLogPrintf("Upgrading wallet to use HD chain split\n");
+        LogPrint(BCLog::WALLET, "Upgrading wallet to use HD chain split\n");
         m_storage.SetMinVersion(FEATURE_PRE_SPLIT_KEYPOOL);
         split_upgrade = FEATURE_HD_SPLIT > prev_version;
         // Upgrade the HDChain
@@ -743,7 +743,7 @@ bool LegacyScriptPubKeyMan::LoadCScript(const CScript& redeemScript)
     if (redeemScript.size() > MAX_SCRIPT_ELEMENT_SIZE)
     {
         std::string strAddr = EncodeDestination(ScriptHash(redeemScript));
-        WalletLogPrintf("%s: Warning: This wallet contains a redeemScript of size %i which exceeds maximum size %i thus can never be redeemed. Do not use address %s.\n", __func__, redeemScript.size(), MAX_SCRIPT_ELEMENT_SIZE, strAddr);
+        LogPrint(BCLog::WALLET, "%s: Warning: This wallet contains a redeemScript of size %i which exceeds maximum size %i thus can never be redeemed. Do not use address %s.\n", __func__, redeemScript.size(), MAX_SCRIPT_ELEMENT_SIZE, strAddr);
         return true;
     }
 
@@ -1222,7 +1222,7 @@ bool LegacyScriptPubKeyMan::NewKeyPool()
         if (!TopUp()) {
             return false;
         }
-        WalletLogPrintf("LegacyScriptPubKeyMan::NewKeyPool rewrote keypool\n");
+        LogPrint(BCLog::WALLET, "LegacyScriptPubKeyMan::NewKeyPool rewrote keypool\n");
     }
     return true;
 }
@@ -1266,7 +1266,7 @@ bool LegacyScriptPubKeyMan::TopUp(unsigned int kpSize)
             AddKeypoolPubkeyWithDB(pubkey, internal, batch);
         }
         if (missingInternal + missingExternal > 0) {
-            WalletLogPrintf("keypool added %d keys (%d internal), size=%u (%u internal)\n", missingInternal + missingExternal, missingInternal, setInternalKeyPool.size() + setExternalKeyPool.size() + set_pre_split_keypool.size(), setInternalKeyPool.size());
+            LogPrint(BCLog::WALLET, "keypool added %d keys (%d internal), size=%u (%u internal)\n", missingInternal + missingExternal, missingInternal, setInternalKeyPool.size() + setExternalKeyPool.size() + set_pre_split_keypool.size(), setInternalKeyPool.size());
         }
     }
     NotifyCanGetAddressesChanged();
@@ -1299,7 +1299,7 @@ void LegacyScriptPubKeyMan::KeepDestination(int64_t nIndex, const OutputType& ty
     assert(have_pk);
     LearnRelatedScripts(pubkey, type);
     m_index_to_reserved_key.erase(nIndex);
-    WalletLogPrintf("keypool keep %d\n", nIndex);
+    LogPrint(BCLog::WALLET, "keypool keep %d\n", nIndex);
 }
 
 void LegacyScriptPubKeyMan::ReturnDestination(int64_t nIndex, bool fInternal, const CTxDestination&)
@@ -1319,7 +1319,7 @@ void LegacyScriptPubKeyMan::ReturnDestination(int64_t nIndex, bool fInternal, co
         m_index_to_reserved_key.erase(nIndex);
         NotifyCanGetAddressesChanged();
     }
-    WalletLogPrintf("keypool return %d\n", nIndex);
+    LogPrint(BCLog::WALLET, "keypool return %d\n", nIndex);
 }
 
 bool LegacyScriptPubKeyMan::GetKeyFromPool(CPubKey& result, const OutputType type, bool internal)
@@ -1384,7 +1384,7 @@ bool LegacyScriptPubKeyMan::ReserveKeyFromKeyPool(int64_t& nIndex, CKeyPool& key
         assert(m_index_to_reserved_key.count(nIndex) == 0);
         m_index_to_reserved_key[nIndex] = keypool.vchPubKey.GetID();
         m_pool_key_to_index.erase(keypool.vchPubKey.GetID());
-        WalletLogPrintf("keypool reserve %d\n", nIndex);
+        LogPrint(BCLog::WALLET, "keypool reserve %d\n", nIndex);
     }
     NotifyCanGetAddressesChanged();
     return true;
@@ -1426,7 +1426,7 @@ void LegacyScriptPubKeyMan::MarkReserveKeysAsUsed(int64_t keypool_id)
         }
         LearnAllRelatedScripts(keypool.vchPubKey);
         batch.ErasePool(index);
-        WalletLogPrintf("keypool index %d removed\n", index);
+        LogPrint(BCLog::WALLET, "keypool index %d removed\n", index);
         it = setKeyPool->erase(it);
     }
 }
@@ -1494,7 +1494,7 @@ bool LegacyScriptPubKeyMan::ImportScripts(const std::set<CScript> scripts, int64
     for (const auto& entry : scripts) {
         CScriptID id(entry);
         if (HaveCScript(id)) {
-            WalletLogPrintf("Already have script %s, skipping\n", HexStr(entry));
+            LogPrint(BCLog::WALLET, "Already have script %s, skipping\n", HexStr(entry));
             continue;
         }
         if (!AddCScriptWithDB(batch, entry)) {
@@ -1522,7 +1522,7 @@ bool LegacyScriptPubKeyMan::ImportPrivKeys(const std::map<CKeyID, CKey>& privkey
         assert(key.VerifyPubKey(pubkey));
         // Skip if we already have the key
         if (HaveKey(id)) {
-            WalletLogPrintf("Already have key with pubkey %s, skipping\n", HexStr(pubkey));
+            LogPrint(BCLog::WALLET, "Already have key with pubkey %s, skipping\n", HexStr(pubkey));
             continue;
         }
         mapKeyMetadata[id].nCreateTime = timestamp;
@@ -1550,7 +1550,7 @@ bool LegacyScriptPubKeyMan::ImportPubKeys(const std::vector<CKeyID>& ordered_pub
         CPubKey temp;
         if (GetPubKey(id, temp)) {
             // Already have pubkey, skipping
-            WalletLogPrintf("Already have pubkey %s, skipping\n", HexStr(temp));
+            LogPrint(BCLog::WALLET, "Already have pubkey %s, skipping\n", HexStr(temp));
             continue;
         }
         if (!AddWatchOnlyWithDB(batch, GetScriptForRawPubKey(pubkey), timestamp)) {
@@ -1833,11 +1833,11 @@ void DescriptorScriptPubKeyMan::MarkUnusedAddresses(const CScript& script)
     if (IsMine(script)) {
         int32_t index = m_map_script_pub_keys[script];
         if (index >= m_wallet_descriptor.next_index) {
-            WalletLogPrintf("%s: Detected a used keypool item at index %d, mark all keypool items up to this item as used\n", __func__, index);
+            LogPrint(BCLog::WALLET, "%s: Detected a used keypool item at index %d, mark all keypool items up to this item as used\n", __func__, index);
             m_wallet_descriptor.next_index = index + 1;
         }
         if (!TopUp()) {
-            WalletLogPrintf("%s: Topping up keypool failed (locked wallet)\n", __func__);
+            LogPrint(BCLog::WALLET, "%s: Topping up keypool failed (locked wallet)\n", __func__);
         }
     }
 }

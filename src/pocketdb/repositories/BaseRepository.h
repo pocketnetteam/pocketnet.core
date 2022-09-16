@@ -46,38 +46,6 @@ namespace PocketDb
     class BaseRepository : protected RowAccessor
     {
     private:
-
-        template<typename T>
-        void TryTransactionStepSince(const string& func, T sql)
-        {
-            if (!m_database.BeginTransaction())
-                throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
-
-            sql();
-
-            if (!m_database.CommitTransaction())
-                throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
-        }
-
-        template<typename T>
-        void TryTransactionStepTimeoutSince(const string& func, T sql)
-        {
-            auto timeoutValue = chrono::seconds(gArgs.GetArg("-sqltimeout", 10));
-
-            run_with_timeout(
-                [&]()
-                {
-                    TryTransactionStepSince(func, sql);
-                },
-                timeoutValue,
-                [&]()
-                {
-                    m_database.InterruptQuery();
-                    LogPrintf("Function `%s` failed with execute timeout\n", func);
-                }
-            );
-        }
-
     protected:
         SQLiteDatabase& m_database;
 
@@ -99,11 +67,33 @@ namespace PocketDb
             {
                 int64_t nTime1 = GetTimeMicros();
 
+                if (!m_database.BeginTransaction())
+                    throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
+
                 // We are running SQL logic with timeout only for read-only connections
                 if (m_database.IsReadOnly())
-                    TryTransactionStepTimeoutSince(func, sql);
+                {
+                    auto timeoutValue = chrono::seconds(gArgs.GetArg("-sqltimeout", 10));
+                    run_with_timeout(
+                        [&]()
+                        {
+                            sql();
+                        },
+                        timeoutValue,
+                        [&]()
+                        {
+                            m_database.InterruptQuery();
+                            LogPrintf("Function `%s` failed with execute timeout\n", func);
+                        }
+                    );
+                }
                 else
-                    TryTransactionStepSince(func, sql);
+                {
+                    sql();
+                }
+                
+                if (!m_database.CommitTransaction())
+                    throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
 
                 int64_t nTime2 = GetTimeMicros();
 

@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_BOOSTCONTENT_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/BoostContent.h"
+#include "pocketdb/models/dto/action/BoostContent.h"
 
 namespace PocketConsensus
 {
@@ -23,10 +23,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BoostContentRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Check exists content transaction
             auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE });
             if (!contentOk)
@@ -39,7 +35,7 @@ namespace PocketConsensus
             if (auto[ok, result] = ValidateBlocking(*contentTx->GetString1(), ptx); !ok)
                 return {false, result};
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const BoostContentRef& ptx) override
         {

@@ -10,7 +10,7 @@
 #include "script/signingprovider.h"
 #include "util/rbf.h"
 #include "rpc/rawtransaction_util.h"
-#include "pocketdb/consensus/social/User.hpp"
+#include "pocketdb/consensus/social/AccountUser.hpp"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -56,12 +56,12 @@ namespace PocketWeb::PocketWebRpc
         // Set required fields
         ptx->SetString1(address);
 
-        // TODO (team): TEMPORARY
+        // TODO (0.21.0): TEMPORARY
         // Temporary check for UserConsensus_checkpoint_login_limitation checkpoint
         // Remove this after 1647000 in main net
         if (*ptx->GetType() == ACCOUNT_USER)
         {
-            std::shared_ptr<PocketConsensus::UserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::UserConsensus_checkpoint_login_limitation>(ChainActive().Height());
+            std::shared_ptr<PocketConsensus::AccountUserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::AccountUserConsensus_checkpoint_login_limitation>(ChainActive().Height());
             if (auto[ok, result] = accountUserConsensus->Check(tx, static_pointer_cast<User>(ptx)); !ok)
                 throw JSONRPCError((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
         }
@@ -214,6 +214,7 @@ namespace PocketWeb::PocketWebRpc
 
         // Get pocketnet transaction type string
         string txTypeHex = request.params[3].get_str();
+        auto txType = PocketHelpers::TransactionHelper::ConvertOpReturnToType(txTypeHex);
 
         // Get payload object
         UniValue txPayload = request.params[4].get_obj();
@@ -225,11 +226,11 @@ namespace PocketWeb::PocketWebRpc
 
         // Content Author address
         string contentAddressValue = "";
-        if (request.params[6].isStr() && txPayload.exists("value") && txPayload["value"].isNum())
-            contentAddressValue = request.params[6].get_str() + " " + to_string(txPayload["value"].get_int());
+        if (txType == ACTION_SCORE_CONTENT || txType == ACTION_SCORE_COMMENT)
+            if (request.params[6].isStr() && txPayload.exists("value") && txPayload["value"].isNum())
+                contentAddressValue = request.params[6].get_str() + " " + to_string(txPayload["value"].get_int());
 
         // Build template for transaction
-        auto txType = PocketHelpers::TransactionHelper::ConvertOpReturnToType(txTypeHex);
         shared_ptr<Transaction> _ptx = PocketHelpers::TransactionHelper::CreateInstance(txType);
         if (!_ptx) throw JSONRPCError(RPC_PARSE_ERROR, "Failed create pocketnet transaction payload");
 
@@ -252,12 +253,15 @@ namespace PocketWeb::PocketWebRpc
         int64_t totalAmount = 0;
         UniValue _inputs(UniValue::VARR);
         int i = 0;
-        while (totalAmount <= (fee + outputCount) && i < unsp.size())
+        while (totalAmount <= (fee + outputCount + 1000) && i < unsp.size())
         {
             totalAmount += unsp[i]["amountSat"].get_int64();
             _inputs.push_back(unsp[i]);
             i += 1;
         }
+
+        if (totalAmount <= (fee + outputCount + 1000))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Insufficient funds");
 
         // Build outputs
         UniValue _outputs(UniValue::VARR);
@@ -321,8 +325,6 @@ namespace PocketWeb::PocketWebRpc
 
         // Insert into mempool
         return _accept_transaction(tx, ptx, *node.mempool, *node.connman);
-        //const CTransaction& ctx = *tx;
-        //return ctx.ToString();
     },
         };
     }

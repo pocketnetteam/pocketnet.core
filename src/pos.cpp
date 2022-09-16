@@ -545,11 +545,7 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge, Chai
     for (auto txin : transaction->vin)
     {
         // First try finding the previous transaction in database
-
-        // TODO (losty-critical): can internal fields be null?
-        LogPrintf("DEBUG: getting transaction from sqlite db");
         auto txPrev = PocketDb::TransRepoInst.Get(txin.prevout.hash.ToString(), false, false, true);
-
         if (!txPrev)
             continue; // previous transaction not in main chain
 

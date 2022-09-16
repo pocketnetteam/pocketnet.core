@@ -121,7 +121,7 @@ namespace PocketDb
             from Transactions t indexed by Transactions_BlockHash
             join Payload p on p.TxHash = t.Hash
             where t.BlockHash = ?
-              and t.Type in (100, 101, 102, 200, 201, 202, 204, 205)
+              and t.Type in (100, 200, 201, 202, 204, 205)
        )sql";
        
        TryTransactionStep(__func__, [&]()

@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/ScoreContent.h"
+#include "pocketdb/models/dto/action/ScoreContent.h"
 
 namespace PocketConsensus
 {
@@ -24,10 +24,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ScoreContentRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(*ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, false))
                 return {false, SocialConsensusResult_DoubleScore};
@@ -79,7 +75,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_FailedOpReturn};
             }
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const ScoreContentRef& ptx) override
         {

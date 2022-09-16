@@ -24,8 +24,9 @@
 #include "pocketdb/consensus/social/Subscribe.hpp"
 #include "pocketdb/consensus/social/SubscribeCancel.hpp"
 #include "pocketdb/consensus/social/SubscribePrivate.hpp"
-#include "pocketdb/consensus/social/User.hpp"
+#include "pocketdb/consensus/social/AccountUser.hpp"
 #include "pocketdb/consensus/social/AccountSetting.hpp"
+#include "pocketdb/consensus/social/AccountDelete.hpp"
 #include "pocketdb/consensus/social/ContentDelete.hpp"
 
 #include "pocketdb/consensus/moderation/Flag.hpp"
@@ -50,10 +51,12 @@ namespace PocketConsensus
         static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx, int height);
         static bool isConsensusable(TxType txType);
     private:
+        static AccountUserConsensusFactory m_accountUserFactory;
+        static AccountSettingConsensusFactory m_accountSettingFactory;
+        static AccountDeleteConsensusFactory m_accountDeleteFactory;
         static PostConsensusFactory m_postFactory;
         static VideoConsensusFactory m_videoFactory;
         static ArticleConsensusFactory m_articleFactory;
-        static UserConsensusFactory m_userFactory;
         static CommentConsensusFactory m_commentFactory;
         static CommentEditConsensusFactory m_commentEditFactory;
         static CommentDeleteConsensusFactory m_commentDeleteFactory;
@@ -65,7 +68,6 @@ namespace PocketConsensus
         static BlockingConsensusFactory m_blockingFactory;
         static BlockingCancelConsensusFactory m_blockingCancelFactory;
         static ComplainConsensusFactory m_complainFactory;
-        static AccountSettingConsensusFactory m_accountSettingFactory;
         static ContentDeleteConsensusFactory m_contentDeleteFactory;
         static BoostContentConsensusFactory m_boostContentFactory;
         

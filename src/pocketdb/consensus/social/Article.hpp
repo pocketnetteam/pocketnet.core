@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_ARTICLE_H
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Article.h"
+#include "pocketdb/models/dto/content/Article.h"
 
 namespace PocketConsensus
 {
@@ -23,10 +23,6 @@ namespace PocketConsensus
         ArticleConsensus(int height) : SocialConsensus<Article>(height) {}
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const ArticleRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Check payload size
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
@@ -34,7 +30,7 @@ namespace PocketConsensus
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const ArticleRef& ptx) override
         {
