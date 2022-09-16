@@ -735,12 +735,16 @@ namespace PocketDb
                 , (
                     select json_group_array(json_object('adddress', subs.String2, 'private', case when subs.Type == 303 then 'true' else 'false' end))
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
+                      on uas.String1 = subs.String2 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
                 ) as Subscribes
                 
                 , (
                     select json_group_array(subs.String1)
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
+                      on uas.String1 = subs.String1 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
                 ) as Subscribers
 
@@ -787,12 +791,16 @@ namespace PocketDb
                 , (
                     select count()
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
+                      on uas.String1 = subs.String2 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
                     where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
                 ) as SubscribesCount
 
                 , (
                     select count()
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
+                      on uas.String1 = subs.String1 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
                     where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String2 = u.String1
                 ) as SubscribersCount
 
@@ -1943,7 +1951,8 @@ namespace PocketDb
                 select
                   bl.IdTarget
                 from BlockingLists bl
-                join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                cross join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                cross join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
                 where us.String1 = ?
             )sql");
             TryBindStatementText(stmt, 1, address);
@@ -1968,7 +1977,8 @@ namespace PocketDb
                 select
                   bl.IdSource
                 from BlockingLists bl
-                join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                cross join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                cross join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
                 where ut.String1 = ?
             )sql");
             TryBindStatementText(stmt, 1, address);
