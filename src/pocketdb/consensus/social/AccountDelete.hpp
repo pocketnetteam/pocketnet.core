@@ -34,7 +34,7 @@ namespace PocketConsensus
 
     protected:
 
-        ConsensusValidateResult EnableTransaction()
+        virtual ConsensusValidateResult EnableTransaction()
         {
             return { false, SocialConsensusResult_NotAllowed };
         }
@@ -73,7 +73,7 @@ namespace PocketConsensus
     public:
         AccountDeleteConsensus_checkpoint_enable(int height) : AccountDeleteConsensus(height) {}
     protected:
-        ConsensusValidateResult EnableTransaction()
+        ConsensusValidateResult EnableTransaction() override
         {
             return Success;
         }
