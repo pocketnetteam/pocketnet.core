@@ -577,7 +577,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::Exists_HSST(const string& txHash, const string& strings, const vector<TxType>& types, bool last)
+    bool ConsensusRepository::Exists_HS2T(const string& txHash, const string& string2, const vector<TxType>& types, bool last)
     {
         assert(txHash != "");
         assert(string2 != "");

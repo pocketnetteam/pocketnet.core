@@ -44,7 +44,7 @@ namespace PocketConsensus
             if (auto[baseCheck, baseCheckCode] = ModeratorRegisterConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
-            return EnableTransaction()
+            return EnableTransaction();
         }
 
     protected:

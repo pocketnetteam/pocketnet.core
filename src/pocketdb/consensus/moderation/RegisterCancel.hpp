@@ -29,7 +29,7 @@ namespace PocketConsensus
             // TODO (moderation): check you self unregister
             // TODO (moderation): check you another unregister and this register with your request
 
-            return ModeratorRequestConsensus::Validate(tx, ptx, block);
+            return ModeratorRegisterConsensus::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterCancelRef& ptx) override
@@ -37,7 +37,7 @@ namespace PocketConsensus
             if (auto[baseCheck, baseCheckCode] = ModeratorRegisterConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
-            return EnableTransaction()
+            return EnableTransaction();
         }
 
     protected:

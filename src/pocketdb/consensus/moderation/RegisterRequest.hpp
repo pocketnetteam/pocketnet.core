@@ -47,7 +47,7 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetRequestTxHash()))
                 return {false, SocialConsensusResult_Failed};
 
-            return EnableTransaction()
+            return EnableTransaction();
         }
 
     protected:
