@@ -30,7 +30,11 @@ namespace PocketConsensus
             if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Author)
                 return {false, SocialConsensusResult_LowReputation};
 
+            if (ConsensusRepoInst.Exists_LS1S2T(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }))
+                return {false, SocialConsensusResult_ManyTransactions};
+
             // TODO (moderation): implement check allowed requests count > 0
+
             return EnableTransaction();
 
             return ModeratorRequestConsensus::Validate(tx, ptx, block);
@@ -52,6 +56,7 @@ namespace PocketConsensus
         }
 
     };
+
 
     // TODO (brangr): remove after fork enabled
     class ModeratorRequestSubsConsensus_checkpoint_enable : public ModeratorRequestSubsConsensus

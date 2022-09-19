@@ -56,11 +56,12 @@ namespace PocketConsensus
 
     };
 
+
     // TODO (brangr): remove after fork enabled
-    class ModeratorRequestCancelConsensus_checkpoint_enable : public ModeratorRequestCancelConsensus
+    class ModeratorRegisterSelfConsensus_checkpoint_enable : public ModeratorRegisterSelfConsensus
     {
     public:
-        ModeratorRequestCancelConsensus_checkpoint_enable(int height) : ModeratorRequestCancelConsensus(height) {}
+        ModeratorRegisterSelfConsensus_checkpoint_enable(int height) : ModeratorRegisterSelfConsensus(height) {}
     protected:
         ConsensusValidateResult EnableTransaction() override
         {
@@ -76,8 +77,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRegisterSelfConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<ModeratorRegisterSelfConsensus>(height); }},
-            { 9999999,  0, [](int height) { return make_shared<ModeratorRequestCancelConsensus_checkpoint_enable>(height); }},
+            {       0, -1, [](int height) { return make_shared<ModeratorRegisterSelfConsensus>(height); }},
+            { 9999999,  0, [](int height) { return make_shared<ModeratorRegisterSelfConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRegisterSelfConsensus> Instance(int height)

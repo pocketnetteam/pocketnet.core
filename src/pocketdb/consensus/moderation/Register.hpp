@@ -33,9 +33,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
-            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), false))
-            //     return {false, SocialConsensusResult_AlreadyExists};
-
             return Base::Validate(tx, ptx, block);
         }
 

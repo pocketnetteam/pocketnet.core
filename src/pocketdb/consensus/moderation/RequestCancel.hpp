@@ -28,15 +28,14 @@ namespace PocketConsensus
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestCancelRef& ptx, const PocketBlockRef& block) override
         {
             // Source request exists and address and moderator address equals
-            if (!ConsensusRepoInst.ExistsHash(*ptx->GetRequestTxHash(), *ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }))
+            if (!ConsensusRepoInst.Exists_HS1S2T(*ptx->GetRequestTxHash(), *ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }, false))
                 return {false, SocialConsensusResult_NotFound};
 
             // Request already canceled
-            if (ConsensusRepoInst.ExistsLast(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_CANCEL }))
+            if (ConsensusRepoInst.Exists_LS1S2T(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_CANCEL }))
                 return {false, SocialConsensusResult_ManyTransactions};
 
-            // Skip ModeratorRequestConsensus::Validate
-            return SocialConsensus::Validate(tx, ptx, block);
+            return ModeratorRequestConsensus::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestCancelRef& ptx) override
@@ -58,6 +57,7 @@ namespace PocketConsensus
         }
 
     };
+
 
     // TODO (brangr): remove after fork enabled
     class ModeratorRequestCancelConsensus_checkpoint_enable : public ModeratorRequestCancelConsensus

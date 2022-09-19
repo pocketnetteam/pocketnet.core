@@ -26,14 +26,10 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterCancelRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = ModeratorRegisterConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // TODO (moderation): check you self unregister
             // TODO (moderation): check you another unregister and this register with your request
 
-            return Success;
+            return ModeratorRequestConsensus::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterCancelRef& ptx) override
@@ -51,30 +47,8 @@ namespace PocketConsensus
             return { false, SocialConsensusResult_NotAllowed };
         }
 
-        ConsensusValidateResult ValidateBlock(const ModeratorRegisterCancelRef& ptx, const PocketBlockRef& block) override
-        {
-            for (auto& blockTx : *block)
-            {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATOR_REGISTER_SELF, MODERATOR_REGISTER_REQUEST, MODERATOR_REGISTER_CANCEL }) || *blockTx->GetHash() == *ptx->GetHash())
-                    continue;
-
-                auto blockPtx = static_pointer_cast<Moderator>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetModeratorAddress() == *blockPtx->GetModeratorAddress())
-                    return {false, SocialConsensusResult_Duplicate};
-            }
-
-            return Success;
-        }
-
-        ConsensusValidateResult ValidateMempool(const ModeratorRegisterCancelRef& ptx) override
-        {
-            // TODO (moderation): implement
-            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), true))
-            //     return {false, SocialConsensusResult_Duplicate};
-
-            return Success;
-        }
     };
+
 
     // TODO (brangr): remove after fork enabled
     class ModeratorRegisterCancelConsensus_checkpoint_enable : public ModeratorRegisterCancelConsensus
@@ -96,7 +70,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRegisterCancelConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<ModeratorRegisterCancelConsensus>(height); }},
+            {       0, -1, [](int height) { return make_shared<ModeratorRegisterCancelConsensus>(height); }},
             { 9999999,  0, [](int height) { return make_shared<ModeratorRegisterCancelConsensus_checkpoint_enable>(height); }},
         };
     public:

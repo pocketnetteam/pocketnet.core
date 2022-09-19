@@ -404,7 +404,7 @@ namespace PocketDb
     //     return result;
     // }
 
-    bool ConsensusRepository::ExistsMempool(const string& string1, const vector<TxType>& types)
+    bool ConsensusRepository::Exists_MS1T(const string& string1, const vector<TxType>& types)
     {
         assert(string1 != "");
         assert(!types.empty());
@@ -437,7 +437,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsMempool(const string& string1, const string& string2, const vector<TxType>& types)
+    bool ConsensusRepository::Exists_MS1S2T(const string& string1, const string& string2, const vector<TxType>& types)
     {
         assert(string1 != "");
         assert(string2 != "");
@@ -472,7 +472,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsLast(const string& string1, const vector<TxType>& types)
+    bool ConsensusRepository::Exists_LS1T(const string& string1, const vector<TxType>& types)
     {
         assert(string1 != "");
         assert(!types.empty());
@@ -505,7 +505,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsLast(const string& string1, const string& string2, const vector<TxType>& types)
+    bool ConsensusRepository::Exists_LS1S2T(const string& string1, const string& string2, const vector<TxType>& types)
     {
         assert(string1 != "");
         assert(string2 != "");
@@ -541,7 +541,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsHash(const string& txHash, const string& string1, const vector<TxType>& types)
+    bool ConsensusRepository::Exists_HS1T(const string& txHash, const string& string1, const vector<TxType>& types, bool last)
     {
         assert(txHash != "");
         assert(string1 != "");
@@ -553,6 +553,7 @@ namespace PocketDb
             from Transactions indexed by sqlite_autoindex_Transactions_1
             where Hash = ?
               and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              )sql" + (last ? " and Last = 1 " : "") + R"sql(
               and String1 = ?
               and Height is not null
         )sql";
@@ -576,7 +577,43 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsHash(const string& txHash, const string& string1, const string& string2, const vector<TxType>& types)
+    bool ConsensusRepository::Exists_HSST(const string& txHash, const string& strings, const vector<TxType>& types, bool last)
+    {
+        assert(txHash != "");
+        assert(string2 != "");
+        assert(!types.empty());
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by sqlite_autoindex_Transactions_1
+            where Hash = ?
+              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              )sql" + (last ? " and Last = 1 " : "") + R"sql(
+              and String2 = ?
+              and Height is not null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            TryBindStatementText(stmt, i++, txHash);
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i++, string2);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::Exists_HS1S2T(const string& txHash, const string& string1, const string& string2, const vector<TxType>& types, bool last)
     {
         assert(txHash != "");
         assert(string1 != "");
@@ -589,6 +626,7 @@ namespace PocketDb
             from Transactions indexed by sqlite_autoindex_Transactions_1
             where Hash = ?
               and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              )sql" + (last ? " and Last = 1 " : "") + R"sql(
               and String1 = ?
               and String2 = ?
               and Height is not null
