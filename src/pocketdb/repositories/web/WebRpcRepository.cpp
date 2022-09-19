@@ -2242,7 +2242,7 @@ namespace PocketDb
                 o.ScriptPubKey,
                 t.Type,
                 o.TxHeight
-            from TxOutputs o indexed by TxOutputs_SpentHeight_AddressHash
+            from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
             join Transactions t on t.Hash=o.TxHash
             where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
               and o.TxHeight is not null
