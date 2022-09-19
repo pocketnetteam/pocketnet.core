@@ -196,16 +196,6 @@ void PocketHelpers::NotificationsResult::InsertNotifiers(const int64_t& blocknum
     }
 }
 
-std::vector<std::string> PocketHelpers::NotificationsResult::GetNotifiersAddresses() const
-{
-    std::vector<std::string> res;
-    for (const auto& notifierEntry: m_notifiers) {
-        res.emplace_back(notifierEntry.first);
-    }
-
-    return res;
-}
-
 UniValue PocketHelpers::NotificationsResult::Serialize() const
 {
     UniValue notifiersUni (UniValue::VOBJ);

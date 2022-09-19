@@ -78,8 +78,6 @@ namespace PocketHelpers
 
         void InsertNotifiers(const int64_t& blocknum, PocketDb::ShortTxType contextType, std::map<std::string, std::optional<PocketDb::ShortAccount>> addresses);
 
-        std::vector<std::string> GetNotifiersAddresses() const;
-
         UniValue Serialize() const;
 
     private:
