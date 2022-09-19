@@ -3899,16 +3899,17 @@ namespace PocketDb
 
             )sql" + langFilter + R"sql(
 
-            join Transactions subs indexed by Transactions_Type_Last_String1_String2_Height
-                on subs.Type in (302,303)
-               and subs.Last = 1
-               and subs.Height > 0
-               and subs.String1 = ?
-               and cnt.String1 in ( subs.String2 )sql" + (!addresses_extended.empty() ? ("," + join(vector<string>(addresses_extended.size(), "?"), ",")) : "") + R"sql( )
-               -- and subs.String2 = cnt.String1
-
             where cnt.Type in )sql" + contentTypesWhere + R"sql(
               and cnt.Last = 1
+              and cnt.String1 in (
+                  select subs.String2
+                  from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+                  where subs.Type in (302,303)
+                    and subs.Last = 1
+                    and subs.String1 = ?
+                    and subs.Height > 0
+                    )sql" + (!addresses_extended.empty() ? (" union select value from json_each(json_array(" + join(vector<string>(addresses_extended.size(), "?"), ",") + "))") : "") + R"sql(
+              )
               and cnt.Height > 0
               and cnt.Height <= ?
             
@@ -3957,13 +3958,13 @@ namespace PocketDb
 
             if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
             TryBindStatementText(stmt, i++, addressFeed);
             if (!addresses_extended.empty())
                 for (const auto& adr_ex: addresses_extended)
                     TryBindStatementText(stmt, i++, adr_ex);
-
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
 
             TryBindStatementInt(stmt, i++, topHeight);
 
