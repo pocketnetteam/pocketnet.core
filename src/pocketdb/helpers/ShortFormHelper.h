@@ -69,6 +69,12 @@ namespace PocketHelpers
         std::function<void (STMT, int&, QueryParams const&)> binding;
     };
 
+    struct NotifierEntry
+    {
+        std::optional<PocketDb::ShortAccount> account;
+        std::map<PocketDb::ShortTxType, std::vector<UniValue>> notifications;
+    };
+
     class NotificationsResult
     {
     public:
@@ -81,8 +87,8 @@ namespace PocketHelpers
         UniValue Serialize() const;
 
     private:
-        std::map<std::string, std::pair<std::optional<PocketDb::ShortAccount>, std::map<PocketDb::ShortTxType, std::vector<UniValue>>>> m_notifiers;
-        std::map<int64_t, int64_t> m_txArrIndicies;
+        std::map<std::string /* address */, NotifierEntry> m_notifiers;
+        std::map<int64_t /* blocknum */, int64_t /* corresponding m_data's array index */> m_txArrIndicies;
         std::vector<UniValue> m_data;
     };
 

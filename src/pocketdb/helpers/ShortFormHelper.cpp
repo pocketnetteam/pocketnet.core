@@ -191,8 +191,8 @@ void PocketHelpers::NotificationsResult::InsertNotifiers(const int64_t& blocknum
 {
     for (const auto& address: addresses) {
         auto& notifierEntry = m_notifiers[address.first];
-        notifierEntry.second[contextType].emplace_back(m_txArrIndicies.at(blocknum));
-        notifierEntry.first = address.second;
+        notifierEntry.notifications[contextType].emplace_back(m_txArrIndicies.at(blocknum));
+        notifierEntry.account = address.second;
     }
 }
 
@@ -202,14 +202,14 @@ UniValue PocketHelpers::NotificationsResult::Serialize() const
     notifiersUni.reserveKVSize(m_notifiers.size());
     for (const auto& notifier: m_notifiers) {
         UniValue notifierData (UniValue::VOBJ);
-        notifierData.reserveKVSize(notifier.second.second.size());
-        for (const auto& contextTypeIndicies: notifier.second.second) {
+        notifierData.reserveKVSize(notifier.second.notifications.size());
+        for (const auto& contextTypeIndicies: notifier.second.notifications) {
             UniValue indicies (UniValue::VARR);
             indicies.push_backV(contextTypeIndicies.second);
             notifierData.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(contextTypeIndicies.first), indicies, false);
         }
         UniValue notifierUni (UniValue::VOBJ);
-        if (const auto& accData = notifier.second.first; accData.has_value()) {
+        if (const auto& accData = notifier.second.account; accData.has_value()) {
             notifierUni.pushKV("i", accData->Serialize(), false);
         }
         notifierUni.pushKV("e", std::move(notifierData), false);
