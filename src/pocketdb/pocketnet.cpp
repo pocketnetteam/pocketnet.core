@@ -11,7 +11,6 @@ namespace PocketDb
     ChainRepository ChainRepoInst(SQLiteDbInst);
     RatingsRepository RatingsRepoInst(SQLiteDbInst);
     ConsensusRepository ConsensusRepoInst(SQLiteDbInst);
-    NotifierRepository NotifierRepoInst(SQLiteDbInst);
     ExplorerRepository ExplorerRepoInst(SQLiteDbInst);
     SystemRepository SystemRepoInst(SQLiteDbInst);
     MigrationRepository MigrationRepoInst(SQLiteDbInst);

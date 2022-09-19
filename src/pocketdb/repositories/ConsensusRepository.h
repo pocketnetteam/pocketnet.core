@@ -87,11 +87,8 @@ namespace PocketDb
 
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);
-
-        tuple<bool, int64_t> GetLastAccountTime(const string& address);
-        tuple<bool, int64_t> GetLastAccountHeight(const string& address);
+        tuple<bool, TxType> GetLastAccountType(const string& address);
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
-
         tuple<bool, TxType> GetLastBlockingType(const string& address, const string& addressTo);
         bool ExistBlocking(const string& address, const string& addressTo, const string& addressesTo);
         tuple<bool, TxType> GetLastSubscribeType(const string& address, const string& addressTo);
@@ -100,7 +97,6 @@ namespace PocketDb
         int64_t GetUserBalance(const string& address);
         int GetUserReputation(const string& addressId);
         int GetUserReputation(int addressId);
-        int GetAccountRegistrationHeight(int addressId);
         int64_t GetAccountRegistrationTime(int addressId);
 
         AccountData GetAccountData(const string& address);
@@ -124,7 +120,7 @@ namespace PocketDb
         // Exists
         bool ExistsComplain(const string& postHash, const string& address, bool mempool);
         bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
-        bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
+        bool ExistsUserRegistrations(vector<string>& addresses);
         bool ExistsAnotherByName(const string& address, const string& name);
         bool Exists(const string& txHash, const vector<TxType>& types, bool inChain);
         bool ExistsInMempool(const string& string1, const vector<TxType>& types);
@@ -162,8 +158,6 @@ namespace PocketDb
         int CountMempoolScoreContent(const string& address);
         int CountChainScoreContentTime(const string& address, int64_t time);
         int CountChainScoreContentHeight(const string& address, int height);
-
-        int CountMempoolUser(const string& address);
 
         int CountMempoolAccountSetting(const string& address);
         int CountChainAccountSetting(const string& address, int height);

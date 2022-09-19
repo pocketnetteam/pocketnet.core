@@ -1078,17 +1078,8 @@ void CTxMemPool::CleanSQLite(const std::unordered_set<std::string>& hashes, MemP
     AssertLockHeld(cs);
     for (const auto& hash : hashes)
     {
-        uint256 tx_hash = uint256S(hash);
-        uint256 block_hash;
-        CTransactionRef tx = GetTransaction(nullptr, nullptr, tx_hash, Params().GetConsensus(), block_hash);
-
-        if (tx)
-            LogPrintf("ERROR: Attempted to delete %s from DB (reason = %d) when TX hash in blockchain!\n", hash, (int) reason);
-        else
-        {
-            LogPrint(BCLog::MEMPOOL, "%s: Clean SQLite mempool tx with reason %d\n", hash, (int)reason);
-            PocketDb::TransRepoInst.CleanTransaction(hash);
-        }
+        LogPrint(BCLog::MEMPOOL, "%s: Clean SQLite mempool tx with reason %d\n", hash, (int)reason);
+        PocketDb::TransRepoInst.CleanTransaction(hash);
     }
 }
 

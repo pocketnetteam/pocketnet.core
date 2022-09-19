@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_ACCOUNT_SETTING_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/AccountSetting.h"
+#include "pocketdb/models/dto/account/Setting.h"
 
 namespace PocketConsensus
 {
@@ -22,15 +22,11 @@ namespace PocketConsensus
         AccountSettingConsensus(int height) : SocialConsensus<AccountSetting>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const AccountSettingRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Check payload size
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const AccountSettingRef& ptx) override
         {

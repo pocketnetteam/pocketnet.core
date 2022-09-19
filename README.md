@@ -32,7 +32,7 @@ PocketnetCore is distributed in two ways: binary installer and build from source
 Minimum system requirements:
 - 2 core x86-64 CPU
 - 4GB RAM
-- 100 GB harddrive
+- 150 GB harddrive
 - 10 Mbps internet connection
 
 Recommended System Requirements
@@ -75,7 +75,6 @@ $
 $ pocketcoin-cli --help
 $ pocketcoin-tx --help
 ```
-
 More information : https://hub.docker.com/r/pocketnetteam/pocketnet.core
 
 # First full synchronization
@@ -100,9 +99,8 @@ $ pocketcoind --help
     
     # Latest snapshot archive
     https://snapshot.pocketnet.app/latest.tgz
-    https://snapshot.pocketnet.app/latest.bz2
     ```
-4. There must be archive tgz with 5 directories:
+3. There must be archive tgz with 5 directories:
     ```shell
     blocks\
       - ...
@@ -141,12 +139,24 @@ $ pocketcoind --help
     
     # for bz2 archive
     $ tar -xjf latest.tgz -C ./
+    
+    # create wallets directory if not exist
+    $ mkdir wallets
     ```
-5. Make sure the folders and files inside are not set to "read only"
+5. Make sure the folders and files inside are not set to "read only" (grant permissions to all files for current user via ```chmod -R <username> ~/.pocketcoin/``` unix command)
 6. Start the node.
 
 **VERY IMPORTANT**: save the **wallet.dat** file or **wallets/** files before cleaning the directory. It is recommended to even save these files somewhere for backup. 
 
+# Get address (for PKOIN receiving) and private key info (Linux, Docker)
+```shell
+# get address for PKOIN receiving
+$ pocketcoin-cli getnewaddress "node"
+<received_adress>
+$
+# get private key info for private safe storage
+$ pocketcoin-cli dumpprivkey "<received_address>"
+```
 
 # Build from source code
 See `doc/build-*.md` files for build instructions.
@@ -154,7 +164,7 @@ See `doc/build-*.md` files for build instructions.
 
 # Help
 You can get help and useful information from different sources:
-- https://pocketnet.app/help
+- https://bastyon.com/help
 - https://github.com/pocketnetteam/pocketnet.core/blob/master/doc/public_access.md
 - https://github.com/pocketnetteam/pocketnet.core/tree/master/doc/help
 - https://github.com/pocketnetteam/pocketnet.core/blob/master/share/examples/pocketcoin.conf

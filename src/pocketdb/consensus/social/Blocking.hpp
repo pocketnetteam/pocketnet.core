@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_BLOCKING_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Blocking.h"
+#include "pocketdb/models/dto/action/Blocking.h"
 
 namespace PocketConsensus
 {
@@ -22,10 +22,6 @@ namespace PocketConsensus
         BlockingConsensus(int height) : SocialConsensus<Blocking>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BlockingRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Double blocking in chain
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                     *ptx->GetAddress(),
@@ -36,7 +32,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_DoubleBlocking};
             }
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const BlockingRef& ptx) override
         {

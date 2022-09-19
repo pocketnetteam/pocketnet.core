@@ -407,8 +407,8 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[0].isNum())
                 count = request.params[0].get_int();
             else if (request.params[0].isStr())
-                // TODO (losty-fur): do not ignore result
-                bool res = ParseInt32(request.params[0].get_str(), &count);
+                if (!ParseInt32(request.params[0].get_str(), &count))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
         }
 
         // Depth in blocks (default about 3 days)
@@ -419,8 +419,8 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[1].isNum())
                 depthBlocks = request.params[1].get_int();
             else if (request.params[1].isStr())
-                // TODO (losty-fur): do not ignore result
-                bool res = ParseInt32(request.params[1].get_str(), &depthBlocks);
+                if (!ParseInt32(request.params[1].get_str(), &depthBlocks))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
 
             // for old version electron
             if (depthBlocks == 259200)
@@ -441,8 +441,8 @@ namespace PocketWeb::PocketWebRpc
             }
             else if (request.params[2].isStr())
             {
-                // TODO (losty-fur): do not ignore result
-                bool res = ParseInt32(request.params[2].get_str(), &nOffset);
+                if (!ParseInt32(request.params[2].get_str(), &nOffset))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
             }
             nHeightOffset -= nOffset;
         }
@@ -1299,18 +1299,103 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
+    RPCHelpMan GetEvents()
+    {
+        return RPCHelpMan{"GetEvents",
+                        "\nGet all events assotiated with addresses. Search depth - 3 months\n",
+                        {
+                            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "address to get events for"},
+                            {"heightMax", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "max height to start search from, including. Default is current chain height"},
+                            {"blockNum", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "number of transaction in block to start search from for specified heightMax, excluding. Default is 999999"},
+                            {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "filters to specify event's types to search for. Default: search for all events",
+                            {
+                                {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "incoming money"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Referal), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "registered referals"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "answers to acc's comments"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Comment), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "comments to acc's content"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Subscriber), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "subscribers"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::CommentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "scores to acc's comments"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::ContentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "scores to acc's content"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "content from private subscriptions"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Boost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "boosts of acc's content"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Repost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "reposts of acc's content"},
+                            }
+                        }
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc)
+                                  HelpExampleCli("getevents", "") +
+                                  HelpExampleRpc("getevents", "")
+                          },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        auto address = request.params[0].get_str();
+
+        int64_t heightMax = ChainActive().Height(); // TODO (losty): deadlock here wtf
+        if (request.params.size() > 1 && request.params[1].isNum()) {
+            heightMax = request.params[1].get_int64();
+        }
+
+        int64_t blockNum = 9999999; // Default
+        if (request.params.size() > 2 && request.params[2].isNum()) {
+            blockNum = request.params[2].get_int64();
+        }
+
+        static const int64_t depth = 129600; // 3 months
+        int64_t heightMin = heightMax - depth;
+        if (heightMin < 0) {
+            heightMin = 0;
+        }
+
+        std::set<ShortTxType> filters;
+        if (request.params.size() > 3 && request.params[3].isArray()) {
+            const auto& rawFilters  = request.params[3].get_array();
+            for (int i = 0; i < rawFilters.size(); i++) {
+                if (rawFilters[i].isStr()) {
+                    const auto& rawFilter = rawFilters[i].get_str();
+                    auto filter = ShortTxTypeConvertor::strToType(rawFilter);
+                    if (!PocketHelpers::ShortTxFilterValidator::Events::IsFilterAllowed(filter)) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unexpected filter: " + rawFilter);
+                    }
+                    filters.insert(filter);
+                }
+            }
+        }
+
+        auto shortTxs = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(address, heightMax, heightMin, blockNum, filters);
+        UniValue res(UniValue::VARR);
+        for (const auto& tx: shortTxs) {
+            res.push_back(tx.Serialize());
+        }
+
+        return res;
+    },
+        };
+    }
+
     RPCHelpMan GetNotifications()
     {
        return RPCHelpMan{"getnotifications",
                 "\nGet all possible notifications for all addresses for concrete block height.\n",
                 {
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "height of block to search in"},
-                    {"filters", RPCArg::Type::ARR, RPCArg::Optional::NO, "type(s) of notifications. If empty or null - search for all types",
+                    {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of notifications. If empty or null - search for all types",
                         {
-                            {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "recieved money"},
-                            {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "answers to acc's comments"},
-                            {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "content from acc's private subscriptions`"},
-                            {ShortTxTypeConvertor::toString(ShortTxType::Boost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "boosts of acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Money), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new incoming coins"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new answers to acc's comments"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Boost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new boosts of acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Referal), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new registration with my referal link"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Comment), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new comments under acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Subscriber), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new subscribers to acc"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::CommentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new scores to acc's comments"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::ContentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new scores to acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new content from acc's private subscriptions"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::Repost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new reposts of acc's content"},
                         }
                     },
                 },
@@ -1324,15 +1409,6 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getnotifications\n"
-                "\nGet all possible notifications for all addresses for concrete block height.\n"
-                "\nArguments:\n"
-                "1. \"height\" (int) height of block to search in\n"
-                "2. \"filters\" (array of strings, optional) type(s) of notifications. If empty or null - search for all types\n"
-                );
-
         RPCTypeCheck(request.params, {UniValue::VNUM});
 
         auto height = request.params[0].get_int64();
@@ -1354,25 +1430,153 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxMap = request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+        return request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+    },
+       };
+    }
 
-        UniValue userNotifications {UniValue::VOBJ};
-        userNotifications.reserveKVSize(shortTxMap.size());
-        for (const auto& addressSpecific: shortTxMap) {
-            UniValue txs {UniValue::VARR};
-            std::vector<UniValue> tmp;
-            for (const auto& tx: addressSpecific.second) {
-                tmp.emplace_back(tx.Serialize());
-            }
-            txs.push_backV(std::move(tmp));
-            userNotifications.pushKV(addressSpecific.first, txs, false /*searchDuplicate*/);
+    RPCHelpMan GetActivities()
+    {
+        return RPCHelpMan{"GetActivities",
+                        "\nGet all activities created by account. Search depth - 3 months\n",
+                        {
+                            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "address to get activities for"},
+                            {"heightMax", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "max height to start search from, including. Default is current chain height"},
+                            {"blockNum", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "number of transaction in block to start search from for specified heightMax, excluding. Default is 999999"},
+                            {"filters", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "filters to specify event's types to search for. Default: search for all activities",
+                            {
+                                {ShortTxTypeConvertor::toString(ShortTxType::Answer), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "acc's answers to comments"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Comment), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "acc's comments"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Subscriber), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "acc's subscribes"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::CommentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "acc's comments scores"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::ContentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "acc's content scores"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Boost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "boosts content done by acc"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::Blocking), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "my blockings/unblockings"},
+                            }
+                        }
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc)
+                                  HelpExampleCli("getactivities", "") +
+                                  HelpExampleRpc("getactivities", "")
+                          },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        auto address = request.params[0].get_str();
+
+        int64_t heightMax = ChainActive().Height();
+        if (request.params.size() > 1 && request.params[1].isNum()) {
+            heightMax = request.params[1].get_int64();
         }
 
-        UniValue res {UniValue::VOBJ};
-        res.pushKV("users_notifications", userNotifications);
+        int64_t blockNum = 9999999; // Default
+        if (request.params.size() > 2 && request.params[2].isNum()) {
+            blockNum = request.params[2].get_int64();
+        }
+
+        static const int64_t depth = 129600; // 3 months
+        int64_t heightMin = heightMax - depth;
+        if (heightMin < 0) {
+            heightMin = 0;
+        }
+
+        std::set<ShortTxType> filters;
+        if (request.params.size() > 3 && request.params[3].isArray()) {
+            const auto& rawFilters  = request.params[3].get_array();
+            for (int i = 0; i < rawFilters.size(); i++) {
+                if (rawFilters[i].isStr()) {
+                    const auto& rawFilter = rawFilters[i].get_str();
+                    auto filter = ShortTxTypeConvertor::strToType(rawFilter);
+                    if (!PocketHelpers::ShortTxFilterValidator::Activities::IsFilterAllowed(filter)) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unexpected filter: " + rawFilter);
+                    }
+                    filters.insert(filter);
+                }
+            }
+        }
+
+        auto shortTxs = request.DbConnection()->WebRpcRepoInst->GetActivities(address, heightMax, heightMin, blockNum, filters);
+        UniValue res(UniValue::VARR);
+        for (const auto& tx: shortTxs) {
+            res.push_back(tx.Serialize());
+        }
 
         return res;
     },
-       };
+        };
+    }
+
+    RPCHelpMan GetNotificationsSummary()
+    {
+        return RPCHelpMan{"GetNotificationsSummary",
+                        "\\n", // TODO (losty)
+                        {
+
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc)
+                                  HelpExampleCli("getnotificationssummary", "") +
+                                  HelpExampleRpc("getnotificationssummary", "")
+                          },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VARR});
+
+
+        std::set<std::string> addresses;
+        auto addressesRaw = request.params[0].get_array();
+        for (int i = 0; i < addressesRaw.size(); i++) {
+            addresses.insert(addressesRaw[i].get_str());
+        }
+
+        int64_t heightMax = ChainActive().Height(); // TODO (losty): deadlock here wtf
+        if (request.params.size() > 1 && request.params[1].isNum()) {
+            heightMax = request.params[1].get_int64();
+        }
+
+
+        static const int64_t depth = 480; // 8 hours
+        int64_t heightMin = heightMax - depth;
+        if (heightMin < 0) {
+            heightMin = 0;
+        }
+
+        std::set<ShortTxType> filters;
+        if (request.params.size() > 3 && request.params[3].isArray()) {
+            const auto& rawFilters  = request.params[3].get_array();
+            for (int i = 0; i < rawFilters.size(); i++) {
+                if (rawFilters[i].isStr()) {
+                    const auto& rawFilter = rawFilters[i].get_str();
+                    auto filter = ShortTxTypeConvertor::strToType(rawFilter);
+                    if (!ShortTxFilterValidator::NotificationsSummary::IsFilterAllowed(filter)) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unexpected filter: " + rawFilter);
+                    }
+                    filters.insert(filter);
+                }
+            }
+        }
+
+        auto res = request.DbConnection()->WebRpcRepoInst->GetNotificationsSummary(heightMax, heightMin, addresses, filters);
+        UniValue response(UniValue::VOBJ);
+
+        for (const auto& addressEntry: res) {
+            UniValue addressRelated(UniValue::VOBJ);
+            for (const auto& summaryEntry: addressEntry.second) {
+                addressRelated.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(summaryEntry.first), summaryEntry.second);
+            }
+            response.pushKV(addressEntry.first, addressRelated);
+        }
+
+        return response;
+    },
+        };
     }
 }

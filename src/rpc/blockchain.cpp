@@ -1515,7 +1515,9 @@ static RPCHelpMan getmempoolinfo()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const auto& node = EnsureNodeContext(request.context);
-    // TODO (losty-fur): possible null mempool
+    if (!node.mempool) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Null mempool");
+    }
     UniValue result = mempoolInfoToJSON(*node.mempool);
     int sqliteMempoolCount = PocketDb::TransRepoInst.MempoolCount();
 

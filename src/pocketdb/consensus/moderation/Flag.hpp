@@ -45,7 +45,7 @@ namespace PocketConsensus
 
             return Success;
         }
-
+        
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModerationFlagRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)

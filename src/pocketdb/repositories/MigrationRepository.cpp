@@ -36,9 +36,9 @@ namespace PocketDb
                   ut.Id
                 from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
                 join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-                  on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+                  on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
                 join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-                  on ut.Type in (100) and ut.Last = 1
+                  on ut.Type in (100, 170) and ut.Last = 1
                     --and ut.String1 = b.String2
                     and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                     and ut.Height > 0
@@ -69,9 +69,9 @@ namespace PocketDb
                 select 1
                 from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
                 join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-                  on us.Type in (100) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+                  on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
                 join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-                  on ut.Type in (100) and ut.Last = 1
+                  on ut.Type in (100, 170) and ut.Last = 1
                     --and ut.String1 = b.String2
                     and ut.String1 in (select b.String2 union select value from json_each(b.String3))
                     and ut.Height > 0

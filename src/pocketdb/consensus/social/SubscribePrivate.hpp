@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_SUBSCRIBEPRIVATE_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/SubscribePrivate.h"
+#include "pocketdb/models/dto/action/SubscribePrivate.h"
 
 namespace PocketConsensus
 {
@@ -22,10 +22,6 @@ namespace PocketConsensus
         SubscribePrivateConsensus(int height) : SocialConsensus<SubscribePrivate>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const SubscribePrivateRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Check double subscribe
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
                 *ptx->GetAddress(),
@@ -41,7 +37,7 @@ namespace PocketConsensus
             if (auto[ok, result] = ValidateBlocking(ptx); !ok)
                 return {false, result};
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const SubscribePrivateRef& ptx) override
         {

@@ -46,11 +46,15 @@ namespace PocketConsensus
                         bool inBlock = false;
                         for (auto& blockTx: *block)
                         {
-                            if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                            if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
                                 continue;
 
                             if (*blockTx->GetString1() == address)
                             {
+                                // TODO (brangr): delete - в один блок пусть с удалением пролазят - проверитЬ!
+                                // if (*blockTx->GetType() == ACCOUNT_DELETE)
+                                //     return {false, SocialConsensusResult_AccountDeleted};
+
                                 inBlock = true;
                                 break;
                             }
@@ -67,7 +71,7 @@ namespace PocketConsensus
 
                 // Check registrations in DB
                 if (!addressesForCheck.empty() &&
-                    !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck, false))
+                    !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck))
                     return {false, SocialConsensusResult_NotRegistered};
             }
 

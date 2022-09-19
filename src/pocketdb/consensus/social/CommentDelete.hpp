@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_COMMENT_DELETE_HPP
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/CommentDelete.h"
+#include "pocketdb/models/dto/content/CommentDelete.h"
 
 namespace PocketConsensus
 {
@@ -23,10 +23,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentDeleteRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Actual comment not deleted
             auto[actuallTxOk, actuallTx] = ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
@@ -80,7 +76,7 @@ namespace PocketConsensus
             if (auto[ok, result] = CheckAuthor(ptx, originalPtx, contentTx); !ok)
                 return {false, result}; 
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const CommentDeleteRef& ptx) override
         {

@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Video.h"
+#include "pocketdb/models/dto/content/Video.h"
 
 namespace PocketConsensus
 {
@@ -23,10 +23,6 @@ namespace PocketConsensus
         VideoConsensus(int height) : SocialConsensus<Video>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const VideoRef& ptx, const PocketBlockRef& block) override
         {
-            // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
-                return {false, baseValidateCode};
-
             // Check payload size
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
@@ -34,7 +30,7 @@ namespace PocketConsensus
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const VideoRef& ptx) override
         {
@@ -119,7 +115,6 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
         {
-            // TODO (brangr): change with check deleted content
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
                 { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
