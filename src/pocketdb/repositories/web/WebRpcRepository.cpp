@@ -4853,6 +4853,8 @@ namespace PocketDb
                 on c.Type in (204, 205, 206)
                 and c.String3 = p.String2
                 and c.String1 != p.String1
+                and c.String4 is null
+                and c.String5 is null
                 and c.Height > ?
                 and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
                 and c.String1 = ?
@@ -5782,6 +5784,8 @@ namespace PocketDb
                     and rna.Last = 1
 
                 where c.Type = 204 -- only orig
+                    and c.String4 is null
+                    and c.String5 is null
                     and c.Height = ?
         )sql",
             heightBinder
@@ -6552,6 +6556,8 @@ namespace PocketDb
                     and c.String3 = p.String2
                     and c.String1 != p.String1
                     and c.Hash = c.String2
+                    and c.String4 is null
+                    and c.String5 is null
                     and c.Height > ?
                     and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
 
@@ -7078,6 +7084,8 @@ namespace PocketDb
 
                 where c.Type = 204 -- only orig
                     and c.Last in (0,1)
+                    and c.String4 is null
+                    and c.String5 is null
                     and c.Height between ? and ?
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
