@@ -3888,6 +3888,7 @@ namespace PocketDb
         string langFilter;
         if (!lang.empty())
             langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = cnt.Hash and p.String1 = ? ";
+
         string sql = R"sql(
             select cnt.Id
 
@@ -3911,6 +3912,7 @@ namespace PocketDb
               )
               and cnt.Height > 0
               and cnt.Height <= ?
+
 
             )sql" + contentIdWhere + R"sql(
 
