@@ -3913,11 +3913,9 @@ namespace PocketDb
               and cnt.Height > 0
               and cnt.Height <= ?
 
-
             )sql" + contentIdWhere + R"sql(
 
         )sql";
-
 
         if (!tags.empty())
         {
