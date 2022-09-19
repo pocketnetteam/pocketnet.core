@@ -423,7 +423,8 @@ namespace PocketConsensus
             ))->m_func(m_height);
         }
     };
-
+    
+    typedef shared_ptr<PocketConsensus::ReputationConsensus> ReputationConsensusRef;
     static ReputationConsensusFactory ReputationConsensusFactoryInst;
 }
 

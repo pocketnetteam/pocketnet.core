@@ -22,20 +22,18 @@ namespace PocketConsensus
     class ModeratorRegisterSelfConsensus : public ModeratorRegisterConsensus<ModeratorRegisterSelf>
     {
     public:
-        ModeratorRegisterSelfConsensus(int height) : ModeratorRegisterConsensus<ModeratorRegisterSelf>(height)
-        {
-            // ReputationConsensusRef reputationConsensus;
-            // reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
-            // // Already `Moderator` cant't register again
-            // if (reputationConsensus->GetBadges(*ptx->GetAddress()).Moderator)
-            //     return {false, SocialConsensusResult_AlreadyExists};
-        }
+        ModeratorRegisterSelfConsensus(int height) : ModeratorRegisterConsensus<ModeratorRegisterSelf>(height) { }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx, const PocketBlockRef& block) override
         {
+            auto badges = reputationConsensus->GetBadges(*ptx->GetAddress());
+
+            // Already `Moderator` cant't register again
+            if (badges.Moderator)
+                return {false, SocialConsensusResult_AlreadyExists};
+
             // Only `Whale` account can register moderator badge
-            auto reputationConsensus = ReputationConsensusFactoryInst.Instance(Height);
-            if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Whale)
+            if (!badges.Whale)
                 return {false, SocialConsensusResult_LowReputation};
 
             return ModeratorRegisterConsensus::Validate(tx, ptx, block);
@@ -46,14 +44,28 @@ namespace PocketConsensus
             if (auto[baseCheck, baseCheckCode] = ModeratorRegisterConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
-            if (*ptx->GetAddress() != *ptx->GetModeratorAddress())
-                return {false, SocialConsensusResult_Failed};
-
-            return Success;
+            return EnableTransaction()
         }
 
     protected:
 
+        virtual ConsensusValidateResult EnableTransaction()
+        {
+            return { false, SocialConsensusResult_NotAllowed };
+        }
+
+    };
+
+    // TODO (brangr): remove after fork enabled
+    class ModeratorRequestCancelConsensus_checkpoint_enable : public ModeratorRequestCancelConsensus
+    {
+    public:
+        ModeratorRequestCancelConsensus_checkpoint_enable(int height) : ModeratorRequestCancelConsensus(height) {}
+    protected:
+        ConsensusValidateResult EnableTransaction() override
+        {
+            return Success;
+        }
     };
 
 
@@ -65,6 +77,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<ModeratorRegisterSelfConsensus>> m_rules = {
             { 0, 0, [](int height) { return make_shared<ModeratorRegisterSelfConsensus>(height); }},
+            { 9999999,  0, [](int height) { return make_shared<ModeratorRequestCancelConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRegisterSelfConsensus> Instance(int height)

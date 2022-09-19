@@ -372,41 +372,42 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::Exists(const string& txHash, const vector<TxType>& types, bool inChain = true)
-    {
-        bool result = false;
+    // bool ConsensusRepository::Exists(const string& txHash, const vector<TxType>& types, bool inChain = true)
+    // {
+    //     bool result = false;
 
-        string sql = R"sql(
-            select 1
-            from Transactions
-            where Hash = ?
-              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-        )sql";
+    //     string sql = R"sql(
+    //         select 1
+    //         from Transactions
+    //         where Hash = ?
+    //           and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+    //     )sql";
 
-        if (inChain)
-            sql += " and Height is not null";
+    //     if (inChain)
+    //         sql += " and Height is not null";
 
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
+    //     TryTransactionStep(__func__, [&]()
+    //     {
+    //         auto stmt = SetupSqlStatement(sql);
             
-            int i = 1;
-            TryBindStatementText(stmt, i, txHash);
-            for (const auto& type: types)
-                TryBindStatementInt(stmt, i++, type);
+    //         int i = 1;
+    //         TryBindStatementText(stmt, i, txHash);
+    //         for (const auto& type: types)
+    //             TryBindStatementInt(stmt, i++, type);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                result = true;
+    //         if (sqlite3_step(*stmt) == SQLITE_ROW)
+    //             result = true;
 
-            FinalizeSqlStatement(*stmt);
-        });
+    //         FinalizeSqlStatement(*stmt);
+    //     });
 
-        return result;
-    }
+    //     return result;
+    // }
 
-    bool ConsensusRepository::ExistsInMempool(const string& string1, const vector<TxType>& types)
+    bool ConsensusRepository::ExistsMempool(const string& string1, const vector<TxType>& types)
     {
         assert(string1 != "");
+        assert(!types.empty());
         bool result = false;
 
         string sql = R"sql(
@@ -436,10 +437,11 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsInMempool(const string& string1, const string& string2, const vector<TxType>& types)
+    bool ConsensusRepository::ExistsMempool(const string& string1, const string& string2, const vector<TxType>& types)
     {
         assert(string1 != "");
         assert(string2 != "");
+        assert(!types.empty());
         bool result = false;
 
         string sql = R"sql(
@@ -470,15 +472,17 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsInChain(const string& string1, const vector<TxType>& types)
+    bool ConsensusRepository::ExistsLast(const string& string1, const vector<TxType>& types)
     {
         assert(string1 != "");
+        assert(!types.empty());
         bool result = false;
 
         string sql = R"sql(
             select 1
-            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+            from Transactions indexed by Transactions_Type_Last_String1_Height_Id
             where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and Last = 1
               and String1 = ?
               and Height is not null
         )sql";
@@ -501,16 +505,18 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsInChain(const string& string1, const string& string2, const vector<TxType>& types)
+    bool ConsensusRepository::ExistsLast(const string& string1, const string& string2, const vector<TxType>& types)
     {
         assert(string1 != "");
         assert(string2 != "");
+        assert(!types.empty());
         bool result = false;
 
         string sql = R"sql(
             select 1
-            from Transactions indexed by Transactions_Type_String1_String2_Height
+            from Transactions indexed by Transactions_Type_Last_String1_String2_Height
             where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and Last = 1
               and String1 = ?
               and String2 = ?
               and Height is not null
@@ -521,6 +527,79 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
             
             int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i++, string1);
+            TryBindStatementText(stmt, i++, string2);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::ExistsHash(const string& txHash, const string& string1, const vector<TxType>& types)
+    {
+        assert(txHash != "");
+        assert(string1 != "");
+        assert(!types.empty());
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by sqlite_autoindex_Transactions_1
+            where Hash = ?
+              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and String1 = ?
+              and Height is not null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            TryBindStatementText(stmt, i++, txHash);
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i++, string1);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::ExistsHash(const string& txHash, const string& string1, const string& string2, const vector<TxType>& types)
+    {
+        assert(txHash != "");
+        assert(string1 != "");
+        assert(string2 != "");
+        assert(!types.empty());
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by sqlite_autoindex_Transactions_1
+            where Hash = ?
+              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and String1 = ?
+              and String2 = ?
+              and Height is not null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            TryBindStatementText(stmt, i++, txHash);
             for (const auto& type: types)
                 TryBindStatementInt(stmt, i++, type);
             TryBindStatementText(stmt, i++, string1);
@@ -2063,75 +2142,6 @@ namespace PocketDb
 
         return result;
     }
-
-    bool ConsensusRepository::ExistsModeratorRegister(const string& address, bool includeMempool)
-    {
-        // TODO (moderation): implement sql
-    }
-    
-    bool ConsensusRepository::ExistsModeratorRequest(const string& address, const string& moderatorAddress, const vector<TxType>& types, bool includeMempool)
-    {
-        bool result = false;
-
-        string sql = R"sql(
-            select 1
-            from Transactions indexed by Transactions_Type_Last_String1_String2_Height
-            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              and Last = 1
-              and String1 = ?
-              and String2 = ?
-        )sql";
-
-        if (!mempool)
-            sql += " and Height > 0";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementText(stmt, 2, moderatorAddress);
-            
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                result = true;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-    bool ConsensusRepository::ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight)
-    {
-        return ExistsModeratorRequest(address, requestTxHash, minHeight, false);
-    }
-    bool ConsensusRepository::ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight, bool includeMempool)
-    {
-        bool result = false;
-
-        string sql = R"sql(
-            select 1
-            from Transactions
-            ...
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            
-            int i = 1;
-            TryBindStatementText(stmt, i++, txHash);
-            for (const auto& type: types)
-                TryBindStatementInt(stmt, i++, type);
-            TryBindStatementText(stmt, i++, address);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                result = true;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
 
 
 }

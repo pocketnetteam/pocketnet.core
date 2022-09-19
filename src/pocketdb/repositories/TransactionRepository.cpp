@@ -351,7 +351,7 @@ namespace PocketDb
         return result;
     }
 
-    bool TransactionRepository::ExistsInChain(const string& hash)
+    bool TransactionRepository::ExistsLast(const string& hash)
     {
         bool result = false;
 

@@ -47,7 +47,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_InvalidParentComment};
 
                 if (!IsEmpty(originalPtx->GetParentTxHash()))
-                    if (!PocketDb::TransRepoInst.ExistsInChain(origParentTxHash))
+                    if (!PocketDb::TransRepoInst.ExistsLast(origParentTxHash))
                         return {false, SocialConsensusResult_InvalidParentComment};
             }
 

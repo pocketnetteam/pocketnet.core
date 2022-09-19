@@ -27,19 +27,48 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestCancelRef& ptx, const PocketBlockRef& block) override
         {
-            // TODO (moderation): check not registered with canceled request
+            // Source request exists and address and moderator address equals
+            if (!ConsensusRepoInst.ExistsHash(*ptx->GetRequestTxHash(), *ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }))
+                return {false, SocialConsensusResult_NotFound};
 
-            return ModeratorRequestConsensus::Validate(tx, ptx, block);
+            // Request already canceled
+            if (ConsensusRepoInst.ExistsLast(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_CANCEL }))
+                return {false, SocialConsensusResult_ManyTransactions};
+
+            // Skip ModeratorRequestConsensus::Validate
+            return SocialConsensus::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestCancelRef& ptx) override
         {
+            if (auto[baseCheck, baseCheckCode] = ModeratorRequestConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
             if (IsEmpty(ptx->GetRequestTxHash()))
                 return {false, SocialConsensusResult_Failed};
 
-            return ModeratorRequestConsensus::Check(tx, ptx);
+            return EnableTransaction();
         }
 
+    protected:
+
+        virtual ConsensusValidateResult EnableTransaction()
+        {
+            return { false, SocialConsensusResult_NotAllowed };
+        }
+
+    };
+
+    // TODO (brangr): remove after fork enabled
+    class ModeratorRequestCancelConsensus_checkpoint_enable : public ModeratorRequestCancelConsensus
+    {
+    public:
+        ModeratorRequestCancelConsensus_checkpoint_enable(int height) : ModeratorRequestCancelConsensus(height) {}
+    protected:
+        ConsensusValidateResult EnableTransaction() override
+        {
+            return Success;
+        }
     };
 
 
@@ -51,6 +80,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestCancelConsensus>> m_rules = {
             { 0, 0, [](int height) { return make_shared<ModeratorRequestCancelConsensus>(height); }},
+            { 9999999,  0, [](int height) { return make_shared<ModeratorRequestCancelConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRequestCancelConsensus> Instance(int height)

@@ -26,25 +26,35 @@ namespace PocketConsensus
 
     public:
 
-        ModeratorRegisterConsensus(int height) : SocialConsensus<T>(height) { }
+        ModeratorRegisterConsensus(int height) : SocialConsensus<T>(height)
+        {
+            reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+        }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
-            if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), false))
-                return {false, SocialConsensusResult_AlreadyExists};
+            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), false))
+            //     return {false, SocialConsensusResult_AlreadyExists};
 
             return Base::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx) override
         {
+            if (auto[baseCheck, baseCheckCode] = Base::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
             if (Base::IsEmpty(ptx->GetModeratorAddress()))
                 return {false, SocialConsensusResult_Failed};
 
-            return Base::Check(tx, ptx);
+            if (*ptx->GetAddress() != *ptx->GetModeratorAddress())
+                return {false, SocialConsensusResult_Failed};
+
+            return Success;
         }
 
     protected:
+        ReputationConsensusRef reputationConsensus;
 
         ConsensusValidateResult ValidateBlock(const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
@@ -63,8 +73,9 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
-            if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), true))
-                return {false, SocialConsensusResult_Duplicate};
+            // implement
+            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), true))
+            //     return {false, SocialConsensusResult_Duplicate};
 
             return Base::Success;
         }

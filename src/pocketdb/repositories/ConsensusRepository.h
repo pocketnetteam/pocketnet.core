@@ -122,13 +122,16 @@ namespace PocketDb
         bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
         bool ExistsUserRegistrations(vector<string>& addresses);
         bool ExistsAnotherByName(const string& address, const string& name);
-        bool Exists(const string& txHash, const vector<TxType>& types, bool inChain);
-        bool ExistsInMempool(const string& string1, const vector<TxType>& types);
-        bool ExistsInMempool(const string& string1, const string& string2, const vector<TxType>& types);
-        bool ExistsInChain(const string& string1, const vector<TxType>& types);
-        bool ExistsInChain(const string& string1, const string& string2, const vector<TxType>& types);
         bool ExistsNotDeleted(const string& txHash, const string& address, const vector<TxType>& types);
+        //bool Exists(const string& txHash, const vector<TxType>& types, bool inChain);
 
+        bool ExistsMempool(const string& string1, const vector<TxType>& types);
+        bool ExistsMempool(const string& string1, const string& string2, const vector<TxType>& types);
+        bool ExistsLast(const string& string1, const vector<TxType>& types);
+        bool ExistsLast(const string& string1, const string& string2, const vector<TxType>& types);
+        bool ExistsHash(const string& txHash, const string& string1, const vector<TxType>& types);
+        bool ExistsHash(const string& txHash, const string& string1, const string& string2, const vector<TxType>& types);
+        
         // get counts in "mempool" - Height is null
         int CountMempoolBlocking(const string& address, const string& addressTo);
         int CountMempoolSubscribe(const string& address, const string& addressTo);
@@ -183,8 +186,7 @@ namespace PocketDb
         int CountModerationFlag(const string& address, const string& addressTo, bool includeMempool);
 
     protected:
-        bool ExistsModeratorRequest(const string& address, const string& requestTxHash, int minHeight, bool includeMempool);
-
+    
     };
 
     typedef shared_ptr<ConsensusRepository> ConsensusRepositoryRef;

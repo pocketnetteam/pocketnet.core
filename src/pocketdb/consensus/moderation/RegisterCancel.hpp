@@ -36,7 +36,20 @@ namespace PocketConsensus
             return Success;
         }
 
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRegisterCancelRef& ptx) override
+        {
+            if (auto[baseCheck, baseCheckCode] = ModeratorRegisterConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
+            return EnableTransaction()
+        }
+
     protected:
+
+        virtual ConsensusValidateResult EnableTransaction()
+        {
+            return { false, SocialConsensusResult_NotAllowed };
+        }
 
         ConsensusValidateResult ValidateBlock(const ModeratorRegisterCancelRef& ptx, const PocketBlockRef& block) override
         {
@@ -63,6 +76,18 @@ namespace PocketConsensus
         }
     };
 
+    // TODO (brangr): remove after fork enabled
+    class ModeratorRegisterCancelConsensus_checkpoint_enable : public ModeratorRegisterCancelConsensus
+    {
+    public:
+        ModeratorRegisterCancelConsensus_checkpoint_enable(int height) : ModeratorRegisterCancelConsensus(height) {}
+    protected:
+        ConsensusValidateResult EnableTransaction() override
+        {
+            return Success;
+        }
+    };
+
 
     /*******************************************************************************************************************
     *  Factory for select actual rules version
@@ -72,6 +97,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<ModeratorRegisterCancelConsensus>> m_rules = {
             { 0, 0, [](int height) { return make_shared<ModeratorRegisterCancelConsensus>(height); }},
+            { 9999999,  0, [](int height) { return make_shared<ModeratorRegisterCancelConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRegisterCancelConsensus> Instance(int height)

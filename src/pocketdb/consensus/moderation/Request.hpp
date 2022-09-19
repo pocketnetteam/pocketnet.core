@@ -15,8 +15,6 @@ namespace PocketConsensus
     using namespace PocketDb;
     using namespace PocketConsensus;
 
-    typedef shared_ptr<PocketConsensus::ReputationConsensus> ReputationConsensusRef;
-
     /*******************************************************************************************************************
     *  ModeratorRequest consensus base class
     *******************************************************************************************************************/
@@ -34,18 +32,21 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
-            if (ConsensusRepoInst.ExistsInChain(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }))
-                return {false, SocialConsensusResult_Duplicate};
-            
+            if (ConsensusRepoInst.ExistsLast(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }))
+                return {false, SocialConsensusResult_ManyTransactions};
+
             return Base::Validate(tx, ptx, block);
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx) override
         {
+            if (auto[baseCheck, baseCheckCode] = Base::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
             if (Base::IsEmpty(ptx->GetModeratorAddress()))
                 return {false, SocialConsensusResult_Failed};
 
-            return Base::Check(tx, ptx);
+            return Success;
         }
 
     protected:
@@ -73,8 +74,8 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
-            if (ConsensusRepoInst.ExistsInMempool(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_CANCEL }))
-                return {false, SocialConsensusResult_Duplicate};
+            if (ConsensusRepoInst.ExistsMempool(*ptx->GetAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_CANCEL }))
+                return {false, SocialConsensusResult_ManyTransactions};
 
             return Base::Success;
         }

@@ -27,12 +27,38 @@ namespace PocketConsensus
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRequestCoinRef& ptx, const PocketBlockRef& block) override
         {
             // TODO (moderation): check exists old free outputs
+            return EnableTransaction();
 
             return ModeratorRequestConsensus::Validate(tx, ptx, block);
+        }
+        
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestCoinRef& ptx) override
+        {
+            if (auto[baseCheck, baseCheckCode] = ModeratorRequestConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
+            return EnableTransaction();
         }
 
     protected:
 
+        virtual ConsensusValidateResult EnableTransaction()
+        {
+            return { false, SocialConsensusResult_NotAllowed };
+        }
+
+    };
+
+    // TODO (brangr): remove after fork enabled
+    class ModeratorRequestCoinConsensus_checkpoint_enable : public ModeratorRequestCoinConsensus
+    {
+    public:
+        ModeratorRequestCoinConsensus_checkpoint_enable(int height) : ModeratorRequestCoinConsensus(height) {}
+    protected:
+        ConsensusValidateResult EnableTransaction() override
+        {
+            return Success;
+        }
     };
 
 
@@ -44,6 +70,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestCoinConsensus>> m_rules = {
             { 0, 0, [](int height) { return make_shared<ModeratorRequestCoinConsensus>(height); }},
+            { 9999999,  0, [](int height) { return make_shared<ModeratorRequestCoinConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRequestCoinConsensus> Instance(int height)

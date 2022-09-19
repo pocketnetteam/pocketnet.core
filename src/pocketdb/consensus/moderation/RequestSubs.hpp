@@ -31,12 +31,38 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_LowReputation};
 
             // TODO (moderation): implement check allowed requests count > 0
+            return EnableTransaction();
 
             return ModeratorRequestConsensus::Validate(tx, ptx, block);
+        }
+        
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ModeratorRequestSubsRef& ptx) override
+        {
+            if (auto[baseCheck, baseCheckCode] = ModeratorRequestConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
+            return EnableTransaction();
         }
 
     protected:
 
+        virtual ConsensusValidateResult EnableTransaction()
+        {
+            return { false, SocialConsensusResult_NotAllowed };
+        }
+
+    };
+
+    // TODO (brangr): remove after fork enabled
+    class ModeratorRequestSubsConsensus_checkpoint_enable : public ModeratorRequestSubsConsensus
+    {
+    public:
+        ModeratorRequestSubsConsensus_checkpoint_enable(int height) : ModeratorRequestSubsConsensus(height) {}
+    protected:
+        ConsensusValidateResult EnableTransaction() override
+        {
+            return Success;
+        }
     };
 
 
@@ -47,7 +73,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestSubsConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<ModeratorRequestSubsConsensus>(height); }},
+            {       0, -1, [](int height) { return make_shared<ModeratorRequestSubsConsensus>(height); }},
+            { 9999999,  0, [](int height) { return make_shared<ModeratorRequestSubsConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRequestSubsConsensus> Instance(int height)
