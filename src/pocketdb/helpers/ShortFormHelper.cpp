@@ -192,7 +192,8 @@ void PocketHelpers::NotificationsResult::InsertNotifiers(const int64_t& blocknum
     for (const auto& address: addresses) {
         auto& notifierEntry = m_notifiers[address.first];
         notifierEntry.notifications[contextType].emplace_back(m_txArrIndicies.at(blocknum));
-        notifierEntry.account = address.second;
+        if (!notifierEntry.account)
+            notifierEntry.account = address.second;
     }
 }
 
@@ -200,21 +201,28 @@ UniValue PocketHelpers::NotificationsResult::Serialize() const
 {
     UniValue notifiersUni (UniValue::VOBJ);
     notifiersUni.reserveKVSize(m_notifiers.size());
+
     for (const auto& notifier: m_notifiers) {
+        const auto& address = notifier.first;
+        const auto& notifierEntry = notifier.second;
+
         UniValue notifierData (UniValue::VOBJ);
-        notifierData.reserveKVSize(notifier.second.notifications.size());
-        for (const auto& contextTypeIndicies: notifier.second.notifications) {
+        notifierData.reserveKVSize(notifierEntry.notifications.size());
+        for (const auto& contextTypeIndicies: notifierEntry.notifications) {
             UniValue indicies (UniValue::VARR);
             indicies.push_backV(contextTypeIndicies.second);
             notifierData.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(contextTypeIndicies.first), indicies, false);
         }
-        UniValue notifierUni (UniValue::VOBJ);
-        if (const auto& accData = notifier.second.account; accData.has_value()) {
-            notifierUni.pushKV("i", accData->Serialize(), false);
+
+        UniValue notifierUniObj (UniValue::VOBJ);
+        if (const auto& accData = notifierEntry.account; accData.has_value()) {
+            notifierUniObj.pushKV("i", accData->Serialize(), false);
         }
-        notifierUni.pushKV("e", std::move(notifierData), false);
-        notifiersUni.pushKV(notifier.first, notifierUni, false);
+        notifierUniObj.pushKV("e", std::move(notifierData), false);
+
+        notifiersUni.pushKV(address, notifierUniObj, false);
     }
+
     UniValue data (UniValue::VARR);
     data.push_backV(m_data);
 
@@ -357,7 +365,12 @@ PocketHelpers::NotificationsReconstructor::NotificationsReconstructor()
 
 void PocketHelpers::NotificationsReconstructor::FeedRow(sqlite3_stmt* stmt)
 {
+    // Notifiers data for current row context. Possible more than one notifier for the same context
     std::map<std::string, std::optional<PocketDb::ShortAccount>> notifiers;
+    // Collecting addresses and accounts for notifiers. Required data can be in 2 places:
+    //  - First column in query
+    //  - Outputs (e.x. for money)
+    //  TODO (losty): generalize collecting account data because there could be more variants in the future
     auto [ok, addressOne] = TryGetColumnString(stmt, 0);
     if (ok) {
         auto pulp = m_parser.ParseAccount(stmt, 1);
@@ -373,7 +386,8 @@ void PocketHelpers::NotificationsReconstructor::FeedRow(sqlite3_stmt* stmt)
     }
     if (notifiers.empty()) throw std::runtime_error("Missing address of notifier");
 
-    auto blockNum = m_parser.ParseBlockNum(stmt);
+    auto blockNum = m_parser.ParseBlockNum(stmt); // blocknum is a unique key of tx because we are looking for txs in a single block
+    // Do not perform parsing sql if we already has this tx
     if (!m_notifications.HasData(blockNum)) {
         m_notifications.InsertData(m_parser.ParseFull(stmt));
     }
