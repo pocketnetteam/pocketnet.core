@@ -5378,66 +5378,6 @@ namespace PocketDb
         return reconstructor.GetResult();
     }
 
-    std::map<std::string, ShortAccount> WebRpcRepository::GetShortAccountsForAddresses(const std::vector<std::string>& addresses)
-    {
-        auto sql = R"sql(
-            select
-                ac.String1,
-                p.String1,
-                p.String2,
-                p.String3,
-                ifnull(r.Value,0)
-
-            from Transactions ac indexed by Transactions_Type_Last_String1_String2_Height
-
-            left join Payload p
-                on p.TxHash = ac.Hash
-
-            left join Ratings r indexed by Ratings_Type_Id_Last_Height
-                on r.Type = 0
-                and r.Id = ac.Id
-                and r.Last = 1
-
-            where ac.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                and ac.Type = 100
-                and ac.Last = 1
-        )sql";
-
-        std::map<std::string, ShortAccount> res;        
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            int i = 1;
-
-            for (const auto& address: addresses) {
-                TryBindStatementText(stmt, i, address);
-                i++;
-            }
-
-            // LogPrintf(sqlite3_expanded_sql(*stmt));
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                std::string address;
-                if (auto [ok, val] = TryGetColumnString(*stmt, 0); ok)
-                    address = val;
-                else 
-                    continue; // TODO (losty): error
-
-                ShortAccount acc;
-                if (auto [ok, val] = TryGetColumnString(*stmt, 1); ok) acc.SetLang(val);
-                if (auto [ok, val] = TryGetColumnString(*stmt, 2); ok) acc.SetName(val);
-                if (auto [ok, val] = TryGetColumnString(*stmt, 3); ok) acc.SetAvatar(val);
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 4); ok) acc.SetReputation(val);
-                res.insert({address, acc});
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return res;
-    }
-
     UniValue WebRpcRepository::GetNotifications(int64_t height, const std::set<ShortTxType>& filters)
     {
         struct QueryParams {
