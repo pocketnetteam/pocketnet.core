@@ -138,6 +138,9 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
 
             while (wallet->IsLocked())
             {
+                if (ShutdownRequested())
+                    break;
+
                 nLastCoinStakeSearchInterval = 0;
                 m_interrupt.sleep_for(std::chrono::milliseconds{1000});
             }
