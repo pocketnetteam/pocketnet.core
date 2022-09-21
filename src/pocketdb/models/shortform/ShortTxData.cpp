@@ -40,6 +40,7 @@ UniValue PocketDb::ShortTxData::Serialize() const
     data.pushKV("txType", (int)m_txType);
     if (m_height) data.pushKV("height", m_height.value());
     if (m_blockNum) data.pushKV("blockNum", m_blockNum.value());
+    if (m_time) data.pushKV("time", *m_time);
     if (m_address) data.pushKV("address", m_address.value());
     if (m_account) data.pushKV("account", m_account->Serialize());
     if (m_val) data.pushKV("val", m_val.value());
@@ -92,6 +93,10 @@ void PocketDb::ShortTxData::SetHeight(const std::optional<int64_t>& height) { m_
 const std::optional<int64_t>& PocketDb::ShortTxData::GetBlockNum() const { return m_blockNum; }
 
 void PocketDb::ShortTxData::SetBlockNum(const std::optional<int64_t>& blockNum) { m_blockNum = blockNum; }
+
+const std::optional<int64_t>& PocketDb::ShortTxData::GetTime() const { return m_time; }
+
+void PocketDb::ShortTxData::SetTime(const std::optional<int64_t>& time) { m_time = time; }
 
 const std::optional<PocketDb::ShortAccount>& PocketDb::ShortTxData::GetAccount() const { return m_account; }
 
