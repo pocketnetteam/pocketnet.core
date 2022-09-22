@@ -292,7 +292,7 @@ std::string PocketHelpers::ShortFormParser::ParseHash(sqlite3_stmt* stmt)
 
 std::optional<std::vector<PocketDb::ShortTxOutput>> PocketHelpers::ShortFormParser::ParseOutputs(sqlite3_stmt* stmt)
 {
-    auto [ok, str] = TryGetColumnString(stmt, m_startIndex + 10);
+    auto [ok, str] = TryGetColumnString(stmt, m_startIndex + 11);
     if (ok) {
         return _parseOutputs(str);
     }
@@ -317,7 +317,7 @@ std::optional<PocketDb::ShortTxData> PocketHelpers::ShortFormParser::ProcessTxDa
 {
     const auto i = index;
 
-    static const auto stmtOffset = 18;
+    static const auto stmtOffset = 19;
     index += stmtOffset;
 
     auto [ok1, hash] = TryGetColumnString(stmt, i);
@@ -330,14 +330,15 @@ std::optional<PocketDb::ShortTxData> PocketHelpers::ShortFormParser::ProcessTxDa
         if (auto [ok, val] = TryGetColumnInt64(stmt, i+4); ok) txData.SetBlockNum(val);
         if (auto [ok, val] = TryGetColumnInt64(stmt, i+5); ok) txData.SetTime(val);
         if (auto [ok, val] = TryGetColumnString(stmt, i+6); ok) txData.SetRootTxHash(val);
-        if (auto [ok, val] = TryGetColumnInt64(stmt, i+7); ok) txData.SetVal(val);
-        if (auto [ok, val] = TryGetColumnString(stmt, i+8); ok) txData.SetInputs(_parseOutputs(val));
-        if (auto [ok, val] = TryGetColumnString(stmt, i+9); ok) txData.SetOutputs(_parseOutputs(val));
-        if (auto [ok, val] = TryGetColumnString(stmt, i+10); ok) txData.SetDescription(val);
-        if (auto [ok, val] = TryGetColumnString(stmt, i+11); ok) txData.SetCommentParentId(val);
-        if (auto [ok, val] = TryGetColumnString(stmt, i+12); ok) txData.SetCommentAnswerId(val);
-        txData.SetAccount(ParseAccount(stmt, i+13));
-        if (auto [ok, val] = TryGetColumnString(stmt, i+17); ok) txData.SetMultipleAddresses(_processMultipleAddresses(val));
+        if (auto [ok, val] = TryGetColumnString(stmt, i+7); ok) txData.SetPostHash(val);
+        if (auto [ok, val] = TryGetColumnInt64(stmt, i+8); ok) txData.SetVal(val);
+        if (auto [ok, val] = TryGetColumnString(stmt, i+9); ok) txData.SetInputs(_parseOutputs(val));
+        if (auto [ok, val] = TryGetColumnString(stmt, i+10); ok) txData.SetOutputs(_parseOutputs(val));
+        if (auto [ok, val] = TryGetColumnString(stmt, i+11); ok) txData.SetDescription(val);
+        if (auto [ok, val] = TryGetColumnString(stmt, i+12); ok) txData.SetCommentParentId(val);
+        if (auto [ok, val] = TryGetColumnString(stmt, i+13); ok) txData.SetCommentAnswerId(val);
+        txData.SetAccount(ParseAccount(stmt, i+14));
+        if (auto [ok, val] = TryGetColumnString(stmt, i+18); ok) txData.SetMultipleAddresses(_processMultipleAddresses(val));
         return txData;
     }
 

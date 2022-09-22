@@ -53,6 +53,8 @@ namespace PocketDb
         const std::optional<std::string>& GetCommentAnswerId() const;
         void SetRootTxHash(const std::optional<std::string>& rootTxHash);
         const std::optional<std::string>& GetRootTxHash() const;
+        void SetPostHash(const std::optional<std::string>& postHash);
+        const std::optional<std::string>& GetPostHash() const;
         void SetMultipleAddresses(const std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>>& multipleAddresses);
         const std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>>& GetMultipleAddresses();
         void SetOutputs(const std::optional<std::vector<ShortTxOutput>>& outputs);
@@ -74,6 +76,7 @@ namespace PocketDb
         std::optional<std::vector<ShortTxOutput>> m_outputs;
         std::optional<std::string> m_description; // Short description of content, e.x. first lines of post's text
         std::optional<std::string> m_rootTxHash;
+        std::optional<std::string> m_postHash;
 
         // Special-case fields for comments 
         std::optional<std::string> m_commentParentId;
