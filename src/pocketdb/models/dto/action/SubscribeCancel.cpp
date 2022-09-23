@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::ACTION_SUBSCRIBE_CANCEL);
     }
 
-    shared_ptr <UniValue> SubscribeCancel::Serialize() const
+    optional <UniValue> SubscribeCancel::Serialize() const
     {
         auto result = Subscribe::Serialize();
         result->pushKV("unsubscribe", true);

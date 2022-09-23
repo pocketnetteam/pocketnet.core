@@ -125,17 +125,17 @@ namespace PocketConsensus
         }
 
         // Check empty pointer
-        bool IsEmpty(const shared_ptr<string>& ptr) const
+        bool IsEmpty(const optional<string>& ptr) const
         {
             return !ptr || (*ptr).empty();
         }
 
-        bool IsEmpty(const shared_ptr<int>& ptr) const
+        bool IsEmpty(const optional<int>& ptr) const
         {
             return !ptr;
         }
 
-        bool IsEmpty(const shared_ptr<int64_t>& ptr) const
+        bool IsEmpty(const optional<int64_t>& ptr) const
         {
             return !ptr;
         }

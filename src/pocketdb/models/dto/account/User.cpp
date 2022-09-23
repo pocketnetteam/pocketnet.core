@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::ACCOUNT_USER);
     }
 
-    shared_ptr <UniValue> User::Serialize() const
+    optional <UniValue> User::Serialize() const
     {
         auto result = Transaction::Serialize();
 
@@ -66,20 +66,20 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "b"); ok) m_payload->SetString7(val);
     }
 
-    shared_ptr <string> User::GetAddress() const { return m_string1; }
-    void User::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
+    const optional <string>& User::GetAddress() const { return m_string1; }
+    void User::SetAddress(const string& value) { m_string1 = value; }
 
-    shared_ptr <string> User::GetReferrerAddress() const { return m_string2; }
-    void User::SetReferrerAddress(const string& value) { m_string2 = make_shared<string>(value); }
+    const optional <string>& User::GetReferrerAddress() const { return m_string2; }
+    void User::SetReferrerAddress(const string& value) { m_string2 = value; }
 
     // Payload getters
-    shared_ptr <string> User::GetPayloadName() const { return GetPayload() ? GetPayload()->GetString2() : nullptr; }
-    shared_ptr <string> User::GetPayloadAvatar() const { return GetPayload() ? GetPayload()->GetString3() : nullptr; }
-    shared_ptr <string> User::GetPayloadUrl() const { return GetPayload() ? GetPayload()->GetString5() : nullptr; }
-    shared_ptr <string> User::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullptr; }
-    shared_ptr <string> User::GetPayloadAbout() const { return GetPayload() ? GetPayload()->GetString4() : nullptr; }
-    shared_ptr <string> User::GetPayloadDonations() const { return GetPayload() ? GetPayload()->GetString7() : nullptr; }
-    shared_ptr <string> User::GetPayloadPubkey() const { return GetPayload() ? GetPayload()->GetString6() : nullptr; }
+    optional <string> User::GetPayloadName() const { return GetPayload() ? GetPayload()->GetString2() : nullopt; }
+    optional <string> User::GetPayloadAvatar() const { return GetPayload() ? GetPayload()->GetString3() : nullopt; }
+    optional <string> User::GetPayloadUrl() const { return GetPayload() ? GetPayload()->GetString5() : nullopt; }
+    optional <string> User::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullopt; }
+    optional <string> User::GetPayloadAbout() const { return GetPayload() ? GetPayload()->GetString4() : nullopt; }
+    optional <string> User::GetPayloadDonations() const { return GetPayload() ? GetPayload()->GetString7() : nullopt; }
+    optional <string> User::GetPayloadPubkey() const { return GetPayload() ? GetPayload()->GetString6() : nullopt; }
 
     void User::DeserializePayload(const UniValue& src)
     {

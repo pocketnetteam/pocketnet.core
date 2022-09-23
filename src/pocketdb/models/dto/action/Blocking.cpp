@@ -18,7 +18,7 @@ namespace PocketTx
         SetType(TxType::ACTION_BLOCKING);
     }
 
-    shared_ptr <UniValue> Blocking::Serialize() const
+    optional <UniValue> Blocking::Serialize() const
     {
         auto result = Transaction::Serialize();
 
@@ -44,13 +44,13 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "addresses"); ok) SetAddressesTo(val);
     }
 
-    shared_ptr <string> Blocking::GetAddress() const { return m_string1; }
-    void Blocking::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
+    const optional <string>& Blocking::GetAddress() const { return m_string1; }
+    void Blocking::SetAddress(const string& value) { m_string1 = value; }
 
-    shared_ptr <string> Blocking::GetAddressTo() const { return m_string2; }
-    shared_ptr <string> Blocking::GetAddressesTo() const { return m_string3; }
-    void Blocking::SetAddressTo(const string& value) { m_string2 = make_shared<string>(value); }
-    void Blocking::SetAddressesTo(const string& value) { m_string3 = make_shared<string>(value); }
+    const optional <string>& Blocking::GetAddressTo() const { return m_string2; }
+    const optional <string>& Blocking::GetAddressesTo() const { return m_string3; }
+    void Blocking::SetAddressTo(const string& value) { m_string2 = value; }
+    void Blocking::SetAddressesTo(const string& value) { m_string3 = value; }
 
     void Blocking::DeserializePayload(const UniValue& src)
     {

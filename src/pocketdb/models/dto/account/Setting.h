@@ -15,16 +15,16 @@ namespace PocketTx
         AccountSetting();
         AccountSetting(const CTransactionRef& tx);
 
-        shared_ptr<UniValue> Serialize() const override;
+        optional<UniValue> Serialize() const override;
 
         void Deserialize(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;
         void DeserializePayload(const UniValue& src) override;
 
-        shared_ptr <string> GetAddress() const;
+        const optional <string>& GetAddress() const;
         void SetAddress(const string& value);
 
-        shared_ptr <string> GetPayloadData() const;
+        optional <string> GetPayloadData() const;
 
         string BuildHash() override;
 

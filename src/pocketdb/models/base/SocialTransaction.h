@@ -15,11 +15,11 @@ namespace PocketTx
         SocialTransaction();
         SocialTransaction(const CTransactionRef& tx);
 
-        shared_ptr<UniValue> Serialize() const override;
+        optional<UniValue> Serialize() const override;
         void Deserialize(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;
 
-        shared_ptr<string> GetAddress() const;
+        const optional<string>& GetAddress() const;
         void SetAddress(const string& value);
         
     }; // class SocialTransaction

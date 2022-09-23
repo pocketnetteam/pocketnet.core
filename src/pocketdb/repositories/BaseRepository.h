@@ -159,7 +159,9 @@ namespace PocketDb
         // BINDS
         // --------------------------------
 
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, shared_ptr<std::string> value)
+        // TODO (losty): "value" is being passed by rvalue reference because this will force it to not accept passing here temporarily created objects
+        // that will be destroyed right after this function call and thus result in corrupted database because of SQLITE_STATIC that forcec sqlite to not accuire memory itself.
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, optional<std::string>& value)
         {
             if (!value) return true;
 
@@ -178,7 +180,7 @@ namespace PocketDb
                     __func__, index, value));
         }
 
-        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int>& value)
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<int>& value)
         {
             if (!value) return true;
 
@@ -194,7 +196,7 @@ namespace PocketDb
                     __func__, index, value));
         }
 
-        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int64_t>& value)
+        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<int64_t>& value)
         {
             if (!value) return true;
 

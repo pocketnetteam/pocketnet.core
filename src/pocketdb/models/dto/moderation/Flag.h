@@ -17,13 +17,13 @@ namespace PocketTx
 
         string BuildHash() override;
 
-        shared_ptr<string> GetContentTxHash() const;
+        const optional<string>& GetContentTxHash() const;
         void SetContentTxHash(const string& value);
         
-        shared_ptr<string> GetContentAddressHash() const;
+        const optional<string>& GetContentAddressHash() const;
         void SetContentAddressHash(const string& value);
 
-        shared_ptr<int64_t> GetReason() const;
+        const optional<int64_t>& GetReason() const;
         void SetReason(int64_t value);
 
     }; // class ModerationFlag

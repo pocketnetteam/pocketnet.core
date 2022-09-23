@@ -28,14 +28,14 @@ namespace PocketTx
     }
 
     
-    shared_ptr<string> ModerationFlag::GetContentTxHash() const { return m_string2; }
-    void ModerationFlag::SetContentTxHash(const string& value) { m_string2 = make_shared<string>(value); }
+    const optional<string>& ModerationFlag::GetContentTxHash() const { return m_string2; }
+    void ModerationFlag::SetContentTxHash(const string& value) { m_string2 = value; }
     
-    shared_ptr<string> ModerationFlag::GetContentAddressHash() const { return m_string3; }
-    void ModerationFlag::SetContentAddressHash(const string& value) { m_string3 = make_shared<string>(value); }
+    const optional<string>& ModerationFlag::GetContentAddressHash() const { return m_string3; }
+    void ModerationFlag::SetContentAddressHash(const string& value) { m_string3 = value; }
     
-    shared_ptr<int64_t> ModerationFlag::GetReason() const { return m_int1; }
-    void ModerationFlag::SetReason(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+    const optional<int64_t>& ModerationFlag::GetReason() const { return m_int1; }
+    void ModerationFlag::SetReason(int64_t value) { m_int1 = value; }
 
 
 } // namespace PocketTx

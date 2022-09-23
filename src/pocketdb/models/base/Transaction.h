@@ -16,6 +16,8 @@
 #include "pocketdb/models/base/TransactionInput.h"
 #include "pocketdb/models/base/TransactionOutput.h"
 
+#include <optional>
+
 namespace PocketTx
 {
     using namespace std;
@@ -26,7 +28,7 @@ namespace PocketTx
         Transaction();
         Transaction(const CTransactionRef& tx);
 
-        virtual shared_ptr<UniValue> Serialize() const;
+        virtual optional<UniValue> Serialize() const;
 
         virtual void Deserialize(const UniValue& src);
         virtual void DeserializeRpc(const UniValue& src);
@@ -34,51 +36,52 @@ namespace PocketTx
 
         virtual string BuildHash() = 0;
 
-        shared_ptr<string> GetHash() const;
+        const optional<string>& GetHash() const;
         void SetHash(string value);
         bool operator==(const string& hash) const;
 
-        shared_ptr<TxType> GetType() const;
+        const optional<TxType>& GetType() const;
         void SetType(TxType value);
 
-        shared_ptr<int64_t> GetTime() const;
+        const optional<int64_t>& GetTime() const;
         void SetTime(int64_t value);
 
-        shared_ptr<int64_t> GetHeight() const;
+        const optional<int64_t>& GetHeight() const;
         void SetHeight(int64_t value);
 
-        shared_ptr<string> GetBlockHash() const;
+        const optional<string>& GetBlockHash() const;
         void SetBlockHash(string value);
 
-        shared_ptr<bool> GetLast() const;
+        const optional<bool>& GetLast() const;
         void SetLast(bool value);
 
-        shared_ptr<int64_t> GetId() const;
+        const optional<int64_t>& GetId() const;
         void SetId(int64_t value);
 
-        shared_ptr<string> GetString1() const;
+        const optional<string>& GetString1() const;
         void SetString1(string value);
 
-        shared_ptr<string> GetString2() const;
+        const optional<string>& GetString2() const;
         void SetString2(string value);
 
-        shared_ptr<string> GetString3() const;
+        const optional<string>& GetString3() const;
         void SetString3(string value);
 
-        shared_ptr<string> GetString4() const;
+        const optional<string>& GetString4() const;
         void SetString4(string value);
 
-        shared_ptr<string> GetString5() const;
+        const optional<string>& GetString5() const;
         void SetString5(string value);
 
-        shared_ptr<int64_t> GetInt1() const;
+        const optional<int64_t>& GetInt1() const;
         void SetInt1(int64_t value);
 
-        vector<shared_ptr<TransactionInput>>& Inputs();
-        vector<shared_ptr<TransactionOutput>>& Outputs();
-        const vector<shared_ptr<TransactionOutput>>& OutputsConst() const;
+        vector<TransactionInput>& Inputs();
+        vector<TransactionOutput>& Outputs();
+        const vector<TransactionOutput>& OutputsConst() const;
 
-        shared_ptr<Payload> GetPayload() const;
+        optional<Payload>& GetPayload();
+        const optional<Payload>& GetPayload() const;
         void SetPayload(Payload value);
         bool HasPayload() const;
         
@@ -86,22 +89,22 @@ namespace PocketTx
         void ClearPayload();
 
     protected:
-        shared_ptr<TxType> m_type = nullptr;
-        shared_ptr<string> m_hash = nullptr;
-        shared_ptr<int64_t> m_time = nullptr;
-        shared_ptr<int64_t> m_height = nullptr;
-        shared_ptr<string> m_blockhash = nullptr;
-        shared_ptr<bool> m_last = nullptr;
-        shared_ptr<int64_t> m_id = nullptr;
-        shared_ptr<string> m_string1 = nullptr;
-        shared_ptr<string> m_string2 = nullptr;
-        shared_ptr<string> m_string3 = nullptr;
-        shared_ptr<string> m_string4 = nullptr;
-        shared_ptr<string> m_string5 = nullptr;
-        shared_ptr<int64_t> m_int1 = nullptr;
-        shared_ptr<Payload> m_payload = nullptr;
-        vector<shared_ptr<TransactionInput>> m_inputs;
-        vector<shared_ptr<TransactionOutput>> m_outputs;
+        optional<TxType> m_type = nullopt;
+        optional<string> m_hash = nullopt;
+        optional<int64_t> m_time = nullopt;
+        optional<int64_t> m_height = nullopt;
+        optional<string> m_blockhash = nullopt;
+        optional<bool> m_last = nullopt;
+        optional<int64_t> m_id = nullopt;
+        optional<string> m_string1 = nullopt;
+        optional<string> m_string2 = nullopt;
+        optional<string> m_string3 = nullopt;
+        optional<string> m_string4 = nullopt;
+        optional<string> m_string5 = nullopt;
+        optional<int64_t> m_int1 = nullopt;
+        optional<Payload> m_payload = nullopt;
+        vector<TransactionInput> m_inputs;
+        vector<TransactionOutput> m_outputs;
 
         string GenerateHash(const string& data) const;
     };

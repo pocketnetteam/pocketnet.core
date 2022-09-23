@@ -16,19 +16,19 @@ namespace PocketTx
         Blocking();
         Blocking(const std::shared_ptr<const CTransaction>& tx);
 
-        shared_ptr<UniValue> Serialize() const override;
+        optional<UniValue> Serialize() const override;
 
         void Deserialize(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;
         void DeserializePayload(const UniValue& src) override;
 
-        shared_ptr<string> GetAddress() const;
+        const optional <string>& GetAddress() const;
         void SetAddress(const string& value);
 
-        shared_ptr<string> GetAddressTo() const;
+        const optional <string>& GetAddressTo() const;
         void SetAddressTo(const string& value);
 
-        shared_ptr<string> GetAddressesTo() const;
+        const optional <string>& GetAddressesTo() const;
         void SetAddressesTo(const string& value);
 
         string BuildHash() override;

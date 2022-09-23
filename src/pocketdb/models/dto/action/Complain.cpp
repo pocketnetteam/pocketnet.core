@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::ACTION_COMPLAIN);
     }
 
-    shared_ptr <UniValue> Complain::Serialize() const
+    optional <UniValue> Complain::Serialize() const
     {
         auto result = Transaction::Serialize();
 
@@ -42,14 +42,14 @@ namespace PocketTx
         if (auto[ok, val] = TryGetInt64(src, "reason"); ok) SetReason(val);
     }
 
-    shared_ptr <string> Complain::GetAddress() const { return m_string1; }
-    void Complain::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
+    const optional <string>& Complain::GetAddress() const { return m_string1; }
+    void Complain::SetAddress(const string& value) { m_string1 = value; }
 
-    shared_ptr <string> Complain::GetPostTxHash() const { return m_string2; }
-    void Complain::SetPostTxHash(const string& value) { m_string2 = make_shared<string>(value); }
+    const optional <string>& Complain::GetPostTxHash() const { return m_string2; }
+    void Complain::SetPostTxHash(const string& value) { m_string2 = value; }
 
-    shared_ptr <int64_t> Complain::GetReason() const { return m_int1; }
-    void Complain::SetReason(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+    const optional <int64_t>& Complain::GetReason() const { return m_int1; }
+    void Complain::SetReason(int64_t value) { m_int1 = value; }
 
     void Complain::DeserializePayload(const UniValue& src)
     {
