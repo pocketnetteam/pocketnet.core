@@ -40,6 +40,7 @@ UniValue PocketDb::ShortTxData::Serialize() const
     data.pushKV("txType", (int)m_txType);
     if (m_height) data.pushKV("height", m_height.value());
     if (m_blockNum) data.pushKV("blockNum", m_blockNum.value());
+    if (m_time) data.pushKV("time", *m_time);
     if (m_address) data.pushKV("address", m_address.value());
     if (m_account) data.pushKV("account", m_account->Serialize());
     if (m_val) data.pushKV("val", m_val.value());
@@ -47,6 +48,7 @@ UniValue PocketDb::ShortTxData::Serialize() const
     if (m_commentParentId) data.pushKV("commentParentId", m_commentParentId.value());
     if (m_commentAnswerId) data.pushKV("commentAnswerId", m_commentAnswerId.value());
     if (m_rootTxHash) data.pushKV("rootTxHash", *m_rootTxHash);
+    if (m_postHash) data.pushKV("postHash", *m_postHash);
     if (m_inputs) {
         UniValue inputs (UniValue::VARR);
         std::vector<UniValue> tmp;
@@ -93,6 +95,10 @@ const std::optional<int64_t>& PocketDb::ShortTxData::GetBlockNum() const { retur
 
 void PocketDb::ShortTxData::SetBlockNum(const std::optional<int64_t>& blockNum) { m_blockNum = blockNum; }
 
+const std::optional<int64_t>& PocketDb::ShortTxData::GetTime() const { return m_time; }
+
+void PocketDb::ShortTxData::SetTime(const std::optional<int64_t>& time) { m_time = time; }
+
 const std::optional<PocketDb::ShortAccount>& PocketDb::ShortTxData::GetAccount() const { return m_account; }
 
 void PocketDb::ShortTxData::SetAccount(const std::optional<ShortAccount>& account) { m_account = account; }
@@ -116,6 +122,10 @@ const std::optional<std::string>& PocketDb::ShortTxData::GetCommentAnswerId() co
 void PocketDb::ShortTxData::SetRootTxHash(const std::optional<std::string>& rootTxHash) { m_rootTxHash = rootTxHash; }
 
 const std::optional<std::string>& PocketDb::ShortTxData::GetRootTxHash() const { return m_rootTxHash; }
+
+void PocketDb::ShortTxData::SetPostHash(const std::optional<std::string>& postHash) { m_postHash = postHash; }
+
+const std::optional<std::string>& PocketDb::ShortTxData::GetPostHash() const { return m_postHash; }
 
 void PocketDb::ShortTxData::SetMultipleAddresses(const std::optional<std::vector<std::pair<std::string, std::optional<ShortAccount>>>>& multipleAddresses) { m_multipleAddresses = multipleAddresses; }
 

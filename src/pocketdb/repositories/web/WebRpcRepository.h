@@ -172,8 +172,6 @@ namespace PocketDb
          */
         UniValue GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
 
-        std::map<std::string, ShortAccount> GetShortAccountsForAddresses(const std::set<std::string>& addresses);
-
         /**
          * Get all activities (posts, comments, etc) created by address
          * 

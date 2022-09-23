@@ -15,6 +15,7 @@ UniValue PocketDb::ShortTxOutput::Serialize() const
     if (m_number) data.pushKV("number", *m_number);
     if (m_value) data.pushKV("value", *m_value);
     if (m_scriptPubKey) data.pushKV("scriptpubkey", *m_scriptPubKey);
+    // TODO (losty): account?
 
     return data;
 }
@@ -42,4 +43,8 @@ const std::optional<std::string>& PocketDb::ShortTxOutput::GetcriptPubKey() cons
 void PocketDb::ShortTxOutput::SetValue(const std::optional<int64_t>& value) { m_value = value; }
 
 const std::optional<int64_t>& PocketDb::ShortTxOutput::GetValue() const { return m_value; }
+
+void PocketDb::ShortTxOutput::SetAccount(const std::optional<ShortAccount>& account) { m_account = account; }
+
+const std::optional<PocketDb::ShortAccount>& PocketDb::ShortTxOutput::GetAccount() const { return m_account; }
 
