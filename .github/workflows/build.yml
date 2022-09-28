@@ -9,35 +9,7 @@ permissions:
 
 jobs:
 
-  Tests:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - name: Git fetch tags
-        run: git fetch --tags --force --prune --unshallow
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install make automake cmake curl g++-multilib libtool binutils-gold bsdmainutils pkg-config python3 patch
-      - name: Download dependencies archive
-        run: curl -O https://dev.pocketnet.app/21-x86_64-pc-linux-gnu.bz2
-      - name: Unpack dependencies archive
-        run: tar xjf 21-x86_64-pc-linux-gnu.bz2 -C depends/
-      - name: Prepare source code
-        run: ./autogen.sh
-      - name: Configure
-        run: CONFIG_SITE=$PWD/depends/x86_64-pc-linux-gnu/share/config.site ./configure --enable-tests --prefix=/usr/local
-      - name: Make
-        run: make -j4
-      - name: Launch tests
-        run: make check
-      - name: Launch benchmark
-        run: |
-          cd ./src/bench/
-          ./bench_pocketcoin
-
   BuildUnix:
-    needs: Tests
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -76,7 +48,6 @@ jobs:
 
 
 #  BuildMac:
-#    needs: Tests
 #    runs-on: ubuntu-20.04
 #    steps:
 #      - uses: actions/checkout@v3
@@ -114,7 +85,6 @@ jobs:
 #          path: ./out
 
   BuildWin:
-    needs: Tests
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
