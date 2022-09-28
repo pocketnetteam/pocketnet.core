@@ -2,6 +2,7 @@ name: Build Binaries
 
 on:
   workflow_dispatch:
+  push:
 
 permissions:
   contents: read
@@ -17,15 +18,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
+          sudo apt install make automake cmake curl g++-multilib libtool binutils-gold bsdmainutils pkg-config python3 patch
       - name: Download dependencies archive
-        run: curl -O https://dev.pocketnet.app/x86_64-pc-linux-gnu.bz2
+        run: curl -O https://dev.pocketnet.app/21-x86_64-pc-linux-gnu.bz2
       - name: Unpack dependencies archive
-        run: tar xjf x86_64-pc-linux-gnu.bz2
+        run: tar xjf 21-x86_64-pc-linux-gnu.bz2 -C depends/
       - name: Prepare source code
         run: ./autogen.sh
       - name: Configure
-        run: CONFIG_SITE=$PWD/x86_64-pc-linux-gnu/share/config.site ./configure --enable-tests --prefix=/usr/local
+        run: CONFIG_SITE=$PWD/depends/x86_64-pc-linux-gnu/share/config.site ./configure --enable-tests --prefix=/usr/local
       - name: Make
         run: make -j4
       - name: Launch tests
@@ -49,16 +50,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
-          sudo apt install libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler
+          sudo apt install make automake cmake curl g++-multilib libtool binutils-gold bsdmainutils pkg-config python3 patch
       - name: Download dependencies archive
-        run: curl -O https://dev.pocketnet.app/x86_64-pc-linux-gnu.bz2
+        run: curl -O https://dev.pocketnet.app/21-x86_64-pc-linux-gnu.bz2
       - name: Unpack dependencies archive
-        run: tar xjf x86_64-pc-linux-gnu.bz2
+        run: tar xjf 21-x86_64-pc-linux-gnu.bz2 -C depends/
       - name: Prepare source code
         run: ./autogen.sh
       - name: Configure
-        run: CONFIG_SITE=$PWD/x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
+        run: CONFIG_SITE=$PWD/depends/x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
       - name: Make
         run: |
           make -j4
@@ -73,43 +73,45 @@ jobs:
         with:
           name: unix
           path: ./out
-          
-  BuildMac:
-    needs: Tests
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Git fetch tags
-        run: git fetch --tags --force --prune --unshallow
-      - name: Retrieve version
-        run: |
-          echo "VERSION=$(./share/genversion.sh)" >> $GITHUB_ENV
-          echo ${{ env.VERSION }}
-      - name: Install dependencies
-        run: |
-          # brew install automake berkeley-db@4 libtool boost miniupnpc openssl pkg-config protobuf python qt libevent qrencode librsvg
-      - name: Download dependencies archive
-        run: curl -O https://dev.pocketnet.app/x86_64-apple-darwin14.bz2
-      - name: Unpack dependencies archive
-        run: tar xjf x86_64-apple-darwin14.bz2
-      - name: Prepare source code
-        run: ./autogen.sh
-      - name: Configure
-        run: CONFIG_SITE=$PWD/x86_64-apple-darwin14/share/config.site ./configure --prefix=/usr/local
-      - name: Make
-        run: |
-          make -j4
-          make deploy
-          mkdir ./out
-          cp ./pocketnetcore_*_linux_x64_setup.deb ./out/pocketnetcore_${{ env.VERSION }}_linux_x64_setup.deb
-          cp ./pocketnetcore_*_linux_x64.tar.gz ./out/pocketnetcore_${{ env.VERSION }}_linux_x64.tar.gz
-          cp ./release/usr/local/bin/pocketcoind ./out/pocketnetcore_${{ env.VERSION }}_linux_x64_daemon.bin
-      - run: ls -lhR ./out
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: mac
-          path: ./out
+
+
+#  BuildMac:
+#    needs: Tests
+#    runs-on: ubuntu-20.04
+#    steps:
+#      - uses: actions/checkout@v3
+#      - name: Git fetch tags
+#        run: git fetch --tags --force --prune --unshallow
+#      - name: Retrieve version
+#        run: |
+#          echo "VERSION=$(./share/genversion.sh)" >> $GITHUB_ENV
+#          echo ${{ env.VERSION }}
+#      - name: Install dependencies
+#        run: |
+#          sudo apt update
+#          sudo apt install curl librsvg2-bin libtiff-tools bsdmainutils cmake imagemagick libcap-dev libz-dev libbz2-dev python3-setuptools libtinfo5
+#      - name: Download dependencies archive
+#        run: curl -O https://dev.pocketnet.app/21-x86_64-apple-darwin14.bz2
+#      - name: Unpack dependencies archive
+#        run: tar xjf 21-x86_64-apple-darwin14.bz2 -C depends/
+#      - name: Prepare source code
+#        run: ./autogen.sh
+#      - name: Configure
+#        run: CONFIG_SITE=$PWD/depends/x86_64-apple-darwin14/share/config.site ./configure --prefix=/usr/local
+#      - name: Make
+#        run: |
+#          make -j4
+#          make deploy
+#          mkdir ./out
+#          cp ./pocketnetcore_*_linux_x64_setup.deb ./out/pocketnetcore_${{ env.VERSION }}_linux_x64_setup.deb
+#          cp ./pocketnetcore_*_linux_x64.tar.gz ./out/pocketnetcore_${{ env.VERSION }}_linux_x64.tar.gz
+#          cp ./release/usr/local/bin/pocketcoind ./out/pocketnetcore_${{ env.VERSION }}_linux_x64_daemon.bin
+#      - run: ls -lhR ./out
+#      - name: Upload artifact
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: mac
+#          path: ./out
 
   BuildWin:
     needs: Tests
@@ -128,13 +130,13 @@ jobs:
           sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils g++-mingw-w64-x86-64 nsis
           sudo update-alternatives --install /usr/bin/x86_64-w64-mingw32-g++ x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix 90
       - name: Download dependencies archive
-        run: curl -O https://dev.pocketnet.app/x86_64-w64-mingw32.bz2
+        run: curl -O https://dev.pocketnet.app/21-x86_64-w64-mingw32.bz2
       - name: Unpack dependencies archive
-        run: tar xjf x86_64-w64-mingw32.bz2
+        run: tar xjf 21-x86_64-w64-mingw32.bz2 -C depends/
       - name: Prepare source code
         run: ./autogen.sh
       - name: Configure
-        run: CONFIG_SITE=$PWD/x86_64-w64-mingw32/share/config.site ./configure CPPFLAGS='-D_MSC_VER_CROSS' --prefix=/
+        run: CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure CPPFLAGS='-D_MSC_VER_CROSS' --prefix=/
       - name: Make
         run: |
           make -j4
