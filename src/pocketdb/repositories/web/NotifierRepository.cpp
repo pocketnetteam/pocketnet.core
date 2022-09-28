@@ -235,44 +235,45 @@ namespace PocketDb
         return result;
     }
 
-    UniValue NotifierRepository::GetUserReferrerAddress(const string &userHash)
-    {
-        UniValue result(UniValue::VOBJ);
-
-        string sql = R"sql(
-            select
-                r.String2 as referrerAddress,
-                p.String2 as referralName,
-                p.String3 as referralAvatar
-            from Transactions r
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = r.String1
-            join Payload p on p.TxHash = u.Hash
-            where r.Type in (100)
-              and r.String2 is not null
-              and r.Hash = ?
-              and u.Type in (100)
-              and u.Last=1
-              and u.Height is not null
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, 1, userHash);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("referrerAddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("referralName", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("referralAvatar", value);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
+    // Not used. Not planned yet. Invalid request.
+//    UniValue NotifierRepository::GetUserReferrerAddress(const string &userHash)
+//    {
+//        UniValue result(UniValue::VOBJ);
+//
+//        string sql = R"sql(
+//            select
+//                r.String2 as referrerAddress,
+//                p.String2 as referralName,
+//                p.String3 as referralAvatar
+//            from Transactions r
+//            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = r.String1
+//            join Payload p on p.TxHash = u.Hash
+//            where r.Type in (100)
+//              and r.String2 is not null
+//              and r.Hash = ?
+//              and u.Type in (100)
+//              and u.Last=1
+//              and u.Height is not null
+//        )sql";
+//
+//        TryTransactionStep(__func__, [&]()
+//        {
+//            auto stmt = SetupSqlStatement(sql);
+//
+//            TryBindStatementText(stmt, 1, userHash);
+//
+//            if (sqlite3_step(*stmt) == SQLITE_ROW)
+//            {
+//                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("referrerAddress", value);
+//                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("referralName", value);
+//                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("referralAvatar", value);
+//            }
+//
+//            FinalizeSqlStatement(*stmt);
+//        });
+//
+//        return result;
+//    }
 
     UniValue NotifierRepository::GetPostInfoAddressByScore(const string &postScoreHash)
     {
