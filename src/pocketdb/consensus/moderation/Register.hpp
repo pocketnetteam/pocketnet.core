@@ -47,7 +47,7 @@ namespace PocketConsensus
             if (*ptx->GetAddress() != *ptx->GetModeratorAddress())
                 return {false, SocialConsensusResult_Failed};
 
-            return Success;
+            return Base::Success;
         }
 
     protected:
