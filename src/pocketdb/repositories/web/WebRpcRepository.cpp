@@ -4684,6 +4684,7 @@ namespace PocketDb
             const int64_t& blockNumMax;
         } queryParams{address, heightMax, heightMin, blockNumMax};
 
+        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
         {
             ShortTxType::Answer, { R"sql(
             -- My answers to other's comments
