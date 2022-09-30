@@ -159,9 +159,19 @@ namespace PocketDb
         // BINDS
         // --------------------------------
 
-        // TODO (losty): "value" is being passed by rvalue reference because this will force it to not accept passing here temporarily created objects
-        // that will be destroyed right after this function call and thus result in corrupted database because of SQLITE_STATIC that forcec sqlite to not accuire memory itself.
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, optional<std::string>& value)
+        // Forces user to handle memory more correct because of SQLITE_STATIC requires it
+        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string&& value) = delete;
+        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string& value)
+        {
+            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
+            if (!CheckValidResult(stmt, res))
+                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%s\n",
+                    __func__, index, value));
+        }
+
+        // Forces user to handle memory more correct because of SQLITE_STATIC requires it
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<std::string>&& value) = delete;
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<std::string>& value)
         {
             if (!value) return true;
 
@@ -170,14 +180,6 @@ namespace PocketDb
                 return false;
 
             return true;
-        }
-
-        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string& value)
-        {
-            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
-            if (!CheckValidResult(stmt, res))
-                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%s\n",
-                    __func__, index, value));
         }
 
         bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<int>& value)
