@@ -136,6 +136,7 @@ POCKETDB_H = \
     pocketdb/web/PocketRpc.h \
     pocketdb/web/WebRpcUtils.h \
     \
+    pocketdb/repositories/RowAccessor.hpp \
     pocketdb/repositories/BaseRepository.h \
     pocketdb/repositories/TransactionRepository.h \
     pocketdb/repositories/ChainRepository.h \
