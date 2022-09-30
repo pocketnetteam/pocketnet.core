@@ -6,22 +6,22 @@
 #include "pocketdb/models/shortform/ShortAccount.h"
 
 
-PocketDb::ShortAccount::ShortAccount(std::string name, std::string avatar, std::string badge, int64_t reputation)
+PocketDb::ShortAccount::ShortAccount(std::string name, std::string avatar, int64_t reputation, std::optional<std::string> lang)
     : m_name(std::move(name)),
       m_avatar(std::move(avatar)),
-      m_badge(std::move(badge)),
+      m_lang(std::move(lang)),
       m_reputation(reputation)
 {}
 
 UniValue PocketDb::ShortAccount::Serialize() const
 {
     UniValue data(UniValue::VOBJ);
-
-    data.pushKV("name", m_name);
-    data.pushKV("avatar", m_avatar);
-    data.pushKV("badge", m_badge);
-    data.pushKV("reputation", m_reputation);
-    if (m_lang) data.pushKV("lang", *m_lang);
+    data.reserveKVSize(5);
+    data.pushKV("n", m_name, false);
+    data.pushKV("a", m_avatar, false);
+    data.pushKV("b", m_badge, false);
+    data.pushKV("r", m_reputation, false);
+    if (m_lang) data.pushKV("l", *m_lang, false);
 
     return data;
 }

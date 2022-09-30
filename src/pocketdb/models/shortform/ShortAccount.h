@@ -15,7 +15,7 @@ namespace PocketDb
     class ShortAccount
     {
     public:
-        ShortAccount(std::string name, std::string avatar, std::string badge, int64_t reputation);
+        ShortAccount(std::string name, std::string avatar, int64_t reputation, std::optional<std::string> lang = std::nullopt);
         ShortAccount() = default;
         UniValue Serialize() const;
 

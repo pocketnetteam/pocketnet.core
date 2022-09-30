@@ -5,9 +5,15 @@
 #ifndef POCKETDB_SHORTFORMHELPER_H
 #define POCKETDB_SHORTFORMHELPER_H
 
-#include "pocketdb/models/shortform/ShortTxType.h"
+#include "pocketdb/models/shortform/ShortForm.h"
+#include "pocketdb/repositories/BaseRepository.h"
+
+#include "univalue.h"
+#include "sqlite3.h"
 
 #include <string>
+#include <map>
+#include <optional>
 #include <functional>
 
 namespace PocketHelpers
@@ -61,6 +67,92 @@ namespace PocketHelpers
          * @param 3 - query parameters to be binded to stmt
          */
         std::function<void (STMT, int&, QueryParams const&)> binding;
+    };
+
+    struct NotifierEntry
+    {
+        std::optional<PocketDb::ShortAccount> account;
+        std::map<PocketDb::ShortTxType, std::vector<UniValue>> notifications;
+    };
+
+    class NotificationsResult
+    {
+    public:
+        bool HasData(const int64_t& blocknum);
+
+        void InsertData(const PocketDb::ShortForm& shortForm);
+
+        void InsertNotifiers(const int64_t& blocknum, PocketDb::ShortTxType contextType, std::map<std::string, std::optional<PocketDb::ShortAccount>> addresses);
+
+        UniValue Serialize() const;
+
+    private:
+        std::map<std::string /* address */, NotifierEntry> m_notifiers;
+        std::map<int64_t /* blocknum */, int64_t /* corresponding m_data's array index */> m_txArrIndicies;
+        std::vector<UniValue> m_data;
+    };
+
+    class ShortFormParser : public PocketDb::RowAccessor
+    {
+    public:
+        void Reset(const int& startIndex);
+
+        PocketDb::ShortForm ParseFull(sqlite3_stmt* stmt);
+
+        int64_t ParseBlockNum(sqlite3_stmt* stmt);
+
+        PocketDb::ShortTxType ParseType(sqlite3_stmt* stmt);
+
+        std::string ParseHash(sqlite3_stmt* stmt);
+
+        std::optional<std::vector<PocketDb::ShortTxOutput>> ParseOutputs(sqlite3_stmt* stmt);
+
+        std::optional<PocketDb::ShortAccount> ParseAccount(sqlite3_stmt* stmt, const int& index);
+
+    protected:
+        std::optional<PocketDb::ShortTxData> ProcessTxData(sqlite3_stmt* stmt, int& index);
+
+    private:
+        int m_startIndex = 0;
+    };
+
+    class EventsReconstructor : public PocketDb::RowAccessor
+    {
+    public:
+        EventsReconstructor();
+
+        void FeedRow(sqlite3_stmt* stmt);
+
+        std::vector<PocketDb::ShortForm> GetResult() const;
+    private:
+        ShortFormParser m_parser;
+        std::vector<PocketDb::ShortForm> m_result;
+    };
+
+    class NotificationsReconstructor : public PocketDb::RowAccessor
+    {
+    public:
+        NotificationsReconstructor();
+
+        void FeedRow(sqlite3_stmt* stmt);
+
+        NotificationsResult GetResult() const;
+    private:
+        ShortFormParser m_parser;
+        NotificationsResult m_notifications;
+    };
+
+    class NotificationSummaryReconstructor : public PocketDb::RowAccessor
+    {
+    public:
+        void FeedRow(sqlite3_stmt* stmt);
+
+        auto GetResult() const
+        {
+            return m_result;
+        }
+    private:
+        std::map<std::string, std::map<PocketDb::ShortTxType, int>> m_result;  
     };
 }
 

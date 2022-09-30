@@ -2,8 +2,6 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "pocketdb/models/shortform/ShortForm.h"
-
 #include "pocketdb/helpers/ShortFormHelper.h"
 
 PocketDb::ShortForm::ShortForm(PocketDb::ShortTxType type, ShortTxData txData, std::optional<ShortTxData> relatedContent)
@@ -12,10 +10,10 @@ PocketDb::ShortForm::ShortForm(PocketDb::ShortTxType type, ShortTxData txData, s
       m_relatedContent(std::move(relatedContent))
 {}
 
-UniValue PocketDb::ShortForm::Serialize() const
+UniValue PocketDb::ShortForm::Serialize(bool includeType) const
 {
     auto data = m_txData.Serialize();
-    data.pushKV("type", PocketHelpers::ShortTxTypeConvertor::toString(m_type));
+    if (includeType && m_type != ShortTxType::NotSet) data.pushKV("type", PocketHelpers::ShortTxTypeConvertor::toString(m_type));
     if (m_relatedContent) data.pushKV("relatedContent", m_relatedContent->Serialize());
 
     return data;
