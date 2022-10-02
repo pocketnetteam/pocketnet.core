@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string>
 #include <sqlite3.h>
+#include <tuple>
 
 namespace PocketDb
 {
