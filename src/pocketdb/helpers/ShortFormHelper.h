@@ -6,7 +6,7 @@
 #define POCKETDB_SHORTFORMHELPER_H
 
 #include "pocketdb/models/shortform/ShortForm.h"
-#include "pocketdb/repositories/BaseRepository.h"
+#include "pocketdb/repositories/RowAccessor.hpp"
 
 #include "univalue.h"
 #include "sqlite3.h"
@@ -18,11 +18,13 @@
 
 namespace PocketHelpers
 {
+    using namespace PocketDb;
+
     class ShortTxTypeConvertor
     {
     public:
-        static std::string toString(PocketDb::ShortTxType type);
-        static PocketDb::ShortTxType strToType(const std::string& typeStr);
+        static std::string toString(ShortTxType type);
+        static ShortTxType strToType(const std::string& typeStr);
     };
 
     class ShortTxFilterValidator
@@ -31,25 +33,25 @@ namespace PocketHelpers
         class Notifications
         {
         public:
-            static bool IsFilterAllowed(PocketDb::ShortTxType type);
+            static bool IsFilterAllowed(ShortTxType type);
         };
 
         class NotificationsSummary
         {
         public:
-            static bool IsFilterAllowed(PocketDb::ShortTxType type);
+            static bool IsFilterAllowed(ShortTxType type);
         };
 
         class Activities
         {
         public:
-            static bool IsFilterAllowed(PocketDb::ShortTxType type);
+            static bool IsFilterAllowed(ShortTxType type);
         };
         
         class Events
         {
         public:
-            static bool IsFilterAllowed(PocketDb::ShortTxType type);
+            static bool IsFilterAllowed(ShortTxType type);
         };
     };
 
@@ -71,8 +73,8 @@ namespace PocketHelpers
 
     struct NotifierEntry
     {
-        std::optional<PocketDb::ShortAccount> account;
-        std::map<PocketDb::ShortTxType, std::vector<UniValue>> notifications;
+        std::optional<ShortAccount> account;
+        std::map<ShortTxType, std::vector<UniValue>> notifications;
     };
 
     class NotificationsResult
@@ -80,9 +82,9 @@ namespace PocketHelpers
     public:
         bool HasData(const int64_t& blocknum);
 
-        void InsertData(const PocketDb::ShortForm& shortForm);
+        void InsertData(const ShortForm& shortForm);
 
-        void InsertNotifiers(const int64_t& blocknum, PocketDb::ShortTxType contextType, std::map<std::string, std::optional<PocketDb::ShortAccount>> addresses);
+        void InsertNotifiers(const int64_t& blocknum, ShortTxType contextType, std::map<std::string, std::optional<ShortAccount>> addresses);
 
         UniValue Serialize() const;
 
@@ -92,44 +94,44 @@ namespace PocketHelpers
         std::vector<UniValue> m_data;
     };
 
-    class ShortFormParser : public PocketDb::RowAccessor
+    class ShortFormParser : public RowAccessor
     {
     public:
         void Reset(const int& startIndex);
 
-        PocketDb::ShortForm ParseFull(sqlite3_stmt* stmt);
+        ShortForm ParseFull(sqlite3_stmt* stmt);
 
         int64_t ParseBlockNum(sqlite3_stmt* stmt);
 
-        PocketDb::ShortTxType ParseType(sqlite3_stmt* stmt);
+        ShortTxType ParseType(sqlite3_stmt* stmt);
 
         std::string ParseHash(sqlite3_stmt* stmt);
 
-        std::optional<std::vector<PocketDb::ShortTxOutput>> ParseOutputs(sqlite3_stmt* stmt);
+        std::optional<std::vector<ShortTxOutput>> ParseOutputs(sqlite3_stmt* stmt);
 
-        std::optional<PocketDb::ShortAccount> ParseAccount(sqlite3_stmt* stmt, const int& index);
+        std::optional<ShortAccount> ParseAccount(sqlite3_stmt* stmt, const int& index);
 
     protected:
-        std::optional<PocketDb::ShortTxData> ProcessTxData(sqlite3_stmt* stmt, int& index);
+        std::optional<ShortTxData> ProcessTxData(sqlite3_stmt* stmt, int& index);
 
     private:
         int m_startIndex = 0;
     };
 
-    class EventsReconstructor : public PocketDb::RowAccessor
+    class EventsReconstructor : public RowAccessor
     {
     public:
         EventsReconstructor();
 
         void FeedRow(sqlite3_stmt* stmt);
 
-        std::vector<PocketDb::ShortForm> GetResult() const;
+        std::vector<ShortForm> GetResult() const;
     private:
         ShortFormParser m_parser;
-        std::vector<PocketDb::ShortForm> m_result;
+        std::vector<ShortForm> m_result;
     };
 
-    class NotificationsReconstructor : public PocketDb::RowAccessor
+    class NotificationsReconstructor : public RowAccessor
     {
     public:
         NotificationsReconstructor();
@@ -142,7 +144,7 @@ namespace PocketHelpers
         NotificationsResult m_notifications;
     };
 
-    class NotificationSummaryReconstructor : public PocketDb::RowAccessor
+    class NotificationSummaryReconstructor : public RowAccessor
     {
     public:
         void FeedRow(sqlite3_stmt* stmt);
@@ -152,7 +154,7 @@ namespace PocketHelpers
             return m_result;
         }
     private:
-        std::map<std::string, std::map<PocketDb::ShortTxType, int>> m_result;  
+        std::map<std::string, std::map<ShortTxType, int>> m_result;  
     };
 }
 
