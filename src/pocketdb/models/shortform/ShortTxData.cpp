@@ -4,8 +4,6 @@
 
 #include "pocketdb/models/shortform/ShortTxData.h"
 
-#include "pocketdb/helpers/ShortFormHelper.h"
-
 
 PocketDb::ShortTxData::ShortTxData(std::string hash, PocketTx::TxType txType, std::optional<std::string> address, std::optional<int64_t> height,
                                     std::optional<int64_t> blockNum, std::optional<ShortAccount> account, std::optional<int> val,
