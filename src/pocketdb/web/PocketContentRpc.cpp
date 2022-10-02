@@ -6,7 +6,7 @@
 #include "pocketdb/web/PocketContentRpc.h"
 #include "rpc/util.h"
 #include "validation.h"
-#include "pocketdb/helpers/ShortFormHelper.h"
+#include "pocketdb/helpers/ShortFormModelsHelper.h"
 
 namespace PocketWeb::PocketWebRpc
 {
