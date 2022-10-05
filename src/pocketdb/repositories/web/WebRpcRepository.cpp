@@ -5869,6 +5869,7 @@ namespace PocketDb
                     null,
                     c.Height, -- TODO (losty): original?
                     c.BlockNum,
+                    null,
                     c.String2,
                     c.String3,
                     null,
