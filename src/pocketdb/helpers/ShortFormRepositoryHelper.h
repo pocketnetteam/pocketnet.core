@@ -2,14 +2,11 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETDB_SHORTFORMHELPER_H
-#define POCKETDB_SHORTFORMHELPER_H
+#ifndef POCKETDB_SHORTFORMREPOSITORYSHELPER_H
+#define POCKETDB_SHORTFORMREPOSITORYSHELPER_H
 
-#include "pocketdb/models/shortform/ShortForm.h"
 #include "pocketdb/repositories/RowAccessor.hpp"
-
-#include "univalue.h"
-#include "sqlite3.h"
+#include "pocketdb/helpers/ShortFormModelsHelper.h"
 
 #include <string>
 #include <map>
@@ -19,43 +16,7 @@
 namespace PocketHelpers
 {
     using namespace PocketDb;
-
-    class ShortTxTypeConvertor
-    {
-    public:
-        static std::string toString(ShortTxType type);
-        static ShortTxType strToType(const std::string& typeStr);
-    };
-
-    class ShortTxFilterValidator
-    {
-    public:
-        class Notifications
-        {
-        public:
-            static bool IsFilterAllowed(ShortTxType type);
-        };
-
-        class NotificationsSummary
-        {
-        public:
-            static bool IsFilterAllowed(ShortTxType type);
-        };
-
-        class Activities
-        {
-        public:
-            static bool IsFilterAllowed(ShortTxType type);
-        };
-        
-        class Events
-        {
-        public:
-            static bool IsFilterAllowed(ShortTxType type);
-        };
-    };
-
-    // STMT here is used to avoid including here any of sqlite3 headers, however
+        // STMT here is used to avoid including here any of sqlite3 headers, however
     // it is expected that STMT is a correct sqlite3_stmt ptr.
     // QueryPrarams can differ between queries.
     template <class STMT, class QueryParams>
@@ -158,4 +119,4 @@ namespace PocketHelpers
     };
 }
 
-#endif // POCKETDB_SHORTFORMHELPER_H
+#endif // POCKETDB_SHORTFORMREPOSITORYSHELPER_H

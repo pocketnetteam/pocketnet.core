@@ -4,7 +4,7 @@
 
 #include "pocketdb/repositories/web/WebRpcRepository.h"
 
-#include "pocketdb/helpers/ShortFormHelper.h"
+#include "pocketdb/helpers/ShortFormRepositoryHelper.h"
 
 #include <functional>
 
