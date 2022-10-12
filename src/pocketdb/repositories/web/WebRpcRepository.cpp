@@ -5541,6 +5541,7 @@ namespace PocketDb
                 where t.Type = 100
                     and t.String2 is not null
                     and t.Height = ?
+                    -- TODO (losty): this is not valid if we are asking for notifications from past. See how it is done in events
                     and (select count(*) from Transactions tt indexed by Transactions_Id_Last where tt.Id = t.Id) = 1 -- Only original
         )sql",
             heightBinder
