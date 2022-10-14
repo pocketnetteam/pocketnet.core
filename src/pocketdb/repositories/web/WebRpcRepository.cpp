@@ -6407,10 +6407,26 @@ namespace PocketDb
                     t.BlockNum as BlockNum,
                     null,
                     null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    p.String1,
                     p.String2,
                     p.String3,
-                    p.String4,
                     ifnull(r.Value,0),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -6425,12 +6441,17 @@ namespace PocketDb
 
                 from Transactions t indexed by Transactions_Type_Last_String2_Height
 
+                left join Transactions tLast indexed by Transactions_Type_Last_String1_Height_Id
+                    on tLast.Type = 100
+                    and tLast.Last = 1
+                    and tLast.String1 = t.String1
+
                 left join Payload p
-                    on p.TxHash = t.Hash
+                    on p.TxHash = tLast.Hash
 
                 left join Ratings r indexed by Ratings_Type_Id_Last_Height
                     on r.Type = 0
-                    and r.Id = t.Id
+                    and r.Id = tLast.Id
                     and r.Last = 1
 
                 where t.Type = 100
