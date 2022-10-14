@@ -6478,45 +6478,65 @@ namespace PocketDb
                     a.Hash,
                     a.Type,
                     a.String1,
-                    orig.Height as Height,
+                    a.Height as Height,
                     a.BlockNum as BlockNum,
                     null,
+                    a.String2,
+                    a.String3,
+                    null,
+                    null,
+                    null,
                     pa.String1,
+                    a.String4,
+                    a.String5,
                     paa.String2,
                     paa.String3,
                     paa.String4,
                     ifnull(ra.Value,0),
+                    null,
                     c.Hash,
                     c.Type,
                     null,
                     c.Height,
                     c.BlockNum,
                     null,
+                    c.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     pc.String1,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
                     null
 
-                from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
+                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- My comments
 
                 left join Payload pc
                     on pc.TxHash = c.Hash
 
                 join Transactions a indexed by Transactions_Type_Last_String5_Height -- Other answers
-                    on a.Type in (204, 205) and a.Last = 1
+                    on a.Type in (204, 205) and a.Last in (0,1)
                     and a.Height > ?
                     and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
                     and a.String5 = c.String2
                     and a.String1 != c.String1
+                    and a.Hash = a.String2
 
-                join Transactions orig indexed by Transactions_Hash_Height
-                    on orig.Hash = a.String2
+                left join Transactions aLast indexed by Transactions_Type_Last_String2_Height
+                    on aLast.Type in (204,205)
+                    and aLast.Last = 1
+                    and aLast.String2 = a.Hash
+                    and aLast.Height > 0
 
                 left join Payload pa
-                    on pa.TxHash = a.Hash
+                    on pa.TxHash = aLast.Hash
 
-                left join Transactions aa
+                left join Transactions aa indexed by Transactions_Type_Last_String1_Height_Id
                     on aa.Type = 100
                     and aa.Last = 1
                     and aa.String1 = a.String1
@@ -6531,9 +6551,9 @@ namespace PocketDb
                     and ra.Last = 1
 
                 where c.Type in (204, 205)
-                and c.Last = 1
-                and c.String1 = ?
-                and c.Height > 0
+                    and c.Last = 1
+                    and c.String1 = ?
+                    and c.Height > 0
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
                 TryBindStatementInt64(stmt, i++, queryParams.heightMin);
