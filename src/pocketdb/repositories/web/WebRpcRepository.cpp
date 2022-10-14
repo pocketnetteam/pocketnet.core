@@ -6574,17 +6574,52 @@ namespace PocketDb
                     c.String1,
                     c.Height as Height,
                     c.BlockNum as BlockNum,
-                    oc.Value,
+                    null,
+                    c.String2,
+                    c.String3,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = c.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs o
+                        where o.TxHash = c.Hash
+                            and o.TxHeight = c.Height
+                        order by o.Number
+                    ),
                     pc.String1,
+                    null,
+                    null,
+                    pac.String1,
                     pac.String2,
                     pac.String3,
-                    pac.String4,
                     ifnull(rac.Value,0),
+                    null,
                     p.Hash,
                     p.Type,
                     null,
                     p.Height,
                     p.BlockNum,
+                    null,
+                    p.String2,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pp.String2,
+                    null,
                     null,
                     null,
                     null,
@@ -6592,26 +6627,28 @@ namespace PocketDb
                     null,
                     null
 
-                from Transactions p indexed by Transactions_String1_Last_Height
+                from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
 
                 join Transactions c indexed by Transactions_Type_Last_String3_Height
-                    on c.Type in (204,205)
-                    and c.Last = 1
+                    on c.Type = 204
+                    and c.Last in (0,1)
                     and c.String3 = p.String2
                     and c.String1 != p.String1
-                    and c.Hash = c.String2
                     and c.String4 is null
                     and c.String5 is null
                     and c.Height > ?
                     and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
 
-                left join TxOutputs oc indexed by TxOutputs_TxHash_AddressHash_Value
-                    on oc.TxHash = c.Hash and oc.AddressHash = p.String1 and oc.AddressHash != c.String1 
+                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                    on cLast.Type in (204,205)
+                    and cLast.Last = 1
+                    and cLast.String2 = c.Hash
+                    and cLast.Height > 0
 
                 left join Payload pc
-                    on pC.TxHash = c.Hash
+                    on pC.TxHash = cLast.Hash
 
-                join Transactions ac -- accounts of commentators
+                join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                     on ac.String1 = c.String1
                     and ac.Last = 1
                     and ac.Type = 100
@@ -6624,6 +6661,9 @@ namespace PocketDb
                     on rac.Type = 0
                     and rac.Id = ac.Id
                     and rac.Last = 1
+
+                left join Payload pp
+                    on pp.TxHash = p.Hash
 
                 where p.Type in (200,201,202)
                     and p.Last = 1
