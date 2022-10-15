@@ -4,12 +4,12 @@
 
  <h1 align="center">Pocketnet Core</h1>
  
-![GitHub](https://img.shields.io/github/license/pocketnetteam/pocketnet.api)
-![contributors](https://img.shields.io/github/contributors/pocketnetteam/pocketnet.core)
-![last_commit](https://img.shields.io/github/last-commit/pocketnetteam/pocketnet.core)
-![release_date](https://img.shields.io/github/release-date/pocketnetteam/pocketnet.core)
-![version](https://img.shields.io/github/v/release/pocketnetteam/pocketnet.core)
-![download_latest](https://img.shields.io/github/downloads/pocketnetteam/pocketnet.core/latest/total)
+![apache](https://img.shields.io/github/license/pocketnetteam/pocketnet.core?label=License&logo=apache)
+![contributors](https://img.shields.io/github/contributors/pocketnetteam/pocketnet.core?label=Contributors&logo=bastyon)
+![last_commit](https://img.shields.io/github/last-commit/pocketnetteam/pocketnet.core?label=Last+commit&logo=bastyon)
+![release_date](https://img.shields.io/github/release-date/pocketnetteam/pocketnet.core?label=Release+date&logo=bastyon)
+![version](https://img.shields.io/github/v/release/pocketnetteam/pocketnet.core?label=Actual+version&logo=bastyon)
+![download_latest](https://img.shields.io/github/downloads/pocketnetteam/pocketnet.core/latest/total?label=Downloads+Latest)
 
 # What is Pocketcoin?
 
