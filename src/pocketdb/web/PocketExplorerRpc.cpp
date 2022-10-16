@@ -77,7 +77,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
-        int depth = 24;
+        int depth = 24 * 7;
         if (request.params[1].isNum())
             depth = min(request.params[1].get_int(), depth);
         depth = depth * 60;
@@ -111,7 +111,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
-        int depth = 30;
+        int depth = 30 * 12;
         if (request.params[1].isNum())
             depth = min(request.params[1].get_int(), depth);
         depth = depth * 24 * 60;
@@ -140,7 +140,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
-        int depth = 24;
+        int depth = 24 * 7;
         if (request.params[1].isNum())
             depth = min(request.params[1].get_int(), depth);
         depth = depth * 60;
@@ -169,7 +169,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
-        int depth = 30;
+        int depth = 30 * 12;
         if (request.params[1].isNum())
             depth = min(request.params[1].get_int(), depth);
         depth = depth * 24 * 60;
