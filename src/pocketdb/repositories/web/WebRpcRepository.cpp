@@ -6964,16 +6964,21 @@ namespace PocketDb
 
                 join Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- content for private subscribers
                     on c.Type in (200,201,202)
-                    and c.Last = 1 -- TODO (losty): last = 1 and c.Hash = c.String2 ?????
+                    and c.Last in (0,1)
                     and c.String1 = subs.String2
-                    -- and c.Hash = c.String2 --  TODO (losty): Only first content record
+                    and c.Hash = c.String2 -- orig
                     and c.Height > ?
                     and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
 
+                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                    on cLast.Type = c.Type
+                    and cLast.Last = 1
+                    and cLast.String2 = c.String2
+
                 left join Payload p
-                    on p.TxHash = c.Hash
-                
-                join Transactions ac
+                    on p.TxHash = cLast.Hash
+
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                     on ac.Type = 100
                     and ac.Last = 1
                     and ac.String1 = c.String1
@@ -6986,7 +6991,7 @@ namespace PocketDb
                     on rac.Type = 0
                     and rac.Id = ac.Id
                     and rac.Last = 1
-                    
+
                 where subs.Type = 303
                     and subs.Last = 1
                     and subs.Height > 0
