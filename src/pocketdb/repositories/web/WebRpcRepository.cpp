@@ -7016,19 +7016,35 @@ namespace PocketDb
                     tBoost.String1,
                     tBoost.Height as Height,
                     tBoost.BlockNum as BlockNum,
+                    null,
+                    null,
+                    null,
                     tBoost.Int1,
                     null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pac.String1,
                     pac.String2,
                     pac.String3,
-                    pac.String4,
                     ifnull(rac.Value,0),
+                    null,
                     tContent.Hash,
                     tContent.Type,
                     null,
                     tContent.Height,
                     tContent.BlockNum,
                     null,
+                    tContent.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     pContent.String2,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -7038,17 +7054,18 @@ namespace PocketDb
 
                 join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
                     on tContent.Type in (200,201,202)
-                    and tContent.Last in (0,1)
-                    and tContent.Height > 0
+                    and tContent.Last = 1
                     and tContent.String1 = ?
                     and tContent.String2 = tBoost.String2
+                    and tContent.Height > 0
+
                 left join Payload pContent
                     on pContent.TxHash = tContent.Hash
-                
-                join Transactions ac
-                    on ac.String1 = tBoost.String1
-                    and ac.Type = 100
+
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                    on ac.Type = 100
                     and ac.Last = 1
+                    and ac.String1 = tBoost.String1
                     and ac.Height > 0
 
                 left join Payload pac
