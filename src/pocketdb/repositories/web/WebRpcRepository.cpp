@@ -6764,19 +6764,35 @@ namespace PocketDb
                     s.String1,
                     s.Height as Height,
                     s.BlockNum as BlockNum,
+                    null,
+                    null,
+                    null,
                     s.Int1,
                     null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pacs.String1,
                     pacs.String2,
                     pacs.String3,
-                    pacs.String4,
                     ifnull(racs.Value,0),
+                    null,
                     c.Hash,
                     c.Type,
                     null,
-                    c.Height, -- TODO (losty): original?
+                    c.Height,
                     c.BlockNum,
                     null,
+                    c.String2,
+                    c.String3,
+                    null,
+                    null,
+                    null,
                     ps.String1,
+                    c.String4,
+                    c.String5,
+                    null,
                     null,
                     null,
                     null,
@@ -6791,8 +6807,13 @@ namespace PocketDb
                     and s.Height > ?
                     and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
 
+                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                    on cLast.Type in (204,205)
+                    and cLast.Last = 1
+                    and cLast.String2 = c.String2
+
                 left join Payload ps
-                    on ps.TxHash = c.Hash
+                    on ps.TxHash = cLast.Hash
 
                 join Transactions acs
                     on acs.Type = 100
@@ -6808,8 +6829,8 @@ namespace PocketDb
                     and racs.Id = acs.Id
                     and racs.Last = 1
 
-                where c.Type in (204,205)
-                    and c.Last = 1
+                where c.Type in (204)
+                    and c.Last in (0,1)
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
