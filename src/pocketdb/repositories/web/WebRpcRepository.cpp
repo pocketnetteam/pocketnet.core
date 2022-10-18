@@ -7098,21 +7098,37 @@ namespace PocketDb
                     r.Hash,
                     r.Type,
                     r.String1,
-                    r.Height as Height, -- TODO (losty): orig height maybe???
+                    r.Height as Height,
                     r.BlockNum as BlockNum,
                     null,
+                    r.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     pr.String2,
+                    null,
+                    null,
+                    par.String1,
                     par.String2,
                     par.String3,
-                    par.String4,
                     ifnull(rar.Value,0),
+                    null,
                     p.Hash,
                     p.Type,
                     null,
                     p.Height,
                     p.BlockNum,
                     null,
+                    p.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     pp.String2,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -7120,20 +7136,26 @@ namespace PocketDb
 
                 from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
 
-                join Payload pp
-                    on pp.TxHash = p.Hash 
+                left join Payload pp
+                    on pp.TxHash = p.Hash
 
                 join Transactions r indexed by Transactions_Type_Last_String3_Height
                     on r.Type in (200,201,202)
-                    and r.Last = 1
+                    and r.Last in (0,1)
+                    and r.Hash = r.String2
                     and r.String3 = p.String2
                     and r.Height > ?
                     and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
 
-                left join Payload pr
-                    on pr.TxHash = r.Hash
+                left join Transactions rLast indexed by Transactions_Type_Last_String2_Height
+                    on rLast.Type = r.Type
+                    and rLast.Last = 1
+                    and rLast.String2 = r.String2
 
-                join Transactions ar
+                left join Payload pr
+                    on pr.TxHash = rLast.Hash
+
+                left join Transactions ar indexed by Transactions_Type_Last_String1_Height_Id
                     on ar.Type = 100
                     and ar.Last = 1
                     and ar.String1 = r.String1
