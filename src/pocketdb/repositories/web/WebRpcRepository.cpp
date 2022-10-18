@@ -6853,19 +6853,35 @@ namespace PocketDb
                     s.String1,
                     s.Height as Height,
                     s.BlockNum as BlockNum,
+                    null,
+                    null,
+                    null,
                     s.Int1,
                     null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pacs.String1,
                     pacs.String2,
                     pacs.String3,
-                    pacs.String4,
                     ifnull(racs.Value,0),
+                    null,
                     c.Hash,
                     c.Type,
                     null,
-                    c.Height, -- TODO (losty): original?
+                    c.Height,
                     c.BlockNum,
                     null,
+                    c.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     pc.String2,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -6880,8 +6896,13 @@ namespace PocketDb
                     and s.Height > ?
                     and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
 
+                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                    on cLast.Type = c.Type
+                    and cLast.Last = 1
+                    and cLast.String2 = c.String2
+
                 left join Payload pc
-                    on pc.TxHash = c.Hash
+                    on pc.TxHash = cLast.Hash
 
                 join Transactions acs
                     on acs.Type = 100
@@ -6898,7 +6919,7 @@ namespace PocketDb
                     and racs.Last = 1
 
                 where c.Type in (200, 201, 202)
-                    and c.Last = 1
+                    and c.Hash = c.String2 -- orig
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
