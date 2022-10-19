@@ -6769,9 +6769,9 @@ namespace PocketDb
                     null,
                     null
 
-                from Transactions subs --indexed by Transactions_Type_Last_String2_Height
+                from Transactions subs indexed by Transactions_Type_Last_String2_Height
 
-                join Transactions u --indexed by Transactions_Type_Last_String1_Height_Id
+                join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                     on u.Type in (100)
                     and u.Last = 1
                     and u.String1 = subs.String1
