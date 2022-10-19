@@ -6933,7 +6933,7 @@ namespace PocketDb
                     null,
                     null
 
-                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+                from Transactions c indexed by Transactions_Type_String1_Height_Time_Int1
 
                 join Transactions s indexed by Transactions_Type_Last_String2_Height
                     on s.Type = 300
