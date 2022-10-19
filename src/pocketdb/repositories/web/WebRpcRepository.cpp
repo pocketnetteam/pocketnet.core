@@ -6346,10 +6346,61 @@ namespace PocketDb
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
                     t.Hash,
                     t.Type,
-                    i.AddressHash,
+                    null,
                     t.Height as Height,
                     t.BlockNum as BlockNum,
-                    o.Value,
+                    null,
+                    null,
+                    null,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = t.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', o.Value,
+                                'AddressHash', o.AddressHash,
+                                'ScriptPubKey', o.ScriptPubKey,
+                                'Account', json_object(
+                                    'Lang', pna.String1,
+                                    'Name', pna.String2,
+                                    'Avatar', pna.String3,
+                                    'Rep', ifnull(rna.Value,0)
+                                )
+                            ))
+                        from TxOutputs o
+                        left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                            on na.Type = 100
+                            and na.Last = 1
+                            and na.String1 = o.AddressHash
+                        left join Payload pna
+                            on pna.TxHash = na.Hash
+                        left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                            on rna.Type = 0
+                            and rna.Id = na.Id
+                            and rna.Last = 1
+                        where o.TxHash = t.Hash
+                            and o.TxHeight = t.Height
+                        order by o.Number
+                    ),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -6371,14 +6422,9 @@ namespace PocketDb
 
                 join Transactions t indexed by Transactions_Hash_Type_Height
                     on t.Hash = o.TxHash
-                    and t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
+                    and t.Type in (1,2,3)
                     and t.Height > ?
                     and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
-
-                join TxOutputs i indexed by TxOutputs_SpentTxHash
-                    on i.SpentTxHash = o.TxHash
-                    and i.Number = (select min(ii.Number) from TxOutputs ii where ii.SpentTxHash = o.TxHash)
-                    and i.AddressHash != o.AddressHash  -- TODO (brangr, lostystyg): exclude coinstake first transaction
 
                 where o.AddressHash = ?
                     and o.TxHeight > ?
