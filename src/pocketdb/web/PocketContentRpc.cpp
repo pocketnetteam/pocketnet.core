@@ -165,7 +165,7 @@ namespace PocketWeb::PocketWebRpc
         ascdesc = "desc";
         if (request.params.size() > 13 && request.params[13].isStr())
         {
-            orderby = request.params[13].get_str() == "asc" ? "asc" : "desc";
+            ascdesc = request.params[13].get_str() == "asc" ? "asc" : "desc";
         }
     }
 
