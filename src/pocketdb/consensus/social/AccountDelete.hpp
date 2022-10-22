@@ -87,7 +87,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<AccountDeleteConsensus>> m_rules = {
             {       0, -1, [](int height) { return make_shared<AccountDeleteConsensus>(height); }},
-            { 9999999,  0, [](int height) { return make_shared<AccountDeleteConsensus_checkpoint_enable>(height); }}, // TODO (brangr): set fork height
+            { 1914000,  0, [](int height) { return make_shared<AccountDeleteConsensus_checkpoint_enable>(height); }}, // TODO (brangr): set fork height
         };
     public:
         shared_ptr<AccountDeleteConsensus> Instance(int height)
