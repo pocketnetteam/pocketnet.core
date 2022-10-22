@@ -21,7 +21,7 @@ namespace PocketDb
         string sql = R"sql(
             SELECT String1, Id
             FROM Transactions
-            WHERE Type in (100)
+            WHERE Type in (100,170)
               and Height is not null
               and Last = 1
               and String1 = ?
@@ -52,7 +52,7 @@ namespace PocketDb
         string sql = R"sql(
             SELECT String1, Id
             FROM Transactions
-            WHERE Type in (100)
+            WHERE Type in (100,170)
               and Height is not null
               and Last = 1
               and Id = ?
