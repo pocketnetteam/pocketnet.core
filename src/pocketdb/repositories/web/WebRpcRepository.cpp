@@ -6989,7 +6989,7 @@ namespace PocketDb
                     c.Height as Height,
                     c.BlockNum as BlockNum,
                     null,
-                    null,
+                    c.String2,
                     null,
                     null,
                     null,
