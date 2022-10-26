@@ -6342,12 +6342,12 @@ namespace PocketDb
         {
             ShortTxType::Money, { R"sql(
                 -- Incoming money
-                select
+                select distinct
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
                     t.Hash,
                     t.Type,
                     null,
-                    t.Height as Height,
+                    o.TxHeight as Height,
                     t.BlockNum as BlockNum,
                     null,
                     null,
@@ -6360,14 +6360,14 @@ namespace PocketDb
                                 'AddressHash', AddressHash,
                                 'ScriptPubKey', ScriptPubKey
                                 ))
-                        from TxOutputs i
+                        from TxOutputs i indexed by TxOutputs_SpentTxHash
                         where i.SpentTxHash = t.Hash
                     ),
                     (
                         select json_group_array(json_object(
-                                'Value', o.Value,
-                                'AddressHash', o.AddressHash,
-                                'ScriptPubKey', o.ScriptPubKey,
+                                'Value', oo.Value,
+                                'AddressHash', oo.AddressHash,
+                                'ScriptPubKey', oo.ScriptPubKey,
                                 'Account', json_object(
                                     'Lang', pna.String1,
                                     'Name', pna.String2,
@@ -6375,20 +6375,20 @@ namespace PocketDb
                                     'Rep', ifnull(rna.Value,0)
                                 )
                             ))
-                        from TxOutputs o
+                        from TxOutputs oo indexed by TxOutputs_TxHash_AddressHash_Value
                         left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
                             on na.Type = 100
                             and na.Last = 1
-                            and na.String1 = o.AddressHash
+                            and na.String1 = oo.AddressHash
                         left join Payload pna
                             on pna.TxHash = na.Hash
                         left join Ratings rna indexed by Ratings_Type_Id_Last_Height
                             on rna.Type = 0
                             and rna.Id = na.Id
                             and rna.Last = 1
-                        where o.TxHash = t.Hash
-                            and o.TxHeight = t.Height
-                        order by o.Number
+                        where oo.TxHash = t.Hash
+                            and oo.TxHeight = t.Height
+                        order by oo.Number
                     ),
                     null,
                     null,
@@ -6428,7 +6428,7 @@ namespace PocketDb
 
                 where o.AddressHash = ?
                     and o.TxHeight > ?
-                    and o.TxHeight < ?
+                    and o.TxHeight <= ?
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
                 TryBindStatementInt64(stmt, i++, queryParams.heightMin);
