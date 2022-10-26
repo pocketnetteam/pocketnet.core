@@ -6785,8 +6785,8 @@ namespace PocketDb
                     and ru.Id = u.Id
                     and ru.Last = 1
 
-                where subs.Type in (302, 303) -- Ignoring unsubscribers?
-                    and subs.Last = 1
+                where subs.Type in (302, 303, 304) -- Ignoring unsubscribers?
+                    and subs.Last in (0,1)
                     and subs.String2 = ?
                     and subs.Height > ?
                     and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
