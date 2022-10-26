@@ -6622,7 +6622,7 @@ namespace PocketDb
                     c.BlockNum as BlockNum,
                     null,
                     c.String2,
-                    c.String3,
+                    null,
                     null,
                     (
                         select json_group_array(json_object(
