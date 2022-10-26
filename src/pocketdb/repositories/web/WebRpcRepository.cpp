@@ -6256,7 +6256,7 @@ namespace PocketDb
                 from Transactions r
 
                 join Transactions p indexed by Transactions_Type_Last_String2_Height
-                    on p.Type in (200,201,202)
+                    on p.Type in = 200
                     and p.Last = 1
                     and p.String2 = r.String3
                     and p.Height > 0
@@ -6294,7 +6294,7 @@ namespace PocketDb
                     and rna.Id = na.Id
                     and rna.Last = 1
 
-                where r.Type in (200,201,202)
+                where r.Type in = 200
                     and r.Hash = r.String2 -- Only orig
                     and r.Height = ?
                     and r.String3 is not null
@@ -7221,7 +7221,7 @@ namespace PocketDb
                     on pp.TxHash = p.Hash
 
                 join Transactions r indexed by Transactions_Type_Last_String3_Height
-                    on r.Type in (200,201,202)
+                    on r.Type = 200
                     and r.Last in (0,1)
                     and r.Hash = r.String2
                     and r.String3 = p.String2
@@ -7250,7 +7250,7 @@ namespace PocketDb
                     and rar.Id = ar.Id
                     and rar.Last = 1
 
-                where p.Type in (200,201,202)
+                where p.Type = 200
                     and p.Last = 1
                     and p.Height > 0
                     and p.String1 = ?
@@ -7459,10 +7459,10 @@ namespace PocketDb
                 join Transactions p indexed by Transactions_Type_Last_String1_String2_Height
                     on p.String2 = r.String3
                     and p.Last = 1
-                    and p.Type in (200,201,202)
+                    and p.Type = 200
                     and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
-                where r.Type in (200,201,202)
+                where r.Type = 200
                     and r.Last in (0,1)
                     and r.Hash = r.String2 -- Only orig
                     and r.Height between ? and ?
