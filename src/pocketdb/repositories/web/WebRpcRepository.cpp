@@ -6267,7 +6267,7 @@ namespace PocketDb
                 from Transactions r
 
                 join Transactions p indexed by Transactions_Type_Last_String2_Height
-                    on p.Type in = 200
+                    on p.Type = 200
                     and p.Last = 1
                     and p.String2 = r.String3
                     and p.Height > 0
@@ -6305,7 +6305,7 @@ namespace PocketDb
                     and rna.Id = na.Id
                     and rna.Last = 1
 
-                where r.Type in = 200
+                where r.Type = 200
                     and r.Hash = r.String2 -- Only orig
                     and r.Height = ?
                     and r.String3 is not null
