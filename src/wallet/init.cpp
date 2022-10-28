@@ -94,7 +94,7 @@ bool WalletInit::ParameterInteraction() const
     }
 
     if (gArgs.IsArgSet("-zapwallettxes")) {
-        return InitError(Untranslated("-zapwallettxes has been removed. If you are attempting to remove a stuck transaction from your wallet, please use abandontransaction instead."));
+        LogPrintf("Warning! -zapwallettxes has been removed. If you are attempting to remove a stuck transaction from your wallet, please use abandontransaction instead.\n");
     }
 
     if (gArgs.GetBoolArg("-sysperms", false))
