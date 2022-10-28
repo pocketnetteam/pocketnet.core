@@ -135,7 +135,19 @@ namespace PocketDb
         // BINDS
         // --------------------------------
 
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, shared_ptr<std::string> value)
+        // Forces user to handle memory more correct because of SQLITE_STATIC requires it
+        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string&& value) = delete;
+        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string& value)
+        {
+            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
+            if (!CheckValidResult(stmt, res))
+                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%s\n",
+                    __func__, index, value));
+        }
+
+        // Forces user to handle memory more correct because of SQLITE_STATIC requires it
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<std::string>&& value) = delete;
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<std::string>& value)
         {
             if (!value) return true;
 
@@ -146,15 +158,7 @@ namespace PocketDb
             return true;
         }
 
-        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string& value)
-        {
-            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
-            if (!CheckValidResult(stmt, res))
-                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%s\n",
-                    __func__, index, value));
-        }
-
-        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int>& value)
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<int>& value)
         {
             if (!value) return true;
 
@@ -170,7 +174,7 @@ namespace PocketDb
                     __func__, index, value));
         }
 
-        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int64_t>& value)
+        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<int64_t>& value)
         {
             if (!value) return true;
 

@@ -14,7 +14,7 @@ namespace PocketTx
     public:
         SubscribeCancel();
         SubscribeCancel(const std::shared_ptr<const CTransaction>& tx);
-        shared_ptr<UniValue> Serialize() const override;
+        optional<UniValue> Serialize() const override;
     };
 
 } // namespace PocketTx

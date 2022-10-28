@@ -15,12 +15,12 @@ namespace PocketTx
     {
     }
 
-    shared_ptr<string> Content::GetAddress() const { return m_string1; }
-    void Content::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
+    const optional<string>& Content::GetAddress() const { return m_string1; }
+    void Content::SetAddress(const string& value) { m_string1 = value; }
 
-    shared_ptr<string> Content::GetRootTxHash() const { return m_string2; }
-    void Content::SetRootTxHash(const string& value) { m_string2 = make_shared<string>(value); }
+    const optional<string>& Content::GetRootTxHash() const { return m_string2; }
+    void Content::SetRootTxHash(const string& value) { m_string2 = value; }
 
-    bool Content::IsEdit() const { return *m_string2 != *m_hash; }
+    bool Content::IsEdit() const { return m_string2 != m_hash; }
 
 } // namespace PocketTx

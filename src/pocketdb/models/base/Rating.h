@@ -18,23 +18,23 @@ namespace PocketTx
         Rating() = default;
         ~Rating() = default;
 
-        shared_ptr<RatingType> GetType() const;
+        const optional <RatingType>& GetType() const;
         void SetType(RatingType value);
 
-        shared_ptr <int> GetHeight() const;
+        const optional <int>& GetHeight() const;
         void SetHeight(int value);
 
-        shared_ptr <int64_t> GetId() const;
+        const optional <int64_t>& GetId() const;
         void SetId(int64_t value);
 
-        shared_ptr <int64_t> GetValue() const;
+        const optional <int64_t>& GetValue() const;
         void SetValue(int64_t value);
 
     protected:
-        shared_ptr <RatingType> m_type = nullptr;
-        shared_ptr <int> m_height = nullptr;
-        shared_ptr <int64_t> m_id = nullptr;
-        shared_ptr <int64_t> m_value = nullptr;
+        optional <RatingType> m_type = nullopt;
+        optional <int> m_height = nullopt;
+        optional <int64_t> m_id = nullopt;
+        optional <int64_t> m_value = nullopt;
     };
 
 } // namespace PocketTx

@@ -39,16 +39,17 @@ namespace PocketServices
 
     // Serialize protocol compatible with Reindexer
     // It makes sense to serialize only Pocket transactions that contain a payload.
-    shared_ptr<UniValue> Serializer::SerializeBlock(const PocketBlock& block)
+    optional<UniValue> Serializer::SerializeBlock(const PocketBlock& block)
     {
-        auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
+        // Need optional here?
+        UniValue result (UniValue::VOBJ);
         for (const auto& transaction : block)
         {
             auto dataPtr = SerializeTransaction(*transaction);
             if (!dataPtr)
                 continue;
 
-            result->pushKV(*transaction->GetHash(), dataPtr->write());
+            result.pushKV(*transaction->GetHash(), dataPtr->write());
         }
 
         return result;
@@ -56,18 +57,19 @@ namespace PocketServices
 
     // Serialize protocol compatible with Reindexer
     // It makes sense to serialize only Pocket transactions that contain a payload.
-    shared_ptr<UniValue> Serializer::SerializeTransaction(const Transaction& transaction)
+    optional<UniValue> Serializer::SerializeTransaction(const Transaction& transaction)
     {
-        if (!PocketHelpers::TransactionHelper::IsPocketTransaction(*transaction.GetType()))
-            return nullptr;
+        auto type = transaction.GetType();
+        if (!type || !PocketHelpers::TransactionHelper::IsPocketTransaction(*type))
+            return nullopt;
 
-        auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
+        UniValue result (UniValue::VOBJ);
 
         auto serializedTransaction = transaction.Serialize();
         auto base64Transaction = EncodeBase64(serializedTransaction->write());
 
-        result->pushKV("t", PocketHelpers::TransactionHelper::ConvertToReindexerTable(transaction));
-        result->pushKV("d", base64Transaction);
+        result.pushKV("t", PocketHelpers::TransactionHelper::ConvertToReindexerTable(transaction));
+        result.pushKV("d", base64Transaction);
 
         return result;
     }
@@ -142,10 +144,10 @@ namespace PocketServices
         {
             const CTxIn& txin = tx->vin[i];
 
-            auto inp = make_shared<TransactionInput>();
-            inp->SetSpentTxHash(spentTxHash);
-            inp->SetTxHash(txin.prevout.hash.GetHex());
-            inp->SetNumber(txin.prevout.n);
+            auto inp = TransactionInput();
+            inp.SetSpentTxHash(spentTxHash);
+            inp.SetTxHash(txin.prevout.hash.GetHex());
+            inp.SetNumber(txin.prevout.n);
             
             ptx->Inputs().push_back(inp);
         }
@@ -161,11 +163,11 @@ namespace PocketServices
         {
             const CTxOut& txout = tx->vout[i];
 
-            auto out = make_shared<TransactionOutput>();
-            out->SetTxHash(txHash);
-            out->SetNumber((int) i);
-            out->SetValue(txout.nValue);
-            out->SetScriptPubKey(HexStr(txout.scriptPubKey));
+            auto out = TransactionOutput();
+            out.SetTxHash(txHash);
+            out.SetNumber((int) i);
+            out.SetValue(txout.nValue);
+            out.SetScriptPubKey(HexStr(txout.scriptPubKey));
 
             TxoutType type;
             std::vector <CTxDestination> vDest;
@@ -173,11 +175,11 @@ namespace PocketServices
             if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))
             {
                 for (const auto& dest : vDest)
-                    out->SetAddressHash(EncodeDestination(dest));
+                    out.SetAddressHash(EncodeDestination(dest));
             }
             else
             {
-                out->SetAddressHash("");
+                out.SetAddressHash("");
             }
 
             ptx->Outputs().push_back(out);

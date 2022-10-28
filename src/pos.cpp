@@ -309,7 +309,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     bnTarget.SetCompact(nBits);
 
     // Weighted target
-    int64_t nValueIn = *txPrev.OutputsConst()[prevout.n]->GetValue();
+    int64_t nValueIn = *txPrev.OutputsConst()[prevout.n].GetValue();
     arith_uint256 bnWeight = std::min(nValueIn, Params().GetConsensus().nStakeMaximumThreshold);
     bnTarget *= bnWeight;
 
@@ -566,7 +566,7 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge, Chai
         if (pblockindex->nTime + Params().GetConsensus().nStakeMinAge > transaction->nTime)
             continue; // only count coins meeting min age requirement
 
-        int64_t nValueIn = *txPrev->OutputsConst()[txin.prevout.n]->GetValue();
+        int64_t nValueIn = *txPrev->OutputsConst()[txin.prevout.n].GetValue();
         bnCentSecond += CAmount(nValueIn) * (transaction->nTime - *txPrev->GetTime()) / (COIN / 100);
     }
 
