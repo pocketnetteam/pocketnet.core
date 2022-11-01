@@ -253,14 +253,14 @@ namespace PocketWeb::PocketWebRpc
         int64_t totalAmount = 0;
         UniValue _inputs(UniValue::VARR);
         int i = 0;
-        while (totalAmount <= (fee + outputCount + 3000) && i < unsp.size())
+        while (totalAmount <= (fee + (outputCount * 3000)) && i < unsp.size())
         {
             totalAmount += unsp[i]["amountSat"].get_int64();
             _inputs.push_back(unsp[i]);
             i += 1;
         }
 
-        if (totalAmount <= (fee + outputCount + 3000))
+        if (totalAmount <= (fee + (outputCount * 3000)))
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Insufficient funds");
 
         // Build outputs
