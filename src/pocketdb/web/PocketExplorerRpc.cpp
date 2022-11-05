@@ -699,10 +699,10 @@ namespace PocketWeb::PocketWebRpc
         {
             UniValue uinp(UniValue::VOBJ);
 
-            uinp.pushKV("txid", *inp.GetSpentTxHash());
-            uinp.pushKV("vout", *inp.GetNumber());
-            if (inp.GetAddressHash()) uinp.pushKV("address", *inp.GetAddressHash());
-            if (inp.GetValue()) uinp.pushKV("value", *inp.GetValue() / 100000000.0);
+            uinp.pushKV("txid", *inp->GetSpentTxHash());
+            uinp.pushKV("vout", *inp->GetNumber());
+            if (inp->GetAddressHash()) uinp.pushKV("address", *inp->GetAddressHash());
+            if (inp->GetValue()) uinp.pushKV("value", *inp->GetValue() / 100000000.0);
 
             utx.At("vin").push_back(uinp);
         }
@@ -712,17 +712,17 @@ namespace PocketWeb::PocketWebRpc
         for (const auto& out : ptx->Outputs())
         {
             UniValue uout(UniValue::VOBJ);
-            uout.pushKV("n", *out.GetNumber());
-            uout.pushKV("value", *out.GetValue() / 100000000.0);
+            uout.pushKV("n", *out->GetNumber());
+            uout.pushKV("value", *out->GetValue() / 100000000.0);
 
             UniValue scriptPubKey(UniValue::VOBJ);
             UniValue addresses(UniValue::VARR);
-            addresses.push_back(*out.GetAddressHash());
+            addresses.push_back(*out->GetAddressHash());
             scriptPubKey.pushKV("addresses", addresses);
-            scriptPubKey.pushKV("hex", *out.GetScriptPubKey());
+            scriptPubKey.pushKV("hex", *out->GetScriptPubKey());
             uout.pushKV("scriptPubKey", scriptPubKey);
 
-            if (out.GetSpentHeight()) uout.pushKV("spent", *out.GetSpentHeight());
+            if (out->GetSpentHeight()) uout.pushKV("spent", *out->GetSpentHeight());
 
             utx.At("vout").push_back(uout);
         }

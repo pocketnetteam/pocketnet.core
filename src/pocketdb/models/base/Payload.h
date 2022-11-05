@@ -16,44 +16,44 @@ namespace PocketTx
     public:
         Payload();
 
-        const optional<string>& GetTxHash() const;
+        shared_ptr<string> GetTxHash() const;
         void SetTxHash(string value);
 
-        const optional<string>& GetString1() const;
+        shared_ptr<string> GetString1() const;
         void SetString1(string value);
 
-        const optional<string>& GetString2() const;
+        shared_ptr<string> GetString2() const;
         void SetString2(string value);
 
-        const optional<string>& GetString3() const;
+        shared_ptr<string> GetString3() const;
         void SetString3(string value);
 
-        const optional<string>& GetString4() const;
+        shared_ptr<string> GetString4() const;
         void SetString4(string value);
 
-        const optional<string>& GetString5() const;
+        shared_ptr<string> GetString5() const;
         void SetString5(string value);
 
-        const optional<string>& GetString6() const;
+        shared_ptr<string> GetString6() const;
         void SetString6(string value);
 
-        const optional<string>& GetString7() const;
+        shared_ptr<string> GetString7() const;
         void SetString7(string value);
 
-        const optional<int64_t>& GetInt1() const;
+        shared_ptr<int64_t> GetInt1() const;
         void SetInt1(int64_t value);
 
     protected:
 
-        optional<string> m_txHash = nullopt;
-        optional<string> m_string1 = nullopt;
-        optional<string> m_string2 = nullopt;
-        optional<string> m_string3 = nullopt;
-        optional<string> m_string4 = nullopt;
-        optional<string> m_string5 = nullopt;
-        optional<string> m_string6 = nullopt;
-        optional<string> m_string7 = nullopt;
-        optional<int64_t> m_int1 = nullopt;
+        shared_ptr<string> m_txHash = nullptr;
+        shared_ptr<string> m_string1 = nullptr;
+        shared_ptr<string> m_string2 = nullptr;
+        shared_ptr<string> m_string3 = nullptr;
+        shared_ptr<string> m_string4 = nullptr;
+        shared_ptr<string> m_string5 = nullptr;
+        shared_ptr<string> m_string6 = nullptr;
+        shared_ptr<string> m_string7 = nullptr;
+        shared_ptr<int64_t> m_int1 = nullptr;
 
     };
 

@@ -5,7 +5,6 @@
 #ifndef POCKETCONSENSUS_ARTICLE_H
 #define POCKETCONSENSUS_ARTICLE_H
 
-#include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/content/Article.h"
 
@@ -149,8 +148,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const ArticleRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto address = ptx->GetAddress();
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
             if (count >= GetLimit(mode))
             {
                 if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ContentLimit))

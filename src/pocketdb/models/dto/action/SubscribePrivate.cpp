@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::ACTION_SUBSCRIBE_PRIVATE);
     }
 
-    optional <UniValue> SubscribePrivate::Serialize() const
+    shared_ptr <UniValue> SubscribePrivate::Serialize() const
     {
         auto result = Subscribe::Serialize();
 

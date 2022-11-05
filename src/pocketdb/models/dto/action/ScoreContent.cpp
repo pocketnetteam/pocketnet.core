@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::ACTION_SCORE_CONTENT);
     }
 
-    optional <UniValue> ScoreContent::Serialize() const
+    shared_ptr <UniValue> ScoreContent::Serialize() const
     {
         auto result = Transaction::Serialize();
 
@@ -42,14 +42,14 @@ namespace PocketTx
         if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
     }
 
-    const optional <string>& ScoreContent::GetAddress() const { return m_string1; }
-    void ScoreContent::SetAddress(const string& value) { m_string1 = value; }
+    shared_ptr <string> ScoreContent::GetAddress() const { return m_string1; }
+    void ScoreContent::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
-    const optional <string>& ScoreContent::GetContentTxHash() const { return m_string2; }
-    void ScoreContent::SetContentTxHash(const string& value) { m_string2 = value; }
+    shared_ptr <string> ScoreContent::GetContentTxHash() const { return m_string2; }
+    void ScoreContent::SetContentTxHash(const string& value) { m_string2 = make_shared<string>(value); }
 
-    const optional <int64_t>& ScoreContent::GetValue() const { return m_int1; }
-    void ScoreContent::SetValue(int64_t value) { m_int1 = value; }
+    shared_ptr <int64_t> ScoreContent::GetValue() const { return m_int1; }
+    void ScoreContent::SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
     void ScoreContent::DeserializePayload(const UniValue& src)
     {

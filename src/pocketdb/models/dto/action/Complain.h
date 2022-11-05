@@ -16,19 +16,19 @@ namespace PocketTx
         Complain();
         Complain(const std::shared_ptr<const CTransaction>& tx);
 
-        optional<UniValue> Serialize() const override;
+        shared_ptr<UniValue> Serialize() const override;
 
         void Deserialize(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;
         void DeserializePayload(const UniValue& src) override;
 
-        const optional<string>& GetAddress() const;
+        shared_ptr<string> GetAddress() const;
         void SetAddress(const string& value);
 
-        const optional<string>& GetPostTxHash() const;
+        shared_ptr<string> GetPostTxHash() const;
         void SetPostTxHash(const string& value);
 
-        const optional <int64_t>& GetReason() const;
+        shared_ptr <int64_t> GetReason() const;
         void SetReason(int64_t value);
 
         string BuildHash() override;

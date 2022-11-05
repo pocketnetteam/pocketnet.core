@@ -17,23 +17,21 @@ namespace PocketTx
         Post();
         Post(const CTransactionRef& tx);
 
-        optional<UniValue> Serialize() const override;
+        shared_ptr<UniValue> Serialize() const override;
         void Deserialize(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;
         void DeserializePayload(const UniValue& src) override;
 
-        const optional<string>& GetRelayTxHash() const;
+        shared_ptr<string> GetRelayTxHash() const;
         void SetRelayTxHash(const string& value);
 
-        // TODO (losty): not const& because requires a temporarily object creation
-        //in case of null payload
-        optional<string> GetPayloadLang() const;
-        optional<string> GetPayloadCaption() const;
-        optional<string> GetPayloadMessage() const;
-        optional<string> GetPayloadTags() const;
-        optional<string> GetPayloadUrl() const;
-        optional<string> GetPayloadImages() const;
-        optional<string> GetPayloadSettings() const;
+        shared_ptr<string> GetPayloadLang() const;
+        shared_ptr<string> GetPayloadCaption() const;
+        shared_ptr<string> GetPayloadMessage() const;
+        shared_ptr<string> GetPayloadTags() const;
+        shared_ptr<string> GetPayloadUrl() const;
+        shared_ptr<string> GetPayloadImages() const;
+        shared_ptr<string> GetPayloadSettings() const;
 
         string BuildHash() override;
     };

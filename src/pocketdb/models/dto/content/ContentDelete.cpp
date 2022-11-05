@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::CONTENT_DELETE);
     }
 
-    optional <UniValue> ContentDelete::Serialize() const
+    shared_ptr <UniValue> ContentDelete::Serialize() const
     {
         auto result = Transaction::Serialize();
 

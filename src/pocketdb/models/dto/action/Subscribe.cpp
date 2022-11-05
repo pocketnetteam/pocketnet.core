@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::ACTION_SUBSCRIBE);
     }
 
-    optional <UniValue> Subscribe::Serialize() const
+    shared_ptr <UniValue> Subscribe::Serialize() const
     {
         auto result = Transaction::Serialize();
 
@@ -41,11 +41,11 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddressTo(val);
     }
 
-    const optional <string>& Subscribe::GetAddress() const { return m_string1; }
-    void Subscribe::SetAddress(const string& value) { m_string1 = value; }
+    shared_ptr <string> Subscribe::GetAddress() const { return m_string1; }
+    void Subscribe::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
-    const optional <string>& Subscribe::GetAddressTo() const { return m_string2; }
-    void Subscribe::SetAddressTo(const string& value) { m_string2 = value; }
+    shared_ptr <string> Subscribe::GetAddressTo() const { return m_string2; }
+    void Subscribe::SetAddressTo(const string& value) { m_string2 = make_shared<string>(value); }
 
     void Subscribe::DeserializePayload(const UniValue& src)
     {

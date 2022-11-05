@@ -15,26 +15,26 @@ namespace PocketTx
         User();
         User(const std::shared_ptr<const CTransaction>& tx);
 
-        optional <UniValue> Serialize() const override;
+        shared_ptr <UniValue> Serialize() const override;
 
         void Deserialize(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;
         void DeserializePayload(const UniValue& src) override;
 
-        const optional <string>& GetAddress() const;
+        shared_ptr <string> GetAddress() const;
         void SetAddress(const string& value);
 
-        const optional <string>& GetReferrerAddress() const;
+        shared_ptr <string> GetReferrerAddress() const;
         void SetReferrerAddress(const string& value);
 
         // Payload getters
-        optional <string> GetPayloadName() const;
-        optional <string> GetPayloadAvatar() const;
-        optional <string> GetPayloadUrl() const;
-        optional <string> GetPayloadLang() const;
-        optional <string> GetPayloadAbout() const;
-        optional <string> GetPayloadDonations() const;
-        optional <string> GetPayloadPubkey() const;
+        shared_ptr <string> GetPayloadName() const;
+        shared_ptr <string> GetPayloadAvatar() const;
+        shared_ptr <string> GetPayloadUrl() const;
+        shared_ptr <string> GetPayloadLang() const;
+        shared_ptr <string> GetPayloadAbout() const;
+        shared_ptr <string> GetPayloadDonations() const;
+        shared_ptr <string> GetPayloadPubkey() const;
 
         string BuildHash() override;
         string BuildHash(bool includeReferrer);

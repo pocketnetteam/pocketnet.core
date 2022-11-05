@@ -132,17 +132,17 @@ namespace PocketDb
         {
             bool incomplete = false;
 
-            TransactionInput input;
-            input.SetSpentTxHash(txHash);
+            PTransactionInputRef input = make_shared<TransactionInput>();
+            input->SetSpentTxHash(txHash);
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) input.SetTxHash(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) input->SetTxHash(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) input.SetNumber(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) input->SetNumber(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) input.SetValue(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) input.SetAddressHash(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) input->SetValue(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) input->SetAddressHash(value);
 
             ptx->Inputs().push_back(input);
             return !incomplete;
@@ -157,23 +157,23 @@ namespace PocketDb
         {
             bool incomplete = false;
 
-            TransactionOutput output;
-            output.SetTxHash(txHash);
+            PTransactionOutputRef output = make_shared<TransactionOutput>();
+            output->SetTxHash(txHash);
 
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 3); ok) output.SetNumber(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 3); ok) output->SetNumber(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) output.SetAddressHash(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) output->SetAddressHash(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) output.SetValue(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) output->SetValue(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) output.SetScriptPubKey(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) output->SetScriptPubKey(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) output.SetSpentTxHash(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) output.SetSpentHeight(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) output->SetSpentTxHash(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) output->SetSpentHeight(value);
 
             ptx->Outputs().push_back(output);
             return !incomplete;
@@ -513,9 +513,9 @@ namespace PocketDb
                 )
             )sql");
 
-            TryBindStatementText(stmt, 1, input.GetSpentTxHash());
-            TryBindStatementText(stmt, 2, input.GetTxHash());
-            TryBindStatementInt64(stmt, 3, input.GetNumber());
+            TryBindStatementText(stmt, 1, input->GetSpentTxHash());
+            TryBindStatementText(stmt, 2, input->GetTxHash());
+            TryBindStatementInt64(stmt, 3, input->GetNumber());
 
             TryStepStatement(stmt);
         }
@@ -544,11 +544,11 @@ namespace PocketDb
                 )
             )sql");
 
-            TryBindStatementText(stmt, 1, output.GetTxHash());
-            TryBindStatementInt64(stmt, 2, output.GetNumber());
-            TryBindStatementText(stmt, 3, output.GetAddressHash());
-            TryBindStatementInt64(stmt, 4, output.GetValue());
-            TryBindStatementText(stmt, 5, output.GetScriptPubKey());
+            TryBindStatementText(stmt, 1, output->GetTxHash());
+            TryBindStatementInt64(stmt, 2, output->GetNumber());
+            TryBindStatementText(stmt, 3, output->GetAddressHash());
+            TryBindStatementInt64(stmt, 4, output->GetValue());
+            TryBindStatementText(stmt, 5, output->GetScriptPubKey());
 
             TryStepStatement(stmt);
         }

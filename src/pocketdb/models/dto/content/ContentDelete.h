@@ -17,7 +17,7 @@ namespace PocketTx
         ContentDelete();
         ContentDelete(const CTransactionRef& tx);
 
-        optional<UniValue> Serialize() const override;
+        shared_ptr<UniValue> Serialize() const override;
 
         void Deserialize(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;

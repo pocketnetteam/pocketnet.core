@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::BOOST_CONTENT);
     }
 
-    optional <UniValue> BoostContent::Serialize() const
+    shared_ptr <UniValue> BoostContent::Serialize() const
     {
         auto result = Transaction::Serialize();
 
@@ -45,11 +45,11 @@ namespace PocketTx
     }
     
 
-    const optional <string>& BoostContent::GetAddress() const { return m_string1; }
-    void BoostContent::SetAddress(const string& value) { m_string1 = value; }
+    shared_ptr <string> BoostContent::GetAddress() const { return m_string1; }
+    void BoostContent::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
-    const optional <string>& BoostContent::GetContentTxHash() const { return m_string2; }
-    void BoostContent::SetContentTxHash(const string& value) { m_string2 = value; }
+    shared_ptr <string> BoostContent::GetContentTxHash() const { return m_string2; }
+    void BoostContent::SetContentTxHash(const string& value) { m_string2 = make_shared<string>(value); }
 
 
     string BoostContent::BuildHash()

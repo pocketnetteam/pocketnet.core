@@ -131,8 +131,7 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateLimit(const CommentRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto address = ptx->GetAddress();
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
             if (count >= GetLimit(mode))
                 return {false, SocialConsensusResult_CommentLimit};
 

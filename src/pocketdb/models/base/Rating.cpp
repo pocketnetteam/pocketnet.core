@@ -6,15 +6,15 @@
 
 namespace PocketTx
 {
-    const optional <RatingType>& Rating::GetType() const { return m_type; }
-    void Rating::SetType(RatingType value) { m_type = value; }
+    shared_ptr <RatingType> Rating::GetType() const { return m_type; }
+    void Rating::SetType(RatingType value) { m_type = make_shared<RatingType>(value); }
 
-    const optional <int>& Rating::GetHeight() const { return m_height; }
-    void Rating::SetHeight(int value) { m_height = value; }
+    shared_ptr<int> Rating::GetHeight() const { return m_height; }
+    void Rating::SetHeight(int value) { m_height = make_shared<int>(value); }
 
-    const optional <int64_t>& Rating::GetId() const { return m_id; }
-    void Rating::SetId(int64_t value) { m_id = value; }
+    shared_ptr <int64_t> Rating::GetId() const { return m_id; }
+    void Rating::SetId(int64_t value) { m_id = make_shared<int64_t>(value); }
 
-    const optional <int64_t>& Rating::GetValue() const { return m_value; }
-    void Rating::SetValue(int64_t value) { m_value = value; }
+    shared_ptr <int64_t> Rating::GetValue() const { return m_value; }
+    void Rating::SetValue(int64_t value) { m_value = make_shared<int64_t>(value); }
 } // namespace PocketTx

@@ -163,8 +163,7 @@ namespace PocketConsensus
         {
 
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto address = ptx->GetAddress();
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
             if (count >= GetScoresLimit(mode))
                 return {false, SocialConsensusResult_CommentScoreLimit};
 

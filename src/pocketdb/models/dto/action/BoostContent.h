@@ -16,16 +16,16 @@ namespace PocketTx
         BoostContent();
         BoostContent(const std::shared_ptr<const CTransaction>& tx);
 
-        optional<UniValue> Serialize() const override;
+        shared_ptr<UniValue> Serialize() const override;
 
         void Deserialize(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;
         void DeserializePayload(const UniValue& src) override;
 
-        const optional <string>& GetAddress() const;
+        shared_ptr <string> GetAddress() const;
         void SetAddress(const string& value);
 
-        const optional <string>& GetContentTxHash() const;
+        shared_ptr<string> GetContentTxHash() const;
         void SetContentTxHash(const string& value);
 
         string BuildHash() override;

@@ -15,29 +15,29 @@ namespace PocketTx
         Comment();
         Comment(const std::shared_ptr<const CTransaction>& tx);
 
-        optional <UniValue> Serialize() const override;
+        shared_ptr <UniValue> Serialize() const override;
 
         void Deserialize(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;
         void DeserializePayload(const UniValue& src) override;
 
-        const optional <string>& GetAddress() const;
+        shared_ptr <string> GetAddress() const;
         void SetAddress(const string& value);
 
-        const optional <string>& GetRootTxHash() const;
+        shared_ptr <string> GetRootTxHash() const;
         void SetRootTxHash(const string& value);
 
-        const optional <string>& GetPostTxHash() const;
+        shared_ptr <string> GetPostTxHash() const;
         void SetPostTxHash(const string& value);
 
-        const optional <string>& GetParentTxHash() const;
+        shared_ptr <string> GetParentTxHash() const;
         void SetParentTxHash(const string& value);
 
-        const optional <string>& GetAnswerTxHash() const;
+        shared_ptr <string> GetAnswerTxHash() const;
         void SetAnswerTxHash(const string& value);
 
         // Payload getters
-        const optional <string>& GetPayloadMsg() const;
+        shared_ptr <string> GetPayloadMsg() const;
         void SetPayloadMsg(const string& value);
 
         string BuildHash() override;

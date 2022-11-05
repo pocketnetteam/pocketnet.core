@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::CONTENT_COMMENT);
     }
 
-    optional <UniValue> Comment::Serialize() const
+    shared_ptr <UniValue> Comment::Serialize() const
     {
         auto result = Transaction::Serialize();
 
@@ -64,22 +64,22 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "msg"); ok) SetPayloadMsg(val);
     }
 
-    const optional <string>& Comment::GetAddress() const { return m_string1; }
-    void Comment::SetAddress(const string& value) { m_string1 = value; }
+    shared_ptr <string> Comment::GetAddress() const { return m_string1; }
+    void Comment::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
-    const optional <string>& Comment::GetRootTxHash() const { return m_string2; }
-    void Comment::SetRootTxHash(const string& value) { m_string2 = value; }
+    shared_ptr <string> Comment::GetRootTxHash() const { return m_string2; }
+    void Comment::SetRootTxHash(const string& value) { m_string2 = make_shared<string>(value); }
 
-    const optional <string>& Comment::GetPostTxHash() const { return m_string3; }
-    void Comment::SetPostTxHash(const string& value) { m_string3 = value; }
+    shared_ptr <string> Comment::GetPostTxHash() const { return m_string3; }
+    void Comment::SetPostTxHash(const string& value) { m_string3 = make_shared<string>(value); }
 
-    const optional <string>& Comment::GetParentTxHash() const { return m_string4; }
-    void Comment::SetParentTxHash(const string& value) { m_string4 = value; }
+    shared_ptr <string> Comment::GetParentTxHash() const { return m_string4; }
+    void Comment::SetParentTxHash(const string& value) { m_string4 = make_shared<string>(value); }
 
-    const optional <string>& Comment::GetAnswerTxHash() const { return m_string5; }
-    void Comment::SetAnswerTxHash(const string& value) { m_string5 = value; }
+    shared_ptr <string> Comment::GetAnswerTxHash() const { return m_string5; }
+    void Comment::SetAnswerTxHash(const string& value) { m_string5 = make_shared<string>(value); }
 
-    const optional <string>& Comment::GetPayloadMsg() const { return Transaction::GetPayload()->GetString1(); }
+    shared_ptr <string> Comment::GetPayloadMsg() const { return Transaction::GetPayload()->GetString1(); }
     void Comment::SetPayloadMsg(const string& value) { Transaction::GetPayload()->SetString1(value); }
 
     void Comment::DeserializePayload(const UniValue& src)

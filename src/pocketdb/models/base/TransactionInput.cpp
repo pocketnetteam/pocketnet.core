@@ -6,19 +6,19 @@
 
 namespace PocketTx
 {
-    const optional<string>& TransactionInput::GetSpentTxHash() const { return m_spentTxHash; }
-    void TransactionInput::SetSpentTxHash(string value) { m_spentTxHash = value; }
+    shared_ptr<string> TransactionInput::GetSpentTxHash() const { return m_spentTxHash; }
+    void TransactionInput::SetSpentTxHash(string value) { m_spentTxHash = make_shared<string>(value); }
 
-    const optional<string>& TransactionInput::GetTxHash() const { return m_txHash; }
-    void TransactionInput::SetTxHash(string value) { m_txHash = value; }
+    shared_ptr<string> TransactionInput::GetTxHash() const { return m_txHash; }
+    void TransactionInput::SetTxHash(string value) { m_txHash = make_shared<string>(value); }
 
-    const optional<int64_t>& TransactionInput::GetNumber() const { return m_number; }
-    void TransactionInput::SetNumber(int64_t value) { m_number = value; }
+    shared_ptr<int64_t> TransactionInput::GetNumber() const { return m_number; }
+    void TransactionInput::SetNumber(int64_t value) { m_number = make_shared<int64_t>(value); }
 
-    const optional<string>& TransactionInput::GetAddressHash() const { return m_addresshash; }
-    void TransactionInput::SetAddressHash(string value) { m_addresshash = value; }
+    shared_ptr<string> TransactionInput::GetAddressHash() const { return m_addresshash; }
+    void TransactionInput::SetAddressHash(string value) { m_addresshash = make_shared<string>(value); }
 
-    const optional<int64_t>& TransactionInput::GetValue() const { return m_value; }
-    void TransactionInput::SetValue(int64_t value) { m_value = value; }
+    shared_ptr<int64_t> TransactionInput::GetValue() const { return m_value; }
+    void TransactionInput::SetValue(int64_t value) { m_value = make_shared<int64_t>(value); }
     
 } // namespace PocketTx

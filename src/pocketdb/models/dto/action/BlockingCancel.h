@@ -16,7 +16,7 @@ namespace PocketTx
         BlockingCancel();
         BlockingCancel(const std::shared_ptr<const CTransaction>& tx);
 
-        optional<UniValue> Serialize() const override;
+        shared_ptr<UniValue> Serialize() const override;
     };
 
 } // namespace PocketTx
