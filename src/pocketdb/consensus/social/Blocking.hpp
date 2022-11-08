@@ -139,11 +139,12 @@ namespace PocketConsensus
                 if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_BLOCKING, ACTION_BLOCKING_CANCEL}))
                     continue;
 
-                auto blockPtx = static_pointer_cast<Blocking>(blockTx);
-
-                if (*blockPtx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
+                auto blockPtx = static_pointer_cast<Blocking>(blockTx);
+
+                // TODO (brangr, o1q): disable blocking 1-1 - allow only 1-N
                 if (*ptx->GetAddress() == *blockPtx->GetAddress()) {
                     if (!IsEmpty(ptx->GetAddressTo()) &&
                         !IsEmpty(blockPtx->GetAddressTo()) &&
@@ -189,7 +190,7 @@ namespace PocketConsensus
     protected:
         const vector<ConsensusCheckpoint<BlockingConsensus>> m_rules = {
             {       0,       0, [](int height) { return make_shared<BlockingConsensus>(height); }},
-            { 1873500, 1114500, [](int height) { return make_shared<BlockingConsensus_checkpoint_multiple_blocking>(height); }}, // TODO (o1q): set checkpoint height for multiple locks
+            { 1873500, 1114500, [](int height) { return make_shared<BlockingConsensus_checkpoint_multiple_blocking>(height); }},
         };
     public:
         shared_ptr<BlockingConsensus> Instance(int height)
