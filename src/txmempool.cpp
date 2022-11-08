@@ -1099,7 +1099,7 @@ int CTxMemPool::Expire(std::chrono::seconds time)
         removeHashes.emplace(iter->GetTx().GetHash().GetHex());
 
     // Also remove from sqlite db
-    CleanSQLite(removeHashes, "expire", MemPoolRemovalReason::EXPIRY);
+    CleanSQLite(removeHashes, MemPoolRemovalReason::EXPIRY);
 
     return stage.size();
 }
