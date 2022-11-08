@@ -236,23 +236,24 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     PrepareWSMessage(messages, "event", response["contentAddress"].get_str(), txid, txtime, cFields);
                 }
             }
-            else if (optype == "userInfo")
-            {
-                auto response = notifierRepoInst->GetUserReferrerAddress(txid);
-                if (response.exists("referrerAddress"))
-                {
-                    custom_fields cFields
-                    {
-                        {"mesType", optype},
-                        {"addrFrom", addr.first},
-                        {"nameFrom", response["referralName"].get_str()}
-                    };
-                    if (response.exists("referralAvatar"))
-                        cFields.emplace("avatarFrom",response["referralAvatar"].get_str());
-
-                    PrepareWSMessage(messages, "event", response["referrerAddress"].get_str(), txid, txtime, cFields);
-                }
-            }
+            // Not used. Not planned yet. Invalid request.
+//            else if (optype == "userInfo")
+//            {
+//                auto response = notifierRepoInst->GetUserReferrerAddress(txid);
+//                if (response.exists("referrerAddress"))
+//                {
+//                    custom_fields cFields
+//                    {
+//                        {"mesType", optype},
+//                        {"addrFrom", addr.first},
+//                        {"nameFrom", response["referralName"].get_str()}
+//                    };
+//                    if (response.exists("referralAvatar"))
+//                        cFields.emplace("avatarFrom",response["referralAvatar"].get_str());
+//
+//                    PrepareWSMessage(messages, "event", response["referrerAddress"].get_str(), txid, txtime, cFields);
+//                }
+//            }
             else if (optype == "upvoteShare")
             {
                 auto response = notifierRepoInst->GetPostInfoAddressByScore(txid);

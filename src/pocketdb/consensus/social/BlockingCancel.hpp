@@ -103,6 +103,28 @@ namespace PocketConsensus
 
             return Success;
         }
+        ConsensusValidateResult ValidateBlock(const BlockingCancelRef& ptx, const PocketBlockRef& block) override
+        {
+            for (auto& blockTx: *block)
+            {
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_BLOCKING, ACTION_BLOCKING_CANCEL}))
+                    continue;
+
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                auto blockPtx = static_pointer_cast<Blocking>(blockTx);
+
+                if (*ptx->GetAddress() == *blockPtx->GetAddress()) {
+                    if (!IsEmpty(blockPtx->GetAddressTo()) && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
+                        return {false, SocialConsensusResult_ManyTransactions};
+                    if (!IsEmpty(blockPtx->GetAddressesTo()))
+                        return {false, SocialConsensusResult_ManyTransactions};
+                }
+            }
+
+            return Success;
+        }
         ConsensusValidateResult Check(const CTransactionRef& tx, const BlockingCancelRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -130,7 +152,7 @@ namespace PocketConsensus
     protected:
         const vector<ConsensusCheckpoint < BlockingCancelConsensus>> m_rules = {
             {       0,       0, [](int height) { return make_shared<BlockingCancelConsensus>(height); }},
-            { 1873500, 1114500, [](int height) { return make_shared<BlockingCancelConsensus_checkpoint_multiple_blocking>(height); }}, // TODO (o1q): set checkpoint height for multiple locks
+            { 1873500, 1114500, [](int height) { return make_shared<BlockingCancelConsensus_checkpoint_multiple_blocking>(height); }},
         };
     public:
         shared_ptr<BlockingCancelConsensus> Instance(int height)
