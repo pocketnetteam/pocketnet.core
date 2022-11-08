@@ -3634,6 +3634,7 @@ void CChainState::ReceivedBlockTransactions(const CBlock& block, CBlockIndex* pi
     pindexNew->nFile = pos.nFile;
     pindexNew->nDataPos = pos.nPos;
     pindexNew->nUndoPos = 0;
+    pindexNew->nStatus &= ~BLOCK_HAVE_UNDO;
     pindexNew->nStatus |= BLOCK_HAVE_DATA;
     if (IsWitnessEnabled(pindexNew->pprev, consensusParams)) {
         pindexNew->nStatus |= BLOCK_OPT_WITNESS;
