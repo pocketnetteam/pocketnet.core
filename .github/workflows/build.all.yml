@@ -13,10 +13,6 @@ on:
           - unix
           - win
           # - macos
-      branch:
-        description: 'Specific Branch for building'
-        required: true
-        default: 'main'
       tag:
         description: 'Specific tag for building'
         required: false
@@ -31,7 +27,7 @@ jobs:
       - uses: andyoknen/pocketnetcore-build-action@v1
         with:
           platform: 'unix'
-          branch: ${{ github.event.inputs.branch }}
+          branch: ${GITHUB_REF##*/}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -46,7 +42,7 @@ jobs:
       - uses: andyoknen/pocketnetcore-build-action@v1
         with:
           platform: 'win'
-          branch: ${{ github.event.inputs.branch }}
+          branch: ${GITHUB_REF##*/}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -61,7 +57,7 @@ jobs:
       - uses: andyoknen/pocketnetcore-build-action@v1
         with:
           platform: 'macos'
-          branch: ${{ github.event.inputs.branch }}
+          branch: ${GITHUB_REF##*/}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
