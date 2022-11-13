@@ -13,6 +13,14 @@ on:
           - unix
           - win
           # - macos
+      depsBase:
+         description: 'Base branch for use dependencies'
+         required: true
+         default: '0.21'
+         type: choice
+         options:
+           - '0.20'
+           - '0.21'
       tag:
         description: 'Specific tag for building'
         required: false
@@ -27,10 +35,11 @@ jobs:
       - name: Get branch name
         id: branch-name
         uses: tj-actions/branch-names@v6
-      - uses: andyoknen/pocketnetcore-build-action@v1
+      - uses: andyoknen/pocketnetcore-build-action@v2
         with:
           platform: 'unix'
           branch: ${{ steps.branch-name.outputs.ref_branch }}
+          depsBase: ${{ github.event.inputs.depsBase }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -45,10 +54,11 @@ jobs:
       - name: Get branch name
         id: branch-name
         uses: tj-actions/branch-names@v6
-      - uses: andyoknen/pocketnetcore-build-action@v1
+      - uses: andyoknen/pocketnetcore-build-action@v2
         with:
           platform: 'win'
           branch: ${{ steps.branch-name.outputs.ref_branch }}
+          depsBase: ${{ github.event.inputs.depsBase }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -63,10 +73,11 @@ jobs:
       - name: Get branch name
         id: branch-name
         uses: tj-actions/branch-names@v6
-      - uses: andyoknen/pocketnetcore-build-action@v1
+      - uses: andyoknen/pocketnetcore-build-action@v2
         with:
           platform: 'macos'
           branch: ${{ steps.branch-name.outputs.ref_branch }}
+          depsBase: ${{ github.event.inputs.depsBase }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
