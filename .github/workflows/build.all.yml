@@ -24,10 +24,13 @@ jobs:
     if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform == 'unix' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v6
       - uses: andyoknen/pocketnetcore-build-action@v1
         with:
           platform: 'unix'
-          branch: ${{ GITHUB_REF##*/ }}
+          branch: ${{ steps.branch-name.outputs.ref_branch }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -39,10 +42,13 @@ jobs:
     if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform }} == 'win' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v6
       - uses: andyoknen/pocketnetcore-build-action@v1
         with:
           platform: 'win'
-          branch: ${{ GITHUB_REF##*/ }}
+          branch: ${{ steps.branch-name.outputs.ref_branch }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -54,10 +60,13 @@ jobs:
     if: ${{ github.event.inputs.platform == 'implement' || github.event.inputs.platform == 'implement' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v6
       - uses: andyoknen/pocketnetcore-build-action@v1
         with:
           platform: 'macos'
-          branch: ${{ GITHUB_REF##*/ }}
+          branch: ${{ steps.branch-name.outputs.ref_branch }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
