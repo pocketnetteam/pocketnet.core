@@ -27,7 +27,7 @@ jobs:
       - uses: andyoknen/pocketnetcore-build-action@v1
         with:
           platform: 'unix'
-          branch: ${GITHUB_REF##*/}
+          branch: ${{ GITHUB_REF##*/ }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -42,7 +42,7 @@ jobs:
       - uses: andyoknen/pocketnetcore-build-action@v1
         with:
           platform: 'win'
-          branch: ${GITHUB_REF##*/}
+          branch: ${{ GITHUB_REF##*/ }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -57,7 +57,7 @@ jobs:
       - uses: andyoknen/pocketnetcore-build-action@v1
         with:
           platform: 'macos'
-          branch: ${GITHUB_REF##*/}
+          branch: ${{ GITHUB_REF##*/ }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
