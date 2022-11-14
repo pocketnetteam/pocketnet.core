@@ -28,21 +28,10 @@ on:
         
 jobs:
 
-  prepare-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - id: set-matrix
-        run: |
-          echo "matrix=$([[ $github.event.inputs.platform = 'all' ]] && echo [\"unix\",\"win\",\"macos\"] || echo [\"$github.event.inputs.platform\"])"
-          echo "matrix=$([[ $github.event.inputs.platform = 'all' ]] && echo [\"unix\",\"win\",\"macos\"] || echo [\"$github.event.inputs.platform\"])" >> $GITHUB_OUTPUT
-
   build:
-    needs: prepare-matrix
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+        platform: ${{ $github.event.inputs.platform == 'all' && ["unix","win","macos"] || ["${github.event.inputs.platform}"] }}
     runs-on: ubuntu-latest
     steps:
       - name: Get branch name
