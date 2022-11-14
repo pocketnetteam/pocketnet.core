@@ -32,6 +32,8 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(github.event.inputs.platform == 'all' && '["unix","win","macos"]' || '[github.event.inputs.platform]') }}
+        exclude:
+          - platform: macos
     runs-on: ubuntu-latest
     steps:
       - name: Get branch name
