@@ -31,7 +31,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: ${{ $github.event.inputs.platform == 'all' && ["unix","win","macos"] || ["${github.event.inputs.platform}"] }}
+        platform: ${{ $github.event.inputs.platform == 'all' && ["unix","win","macos"] || [$github.event.inputs.platform] }}
     runs-on: ubuntu-latest
     steps:
       - name: Get branch name
