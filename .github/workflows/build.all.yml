@@ -28,8 +28,19 @@ on:
         
 jobs:
 
-  build-unix:
-    if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform == 'unix' }}
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: echo "::set-output name=matrix::$([[ $github.event.inputs.platform = 'all' ]] && echo [\"unix\",\"win\",\"macos\"] || echo [\"$github.event.inputs.platform\"])"
+
+  build:
+    needs: prepare-matrix
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
     runs-on: ubuntu-latest
     steps:
       - name: Get branch name
@@ -37,50 +48,13 @@ jobs:
         uses: tj-actions/branch-names@v6
       - uses: andyoknen/pocketnetcore-build-action@v2
         with:
-          platform: 'unix'
+          platform: ${{ matrix.platform }}
           branch: ${{ steps.branch-name.outputs.ref_branch }}
           depsBase: ${{ github.event.inputs.depsBase }}
           tag: ${{ github.event.inputs.tag }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: unix
+          name: ${{ matrix.platform }}
           path: ./out
           
-  build-win:
-    if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform }} == 'win' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get branch name
-        id: branch-name
-        uses: tj-actions/branch-names@v6
-      - uses: andyoknen/pocketnetcore-build-action@v2
-        with:
-          platform: 'win'
-          branch: ${{ steps.branch-name.outputs.ref_branch }}
-          depsBase: ${{ github.event.inputs.depsBase }}
-          tag: ${{ github.event.inputs.tag }}
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: win
-          path: ./out
-          
-  build-macos:
-    if: ${{ github.event.inputs.platform == 'implement' || github.event.inputs.platform == 'implement' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get branch name
-        id: branch-name
-        uses: tj-actions/branch-names@v6
-      - uses: andyoknen/pocketnetcore-build-action@v2
-        with:
-          platform: 'macos'
-          branch: ${{ steps.branch-name.outputs.ref_branch }}
-          depsBase: ${{ github.event.inputs.depsBase }}
-          tag: ${{ github.event.inputs.tag }}
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: macos
-          path: ./out
