@@ -31,7 +31,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: ${{ fromJson(github.event.inputs.platform == 'all' && '[unix,win,macos]' || '['+github.event.inputs.platform+']') }}
+        platform: ${{ fromJson(github.event.inputs.platform == 'all' && '["unix","win","macos"]' || format('["{0}"]', github.event.inputs.platform)) }}
         exclude:
           - platform: macos
     runs-on: ubuntu-latest
