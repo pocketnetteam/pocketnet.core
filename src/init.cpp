@@ -640,7 +640,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-rpccookiefile=<loc>", "Location of the auth cookie. Relative paths will be prefixed by a net-specific datadir location. (default: data dir)", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcpassword=<pw>", "Password for JSON-RPC connections", ArgsManager::ALLOW_ANY | ArgsManager::SENSITIVE, OptionsCategory::RPC);
     argsman.AddArg("-rpcport=<port>", strprintf("Listen for JSON-RPC connections on <port> (default: %u, testnet: %u, signet: %u, regtest: %u)", defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort(), signetBaseParams->RPCPort(), regtestBaseParams->RPCPort()), ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::RPC);
-    argsman.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->WsPort(), testnetBaseParams->WsPort(), regtestBaseParams->WsPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-publicrpcport=<port>", strprintf("Listen for public JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->PublicRPCPort(), testnetBaseParams->PublicRPCPort(), regtestBaseParams->PublicRPCPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-staticrpcport=<port>", strprintf("Listen for static JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->StaticRPCPort(), testnetBaseParams->StaticRPCPort(), regtestBaseParams->StaticRPCPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-restport=<port>", strprintf("Listen for static REST connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->RestPort(), testnetBaseParams->RestPort(), regtestBaseParams->RestPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
@@ -1459,7 +1459,7 @@ using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 static void StartWS()
 {
     WsServer server;
-    server.config.port = gArgs.GetArg("-wsport", 8087);
+    server.config.port = gArgs.GetArg("-wsport", BaseParams().WsPort());
 
     auto& ws = server.endpoint["^/ws/?$"];
     ws.on_message = [](std::shared_ptr<WsServer::Connection> connection,
@@ -2127,7 +2127,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     fFeeEstimatesInitialized = true;
     
     // ********************************************************* Step 8: start indexers
-    // TODO (brangr): 0.21.0 check need txindex test
     if (args.GetBoolArg("-txindex", DEFAULT_TXINDEX))
     {
         g_txindex = MakeUnique<TxIndex>(nTxIndexCache, false, fReindex);
