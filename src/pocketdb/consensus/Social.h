@@ -32,7 +32,7 @@ namespace PocketConsensus
         // Validate transaction in block for miner & network full block sync
         virtual ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block)
         {
-            // TODO (team): optimize algorithm
+            // TODO (aok): optimize algorithm
             // Account must be registered
             vector<string> addressesForCheck;
             vector<string> addresses = GetAddressesForCheckRegistration(ptx);
@@ -51,10 +51,6 @@ namespace PocketConsensus
 
                             if (*blockTx->GetString1() == address)
                             {
-                                // TODO (brangr): delete - в один блок пусть с удалением пролазят - проверитЬ!
-                                // if (*blockTx->GetType() == ACCOUNT_DELETE)
-                                //     return {false, SocialConsensusResult_AccountDeleted};
-
                                 inBlock = true;
                                 break;
                             }

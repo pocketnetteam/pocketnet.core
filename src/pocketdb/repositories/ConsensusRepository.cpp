@@ -592,7 +592,7 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (brangr): maybe remove in future?
+    // TODO (aok): maybe remove in future?
     int64_t ConsensusRepository::GetAccountRegistrationTime(int addressId)
     {
         int64_t result = 0;

@@ -334,7 +334,7 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        // TODO (brangr): add pagination
+        // TODO (aok): add pagination
 
         vector<string> destinations;
         if (request.params.size() > 0)

@@ -29,15 +29,10 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress()))
                 return {false, SocialConsensusResult_Failed};
 
-            return EnableTransaction();
+            return Success;
         }
 
     protected:
-
-        virtual ConsensusValidateResult EnableTransaction()
-        {
-            return { false, SocialConsensusResult_NotAllowed };
-        }
 
         ConsensusValidateResult ValidateBlock(const AccountDeleteRef& ptx, const PocketBlockRef& block) override
         {
@@ -67,18 +62,6 @@ namespace PocketConsensus
         }
     };
 
-    // TODO (brangr): remove after fork enabled
-    class AccountDeleteConsensus_checkpoint_enable : public AccountDeleteConsensus
-    {
-    public:
-        AccountDeleteConsensus_checkpoint_enable(int height) : AccountDeleteConsensus(height) {}
-    protected:
-        ConsensusValidateResult EnableTransaction() override
-        {
-            return Success;
-        }
-    };
-
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
@@ -86,8 +69,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<AccountDeleteConsensus>> m_rules = {
-            {       0, -1, [](int height) { return make_shared<AccountDeleteConsensus>(height); }},
-            { 1914000,  0, [](int height) { return make_shared<AccountDeleteConsensus_checkpoint_enable>(height); }}, // TODO (brangr): set fork height
+            { 0, 0, [](int height) { return make_shared<AccountDeleteConsensus>(height); }},
         };
     public:
         shared_ptr<AccountDeleteConsensus> Instance(int height)

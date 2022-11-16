@@ -378,7 +378,7 @@ namespace PocketConsensus
             { NetworkMain, { {0, 336 * 24 * 3600}, {322700, 30 * 24 * 3600} } },
             { NetworkTest, { {0, 30 * 24 * 3600} } }
         } },
-        // TODO (brangr) (v0.21.0): change GetLotteryReferralDepth Time to Height
+        // TODO (aok) (v0.21.0): change GetLotteryReferralDepth Time to Height
         { ConsensusLimit_lottery_referral_depth, {
             { NetworkMain, { {0, 30 * 24 * 3600} } },
             { NetworkTest, { {0, 30 * 24 * 3600} } }

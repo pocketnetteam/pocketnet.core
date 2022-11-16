@@ -194,7 +194,7 @@ namespace PocketServices
         UniValue pocketData(UniValue::VOBJ);
         if (!stream.empty())
         {
-            // TODO (brangr) (v0.21.0): speed up protocol
+            // TODO (aok) (v0.21.0): speed up protocol
             string src;
             stream >> src;
             pocketData.read(src);

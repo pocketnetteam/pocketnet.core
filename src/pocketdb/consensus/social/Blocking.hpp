@@ -144,7 +144,7 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<Blocking>(blockTx);
 
-                // TODO (brangr, o1q): disable blocking 1-1 - allow only 1-N
+                // TODO (aok, o1q): disable blocking 1-1 - allow only 1-N
                 if (*ptx->GetAddress() == *blockPtx->GetAddress()) {
                     if (!IsEmpty(ptx->GetAddressTo()) &&
                         !IsEmpty(blockPtx->GetAddressTo()) &&

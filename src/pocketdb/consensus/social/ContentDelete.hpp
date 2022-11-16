@@ -34,7 +34,7 @@ namespace PocketConsensus
             if (*actuallTx->GetType() == TxType::CONTENT_DELETE)
                 return {false, SocialConsensusResult_ContentDeleteDouble};
 
-            // TODO (brangr): convert to Content base class
+            // TODO (aok): convert to Content base class
             // You are author? Really?
             if (*ptx->GetAddress() != *actuallTx->GetString1())
                 return {false, SocialConsensusResult_ContentDeleteUnauthorized};
@@ -64,7 +64,7 @@ namespace PocketConsensus
                 if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                // TODO (brangr): convert to content base class
+                // TODO (aok): convert to content base class
                 if (*ptx->GetRootTxHash() == *blockTx->GetString2())
                     return {false, SocialConsensusResult_ContentDeleteDouble};
             }

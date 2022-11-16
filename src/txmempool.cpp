@@ -553,7 +553,7 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
             txToRemove.insert(nextit);
         }
 
-        // TODO (brangr): do not remove before inspect
+        // TODO (aok): do not remove before inspect
         // auto hash = origTx.GetHash().GetHex();
         // if (PocketDb::TransRepoInst.Exists(hash))
         // {
