@@ -307,7 +307,7 @@ namespace PocketConsensus
             { NetworkTest, { {0, 0} } }
         } },
         { threshold_shark_likers_comment, {
-            { NetworkMain, { {0, 15}, {1873500, 25} } },
+            { NetworkMain, { {0, 15}, {1873500, 25}, {9999999, 30} } }, // TODO (aok): set height before release 0.21.0
             { NetworkTest, { {0, 1} } }
         } },
         { threshold_shark_likers_comment_answer, {
