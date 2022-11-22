@@ -555,7 +555,7 @@ namespace PocketWeb::PocketWebRpc
         {
             UniValue uinp(UniValue::VOBJ);
 
-            uinp.pushKV("txid", *inp->GetSpentTxHash());
+            uinp.pushKV("txid", *inp->GetTxHash());
             uinp.pushKV("vout", *inp->GetNumber());
             if (inp->GetAddressHash()) uinp.pushKV("address", *inp->GetAddressHash());
             if (inp->GetValue()) uinp.pushKV("value", *inp->GetValue() / 100000000.0);
