@@ -84,15 +84,18 @@ namespace PocketConsensus
                 if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                auto blockPtx = static_pointer_cast<User>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                if (*ptx->GetAddress() == *blockTx->GetString1())
                 {
                     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoDoubleInBlock))
                         return {false, SocialConsensusResult_ChangeInfoDoubleInBlock};
                 }
 
-                if (auto[ok, result] = ValidateBlockDuplicateName(ptx, blockPtx); !ok)
-                    return {false, result};
+                if (TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER }))
+                {
+                    auto blockPtx = static_pointer_cast<User>(blockTx);
+                    if (auto[ok, result] = ValidateBlockDuplicateName(ptx, blockPtx); !ok)
+                        return {false, result};
+                }
             }
 
             if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
@@ -201,10 +204,10 @@ namespace PocketConsensus
         // TODO (brangr): move to base class after this checkpoint - set test checkpoint records
         ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx) override
         {
-            auto ptxName = *ptx->GetPayloadName();
+            auto ptxName = ptx->GetPayloadName() ? *ptx->GetPayloadName() : "";
             boost::algorithm::to_lower(ptxName);
 
-            auto blockPtxName = *blockPtx->GetPayloadName();
+            auto blockPtxName = blockPtx->GetPayloadName() ? *blockPtx->GetPayloadName() : "";
             boost::algorithm::to_lower(blockPtxName);
 
             if (ptxName == blockPtxName)
