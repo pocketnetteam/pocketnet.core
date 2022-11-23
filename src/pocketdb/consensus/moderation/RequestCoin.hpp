@@ -31,8 +31,6 @@ namespace PocketConsensus
 
             // TODO (moderation): check exists old free outputs
 
-            return EnableTransaction();
-
             return ModeratorRequestConsensus::Validate(tx, ptx, block);
         }
         
@@ -54,7 +52,7 @@ namespace PocketConsensus
     };
 
 
-    // TODO (brangr): remove after fork enabled
+    // TODO (moderation): remove after fork enabled
     class ModeratorRequestCoinConsensus_checkpoint_enable : public ModeratorRequestCoinConsensus
     {
     public:
@@ -75,6 +73,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestCoinConsensus>> m_rules = {
             { 0, 0, [](int height) { return make_shared<ModeratorRequestCoinConsensus>(height); }},
+            // TODO (moderation): set height
             { 9999999,  0, [](int height) { return make_shared<ModeratorRequestCoinConsensus_checkpoint_enable>(height); }},
         };
     public:

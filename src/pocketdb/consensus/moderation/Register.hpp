@@ -70,7 +70,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
-            // implement
+            // todo (aok) moderation: implement
             // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), true))
             //     return {false, SocialConsensusResult_Duplicate};
 

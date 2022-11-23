@@ -35,8 +35,6 @@ namespace PocketConsensus
 
             // TODO (moderation): implement check allowed requests count > 0
 
-            return EnableTransaction();
-
             return ModeratorRequestConsensus::Validate(tx, ptx, block);
         }
         
@@ -58,7 +56,7 @@ namespace PocketConsensus
     };
 
 
-    // TODO (brangr): remove after fork enabled
+    // TODO (moderation): remove after fork enabled
     class ModeratorRequestSubsConsensus_checkpoint_enable : public ModeratorRequestSubsConsensus
     {
     public:
@@ -79,6 +77,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestSubsConsensus>> m_rules = {
             {       0, -1, [](int height) { return make_shared<ModeratorRequestSubsConsensus>(height); }},
+            // TODO (moderation): set height
             { 9999999,  0, [](int height) { return make_shared<ModeratorRequestSubsConsensus_checkpoint_enable>(height); }},
         };
     public:

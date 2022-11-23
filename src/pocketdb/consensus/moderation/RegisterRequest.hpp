@@ -60,7 +60,7 @@ namespace PocketConsensus
     };
 
 
-    // TODO (brangr): remove after fork enabled
+    // TODO (moderation): remove after fork enabled
     class ModeratorRegisterRequestConsensus_checkpoint_enable : public ModeratorRegisterRequestConsensus
     {
     public:
@@ -80,6 +80,7 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<ModeratorRegisterRequestConsensus>> m_rules = {
             {       0, -1, [](int height) { return make_shared<ModeratorRegisterRequestConsensus>(height); }},
+            // TODO (moderation): set height
             { 9999999,  0, [](int height) { return make_shared<ModeratorRegisterRequestConsensus_checkpoint_enable>(height); }},
         };
     public:
