@@ -89,7 +89,7 @@ namespace PocketConsensus
             }
 
             // Check limit
-            return ValidateLimit(ConsensusLimit_moderation_flag_count, count);
+            return ValidateLimit(ptx, count);
         }
 
         ConsensusValidateResult ValidateMempool(const ModerationFlagRef& ptx) override

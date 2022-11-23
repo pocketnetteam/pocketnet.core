@@ -15,7 +15,7 @@ namespace PocketTx
         ModeratorRegisterRequest();
         ModeratorRegisterRequest(const CTransactionRef& tx);
 
-        shared_ptr<string> GetRequestTxHash() const;
+        const optional<string>& GetRequestTxHash() const;
         void SetRequestTxHash(const string& value);
 
         string BuildHash() override;

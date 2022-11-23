@@ -16,8 +16,8 @@ namespace PocketTx
         SetType(TxType::MODERATOR_REQUEST_CANCEL);
     }
 
-    shared_ptr<string> ModeratorRequestCancel::GetRequestTxHash() const { return m_string3; }
-    void ModeratorRequestCancel::SetRequestTxHash(const string& value) { m_string3 = make_shared<string>(value); }
+    const optional<string>& ModeratorRequestCancel::GetRequestTxHash() const { return m_string3; }
+    void ModeratorRequestCancel::SetRequestTxHash(const string& value) { m_string3 = value; }
     
     string ModeratorRequestCancel::BuildHash()
     {

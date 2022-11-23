@@ -10,8 +10,8 @@ namespace PocketTx
 
     Moderator::Moderator(const CTransactionRef& tx) : SocialTransaction(tx) {}
 
-    shared_ptr<string> Moderator::GetModeratorAddress() const { return m_string2; }
-    void Moderator::SetModeratorAddress(const string& value) { m_string2 = make_shared<string>(value); }
+    const optional<string>& Moderator::GetModeratorAddress() const { return m_string2; }
+    void Moderator::SetModeratorAddress(const string& value) { m_string2 = value; }
     
     string Moderator::BuildHash()
     {

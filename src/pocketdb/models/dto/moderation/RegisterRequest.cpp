@@ -16,8 +16,8 @@ namespace PocketTx
         SetType(TxType::MODERATOR_REGISTER_REQUEST);
     }
 
-    shared_ptr<string> ModeratorRegisterRequest::GetRequestTxHash() const { return m_string3; }
-    void ModeratorRegisterRequest::SetRequestTxHash(const string& value) { m_string3 = make_shared<string>(value); }
+    const optional<string>& ModeratorRegisterRequest::GetRequestTxHash() const { return m_string3; }
+    void ModeratorRegisterRequest::SetRequestTxHash(const string& value) { m_string3 = value; }
     
     string ModeratorRegisterRequest::BuildHash()
     {

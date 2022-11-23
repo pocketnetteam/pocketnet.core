@@ -17,7 +17,7 @@ namespace PocketTx
 
         string BuildHash() override;
 
-        shared_ptr<string> GetModeratorAddress() const;
+        const optional<string>& GetModeratorAddress() const;
         void SetModeratorAddress(const string& value);
 
     }; // class Moderator
