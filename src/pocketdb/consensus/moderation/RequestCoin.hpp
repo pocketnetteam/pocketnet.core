@@ -72,9 +72,9 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestCoinConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<ModeratorRequestCoinConsensus>(height); }},
+            {       0,       0, [](int height) { return make_shared<ModeratorRequestCoinConsensus>(height); }},
             // TODO (moderation): set height
-            { 9999999,  0, [](int height) { return make_shared<ModeratorRequestCoinConsensus_checkpoint_enable>(height); }},
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestCoinConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRequestCoinConsensus> Instance(int height)

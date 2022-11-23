@@ -352,19 +352,19 @@ namespace PocketConsensus
         } },
         { threshold_author_likers_all, {
             { NetworkMain, { {0, 1000} } },
-            { NetworkTest, { {0, 10} } }
+            { NetworkTest, { {0, 1} } }
         } },
         { threshold_author_likers_content, {
             { NetworkMain, { {0, 100} } },
-            { NetworkTest, { {0, 10} } }
+            { NetworkTest, { {0, 1} } }
         } },
         { threshold_author_likers_comment, {
             { NetworkMain, { {0, 100} } },
-            { NetworkTest, { {0, 10} } }
+            { NetworkTest, { {0, 1} } }
         } },
         { threshold_author_likers_comment_answer, {
             { NetworkMain, { {0, 100} } },
-            { NetworkTest, { {0, 10} } }
+            { NetworkTest, { {0, 1} } }
         } },
 
         // Other

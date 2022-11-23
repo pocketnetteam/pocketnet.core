@@ -16,7 +16,7 @@ namespace PocketTx
     string Moderator::BuildHash()
     {
         string data;
-        data += *GetModeratorAddress();
+        data += GetModeratorAddress() ? *GetModeratorAddress() : "";
         return SocialTransaction::GenerateHash(data);
     }
 

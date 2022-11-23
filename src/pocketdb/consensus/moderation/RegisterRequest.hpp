@@ -27,12 +27,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterRequestRef& ptx, const PocketBlockRef& block) override
         {
-            auto badges = reputationConsensus->GetBadges(*ptx->GetAddress());
-
-            // Already `Moderator` cant't register again
-            if (badges.Moderator)
-                return {false, SocialConsensusResult_AlreadyExists};
-
+            // Check request exists in chain
             if (!ConsensusRepoInst.Exists_HS2T(*ptx->GetRequestTxHash(), *ptx->GetAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }, true))
                 return {false, SocialConsensusResult_NotFound};
             
@@ -79,9 +74,9 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRegisterRequestConsensus>> m_rules = {
-            {       0, -1, [](int height) { return make_shared<ModeratorRegisterRequestConsensus>(height); }},
+            {       0,       0, [](int height) { return make_shared<ModeratorRegisterRequestConsensus>(height); }},
             // TODO (moderation): set height
-            { 9999999,  0, [](int height) { return make_shared<ModeratorRegisterRequestConsensus_checkpoint_enable>(height); }},
+            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRegisterRequestConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRegisterRequestConsensus> Instance(int height)

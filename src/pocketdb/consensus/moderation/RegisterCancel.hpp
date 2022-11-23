@@ -26,8 +26,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterCancelRef& ptx, const PocketBlockRef& block) override
         {
-            // TODO (moderation): check you self unregister
-            // TODO (moderation): check you another unregister and this register with your request
+            // TODO (moderation): check if you unregister to another and this register is your request
 
             return ModeratorRegisterConsensus::Validate(tx, ptx, block);
         }

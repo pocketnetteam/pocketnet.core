@@ -2110,7 +2110,6 @@ namespace PocketDb
 
     /* MODERATION */
 
-    // TODO (moderation): объединить оба метода
     int ConsensusRepository::CountModerationFlag(const string& address, int height, bool includeMempool)
     {
         int result = 0;

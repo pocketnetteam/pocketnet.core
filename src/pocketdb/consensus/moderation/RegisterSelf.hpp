@@ -26,12 +26,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModeratorRegisterSelfRef& ptx, const PocketBlockRef& block) override
         {
-            auto badges = reputationConsensus->GetBadges(*ptx->GetAddress());
-
-            // Already `Moderator` cant't register again
-            if (badges.Moderator)
-                return {false, SocialConsensusResult_AlreadyExists};
-
             // Only `Whale` account can register moderator badge
             if (!badges.Whale)
                 return {false, SocialConsensusResult_LowReputation};

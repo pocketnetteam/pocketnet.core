@@ -33,6 +33,12 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
+            badges = reputationConsensus->GetBadges(*ptx->GetAddress());
+
+            // Already `Moderator` cant't register again
+            if (badges.Moderator)
+                return {false, SocialConsensusResult_AlreadyExists};
+
             return Base::Validate(tx, ptx, block);
         }
 
@@ -52,6 +58,7 @@ namespace PocketConsensus
 
     protected:
         ReputationConsensusRef reputationConsensus;
+        BadgeSet badges;
 
         ConsensusValidateResult ValidateBlock(const shared_ptr<T>& ptx, const PocketBlockRef& block) override
         {
@@ -70,9 +77,8 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
-            // todo (aok) moderation: implement
-            // if (ConsensusRepoInst.ExistsModeratorRegister(*ptx->GetAddress(), true))
-            //     return {false, SocialConsensusResult_Duplicate};
+            if (ConsensusRepoInst.Exists_MS1T(*ptx->GetAddress(), { MODERATOR_REGISTER_SELF, MODERATOR_REGISTER_REQUEST, MODERATOR_REGISTER_CANCEL }))
+                return {false, SocialConsensusResult_ManyTransactions};
 
             return Base::Success;
         }
