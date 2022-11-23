@@ -1254,7 +1254,7 @@ set(POCKETCOIN_CLI pocketcoin-cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
 # TODO (build): remove leveldb after header fix
 target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli leveldb)
-target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
+target_include_directories(${POCKETCOIN_CLI} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 
 set(POCKETCOIN_TX pocketcoin-tx)
 add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
