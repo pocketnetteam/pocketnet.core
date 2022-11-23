@@ -17,10 +17,10 @@ namespace PocketTx
         Content();
         Content(const CTransactionRef& tx);
 
-        shared_ptr<string> GetAddress() const;
+        const optional<string>& GetAddress() const;
         void SetAddress(const string& value);
 
-        shared_ptr<string> GetRootTxHash() const;
+        const optional<string>& GetRootTxHash() const;
         void SetRootTxHash(const string& value);
         
         bool IsEdit() const;

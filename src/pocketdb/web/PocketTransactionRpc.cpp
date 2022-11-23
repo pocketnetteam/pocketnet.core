@@ -4,6 +4,7 @@
 
 #include "pocketdb/web/PocketTransactionRpc.h"
 #include "consensus/validation.h"
+#include "net_processing.h"
 #include "node/coin.h"
 #include "primitives/transaction.h"
 #include "rpc/blockchain.h"
@@ -253,14 +254,14 @@ namespace PocketWeb::PocketWebRpc
         int64_t totalAmount = 0;
         UniValue _inputs(UniValue::VARR);
         int i = 0;
-        while (totalAmount <= (fee + outputCount + 1000) && i < unsp.size())
+        while (totalAmount <= (fee + (outputCount * 3000)) && i < unsp.size())
         {
             totalAmount += unsp[i]["amountSat"].get_int64();
             _inputs.push_back(unsp[i]);
             i += 1;
         }
 
-        if (totalAmount <= (fee + outputCount + 1000))
+        if (totalAmount <= (fee + (outputCount * 3000)))
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Insufficient funds");
 
         // Build outputs
@@ -390,6 +391,7 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
+    // TODO (losty): this is likely a duplicate of "BroadcastTransaction", consider using it instead of this.
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman)
     {
         promise<void> promise;
@@ -463,11 +465,7 @@ namespace PocketWeb::PocketWebRpc
 
         promise.get_future().wait();
 
-        CInv inv(MSG_TX, txid);
-        connman.ForEachNode([&inv](CNode* pnode) {
-            // TODO (losty-fur): Validate this is working
-            pnode->PushTxInventory(inv.hash);
-        });
+        RelayTransaction(tx->GetHash(), tx->GetWitnessHash(), connman);
 
         return txid.GetHex();
     }

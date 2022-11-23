@@ -652,6 +652,72 @@ namespace PocketDb
         return result;
     }
 
+    bool ConsensusRepository::ExistsInMempool(const string& string1, const vector<TxType>& types)
+    {
+        assert(string1 != "");
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and String1 = ?
+              and Height is null
+            limit 1
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i++, string1);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::ExistsInMempool(const string& string1, const string& string2, const vector<TxType>& types)
+    {
+        assert(string1 != "");
+        assert(string2 != "");
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by Transactions_Type_String1_String2_Height
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and String1 = ?
+              and String2 = ?
+              and Height is null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i++, string1);
+            TryBindStatementText(stmt, i++, string2);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     bool ConsensusRepository::ExistsNotDeleted(const string& txHash, const string& address, const vector<TxType>& types)
     {
         bool result = false;
@@ -845,22 +911,6 @@ namespace PocketDb
 
                 left join Transactions m indexed by Transactions_Type_Last_String2_Height
                     on m.Type in (403,404) and m.Last = 1 and m.String2 = u.String1 and m.Height > 0
-
-                left join Balances b indexed by Balances_AddressHash_Last
-                    on b.AddressHash = u.String1 and b.Last = 1
-
-                left join Ratings r indexed by Ratings_Type_Id_Last_Value
-                    on r.Type = 0 and r.Id = u.Id and r.Last = 1
-
-                left join Ratings lp indexed by Ratings_Type_Id_Last_Value
-                    on lp.Type = 111 and lp.Id = u.Id and lp.Last = 1
-
-                left join Ratings lc indexed by Ratings_Type_Id_Last_Value
-                    on lc.Type = 112 and lc.Id = u.Id and lc.Last = 1
-
-                left join Ratings lca indexed by Ratings_Type_Id_Last_Value
-                    on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
-
 
                 where u.Type in (100, 170)
                   and u.Last = 1

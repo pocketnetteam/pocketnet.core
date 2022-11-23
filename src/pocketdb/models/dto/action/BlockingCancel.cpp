@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::ACTION_BLOCKING_CANCEL);
     }
 
-    shared_ptr <UniValue> BlockingCancel::Serialize() const
+    optional <UniValue> BlockingCancel::Serialize() const
     {
         auto result = Blocking::Serialize();
 

@@ -18,13 +18,13 @@ namespace PocketTx
     }
 
     
-    shared_ptr <string> AccountSetting::GetAddress() const { return m_string1; }
-    void AccountSetting::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
+    const optional <string>& AccountSetting::GetAddress() const { return m_string1; }
+    void AccountSetting::SetAddress(const string& value) { m_string1 = value; }
 
-    shared_ptr <string> AccountSetting::GetPayloadData() const {return GetPayload() ? GetPayload()->GetString1() : nullptr; }
+    optional <string> AccountSetting::GetPayloadData() const {return GetPayload() ? GetPayload()->GetString1() : nullopt; }
 
 
-    shared_ptr <UniValue> AccountSetting::Serialize() const
+    optional <UniValue> AccountSetting::Serialize() const
     {
         auto result = Transaction::Serialize();
 

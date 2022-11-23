@@ -531,7 +531,7 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
 {
     // Remove transaction from memory pool
     AssertLockHeld(cs);
-    std::unordered_set<std::string> removeHashes;
+    // std::unordered_set<std::string> removeHashes;
     setEntries txToRemove;
     txiter origit = mapTx.find(origTx.GetHash());
     if (origit != mapTx.end())
@@ -553,12 +553,12 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
             txToRemove.insert(nextit);
         }
 
-        // Also remove from Transactions DB if the original transaction is present
-        auto hash = origTx.GetHash().GetHex();
-        if (PocketDb::TransRepoInst.Exists(hash))
-        {
-            PocketDb::TransRepoInst.CleanTransaction(origTx.GetHash().GetHex());
-        }
+        // TODO (brangr): do not remove before inspect
+        // auto hash = origTx.GetHash().GetHex();
+        // if (PocketDb::TransRepoInst.Exists(hash))
+        // {
+        //    PocketDb::TransRepoInst.CleanTransaction(origTx.GetHash().GetHex());
+        // }
     }
     setEntries setAllRemoves;
     for (txiter it : txToRemove)
@@ -1057,19 +1057,11 @@ void CTxMemPool::RemoveUnbroadcastTx(const uint256& txid, const bool unchecked) 
 
 void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPoolRemovalReason reason)
 {
-    std::unordered_set<std::string> removeHashes;
-
     AssertLockHeld(cs);
     UpdateForRemoveFromMempool(stage, updateDescendants);
     for (txiter it : stage)
     {
-        removeHashes.emplace(it->GetTx().GetHash().GetHex());
         removeUnchecked(it, reason);
-    }
-
-    if (reason != MemPoolRemovalReason::BLOCK && removeHashes.size() > 0)
-    {
-        CleanSQLite(removeHashes, reason);
     }
 }
 
@@ -1078,8 +1070,8 @@ void CTxMemPool::CleanSQLite(const std::unordered_set<std::string>& hashes, MemP
     AssertLockHeld(cs);
     for (const auto& hash : hashes)
     {
-        LogPrint(BCLog::MEMPOOL, "%s: Clean SQLite mempool tx with reason %d\n", hash, (int)reason);
         PocketDb::TransRepoInst.CleanTransaction(hash);
+        LogPrint(BCLog::MEMPOOL, "%s: Clean SQLite mempool tx with reason %d\n", hash, (int)reason);
     }
 }
 
@@ -1100,6 +1092,14 @@ int CTxMemPool::Expire(std::chrono::seconds time)
 
     // Remove from memory mempool
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
+
+    // Build list of tx hashes
+    std::unordered_set<std::string> removeHashes;
+    for (const auto& iter : stage)
+        removeHashes.emplace(iter->GetTx().GetHash().GetHex());
+
+    // Also remove from sqlite db
+    CleanSQLite(removeHashes, MemPoolRemovalReason::EXPIRY);
 
     return stage.size();
 }

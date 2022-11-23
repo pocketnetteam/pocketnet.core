@@ -658,6 +658,8 @@ add_library(${POCKETDB}
         pocketdb/models/shortform/ShortTxType.h
         pocketdb/models/shortform/ShortTxOutput.h
         pocketdb/models/shortform/ShortTxOutput.cpp
+        pocketdb/helpers/ShortFormModelsHelper.h
+        pocketdb/helpers/ShortFormModelsHelper.cpp
         )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
 
@@ -1064,8 +1066,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/helpers/PocketnetHelper.h
         pocketdb/helpers/TransactionHelper.h
         pocketdb/helpers/TransactionHelper.cpp
-        pocketdb/helpers/ShortFormHelper.h
-        pocketdb/helpers/ShortFormHelper.cpp
+        pocketdb/helpers/ShortFormRepositoryHelper.h
+        pocketdb/helpers/ShortFormRepositoryHelper.cpp
         pocketdb/SQLiteDatabase.h
         pocketdb/SQLiteConnection.h
         pocketdb/SQLiteDatabase.cpp

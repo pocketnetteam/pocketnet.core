@@ -139,11 +139,12 @@ namespace PocketConsensus
                 if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_BLOCKING, ACTION_BLOCKING_CANCEL}))
                     continue;
 
-                auto blockPtx = static_pointer_cast<Blocking>(blockTx);
-
-                if (*blockPtx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
+                auto blockPtx = static_pointer_cast<Blocking>(blockTx);
+
+                // TODO (brangr, o1q): disable blocking 1-1 - allow only 1-N
                 if (*ptx->GetAddress() == *blockPtx->GetAddress()) {
                     if (!IsEmpty(ptx->GetAddressTo()) &&
                         !IsEmpty(blockPtx->GetAddressTo()) &&

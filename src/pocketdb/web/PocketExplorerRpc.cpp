@@ -77,7 +77,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
-        int depth = 24;
+        int depth = 24 * 7;
         if (request.params[1].isNum())
             depth = min(request.params[1].get_int(), depth);
         depth = depth * 60;
@@ -111,7 +111,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
-        int depth = 30;
+        int depth = 30 * 12;
         if (request.params[1].isNum())
             depth = min(request.params[1].get_int(), depth);
         depth = depth * 24 * 60;
@@ -140,7 +140,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
-        int depth = 24;
+        int depth = 24 * 7;
         if (request.params[1].isNum())
             depth = min(request.params[1].get_int(), depth);
         depth = depth * 60;
@@ -169,7 +169,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
-        int depth = 30;
+        int depth = 30 * 12;
         if (request.params[1].isNum())
             depth = min(request.params[1].get_int(), depth);
         depth = depth * 24 * 60;
@@ -699,10 +699,10 @@ namespace PocketWeb::PocketWebRpc
         {
             UniValue uinp(UniValue::VOBJ);
 
-            uinp.pushKV("txid", *inp->GetSpentTxHash());
-            uinp.pushKV("vout", *inp->GetNumber());
-            if (inp->GetAddressHash()) uinp.pushKV("address", *inp->GetAddressHash());
-            if (inp->GetValue()) uinp.pushKV("value", *inp->GetValue() / 100000000.0);
+            uinp.pushKV("txid", *inp.GetTxHash());
+            uinp.pushKV("vout", *inp.GetNumber());
+            if (inp.GetAddressHash()) uinp.pushKV("address", *inp.GetAddressHash());
+            if (inp.GetValue()) uinp.pushKV("value", *inp.GetValue() / 100000000.0);
 
             utx.At("vin").push_back(uinp);
         }
@@ -712,17 +712,17 @@ namespace PocketWeb::PocketWebRpc
         for (const auto& out : ptx->Outputs())
         {
             UniValue uout(UniValue::VOBJ);
-            uout.pushKV("n", *out->GetNumber());
-            uout.pushKV("value", *out->GetValue() / 100000000.0);
+            uout.pushKV("n", *out.GetNumber());
+            uout.pushKV("value", *out.GetValue() / 100000000.0);
 
             UniValue scriptPubKey(UniValue::VOBJ);
             UniValue addresses(UniValue::VARR);
-            addresses.push_back(*out->GetAddressHash());
+            addresses.push_back(*out.GetAddressHash());
             scriptPubKey.pushKV("addresses", addresses);
-            scriptPubKey.pushKV("hex", *out->GetScriptPubKey());
+            scriptPubKey.pushKV("hex", *out.GetScriptPubKey());
             uout.pushKV("scriptPubKey", scriptPubKey);
 
-            if (out->GetSpentHeight()) uout.pushKV("spent", *out->GetSpentHeight());
+            if (out.GetSpentHeight()) uout.pushKV("spent", *out.GetSpentHeight());
 
             utx.At("vout").push_back(uout);
         }

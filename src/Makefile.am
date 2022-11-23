@@ -120,7 +120,8 @@ POCKETDB_H = \
     \
     pocketdb/helpers/PocketnetHelper.h \
     pocketdb/helpers/TransactionHelper.h \
-    pocketdb/helpers/ShortFormHelper.h \
+    pocketdb/helpers/ShortFormRepositoryHelper.h \
+    pocketdb/helpers/ShortFormModelsHelper.h \
     \
     pocketdb/web/PocketContentRpc.h \
     pocketdb/web/PocketCommentsRpc.h \
@@ -239,7 +240,8 @@ POCKETDB_CPP = \
     pocketdb/migrations/web.cpp \
     \
     pocketdb/helpers/TransactionHelper.cpp \
-    pocketdb/helpers/ShortFormHelper.cpp \
+    pocketdb/helpers/ShortFormRepositoryHelper.cpp \
+    pocketdb/helpers/ShortFormModelsHelper.cpp \
     \
     pocketdb/services/WsNotifier.cpp \
     pocketdb/services/Serializer.cpp \

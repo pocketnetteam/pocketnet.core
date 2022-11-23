@@ -45,18 +45,11 @@ bool VerifyWallets(interfaces::Chain& chain)
     // For backwards compatibility if an unnamed top level wallet exists in the
     // wallets directory, include it in the default list of wallets to load.
     if (!gArgs.IsArgSet("wallet")) {
-        DatabaseOptions options;
-        DatabaseStatus status;
-        bilingual_str error_string;
-        options.require_existing = true;
-        options.verify = false;
-        if (MakeWalletDatabase("", options, status, error_string)) {
-            gArgs.LockSettings([&](util::Settings& settings) {
-                util::SettingsValue wallets(util::SettingsValue::VARR);
-                wallets.push_back(""); // Default wallet name is ""
-                settings.rw_settings["wallet"] = wallets;
-            });
-        }
+        gArgs.LockSettings([&](util::Settings& settings) {
+            util::SettingsValue wallets(util::SettingsValue::VARR);
+            wallets.push_back(""); // Default wallet name is ""
+            settings.rw_settings["wallet"] = wallets;
+        });
     }
 
     // Keep track of each wallet absolute path to detect duplicates.
@@ -72,7 +65,7 @@ bool VerifyWallets(interfaces::Chain& chain)
 
         DatabaseOptions options;
         DatabaseStatus status;
-        options.require_existing = true;
+        // options.require_existing = true;
         options.verify = true;
         bilingual_str error_string;
         if (!MakeWalletDatabase(wallet_file, options, status, error_string)) {
@@ -98,7 +91,7 @@ bool LoadWallets(interfaces::Chain& chain)
             }
             DatabaseOptions options;
             DatabaseStatus status;
-            options.require_existing = true;
+            // options.require_existing = true;
             options.verify = false; // No need to verify, assuming verified earlier in VerifyWallets()
             bilingual_str error;
             std::vector<bilingual_str> warnings;

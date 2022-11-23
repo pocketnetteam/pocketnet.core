@@ -14,7 +14,7 @@ namespace PocketTx
     {
     }
 
-    shared_ptr<UniValue> SocialTransaction::Serialize() const
+    optional<UniValue> SocialTransaction::Serialize() const
     {
         auto result = Transaction::Serialize();
 
@@ -61,7 +61,7 @@ namespace PocketTx
         // Deserialize payload part if exists non-empty "p" object
         if (auto[pOk, pVal] = TryGetObj(src, "p"); pOk)
         {
-            m_payload = make_shared<Payload>();
+            m_payload = Payload();
             if (auto[ok, val] = TryGetStr(pVal, "h"); ok) m_payload->SetTxHash(val);
             if (auto[ok, val] = TryGetStr(pVal, "s1"); ok) m_payload->SetString1(val);
             if (auto[ok, val] = TryGetStr(pVal, "s2"); ok) m_payload->SetString2(val);
@@ -79,8 +79,8 @@ namespace PocketTx
         Deserialize(src);
     }
     
-    shared_ptr<string> SocialTransaction::GetAddress() const { return m_string1; }
-    void SocialTransaction::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
+    const optional<string>& SocialTransaction::GetAddress() const { return m_string1; }
+    void SocialTransaction::SetAddress(const string& value) { m_string1 = value; }
 
 } // namespace PocketTx
 

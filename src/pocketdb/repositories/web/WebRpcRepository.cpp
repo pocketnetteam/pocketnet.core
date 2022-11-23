@@ -4,7 +4,9 @@
 
 #include "pocketdb/repositories/web/WebRpcRepository.h"
 
-#include "pocketdb/helpers/ShortFormHelper.h"
+#include "pocketdb/helpers/ShortFormRepositoryHelper.h"
+
+#include <functional>
 
 #include <functional>
 
@@ -21,7 +23,7 @@ namespace PocketDb
         string sql = R"sql(
             SELECT String1, Id
             FROM Transactions
-            WHERE Type in (100)
+            WHERE Type in (100,170)
               and Height is not null
               and Last = 1
               and String1 = ?
@@ -52,7 +54,7 @@ namespace PocketDb
         string sql = R"sql(
             SELECT String1, Id
             FROM Transactions
-            WHERE Type in (100)
+            WHERE Type in (100,170)
               and Height is not null
               and Last = 1
               and Id = ?
@@ -429,12 +431,16 @@ namespace PocketDb
                 , (
                     select json_group_array(json_object('adddress', subs.String2, 'private', case when subs.Type == 303 then 'true' else 'false' end))
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
+                      on uas.String1 = subs.String2 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
                 ) as Subscribes
                 
                 , (
                     select json_group_array(subs.String1)
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
+                      on uas.String1 = subs.String1 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
                 ) as Subscribers
 
@@ -481,12 +487,16 @@ namespace PocketDb
                 , (
                     select count()
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
+                      on uas.String1 = subs.String2 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
                     where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
                 ) as SubscribesCount
 
                 , (
                     select count()
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
+                      on uas.String1 = subs.String1 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
                     where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String2 = u.String1
                 ) as SubscribersCount
 
@@ -1637,7 +1647,8 @@ namespace PocketDb
                 select
                   bl.IdTarget
                 from BlockingLists bl
-                join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                cross join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
+                cross join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
                 where us.String1 = ?
             )sql");
             TryBindStatementText(stmt, 1, address);
@@ -1662,7 +1673,8 @@ namespace PocketDb
                 select
                   bl.IdSource
                 from BlockingLists bl
-                join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                cross join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
+                cross join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
                 where ut.String1 = ?
             )sql");
             TryBindStatementText(stmt, 1, address);
@@ -3573,16 +3585,17 @@ namespace PocketDb
 
             )sql" + langFilter + R"sql(
 
-            join Transactions subs indexed by Transactions_Type_Last_String1_String2_Height
-                on subs.Type in (302,303)
-               and subs.Last = 1
-               and subs.Height > 0
-               and subs.String1 = ?
-               and cnt.String1 in ( subs.String2 )sql" + (!addresses_extended.empty() ? ("," + join(vector<string>(addresses_extended.size(), "?"), ",")) : "") + R"sql( )
-               -- and subs.String2 = cnt.String1
-
             where cnt.Type in )sql" + contentTypesWhere + R"sql(
               and cnt.Last = 1
+              and cnt.String1 in (
+                  select subs.String2
+                  from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+                  where subs.Type in (302,303)
+                    and subs.Last = 1
+                    and subs.String1 = ?
+                    and subs.Height > 0
+                    )sql" + (!addresses_extended.empty() ? (" union select value from json_each(json_array(" + join(vector<string>(addresses_extended.size(), "?"), ",") + "))") : "") + R"sql(
+              )
               and cnt.Height > 0
               and cnt.Height <= ?
             
@@ -3631,13 +3644,13 @@ namespace PocketDb
 
             if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
             TryBindStatementText(stmt, i++, addressFeed);
             if (!addresses_extended.empty())
                 for (const auto& adr_ex: addresses_extended)
                     TryBindStatementText(stmt, i++, adr_ex);
-
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
 
             TryBindStatementInt(stmt, i++, topHeight);
 
@@ -5541,6 +5554,7 @@ namespace PocketDb
                 where t.Type = 100
                     and t.String2 is not null
                     and t.Height = ?
+                    -- TODO (losty): this is not valid if we are asking for notifications from past. See how it is done in events
                     and (select count(*) from Transactions tt indexed by Transactions_Id_Last where tt.Id = t.Id) = 1 -- Only original
         )sql",
             heightBinder
@@ -5869,6 +5883,7 @@ namespace PocketDb
                     null,
                     c.Height, -- TODO (losty): original?
                     c.BlockNum,
+                    null,
                     c.String2,
                     c.String3,
                     null,
@@ -6254,7 +6269,7 @@ namespace PocketDb
                 from Transactions r
 
                 join Transactions p indexed by Transactions_Type_Last_String2_Height
-                    on p.Type in (200,201,202)
+                    on p.Type = 200
                     and p.Last = 1
                     and p.String2 = r.String3
                     and p.Height > 0
@@ -6292,7 +6307,7 @@ namespace PocketDb
                     and rna.Id = na.Id
                     and rna.Last = 1
 
-                where r.Type in (200,201,202)
+                where r.Type = 200
                     and r.Hash = r.String2 -- Only orig
                     and r.Height = ?
                     and r.String3 is not null
@@ -6340,14 +6355,65 @@ namespace PocketDb
         {
             ShortTxType::Money, { R"sql(
                 -- Incoming money
-                select
+                select distinct
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
                     t.Hash,
                     t.Type,
-                    i.AddressHash,
-                    t.Height as Height,
+                    null,
+                    o.TxHeight as Height,
                     t.BlockNum as BlockNum,
-                    o.Value,
+                    null,
+                    null,
+                    null,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i indexed by TxOutputs_SpentTxHash
+                        where i.SpentTxHash = t.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', oo.Value,
+                                'AddressHash', oo.AddressHash,
+                                'ScriptPubKey', oo.ScriptPubKey,
+                                'Account', json_object(
+                                    'Lang', pna.String1,
+                                    'Name', pna.String2,
+                                    'Avatar', pna.String3,
+                                    'Rep', ifnull(rna.Value,0)
+                                )
+                            ))
+                        from TxOutputs oo indexed by TxOutputs_TxHash_AddressHash_Value
+                        left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                            on na.Type = 100
+                            and na.Last = 1
+                            and na.String1 = oo.AddressHash
+                        left join Payload pna
+                            on pna.TxHash = na.Hash
+                        left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                            on rna.Type = 0
+                            and rna.Id = na.Id
+                            and rna.Last = 1
+                        where oo.TxHash = t.Hash
+                            and oo.TxHeight = t.Height
+                        order by oo.Number
+                    ),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -6369,18 +6435,13 @@ namespace PocketDb
 
                 join Transactions t indexed by Transactions_Hash_Type_Height
                     on t.Hash = o.TxHash
-                    and t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
+                    and t.Type in (1,2,3)
                     and t.Height > ?
                     and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
 
-                join TxOutputs i indexed by TxOutputs_SpentTxHash
-                    on i.SpentTxHash = o.TxHash
-                    and i.Number = (select min(ii.Number) from TxOutputs ii where ii.SpentTxHash = o.TxHash)
-                    and i.AddressHash != o.AddressHash  -- TODO (brangr, lostystyg): exclude coinstake first transaction
-
                 where o.AddressHash = ?
                     and o.TxHeight > ?
-                    and o.TxHeight < ?
+                    and o.TxHeight <= ?
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
                 TryBindStatementInt64(stmt, i++, queryParams.heightMin);
@@ -6405,10 +6466,26 @@ namespace PocketDb
                     t.BlockNum as BlockNum,
                     null,
                     null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    p.String1,
                     p.String2,
                     p.String3,
-                    p.String4,
                     ifnull(r.Value,0),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -6423,12 +6500,17 @@ namespace PocketDb
 
                 from Transactions t indexed by Transactions_Type_Last_String2_Height
 
+                left join Transactions tLast indexed by Transactions_Type_Last_String1_Height_Id
+                    on tLast.Type = 100
+                    and tLast.Last = 1
+                    and tLast.String1 = t.String1
+
                 left join Payload p
-                    on p.TxHash = t.Hash
+                    on p.TxHash = tLast.Hash
 
                 left join Ratings r indexed by Ratings_Type_Id_Last_Height
                     on r.Type = 0
-                    and r.Id = t.Id
+                    and r.Id = tLast.Id
                     and r.Last = 1
 
                 where t.Type = 100
@@ -6455,45 +6537,65 @@ namespace PocketDb
                     a.Hash,
                     a.Type,
                     a.String1,
-                    orig.Height as Height,
+                    a.Height as Height,
                     a.BlockNum as BlockNum,
                     null,
+                    a.String2,
+                    a.String3,
+                    null,
+                    null,
+                    null,
                     pa.String1,
+                    a.String4,
+                    a.String5,
+                    paa.String1,
                     paa.String2,
                     paa.String3,
-                    paa.String4,
                     ifnull(ra.Value,0),
+                    null,
                     c.Hash,
                     c.Type,
                     null,
                     c.Height,
                     c.BlockNum,
                     null,
+                    c.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     pc.String1,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
                     null
 
-                from Transactions c indexed by Transactions_Type_Last_String1_String2_Height -- My comments
+                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- My comments
 
                 left join Payload pc
                     on pc.TxHash = c.Hash
 
                 join Transactions a indexed by Transactions_Type_Last_String5_Height -- Other answers
-                    on a.Type in (204, 205) and a.Last = 1
+                    on a.Type in (204, 205) and a.Last in (0,1)
                     and a.Height > ?
                     and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
                     and a.String5 = c.String2
                     and a.String1 != c.String1
+                    and a.Hash = a.String2
 
-                join Transactions orig indexed by Transactions_Hash_Height
-                    on orig.Hash = a.String2
+                left join Transactions aLast indexed by Transactions_Type_Last_String2_Height
+                    on aLast.Type in (204,205)
+                    and aLast.Last = 1
+                    and aLast.String2 = a.Hash
+                    and aLast.Height > 0
 
                 left join Payload pa
-                    on pa.TxHash = a.Hash
+                    on pa.TxHash = aLast.Hash
 
-                left join Transactions aa
+                left join Transactions aa indexed by Transactions_Type_Last_String1_Height_Id
                     on aa.Type = 100
                     and aa.Last = 1
                     and aa.String1 = a.String1
@@ -6508,9 +6610,9 @@ namespace PocketDb
                     and ra.Last = 1
 
                 where c.Type in (204, 205)
-                and c.Last = 1
-                and c.String1 = ?
-                and c.Height > 0
+                    and c.Last = 1
+                    and c.String1 = ?
+                    and c.Height > 0
         )sql",
             [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
                 TryBindStatementInt64(stmt, i++, queryParams.heightMin);
@@ -6531,17 +6633,52 @@ namespace PocketDb
                     c.String1,
                     c.Height as Height,
                     c.BlockNum as BlockNum,
-                    oc.Value,
+                    null,
+                    c.String2,
+                    null,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = c.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs o
+                        where o.TxHash = c.Hash
+                            and o.TxHeight = c.Height
+                        order by o.Number
+                    ),
                     pc.String1,
+                    null,
+                    null,
+                    pac.String1,
                     pac.String2,
                     pac.String3,
-                    pac.String4,
                     ifnull(rac.Value,0),
+                    null,
                     p.Hash,
                     p.Type,
                     null,
                     p.Height,
                     p.BlockNum,
+                    null,
+                    p.String2,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pp.String2,
+                    null,
                     null,
                     null,
                     null,
@@ -6549,26 +6686,28 @@ namespace PocketDb
                     null,
                     null
 
-                from Transactions p indexed by Transactions_String1_Last_Height
+                from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
 
                 join Transactions c indexed by Transactions_Type_Last_String3_Height
-                    on c.Type in (204,205)
-                    and c.Last = 1
+                    on c.Type = 204
+                    and c.Last in (0,1)
                     and c.String3 = p.String2
                     and c.String1 != p.String1
-                    and c.Hash = c.String2
                     and c.String4 is null
                     and c.String5 is null
                     and c.Height > ?
                     and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
 
-                left join TxOutputs oc indexed by TxOutputs_TxHash_AddressHash_Value
-                    on oc.TxHash = c.Hash and oc.AddressHash = p.String1 and oc.AddressHash != c.String1 
+                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                    on cLast.Type in (204,205)
+                    and cLast.Last = 1
+                    and cLast.String2 = c.Hash
+                    and cLast.Height > 0
 
                 left join Payload pc
-                    on pC.TxHash = c.Hash
+                    on pC.TxHash = cLast.Hash
 
-                join Transactions ac -- accounts of commentators
+                join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                     on ac.String1 = c.String1
                     and ac.Last = 1
                     and ac.Type = 100
@@ -6581,6 +6720,9 @@ namespace PocketDb
                     on rac.Type = 0
                     and rac.Id = ac.Id
                     and rac.Last = 1
+
+                left join Payload pp
+                    on pp.TxHash = p.Hash
 
                 where p.Type in (200,201,202)
                     and p.Last = 1
@@ -6608,10 +6750,26 @@ namespace PocketDb
                     subs.BlockNum as BlockNum,
                     null,
                     null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pu.String1,
                     pu.String2,
                     pu.String3,
-                    pu.String4,
                     ifnull(ru.Value,0),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -6624,9 +6782,9 @@ namespace PocketDb
                     null,
                     null
 
-                from Transactions subs --indexed by Transactions_Type_Last_String2_Height
+                from Transactions subs indexed by Transactions_Type_Last_String2_Height
 
-                join Transactions u --indexed by Transactions_Type_Last_String1_Height_Id
+                join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                     on u.Type in (100)
                     and u.Last = 1
                     and u.String1 = subs.String1
@@ -6640,8 +6798,8 @@ namespace PocketDb
                     and ru.Id = u.Id
                     and ru.Last = 1
 
-                where subs.Type in (302, 303) -- Ignoring unsubscribers?
-                    and subs.Last = 1
+                where subs.Type in (302, 303, 304) -- Ignoring unsubscribers?
+                    and subs.Last in (0,1)
                     and subs.String2 = ?
                     and subs.Height > ?
                     and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
@@ -6665,19 +6823,35 @@ namespace PocketDb
                     s.String1,
                     s.Height as Height,
                     s.BlockNum as BlockNum,
+                    null,
+                    null,
+                    null,
                     s.Int1,
                     null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pacs.String1,
                     pacs.String2,
                     pacs.String3,
-                    pacs.String4,
                     ifnull(racs.Value,0),
+                    null,
                     c.Hash,
                     c.Type,
                     null,
-                    c.Height, -- TODO (losty): original?
+                    c.Height,
                     c.BlockNum,
                     null,
+                    c.String2,
+                    c.String3,
+                    null,
+                    null,
+                    null,
                     ps.String1,
+                    c.String4,
+                    c.String5,
+                    null,
                     null,
                     null,
                     null,
@@ -6692,8 +6866,13 @@ namespace PocketDb
                     and s.Height > ?
                     and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
 
+                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                    on cLast.Type in (204,205)
+                    and cLast.Last = 1
+                    and cLast.String2 = c.String2
+
                 left join Payload ps
-                    on ps.TxHash = c.Hash
+                    on ps.TxHash = cLast.Hash
 
                 join Transactions acs
                     on acs.Type = 100
@@ -6709,8 +6888,8 @@ namespace PocketDb
                     and racs.Id = acs.Id
                     and racs.Last = 1
 
-                where c.Type in (204,205)
-                    and c.Last = 1
+                where c.Type in (204)
+                    and c.Last in (0,1)
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
@@ -6733,25 +6912,41 @@ namespace PocketDb
                     s.String1,
                     s.Height as Height,
                     s.BlockNum as BlockNum,
+                    null,
+                    null,
+                    null,
                     s.Int1,
                     null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pacs.String1,
                     pacs.String2,
                     pacs.String3,
-                    pacs.String4,
                     ifnull(racs.Value,0),
+                    null,
                     c.Hash,
                     c.Type,
                     null,
-                    c.Height, -- TODO (losty): original?
+                    c.Height,
                     c.BlockNum,
+                    null,
+                    c.String2,
+                    null,
+                    null,
+                    null,
                     null,
                     pc.String2,
                     null,
                     null,
                     null,
+                    null,
+                    null,
+                    null,
                     null
 
-                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+                from Transactions c indexed by Transactions_Type_String1_Height_Time_Int1
 
                 join Transactions s indexed by Transactions_Type_Last_String2_Height
                     on s.Type = 300
@@ -6760,8 +6955,13 @@ namespace PocketDb
                     and s.Height > ?
                     and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
 
+                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                    on cLast.Type = c.Type
+                    and cLast.Last = 1
+                    and cLast.String2 = c.String2
+
                 left join Payload pc
-                    on pc.TxHash = c.Hash
+                    on pc.TxHash = cLast.Hash
 
                 join Transactions acs
                     on acs.Type = 100
@@ -6778,7 +6978,7 @@ namespace PocketDb
                     and racs.Last = 1
 
                 where c.Type in (200, 201, 202)
-                    and c.Last = 1
+                    and c.Hash = c.String2 -- orig
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
@@ -6802,12 +7002,28 @@ namespace PocketDb
                     c.Height as Height,
                     c.BlockNum as BlockNum,
                     null,
+                    c.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     p.String2,
+                    null,
+                    null,
+                    pac.String1,
                     pac.String2,
                     pac.String3,
-                    pac.String4,
                     ifnull(rac.Value,0),
-                    null, -- TODO (losty): probably reposts here?
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -6823,16 +7039,21 @@ namespace PocketDb
 
                 join Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- content for private subscribers
                     on c.Type in (200,201,202)
-                    and c.Last = 1 -- TODO (losty): last = 1 and c.Hash = c.String2 ?????
+                    and c.Last in (0,1)
                     and c.String1 = subs.String2
-                    -- and c.Hash = c.String2 --  TODO (losty): Only first content record
+                    and c.Hash = c.String2 -- orig
                     and c.Height > ?
                     and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
 
+                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                    on cLast.Type = c.Type
+                    and cLast.Last = 1
+                    and cLast.String2 = c.String2
+
                 left join Payload p
-                    on p.TxHash = c.Hash
-                
-                join Transactions ac
+                    on p.TxHash = cLast.Hash
+
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
                     on ac.Type = 100
                     and ac.Last = 1
                     and ac.String1 = c.String1
@@ -6845,7 +7066,6 @@ namespace PocketDb
                     on rac.Type = 0
                     and rac.Id = ac.Id
                     and rac.Last = 1
-                    
                 where subs.Type = 303
                     and subs.Last = 1
                     and subs.Height > 0
@@ -6870,19 +7090,54 @@ namespace PocketDb
                     tBoost.String1,
                     tBoost.Height as Height,
                     tBoost.BlockNum as BlockNum,
-                    tBoost.Int1,
                     null,
+                    null,
+                    null,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = tBoost.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs o
+                        where o.TxHash = tBoost.Hash
+                            and o.TxHeight = tBoost.Height
+                        order by o.Number
+                    ),
+                    null,
+                    null,
+                    null,
+                    pac.String1,
                     pac.String2,
                     pac.String3,
-                    pac.String4,
                     ifnull(rac.Value,0),
+                    null,
                     tContent.Hash,
                     tContent.Type,
                     null,
                     tContent.Height,
                     tContent.BlockNum,
                     null,
+                    tContent.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     pContent.String2,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -6892,17 +7147,18 @@ namespace PocketDb
 
                 join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
                     on tContent.Type in (200,201,202)
-                    and tContent.Last in (0,1)
-                    and tContent.Height > 0
+                    and tContent.Last = 1
                     and tContent.String1 = ?
                     and tContent.String2 = tBoost.String2
+                    and tContent.Height > 0
+
                 left join Payload pContent
                     on pContent.TxHash = tContent.Hash
-                
-                join Transactions ac
-                    on ac.String1 = tBoost.String1
-                    and ac.Type = 100
+
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                    on ac.Type = 100
                     and ac.Last = 1
+                    and ac.String1 = tBoost.String1
                     and ac.Height > 0
 
                 left join Payload pac
@@ -6935,21 +7191,37 @@ namespace PocketDb
                     r.Hash,
                     r.Type,
                     r.String1,
-                    r.Height as Height, -- TODO (losty): orig height maybe???
+                    r.Height as Height,
                     r.BlockNum as BlockNum,
                     null,
+                    r.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     pr.String2,
+                    null,
+                    null,
+                    par.String1,
                     par.String2,
                     par.String3,
-                    par.String4,
                     ifnull(rar.Value,0),
+                    null,
                     p.Hash,
                     p.Type,
                     null,
                     p.Height,
                     p.BlockNum,
                     null,
+                    p.String2,
+                    null,
+                    null,
+                    null,
+                    null,
                     pp.String2,
+                    null,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -6957,20 +7229,26 @@ namespace PocketDb
 
                 from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
 
-                join Payload pp
-                    on pp.TxHash = p.Hash 
+                left join Payload pp
+                    on pp.TxHash = p.Hash
 
                 join Transactions r indexed by Transactions_Type_Last_String3_Height
-                    on r.Type in (200,201,202)
-                    and r.Last = 1
+                    on r.Type = 200
+                    and r.Last in (0,1)
+                    and r.Hash = r.String2
                     and r.String3 = p.String2
                     and r.Height > ?
                     and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
 
-                left join Payload pr
-                    on pr.TxHash = r.Hash
+                left join Transactions rLast indexed by Transactions_Type_Last_String2_Height
+                    on rLast.Type = r.Type
+                    and rLast.Last = 1
+                    and rLast.String2 = r.String2
 
-                join Transactions ar
+                left join Payload pr
+                    on pr.TxHash = rLast.Hash
+
+                left join Transactions ar indexed by Transactions_Type_Last_String1_Height_Id
                     on ar.Type = 100
                     and ar.Last = 1
                     and ar.String1 = r.String1
@@ -6984,7 +7262,7 @@ namespace PocketDb
                     and rar.Id = ar.Id
                     and rar.Last = 1
 
-                where p.Type in (200,201,202)
+                where p.Type = 200
                     and p.Last = 1
                     and p.Height > 0
                     and p.String1 = ?
@@ -7193,10 +7471,10 @@ namespace PocketDb
                 join Transactions p indexed by Transactions_Type_Last_String1_String2_Height
                     on p.String2 = r.String3
                     and p.Last = 1
-                    and p.Type in (200,201,202)
+                    and p.Type = 200
                     and p.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
-                where r.Type in (200,201,202)
+                where r.Type = 200
                     and r.Last in (0,1)
                     and r.Hash = r.String2 -- Only orig
                     and r.Height between ? and ?

@@ -51,6 +51,8 @@ namespace PocketConsensus
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentAddressHash())) return {false, SocialConsensusResult_Failed};
             if (*ptx->GetAddress() == *ptx->GetContentAddressHash()) return {false, SocialConsensusResult_SelfFlag};
@@ -111,12 +113,17 @@ namespace PocketConsensus
         {
             return { *ptx->GetAddress(), *ptx->GetContentAddressHash() };
         }
+
+        virtual ConsensusValidateResult ValidateLimit(const ModerationFlagRef& ptx, int count)
+        {
+            if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
+                return {false, SocialConsensusResult_ExceededLimit};
+
+            return Success;
+        }
     };
 
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
     class ModerationFlagConsensusFactory
     {
     private:

@@ -16,35 +16,35 @@ namespace PocketTx
     public:
         TransactionOutput() = default;
 
-        shared_ptr<string> GetTxHash() const;
+        const optional<string>& GetTxHash() const;
         void SetTxHash(string value);
 
-        shared_ptr<int64_t> GetNumber() const;
+        const optional<int64_t>& GetNumber() const;
         void SetNumber(int64_t value);
 
-        shared_ptr<string> GetAddressHash() const;
+        const optional<string>& GetAddressHash() const;
         void SetAddressHash(string value);
 
-        shared_ptr<int64_t> GetValue() const;
+        const optional<int64_t>& GetValue() const;
         void SetValue(int64_t value);
         
-        shared_ptr<string> GetScriptPubKey() const;
+        const optional<string>& GetScriptPubKey() const;
         void SetScriptPubKey(string value);
         
-        shared_ptr<string> GetSpentTxHash() const;
+        const optional<string>& GetSpentTxHash() const;
         void SetSpentTxHash(string value);
 
-        shared_ptr<int64_t> GetSpentHeight() const;
+        const optional<int64_t>& GetSpentHeight() const;
         void SetSpentHeight(int64_t value);
 
     protected:
-        shared_ptr<string> m_txHash = nullptr;
-        shared_ptr<int64_t> m_number = nullptr;
-        shared_ptr<string> m_addressHash = nullptr;
-        shared_ptr<int64_t> m_value = nullptr;
-        shared_ptr<string> m_scriptPubKey = nullptr;
-        shared_ptr<string> m_spentTxHash = nullptr;
-        shared_ptr<int64_t> m_spentHeight = nullptr;
+        optional<string> m_txHash = nullopt;
+        optional<int64_t> m_number = nullopt;
+        optional<string> m_addressHash = nullopt;
+        optional<int64_t> m_value = nullopt;
+        optional<string> m_scriptPubKey = nullopt;
+        optional<string> m_spentTxHash = nullopt;
+        optional<int64_t> m_spentHeight = nullopt;
     };
 
 } // namespace PocketTx

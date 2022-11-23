@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::CONTENT_POST);
     }
 
-    shared_ptr<UniValue> Post::Serialize() const
+    optional<UniValue> Post::Serialize() const
     {
         auto result = Content::Serialize();
 
@@ -101,16 +101,16 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "settings"); ok) m_payload->SetString6(val);
     }
     
-    shared_ptr<string> Post::GetRelayTxHash() const { return m_string3; }
-    void Post::SetRelayTxHash(const string& value) { m_string3 = make_shared<string>(value); }
+    const optional<string>& Post::GetRelayTxHash() const { return m_string3; }
+    void Post::SetRelayTxHash(const string& value) { m_string3 = value; }
 
-    shared_ptr<string> Post::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullptr; }
-    shared_ptr<string> Post::GetPayloadCaption() const { return GetPayload() ? GetPayload()->GetString2() : nullptr; }
-    shared_ptr<string> Post::GetPayloadMessage() const { return GetPayload() ? GetPayload()->GetString3() : nullptr; }
-    shared_ptr<string> Post::GetPayloadTags() const { return GetPayload() ? GetPayload()->GetString4() : nullptr; }
-    shared_ptr<string> Post::GetPayloadUrl() const { return GetPayload() ? GetPayload()->GetString7() : nullptr; }
-    shared_ptr<string> Post::GetPayloadImages() const { return GetPayload() ? GetPayload()->GetString5() : nullptr; }
-    shared_ptr<string> Post::GetPayloadSettings() const { return GetPayload() ? GetPayload()->GetString6() : nullptr; }
+    optional<string> Post::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullopt; }
+    optional<string> Post::GetPayloadCaption() const { return GetPayload() ? GetPayload()->GetString2() : nullopt; }
+    optional<string> Post::GetPayloadMessage() const { return GetPayload() ? GetPayload()->GetString3() : nullopt; }
+    optional<string> Post::GetPayloadTags() const { return GetPayload() ? GetPayload()->GetString4() : nullopt; }
+    optional<string> Post::GetPayloadUrl() const { return GetPayload() ? GetPayload()->GetString7() : nullopt; }
+    optional<string> Post::GetPayloadImages() const { return GetPayload() ? GetPayload()->GetString5() : nullopt; }
+    optional<string> Post::GetPayloadSettings() const { return GetPayload() ? GetPayload()->GetString6() : nullopt; }
 
     string Post::BuildHash()
     {
