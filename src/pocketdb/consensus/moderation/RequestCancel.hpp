@@ -79,9 +79,9 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModeratorRequestCancelConsensus>> m_rules = {
-            {       0,       0, [](int height) { return make_shared<ModeratorRequestCancelConsensus>(height); }},
+            {       0,       0, -1, [](int height) { return make_shared<ModeratorRequestCancelConsensus>(height); }},
             // TODO (moderation): set height
-            { 9999999, 9999999, [](int height) { return make_shared<ModeratorRequestCancelConsensus_checkpoint_enable>(height); }},
+            { 9999999, 9999999,  0, [](int height) { return make_shared<ModeratorRequestCancelConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModeratorRequestCancelConsensus> Instance(int height)
@@ -90,7 +90,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<ModeratorRequestCancelConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }

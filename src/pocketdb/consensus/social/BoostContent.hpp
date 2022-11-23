@@ -106,9 +106,9 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<BoostContentConsensus>> m_rules = {
-            {       0,      0, [](int height) { return make_shared<BoostContentConsensus>(height); }},
-            { 1586000, 528100, [](int height) { return make_shared<BoostContentConsensus_checkpoint_accept>(height); }},
-            { 1757000, 953000, [](int height) { return make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>(height); }},
+            {       0,      0, -1, [](int height) { return make_shared<BoostContentConsensus>(height); }},
+            { 1586000, 528100, -1, [](int height) { return make_shared<BoostContentConsensus_checkpoint_accept>(height); }},
+            { 1757000, 953000,  0, [](int height) { return make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<BoostContentConsensus> Instance(int height)
@@ -117,7 +117,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<BoostContentConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }

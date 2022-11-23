@@ -91,7 +91,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < ContentDeleteConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<ContentDeleteConsensus>(height); }},
+            { 0, 0, 0, [](int height) { return make_shared<ContentDeleteConsensus>(height); }},
         };
     public:
         shared_ptr<ContentDeleteConsensus> Instance(int height)
@@ -100,7 +100,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<ContentDeleteConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }

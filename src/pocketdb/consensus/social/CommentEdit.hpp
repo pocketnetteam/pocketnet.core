@@ -218,9 +218,9 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < CommentEditConsensus>> m_rules = {
-            {       0,      -1, [](int height) { return make_shared<CommentEditConsensus>(height); }},
-            { 1180000,       0, [](int height) { return make_shared<CommentEditConsensus_checkpoint_1180000>(height); }},
-            { 1873500, 1155000, [](int height) { return make_shared<CommentEditConsensus_checkpoint_check_author>(height); }},
+            {       0,      -1, -1, [](int height) { return make_shared<CommentEditConsensus>(height); }},
+            { 1180000,       0, -1, [](int height) { return make_shared<CommentEditConsensus_checkpoint_1180000>(height); }},
+            { 1873500, 1155000,  0, [](int height) { return make_shared<CommentEditConsensus_checkpoint_check_author>(height); }},
         };
     public:
         shared_ptr<CommentEditConsensus> Instance(int height)
@@ -229,7 +229,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<CommentEditConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }

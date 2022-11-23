@@ -237,9 +237,9 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<AccountUserConsensus>> m_rules = {
-            {       0,     -1, [](int height) { return make_shared<AccountUserConsensus>(height); }},
-            { 1381841, 162000, [](int height) { return make_shared<AccountUserConsensus_checkpoint_chain_count>(height); }},
-            { 1647000, 650000, [](int height) { return make_shared<AccountUserConsensus_checkpoint_login_limitation>(height); }},
+            {       0,     -1, -1, [](int height) { return make_shared<AccountUserConsensus>(height); }},
+            { 1381841, 162000, -1, [](int height) { return make_shared<AccountUserConsensus_checkpoint_chain_count>(height); }},
+            { 1647000, 650000,  0, [](int height) { return make_shared<AccountUserConsensus_checkpoint_login_limitation>(height); }},
         };
     public:
         shared_ptr<AccountUserConsensus> Instance(int height)
@@ -248,7 +248,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<AccountUserConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }
