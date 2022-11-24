@@ -5,11 +5,8 @@
 #ifndef POCKETCOIN_RPC_MINING_H
 #define POCKETCOIN_RPC_MINING_H
 
-#include <script/script.h>
-
 #include <univalue.h>
-#include <rpc/server.h>
-// TODO (build): server.h breaks header dependencies because forces pocketcoin-cli to use libpocketcoin_server.
+#include "rpc/util.h"
 
 /** Default max iterations to try in RPC generatetodescriptor, generatetoaddress, and generateblock. */
 static const uint64_t DEFAULT_MAX_TRIES{1000000};

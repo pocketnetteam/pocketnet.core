@@ -412,6 +412,7 @@ POCKETCOIN_CORE_H = \
     rpc/rawtransaction_util.h \
     rpc/register.h \
     rpc/request.h \
+    rpc/requestutils.h \
     rpc/server.h \
     rpc/util.h \
     statistic.hpp \
@@ -551,6 +552,7 @@ libpocketcoin_server_a_SOURCES = \
     rpc/misc.cpp \
     rpc/net.cpp \
     rpc/rawtransaction.cpp \
+    rpc/request.cpp \
     rpc/server.cpp \
     script/sigcache.cpp \
     shutdown.cpp \
@@ -764,7 +766,7 @@ libpocketcoin_util_a_SOURCES = \
   logging.cpp \
   random.cpp \
   randomenv.cpp \
-  rpc/request.cpp \
+  rpc/requestutils.cpp \
   support/cleanse.cpp \
   sync.cpp \
   threadinterrupt.cpp \
