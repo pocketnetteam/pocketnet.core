@@ -445,7 +445,8 @@ static RPCHelpMan stakeblock()
             throw JSONRPCError(RPC_MISC_ERROR, "Only for RegTestNet");
 
         const int num_blocks{request.params[0].get_int()};
-        Staker::getInstance()->stake(request.context, Params(), num_blocks);
+        if (!Staker::getInstance()->stake(request.context, Params(), num_blocks))
+            throw JSONRPCError(RPC_MISC_ERROR, "Stake failed, see debug.log");
         
         return NullUniValue;
     }};

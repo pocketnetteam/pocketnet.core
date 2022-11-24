@@ -46,6 +46,14 @@ namespace PocketDb
                 // Calculate and save fee for future selects
                 if (txInfo.IsBoostContent())
                     IndexBoostContent(txInfo.Hash);
+                
+                // Collect all moderation flags for create jury
+                if (txInfo.IsModerationFlag())
+                    IndexModerationFlag(txInfo.Hash);
+
+                // Collect all moderation votes for calculate jury verdict
+                if (txInfo.IsModerationVote())
+                    IndexModerationVote(txInfo.Hash);
             }
 
             int64_t nTime2 = GetTimeMicros();
@@ -470,6 +478,27 @@ namespace PocketDb
               )
             where Transactions.Hash = ?
               and Transactions.Type in (208)
+        )sql");
+        TryBindStatementText(stmt, 1, txHash);
+        TryStepStatement(stmt);
+    }
+
+    void ChainRepository::IndexModerationFlag(const string& txHash)
+    {
+        // TODO (moderation): implement logic for create jury record
+        // for new jury record calculate unique string id
+        auto stmt = SetupSqlStatement(R"sql(
+            
+        )sql");
+        TryBindStatementText(stmt, 1, txHash);
+        TryStepStatement(stmt);
+    }
+
+    void ChainRepository::IndexModerationVote(const string& txHash)
+    {
+        // TODO (moderation): implement logic for calculate jury verdict
+        auto stmt = SetupSqlStatement(R"sql(
+            
         )sql");
         TryBindStatementText(stmt, 1, txHash);
         TryStepStatement(stmt);

@@ -76,6 +76,8 @@ namespace PocketDb
             }
             
             // Any necessary logic for database modification
+
+            // TODO (moderation): alter table Transactions add column Int2 int null;
         }
 
         // Open, create structure and close `web` db

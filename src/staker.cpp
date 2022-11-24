@@ -253,6 +253,8 @@ bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, un
         LogPrintf("Staker runtime error: %s\n", e.what());
         return false;
     }
+
+    return true;
 }
 
 bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> wallet, int64_t nFees)

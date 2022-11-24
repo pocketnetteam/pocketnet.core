@@ -199,6 +199,16 @@ namespace PocketTx
         {
             return Type == TxType::BOOST_CONTENT;
         }
+
+        bool IsModerationFlag() const
+        {
+            return Type == TxType::MODERATION_FLAG;
+        }
+
+        bool IsModerationVote() const
+        {
+            return Type == TxType::MODERATION_VOTE;
+        }
     };
 }
 

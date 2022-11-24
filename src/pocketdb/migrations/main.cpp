@@ -59,6 +59,7 @@ namespace PocketDb
                 -- Complain.ContentRootTxHash
                 -- Boost.ContentRootTxHash
                 -- ModerationFlag.ContentTxHash
+                -- ModerationVote.JuryId
                 String2   text   null,
 
                 -- ContentPost.RelayRootTxHash
@@ -189,6 +190,17 @@ namespace PocketDb
                 IdSource int not null,
                 IdTarget int not null,
                 primary key (IdSource, IdTarget)
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists Jury
+            (
+                -- Link to the Flag (via ROWID) that initiated the jury
+                FlagId    int   not null,
+                -- Numeric identifier of the jury result
+                Verdict   int   null,
+                primary key (FlagId)
             );
         )sql");
 

@@ -184,6 +184,15 @@ POCKETDB_H = \
     pocketdb/consensus/social/ContentDelete.hpp \
     \
     pocketdb/consensus/moderation/Flag.hpp \
+    pocketdb/consensus/moderation/Vote.hpp \
+    pocketdb/consensus/moderation/Register.hpp \
+    pocketdb/consensus/moderation/RegisterSelf.hpp \
+    pocketdb/consensus/moderation/RegisterRequest.hpp \
+    pocketdb/consensus/moderation/RegisterCancel.hpp \
+    pocketdb/consensus/moderation/Request.hpp \
+    pocketdb/consensus/moderation/RequestCoin.hpp \
+    pocketdb/consensus/moderation/RequestSubs.hpp \
+    pocketdb/consensus/moderation/RequestCancel.hpp \
     \
     pocketdb/models/base/PocketTypes.h \
     pocketdb/models/base/Base.h \
@@ -220,6 +229,7 @@ POCKETDB_H = \
     pocketdb/models/dto/content/Video.h \
     pocketdb/models/dto/content/Article.h \
     pocketdb/models/dto/moderation/Flag.h \
+    pocketdb/models/dto/moderation/Vote.h \
     \
     pocketdb/models/web/WebTag.h \
     pocketdb/models/web/WebContent.h \
@@ -314,6 +324,7 @@ POCKETDB_CPP = \
     pocketdb/models/dto/action/BoostContent.cpp \
     pocketdb/models/dto/content/Article.cpp \
     pocketdb/models/dto/moderation/Flag.cpp \
+    pocketdb/models/dto/moderation/Vote.cpp \
     pocketdb/models/shortform/ShortForm.cpp \
     pocketdb/models/shortform/ShortAccount.cpp \
     pocketdb/models/shortform/ShortTxData.cpp \

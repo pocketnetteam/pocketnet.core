@@ -94,5 +94,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (moderation): alter table Transactions add column Int2 int null;
+
 } // namespace PocketDb
 

@@ -630,6 +630,8 @@ add_library(${POCKETDB}
 
         pocketdb/models/dto/moderation/Flag.h
         pocketdb/models/dto/moderation/Flag.cpp
+        pocketdb/models/dto/moderation/Vote.h
+        pocketdb/models/dto/moderation/Vote.cpp
         pocketdb/models/dto/moderation/Moderator.h
         pocketdb/models/dto/moderation/Moderator.cpp
         pocketdb/models/dto/moderation/RequestCoin.h
@@ -1162,6 +1164,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/ContentDelete.hpp
         pocketdb/consensus/social/BoostContent.hpp
         pocketdb/consensus/moderation/Flag.hpp
+        pocketdb/consensus/moderation/Vote.hpp
         pocketdb/consensus/moderation/Register.hpp
         pocketdb/consensus/moderation/RegisterSelf.hpp
         pocketdb/consensus/moderation/RegisterRequest.hpp
