@@ -42,7 +42,7 @@ namespace PocketConsensus
                     if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE}))
                         continue;
 
-                    // TODO (brangr): convert to Content base class
+                    // TODO (aok): convert to Content base class
                     if (*blockTx->GetString2() == *ptx->GetContentTxHash())
                     {
                         lastContent = blockTx;

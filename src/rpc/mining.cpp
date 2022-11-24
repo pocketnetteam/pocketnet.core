@@ -411,7 +411,7 @@ static RPCHelpMan generateblock()
     uint64_t max_tries{DEFAULT_MAX_TRIES};
     unsigned int extra_nonce{0};
 
-    // TODO (brangr): ?? Validate ChainActive().Height() + 1 is working
+    // TODO (aok): ?? Validate ChainActive().Height() + 1 is working
     if (!GenerateBlock(EnsureChainman(request.context), block, pocketBlock, max_tries, extra_nonce, block_hash, ChainActive().Height() + 1) || block_hash.IsNull()) {
         throw JSONRPCError(RPC_MISC_ERROR, "Failed to make block.");
     }

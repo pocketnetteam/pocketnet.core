@@ -143,7 +143,7 @@ namespace PocketConsensus
 
             return Success;
         }
-        // TODO (brangr): move to base Social class
+        // TODO (aok): move to base Social class
         virtual ConsensusValidateResult ValidateLimit(const VideoRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);

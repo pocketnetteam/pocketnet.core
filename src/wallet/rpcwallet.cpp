@@ -4902,10 +4902,10 @@ RPCHelpMan getaddressbook()
         LOCK(pwallet->cs_wallet);
         for (const auto& destItem: pwallet->m_address_book)
         {
-            // TODO (brangr): filter by type
+            // TODO (aok): filter by type
             addressBook.emplace(EncodeDestination(destItem.first), UniValue(UniValue::VOBJ));
 
-            // TODO (brangr): add pagination
+            // TODO (aok): add pagination
         }
     }
     
@@ -4913,7 +4913,7 @@ RPCHelpMan getaddressbook()
 
     if (extend)
     {
-        // TODO (brangr): get private key? balance?
+        // TODO (aok): get private key? balance?
     }
 
     // ----------------------------------------------------

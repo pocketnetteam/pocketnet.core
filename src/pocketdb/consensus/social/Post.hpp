@@ -14,7 +14,7 @@ namespace PocketConsensus
     typedef shared_ptr<Post> PostRef;
     typedef shared_ptr<Content> ContentRef;
 
-    // TODO (brangr) (v0.21.0): extract base class Content for Post, Video and ContentDelete
+    // TODO (aok) (v0.21.0): extract base class Content for Post, Video and ContentDelete
     // Also split Post & Video for extract PostEdit & VideoEdit transactions with base class ContentEdit
 
     /*******************************************************************************************************************

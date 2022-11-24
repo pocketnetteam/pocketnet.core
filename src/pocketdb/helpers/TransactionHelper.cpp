@@ -130,7 +130,7 @@ namespace PocketHelpers
 
     string TransactionHelper::ConvertToReindexerTable(const Transaction& transaction)
     {
-        // TODO (brangr) (v0.21.0): need remove for next generation serialization
+        // TODO (aok) (v0.21.0): need remove for next generation serialization
         switch (*transaction.GetType())
         {
             case TxType::ACCOUNT_USER:

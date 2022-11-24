@@ -827,7 +827,7 @@ static bool get_static_status(HTTPRequest* req, const std::string& strURIPart)
     if (!CheckWarmup(req))
         return false;
 
-    // TODO (brangr): join with PocketSystemRpc.cpp::GetNodeInfo
+    // TODO (aok): join with PocketSystemRpc.cpp::GetNodeInfo
 
     UniValue entry(UniValue::VOBJ);
 
@@ -872,7 +872,7 @@ static bool get_static_status(HTTPRequest* req, const std::string& strURIPart)
     int64_t publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
     int64_t staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
     int64_t restPort = gArgs.GetArg("-restport", BaseParams().RestPort());
-    int64_t wssPort = gArgs.GetArg("-wsport", 8087); // TODO (brangr): move 8087 to BaseParams().WSPort()
+    int64_t wssPort = gArgs.GetArg("-wsport", BaseParams().WsPort());
 
     UniValue ports(UniValue::VOBJ);
     ports.pushKV("node", nodePort);

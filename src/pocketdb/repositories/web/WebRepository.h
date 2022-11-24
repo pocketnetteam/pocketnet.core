@@ -39,7 +39,7 @@ namespace PocketDb
         void CalculateSharkAccounts(BadgeSharkConditions& cond);
         void CalculateValidAuthors(int blockHeight);
 
-        // TODO (brangr): расчитать авторов согласно комментариев от акул на их посты
+        // TODO (aok): расчитать авторов согласно комментариев от акул на их посты
     };
 
     typedef shared_ptr<WebRepository> WebRepositoryRef;

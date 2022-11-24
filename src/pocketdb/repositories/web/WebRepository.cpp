@@ -175,13 +175,13 @@ namespace PocketDb
 
                     break;
                 
-                // TODO (brangr): parse JSON for indexing
+                // TODO (aok): parse JSON for indexing
                 // case CONTENT_ARTICLE:
 
                 // case CONTENT_COMMENT:
                 // case CONTENT_COMMENT_EDIT:
 
-                    // TODO (brangr): implement extract message from JSON
+                    // TODO (aok): implement extract message from JSON
                     // if (auto[ok, string1] = TryGetColumnString(*stmt, 2); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 

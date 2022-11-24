@@ -76,7 +76,7 @@ public:
         consensus.BIP34Hash = uint256S("00000b6321951f2ed170bbc9b7a360995176f2df418b0e275149bfce2fde3d6c");
         consensus.BIP65Height = 0; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 0; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-        consensus.CSVHeight = 1; // 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5 // TODO (brangr): these values are changed from time to height, need to investigate them from very beginning. See other "TODO (losty): " in this file for same.
+        consensus.CSVHeight = 1; // 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5 // TODO (aok): these values are changed from time to height, need to investigate them from very beginning. See other "TODO (losty): " in this file for same.
         consensus.SegwitHeight = 1; // 0000000000000000001c8018d9cb3b742ef25114f27563e3fc4a1902167f9893 // TODO (losty): may be change??
         consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window // TODO (losty): may be change??
         consensus.powLimit = ArithToUint256(~arith_uint256(0) >> 16);
@@ -272,8 +272,8 @@ public:
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
-        m_is_test_chain = true; // TODO (losty+): may be change??? - brangr: почему бы и нет)
-        m_is_mockable_chain = false; // TODO (losty+): may be change??? - brangr: еще бы понять что это
+        m_is_test_chain = true;
+        m_is_mockable_chain = false;
 
         checkpointData = {
             {}};

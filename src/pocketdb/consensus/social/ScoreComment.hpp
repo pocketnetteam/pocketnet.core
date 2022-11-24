@@ -43,7 +43,7 @@ namespace PocketConsensus
                     if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
                         continue;
 
-                    // TODO (brangr): convert to Comment base class
+                    // TODO (aok): convert to Comment base class
                     if (*blockTx->GetString2() == *ptx->GetCommentTxHash())
                     {
                         lastContent = blockTx;
@@ -61,7 +61,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_NotFound};
             }
 
-            // TODO (brangr): convert to Comment base class
+            // TODO (aok): convert to Comment base class
             auto lastContentPtx = static_pointer_cast<Comment>(lastContent);
 
             // Check score to self

@@ -262,7 +262,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isStr())
             address = request.params[0].get_str();
 
-        // TODO (brangr, team): add pagination
+        // TODO (aok, team): add pagination
 
         return request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
     },

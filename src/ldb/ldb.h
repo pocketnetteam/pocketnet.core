@@ -1,4 +1,3 @@
-// brangr
 // Wrapper for basic actions with LevelDB
 //-----------------------------------------------------
 #ifndef LDB_H

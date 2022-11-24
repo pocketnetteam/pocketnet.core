@@ -1,4 +1,3 @@
-// brangr
 // Wrapper for basic actions with LevelDB
 //-----------------------------------------------------
 #include <ldb/ldb.h>
@@ -35,12 +34,6 @@ LDB::LDB(std::string _dbPath, size_t _n_cache_size, bool _logging)
         std::string value;
         status = ldb->Get(leveldb::ReadOptions(), it->key(), &value);
         count += 1;
-
-        //      LogPrintf("%s : %s : %s\n",
-        //          it->key().ToString(),
-        //          it->value().ToString(),
-        //          status.ToString()
-        //);
     }
     LogPrintf("Complete checking `%s`: complete %i transaction(s).\n", dbPath, count);
     if (!it->status().ok()) LogPrintf("Error in transaction: %s\n", it->status().ToString());

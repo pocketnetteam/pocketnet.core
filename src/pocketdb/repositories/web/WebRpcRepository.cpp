@@ -1586,7 +1586,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        // TODO (brangr) (v0.21): implement
+        // TODO (aok) (v0.21): implement
         // Should return pagination list of account profiles
 
         // string sql = R"sql(
@@ -1630,7 +1630,7 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetSubscribersAddresses(const string& address, const vector<TxType>& types)
     {
-        // TODO (brangr) (v0.21): implement
+        // TODO (aok) (v0.21): implement
         // Should return pagination list of account profiles
         return UniValue(UniValue::VARR);
     }
