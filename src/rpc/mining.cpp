@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2018-2022 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,6 +13,7 @@
 #include <core_io.h>
 #include <key_io.h>
 #include <miner.h>
+#include <staker.h>
 #include <net.h>
 #include <node/context.h>
 #include <policy/fees.h>
@@ -421,6 +423,32 @@ static RPCHelpMan generateblock()
     return obj;
 },
     };
+}
+
+static RPCHelpMan stakeblock()
+{
+    return RPCHelpMan{"stakeblock",
+        "\nStake one or more blocks\n",
+        {
+            {"count", RPCArg::Type::NUM, RPCArg::Optional::NO, "Count of new blocks."},
+        },
+        RPCResult{RPCResult::Type::NONE, "", ""},
+        RPCExamples{
+            HelpExampleCli("stakeblock", "") +
+            HelpExampleRpc("stakeblock", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        if (pindexBestHeader->nHeight < Params().GetConsensus().nPosFirstBlock)
+            throw JSONRPCError(RPC_MISC_ERROR, "No more POW blocks");
+        if (Params().NetworkID() != NetworkId::NetworkRegTest)
+            throw JSONRPCError(RPC_MISC_ERROR, "Only for RegTestNet");
+
+        const int num_blocks{request.params[0].get_int()};
+        Staker::getInstance()->stake(request.context, Params(), num_blocks);
+        
+        return NullUniValue;
+    }};
 }
 
 static RPCHelpMan getmininginfo()
@@ -1247,6 +1275,7 @@ static const CRPCCommand commands[] =
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
     { "generating",         "generatetodescriptor",   &generatetodescriptor,   {"num_blocks","descriptor","maxtries"} },
     { "generating",         "generateblock",          &generateblock,          {"output","transactions"} },
+    { "generating",         "stakeblock",             &stakeblock,             {"count"} },
 
     { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
 
