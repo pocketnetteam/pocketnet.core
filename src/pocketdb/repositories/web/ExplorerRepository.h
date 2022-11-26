@@ -36,7 +36,7 @@ namespace PocketDb
         UniValue GetContentStatisticByDays(int topHeight, int depth);
         UniValue GetContentStatistic();
         map<string, tuple<int, int64_t>> GetAddressesInfo(const vector<string>& hashes);
-        map<string, int> GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize);
+        map<string, int> GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize, bool inputDirection);
         map<string, int> GetBlockTransactions(const string& blockHash, int pageStart, int pageSize);
         UniValue GetBalanceHistory(const vector<string>& addresses, int topHeight, int count);
     };

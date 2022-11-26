@@ -494,6 +494,7 @@ namespace PocketWeb::PocketWebRpc
                     {"pageInitBlock", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Max block height for filter pagination window"},
                     {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Row number for start page"},
                     {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
+                    {"inputDirection", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Filter specifies incoming transactions (default: outgoing)"},
                 },
                 {
                     // TODO (rpc): provide return description
@@ -520,11 +521,16 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 3 && request.params[3].isNum())
             pageSize = request.params[3].get_int();
 
+        bool inputDirection = false;
+        if (request.params.size() > 4 && request.params[4].isBool())
+            inputDirection = request.params[4].get_bool();
+
         auto txHashesOrdered = request.DbConnection()->ExplorerRepoInst->GetAddressTransactions(
             address,
             pageInitBlock,
             pageStart,
-            pageSize
+            pageSize,
+            inputDirection
         );
 
         vector<string> txHashes;

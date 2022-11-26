@@ -321,16 +321,25 @@ namespace PocketDb {
         return infos;
     }
 
-    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize)
+    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize, bool inputDirection)
     {
         map<string, int> txHashes;
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = !inputDirection ? SetupSqlStatement(R"sql(
                 select distinct o.TxHash
                 from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
                 join Transactions t on t.Hash = o.TxHash
+                where o.AddressHash = ?
+                  and o.TxHeight <= ?
+                order by o.TxHeight desc, t.BlockNum desc
+                limit ?, ?
+            )sql") : SetupSqlStatement(R"sql(
+                select distinct i.SpentTxHash
+                from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
+                join Transactions t on t.Hash = o.TxHash
+                join TxInputs i on o.TxHash = i.TxHash and i.Number = o.Number 
                 where o.AddressHash = ?
                   and o.TxHeight <= ?
                 order by o.TxHeight desc, t.BlockNum desc
