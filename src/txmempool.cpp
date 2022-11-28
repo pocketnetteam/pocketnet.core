@@ -1090,13 +1090,13 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     for (txiter removeit : toremove)
         CalculateDescendants(removeit, stage);
 
-    // Remove from memory mempool
-    RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
-
-    // Build list of tx hashes
+    // Build list of tx hashes for cleaning sqlite
     std::unordered_set<std::string> removeHashes;
     for (const auto& iter : stage)
         removeHashes.emplace(iter->GetTx().GetHash().GetHex());
+
+    // Remove from memory mempool
+    RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
 
     // Also remove from sqlite db
     CleanSQLite(removeHashes, MemPoolRemovalReason::EXPIRY);
