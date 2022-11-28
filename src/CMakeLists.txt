@@ -737,7 +737,7 @@ add_library(${POCKETCOIN_UTIL}
                 warnings.h
                 warnings.cpp
             )
-target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::date_time Event::event univalue)
+target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} ${CRYPT32} Boost::thread Boost::chrono Boost::date_time Event::event univalue)
 target_link_libraries(${POCKETCOIN_UTIL} PUBLIC Boost::filesystem)
 if(WIN32)
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ws2_32 crypt32 wsock32)
@@ -860,13 +860,8 @@ add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 set(POCKETCOIN_COMMON_RPC pocketcoin_common_rpc)
 add_library(${POCKETCOIN_COMMON_RPC}
         rpc/protocol.h
-        # TODO (build): request is shared between cli and daemon.
-        #               Currently it is using DBConnection that is a part of server.
-        #               This is OK for now because we have shared headers but this should be reworked.
-        #               PocketDB stuff should be extracted to a different lib. Specially "pocketdb/SQLiteConnection.h" 
-        #               Also sqlite should be publically linked to this new lib and removed from linking here
-        rpc/request.h
-        rpc/request.cpp
+        rpc/requestutils.h
+        rpc/requestutils.cpp
         )
 target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL} univalue)
 target_link_libraries(${POCKETCOIN_COMMON_RPC} PUBLIC sqlite3)
@@ -1040,6 +1035,8 @@ add_library(${POCKETCOIN_SERVER}
         rpc/rawtransaction_util.h
         rpc/rawtransaction_util.cpp
         rpc/register.h
+        rpc/request.h
+        rpc/request.cpp
         rpc/server.cpp
         rpc/server.h
         rpc/util.cpp
