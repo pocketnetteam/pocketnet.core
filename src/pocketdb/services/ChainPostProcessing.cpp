@@ -14,14 +14,16 @@ namespace PocketServices
         int64_t nTime1 = GetTimeMicros();
 
         IndexChain(block.GetHash().GetHex(), height, txs);
-
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
 
         IndexRatings(height, txs);
-
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
+
+        IndexModeration(height, txs);
+        int64_t nTime4 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "    - IndexModeration: %.2fms _ %d\n", 0.001 * (double)(nTime4 - nTime3), height);
     }
 
     bool ChainPostProcessing::Rollback(int height)
@@ -64,7 +66,6 @@ namespace PocketServices
         map<RatingType, map<int, int>> ratingValues;
         vector<ScoreDataDtoRef> distinctScores;
         map<RatingType, map<int, vector<int>>> likersValues;
-        // map<int, vector<int>> accountLikersSrc;
 
         // Actual consensus checker instance by current height
         auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
@@ -190,6 +191,36 @@ namespace PocketServices
 
         // Save all ratings in one transaction
         PocketDb::RatingsRepoInst.InsertRatings(ratings);
+    }
+
+    // Indexing of the moderation subsystem includes the creation of "Jury" entries in case of collecting a sufficient number of flags.
+    // The verdicts of the moderators within the jury are also taken into account.
+    void ChainPostProcessing::IndexModeration(int height, vector<TransactionIndexingInfo>& txs)
+    {
+        for (const auto& txInfo : txs)
+        {
+            IndexModerationFlag(height, txInfo);
+            IndexModerationVote(height, txInfo);
+        }
+    }
+
+    void ChainPostProcessing::IndexModerationFlag(int height, const TransactionIndexingInfo& txInfo)
+    {
+        if (!txInfo.IsModerationFlag())
+            return;
+        
+        // если набралось Х флагов той же причины за Х времени
+        // аккаунт не в активном бане
+        // ----
+        // создать запись жюри
+    }
+
+    void ChainPostProcessing::IndexModerationVote(int height, const TransactionIndexingInfo& txInfo)
+    {
+        if (!txInfo.IsModerationVote())
+            return;
+
+        // если вместе с этим голосом собралось достаточное кол-во голосов - выставить вердикт
     }
 
 } // namespace PocketServices

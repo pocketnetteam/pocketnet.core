@@ -198,7 +198,8 @@ namespace PocketDb
             (
                 -- Link to the Flag (via ROWID) that initiated the jury
                 FlagId    int   not null,
-                -- Numeric identifier of the jury result
+                Address   text  not null,
+                Reason    int   not null,
                 Verdict   int   null,
                 primary key (FlagId)
             );

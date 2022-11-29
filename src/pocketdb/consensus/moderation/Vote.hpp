@@ -38,8 +38,18 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_NotAllowed};
 
             // Double vote to one jury not allowed
-            if (ConsensusRepoInst.Exists_LS1S2T(*ptx->GetAddress(), *ptx->GetJuryId(), { MODERATION_VOTE }))
+            if (ConsensusRepoInst.Exists_S1S2T(*ptx->GetAddress(), *ptx->GetJuryId(), { MODERATION_VOTE }))
                 return {false, SocialConsensusResult_Duplicate};
+
+            // The jury must be convened
+            if (!ConsensusRepoInst.ExistsJury(*ptx->GetJuryId()))
+                return {false, SocialConsensusResult_Duplicate};
+
+            // The moderators' votes should be accepted with a delay, in case the jury gets into the orphan block
+            auto juryFlag = ConsensusRepoInst.Get(*ptx->GetJuryId());
+            if (!juryFlag || *juryFlag->GetType() != MODERATION_FLAG
+                || !juryFlag->GetHeight() || (Height - *juryFlag->GetHeight() < 10))
+                return {false, SocialConsensusResult_NotAllowed};
 
             // TODO (moderation): votes allowed if moderator requested by system
             // algotihm for select moderators
