@@ -19,6 +19,8 @@
 #include "pocketdb/consensus/social/Post.hpp"
 #include "pocketdb/consensus/social/Video.hpp"
 #include "pocketdb/consensus/social/Article.hpp"
+#include "pocketdb/consensus/social/Stream.hpp"
+#include "pocketdb/consensus/social/Audio.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
 #include "pocketdb/consensus/social/ScoreContent.hpp"
 #include "pocketdb/consensus/social/Subscribe.hpp"

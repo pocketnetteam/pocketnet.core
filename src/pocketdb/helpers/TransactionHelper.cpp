@@ -39,6 +39,10 @@ namespace PocketHelpers
             return TxType::CONTENT_VIDEO;
         else if (op == OR_ARTICLE)
             return TxType::CONTENT_ARTICLE;
+        else if (op == OR_STREAM)
+            return TxType::CONTENT_STREAM;
+        else if (op == OR_AUDIO)
+            return TxType::CONTENT_AUDIO;
             
         else if (op == OR_CONTENT_BOOST)
             return TxType::BOOST_CONTENT;
@@ -497,6 +501,8 @@ namespace PocketHelpers
         else if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return TxType::CONTENT_POST;
         else if (type == "video" || type == OR_VIDEO) return TxType::CONTENT_VIDEO;
         else if (type == "article" || type == OR_ARTICLE) return TxType::CONTENT_ARTICLE;
+        else if (type == "stream" || type == OR_STREAM) return TxType::CONTENT_STREAM;
+        else if (type == "audio" || type == OR_AUDIO) return TxType::CONTENT_AUDIO;
         else if (type == "upvoteShare" || type == OR_SCORE) return TxType::ACTION_SCORE_CONTENT;
         else if (type == "subscribe" || type == OR_SUBSCRIBE) return TxType::ACTION_SUBSCRIBE;
         else if (type == "subscribePrivate" || type == OR_SUBSCRIBEPRIVATE) return TxType::ACTION_SUBSCRIBE_PRIVATE;

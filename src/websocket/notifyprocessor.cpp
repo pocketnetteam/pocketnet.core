@@ -119,6 +119,32 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                             contentLangCnt[OR_ARTICLE][lang] += 1;
                         }
                     }
+                    else if (spl[1] == OR_STREAM) {
+                        optype = "stream";
+                        sharesCnt += 1;
+
+                        auto response = notifierRepoInst->GetPostLang(txid);
+
+                        if (response.exists("lang"))
+                        {
+                            std::string lang = response["lang"].get_str();
+
+                            contentLangCnt[OR_STREAM][lang] += 1;
+                        }
+                    }
+                    else if (spl[1] == OR_AUDIO) {
+                        optype = "audio";
+                        sharesCnt += 1;
+
+                        auto response = notifierRepoInst->GetPostLang(txid);
+
+                        if (response.exists("lang"))
+                        {
+                            std::string lang = response["lang"].get_str();
+
+                            contentLangCnt[OR_AUDIO][lang] += 1;
+                        }
+                    }
                     else if (spl[1] == OR_CONTENT_BOOST)
                         optype = "contentBoost";
                     else if (spl[1] == OR_SCORE)

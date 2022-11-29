@@ -364,7 +364,7 @@ namespace PocketDb
                   and pu.String1 = p.String1
                   and pu.Height is not null
           
-                where p.Type in (200,201,202)
+                where p.Type in (200,201,202,209,210)
                   and p.Last = 1
                   and p.Height is not null
           
