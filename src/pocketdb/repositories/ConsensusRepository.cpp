@@ -378,30 +378,32 @@ namespace PocketDb
 
         bool result = false;
 
-        string sql = R"sql(
-            select count(*)
-            from Jury
-            where String1 = ?
-              and String2 = ?
-              and Type = ?
-        )sql";
+        // TODO (moderation): implement
 
-        if (!mempool)
-            sql += " and Height is not null";
+        // string sql = R"sql(
+        //     select count(*)
+        //     from Jury
+        //     where String1 = ?
+        //       and String2 = ?
+        //       and Type = ?
+        // )sql";
 
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementText(stmt, 2, contentHash);
-            TryBindStatementInt(stmt, 3, (int) type);
+        // if (!mempool)
+        //     sql += " and Height is not null";
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = (value > 0);
+        // TryTransactionStep(__func__, [&]()
+        // {
+        //     auto stmt = SetupSqlStatement(sql);
+        //     TryBindStatementText(stmt, 1, address);
+        //     TryBindStatementText(stmt, 2, contentHash);
+        //     TryBindStatementInt(stmt, 3, (int) type);
 
-            FinalizeSqlStatement(*stmt);
-        });
+        //     if (sqlite3_step(*stmt) == SQLITE_ROW)
+        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+        //             result = (value > 0);
+
+        //     FinalizeSqlStatement(*stmt);
+        // });
 
         return result;
     }
@@ -844,7 +846,7 @@ namespace PocketDb
 
     AccountData ConsensusRepository::GetAccountData(const string& address)
     {
-        AccountData result = {address,-1,0,0,0,0,0,0};
+        AccountData result = {address,-1,0,0,0,0,0,0,0,0};
 
         TryTransactionStep(__func__, [&]()
         {

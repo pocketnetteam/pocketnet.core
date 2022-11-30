@@ -59,7 +59,7 @@ namespace PocketDb
         PocketBlockRef GetResult()
         {
             PocketBlockRef pocketBlock = make_shared<PocketBlock>();
-            for (const auto[txHash, ptx] : m_transactions)
+            for (const auto[_, ptx] : m_transactions)
                 pocketBlock->push_back(ptx);
 
             return pocketBlock;
@@ -647,7 +647,7 @@ namespace PocketDb
         if (!includedPayload)
             return make_tuple(true, ptx);
 
-        if (auto[ok, value] = TryGetColumnString(*stmt, 11); !ok)
+        if (auto[ok, _] = TryGetColumnString(*stmt, 11); !ok)
             return make_tuple(true, ptx);
 
         auto payload = Payload();
