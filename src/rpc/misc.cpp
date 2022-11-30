@@ -656,11 +656,10 @@ static RPCHelpMan echojson() { return echo("echojson"); }
 
 static RPCHelpMan stop()
 {
-    static const std::string RESULT{PACKAGE_NAME " stopping"};
     return RPCHelpMan{"stop",
-    // Also accept the hidden 'wait' integer argument (milliseconds)
-    // For instance, 'stop 1000' makes the call wait 1 second before returning
-    // to the client (intended for testing)
+                // Also accept the hidden 'wait' integer argument (milliseconds)
+                // For instance, 'stop 1000' makes the call wait 1 second before returning
+                // to the client (intended for testing)
                 "\nRequest a graceful shutdown of " PACKAGE_NAME ".",
                 {
                     {"wait", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "how long to wait in ms", "", {}, /* hidden */ true},
@@ -675,8 +674,8 @@ static RPCHelpMan stop()
     if (jsonRequest.params[0].isNum()) {
         UninterruptibleSleep(std::chrono::milliseconds{jsonRequest.params[0].get_int()});
     }
-    return RESULT;
-},
+    return "Pocketcoin server stopping";
+}
     };
 }
 
