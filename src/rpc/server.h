@@ -35,7 +35,7 @@ struct RPCServerInfo
     std::list<RPCCommandExecutionInfo> active_commands GUARDED_BY(mutex);
 };
 
-static RPCServerInfo g_rpc_server_info;
+extern RPCServerInfo g_rpc_server_info;
 
 class CRPCCommand;
 
