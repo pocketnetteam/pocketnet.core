@@ -19,6 +19,8 @@
 #include <cassert>
 #include <memory> // for unique_ptr
 
+RPCServerInfo g_rpc_server_info;
+
 static Mutex g_rpc_warmup_mutex;
 static std::atomic<bool> g_rpc_running{false};
 static bool fRPCInWarmup GUARDED_BY(g_rpc_warmup_mutex) = true;
