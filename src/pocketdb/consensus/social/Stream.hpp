@@ -48,13 +48,9 @@ namespace PocketConsensus
 
     protected:
         virtual int64_t GetLimit(AccountMode mode) {
-            // TODO (o1q): realize limits
-//            return mode == AccountMode_Pro
-//                   ? GetConsensusLimit(ConsensusLimit_pro_stream)
-//                   : mode == AccountMode_Full
-//                     ? GetConsensusLimit(ConsensusLimit_full_stream)
-//                     : GetConsensusLimit(ConsensusLimit_trial_stream);
-            return 1;
+            return mode == AccountMode_Full
+                     ? GetConsensusLimit(ConsensusLimit_full_stream)
+                     : GetConsensusLimit(ConsensusLimit_trial_stream);
         }
 
         ConsensusValidateResult ValidateBlock(const StreamRef& ptx, const PocketBlockRef& block) override
@@ -255,7 +251,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < StreamConsensus>> m_rules = {
-                { 9999999, 9999999, [](int height) { return make_shared<StreamConsensus>(height); }}, //TODO (o1q): change checkpoint height
+                { 9999999, 0, [](int height) { return make_shared<StreamConsensus>(height); }}, //TODO (o1q): change checkpoint height
         };
     public:
         shared_ptr<StreamConsensus> Instance(int height)

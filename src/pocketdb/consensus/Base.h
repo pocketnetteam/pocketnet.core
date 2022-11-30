@@ -212,8 +212,6 @@ namespace PocketConsensus
         ConsensusLimit_full_comment_score,
 
         ConsensusLimit_pro_video,
-//        ConsensusLimit_pro_stream, // TODO (o1q): is it needed?
-//        ConsensusLimit_pro_audio, // TODO (o1q): is it needed?
 
         ConsensusLimit_post_edit_count,
         ConsensusLimit_video_edit_count,

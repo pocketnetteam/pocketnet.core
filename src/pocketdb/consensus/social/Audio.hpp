@@ -48,13 +48,9 @@ namespace PocketConsensus
 
     protected:
         virtual int64_t GetLimit(AccountMode mode) {
-            // TODO (o1q): realize limits
-//            return mode == AccountMode_Pro
-//                   ? GetConsensusLimit(ConsensusLimit_pro_audio)
-//                   : mode == AccountMode_Full
-//                     ? GetConsensusLimit(ConsensusLimit_full_audio)
-//                     : GetConsensusLimit(ConsensusLimit_trial_audio);
-            return 1;
+            return mode == AccountMode_Full
+                     ? GetConsensusLimit(ConsensusLimit_full_audio)
+                     : GetConsensusLimit(ConsensusLimit_trial_audio);
         }
 
         ConsensusValidateResult ValidateBlock(const AudioRef& ptx, const PocketBlockRef& block) override
@@ -255,7 +251,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < AudioConsensus>> m_rules = {
-                { 9999999, 9999999, [](int height) { return make_shared<AudioConsensus>(height); }}, //TODO (o1q): change checkpoint height
+                { 9999999, 0, [](int height) { return make_shared<AudioConsensus>(height); }}, //TODO (o1q): change checkpoint height
         };
     public:
         shared_ptr<AudioConsensus> Instance(int height)
