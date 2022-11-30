@@ -654,29 +654,28 @@ static RPCHelpMan echo(const std::string& name)
 static RPCHelpMan echo() { return echo("echo"); }
 static RPCHelpMan echojson() { return echo("echojson"); }
 
-
-
 static RPCHelpMan stop()
 {
-    // TODO (rpc) validate nothing became broken here
+    static const std::string RESULT{PACKAGE_NAME " stopping"};
     return RPCHelpMan{"stop",
-                "\nStop Pocketcoin server.\n",
-                {},
-                RPCResult{
-                    // TODO (rpc) validate if empty name is valid?
-                    RPCResult::Type::STR, "", "Message that pocketcoin stopping"
+    // Also accept the hidden 'wait' integer argument (milliseconds)
+    // For instance, 'stop 1000' makes the call wait 1 second before returning
+    // to the client (intended for testing)
+                "\nRequest a graceful shutdown of " PACKAGE_NAME ".",
+                {
+                    {"wait", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "how long to wait in ms", "", {}, /* hidden */ true},
                 },
-                RPCExamples{
-                    HelpExampleCli("stop", "")
-                  + HelpExampleRpc("stop", "")
-                },
-                [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+                RPCResult{RPCResult::Type::STR, "", "A string with the content '" + RESULT + "'"},
+                RPCExamples{""},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& jsonRequest) -> UniValue
 {
-    // Accept the deprecated and ignored 'detach' boolean argument
     // Event loop will exit after current HTTP requests have been handled, so
     // this reply will get back to the client.
     StartShutdown();
-    return "Pocketcoin server stopping";
+    if (jsonRequest.params[0].isNum()) {
+        UninterruptibleSleep(std::chrono::milliseconds{jsonRequest.params[0].get_int()});
+    }
+    return RESULT;
 },
     };
 }
@@ -762,7 +761,7 @@ void RegisterMiscRPCCommands(CRPCTable &t)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    { "control",            "stop",                   &stop,                   {}},
+    { "control",            "stop",                   &stop,                   {"wait"}},
     { "control",            "getmemoryinfo",          &getmemoryinfo,          {"mode"}},
     { "control",            "logging",                &logging,                {"include", "exclude"}},
     { "control",            "uptime",                 &uptime,                 {}},
