@@ -664,7 +664,7 @@ static RPCHelpMan stop()
                 {
                     {"wait", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "how long to wait in ms", "", {}, /* hidden */ true},
                 },
-                RPCResult{RPCResult::Type::STR, "", "A string with the content '" + RESULT + "'"},
+                RPCResult{RPCResult::Type::STR, "", "A string with the content for shutdown message"},
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& jsonRequest) -> UniValue
 {
@@ -675,7 +675,7 @@ static RPCHelpMan stop()
         UninterruptibleSleep(std::chrono::milliseconds{jsonRequest.params[0].get_int()});
     }
     return "Pocketcoin server stopping";
-}
+},
     };
 }
 
