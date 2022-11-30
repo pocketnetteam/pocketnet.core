@@ -326,10 +326,9 @@ class MultiWalletTest(PocketcoinTestFramework):
 
         self.log.info("Test dynamic wallet creation.")
 
-        # Wallet can already exists - not critical
-        # # Fail to create a wallet if it already exists.
-        # path = os.path.join(self.options.tmpdir, "node0", "regtest", "wallets", "w2")
-        # assert_raises_rpc_error(-4, "Failed to create database path '{}'. Database already exists.".format(path), self.nodes[0].createwallet, 'w2')
+        # Fail to create a wallet if it already exists.
+        path = os.path.join(self.options.tmpdir, "node0", "regtest", "wallets", "w2")
+        assert_raises_rpc_error(-4, "Failed to create database path '{}'. Database already exists.".format(path), self.nodes[0].createwallet, 'w2')
 
         # Successfully create a wallet with a new name
         loadwallet_name = self.nodes[0].createwallet('w9')
