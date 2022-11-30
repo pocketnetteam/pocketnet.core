@@ -700,6 +700,51 @@ static RPCHelpMan uptime()
     };
 }
 
+static RPCHelpMan getrpcinfo()
+{
+    return RPCHelpMan{"getrpcinfo",
+                "\nReturns details of the RPC server.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::ARR, "active_commands", "All active commands",
+                        {
+                            {RPCResult::Type::OBJ, "", "Information about an active command",
+                            {
+                                 {RPCResult::Type::STR, "method", "The name of the RPC command"},
+                                 {RPCResult::Type::NUM, "duration", "The running time in microseconds"},
+                            }},
+                        }},
+                        {RPCResult::Type::STR, "logpath", "The complete file path to the debug log"},
+                    }
+                },
+                RPCExamples{
+                    HelpExampleCli("getrpcinfo", "")
+                + HelpExampleRpc("getrpcinfo", "")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    LOCK(g_rpc_server_info.mutex);
+    UniValue active_commands(UniValue::VARR);
+    for (const RPCCommandExecutionInfo& info : g_rpc_server_info.active_commands) {
+        UniValue entry(UniValue::VOBJ);
+        entry.pushKV("method", info.method);
+        entry.pushKV("duration", GetTimeMicros() - info.start);
+        active_commands.push_back(entry);
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("active_commands", active_commands);
+
+    const std::string path = LogInstance().m_file_path.string();
+    UniValue log_path(UniValue::VSTR, path);
+    result.pushKV("logpath", log_path);
+
+    return result;
+}
+    };
+}
+
 static UniValue SummaryToJSON(const IndexSummary&& summary, std::string index_name)
 {
     UniValue ret_summary(UniValue::VOBJ);
