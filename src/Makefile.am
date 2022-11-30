@@ -228,8 +228,16 @@ POCKETDB_H = \
     pocketdb/models/dto/action/Complain.h \
     pocketdb/models/dto/content/Video.h \
     pocketdb/models/dto/content/Article.h \
+    \
     pocketdb/models/dto/moderation/Flag.h \
     pocketdb/models/dto/moderation/Vote.h \
+    pocketdb/models/dto/moderation/Moderator.h \
+    pocketdb/models/dto/moderation/RegisterCancel.h \
+    pocketdb/models/dto/moderation/RegisterRequest.h \
+    pocketdb/models/dto/moderation/RegisterSelf.h \
+    pocketdb/models/dto/moderation/RequestCancel.h \
+    pocketdb/models/dto/moderation/RequestCoin.h \
+    pocketdb/models/dto/moderation/RequestSubs.h \
     \
     pocketdb/models/web/WebTag.h \
     pocketdb/models/web/WebContent.h \
@@ -323,8 +331,17 @@ POCKETDB_CPP = \
     pocketdb/models/dto/content/Video.cpp \
     pocketdb/models/dto/action/BoostContent.cpp \
     pocketdb/models/dto/content/Article.cpp \
+    \
     pocketdb/models/dto/moderation/Flag.cpp \
     pocketdb/models/dto/moderation/Vote.cpp \
+    pocketdb/models/dto/moderation/Moderator.cpp \
+    pocketdb/models/dto/moderation/RegisterCancel.cpp \
+    pocketdb/models/dto/moderation/RegisterRequest.cpp \
+    pocketdb/models/dto/moderation/RegisterSelf.cpp \
+    pocketdb/models/dto/moderation/RequestCancel.cpp \
+    pocketdb/models/dto/moderation/RequestCoin.cpp \
+    pocketdb/models/dto/moderation/RequestSubs.cpp \
+    \
     pocketdb/models/shortform/ShortForm.cpp \
     pocketdb/models/shortform/ShortAccount.cpp \
     pocketdb/models/shortform/ShortTxData.cpp \
