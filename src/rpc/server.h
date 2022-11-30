@@ -18,8 +18,24 @@
 #include <string>
 
 #include <univalue.h>
+#include <mutex>
+#include <unordered_map>
 
 static const unsigned int DEFAULT_RPC_SERIALIZE_VERSION = 1;
+
+struct RPCCommandExecutionInfo
+{
+    std::string method;
+    int64_t start;
+};
+
+struct RPCServerInfo
+{
+    Mutex mutex;
+    std::list<RPCCommandExecutionInfo> active_commands GUARDED_BY(mutex);
+};
+
+static RPCServerInfo g_rpc_server_info;
 
 class CRPCCommand;
 
