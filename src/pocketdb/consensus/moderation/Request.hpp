@@ -40,7 +40,11 @@ namespace PocketConsensus
             if (auto[baseCheck, baseCheckCode] = Base::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
-            if (Base::IsEmpty(ptx->GetModeratorAddress()))
+            if (!ptx->GetModeratorAddress() || (*ptx->GetModeratorAddress()).empty())
+                return {false, SocialConsensusResult_Failed};
+
+            // TODO (moderation): or not?
+            if (*ptx->GetAddress() != *ptx->GetModeratorAddress())
                 return {false, SocialConsensusResult_Failed};
 
             return Base::Success;
