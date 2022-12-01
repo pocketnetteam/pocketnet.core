@@ -62,7 +62,6 @@ static const CRPCCommand commands[] =
     {"contents",        "getmostcommentedfeed",             &GetMostCommentedFeed,          {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","depth"}},
     {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed", "keyword"}},
     {"contents",        "getsubscribesfeed",                &GetSubscribesFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed"}},
-    {"contents",        "getrawtransactionwithmessage",     &FeedSelector,                  {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"contents",        "getrawtransactionwithmessagebyid", &GetContent,                    {"ids", "address"}},
     {"contents",        "getcontent",                       &GetContent,                    {"ids", "address"}},
     {"contents",        "getcontentsstatistic",             &GetContentsStatistic,          {"addresses", "contentTypes", "height", "depth"}},
