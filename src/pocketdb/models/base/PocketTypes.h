@@ -156,11 +156,12 @@ namespace PocketTx
             return Type == TxType::ACCOUNT_SETTING;
         }
 
-        bool IsContent() const
-        {
+        bool IsContent() const {
             return Type == TxType::CONTENT_POST ||
                    Type == TxType::CONTENT_VIDEO ||
                    Type == TxType::CONTENT_ARTICLE ||
+                   Type == TxType::CONTENT_STREAM ||
+                   Type == TxType::CONTENT_AUDIO ||
                    Type == TxType::CONTENT_DELETE;
         }
 

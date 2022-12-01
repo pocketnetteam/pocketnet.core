@@ -59,6 +59,8 @@ namespace PocketConsensus
         static PostConsensusFactory m_postFactory;
         static VideoConsensusFactory m_videoFactory;
         static ArticleConsensusFactory m_articleFactory;
+        static StreamConsensusFactory m_streamFactory;
+        static AudioConsensusFactory m_audioFactory;
         static CommentConsensusFactory m_commentFactory;
         static CommentEditConsensusFactory m_commentEditFactory;
         static CommentDeleteConsensusFactory m_commentDeleteFactory;

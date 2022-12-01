@@ -114,7 +114,7 @@ namespace PocketConsensus
         {
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                     *ptx->GetRootTxHash(),
-                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE, CONTENT_STREAM, CONTENT_AUDIO }
+                    { CONTENT_POST, CONTENT_STREAM, CONTENT_DELETE }
             );
             if (lastContentOk && *lastContent->GetType() != CONTENT_STREAM)
                 return {false, SocialConsensusResult_NotAllowed};

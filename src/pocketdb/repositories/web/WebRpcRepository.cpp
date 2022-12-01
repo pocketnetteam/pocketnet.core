@@ -210,6 +210,12 @@ namespace PocketDb
                     where p.Type in (202) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ArticleSpent,
 
                 (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                    where p.Type in (209) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as StreamSpent,
+
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                    where p.Type in (210) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as AudioSpent,
+
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (204) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as CommentSpent,
 
                 (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
@@ -263,6 +269,8 @@ namespace PocketDb
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("post_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("video_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("article_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("stream_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("audio_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("score_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok)

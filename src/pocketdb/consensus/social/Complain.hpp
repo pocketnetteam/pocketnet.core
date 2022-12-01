@@ -26,7 +26,7 @@ namespace PocketConsensus
             // Author or post must be exists
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetPostTxHash(),
-                {CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE}
+                {CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE}
             );
 
             if (!lastContentOk && block)
@@ -34,7 +34,7 @@ namespace PocketConsensus
                 // ... or in block
                 for (auto& blockTx : *block)
                 {
-                    if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE}))
+                    if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE}))
                         continue;
 
                     // TODO (aok): convert to Content base class
