@@ -133,7 +133,7 @@ namespace PocketDb
         bool Exists_HS1T(const string& txHash, const string& string1, const vector<TxType>& types, bool last);
         bool Exists_HS2T(const string& txHash, const string& string2, const vector<TxType>& types, bool last);
         bool Exists_HS1S2T(const string& txHash, const string& string1, const string& string2, const vector<TxType>& types, bool last);
-        
+
         // get counts in "mempool" - Height is null
         int CountMempoolBlocking(const string& address, const string& addressTo);
         int CountMempoolSubscribe(const string& address, const string& addressTo);

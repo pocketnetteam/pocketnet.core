@@ -65,8 +65,9 @@ namespace PocketDb
         void IndexBlocking(const string& txHash);
         void IndexSubscribe(const string& txHash);
         void IndexBoostContent(const string& txHash);
-        void IndexModerationFlag(const string& txHash);
-        void IndexModerationVote(const string& txHash);
+
+        void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount);
+        void IndexModerationBan(const string& voteTxHash);
 
         void ClearOldLast(const string& txHash);
 

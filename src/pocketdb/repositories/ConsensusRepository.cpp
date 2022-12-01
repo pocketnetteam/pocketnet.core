@@ -375,35 +375,22 @@ namespace PocketDb
     bool ConsensusRepository::ExistsJury(const string& juryId)
     {
         assert(juryId != "");
-
         bool result = false;
 
-        // TODO (moderation): implement
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select 1
+                from Transactions t indexed by sqlite_autoindex_Transactions_1
+                join Jury j indexed by sqlite_autoindex_Jury_1
+                  on j.FlagRowId = t.ROWID
+                where t.Hash = ?
+            )sql");
+            TryBindStatementText(stmt, 1, juryId);
 
-        // string sql = R"sql(
-        //     select count(*)
-        //     from Jury
-        //     where String1 = ?
-        //       and String2 = ?
-        //       and Type = ?
-        // )sql";
-
-        // if (!mempool)
-        //     sql += " and Height is not null";
-
-        // TryTransactionStep(__func__, [&]()
-        // {
-        //     auto stmt = SetupSqlStatement(sql);
-        //     TryBindStatementText(stmt, 1, address);
-        //     TryBindStatementText(stmt, 2, contentHash);
-        //     TryBindStatementInt(stmt, 3, (int) type);
-
-        //     if (sqlite3_step(*stmt) == SQLITE_ROW)
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-        //             result = (value > 0);
-
-        //     FinalizeSqlStatement(*stmt);
-        // });
+            result = (sqlite3_step(*stmt) == SQLITE_ROW);
+            FinalizeSqlStatement(*stmt);
+        });
 
         return result;
     }
@@ -422,7 +409,7 @@ namespace PocketDb
             where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
               and String1 = ?
               and String2 = ?
-              and Height is not null
+              and Height > 0
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -435,9 +422,7 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, string1);
             TryBindStatementText(stmt, i++, string2);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                result = true;
-
+            result = (sqlite3_step(*stmt) == SQLITE_ROW);
             FinalizeSqlStatement(*stmt);
         });
 

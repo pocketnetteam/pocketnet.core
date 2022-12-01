@@ -196,12 +196,25 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Jury
             (
-                -- Link to the Flag (via ROWID) that initiated the jury
-                FlagId    int   not null,
-                Address   text  not null,
-                Reason    int   not null,
-                Verdict   int   null,
-                primary key (FlagId)
+                -- Link to the Flag (via ROWID) that initiated this ury
+                FlagRowId     int   not null,
+                AddressHash   text  not null,
+                Reason        int   not null,
+                Verdict       int   null,
+                primary key (FlagRowId)
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists Ban
+            (
+                -- Link to the Vote (via ROWID) that initiated this ban
+                VoteRowId     int   not null,
+                AddressHash   text  not null,
+                Reason        int   not null,
+                -- The height to which the penalty continues to apply
+                Ending        int   not null,
+                primary key (VoteRowId)
             );
         )sql");
 
@@ -267,6 +280,9 @@ namespace PocketDb
             create index if not exists Balances_AddressHash_Last_Height on Balances (AddressHash, Last, Height);
             create index if not exists Balances_Last_Value on Balances (Last, Value);
             create index if not exists Balances_AddressHash_Last on Balances (AddressHash, Last);
+
+            create index if not exists Ban_AddressHash_Reason_Ending on Ban (AddressHash, Reason, Ending);
+            create index if not exists Jury_AddressHash_Reason_Verdict on Jury (AddressHash, Reason, Verdict);
 
         )sql";
 

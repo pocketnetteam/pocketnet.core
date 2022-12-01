@@ -597,6 +597,19 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 100} }},
             { NetworkRegTest, { {0, 100} } }
         }},
+
+        // JURY
+        { ConsensusLimit_moderation_jury_flag_count, {
+            { NetworkMain,    { {0, 11111} }}, // TODO (moderation): set actual count
+            { NetworkTest,    { {0, 5} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        { ConsensusLimit_moderation_jury_flag_depth, {
+            { NetworkMain,    { {0, 43200} }}, // TODO (moderation): set actual depth
+            { NetworkTest,    { {0, 4320} }},
+            { NetworkRegTest, { {0, 10} } }
+        }},
+
         // { threshold_moderator_request, {
         //     { NetworkMain, { {0, 10080} }},
         //     { NetworkTest, { {0, 1440} }},
@@ -618,6 +631,7 @@ namespace PocketConsensus
         explicit BaseConsensus(int height);
         virtual ~BaseConsensus() = default;
         int64_t GetConsensusLimit(ConsensusLimit type) const;
+        int Height() const { return Height; }
     protected:
         int Height = 0;
     };

@@ -46,14 +46,6 @@ namespace PocketDb
                 // Calculate and save fee for future selects
                 if (txInfo.IsBoostContent())
                     IndexBoostContent(txInfo.Hash);
-                
-                // Collect all moderation flags for create jury
-                if (txInfo.IsModerationFlag())
-                    IndexModerationFlag(txInfo.Hash);
-
-                // Collect all moderation votes for calculate jury verdict
-                if (txInfo.IsModerationVote())
-                    IndexModerationVote(txInfo.Hash);
             }
 
             int64_t nTime2 = GetTimeMicros();
@@ -483,25 +475,77 @@ namespace PocketDb
         TryStepStatement(stmt);
     }
 
-    void ChainRepository::IndexModerationFlag(const string& txHash)
+    void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount)
     {
-        // TODO (moderation): implement logic for create jury record
-        // for new jury record calculate unique string id
-        auto stmt = SetupSqlStatement(R"sql(
-            
-        )sql");
-        TryBindStatementText(stmt, 1, txHash);
-        TryStepStatement(stmt);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+
+                insert into Jury
+
+                select
+
+                    f.ROWID, /* Unique id of Flag record */
+                    f.String3, /* Address of the content author */
+                    f.Int1, /* Reason */
+                    null /* Verdict */
+
+                from Transactions f indexed by sqlite_autoindex_Transactions_1
+
+                where f.Hash = ?
+
+                -- Is there no active punishment listed on the account ?
+                and not exists (
+                    select 1
+                    from Ban b indexed by Ban_AddressHash_Reason_Ending
+                    where b.AddressHash = f.String3
+                        and b.Reason = f.Int1
+                        and b.Ending > f.Height
+                )
+
+                -- there is no active jury for the same reason
+                and not exists (
+                    select 1
+                    from Jury j indexed by Jury_AddressHash_Reason_Verdict
+                    where j.AddressHash = f.String3
+                        and j.Reason = f.Int1
+                        and j.Verdict is not null
+                )
+
+                -- if there are X flags of the same reason for X time
+                and ? <= (
+                    select count()
+                    from Transactions ff indexed by Transactions_Type_Last_String2_Height
+                    where ff.Type in (410)
+                        and ff.Last = 0
+                        and ff.String3 = f.String3
+                        and ff.Height > ?
+                        and ff.Hash != f.Hash
+                )
+
+            )sql");
+
+            TryBindStatementText(stmt, 1, flagTxHash);
+            TryBindStatementInt(stmt, 2, flagsMinCount);
+            TryBindStatementInt(stmt, 3, flagsDepth);
+
+            TryStepStatement(stmt);
+        });
     }
 
-    void ChainRepository::IndexModerationVote(const string& txHash)
+    void ChainRepository::IndexModerationBan(const string& voteTxHash)
     {
         // TODO (moderation): implement logic for calculate jury verdict
-        auto stmt = SetupSqlStatement(R"sql(
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                
+            )sql");
             
-        )sql");
-        TryBindStatementText(stmt, 1, txHash);
-        TryStepStatement(stmt);
+            TryBindStatementText(stmt, 1, voteTxHash);
+
+            TryStepStatement(stmt);
+        });
     }
 
 

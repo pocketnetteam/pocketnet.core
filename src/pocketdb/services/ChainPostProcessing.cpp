@@ -197,30 +197,25 @@ namespace PocketServices
     // The verdicts of the moderators within the jury are also taken into account.
     void ChainPostProcessing::IndexModeration(int height, vector<TransactionIndexingInfo>& txs)
     {
+        auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
+
         for (const auto& txInfo : txs)
         {
-            IndexModerationFlag(height, txInfo);
-            IndexModerationVote(height, txInfo);
+            if (txInfo.IsModerationFlag())
+            {
+                PocketDb::ChainRepoInst.IndexModerationJury(
+                    txInfo.Hash,
+                    reputationConsensus.Height() - reputationConsensus.GetConsensusLimit(ConsensusLimit_moderation_jury_flag_depth),
+                    reputationConsensus.GetConsensusLimit(ConsensusLimit_moderation_jury_flag_count)
+                );
+            }
+
+            if (txInfo.IsModerationVote())
+            {
+                PocketDb::ChainRepoInst.IndexModerationBan(
+                    txInfo.Hash
+                );
+            }
         }
     }
-
-    void ChainPostProcessing::IndexModerationFlag(int height, const TransactionIndexingInfo& txInfo)
-    {
-        if (!txInfo.IsModerationFlag())
-            return;
-        
-        // если набралось Х флагов той же причины за Х времени
-        // аккаунт не в активном бане
-        // ----
-        // создать запись жюри
-    }
-
-    void ChainPostProcessing::IndexModerationVote(int height, const TransactionIndexingInfo& txInfo)
-    {
-        if (!txInfo.IsModerationVote())
-            return;
-
-        // если вместе с этим голосом собралось достаточное кол-во голосов - выставить вердикт
-    }
-
 } // namespace PocketServices
