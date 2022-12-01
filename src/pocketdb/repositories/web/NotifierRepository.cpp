@@ -467,7 +467,9 @@ namespace PocketDb
             select count(1) as cntTotal,
                    ifnull((case when post.Type = 200 then 1 else 0 end),0) as cntPost,
                    ifnull((case when post.Type = 201 then 1 else 0 end),0) as cntVideo,
-                   ifnull((case when post.Type = 202 then 1 else 0 end),0) as cntArticle
+                   ifnull((case when post.Type = 202 then 1 else 0 end),0) as cntArticle,
+                   ifnull((case when post.Type = 209 then 1 else 0 end),0) as cntStream,
+                   ifnull((case when post.Type = 210 then 1 else 0 end),0) as cntAudio
             from Transactions sub
             join Transactions post
                 on post.String1 = sub.String2 and post.Type in (200, 201, 202, 209, 210, 203) and post.Last = 1
@@ -490,6 +492,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) result.pushKV("cntPost", value);
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok) result.pushKV("cntVideo", value);
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) result.pushKV("cntArticle", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) result.pushKV("cntStream", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) result.pushKV("cntAudio", value);
             }
 
             FinalizeSqlStatement(*stmt);
