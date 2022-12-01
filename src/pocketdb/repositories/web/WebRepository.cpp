@@ -19,7 +19,7 @@ namespace PocketDb
             from Transactions p indexed by Transactions_BlockHash
             join Payload pp on pp.TxHash = p.Hash
             join json_each(pp.String4)
-            where p.Type in (200, 201, 202)
+            where p.Type in (200, 201, 202, 209, 210)
               and p.Last = 1
               and p.BlockHash = ?
         )sql";
@@ -121,7 +121,7 @@ namespace PocketDb
             from Transactions t indexed by Transactions_BlockHash
             join Payload p on p.TxHash = t.Hash
             where t.BlockHash = ?
-              and t.Type in (100, 200, 201, 202, 204, 205)
+              and t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
        )sql";
        
        TryTransactionStep(__func__, [&]()
@@ -364,7 +364,7 @@ namespace PocketDb
                   and pu.String1 = p.String1
                   and pu.Height is not null
           
-                where p.Type in (200,201,202)
+                where p.Type in (200,201,202,209,210)
                   and p.Last = 1
                   and p.Height is not null
           

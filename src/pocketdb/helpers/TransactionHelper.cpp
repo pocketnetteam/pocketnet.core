@@ -39,6 +39,10 @@ namespace PocketHelpers
             return TxType::CONTENT_VIDEO;
         else if (op == OR_ARTICLE)
             return TxType::CONTENT_ARTICLE;
+        else if (op == OR_STREAM)
+            return TxType::CONTENT_STREAM;
+        else if (op == OR_AUDIO)
+            return TxType::CONTENT_AUDIO;
             
         else if (op == OR_CONTENT_BOOST)
             return TxType::BOOST_CONTENT;
@@ -142,6 +146,8 @@ namespace PocketHelpers
             case TxType::CONTENT_POST:
             case TxType::CONTENT_VIDEO:
             case TxType::CONTENT_ARTICLE:
+            case TxType::CONTENT_STREAM:
+            case TxType::CONTENT_AUDIO:
             case TxType::CONTENT_DELETE:
                 return "Posts";
             case TxType::CONTENT_COMMENT:
@@ -309,6 +315,12 @@ namespace PocketHelpers
             case CONTENT_ARTICLE:
                 ptx = make_shared<Article>(tx);
                 break;
+            case CONTENT_STREAM:
+                ptx = make_shared<Stream>(tx);
+                break;
+            case CONTENT_AUDIO:
+                ptx = make_shared<Audio>(tx);
+                break;
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>(tx);
                 break;
@@ -390,6 +402,12 @@ namespace PocketHelpers
             case CONTENT_ARTICLE:
                 ptx = make_shared<Article>();
                 break;
+            case CONTENT_STREAM:
+                ptx = make_shared<Stream>();
+                break;
+            case CONTENT_AUDIO:
+                ptx = make_shared<Audio>();
+                break;
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>();
                 break;
@@ -460,6 +478,10 @@ namespace PocketHelpers
                 return "video";
             case CONTENT_ARTICLE:
                 return "article";
+            case CONTENT_STREAM:
+                return "stream";
+            case CONTENT_AUDIO:
+                return "audio";
             case ACTION_SCORE_CONTENT:
                 return "upvoteShare";
             case ACTION_SUBSCRIBE:
@@ -497,6 +519,8 @@ namespace PocketHelpers
         else if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return TxType::CONTENT_POST;
         else if (type == "video" || type == OR_VIDEO) return TxType::CONTENT_VIDEO;
         else if (type == "article" || type == OR_ARTICLE) return TxType::CONTENT_ARTICLE;
+        else if (type == "stream" || type == OR_STREAM) return TxType::CONTENT_STREAM;
+        else if (type == "audio" || type == OR_AUDIO) return TxType::CONTENT_AUDIO;
         else if (type == "upvoteShare" || type == OR_SCORE) return TxType::ACTION_SCORE_CONTENT;
         else if (type == "subscribe" || type == OR_SUBSCRIBE) return TxType::ACTION_SUBSCRIBE;
         else if (type == "subscribePrivate" || type == OR_SUBSCRIBEPRIVATE) return TxType::ACTION_SUBSCRIBE_PRIVATE;

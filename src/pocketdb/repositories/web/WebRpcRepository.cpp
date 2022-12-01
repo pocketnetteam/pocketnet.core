@@ -210,6 +210,12 @@ namespace PocketDb
                     where p.Type in (202) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ArticleSpent,
 
                 (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                    where p.Type in (209) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as StreamSpent,
+
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                    where p.Type in (210) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as AudioSpent,
+
+                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (204) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as CommentSpent,
 
                 (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
@@ -263,6 +269,8 @@ namespace PocketDb
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("post_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("video_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("article_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("stream_spent", value);
+                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("audio_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("score_spent", value);
                     if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok)
@@ -354,7 +362,7 @@ namespace PocketDb
                             and c.Height > ?
                             and c.Hash = c.String2
                             and c.String1 != u.String1
-                         where p.Type in (200,201,202)
+                         where p.Type in (200,201,202,209,210)
                             and p.Last = 1
                             and p.String1 = u.String1
                             and p.Height > 0
@@ -467,7 +475,7 @@ namespace PocketDb
                 , ifnull((
                     select count()
                     from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (200,201,202) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
+                    where po.Type in (200,201,202,209,210) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
                 ,0) as PostsCount
 
                 , ifnull((
@@ -543,7 +551,7 @@ namespace PocketDb
                       cross join (
                         select min(fp.Height)minHeight
                         from Transactions fp
-                        where fp.Type in (200,201,202)
+                        where fp.Type in (200,201,202,209,210)
                           and fp.String1 = u.String1
                           and fp.Hash = fp.String2
                           and fp.Last in (0, 1)
@@ -735,7 +743,7 @@ namespace PocketDb
               on ua.String1 = c.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
 
             cross join Transactions p indexed by Transactions_Type_Last_String2_Height
-              on p.Type in (200,201,202) and p.Last = 1 and p.Height > 0 and p.String2 = c.String3
+              on p.Type in (200,201,202,209,210) and p.Last = 1 and p.Height > 0 and p.String2 = c.String3
 
             cross join Payload pp indexed by Payload_String1_TxHash
               on pp.TxHash = p.Hash and pp.String1 = ?
@@ -893,7 +901,7 @@ namespace PocketDb
                 cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
                   on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
 
-                where t.Type in (200,201,202,207)
+                where t.Type in (200,201,202,209,210,207)
                     and t.Last = 1
                     and t.Height is not null
                     and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
@@ -1025,7 +1033,7 @@ namespace PocketDb
             join Payload pl ON pl.TxHash = c.Hash
 
             join Transactions t indexed by Transactions_Type_Last_String2_Height
-                on t.Type in (200,201,202) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
+                on t.Type in (200,201,202,209,210) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
 
             left join Transactions sc indexed by Transactions_Type_String1_String2_Height
                 on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
@@ -1185,7 +1193,7 @@ namespace PocketDb
             join Payload pl ON pl.TxHash = c.Hash
 
             join Transactions t indexed by Transactions_Type_Last_String2_Height
-                on t.Type in (200,201,202) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
+                on t.Type in (200,201,202,209,210) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
 
             left join Transactions sc indexed by Transactions_Type_String1_String2_Height
                 on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
@@ -1520,7 +1528,7 @@ namespace PocketDb
                                     and rating.Last in (0, 1)
                                     and rating.Int1 = 5
                                     and rating.Height is not null
-                              where content.Type in (200, 201, 202)
+                              where content.Type in (200, 201, 202, 209, 210)
                                 and content.Last in (0, 1)
                                 and content.Hash = content.String2
                                 and content.String1 = ?
@@ -2022,7 +2030,7 @@ namespace PocketDb
                    count(*) as cnt
             from Transactions c
             join Payload p on p.TxHash = c.Hash
-            where c.Type in (200, 201, 202)
+            where c.Type in (200, 201, 202, 209, 210)
               and c.Last = 1
               and c.Height is not null
               and c.Height > ?
@@ -2066,7 +2074,7 @@ namespace PocketDb
         string sqlCount = R"sql(
             select count(*)
             from Transactions
-            where Type in (200, 201, 202)
+            where Type in (200, 201, 202, 209, 210)
               and Last = 1
               and Height is not null
               and Height > ?
@@ -2100,7 +2108,7 @@ namespace PocketDb
                 cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                     on u.String1 = t.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
                 cross join Payload p on p.TxHash = u.Hash
-                where t.Type in (200, 201, 202)
+                where t.Type in (200, 201, 202, 209, 210)
                     and t.Last = 1
                     and t.Height is not null
                     and t.Height > ?
@@ -2171,7 +2179,7 @@ namespace PocketDb
             left join Ratings r indexed by Ratings_Type_Id_Last_Height
                 on r.Type = 2 and r.Last = 1 and r.Id = t.Id
 
-            where t.Type in (200, 201, 202)
+            where t.Type in (200, 201, 202, 209, 210)
                 and t.Last = 1
                 and t.String1 = ?
             order by t.Height desc
@@ -2229,7 +2237,7 @@ namespace PocketDb
                 r.Height
             from Transactions r
             join Transactions p on p.Hash = r.String3 and p.String1 = ?
-            where r.Type in (200, 201, 202)
+            where r.Type in (200, 201, 202, 209, 210)
               and r.Last = 1
               and r.Height is not null
               and r.Height > ?
@@ -2277,7 +2285,7 @@ namespace PocketDb
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions s indexed by Transactions_Type_Last_String2_Height
                 on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height is not null and s.Height > ?
-            where c.Type in (200, 201, 202)
+            where c.Type in (200, 201, 202, 209, 210)
               and c.Last = 1
               and c.Height is not null
               and c.String1 = ?
@@ -2505,7 +2513,7 @@ namespace PocketDb
             from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
             join Transactions c indexed by Transactions_Type_Last_String3_Height
                 on c.Type in (204, 205) and c.Height > ? and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
-            where p.Type in (200, 201, 202)
+            where p.Type in (200, 201, 202, 209, 210)
               and p.Last = 1
               and p.Height is not null
               and p.String1 = ?
@@ -2638,7 +2646,7 @@ namespace PocketDb
                 p.String3 as boostAvatar
             from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
             join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
-                on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202)
+                on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202, 209, 210)
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 on u.String1 = tBoost.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
             join Payload p
@@ -2896,7 +2904,7 @@ namespace PocketDb
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2),0) as ScoresSum,
 
                 (select count() from Transactions rep indexed by Transactions_Type_Last_String3_Height
-                    where rep.Type in (200,201,202) and rep.Last = 1 and rep.Height is not null and rep.String3 = t.String2) as Reposted,
+                    where rep.Type in (200,201,202,209,210) and rep.Last = 1 and rep.Height is not null and rep.String3 = t.String2) as Reposted,
 
                 (
                     select count()
@@ -4248,188 +4256,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (o1q): Remove this method when the client gui switches to new methods
-    UniValue WebRpcRepository::GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId,
-        int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
-    {
-        auto func = __func__;
-        UniValue result(UniValue::VARR);
-
-        if (addressTo.empty())
-            return result;
-
-        // ---------------------------------------------
-
-        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
-
-        string topContentIdFilter;
-        if (topContentId > 0)
-            topContentIdFilter = " and t.Id < ? ";
-
-        string sql = R"sql(
-            select t.Id
-            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-            where t.Type in ( )sql" + contentTypesFilter + R"sql( )
-                and t.Height > 0
-                and t.Last = 1
-                and t.String1 = ?
-                )sql" + topContentIdFilter + R"sql(
-        )sql";
-
-        if (!tags.empty())
-        {
-            sql += R"sql(
-                and t.id in (
-                    select tm.ContentId
-                    from web.Tags tag indexed by Tags_Lang_Value_Id
-                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
-                        on tag.Id = tm.TagId
-                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
-                )
-            )sql";
-        }
-
-        sql += " order by t.Id desc ";
-        sql += " limit ? ";
-
-        // ---------------------------------------------
-
-        vector<int64_t> ids;
-        TryTransactionStep(func, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
-
-            TryBindStatementText(stmt, i++, addressTo);
-
-            if (topContentId > 0)
-                TryBindStatementInt64(stmt, i++, topContentId);
-
-            if (!tags.empty())
-                for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
-
-            TryBindStatementInt(stmt, i++, count);
-
-            // ---------------------------------------------
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
-                    ids.push_back(value);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        if (ids.empty())
-            return result;
-
-        auto contents = GetContentsData(ids, addressFrom);
-        result.push_backV(contents);
-
-        return result;
-    }
-
-    // TODO (o1q): Remove this method when the client gui switches to new methods
-    UniValue WebRpcRepository::GetSubscribesFeedOld(const string& addressFrom, int64_t topContentId, int count,
-        const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
-    {
-        auto func = __func__;
-        UniValue result(UniValue::VARR);
-
-        if (addressFrom.empty())
-            return result;
-
-        // ---------------------------------------------------
-
-        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
-
-        string topContentIdFilter;
-        if (topContentId > 0)
-            topContentIdFilter = " and cnt.Id < ? ";
-
-        string sql = R"sql(
-            select cnt.Id
-
-            from Transactions cnt indexed by Transactions_Type_Last_String1_Height_Id
-
-            join Transactions subs indexed by Transactions_Type_Last_String1_String2_Height
-                on subs.Type in (302,303)
-               and subs.Last = 1
-               and subs.Height > 0
-               and subs.String1 = ?
-               and subs.String2 = cnt.String1
-
-            where cnt.Type in ( )sql" + contentTypesFilter + R"sql( )
-              and cnt.Last = 1
-              and cnt.Height > 0
-
-            )sql" + topContentIdFilter + R"sql(
-
-        )sql";
-
-        if (!tags.empty())
-        {
-            sql += R"sql(
-                and cnt.id in (
-                    select tm.ContentId
-                    from web.Tags tag indexed by Tags_Lang_Value_Id
-                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
-                        on tag.Id = tm.TagId
-                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
-                )
-            )sql";
-        }
-
-        sql += " order by cnt.Id desc ";
-        sql += " limit ? ";
-
-        // ---------------------------------------------------
-
-        vector<int64_t> ids;
-        TryTransactionStep(func, [&]()
-        {
-            int i = 1;
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, i++, addressFrom);
-
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
-
-            if (topContentId > 0)
-                TryBindStatementInt(stmt, i++, topContentId);
-
-            if (!tags.empty())
-                for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
-
-            TryBindStatementInt(stmt, i++, count);
-
-            // ---------------------------------------------
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
-                    ids.push_back(value);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        if (ids.empty())
-            return result;
-
-        auto contents = GetContentsData(ids, addressFrom);
-        result.push_backV(contents);
-
-        return result;
-    }
-
     // ------------------------------------------------------
 
     vector<int64_t> WebRpcRepository::GetRandomContentIds(const string& lang, int count, int height)
@@ -4455,7 +4281,7 @@ namespace PocketDb
               and t.Id in (
                 select tr.Id
                 from Transactions tr indexed by Transactions_Type_Last_Height_Id
-                where tr.Type in (200,201,202)
+                where tr.Type in (200,201,202,209,210)
                   and tr.Last = 1
                   and tr.Height > ?
                 order by random()
@@ -4571,7 +4397,7 @@ namespace PocketDb
             from Transactions comment indexed by Transactions_Type_Last_String3_Height
             join Transactions content indexed by Transactions_Type_Last_String2_Height
                 on content.String2 = comment.String3
-                    and content.Type in (200,201,202)
+                    and content.Type in (200,201,202,209,210)
                     and content.Last = 1
                     and content.Height is not null
             join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
@@ -4901,7 +4727,7 @@ namespace PocketDb
                 and rap.Id = ap.Id
                 and rap.Last = 1
 
-            where p.Type in (200,201,202)
+            where p.Type in (200,201,202,209,210)
                 and p.Last = 1
                 and p.Height > 0
 
@@ -5165,7 +4991,7 @@ namespace PocketDb
                 and rac.Id = ac.Id
                 and rac.Last = 1
 
-            where c.Type in (200, 201, 202)
+            where c.Type in (200,201,202,209,210)
                 and c.Last = 1
                 and c.Height > 0
 
@@ -5245,7 +5071,7 @@ namespace PocketDb
             from Transactions tBoost indexed by Transactions_Type_Last_String1_Height_Id
 
             join Transactions tContent indexed by Transactions_Type_Last_String2_Height
-                on tContent.Type in (200,201,202)
+                on tContent.Type in (200,201,202,209,210)
                 and tContent.Last in (0,1)
                 and tContent.Height > 0
                 and tContent.String2 = tBoost.String2
@@ -5616,7 +5442,7 @@ namespace PocketDb
                     and c.String1 != a.String1
                     
                 left join Transactions post indexed by Transactions_Type_Last_String2_Height
-                    on post.Type in (200, 201, 202)
+                    on post.Type in (200,201,202,209,210)
                     and post.Last = 1
                     and post.String2 = a.String3
 
@@ -5736,7 +5562,7 @@ namespace PocketDb
                 from Transactions c indexed by Transactions_Height_Type
 
                 join Transactions p indexed by Transactions_Type_Last_String2_Height
-                    on p.Type in (200,201,202)
+                    on p.Type in (200,201,202,209,210)
                     and p.Last = 1
                     and p.Height > 0
                     and p.String2 = c.String3
@@ -5879,7 +5705,7 @@ namespace PocketDb
                     c.Hash,
                     c.Type,
                     null,
-                    c.Height, -- TODO (losty): original?
+                    c.Height,
                     c.BlockNum,
                     null,
                     c.String2,
@@ -5967,7 +5793,7 @@ namespace PocketDb
                     c.Hash,
                     c.Type,
                     null,
-                    c.Height, -- TODO (losty): original?
+                    c.Height,
                     c.BlockNum,
                     c.Time,
                     c.String2,
@@ -5980,7 +5806,7 @@ namespace PocketDb
                 from Transactions s indexed by Transactions_Height_Type
 
                 join Transactions c indexed by Transactions_Type_Last_String2_Height
-                    on c.Type in (200, 201, 202)
+                    on c.Type in (200,201,202,209,210)
                     and c.Last = 1
                     and c.Height > 0
                     and c.String2 = s.String2
@@ -6073,7 +5899,7 @@ namespace PocketDb
 
                 left join Transactions r indexed by Transactions_Type_Last_String2_Height -- related content - possible reposts
                     on r.String2 = c.String3
-                    and r.Type in (200,201,202)
+                    and r.Type = 200
                     and r.Last = 1
 
                 left join Payload pr
@@ -6109,7 +5935,7 @@ namespace PocketDb
                     and rna.Id = na.Id
                     and rna.Last = 1
 
-                where c.Type in (200,201,202)
+                where c.Type in (200,201,202,209,210)
                     and c.Hash = c.String2 -- only orig
                     and c.Height = ?
         )sql",
@@ -6180,7 +6006,7 @@ namespace PocketDb
                 from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
 
                 left join Transactions tContent indexed by Transactions_Type_Last_String2_Height
-                    on tContent.Type in (200,201,202)
+                    on tContent.Type in (200,201,202,209,210)
                     and tContent.Last in (0,1)
                     and tContent.Height > 0
                     and tContent.String2 = tBoost.String2
@@ -6722,7 +6548,7 @@ namespace PocketDb
                 left join Payload pp
                     on pp.TxHash = p.Hash
 
-                where p.Type in (200,201,202)
+                where p.Type in (200,201,202,209,210)
                     and p.Last = 1
                     and p.Height > 0
                     and p.String1 = ?
@@ -6975,7 +6801,7 @@ namespace PocketDb
                     and racs.Id = acs.Id
                     and racs.Last = 1
 
-                where c.Type in (200, 201, 202)
+                where c.Type in (200,201,202,209,210)
                     and c.Hash = c.String2 -- orig
                     and c.Height > 0
                     and c.String1 = ?
@@ -7036,7 +6862,7 @@ namespace PocketDb
                 from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id -- Subscribers private
 
                 join Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- content for private subscribers
-                    on c.Type in (200,201,202)
+                    on c.Type in (200,201,202,209,210)
                     and c.Last in (0,1)
                     and c.String1 = subs.String2
                     and c.Hash = c.String2 -- orig
@@ -7145,7 +6971,7 @@ namespace PocketDb
                 from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
 
                 join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
-                    on tContent.Type in (200,201,202)
+                    on tContent.Type in (200,201,202,209,210)
                     and tContent.Last = 1
                     and tContent.String1 = ?
                     and tContent.String2 = tBoost.String2
@@ -7353,7 +7179,7 @@ namespace PocketDb
                 from Transactions c indexed by Transactions_Type_Last_String3_Height
 
                 join Transactions p indexed by Transactions_String1_Last_Height
-                    on p.Type in (200,201,202)
+                    on p.Type in (200,201,202,209,210)
                     and p.Last = 1
                     and p.Height > 0
                     and p.String2 = c.String3
@@ -7438,7 +7264,7 @@ namespace PocketDb
                 from Transactions s indexed by Transactions_Type_Last_String2_Height
 
                 join Transactions c indexed by Transactions_Type_Last_String1_String2_Height
-                    on c.Type in (200, 201, 202)
+                    on c.Type in (200, 201, 202, 209, 210)
                     and c.Last = 1
                     and c.Height > 0
                     and c.String2 = s.String2
