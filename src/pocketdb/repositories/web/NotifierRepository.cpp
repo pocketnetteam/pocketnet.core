@@ -54,7 +54,7 @@ namespace PocketDb
             select p.String1 Lang
             from Transactions t
             join Payload p on p.TxHash = t.Hash
-            where t.Type in (200, 201, 202, 203)
+            where t.Type in (200, 201, 202, 209, 210, 203)
               and t.Hash = ?
         )sql";
 
@@ -84,7 +84,7 @@ namespace PocketDb
                 t.Hash Hash,
                 t.String2 RootHash
             from Transactions t
-            where t.Type in (200, 201, 202, 203)
+            where t.Type in (200, 201, 202, 209, 210, 203)
               and t.Hash = ?
         )sql";
 
@@ -121,7 +121,7 @@ namespace PocketDb
                 tContent.String2 as contentHash
             from Transactions tBoost indexed by Transactions_Hash_Height
             join Transactions tContent indexed by Transactions_Type_Last_String2_Height on tContent.String2=tBoost.String2
-                and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202)
+                and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202, 209, 210)
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = tBoost.String1
                 and u.Type in (100) and u.Last = 1 and u.Height > 0
             join Payload p on p.TxHash = u.Hash
@@ -166,7 +166,7 @@ namespace PocketDb
             join Transactions tRepost on tRepost.String3 = t.Hash
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = tRepost.String1
             join Payload p on p.TxHash = u.Hash
-            where tRepost.Type in (200, 201, 202, 203)
+            where tRepost.Type in (200, 201, 202, 209, 210, 203)
               and tRepost.Hash = ?
               and u.Type in (100)
               and u.Last = 1
@@ -420,7 +420,7 @@ namespace PocketDb
             cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = comment.String1
             cross join Payload p on p.TxHash = u.Hash
             cross join Transactions content -- sqlite_autoindex_Transactions_1 (Hash)
-                on content.Type in (200, 201, 202) and content.Hash = comment.String3
+                on content.Type in (200, 201, 202, 209, 210) and content.Hash = comment.String3
             left join Transactions answer indexed by Transactions_Type_Last_String2_Height
                 on answer.Type in (204, 205) and answer.Last = 1 and answer.String2 = comment.String5
             where comment.Type in (204, 205)
@@ -470,7 +470,7 @@ namespace PocketDb
                    ifnull((case when post.Type = 202 then 1 else 0 end),0) as cntArticle
             from Transactions sub
             join Transactions post
-                on post.String1 = sub.String2 and post.Type in (200, 201, 202, 203) and post.Last = 1
+                on post.String1 = sub.String2 and post.Type in (200, 201, 202, 209, 210, 203) and post.Last = 1
             where sub.Type in (302, 303)
               and sub.Last = 1
               and post.Height = ?

@@ -1528,7 +1528,7 @@ namespace PocketDb
                                     and rating.Last in (0, 1)
                                     and rating.Int1 = 5
                                     and rating.Height is not null
-                              where content.Type in (200, 201, 202)
+                              where content.Type in (200, 201, 202, 209, 210)
                                 and content.Last in (0, 1)
                                 and content.Hash = content.String2
                                 and content.String1 = ?
@@ -2030,7 +2030,7 @@ namespace PocketDb
                    count(*) as cnt
             from Transactions c
             join Payload p on p.TxHash = c.Hash
-            where c.Type in (200, 201, 202)
+            where c.Type in (200, 201, 202, 209, 210)
               and c.Last = 1
               and c.Height is not null
               and c.Height > ?
@@ -2074,7 +2074,7 @@ namespace PocketDb
         string sqlCount = R"sql(
             select count(*)
             from Transactions
-            where Type in (200, 201, 202)
+            where Type in (200, 201, 202, 209, 210)
               and Last = 1
               and Height is not null
               and Height > ?
@@ -2108,7 +2108,7 @@ namespace PocketDb
                 cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                     on u.String1 = t.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
                 cross join Payload p on p.TxHash = u.Hash
-                where t.Type in (200, 201, 202)
+                where t.Type in (200, 201, 202, 209, 210)
                     and t.Last = 1
                     and t.Height is not null
                     and t.Height > ?
@@ -2179,7 +2179,7 @@ namespace PocketDb
             left join Ratings r indexed by Ratings_Type_Id_Last_Height
                 on r.Type = 2 and r.Last = 1 and r.Id = t.Id
 
-            where t.Type in (200, 201, 202)
+            where t.Type in (200, 201, 202, 209, 210)
                 and t.Last = 1
                 and t.String1 = ?
             order by t.Height desc
@@ -2237,7 +2237,7 @@ namespace PocketDb
                 r.Height
             from Transactions r
             join Transactions p on p.Hash = r.String3 and p.String1 = ?
-            where r.Type in (200, 201, 202)
+            where r.Type in (200, 201, 202, 209, 210)
               and r.Last = 1
               and r.Height is not null
               and r.Height > ?
@@ -2285,7 +2285,7 @@ namespace PocketDb
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions s indexed by Transactions_Type_Last_String2_Height
                 on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height is not null and s.Height > ?
-            where c.Type in (200, 201, 202)
+            where c.Type in (200, 201, 202, 209, 210)
               and c.Last = 1
               and c.Height is not null
               and c.String1 = ?
@@ -2513,7 +2513,7 @@ namespace PocketDb
             from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
             join Transactions c indexed by Transactions_Type_Last_String3_Height
                 on c.Type in (204, 205) and c.Height > ? and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
-            where p.Type in (200, 201, 202)
+            where p.Type in (200, 201, 202, 209, 210)
               and p.Last = 1
               and p.Height is not null
               and p.String1 = ?
@@ -2646,7 +2646,7 @@ namespace PocketDb
                 p.String3 as boostAvatar
             from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
             join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
-                on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202)
+                on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202, 209, 210)
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 on u.String1 = tBoost.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
             join Payload p
@@ -7264,7 +7264,7 @@ namespace PocketDb
                 from Transactions s indexed by Transactions_Type_Last_String2_Height
 
                 join Transactions c indexed by Transactions_Type_Last_String1_String2_Height
-                    on c.Type in (200, 201, 202)
+                    on c.Type in (200, 201, 202, 209, 210)
                     and c.Last = 1
                     and c.Height > 0
                     and c.String2 = s.String2
