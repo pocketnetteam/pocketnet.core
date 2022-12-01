@@ -4991,7 +4991,7 @@ namespace PocketDb
                 and rac.Id = ac.Id
                 and rac.Last = 1
 
-            where c.Type in (200, 201, 202)
+            where c.Type in (200,201,202,209,210)
                 and c.Last = 1
                 and c.Height > 0
 
@@ -5442,7 +5442,7 @@ namespace PocketDb
                     and c.String1 != a.String1
                     
                 left join Transactions post indexed by Transactions_Type_Last_String2_Height
-                    on post.Type in (200, 201, 202)
+                    on post.Type in (200,201,202,209,210)
                     and post.Last = 1
                     and post.String2 = a.String3
 
@@ -5705,7 +5705,7 @@ namespace PocketDb
                     c.Hash,
                     c.Type,
                     null,
-                    c.Height, -- TODO (losty): original?
+                    c.Height,
                     c.BlockNum,
                     null,
                     c.String2,
@@ -5793,7 +5793,7 @@ namespace PocketDb
                     c.Hash,
                     c.Type,
                     null,
-                    c.Height, -- TODO (losty): original?
+                    c.Height,
                     c.BlockNum,
                     c.Time,
                     c.String2,
@@ -5806,7 +5806,7 @@ namespace PocketDb
                 from Transactions s indexed by Transactions_Height_Type
 
                 join Transactions c indexed by Transactions_Type_Last_String2_Height
-                    on c.Type in (200, 201, 202)
+                    on c.Type in (200,201,202,209,210)
                     and c.Last = 1
                     and c.Height > 0
                     and c.String2 = s.String2
@@ -5899,7 +5899,7 @@ namespace PocketDb
 
                 left join Transactions r indexed by Transactions_Type_Last_String2_Height -- related content - possible reposts
                     on r.String2 = c.String3
-                    and r.Type in (200,201,202,209,210)
+                    and r.Type = 200
                     and r.Last = 1
 
                 left join Payload pr
@@ -6801,7 +6801,7 @@ namespace PocketDb
                     and racs.Id = acs.Id
                     and racs.Last = 1
 
-                where c.Type in (200, 201, 202)
+                where c.Type in (200,201,202,209,210)
                     and c.Hash = c.String2 -- orig
                     and c.Height > 0
                     and c.String1 = ?
