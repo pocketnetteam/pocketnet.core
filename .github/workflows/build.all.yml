@@ -1,4 +1,4 @@
-name: Build
+run-name: "Build: ${{ inputs.platform }}:${{ inputs.depsBase }}:${{ inputs.tag }}"
 
 on:
   workflow_dispatch:
