@@ -372,7 +372,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsJury(const string& juryId)
+    bool ConsensusRepository::ExistsActiveJury(const string& juryId)
     {
         assert(juryId != "");
         bool result = false;
@@ -383,7 +383,7 @@ namespace PocketDb
                 select 1
                 from Transactions t indexed by sqlite_autoindex_Transactions_1
                 join Jury j indexed by sqlite_autoindex_Jury_1
-                  on j.FlagRowId = t.ROWID
+                  on j.FlagRowId = t.ROWID and j.Verdict is null
                 where t.Hash = ?
             )sql");
             TryBindStatementText(stmt, 1, juryId);

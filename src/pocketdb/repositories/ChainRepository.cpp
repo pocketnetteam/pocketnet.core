@@ -533,18 +533,87 @@ namespace PocketDb
         });
     }
 
-    void ChainRepository::IndexModerationBan(const string& voteTxHash)
+    void ChainRepository::IndexModerationBan(const string& voteTxHash, const string& flagTxHash)
     {
-        // TODO (moderation): implement logic for calculate jury verdict
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
-                
+            auto stmt_update_0 = SetupSqlStatement(R"sql(
+              -- if there is at least one negative vote, then the defendant is acquitted
+              update Jury indexed by sqlite_autoindex_Jury_1 set
+                Verdict = 0
+              from Transactions f indexed by sqlite_autoindex_Transactions_1
+              where f.Hash = ?
+                and Jury.FlagRowId = f.ROWID
+                and Jury.Verdict is null
+                and exists (
+                  select 1
+                  from Transactions v indexed by Transactions_Type_Last_String2_Height
+                  where v.Type in (420) -- Votes
+                    and v.Last = 0
+                    and v.String2 = f.Hash -- JuryId over FlagTxHash
+                    and v.Height > 0
+                    and v.Int1 = 0 -- Verdict
+                )
             )sql");
+            TryBindStatementText(stmt_update_0, 1, flagTxHash);
+            TryStepStatement(stmt_update_0);
             
-            TryBindStatementText(stmt, 1, voteTxHash);
+            auto stmt_update_1 = SetupSqlStatement(R"sql(
+              -- if there are X positive votes, then the defendant is punished
+              update Jury indexed by sqlite_autoindex_Jury_1 set
+                Verdict = 1
+              from Transactions f indexed by sqlite_autoindex_Transactions_1
+              where f.Hash = ?
+                and Jury.FlagRowId = f.ROWID
+                and Jury.Verdict is null
+                and 8 <= (
+                  select count()
+                  from Transactions v indexed by Transactions_Type_Last_String2_Height
+                  where v.Type in (420) -- Votes
+                    and v.Last = 0
+                    and v.String2 = f.Hash -- JuryId over FlagTxHash
+                    and v.Height > 0
+                    and v.Int1 = 1 -- Verdict
+                )
+            )sql");
+            TryBindStatementText(stmt_update_1, 1, flagTxHash);
+            TryStepStatement(stmt_update_1);
+            
+            auto stmt_ban = SetupSqlStatement(R"sql(
+              -- If the defendant is punished, then we need to create a ban record
+              insert into Ban
 
-            TryStepStatement(stmt);
+              select
+                
+                v.ROWID, /* Unique id of Flag record */
+                j.AddressHash, /* Address of the content author */
+                j.Reason, /* Reason */
+                (
+                  case (select count() from Ban b where b.AddressHash = f.String3)
+                    when 0 then 43200    -- 1 month
+                    when 1 then 129600   -- 3 month
+                    else 51840000        -- 100 years
+                  end
+                ) /* Ban period */
+
+              from Transactions v indexed by sqlite_autoindex_Transactions_1
+
+              join Transactions f indexed by sqlite_autoindex_Transactions_1
+                on f.Hash = v.String2
+
+              join Jury j indexed by sqlite_autoindex_Transactions_1
+                on j.FlagRowId = f.ROWID and j.Verdict = 1
+
+              where v.Hash = ?
+                and not exists (
+                  select 1
+                  from Ban b
+                  where b.AddressHash = f.String3
+                    and b.Ending > v.Height
+                )
+            )sql");
+            TryBindStatementText(stmt_ban, 1, voteTxHash);
+            TryStepStatement(stmt_ban);
         });
     }
 

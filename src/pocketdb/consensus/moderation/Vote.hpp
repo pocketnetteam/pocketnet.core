@@ -42,8 +42,8 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_Duplicate};
 
             // The jury must be convened
-            if (!ConsensusRepoInst.ExistsJury(*ptx->GetJuryId()))
-                return {false, SocialConsensusResult_Duplicate};
+            if (!ConsensusRepoInst.ExistsActiveJury(*ptx->GetJuryId()))
+                return {false, SocialConsensusResult_NotFound};
 
             // The moderators' votes should be accepted with a delay, in case the jury gets into the orphan block
             auto juryFlag = ConsensusRepoInst.Get(*ptx->GetJuryId());
@@ -65,7 +65,7 @@ namespace PocketConsensus
             // Check required fields
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetJuryId())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetVerdict()) || *ptx->GetVerdict() < 0 || *ptx->GetVerdict() > 2) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetVerdict()) || *ptx->GetVerdict() < 0 || *ptx->GetVerdict() > 1) return {false, SocialConsensusResult_Failed};
             
             return EnableTransaction();
         }

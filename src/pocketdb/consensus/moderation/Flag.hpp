@@ -100,7 +100,7 @@ namespace PocketConsensus
 
             // Check limit
             return SocialConsensus::ValidateLimit(
-                ConsensusLimit_moderation_flag_count,
+                moderation_flag_count,
                 ConsensusRepoInst.CountModerationFlag(
                     *ptx->GetAddress(),
                     Height - (int)GetConsensusLimit(ConsensusLimit_depth),
@@ -116,7 +116,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateLimit(const ModerationFlagRef& ptx, int count)
         {
-            if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
+            if (count >= GetConsensusLimit(moderation_flag_count))
                 return {false, SocialConsensusResult_ExceededLimit};
 
             return Success;

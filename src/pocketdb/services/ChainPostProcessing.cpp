@@ -6,6 +6,8 @@
 
 namespace PocketServices
 {
+    using namespace PocketConsensus;
+
     void ChainPostProcessing::Index(const CBlock& block, int height)
     {
         vector<TransactionIndexingInfo> txs;
@@ -68,7 +70,7 @@ namespace PocketServices
         map<RatingType, map<int, vector<int>>> likersValues;
 
         // Actual consensus checker instance by current height
-        auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
 
         // Loop all transactions for find scores and increase ratings for accounts and contents
         for (const auto& txInfo : txs)
@@ -197,7 +199,7 @@ namespace PocketServices
     // The verdicts of the moderators within the jury are also taken into account.
     void ChainPostProcessing::IndexModeration(int height, vector<TransactionIndexingInfo>& txs)
     {
-        auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
 
         for (const auto& txInfo : txs)
         {
@@ -205,8 +207,8 @@ namespace PocketServices
             {
                 PocketDb::ChainRepoInst.IndexModerationJury(
                     txInfo.Hash,
-                    reputationConsensus.Height() - reputationConsensus.GetConsensusLimit(ConsensusLimit_moderation_jury_flag_depth),
-                    reputationConsensus.GetConsensusLimit(ConsensusLimit_moderation_jury_flag_count)
+                    reputationConsensus.GetHeight() - reputationConsensus.GetConsensusLimit(moderation_jury_flag_depth),
+                    reputationConsensus.GetConsensusLimit(moderation_jury_flag_count)
                 );
             }
 
