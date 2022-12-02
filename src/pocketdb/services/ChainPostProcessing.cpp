@@ -207,8 +207,8 @@ namespace PocketServices
             {
                 PocketDb::ChainRepoInst.IndexModerationJury(
                     txInfo.Hash,
-                    reputationConsensus.GetHeight() - reputationConsensus.GetConsensusLimit(moderation_jury_flag_depth),
-                    reputationConsensus.GetConsensusLimit(moderation_jury_flag_count)
+                    reputationConsensus->GetHeight() - reputationConsensus->GetConsensusLimit(moderation_jury_flag_depth),
+                    reputationConsensus->GetConsensusLimit(moderation_jury_flag_count)
                 );
             }
 

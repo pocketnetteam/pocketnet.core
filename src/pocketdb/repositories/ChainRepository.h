@@ -48,6 +48,9 @@ namespace PocketDb
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);
 
+        void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount);
+        void IndexModerationBan(const string& voteTxHash);
+
     private:
 
         void RollbackBlockingList(int height);
@@ -65,9 +68,6 @@ namespace PocketDb
         void IndexBlocking(const string& txHash);
         void IndexSubscribe(const string& txHash);
         void IndexBoostContent(const string& txHash);
-
-        void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount);
-        void IndexModerationBan(const string& voteTxHash);
 
         void ClearOldLast(const string& txHash);
 
