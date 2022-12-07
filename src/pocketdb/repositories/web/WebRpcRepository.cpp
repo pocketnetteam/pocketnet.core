@@ -3,11 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/web/WebRpcRepository.h"
-
 #include "pocketdb/helpers/ShortFormRepositoryHelper.h"
-
-#include <functional>
-
 #include <functional>
 
 namespace PocketDb
