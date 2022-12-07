@@ -251,7 +251,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < AudioConsensus>> m_rules = {
-                { 9999999, 1449600, [](int height) { return make_shared<AudioConsensus>(height); }}, //TODO (o1q): change checkpoint height
+                { 9999999, 1449600, 0, [](int height) { return make_shared<AudioConsensus>(height); }}, //TODO (o1q): change checkpoint height
         };
     public:
         shared_ptr<AudioConsensus> Instance(int height)
