@@ -201,7 +201,7 @@ namespace PocketConsensus
             return Success;
         }
         
-        // TODO (brangr): move to base class after this checkpoint - set test checkpoint records
+        // TODO (aok): move to base class after this checkpoint - set test checkpoint records
         ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx) override
         {
             auto ptxName = ptx->GetPayloadName() ? *ptx->GetPayloadName() : "";
@@ -217,7 +217,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        // TODO (brangr): move to base class after this checkpoint - set test checkpoint records
+        // TODO (aok): move to base class after this checkpoint - set test checkpoint records
         ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
         {
             auto ptxORHash = ptx->BuildHash();

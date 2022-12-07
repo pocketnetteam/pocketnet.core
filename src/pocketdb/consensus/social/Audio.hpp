@@ -2,26 +2,26 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_VIDEO_HPP
-#define POCKETCONSENSUS_VIDEO_HPP
+#ifndef POCKETCONSENSUS_AUDIO_HPP
+#define POCKETCONSENSUS_AUDIO_HPP
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/content/Video.h"
+#include "pocketdb/models/dto/content/Audio.h"
 
 namespace PocketConsensus
 {
     using namespace std;
-    typedef shared_ptr<Video> VideoRef;
+    typedef shared_ptr<Audio> AudioRef;
 
     /*******************************************************************************************************************
-    *  Video consensus base class
+    *  Audio consensus base class
     *******************************************************************************************************************/
-    class VideoConsensus : public SocialConsensus<Video>
+    class AudioConsensus : public SocialConsensus<Audio>
     {
     public:
-        VideoConsensus(int height) : SocialConsensus<Video>(height) {}
-        ConsensusValidateResult Validate(const CTransactionRef& tx, const VideoRef& ptx, const PocketBlockRef& block) override
+        AudioConsensus(int height) : SocialConsensus<Audio>(height) {}
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const AudioRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
@@ -32,7 +32,7 @@ namespace PocketConsensus
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
-        ConsensusValidateResult Check(const CTransactionRef& tx, const VideoRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const AudioRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
@@ -46,17 +46,14 @@ namespace PocketConsensus
             return Success;
         }
 
-    protected:        
-        virtual int64_t GetLimit(AccountMode mode)
-        {
-            return mode == AccountMode_Pro
-                   ? GetConsensusLimit(ConsensusLimit_pro_video)
-                   : mode == AccountMode_Full
-                     ? GetConsensusLimit(ConsensusLimit_full_video)
-                     : GetConsensusLimit(ConsensusLimit_trial_video);
+    protected:
+        virtual int64_t GetLimit(AccountMode mode) {
+            return mode == AccountMode_Full
+                     ? GetConsensusLimit(ConsensusLimit_full_audio)
+                     : GetConsensusLimit(ConsensusLimit_trial_audio);
         }
 
-        ConsensusValidateResult ValidateBlock(const VideoRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const AudioRef& ptx, const PocketBlockRef& block) override
         {
             // Edit
             if (ptx->IsEdit())
@@ -71,10 +68,10 @@ namespace PocketConsensus
             // Get count from block
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_AUDIO}))
                     continue;
 
-                auto blockPtx = static_pointer_cast<Video>(blockTx);
+                auto blockPtx = static_pointer_cast<Audio>(blockTx);
 
                 if (*ptx->GetAddress() != *blockPtx->GetAddress())
                     continue;
@@ -90,7 +87,7 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
-        ConsensusValidateResult ValidateMempool(const VideoRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const AudioRef& ptx) override
         {
 
             // Edit
@@ -104,22 +101,22 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
 
             // and from mempool
-            count += ConsensusRepoInst.CountMempoolVideo(*ptx->GetAddress());
+            count += ConsensusRepoInst.CountMempoolAudio(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
         }
-        vector<string> GetAddressesForCheckRegistration(const VideoRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const AudioRef& ptx) override
         {
             return {*ptx->GetAddress()};
         }
 
-        virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
+        virtual ConsensusValidateResult ValidateEdit(const AudioRef& ptx)
         {
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
-                *ptx->GetRootTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+                    *ptx->GetRootTxHash(),
+                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE, CONTENT_STREAM, CONTENT_AUDIO }
             );
-            if (lastContentOk && *lastContent->GetType() != CONTENT_VIDEO)
+            if (lastContentOk && *lastContent->GetType() != CONTENT_AUDIO)
                 return {false, SocialConsensusResult_NotAllowed};
 
             // First get original post transaction
@@ -127,7 +124,7 @@ namespace PocketConsensus
             if (!lastContentOk || !originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
-            auto originalPtx = static_pointer_cast<Video>(originalTx);
+            auto originalPtx = static_pointer_cast<Audio>(originalTx);
 
             // Change type not allowed
             if (*originalPtx->GetType() != *ptx->GetType())
@@ -144,7 +141,7 @@ namespace PocketConsensus
             return Success;
         }
         // TODO (aok): move to base Social class
-        virtual ConsensusValidateResult ValidateLimit(const VideoRef& ptx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const AudioRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
             auto address = ptx->GetAddress();
@@ -156,24 +153,24 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual int GetChainCount(const VideoRef& ptx)
+        virtual int GetChainCount(const AudioRef& ptx)
         {
 
-            return ConsensusRepoInst.CountChainVideo(
-                *ptx->GetAddress(),
-                Height - (int)GetConsensusLimit(ConsensusLimit_depth)
+            return ConsensusRepoInst.CountChainAudio(
+                    *ptx->GetAddress(),
+                    Height - (int)GetConsensusLimit(ConsensusLimit_depth)
             );
         }
-        virtual ConsensusValidateResult ValidateEditBlock(const VideoRef& ptx, const PocketBlockRef& block)
+        virtual ConsensusValidateResult ValidateEditBlock(const AudioRef& ptx, const PocketBlockRef& block)
         {
 
             // Double edit in block not allowed
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_VIDEO, CONTENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_AUDIO, CONTENT_DELETE}))
                     continue;
 
-                auto blockPtx = static_pointer_cast<Video>(blockTx);
+                auto blockPtx = static_pointer_cast<Audio>(blockTx);
 
                 if (*blockPtx->GetHash() == *ptx->GetHash())
                     continue;
@@ -185,41 +182,41 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-        virtual ConsensusValidateResult ValidateEditMempool(const VideoRef& ptx)
+        virtual ConsensusValidateResult ValidateEditMempool(const AudioRef& ptx)
         {
 
-            if (ConsensusRepoInst.CountMempoolVideoEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
+            if (ConsensusRepoInst.CountMempoolAudioEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-        virtual ConsensusValidateResult ValidateEditOneLimit(const VideoRef& ptx)
+        virtual ConsensusValidateResult ValidateEditOneLimit(const AudioRef& ptx)
         {
 
-            int count = ConsensusRepoInst.CountChainVideoEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
-            if (count >= GetConsensusLimit(ConsensusLimit_video_edit_count))
+            int count = ConsensusRepoInst.CountChainAudioEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
+            if (count >= GetConsensusLimit(ConsensusLimit_audio_edit_count))
                 return {false, SocialConsensusResult_ContentEditLimit};
 
             return Success;
         }
-        virtual bool AllowEditWindow(const VideoRef& ptx, const VideoRef& originalTx)
+        virtual bool AllowEditWindow(const AudioRef& ptx, const AudioRef& originalTx)
         {
             auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
             if (!ok)
                 return false;
 
-            return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_video_depth);
+            return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_audio_depth);
         }
-        virtual ConsensusValidateResult ValidatePayloadSize(const VideoRef& ptx)
+        virtual ConsensusValidateResult ValidatePayloadSize(const AudioRef& ptx)
         {
             size_t dataSize =
-                (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
-                (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
-                (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
-                (ptx->GetRelayTxHash() ? ptx->GetRelayTxHash()->size() : 0) +
-                (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
-                (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
+                    (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
+                    (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
+                    (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
+                    (ptx->GetRelayTxHash() ? ptx->GetRelayTxHash()->size() : 0) +
+                    (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
+                    (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
 
             if (ptx->GetRootTxHash() && *ptx->GetRootTxHash() != *ptx->GetHash())
                 dataSize += ptx->GetRootTxHash()->size();
@@ -240,7 +237,7 @@ namespace PocketConsensus
                     dataSize += images[i].get_str().size();
             }
 
-            if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_video_size))
+            if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_audio_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};
 
             return Success;
@@ -250,24 +247,24 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class VideoConsensusFactory
+    class AudioConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint < VideoConsensus>> m_rules = {
-            { 0, 0, 0, [](int height) { return make_shared<VideoConsensus>(height); }},
+        const vector<ConsensusCheckpoint < AudioConsensus>> m_rules = {
+                { 9999999, 9999999, [](int height) { return make_shared<AudioConsensus>(height); }}, //TODO (o1q): change checkpoint height
         };
     public:
-        shared_ptr<VideoConsensus> Instance(int height)
+        shared_ptr<AudioConsensus> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<VideoConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
+                                  [&](int target, const ConsensusCheckpoint<AudioConsensus>& itm)
+                                  {
+                                      return target < itm.Height(Params().NetworkIDString());
+                                  }
             ))->m_func(m_height);
         }
     };
 }
 
-#endif // POCKETCONSENSUS_VIDEO_HPP
+#endif // POCKETCONSENSUS_AUDIO_HPP

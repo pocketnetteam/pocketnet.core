@@ -119,6 +119,32 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                             contentLangCnt[OR_ARTICLE][lang] += 1;
                         }
                     }
+                    else if (spl[1] == OR_STREAM) {
+                        optype = "stream";
+                        sharesCnt += 1;
+
+                        auto response = notifierRepoInst->GetPostLang(txid);
+
+                        if (response.exists("lang"))
+                        {
+                            std::string lang = response["lang"].get_str();
+
+                            contentLangCnt[OR_STREAM][lang] += 1;
+                        }
+                    }
+                    else if (spl[1] == OR_AUDIO) {
+                        optype = "audio";
+                        sharesCnt += 1;
+
+                        auto response = notifierRepoInst->GetPostLang(txid);
+
+                        if (response.exists("lang"))
+                        {
+                            std::string lang = response["lang"].get_str();
+
+                            contentLangCnt[OR_AUDIO][lang] += 1;
+                        }
+                    }
                     else if (spl[1] == OR_CONTENT_BOOST)
                         optype = "contentBoost";
                     else if (spl[1] == OR_SCORE)
@@ -163,7 +189,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
             // Event for new PocketNET transaction
-            if (optype == "share" || optype == "video" || optype == "article")
+            if (optype == "share" || optype == "video" || optype == "article" || optype == "stream" || optype == "audio")
             {
                 auto response = notifierRepoInst->GetPostInfo(txid);
                 if (response.exists("hash") && response.exists("rootHash") && response["hash"].get_str() != response["rootHash"].get_str())
@@ -395,6 +421,8 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             contentsSubscribes.pushKV("share", (countResponse.exists("cntPost") ? countResponse["cntPost"].get_int() : 0));
             contentsSubscribes.pushKV("video", (countResponse.exists("cntVideo") ? countResponse["cntVideo"].get_int() : 0));
             contentsSubscribes.pushKV("article", (countResponse.exists("cntArticle") ? countResponse["cntArticle"].get_int() : 0));
+            contentsSubscribes.pushKV("stream", (countResponse.exists("cntStream") ? countResponse["cntStream"].get_int() : 0));
+            contentsSubscribes.pushKV("audio", (countResponse.exists("cntAudio") ? countResponse["cntAudio"].get_int() : 0));
 
             msg.pushKV("contentsSubscribes", contentsSubscribes);
         }

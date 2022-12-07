@@ -72,7 +72,7 @@ namespace PocketServices
                 case QueueRecordType::BlockHeight:
                 {
                     ProcessBadges(queueRecord.BlockHeight);
-                    // TODO (brangr): implement this
+                    // TODO (aok): implement this
                     // ProcessAuthors(queueRecord.BlockHeight);
                 }
                 default:
@@ -176,7 +176,7 @@ namespace PocketServices
                         contentItm.Value = HtmlUtils::UrlDecode(contentItm.Value);
                         break;
                     case ContentFieldType_CommentMessage:
-                        // TODO (brangr): get message from JSON
+                        // TODO (aok): get message from JSON
                         break;
                     default:
                         break;

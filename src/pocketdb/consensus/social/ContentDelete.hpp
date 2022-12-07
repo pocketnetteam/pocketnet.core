@@ -25,7 +25,7 @@ namespace PocketConsensus
             // Actual content not deleted
             auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE }
             );
 
             if (!ok)
@@ -34,7 +34,7 @@ namespace PocketConsensus
             if (*actuallTx->GetType() == TxType::CONTENT_DELETE)
                 return {false, SocialConsensusResult_ContentDeleteDouble};
 
-            // TODO (brangr): convert to Content base class
+            // TODO (aok): convert to Content base class
             // You are author? Really?
             if (*ptx->GetAddress() != *actuallTx->GetString1())
                 return {false, SocialConsensusResult_ContentDeleteUnauthorized};
@@ -58,13 +58,13 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_ARTICLE, CONTENT_DELETE}))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                // TODO (brangr): convert to content base class
+                // TODO (aok): convert to content base class
                 if (*ptx->GetRootTxHash() == *blockTx->GetString2())
                     return {false, SocialConsensusResult_ContentDeleteDouble};
             }

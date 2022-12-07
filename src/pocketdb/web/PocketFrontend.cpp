@@ -163,7 +163,7 @@ namespace PocketWeb
             return {HTTP_OK, cacheContent};
 
         // Return HTTP_FORBIDDEN if file too large or in blocked
-        // TODO (brangr): Check restrictions
+        // TODO (aok): Check restrictions
 
         // Read file and return answer with HTTP_OK
         auto[readOk, fileContent] = ReadFile(_path);

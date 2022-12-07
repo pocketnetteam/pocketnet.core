@@ -13,7 +13,7 @@
 #include <rpc/client.h>
 #include <rpc/mining.h>
 #include <rpc/protocol.h>
-#include <rpc/request.h>
+#include <rpc/requestutils.h>
 #include <tinyformat.h>
 #include <util/strencodings.h>
 #include <util/system.h>

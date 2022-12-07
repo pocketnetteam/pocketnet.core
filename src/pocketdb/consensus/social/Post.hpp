@@ -14,7 +14,7 @@ namespace PocketConsensus
     typedef shared_ptr<Post> PostRef;
     typedef shared_ptr<Content> ContentRef;
 
-    // TODO (brangr) (v0.21.0): extract base class Content for Post, Video and ContentDelete
+    // TODO (aok) (v0.21.0): extract base class Content for Post, Video and ContentDelete
     // Also split Post & Video for extract PostEdit & VideoEdit transactions with base class ContentEdit
 
     /*******************************************************************************************************************
@@ -31,7 +31,7 @@ namespace PocketConsensus
             {
                 auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(
                     *ptx->GetRelayTxHash(),
-                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE }
+                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE }
                 );
 
                 if (!relayOk && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
@@ -137,7 +137,7 @@ namespace PocketConsensus
         {
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE }
             );
             if (lastContentOk && *lastContent->GetType() != CONTENT_POST)
                 return {false, SocialConsensusResult_NotAllowed};

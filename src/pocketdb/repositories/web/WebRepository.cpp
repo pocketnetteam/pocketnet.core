@@ -19,7 +19,7 @@ namespace PocketDb
             from Transactions p indexed by Transactions_BlockHash
             join Payload pp on pp.TxHash = p.Hash
             join json_each(pp.String4)
-            where p.Type in (200, 201, 202)
+            where p.Type in (200, 201, 202, 209, 210)
               and p.Last = 1
               and p.BlockHash = ?
         )sql";
@@ -121,7 +121,7 @@ namespace PocketDb
             from Transactions t indexed by Transactions_BlockHash
             join Payload p on p.TxHash = t.Hash
             where t.BlockHash = ?
-              and t.Type in (100, 200, 201, 202, 204, 205)
+              and t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
        )sql";
        
        TryTransactionStep(__func__, [&]()
@@ -175,13 +175,13 @@ namespace PocketDb
 
                     break;
                 
-                // TODO (brangr): parse JSON for indexing
+                // TODO (aok): parse JSON for indexing
                 // case CONTENT_ARTICLE:
 
                 // case CONTENT_COMMENT:
                 // case CONTENT_COMMENT_EDIT:
 
-                    // TODO (brangr): implement extract message from JSON
+                    // TODO (aok): implement extract message from JSON
                     // if (auto[ok, string1] = TryGetColumnString(*stmt, 2); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 
@@ -364,7 +364,7 @@ namespace PocketDb
                   and pu.String1 = p.String1
                   and pu.Height is not null
           
-                where p.Type in (200,201,202)
+                where p.Type in (200,201,202,209,210)
                   and p.Last = 1
                   and p.Height is not null
           

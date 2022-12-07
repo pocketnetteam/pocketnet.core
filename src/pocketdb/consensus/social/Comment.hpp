@@ -45,7 +45,7 @@ namespace PocketConsensus
             // Check exists content transaction
             auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetPostTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE }
             );
 
             if (!contentOk)
@@ -54,7 +54,7 @@ namespace PocketConsensus
             if (*contentTx->GetType() == CONTENT_DELETE)
                 return {false, SocialConsensusResult_CommentDeletedContent};
 
-            // TODO (brangr): convert to Content base class
+            // TODO (aok): convert to Content base class
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                     *contentTx->GetString1(), *ptx->GetAddress()

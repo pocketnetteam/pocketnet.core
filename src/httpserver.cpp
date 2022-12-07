@@ -634,7 +634,7 @@ void HTTPSocket::BindAddress(std::string ipAddr, int port)
     {
         CNetAddr addr;
         if (ipAddr.empty() || (LookupHost(ipAddr, addr, false) && addr.IsBindAny())) {
-            // TODO (brangr, lostystyg): only for private ports
+            // TODO (aok, lostystyg): only for private ports
             LogPrintf("WARNING: the RPC server is not safe to expose to untrusted networks such as the public internet\n");
         }
         m_boundSockets.push_back(bind_handle);

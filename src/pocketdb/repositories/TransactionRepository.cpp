@@ -267,7 +267,7 @@ namespace PocketDb
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                // TODO (brangr): maybe throw exception if errors?
+                // TODO (aok): maybe throw exception if errors?
                 if (!reconstructor.FeedRow(*stmt))
                 {
                     break;
@@ -618,7 +618,7 @@ namespace PocketDb
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(
         const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
     {
-        // TODO (brangr): move deserialization logic to models ?
+        // TODO (aok): move deserialization logic to models ?
 
         auto[ok0, _txType] = TryGetColumnInt(*stmt, 0);
         auto[ok1, txHash] = TryGetColumnString(*stmt, 1);

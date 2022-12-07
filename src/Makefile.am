@@ -174,6 +174,8 @@ POCKETDB_H = \
     pocketdb/consensus/social/Post.hpp \
     pocketdb/consensus/social/Video.hpp \
     pocketdb/consensus/social/Article.hpp \
+    pocketdb/consensus/social/Stream.hpp \
+    pocketdb/consensus/social/Audio.hpp \
     pocketdb/consensus/social/BoostContent.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
     pocketdb/consensus/social/ScoreContent.hpp \
@@ -229,7 +231,8 @@ POCKETDB_H = \
     pocketdb/models/dto/action/Complain.h \
     pocketdb/models/dto/content/Video.h \
     pocketdb/models/dto/content/Article.h \
-    \
+    pocketdb/models/dto/content/Stream.h \
+    pocketdb/models/dto/content/Audio.h \
     pocketdb/models/dto/moderation/Flag.h \
     pocketdb/models/dto/moderation/Vote.h \
     pocketdb/models/dto/moderation/Moderator.h \
@@ -333,7 +336,8 @@ POCKETDB_CPP = \
     pocketdb/models/dto/content/Video.cpp \
     pocketdb/models/dto/action/BoostContent.cpp \
     pocketdb/models/dto/content/Article.cpp \
-    \
+    pocketdb/models/dto/content/Stream.cpp \
+    pocketdb/models/dto/content/Audio.cpp \
     pocketdb/models/dto/moderation/Flag.cpp \
     pocketdb/models/dto/moderation/Vote.cpp \
     pocketdb/models/dto/moderation/Moderator.cpp \
@@ -442,6 +446,7 @@ POCKETCOIN_CORE_H = \
     rpc/rawtransaction_util.h \
     rpc/register.h \
     rpc/request.h \
+    rpc/requestutils.h \
     rpc/server.h \
     rpc/util.h \
     statistic.hpp \
@@ -581,6 +586,7 @@ libpocketcoin_server_a_SOURCES = \
     rpc/misc.cpp \
     rpc/net.cpp \
     rpc/rawtransaction.cpp \
+    rpc/request.cpp \
     rpc/server.cpp \
     script/sigcache.cpp \
     shutdown.cpp \
@@ -794,7 +800,7 @@ libpocketcoin_util_a_SOURCES = \
   logging.cpp \
   random.cpp \
   randomenv.cpp \
-  rpc/request.cpp \
+  rpc/requestutils.cpp \
   support/cleanse.cpp \
   sync.cpp \
   threadinterrupt.cpp \

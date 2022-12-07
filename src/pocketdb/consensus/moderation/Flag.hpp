@@ -39,7 +39,7 @@ namespace PocketConsensus
             if (!ConsensusRepoInst.ExistsNotDeleted(
                 *ptx->GetContentTxHash(),
                 *ptx->GetContentAddressHash(),
-                { ACCOUNT_USER, CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
+                { ACCOUNT_USER, CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
             ))
                 return {false, SocialConsensusResult_NotFound};
 

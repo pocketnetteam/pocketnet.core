@@ -32,6 +32,9 @@ namespace PocketTx
     #define OR_VIDEO "766964656f" // Post for video hosting
     #define OR_ARTICLE "61727469636c65" // Article Post
 
+    #define OR_STREAM "73747265616d" // Post for stream hosting
+    #define OR_AUDIO "617564696f" // Post for audio hosting
+
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
     #define OR_TRANSLATE "7472616e736c617465"                 // Post for translating words
@@ -82,6 +85,9 @@ namespace PocketTx
         CONTENT_DELETE = 207,
 
         BOOST_CONTENT = 208,
+
+        CONTENT_STREAM = 209,
+        CONTENT_AUDIO = 210,
 
         ACTION_SCORE_CONTENT = 300,
         ACTION_SCORE_COMMENT = 301,
@@ -161,11 +167,12 @@ namespace PocketTx
             return Type == TxType::ACCOUNT_SETTING;
         }
 
-        bool IsContent() const
-        {
+        bool IsContent() const {
             return Type == TxType::CONTENT_POST ||
                    Type == TxType::CONTENT_VIDEO ||
                    Type == TxType::CONTENT_ARTICLE ||
+                   Type == TxType::CONTENT_STREAM ||
+                   Type == TxType::CONTENT_AUDIO ||
                    Type == TxType::CONTENT_DELETE;
         }
 

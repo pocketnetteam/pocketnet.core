@@ -69,7 +69,7 @@ namespace PocketDb
                     p.String7 pString7
                 from Transactions t indexed by Transactions_Hash_Height
                 left join Payload p on t.Hash = p.TxHash
-                where t.Type in (200,201,202,203,204)
+                where t.Type in (200,201,202,203,204,209,210)
                   and t.Hash = ?
                   and t.String2 = ?
                   and t.Height is not null
@@ -677,6 +677,72 @@ namespace PocketDb
         return result;
     }
 
+    bool ConsensusRepository::ExistsInMempool(const string& string1, const vector<TxType>& types)
+    {
+        assert(string1 != "");
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and String1 = ?
+              and Height is null
+            limit 1
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i++, string1);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::ExistsInMempool(const string& string1, const string& string2, const vector<TxType>& types)
+    {
+        assert(string1 != "");
+        assert(string2 != "");
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by Transactions_Type_String1_String2_Height
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and String1 = ?
+              and String2 = ?
+              and Height is null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i++, string1);
+            TryBindStatementText(stmt, i++, string2);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     bool ConsensusRepository::ExistsNotDeleted(const string& txHash, const string& address, const vector<TxType>& types)
     {
         bool result = false;
@@ -799,7 +865,7 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (brangr): maybe remove in future?
+    // TODO (aok): maybe remove in future?
     int64_t ConsensusRepository::GetAccountRegistrationTime(int addressId)
     {
         int64_t result = 0;
@@ -931,7 +997,7 @@ namespace PocketDb
 
             -- Content
             join Transactions c indexed by Transactions_Hash_Height
-                on c.Type in (200,201,202,203,204,205,206,207) and c.Height > 0 and c.Hash = s.String2
+                on c.Type in (200,201,202,203,204,205,206,207,209,210) and c.Height > 0 and c.Hash = s.String2
 
             -- Content Address
             join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
@@ -1085,7 +1151,7 @@ namespace PocketDb
                and s.Time >= ?
                and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
                and s.Hash != ?
-            where c.Type in (200,201,202,207)
+            where c.Type in (200,201,202,209,210,207)
               and c.String1 = ?
               and c.Height is not null
               and c.Last = 1
@@ -1637,6 +1703,114 @@ namespace PocketDb
         return result;
     }
 
+    int ConsensusRepository::CountMempoolStream(const string& address)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+                where Type in (209)
+                  and Height is null
+                  and String1 = ?
+                  and Hash = String2
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+    int ConsensusRepository::CountChainStream(const string& address, int height)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+                where Type in (209)
+                  and String1 = ?
+                  and Height >= ?
+                  and Hash = String2
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::CountMempoolAudio(const string& address)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+                where Type in (210)
+                  and Height is null
+                  and String1 = ?
+                  and Hash = String2
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+    int ConsensusRepository::CountChainAudio(const string& address, int height)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+                where Type in (210)
+                  and String1 = ?
+                  and Height >= ?
+                  and Hash = String2
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     int ConsensusRepository::CountMempoolScoreComment(const string& address)
     {
         int result = 0;
@@ -2105,6 +2279,118 @@ namespace PocketDb
         return result;
     }
 
+    int ConsensusRepository::CountMempoolStreamEdit(const string& address, const string& rootTxHash)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (209,207)
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+    int ConsensusRepository::CountChainStreamEdit(const string& address, const string& rootTxHash)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (209)
+                  and Height is not null
+                  and Hash != String2
+                  and String1 = ?
+                  and String2 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::CountMempoolAudioEdit(const string& address, const string& rootTxHash)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (210,207)
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+    int ConsensusRepository::CountChainAudioEdit(const string& address, const string& rootTxHash)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (210)
+                  and Height is not null
+                  and Hash != String2
+                  and String1 = ?
+                  and String2 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     int ConsensusRepository::CountMempoolContentDelete(const string& address, const string& rootTxHash)
     {
         int result = 0;
@@ -2114,7 +2400,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200,201,202,207)
+                where Type in (200,201,202,209,210,207)
                   and Height is null
                   and String1 = ?
                   and String2 = ?

@@ -20,7 +20,7 @@ namespace PocketDb
                 UpdateTransactionHeight(blockHash, txInfo.BlockNumber, height, txInfo.Hash);
 
                 // The outputs are needed for the explorer
-                // TODO (brangr) (v0.21.1): replace with update inputs spent with TxInputs table over loop
+                // TODO (aok) (v0.20.19+): replace with update inputs spent with TxInputs table over loop
                 UpdateTransactionOutputs(txInfo, height);
 
                 // Account and Content must have unique ID
@@ -278,7 +278,7 @@ namespace PocketDb
                     (
                         select c.Id
                         from Transactions c indexed by Transactions_Type_Last_String2_Height
-                        where c.Type in (200,201,202,207)
+                        where c.Type in (200,201,202,209,210,207)
                             and c.Last = 1
                             -- String2 = RootTxHash
                             and c.String2 = Transactions.String2

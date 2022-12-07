@@ -201,6 +201,8 @@ namespace PocketConsensus
         ConsensusLimit_trial_post,
         ConsensusLimit_trial_video,
         ConsensusLimit_trial_article,
+        ConsensusLimit_trial_stream,
+        ConsensusLimit_trial_audio,
         ConsensusLimit_trial_score,
         ConsensusLimit_trial_complain,
         ConsensusLimit_trial_comment,
@@ -209,6 +211,8 @@ namespace PocketConsensus
         ConsensusLimit_full_post,
         ConsensusLimit_full_video,
         ConsensusLimit_full_article,
+        ConsensusLimit_full_stream,
+        ConsensusLimit_full_audio,
         ConsensusLimit_full_score,
         ConsensusLimit_full_complain,
         ConsensusLimit_full_comment,
@@ -219,11 +223,15 @@ namespace PocketConsensus
         ConsensusLimit_post_edit_count,
         ConsensusLimit_video_edit_count,
         ConsensusLimit_article_edit_count,
+        ConsensusLimit_stream_edit_count,
+        ConsensusLimit_audio_edit_count,
         ConsensusLimit_comment_edit_count,
 
         ConsensusLimit_edit_post_depth,
         ConsensusLimit_edit_video_depth,
         ConsensusLimit_edit_article_depth,
+        ConsensusLimit_edit_stream_depth,
+        ConsensusLimit_edit_audio_depth,
         ConsensusLimit_edit_comment_depth,
         ConsensusLimit_edit_user_depth,
 
@@ -236,6 +244,8 @@ namespace PocketConsensus
         ConsensusLimit_max_post_size,
         ConsensusLimit_max_video_size,
         ConsensusLimit_max_article_size,
+        ConsensusLimit_max_stream_size,
+        ConsensusLimit_max_audio_size,
         ConsensusLimit_max_comment_size,
         ConsensusLimit_max_account_setting_size,
 
@@ -417,6 +427,14 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 4320} } },
             { NetworkRegTest, { {0, 4320} } }
         } },
+        { ConsensusLimit_edit_stream_depth, {
+            { NetworkMain, { {0, 1440} } },
+            { NetworkTest, { {0, 1440} } }
+        } },
+        { ConsensusLimit_edit_audio_depth, {
+            { NetworkMain, { {0, 1440} } },
+            { NetworkTest, { {0, 1440} } }
+        } },
         { ConsensusLimit_edit_comment_depth, {
             { NetworkMain,    { {0, 86400}, {1180000, 1440} } },
             { NetworkTest,    { {0, 1440} } },
@@ -442,7 +460,7 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 30 * 24 * 3600} } },
             { NetworkRegTest, { {0, 30 * 24 * 3600} } }
         } },
-        // TODO (brangr) (v0.21.0): change GetLotteryReferralDepth Time to Height
+        // TODO (aok) (v0.21.0): change GetLotteryReferralDepth Time to Height
         { ConsensusLimit_lottery_referral_depth, {
             { NetworkMain,    { {0, 30 * 24 * 3600} } },
             { NetworkTest,    { {0, 30 * 24 * 3600} } },
@@ -464,6 +482,16 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 1} } },
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
+        } },
+        // TODO (o1q): is it correct?
+        { ConsensusLimit_trial_stream, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 15} } }
+        } },
+        // TODO (o1q): is it correct?
+        { ConsensusLimit_trial_audio, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 15} } }
         } },
         { ConsensusLimit_trial_score, {
             { NetworkMain,    { {0, 45}, {175600, 100}, {1324655, 15} } },
@@ -501,6 +529,16 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 30} } },
             { NetworkRegTest, { {0, 30} } }
         } },
+        // TODO (o1q): is it correct?
+        { ConsensusLimit_full_stream, {
+            { NetworkMain, { {0, 30} } },
+            { NetworkTest, { {0, 30} } }
+        } },
+        // TODO (o1q): is it correct?
+        { ConsensusLimit_full_audio, {
+            { NetworkMain, { {0, 30} } },
+            { NetworkTest, { {0, 30} } }
+        } },
         { ConsensusLimit_full_score, {
             { NetworkMain,    { {0, 90}, {175600, 200}, {1757000, 60}, {1791787, 100}, {1873500, 200} } },
             { NetworkTest,    { {0, 200} } },
@@ -527,6 +565,15 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 100} } },
             { NetworkRegTest, { {0, 10} } }
         } },
+       // TODO (o1q): is it correct?
+//        { ConsensusLimit_pro_stream, {
+//            { NetworkMain, { {0, 100} } },
+//            { NetworkTest, { {0, 100} } }
+//        } },
+//        { ConsensusLimit_pro_audio, {
+//            { NetworkMain, { {0, 100} } },
+//            { NetworkTest, { {0, 100} } }
+//        } },
 
         { ConsensusLimit_post_edit_count, {
             { NetworkMain,    { {0, 5} } },
@@ -542,6 +589,16 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 10} } },
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
+        } },
+        // TODO (o1q): is it correct?
+        { ConsensusLimit_stream_edit_count, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 5} } }
+        } },
+        // TODO (o1q): is it correct?
+        { ConsensusLimit_audio_edit_count, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 5} } }
         } },
         { ConsensusLimit_comment_edit_count, {
             { NetworkMain,    { {0, 4} } },
@@ -581,6 +638,16 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 120000} } },
             { NetworkTest,    { {0, 60000} } },
             { NetworkRegTest, { {0, 60000} } }
+        } },
+        // TODO (o1q): is it correct?
+        { ConsensusLimit_max_stream_size, {
+            { NetworkMain, { {0, 60000} } },
+            { NetworkTest, { {0, 60000} } }
+        } },
+        // TODO (o1q): is it correct?
+        { ConsensusLimit_max_audio_size, {
+            { NetworkMain, { {0, 60000} } },
+            { NetworkTest, { {0, 60000} } }
         } },
         { ConsensusLimit_max_comment_size, {
             { NetworkMain,    { {0, 2000} } },

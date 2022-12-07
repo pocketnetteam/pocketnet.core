@@ -156,6 +156,12 @@ namespace PocketDb
         int CountMempoolArticle(const string& address);
         int CountChainArticle(const string& address, int height);
 
+        int CountMempoolStream(const string& address);
+        int CountChainStream(const string& address, int height);
+
+        int CountMempoolAudio(const string& address);
+        int CountChainAudio(const string& address, int height);
+
         int CountMempoolScoreComment(const string& address);
         int CountChainScoreCommentTime(const string& address, int64_t time);
         int CountChainScoreCommentHeight(const string& address, int height);
@@ -180,6 +186,12 @@ namespace PocketDb
 
         int CountMempoolArticleEdit(const string& address, const string& rootTxHash);
         int CountChainArticleEdit(const string& address, const string& rootTxHash);
+
+        int CountMempoolStreamEdit(const string& address, const string& rootTxHash);
+        int CountChainStreamEdit(const string& address, const string& rootTxHash);
+
+        int CountMempoolAudioEdit(const string& address, const string& rootTxHash);
+        int CountChainAudioEdit(const string& address, const string& rootTxHash);
 
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
 

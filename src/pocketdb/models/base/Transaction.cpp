@@ -22,7 +22,7 @@ namespace PocketTx
         // TODO (losty): optional?
         UniValue result (UniValue::VOBJ);
         
-        // TODO (brangr): remove safe?        
+        // TODO (aok): remove safe?        
         result.pushKV("txid", *GetHash());
         result.pushKV("time", *GetTime());
         result.pushKV("block", 0);
