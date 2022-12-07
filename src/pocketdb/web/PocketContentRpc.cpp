@@ -406,7 +406,7 @@ namespace PocketWeb::PocketWebRpc
         {
             if (request.params[0].isNum())
                 count = request.params[0].get_int();
-            else if (request.params[0].isStr())
+            else if (request.params[0].isStr() && !request.params[0].empty())
                 if (!ParseInt32(request.params[0].get_str(), &count))
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
         }
@@ -418,7 +418,7 @@ namespace PocketWeb::PocketWebRpc
         {
             if (request.params[1].isNum())
                 depthBlocks = request.params[1].get_int();
-            else if (request.params[1].isStr())
+            else if (request.params[1].isStr() && !request.params[1].empty())
                 if (!ParseInt32(request.params[1].get_str(), &depthBlocks))
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
 
@@ -439,7 +439,7 @@ namespace PocketWeb::PocketWebRpc
                 if (request.params[2].get_int() > 0)
                     nOffset = request.params[2].get_int();
             }
-            else if (request.params[2].isStr())
+            else if (request.params[2].isStr() && !request.params[2].empty())
             {
                 if (!ParseInt32(request.params[2].get_str(), &nOffset))
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
