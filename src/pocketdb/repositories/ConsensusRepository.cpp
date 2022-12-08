@@ -833,8 +833,6 @@ namespace PocketDb
     {
         AccountData result = {address,-1,0,0,0,0,0,0,0,0};
 
-        // TODO (moderation): implement request to Badges table for detect moderator status
-
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
@@ -847,8 +845,8 @@ namespace PocketDb
                     ifnull(r.Value,0)Reputation,
                     ifnull(lp.Value,0)LikersContent,
                     ifnull(lc.Value,0)LikersComment,
-                    ifnull(lca.Value,0)LikersCommentAnswer
-                    -- ifnull(m.Height,0)ModeratorBadge
+                    ifnull(lca.Value,0)LikersCommentAnswer,
+                    iif(bmod.Badge,1,0)ModeratorBadge
 
                 from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
 
@@ -870,8 +868,8 @@ namespace PocketDb
                 left join Ratings lca indexed by Ratings_Type_Id_Last_Value
                     on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
 
-                -- left join Transactions m indexed by Transactions_Type_Last_String2_Height
-                --     on m.Type in (403,404) and m.Last = 1 and m.String2 = u.String1 and m.Height > 0
+                left join Badges bmod indexed by Badges_AccountId_Badge
+                    on bmod.AccountId = u.Id and bmod.Badge = 3
 
                 where u.Type in (100, 170)
                   and u.Last = 1
@@ -893,7 +891,7 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.LikersContent = value;
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.LikersComment = value;
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.LikersCommentAnswer = value;
-                // if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.ModeratorBadge = value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.ModeratorBadge = value;
             }
 
             FinalizeSqlStatement(*stmt);

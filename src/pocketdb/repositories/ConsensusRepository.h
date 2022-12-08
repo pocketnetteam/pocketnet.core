@@ -37,7 +37,7 @@ namespace PocketDb
         int64_t LikersComment;
         int64_t LikersCommentAnswer;
 
-        int64_t ModeratorBadge;
+        bool ModeratorBadge;
 
         int64_t LikersAll() const
         {

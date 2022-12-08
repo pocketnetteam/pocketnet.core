@@ -299,6 +299,7 @@ namespace PocketDb
             create index if not exists Jury_AddressHash_Reason_Verdict on Jury (AddressHash, Reason, Verdict);
 
             create unique index if not exists Badges_AccountId_Badge on Badges (AccountId, Badge);
+            create index if not exists Badges_Badge_AccountId on Badges (Badge, AccountId);
 
         )sql";
 
