@@ -425,17 +425,17 @@ static RPCHelpMan generateblock()
     };
 }
 
-static RPCHelpMan stakeblock()
+static RPCHelpMan stake()
 {
-    return RPCHelpMan{"stakeblock",
+    return RPCHelpMan{"stake",
         "\nStake one or more blocks\n",
         {
             {"count", RPCArg::Type::NUM, RPCArg::Optional::NO, "Count of new blocks."},
         },
         RPCResult{RPCResult::Type::NONE, "", ""},
         RPCExamples{
-            HelpExampleCli("stakeblock", "") +
-            HelpExampleRpc("stakeblock", "")
+            HelpExampleCli("stake", "") +
+            HelpExampleRpc("stake", "")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -1276,7 +1276,7 @@ static const CRPCCommand commands[] =
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
     { "generating",         "generatetodescriptor",   &generatetodescriptor,   {"num_blocks","descriptor","maxtries"} },
     { "generating",         "generateblock",          &generateblock,          {"output","transactions"} },
-    { "generating",         "stakeblock",             &stakeblock,             {"count"} },
+    { "generating",         "stake",                  &stake,             {"count"} },
 
     { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
 
