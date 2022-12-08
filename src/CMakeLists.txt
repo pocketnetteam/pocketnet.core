@@ -66,6 +66,9 @@ option(WITH_UTILS "build pocketcoin-cli pocketcoin-tx (default=ON)" ON)
 option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
 option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want to statically link internal libraries. Ignored for non-MSVC build (default=ON)" ON)
 
+# Disable warnings
+add_compile_options(-Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-deprecated)
+
 # Specific msvc options
 if(MSVC)
     add_compile_options(/bigobj)
