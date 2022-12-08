@@ -1972,8 +1972,8 @@ CAmount CWalletTx::GetDebit(const isminefilter& filter) const
 CAmount CWalletTx::GetCredit(const isminefilter& filter) const
 {
 	// Must wait until coinbase is safely deep enough in the chain before valuing it
-	// if (IsImmatureCoinBase())
-	//     return 0;
+	if (IsImmatureCoinBase())
+	    return 0;
 
 	CAmount credit = 0;
 	if (filter & ISMINE_SPENDABLE) {
@@ -4286,7 +4286,7 @@ int CWalletTx::GetBlocksToMaturity() const
 	if (!(IsCoinBase() || IsCoinStake()))
 		return 0;
 	int chain_depth = GetDepthInMainChain();
-	assert(chain_depth >= 0); // coinbase tx should not be conflicted
+	if (chain_depth < 0) return chain_depth;
 	return std::max(0, (COINBASE_MATURITY+1) - chain_depth);
 }
 
