@@ -51,6 +51,10 @@ namespace PocketDb
         void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount);
         void IndexModerationBan(const string& voteTxHash);
 
+        void IndexBadges_Shark(int height, const BadgeSharkConditions& conditions);
+        void IndexBadges_Whale(int height, const BadgeWhaleConditions& conditions);
+        void IndexBadges_Moderator(int height, const BadgeModeratorConditions& conditions);
+
     private:
 
         void RollbackBlockingList(int height);

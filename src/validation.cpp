@@ -2521,9 +2521,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     if (!gArgs.GetBoolArg("-withoutweb", false) && enablePocketConnect)
     {
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
-
-        if (pindex->nHeight % 100 == 0 && !IsInitialBlockDownload())
-            PocketServices::WebPostProcessorInst.Enqueue(pindex->nHeight);
+        PocketServices::WebPostProcessorInst.Enqueue(pindex->nHeight);
     }
 
     // -----------------------------------------------------------------------------------------------------------------

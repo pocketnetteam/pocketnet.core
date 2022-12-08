@@ -626,6 +626,148 @@ namespace PocketDb
     }
 
 
+    void ChainRepository::IndexBadges_Shark(int height, const BadgeSharkConditions& conditions)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt_delete = SetupSqlStatement(R"sql(
+              delete from Badges
+              where
+
+                Badge in (?)
+
+                and (
+                  -- Likers over root comments must be above N
+                  ifnull((select lc.Value from Ratings lc indexed by Ratings_Type_Id_Last_Value where lc.Type in (112) and lc.Last = 1 and lc.Id = Badges.AccountId),0) < ?
+
+                  -- Sum liker must be above N
+                  or ifnull((select sum(l.Value) from Ratings l where l.Type in (111,112,113) and l.Last = 1 and l.Id = Badges.AccountId),0) < ?
+
+                  -- Account must be registered above N months
+                  or ? - (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = Badges.AccountId) <= ?
+
+                  -- Account must be active (not deleted)
+                  or not exists (select 1 from Transactions u indexed by Transactions_Id_Last where u.Type = 100 and u.Last = 1 and u.Id = Badges.AccountId)
+                )
+            )sql");
+            TryBindStatementInt(stmt_delete, 1, conditions.Number);
+            TryBindStatementInt64(stmt_delete, 2, conditions.LikersComment);
+            TryBindStatementInt64(stmt_delete, 3, conditions.LikersAll);
+            TryBindStatementInt(stmt_delete, 4, height);
+            TryBindStatementInt64(stmt_delete, 5, conditions.RegistrationDepth);
+            TryStepStatement(stmt_delete);
+            
+            auto stmt_insert = SetupSqlStatement(R"sql(
+              insert into Badges
+
+              select
+
+                lc.Id,
+                ?
+
+              from Ratings lc indexed by Ratings_Type_Id_Last_Value
+
+              where
+
+                not exists (select 1 from Badges b indexed by Badges_AccountId_Badge where b.AccountId = lc.Id and b.Badge = ?)
+
+                -- The main filtering rule is performed by the main filter
+                -- Likers over root comments must be above N
+                and lc.Type = 112 and lc.Id > 0 and lc.Last = 1 and lc.Value >= ?
+                
+                -- Sum liker must be above N
+                and ifnull((select sum(l.Value) from Ratings l indexed by Ratings_Type_Id_Last_Value where l.Type in (111,112,113) and l.Last = 1 and l.Id = lc.Id),0) >= ?
+
+                -- Account must be registered above N months
+                and ? - (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = lc.Id) > ?
+
+                -- Account must be active
+                and exists (select 1 from Transactions u indexed by Transactions_Id_Last where u.Type = 100 and u.Last = 1 and u.Id = lc.Id)
+            )sql");
+            TryBindStatementInt(stmt_insert, 1, conditions.Number);
+            TryBindStatementInt(stmt_insert, 2, conditions.Number);
+            TryBindStatementInt64(stmt_insert, 3, conditions.LikersComment);
+            TryBindStatementInt64(stmt_insert, 3, conditions.LikersAll);
+            TryBindStatementInt(stmt_insert, 4, height);
+            TryBindStatementInt64(stmt_insert, 5, conditions.RegistrationDepth);
+            TryStepStatement(stmt_insert);
+        });
+    }
+    
+    void ChainRepository::IndexBadges_Whale(int height, const BadgeWhaleConditions& conditions)
+    {
+        // TODO (aok): implement
+    }
+    
+    void ChainRepository::IndexBadges_Moderator(int height, const BadgeModeratorConditions& conditions)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt_delete = SetupSqlStatement(R"sql(
+              delete from Badges
+              where
+
+                Badge in (?)
+
+                and (
+                  -- Likers over root comments must be above N
+                  ifnull((select lc.Value from Ratings lc indexed by Ratings_Type_Id_Last_Value where lc.Type in (112) and lc.Last = 1 and lc.Id = Badges.AccountId),0) < ?
+
+                  -- Sum liker must be above N
+                  or ifnull((select sum(l.Value) from Ratings l where l.Type in (111,112,113) and l.Last = 1 and l.Id = Badges.AccountId),0) < ?
+
+                  -- Account must be registered above N months
+                  or ? - (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = Badges.AccountId) <= ?
+
+                  -- Account must be active (not deleted)
+                  or not exists (select 1 from Transactions u indexed by Transactions_Id_Last where u.Type = 100 and u.Last = 1 and u.Id = Badges.AccountId)
+                )
+            )sql");
+            TryBindStatementInt(stmt_delete, 1, conditions.Number);
+            TryBindStatementInt64(stmt_delete, 2, conditions.LikersComment);
+            TryBindStatementInt64(stmt_delete, 3, conditions.LikersAll);
+            TryBindStatementInt(stmt_delete, 4, height);
+            TryBindStatementInt64(stmt_delete, 5, conditions.RegistrationDepth);
+            TryStepStatement(stmt_delete);
+            
+            auto stmt_insert = SetupSqlStatement(R"sql(
+              insert into Badges
+
+              select
+
+                lc.Id,
+                ?
+
+              from Ratings lc indexed by Ratings_Type_Id_Last_Value
+
+              where
+
+                not exists (select 1 from Badges b indexed by Badges_AccountId_Badge where b.AccountId = lc.Id and b.Badge = ?)
+
+                -- The main filtering rule is performed by the main filter
+                -- Likers over root comments must be above N
+                and lc.Type = 112 and lc.Id > 0 and lc.Last = 1 and lc.Value >= ?
+                
+                -- Sum liker must be above N
+                and ifnull((select sum(l.Value) from Ratings l indexed by Ratings_Type_Id_Last_Value where l.Type in (111,112,113) and l.Last = 1 and l.Id = lc.Id),0) >= ?
+
+                -- Account must be registered above N months
+                and ? - (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = lc.Id) > ?
+
+                -- Account must be active
+                and exists (select 1 from Transactions u indexed by Transactions_Id_Last where u.Type = 100 and u.Last = 1 and u.Id = lc.Id)
+            )sql");
+            TryBindStatementInt(stmt_insert, 1, conditions.Number);
+            TryBindStatementInt(stmt_insert, 2, conditions.Number);
+            TryBindStatementInt64(stmt_insert, 3, conditions.LikersComment);
+            TryBindStatementInt64(stmt_insert, 3, conditions.LikersAll);
+            TryBindStatementInt64(stmt_insert, 4, height);
+            TryBindStatementInt64(stmt_insert, 5, conditions.RegistrationDepth);
+            TryStepStatement(stmt_insert);
+        });
+    }
+
+
     bool ChainRepository::ClearDatabase()
     {
         LogPrintf("Full reindexing database..\n");

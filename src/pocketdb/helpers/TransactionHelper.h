@@ -45,6 +45,7 @@
 #include "pocketdb/models/dto/account/Delete.h"
 
 #include "pocketdb/models/dto/moderation/Flag.h"
+#include "pocketdb/models/dto/moderation/Vote.h"
 
 namespace PocketHelpers
 {

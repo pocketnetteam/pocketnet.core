@@ -78,6 +78,7 @@ namespace PocketDb
                 -- Complain.Reason
                 -- Boost.Amount
                 -- ModerationFlag.Reason
+                -- ModerationVote.Verdict
                 Int1      int    null
             );
         )sql");
@@ -218,6 +219,18 @@ namespace PocketDb
             );
         )sql");
 
+        _tables.emplace_back(R"sql(
+            create table if not exists Badges
+            (
+                -- Transactions.Id
+                AccountId   int   not null,
+                -- Developer = 0
+                -- Shark = 1
+                -- Whale = 2
+                -- Moderator = 3
+                Badge       int   not null
+            );
+        )sql");
         
         _preProcessing = R"sql(
             insert or ignore into System (Db, Version) values ('main', 0);
@@ -284,6 +297,8 @@ namespace PocketDb
 
             create index if not exists Ban_AddressHash_Reason_Ending on Ban (AddressHash, Reason, Ending);
             create index if not exists Jury_AddressHash_Reason_Verdict on Jury (AddressHash, Reason, Verdict);
+
+            create unique index if not exists Badges_AccountId_Badge on Badges (AccountId, Badge);
 
         )sql";
 

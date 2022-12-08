@@ -270,20 +270,6 @@ namespace PocketConsensus
                 ratingValues[scoreData->LikerType(true)][scoreData->ContentAddressId] += 1;
             }
         }
-    
-        virtual BadgeSharkConditions GetBadgeSharkConditions()
-        {
-            BadgeSharkConditions cond = {
-                Height,
-                GetConsensusLimit(threshold_shark_likers_all),
-                GetConsensusLimit(threshold_shark_likers_content),
-                GetConsensusLimit(threshold_shark_likers_comment),
-                GetConsensusLimit(threshold_shark_likers_comment_answer),
-                GetConsensusLimit(threshold_shark_reg_depth)
-            };
-
-            return cond;
-        }
     };
 
     // Consensus checkpoint at 151600 block
@@ -388,13 +374,7 @@ namespace PocketConsensus
                           && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
                           && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
 
-            badgeSet.Author = data.LikersAll() >= GetConsensusLimit(threshold_author_likers_all)
-                          && data.LikersContent >= GetConsensusLimit(threshold_author_likers_content)
-                          && data.LikersComment >= GetConsensusLimit(threshold_author_likers_comment)
-                          && data.LikersCommentAnswer >= GetConsensusLimit(threshold_author_likers_comment_answer)
-                          && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_author_reg_depth);
-
-            badgeSet.Moderator = data.ModeratorRegisterHeight > 0;
+            badgeSet.Moderator = data.ModeratorBadge != 1;
             
             return badgeSet;
         }

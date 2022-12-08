@@ -50,13 +50,13 @@ namespace PocketTx
     #define OR_ACCOUNT_DELETE "61636344656c" // Public account settings (accSet)
 
     #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
-    #define OR_MODERATION_VOTE "6d6f64566f7465"
-    #define OR_MODERATOR_REQUEST_SUBS "6d6f6452657153756273"
-    #define OR_MODERATOR_REQUEST_COIN "6d6f64526571436f696e"
-    #define OR_MODERATOR_REQUEST_CANCEL "6d6f64526571436e"
-    #define OR_MODERATOR_REGISTER_SELF "6d6f6452656753656c66"
-    #define OR_MODERATOR_REGISTER_REQUEST "6d6f64526567526571"
-    #define OR_MODERATOR_REGISTER_CANCEL "6d6f64526567436e"
+    #define OR_MODERATION_VOTE "6d6f64566f7465" // Vote from moderator
+    // #define OR_MODERATOR_REQUEST_SUBS "6d6f6452657153756273"
+    // #define OR_MODERATOR_REQUEST_COIN "6d6f64526571436f696e"
+    // #define OR_MODERATOR_REQUEST_CANCEL "6d6f64526571436e"
+    // #define OR_MODERATOR_REGISTER_SELF "6d6f6452656753656c66"
+    // #define OR_MODERATOR_REGISTER_REQUEST "6d6f64526567526571"
+    // #define OR_MODERATOR_REGISTER_CANCEL "6d6f64526567436e"
     
 
     // Int tx type
@@ -101,12 +101,12 @@ namespace PocketTx
 
         ACTION_COMPLAIN = 307,
 
-        MODERATOR_REQUEST_SUBS = 400, // Some users have the right to choose a moderator
-        MODERATOR_REQUEST_COIN = 401, // Some users have the right to choose a moderator
-        MODERATOR_REQUEST_CANCEL = 402, // Users have the right to cancel the status of the moderator they have appointed
-        MODERATOR_REGISTER_SELF = 403, // Each moderator must register in the system to perform their functions
-        MODERATOR_REGISTER_REQUEST = 404, // Each moderator must register with request in the system to perform their functions
-        MODERATOR_REGISTER_CANCEL = 405, // Each moderator have the right to cancel self moderation status
+        // MODERATOR_REQUEST_SUBS = 400, // Some users have the right to choose a moderator
+        // MODERATOR_REQUEST_COIN = 401, // Some users have the right to choose a moderator
+        // MODERATOR_REQUEST_CANCEL = 402, // Users have the right to cancel the status of the moderator they have appointed
+        // MODERATOR_REGISTER_SELF = 403, // Each moderator must register in the system to perform their functions
+        // MODERATOR_REGISTER_REQUEST = 404, // Each moderator must register with request in the system to perform their functions
+        // MODERATOR_REGISTER_CANCEL = 405, // Each moderator have the right to cancel self moderation status
                 
         MODERATION_FLAG = 410, // Flags are used to mark content that needs moderation
         MODERATION_VOTE = 420, // Votes is used by moderators in the jury process
@@ -216,6 +216,49 @@ namespace PocketTx
         {
             return Type == TxType::MODERATION_VOTE;
         }
+    };
+
+
+    // ----------------------------------------------
+    //  BADGES
+    // ----------------------------------------------
+    struct BadgeConditions
+    {
+    protected:
+        BadgeConditions(int number, int64_t likersAll, int64_t likersContent, int64_t likersComment, int64_t likersAnswer, int64_t registrationDepth)
+            : Number{number}, LikersAll{likersAll}, LikersContent{likersContent}, LikersComment{likersComment},
+              LikersAnswer{likersAnswer}, RegistrationDepth{registrationDepth}
+        { }
+
+    public:
+        int Number;
+
+        int64_t LikersAll = 0;
+        int64_t LikersContent = 0;
+        int64_t LikersComment = 0;
+        int64_t LikersAnswer = 0;
+        int64_t RegistrationDepth = 0;
+    };
+
+    struct BadgeSharkConditions : public BadgeConditions
+    {
+        BadgeSharkConditions(int64_t likersAll, int64_t likersContent, int64_t likersComment, int64_t likersAnswer, int64_t registrationDepth)
+            : BadgeConditions{1, likersAll, likersContent, likersComment, likersAnswer, registrationDepth}
+        { }
+    };
+
+    struct BadgeWhaleConditions : public BadgeConditions
+    {
+        BadgeWhaleConditions(int64_t likersAll, int64_t likersContent, int64_t likersComment, int64_t likersAnswer, int64_t registrationDepth)
+            : BadgeConditions{2, likersAll, likersContent, likersComment, likersAnswer, registrationDepth}
+        { }
+    };
+
+    struct BadgeModeratorConditions : public BadgeConditions
+    {
+        BadgeModeratorConditions(int64_t likersAll, int64_t likersContent, int64_t likersComment, int64_t likersAnswer, int64_t registrationDepth)
+            : BadgeConditions{3, likersAll, likersContent, likersComment, likersAnswer, registrationDepth}
+        { }
     };
 }
 

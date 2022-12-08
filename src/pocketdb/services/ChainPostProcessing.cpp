@@ -6,8 +6,6 @@
 
 namespace PocketServices
 {
-    using namespace PocketConsensus;
-
     void ChainPostProcessing::Index(const CBlock& block, int height)
     {
         vector<TransactionIndexingInfo> txs;
@@ -26,12 +24,16 @@ namespace PocketServices
         IndexModeration(height, txs);
         int64_t nTime4 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexModeration: %.2fms _ %d\n", 0.001 * (double)(nTime4 - nTime3), height);
+
+        IndexBadges(height);
+        int64_t nTime5 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "    - IndexBadges: %.2fms _ %d\n", 0.001 * (double)(nTime5 - nTime4), height);
     }
 
     bool ChainPostProcessing::Rollback(int height)
     {
         LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", height - 1);
-        return PocketDb::ChainRepoInst.Rollback(height);
+        return ChainRepoInst.Rollback(height);
     }
 
     void ChainPostProcessing::PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs)
@@ -60,7 +62,7 @@ namespace PocketServices
     // Set block height for all transactions in block
     void ChainPostProcessing::IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
-        PocketDb::ChainRepoInst.IndexBlock(blockHash, height, txs);
+        ChainRepoInst.IndexBlock(blockHash, height, txs);
     }
 
     void ChainPostProcessing::IndexRatings(int height, vector<TransactionIndexingInfo>& txs)
@@ -80,7 +82,7 @@ namespace PocketServices
                 continue;
 
             // Need select content id for saving rating
-            auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(txInfo.Hash);
+            auto scoreData = ConsensusRepoInst.GetScoreData(txInfo.Hash);
             if (!scoreData)
                 throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n", __func__, txInfo.Hash));
 
@@ -192,7 +194,7 @@ namespace PocketServices
             return;
 
         // Save all ratings in one transaction
-        PocketDb::RatingsRepoInst.InsertRatings(ratings);
+        RatingsRepoInst.InsertRatings(ratings);
     }
 
     // Indexing of the moderation subsystem includes the creation of "Jury" entries in case of collecting a sufficient number of flags.
@@ -205,7 +207,7 @@ namespace PocketServices
         {
             if (txInfo.IsModerationFlag())
             {
-                PocketDb::ChainRepoInst.IndexModerationJury(
+                ChainRepoInst.IndexModerationJury(
                     txInfo.Hash,
                     reputationConsensus->GetHeight() - reputationConsensus->GetConsensusLimit(moderation_jury_flag_depth),
                     reputationConsensus->GetConsensusLimit(moderation_jury_flag_count)
@@ -214,10 +216,48 @@ namespace PocketServices
 
             if (txInfo.IsModerationVote())
             {
-                PocketDb::ChainRepoInst.IndexModerationBan(
+                ChainRepoInst.IndexModerationBan(
                     txInfo.Hash
                 );
             }
         }
     }
+
+    void ChainPostProcessing::IndexBadges(int height)
+    {
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+
+        // Shark badges
+        if (height % reputationConsensus->GetConsensusLimit(badge_period_shark) == 0)
+        {
+            const BadgeSharkConditions sharkConditions = {
+                reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
+                reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
+                reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment),
+                reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
+                reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
+            };
+            ChainRepoInst.IndexBadges_Shark(height, sharkConditions);
+        }
+
+        // TODO (moderation): get BadgeWhaleConditions
+        if (height % reputationConsensus->GetConsensusLimit(badge_period_whale) == 0)
+        {
+            // implement
+        }
+
+        // Moderator badges
+        if (height % reputationConsensus->GetConsensusLimit(badge_period_moderator) == 0)
+        {
+            const BadgeModeratorConditions moderatorConditions = {
+                reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
+                reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
+                reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment),
+                reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
+                reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
+            };
+            ChainRepoInst.IndexBadges_Moderator(height, moderatorConditions);
+        }
+    }
+
 } // namespace PocketServices

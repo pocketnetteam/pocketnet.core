@@ -258,6 +258,10 @@ namespace PocketConsensus
 
         ConsensusLimit_bad_reputation,
 
+        badge_period_shark,
+        badge_period_whale,
+        badge_period_moderator,
+
         moderation_flag_count,
 
         moderation_jury_flag_count,
@@ -373,34 +377,6 @@ namespace PocketConsensus
             { NetworkRegTest, { {0, 10} } }
         } },
         
-        // Thresholds for obtaining badges - AUTHOR
-        // TODO (moderation): set actual heights
-        { threshold_author_reg_depth, {
-            { NetworkMain,    { {0, 207360} } },
-            { NetworkTest,    { {0, 1} } },
-            { NetworkRegTest, { {0, 1} } }
-        } },
-        { threshold_author_likers_all, {
-            { NetworkMain,    { {0, 1000} } },
-            { NetworkTest,    { {0, 1} } },
-            { NetworkRegTest, { {0, 1} } }
-        } },
-        { threshold_author_likers_content, {
-            { NetworkMain,    { {0, 100} } },
-            { NetworkTest,    { {0, 1} } },
-            { NetworkRegTest, { {0, 1} } }
-        } },
-        { threshold_author_likers_comment, {
-            { NetworkMain,    { {0, 100} } },
-            { NetworkTest,    { {0, 1} } },
-            { NetworkRegTest, { {0, 1} } }
-        } },
-        { threshold_author_likers_comment_answer, {
-            { NetworkMain,    { {0, 100} } },
-            { NetworkTest,    { {0, 1} } },
-            { NetworkRegTest, { {0, 1} } }
-        } },
-
         // Other
         { ConsensusLimit_edit_user_depth, {
             { NetworkMain,    { {0, 3600}, {1180000, 60} } },
@@ -658,6 +634,23 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 2048} } },
             { NetworkTest,    { {0, 2048} } },
             { NetworkRegTest, { {0, 2048} } }
+        } },
+
+        // BADGES
+        { badge_period_shark, {
+            { NetworkMain,    { {0, 1440} } },
+            { NetworkTest,    { {0, 100} } },
+            { NetworkRegTest, { {0, 5} } }
+        } },
+        { badge_period_whale, {
+            { NetworkMain,    { {0, 1440} } },
+            { NetworkTest,    { {0, 100} } },
+            { NetworkRegTest, { {0, 5} } }
+        } },
+        { badge_period_moderator, {
+            { NetworkMain,    { {0, 1440} } },
+            { NetworkTest,    { {0, 100} } },
+            { NetworkRegTest, { {0, 5} } }
         } },
 
         // MODERATION

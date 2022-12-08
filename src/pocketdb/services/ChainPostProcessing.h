@@ -18,6 +18,7 @@ namespace PocketServices
     using namespace PocketTx;
     using namespace PocketDb;
     using namespace PocketHelpers;
+    using namespace PocketConsensus;
 
     using std::make_tuple;
     using std::tuple;
@@ -34,6 +35,7 @@ namespace PocketServices
         static void IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs);
         static void IndexRatings(int height, vector<TransactionIndexingInfo>& txs);
         static void IndexModeration(int height, vector<TransactionIndexingInfo>& txs);
+        static void IndexBadges(int height);
     };
 } // namespace PocketServices
 

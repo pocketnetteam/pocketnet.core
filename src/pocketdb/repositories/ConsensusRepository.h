@@ -37,7 +37,7 @@ namespace PocketDb
         int64_t LikersComment;
         int64_t LikersCommentAnswer;
 
-        int64_t ModeratorRegisterHeight;
+        int64_t ModeratorBadge;
 
         int64_t LikersAll() const
         {
@@ -45,23 +45,12 @@ namespace PocketDb
         }
     };
 
-    struct BadgeSharkConditions
-    {
-        int Height;
-        int64_t LikersAll;
-        int64_t LikersContent;
-        int64_t LikersComment;
-        int64_t LikersAnswer;
-        int64_t RegistrationDepth;
-    };
-
     struct BadgeSet
     {
-        bool Shark = false;
-        bool Whale = false;
-        bool Author = false;
-        bool Moderator = false;
-        bool Developer = false;
+        bool Shark = false; // 1
+        bool Whale = false; // 2
+        bool Moderator = false; // 3
+        bool Developer = false; // 4
 
         UniValue ToJson()
         {
@@ -69,7 +58,6 @@ namespace PocketDb
             
             if (Shark) ret.push_back("shark");
             if (Whale) ret.push_back("whale");
-            if (Author) ret.push_back("author");
             if (Moderator) ret.push_back("moderator");
             if (Developer) ret.push_back("developer");
 
