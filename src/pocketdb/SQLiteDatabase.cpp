@@ -108,21 +108,19 @@ namespace PocketDb
     void SQLiteDatabase::InitMigration(bool& cleanMempool)
     {
 
-        /*** Update Pocket DB from 0 to version 1 ********************************************
-         *
-         * This migration is necessary to fill the database with TxOutputs
-         * records with OP_RETURN records - these records were not saved initially in the database
-         * 
-         * It is also necessary to fill in the TxInputs table
-         * 
-         * Since the data of these tables become critically important for the operation of the node,
-         * it is necessary to make sure that they are available and valid.
-         * To do this, a full chainActive scan is performed, checking for the presence of all data.
-         * 
-         * Only after the end of the process, the DB version will be increased - in case of a process failure.
-         * 
-         ************************************************************************************/
-/*        const string dbNameMain = "main";
+        // Update Pocket DB from 0 to version 1
+        // This migration is necessary to fill the database with TxOutputs
+        // records with OP_RETURN records - these records were not saved initially in the database
+        // 
+        // It is also necessary to fill in the TxInputs table
+        // 
+        // Since the data of these tables become critically important for the operation of the node,
+        // it is necessary to make sure that they are available and valid.
+        // To do this, a full chainActive scan is performed, checking for the presence of all data.
+        // 
+        // Only after the end of the process, the DB version will be increased - in case of a process failure.
+         
+        const string dbNameMain = "main";
         const int newDbVersion = 1;
         int dbVersion = SystemRepoInst.GetDbVersion(dbNameMain);
 
