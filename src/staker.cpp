@@ -211,8 +211,6 @@ bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, un
     auto wallet = GetWallet("");
     if (!wallet) return false;
 
-    auto balance = wallet->GetBalance();
-
     try
     {
         while (wallet->IsLocked() && !ShutdownRequested())
@@ -224,7 +222,7 @@ bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, un
         uint64_t nFees = 0;
         auto assembler = BlockAssembler(*node.mempool, chainparams);
 
-        for (int i = 0; i < blocks; i++)
+        for (unsigned int i = 0; i < blocks; i++)
         {
             bool blockSigned = false;
             while (!blockSigned)
