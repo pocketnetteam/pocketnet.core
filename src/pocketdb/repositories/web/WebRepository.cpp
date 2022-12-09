@@ -301,16 +301,18 @@ namespace PocketDb
             // Clear old Last record
             auto stmtInsert = SetupSqlStatement(R"sql(
                 insert into web.Badges (AccountId, Badge)
-                select u.Id, 1
-                from Transactions u indexed by Transactions_Type_Last_Height_Id
+                select uc.Id, 1
+                from Transactions u
+                join Chain uc
+                    on uc.TxId = u.Id
+                    and uc.Last = 1
+                    and uc.BlockId > 0 -- tx is in block (analog Height>0)
                 where u.Type in (100)
-                  and u.Last = 1
-                  and u.Height is not null
-                  and ifnull((select sum(r.Value) from Ratings r where r.Type in (111,112,113) and r.Last = 1 and r.Id = u.Id),0) >= ?
-                  and ifnull((select r.Value from Ratings r where r.Type = 111 and r.Last = 1 and r.Id = u.Id),0) >= ?
-                  and ifnull((select r.Value from Ratings r where r.Type = 112 and r.Last = 1 and r.Id = u.Id),0) >= ?
-                  and ifnull((select r.Value from Ratings r where r.Type = 113 and r.Last = 1 and r.Id = u.Id),0) >= ?
-                  and ? - (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = u.Id) > ?
+                  and ifnull((select sum(r.Value) from Ratings r where r.Type in (111,112,113) and r.Last = 1 and r.Id = uc.Id),0) >= ?
+                  and ifnull((select r.Value from Ratings r where r.Type = 111 and r.Last = 1 and r.Id = uc.Id),0) >= ?
+                  and ifnull((select r.Value from Ratings r where r.Type = 112 and r.Last = 1 and r.Id = uc.Id),0) >= ?
+                  and ifnull((select r.Value from Ratings r where r.Type = 113 and r.Last = 1 and r.Id = uc.Id),0) >= ?
+                  and ? - (select min(b.Height) from Chain reg1 join Blocks b on b.Id = reg1.BlockId where reg1.Id = uc.Id) > ?
             )sql");
             int i = 1;
             TryBindStatementInt(stmtInsert, i++, cond.LikersAll);

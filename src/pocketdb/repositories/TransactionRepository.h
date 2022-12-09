@@ -14,6 +14,7 @@
 #include "pocketdb/models/base/TransactionOutput.h"
 #include "pocketdb/models/base/Rating.h"
 #include "pocketdb/models/base/DtoModels.h"
+#include "pocketdb/helpers/DbViewHelper.h"
 
 namespace PocketDb
 {
@@ -24,6 +25,22 @@ namespace PocketDb
     using namespace std;
     using namespace PocketTx;
     using namespace PocketHelpers;
+
+    struct CollectData
+    {
+        CollectData(int64_t _txId, std::string _txHash)
+            : txId(_txId),
+              txHash(std::move(_txHash))
+        {}
+        
+        const int64_t txId;
+        const std::string txHash;
+        PTransactionRef ptx;
+        std::vector<TransactionOutput> outputs;
+        std::vector<TransactionInput> inputs;
+        TxData txData;
+        std::optional<Payload> payload;
+    };
 
     class TransactionRepository : public BaseRepository
     {
@@ -46,11 +63,18 @@ namespace PocketDb
         void CleanMempool();
         void Clean();
 
+        optional<string> TxIdToHash(const int64_t& id);
+        optional<int64_t> TxHashToId(const string& hash);
+        optional<string> AddressIdToHash(const int64_t& id);
+        optional<int64_t> AddressHashToId(const string& hash);
+
     private:
-        void InsertTransactionInputs(const PTransactionRef& ptx);
-        void InsertTransactionOutputs(const PTransactionRef& ptx);
-        void InsertTransactionPayload(const PTransactionRef& ptx);
-        void InsertTransactionModel(const PTransactionRef& ptx);
+        void InsertTransactionInputs(const vector<TransactionInput>& intputs, int64_t txId);
+        void InsertTransactionOutputs(const vector<TransactionOutput>& outputs, int64_t txId);
+        void InsertTransactionPayload(const Payload& payload);
+        void InsertTransactionModel(const CollectData& ptx);
+
+        map<string,int64_t> GetTxIds(const vector<string>& txHashes);
 
     protected:
         tuple<bool, PTransactionRef> CreateTransactionFromListRow(

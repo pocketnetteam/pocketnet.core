@@ -1055,6 +1055,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/helpers/TransactionHelper.cpp
         pocketdb/helpers/ShortFormRepositoryHelper.h
         pocketdb/helpers/ShortFormRepositoryHelper.cpp
+        pocketdb/helpers/DbViewHelper.h
+        pocketdb/helpers/DbViewHelper.cpp
         pocketdb/SQLiteDatabase.h
         pocketdb/SQLiteConnection.h
         pocketdb/SQLiteDatabase.cpp
