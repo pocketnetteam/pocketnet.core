@@ -55,18 +55,20 @@ namespace PocketDb
         void RollbackHeight(int height);
         void RestoreOldLast(int height);
 
-        void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
+        // Returns blockId
+        int64_t UpdateBlockData(const std::string& blockHash, int height);
+        void UpdateTransactionChainData(const int64_t& blockId, int blockNumber, int height, const int64_t& txId);
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
 
-        void IndexAccount(const string& txHash);
-        void IndexAccountSetting(const string& txHash);
-        void IndexContent(const string& txHash);
-        void IndexComment(const string& txHash);
-        void IndexBlocking(const string& txHash);
-        void IndexSubscribe(const string& txHash);
-        void IndexBoostContent(const string& txHash);
+        void IndexAccount(const int64_t& txId);
+        void IndexAccountSetting(const int64_t& txId);
+        void IndexContent(const int64_t& txId);
+        void IndexComment(const int64_t& txId);
+        void IndexBlocking(const int64_t& txId);
+        void IndexSubscribe(const int64_t& txId);
+        void IndexBoostContent(const int64_t& txId);
 
-        void ClearOldLast(const string& txHash);
+        void ClearOldLast(const int64_t& txId);
 
     };
 

@@ -32,8 +32,8 @@ namespace PocketDb
                     IdTarget
                 )
                 select distinct
-                  us.Id,
-                  ut.Id
+                  usc.Id,
+                  utc.Id
                 from Transactions b
                 join Chain bc
                     on bc.TxId = b.Id

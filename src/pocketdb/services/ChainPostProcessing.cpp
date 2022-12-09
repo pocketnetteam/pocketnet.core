@@ -37,11 +37,13 @@ namespace PocketServices
             auto& tx = block.vtx[i];
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
 
+            auto hash = tx->GetHash().GetHex();
             TransactionIndexingInfo txInfo;
-            txInfo.Hash = tx->GetHash().GetHex();
+            txInfo.Hash = hash;
             txInfo.BlockNumber = (int) i;
             txInfo.Time = tx->nTime;
             txInfo.Type = txType;
+            if (auto txId = TransRepoInst.TxHashToId(hash); txId) txInfo.TxId = *txId; // TODO (losty): else?
 
             if (!tx->IsCoinBase())
             {

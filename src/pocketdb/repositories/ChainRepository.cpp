@@ -15,8 +15,13 @@ namespace PocketDb
             // Each transaction is processed individually
             for (const auto& txInfo : txs)
             {
+
+                auto blockId = UpdateBlockData(blockHash, height);
+                if (blockId == -1) {
+                    // TODO (losty): error?
+                }
                 // All transactions must have a blockHash & height relation
-                UpdateTransactionHeight(blockHash, txInfo.BlockNumber, height, txInfo.Hash);
+                UpdateTransactionChainData(blockId, txInfo.BlockNumber, height, txInfo.TxId);
 
                 // The outputs are needed for the explorer
                 // TODO (aok) (v0.20.19+): replace with update inputs spent with TxInputs table over loop
@@ -25,26 +30,26 @@ namespace PocketDb
                 // Account and Content must have unique ID
                 // Also all edited transactions must have Last=(0/1) field
                 if (txInfo.IsAccount())
-                    IndexAccount(txInfo.Hash);
+                    IndexAccount(txInfo.TxId);
 
                 if (txInfo.IsAccountSetting())
-                    IndexAccountSetting(txInfo.Hash);
+                    IndexAccountSetting(txInfo.TxId);
 
                 if (txInfo.IsContent())
-                    IndexContent(txInfo.Hash);
+                    IndexContent(txInfo.TxId);
 
                 if (txInfo.IsComment())
-                    IndexComment(txInfo.Hash);
+                    IndexComment(txInfo.TxId);
 
                 if (txInfo.IsBlocking())
-                    IndexBlocking(txInfo.Hash);
+                    IndexBlocking(txInfo.TxId);
 
                 if (txInfo.IsSubscribe())
-                    IndexSubscribe(txInfo.Hash);
+                    IndexSubscribe(txInfo.TxId);
 
                 // Calculate and save fee for future selects
                 if (txInfo.IsBoostContent())
-                    IndexBoostContent(txInfo.Hash);
+                    IndexBoostContent(txInfo.TxId);
             }
 
             int64_t nTime2 = GetTimeMicros();
@@ -95,29 +100,51 @@ namespace PocketDb
         return {exists, last};
     }
 
+    int64_t ChainRepository::UpdateBlockData(const std::string& blockHash, int height)
+    {
+        auto sql = R"sql(
+            INSERT OR IGNORE INTO Blocks (Hash, Height)
+            VALUES (?, ?)
+            RETURNING Id
+        )sql";
 
-    void ChainRepository::UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash)
+        int64_t id = -1;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, blockHash);
+            TryBindStatementInt(stmt, 2, height);
+
+            // TODO (losty): error
+            if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
+            }
+        });
+
+        auto stmt = SetupSqlStatement(sql);
+
+    }
+
+    void ChainRepository::UpdateTransactionChainData(const int64_t& blockId, int blockNumber, int height, const int64_t& txId)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                BlockHash = ?,
-                BlockNum = ?,
-                Height = ?
-            WHERE Hash = ? and BlockHash is null
+            INSERT INTO Chain (TxId, BlockId, BlockNum)
+            VALUES(?, ?, ?)
         )sql");
-        TryBindStatementText(stmt, 1, blockHash);
-        TryBindStatementInt(stmt, 2, blockNumber);
-        TryBindStatementInt(stmt, 3, height);
-        TryBindStatementText(stmt, 4, txHash);
+        TryBindStatementInt64(stmt, 1, txId);
+        TryBindStatementInt64(stmt, 2, blockId);
+        TryBindStatementInt(stmt, 3, blockNumber);
         TryStepStatement(stmt);
 
+
+        // TODO (losty): can we remove duplicate of TxHeight in TxOutput?
         auto stmtOuts = SetupSqlStatement(R"sql(
             UPDATE TxOutputs SET
                 TxHeight = ?
-            WHERE TxHash = ? and TxHeight is null
+            WHERE TxId = ? and TxHeight is null
         )sql");
         TryBindStatementInt(stmtOuts, 1, height);
-        TryBindStatementText(stmtOuts, 2, txHash);
+        TryBindStatementInt64(stmtOuts, 2, txId);
         TryStepStatement(stmtOuts);
     }
 
@@ -128,12 +155,12 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 UPDATE TxOutputs SET
                     SpentHeight = ?,
-                    SpentTxHash = ?
-                WHERE TxHash = ? and Number = ?
+                    SpentTxId = ?
+                WHERE TxId = (select Hash from Transactions where Id = ?) and Number = ?
             )sql");
 
             TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, txInfo.Hash);
+            TryBindStatementInt64(stmt, 2, txInfo.TxId);
             TryBindStatementText(stmt, 3, input.first);
             TryBindStatementInt(stmt, 4, input.second);
             TryStepStatement(stmt);
@@ -145,7 +172,7 @@ namespace PocketDb
     {
         // Generate new balance records
         auto stmt = SetupSqlStatement(R"sql(
-            insert into Balances (AddressHash, Last, Height, Value)
+            insert into Balances (AddressId, Last, Height, Value)
             select
                 saldo.AddressHash,
                 1,
@@ -154,26 +181,26 @@ namespace PocketDb
             from (
 
                 select 'unspent',
-                       o.AddressHash,
+                       o.AddressId,
                        sum(o.Value)Amount
                 from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
                 where  o.TxHeight = ?
-                group by o.AddressHash
+                group by o.AddressId
 
                 union
 
                 select 'spent',
-                       o.AddressHash,
+                       o.AddressId,
                        -sum(o.Value)Amount
                 from TxOutputs o indexed by TxOutputs_SpentHeight_AddressHash
                 where o.SpentHeight = ?
-                group by o.AddressHash
+                group by o.AddressId
 
             ) saldo
             left join Balances b indexed by Balances_AddressHash_Last
-                on b.AddressHash = saldo.AddressHash and b.Last = 1
-            where saldo.AddressHash != ''
-            group by saldo.AddressHash
+                on b.AddressId = saldo.AddressId and b.Last = 1
+            where saldo.AddressId is not null
+            group by saldo.AddressId
         )sql");
         TryBindStatementInt(stmt, 1, height);
         TryBindStatementInt(stmt, 2, height);
@@ -186,8 +213,8 @@ namespace PocketDb
               set Last = 0
             where Balances.Last = 1
               and Balances.Height < ?
-              and Balances.AddressHash in (
-                select b.AddressHash
+              and Balances.AddressId in (
+                select b.AddressId
                 from Balances b indexed by Balances_Height
                 where b.Height = ?
               )
@@ -197,199 +224,218 @@ namespace PocketDb
         TryStepStatement(stmtOld);
     }
 
-    void ChainRepository::IndexAccount(const string& txHash)
+    void ChainRepository::IndexAccount(const int64_t& txId)
     {
         // Get new ID or copy previous
         auto setIdStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                Id = ifnull(
-                    -- copy self Id
-                    (
-                        select a.Id
-                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
-                        where a.Type in (100,170)
-                            and a.Last = 1
-                            and a.String1 = Transactions.String1
-                            and a.Height is not null
-                        limit 1
-                    ),
-                    ifnull(
-                        -- new record
-                        (
-                            select max( a.Id ) + 1
-                            from Transactions a indexed by Transactions_Id
-                        ),
-                        0 -- for first record
-                    )
-                ),
-                Last = 1
-            WHERE Hash = ?
-        )sql");
-        TryBindStatementText(setIdStmt, 1, txHash);
-        TryStepStatement(setIdStmt);
-
-        // Clear old last records for set new last
-        ClearOldLast(txHash);
-    }
-
-    void ChainRepository::IndexAccountSetting(const string& txHash)
-    {
-        // Get new ID or copy previous
-        auto setIdStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                Id = ifnull(
-                    -- copy self Id
-                    (
-                        select a.Id
-                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
-                        where a.Type in (103)
-                            and a.Last = 1
-                            and a.String1 = Transactions.String1
-                            and a.Height is not null
-                        limit 1
-                    ),
-                    ifnull(
-                        -- new record
-                        (
-                            select max( a.Id ) + 1
-                            from Transactions a indexed by Transactions_Id
-                        ),
-                        0 -- for first record
-                    )
-                ),
-                Last = 1
-            WHERE Hash = ?
-        )sql");
-        TryBindStatementText(setIdStmt, 1, txHash);
-        TryStepStatement(setIdStmt);
-
-        // Clear old last records for set new last
-        ClearOldLast(txHash);
-    }
-
-    void ChainRepository::IndexContent(const string& txHash)
-    {
-        // Get new ID or copy previous
-        auto setIdStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
+            UPDATE Chain SET
                 Id = ifnull(
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions c indexed by Transactions_Type_Last_String2_Height
-                        where c.Type in (200,201,202,209,210,207)
+                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
+                        join Chain c
+                            on c.TxId = a.Id
                             and c.Last = 1
-                            -- String2 = RootTxHash
-                            and c.String2 = Transactions.String2
-                            and c.Height is not null
-                        limit 1
-                    ),
-                    -- new record
-                    ifnull(
-                        (
-                            select max( c.Id ) + 1
-                            from Transactions c indexed by Transactions_Id
-                        ),
-                        0 -- for first record
-                    )
-                ),
-                Last = 1
-            WHERE Hash = ?
-        )sql");
-        TryBindStatementText(setIdStmt, 1, txHash);
-        TryStepStatement(setIdStmt);
-
-        // Clear old last records for set new last
-        ClearOldLast(txHash);
-    }
-
-    void ChainRepository::IndexComment(const string& txHash)
-    {
-        // Get new ID or copy previous
-        auto setIdStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                Id = ifnull(
-                    -- copy self Id
-                    (
-                        select max( c.Id )
-                        from Transactions c indexed by Transactions_Type_Last_String2_Height
-                        where c.Type in (204,205,206)
-                            and c.Last = 1
-                            -- String2 = RootTxHash
-                            and c.String2 = Transactions.String2
-                            and c.Height is not null
-                    ),
-                    -- new record
-                    ifnull(
-                        (
-                            select max( c.Id ) + 1
-                            from Transactions c indexed by Transactions_Id
-                        ),
-                        0 -- for first record
-                    )
-                ),
-                Last = 1
-            WHERE Hash = ?
-        )sql");
-        TryBindStatementText(setIdStmt, 1, txHash);
-        TryStepStatement(setIdStmt);
-
-        // Clear old last records for set new last
-        ClearOldLast(txHash);
-    }
-
-    void ChainRepository::IndexBlocking(const string& txHash)
-    {
-        // TODO (o1q): double check multiple locks
-        // Set last=1 for new transaction
-        auto setLastStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                Id = ifnull(
-                    -- copy self Id
-                    (
-                        select a.Id
-                        from Transactions a indexed by Transactions_Type_Last_String1_String2_Height
-                        where a.Type in (305, 306)
-                            and a.Last = 1
-                            -- String1 = AddressHash
-                            and a.String1 = Transactions.String1
-                            -- String2 = AddressToHash
-                            and ifnull(a.String2,'') = ifnull(Transactions.String2,'')
-                            and ifnull(a.String3,'') = ifnull(Transactions.String3,'')
+                        where a.Type in (100,170)
+                            and a.Int1 = Transactions.Int1
                             and a.Height is not null
                         limit 1
                     ),
                     ifnull(
                         -- new record
                         (
-                            select max( a.Id ) + 1
-                            from Transactions a indexed by Transactions_Id
+                            select max( c.Id ) + 1
+                            from Chain a -- TODO (losty): index
                         ),
                         0 -- for first record
                     )
                 ),
                 Last = 1
-            WHERE Hash = ?
+            WHERE TxId = ?
         )sql");
-        TryBindStatementText(setLastStmt, 1, txHash);
+        TryBindStatementInt64(setIdStmt, 1, txId);
+        TryStepStatement(setIdStmt);
+
+        // Clear old last records for set new last
+        ClearOldLast(txId);
+    }
+
+    void ChainRepository::IndexAccountSetting(const int64_t& txId)
+    {
+        // Get new ID or copy previous
+        auto setIdStmt = SetupSqlStatement(R"sql(
+            UPDATE Chain SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select c.Id
+                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
+                        join Chain c
+                            on c.TxId = a.Id
+                            and c.Last = 1
+                            and c.BlockId > 0 -- tx is in block (analog Height>0)
+                        where a.Type in (103)
+                            and a.Last = 1
+                            and a.Int1 = Transactions.Int1
+                        limit 1
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select max( c.Id ) + 1
+                            from Chain c -- TODO (losty): index
+                        ),
+                        0 -- for first record
+                    )
+                ),
+                Last = 1
+            WHERE TxId = ?
+        )sql");
+        TryBindStatementInt64(setIdStmt, 1, txId);
+        TryStepStatement(setIdStmt);
+
+        // Clear old last records for set new last
+        ClearOldLast(txId);
+    }
+
+    void ChainRepository::IndexContent(const int64_t& txId)
+    {
+        // Get new ID or copy previous
+        auto setIdStmt = SetupSqlStatement(R"sql(
+            UPDATE Chain SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select c.Id
+                        from Transactions t indexed by Transactions_Type_Last_String2_Height
+                        join Chain c
+                            on c.TxId = t.Id
+                            and c.Last = 1
+                            and c.BlockId > 0 -- tx is in block
+                        where t.Type in (200,201,202,209,210,207)
+                            -- String2 = RootTxHash
+                            and t.Int2 = Transactions.Int2
+                        limit 1
+                    ),
+                    -- new record
+                    ifnull(
+                        (
+                            select max( c.Id ) + 1
+                            from Chain c -- TODO (losty): index
+                        ),
+                        0 -- for first record
+                    )
+                ),
+                Last = 1
+            WHERE TxId = ?
+        )sql");
+        TryBindStatementInt64(setIdStmt, 1, txId);
+        TryStepStatement(setIdStmt);
+
+        // Clear old last records for set new last
+        ClearOldLast(txId);
+    }
+
+    void ChainRepository::IndexComment(const int64_t& txId)
+    {
+        // Get new ID or copy previous
+        auto setIdStmt = SetupSqlStatement(R"sql(
+            UPDATE Chain SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select max( c.Id )
+                        from Transactions t -- TODO (losty): index
+                        join Chain c
+                            on c.TxId = t.Id
+                            and c.Last = 1
+                            and c.BlockId > 0
+                        where t.Type in (204,205,206)
+                            -- String2 = RootTxHash
+                            and t.Int2 = Transactions.Int2
+                    ),
+                    -- new record
+                    ifnull(
+                        (
+                            select max( c.Id ) + 1
+                            from Chian c
+                        ),
+                        0 -- for first record
+                    )
+                ),
+                Last = 1
+            WHERE TxId = ?
+        )sql");
+        TryBindStatementInt64(setIdStmt, 1, txId);
+        TryStepStatement(setIdStmt);
+
+        // Clear old last records for set new last
+        ClearOldLast(txId);
+    }
+
+    void ChainRepository::IndexBlocking(const int64_t& txId)
+    {
+        // TODO (o1q): double check multiple locks
+        // Set last=1 for new transaction
+        auto setLastStmt = SetupSqlStatement(R"sql(
+            UPDATE Chain SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select c.Id
+                        from Transactions a -- TODO (losty): index
+                        join Chain c
+                            on c.TxId = a.Id
+                            and c.Last = 1
+                            and c.BlockId > 0
+                        where a.Type in (305, 306)
+                            -- String1 = AddressHash
+                            and a.Int1 = Transactions.Int1
+                            -- String2 = AddressToHash
+                            -- TODO (losty): is -1 ok?
+                            and ifnull(a.Int2,-1) = ifnull(Transactions.Int2,-1)
+                            and ifnull(a.Int3,-1) = ifnull(Transactions.Int3,-1)
+                        limit 1
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select max( c.Id ) + 1
+                            from Chain c -- TODO (losty): index
+                        ),
+                        0 -- for first record
+                    )
+                ),
+                Last = 1
+            WHERE TxId = ?
+        )sql");
+        TryBindStatementInt64(setLastStmt, 1, txId);
         TryStepStatement(setLastStmt);
 
         auto insListStmt = SetupSqlStatement(R"sql(
             insert into BlockingLists (IdSource, IdTarget)
             select
-              us.Id,
-              ut.Id
+              usc.Id,
+              utc.Id
             from Transactions b
-            join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
-            join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100, 170) and ut.Last = 1
-                and ut.String1 in (select b.String2 union select value from json_each(b.String3))
-                and ut.Height > 0
-            where b.Type in (305) and b.Hash = ?
-                and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
+            join Transactions us
+              on us.Type in (100, 170) and us.Int1 = b.Int1
+            join Chain usc
+              on usc.TxId = us.Id
+                and usc.Last = 1
+                and usc.BlockId > 0
+            join Transactions ut
+              on ut.Type in (100, 170)
+                and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
+            join Chain utc
+              on utc.TxId = ut.Id
+                and utc.Last = 1
+                and utc.BlockId > 0
+            where b.Type in (305) and b.Id = ?
+                and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
         )sql");
-        TryBindStatementText(insListStmt, 1, txHash);
+        TryBindStatementInt64(insListStmt, 1, txId);
         TryStepStatement(insListStmt);
 
         auto delListStmt = SetupSqlStatement(R"sql(
@@ -398,59 +444,71 @@ namespace PocketDb
             (select
               1
             from Transactions b
-            join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Id = BlockingLists.IdSource and us.Height > 0
-            join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100, 170) and ut.Last = 1 and ut.String1 = b.String2 and ut.Id = BlockingLists.IdTarget and ut.Height > 0
-            where b.Type in (306) and b.Hash = ?
+            join Transactions us
+              on us.Type in (100, 170) and us.Int1 = b.Int1
+            join Chain usc
+              on usc.TxId = us.Id
+                and usc.Last = 1
+                and usc.Id = BlockingLists.IdSource
+                and usc.BlockId > 0
+            join Transactions ut
+              on ut.Type in (100, 170) and ut.Int1 = b.Int2
+            join Chain utc
+              on utc.TxId = ut.Id
+                and utc.Last = 1
+                and utc.Id = BlockingLists.IdTarget
+                and utc.BlockId > 0
+            where b.Type in (306) and b.Id = ?
             )
         )sql");
-        TryBindStatementText(delListStmt, 1, txHash);
+        TryBindStatementInt64(delListStmt, 1, txId);
         TryStepStatement(delListStmt);
 
         // Clear old last records for set new last
-        ClearOldLast(txHash);
+        ClearOldLast(txId);
     }
 
-    void ChainRepository::IndexSubscribe(const string& txHash)
+    void ChainRepository::IndexSubscribe(const int64_t& txId)
     {
         // Set last=1 for new transaction
         auto setLastStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
+            UPDATE Chain SET
                 Id = ifnull(
                     -- copy self Id
                     (
-                        select a.Id
-                        from Transactions a indexed by Transactions_Type_Last_String1_String2_Height
+                        select c.Id
+                        from Transactions a -- TODO (losty): index
+                        join Chain c
+                            on c.TxId = a.Id
+                            and c.Last = 1
+                            and c.BlockId > 0
                         where a.Type in (302, 303, 304)
-                            and a.Last = 1
                             -- String1 = AddressHash
-                            and a.String1 = Transactions.String1
+                            and a.Int1 = Transactions.Int1
                             -- String2 = AddressToHash
-                            and a.String2 = Transactions.String2
-                            and a.Height is not null
+                            and a.Int2 = Transactions.Int2
                         limit 1
                     ),
                     ifnull(
                         -- new record
                         (
-                            select max( a.Id ) + 1
-                            from Transactions a indexed by Transactions_Id
+                            select max( c.Id ) + 1
+                            from Chain c -- TODO (losty): index
                         ),
                         0 -- for first record
                     )
                 ),
                 Last = 1
-            WHERE Hash = ?
+            WHERE TxId = ?
         )sql");
-        TryBindStatementText(setLastStmt, 1, txHash);
+        TryBindStatementInt64(setLastStmt, 1, txId);
         TryStepStatement(setLastStmt);
 
         // Clear old last records for set new last
-        ClearOldLast(txHash);
+        ClearOldLast(txId);
     }
     
-    void ChainRepository::IndexBoostContent(const string& txHash)
+    void ChainRepository::IndexBoostContent(const int64_t& txId)
     {
         // Set transaction fee
         auto stmt = SetupSqlStatement(R"sql(
@@ -459,18 +517,18 @@ namespace PocketDb
               (
                 (
                   select sum(i.Value)
-                  from TxOutputs i indexed by TxOutputs_SpentTxHash
-                  where i.SpentTxHash = Transactions.Hash
+                  from TxOutputs i -- TODO (losty): index
+                  where i.SpentTxId = Transactions.Id
                 ) - (
                   select sum(o.Value)
-                  from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                  where TxHash = Transactions.Hash
+                  from TxOutputs o -- TODO (losty): index
+                  where TxId = Transactions.Id
                 )
               )
-            where Transactions.Hash = ?
+            where Transactions.Id = ?
               and Transactions.Type in (208)
         )sql");
-        TryBindStatementText(stmt, 1, txHash);
+        TryBindStatementInt64(stmt, 1, txId);
         TryStepStatement(stmt);
     }
 
@@ -512,22 +570,23 @@ namespace PocketDb
         }
     }
     
-    void ChainRepository::ClearOldLast(const string& txHash)
+    void ChainRepository::ClearOldLast(const int64_t& txId)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions indexed by Transactions_Id_Last SET
+            UPDATE Chain -- TODO (losty): indexing
+            SET
                 Last = 0
             FROM (
-                select t.Hash, t.id
-                from Transactions t
-                where   t.Hash = ?
-            ) as tInner
-            WHERE   Transactions.Id = tInner.Id
-                and Transactions.Last = 1
-                and Transactions.Hash != tInner.Hash
+                select c.TxId, c.Id,
+                from Chain c
+                where c.TxId = ?
+            ) as cInner
+            WHERE   Chain.Id = cInner.Id
+                and Chain.Last = 1
+                and Chain.TxId != cInner.TxId
         )sql");
 
-        TryBindStatementText(stmt, 1, txHash);
+        TryBindStatementInt64(stmt, 1, txId);
         TryStepStatement(stmt);
     }
 
@@ -538,17 +597,20 @@ namespace PocketDb
         // ----------------------------------------
         // Restore old Last transactions
         auto stmt1 = SetupSqlStatement(R"sql(
-            update Transactions indexed by Transactions_Height_Id
+            update Chain -- TODO (losty): index
                 set Last=1
             from (
-                select t1.Id, max(t2.Height)Height
-                from Transactions t1 indexed by Transactions_Last_Id_Height
-                join Transactions t2 indexed by Transactions_Last_Id_Height on t2.Id = t1.Id and t2.Height < ? and t2.Last = 0
-                where t1.Height >= ?
-                  and t1.Last = 1
-                group by t1.Id
-            )t
-            where Transactions.Id = t.Id and Transactions.Height = t.Height
+                select c1.Id, max(b2.Id)BlockId -- TODO (losty-critical): is this ok??? Is max(blockId) the same as max(height)?
+                from Chain c1
+                join Blocks b1
+                    on b1.Id = c1.BlockId
+                    and b1.Height >= ?
+                join Chain c2 on c2.Id = c1.Id and c2.Last = 0
+                join Blocks b2 on b2.Id = c2.BlockId and b2.Height <= ?
+                where c1.Last = 1
+                group by c1.Id
+            )c
+            where Chain.Id = c.Id and Chain.BlockId = c.BlockId
         )sql");
         TryBindStatementInt(stmt1, 1, height);
         TryBindStatementInt(stmt1, 2, height);
@@ -591,26 +653,26 @@ namespace PocketDb
             from (
                 select
 
-                    b1.AddressHash
+                    b1.AddressId
                     ,(
                         select max(b2.Height)
-                        from Balances b2 indexed by Balances_AddressHash_Last_Height
-                        where b2.AddressHash = b1.AddressHash
+                        from Balances b2 -- TODO (losty): index
+                        where b2.AddressId = b1.AddressId
                           and b2.Last = 0
                           and b2.Height < ?
                         limit 1
                     )Height
 
-                from Balances b1 indexed by Balances_Height
+                from Balances b1 -- TODO (losty): index
 
                 where b1.Height >= ?
                   and b1.Last = 1
-                  and b1.AddressHash != ''
+                  and b1.AddressId > 0
 
-                group by b1.AddressHash
+                group by b1.AddressId
             )b
             where b.Height is not null
-              and Balances.AddressHash = b.AddressHash
+              and Balances.AddressId = b.AddressId
               and Balances.Height = b.Height
         )sql");
         TryBindStatementInt(stmt3, 1, height);
@@ -628,33 +690,38 @@ namespace PocketDb
         // ----------------------------------------
         // Rollback general transaction information
         auto stmt0 = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                BlockHash = null,
-                BlockNum = null,
-                Height = null,
-                Id = null,
-                Last = 0
-            WHERE Height >= ?
+            delete from Chain c
+            WHERE BlockId in (select Id from Blocks where Height >= ?)
         )sql");
         TryBindStatementInt(stmt0, 1, height);
         TryStepStatement(stmt0);
 
         int64_t nTime1 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Transactions:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Chain:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
+
+        auto stmt1 = SetupSqlStatement(R"sql(
+            delete from Blocks
+            where Height >= ?
+        )sql");
+        TryBindStatementInt(stmt1, 1, height);
+        TryStepStatement(stmt1);
+
+        int64_t nTime2 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Blocks:Height = null): %.2fms\n", 0.001 * (nTime2 - nTime1));
 
         // ----------------------------------------
         // Rollback spent transaction outputs
         auto stmt2 = SetupSqlStatement(R"sql(
             UPDATE TxOutputs SET
                 SpentHeight = null,
-                SpentTxHash = null
+                SpentTxId = null
             WHERE SpentHeight >= ?
         )sql");
         TryBindStatementInt(stmt2, 1, height);
         TryStepStatement(stmt2);
 
-        int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:SpentHeight = null): %.2fms\n", 0.001 * (nTime2 - nTime1));
+        int64_t nTime3 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:SpentHeight = null): %.2fms\n", 0.001 * (nTime3 - nTime2));
 
         // ----------------------------------------
         // Rollback transaction outputs height
@@ -666,8 +733,8 @@ namespace PocketDb
         TryBindStatementInt(stmt3, 1, height);
         TryStepStatement(stmt3);
 
-        int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:TxHeight = null): %.2fms\n", 0.001 * (nTime3 - nTime2));
+        int64_t nTime4 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:TxHeight = null): %.2fms\n", 0.001 * (nTime4 - nTime3));
 
         // ----------------------------------------
         // Remove ratings
@@ -678,8 +745,8 @@ namespace PocketDb
         TryBindStatementInt(stmt4, 1, height);
         TryStepStatement(stmt4);
 
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime4 - nTime3));
+        int64_t nTime5 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime5 - nTime4));
 
         // ----------------------------------------
         // Remove balances
@@ -690,8 +757,8 @@ namespace PocketDb
         TryBindStatementInt(stmt5, 1, height);
         TryStepStatement(stmt5);
 
-        int64_t nTime5 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime5 - nTime4));
+        int64_t nTime6 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime6 - nTime5));
     }
 
     void ChainRepository::RollbackBlockingList(int height)
@@ -702,18 +769,27 @@ namespace PocketDb
             delete from BlockingLists where ROWID in
             (
                 select bl.ROWID
-                from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-                  on us.Type in (100, 170) and us.Last = 1
+                from Transactions b
+                join Chain bc
+                  on bc.TxId =  b.Id
+                join Blocks bcb
+                  on bcb.Id = bc.BlockId
+                    and bcb.Height >= ? -- TODO (losty-cirtical): very bad
+                join Transactions us
+                  on us.Type in (100, 170)
                     and us.String1 = b.String1
-                    and us.Height > 0
-                join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-                  on ut.Type in (100, 170) and ut.Last = 1
-                    and ut.String1 in (select b.String2 union select value from json_each(b.String3))
-                    and ut.Height > 0
-                join BlockingLists bl on bl.IdSource = us.Id and bl.IdTarget = ut.Id
+                join Chain usc
+                  on usc.TxId = us.Id
+                    and usc.Last = 1
+                    and usc.BlockId > 0
+                join Transactions ut
+                  on ut.Type in (100, 170)
+                    and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.String1))
+                join Chain utc
+                  on utc.Last = 1
+                    and utc.BlockId > 0
+                join BlockingLists bl on bl.IdSource = usc.Id and bl.IdTarget = utc.Id
                 where b.Type in (305)
-                  and b.Height >= ?
             )
         )sql");
         TryBindStatementInt(delListStmt, 1, height);
@@ -729,19 +805,28 @@ namespace PocketDb
                 IdTarget
             )
             select distinct
-              us.Id,
-              ut.Id
-            from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-            join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
-            join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+              usc.Id,
+              utc.Id
+            from Transactions b
+            join Chain bc
+              on bc.TxId = b.Id
+            join Blocks bcb
+              on bcb.Id = bc.BlockId
+                and bcb.Height >= ? -- TODO (losty-critical): very bad
+            join Transactions us
+              on us.Type in (100, 170) and us.Int1 = b.Int1
+            join Chain usc
+              on usc.TxId = us.Id
+                and usc.Last = 1
+            join Transactions ut
               on ut.Type in (100, 170) and ut.Last = 1
                 --and ut.String1 = b.String2
-                and ut.String1 in (select b.String2 union select value from json_each(b.String3))
-                and ut.Height > 0
+                and ut.Int1 in (select b.Int2 union select cast (value as int) from json_each(b.String1))
+            join Chain utc
+              on utc.TxId = ut.Id
+                and utc.Last = 1
             where b.Type in (306)
-              and b.Height >= ?
-              and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
+              and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
         )sql");
         TryBindStatementInt(insListStmt, 1, height);
         TryStepStatement(insListStmt);
