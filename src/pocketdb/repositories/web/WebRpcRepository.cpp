@@ -250,7 +250,9 @@ namespace PocketDb
             TryBindStatementInt(stmt, 6, heightWindow);
             TryBindStatementInt(stmt, 7, heightWindow);
             TryBindStatementInt(stmt, 8, heightWindow);
-            TryBindStatementText(stmt, 9, address);
+            TryBindStatementInt(stmt, 9, heightWindow);
+            TryBindStatementInt(stmt, 10, heightWindow);
+            TryBindStatementText(stmt, 11, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
