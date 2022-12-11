@@ -19,7 +19,7 @@ nodes on a blockchain with no centralized server. All revenue is split
 between node operators and content creators. Node operators stake Pocketcoin
 in order to mint blocks with rewards and transactions fees. Half of rewards
 in each block go to content creators based on ratings their content gathers
-from users. [Read more in the article.](https://pocketnet.app/docs/Pocketnet%20Whitepaper%20Draft%20v2.pdf)
+from users. [Read more in the article.](https://bastyon.com/docs/Pocketnet%20Whitepaper%20Draft%20v2.pdf)
 
 # What should I know?
 This software allows you to participate in the work of the blockchain network - [`https://pocketnet.app/help`](https://pocketnet.app/help?page=faq).
