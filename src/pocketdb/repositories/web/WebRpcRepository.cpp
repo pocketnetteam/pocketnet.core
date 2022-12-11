@@ -1942,10 +1942,12 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height,
-        vector<pair<string, uint32_t>>& mempoolInputs)
+    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs,
+        int minConf, int maxConf, CAmount nMinimumAmount, CAmount  nMinimumSumAmount, int64_t nMaximumCount)
     {
         UniValue result(UniValue::VARR);
+
+        // TODO (aok): realize additional filter options
 
         string sql = R"sql(
             select

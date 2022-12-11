@@ -334,8 +334,16 @@ namespace PocketWeb::PocketWebRpc
                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
                         }
                     },
-                    {"minconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The minimum confirmations to filter (default=1)"},
-                    {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The maximum confirmations to filter (default=9999999)"},
+                    {"minconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The minimum confirmations to filter (default = -1)"},
+                    {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The maximum confirmations to filter (default = 9999999)"},
+                    {"query_options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "JSON with query options",
+                        {
+                            {"minimumAmount", RPCArg::Type::AMOUNT, /* default */ "0", "Minimum value of each UTXO in " + CURRENCY_UNIT + ""},
+                            {"maximumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Maximum value of each UTXO in " + CURRENCY_UNIT + ""},
+                            {"maximumCount", RPCArg::Type::NUM, /* default */ "unlimited", "Maximum number of UTXOs"},
+                            {"minimumSumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Minimum sum value of all UTXOs in " + CURRENCY_UNIT + ""},
+                        },
+                        "query_options"},
 
                 },
                 {
@@ -348,8 +356,6 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        // TODO (aok): add pagination
-
         vector<string> destinations;
         if (request.params.size() > 0)
         {
@@ -374,46 +380,38 @@ namespace PocketWeb::PocketWebRpc
         if (destinations.empty())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin addresses"));
 
-        // int minConf = 1;
-        // if (request.params.size() > 1) {
-        //     RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
-        //     minConf = request.params[1].get_int();
-        // }
+        int minConf = -1;
+        if (request.params.size() > 1) {
+            RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
+            minConf = request.params[1].get_int();
+        }
 
-        // int maxConf = 9999999;
-        // if (request.params.size() > 2) {
-        //     RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
-        //     maxConf = request.params[2].get_int();
-        // }
+        int maxConf = 9999999;
+        if (request.params.size() > 2) {
+            RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
+            maxConf = request.params[2].get_int();
+        }
 
-        // TODO: filter by amount
-        // TODO: filter by depth
-        // bool include_unsafe = true;
-        // if (request.params.size() > 3) {
-        //     RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
-        //     include_unsafe = request.params[3].get_bool();
-        // }
+        CAmount nMinimumAmount = 0;
+        CAmount nMaximumAmount = MAX_MONEY;
+        CAmount nMinimumSumAmount = MAX_MONEY;
+        uint64_t nMaximumCount = UINTMAX_MAX;
 
-        // CAmount nMinimumAmount = 0;
-        // CAmount nMaximumAmount = MAX_MONEY;
-        // CAmount nMinimumSumAmount = MAX_MONEY;
-        // uint64_t nMaximumCount = UINTMAX_MAX;
+        if (request.params.size() > 3 && request.params[3].isObject()) {
+            const UniValue& options = request.params[3].get_obj();
 
-        // if (request.params.size() > 4) {
-        //     const UniValue& options = request.params[4].get_obj();
+            if (options.exists("minimumAmount"))
+                nMinimumAmount = AmountFromValue(options["minimumAmount"]);
 
-        //     if (options.exists("minimumAmount"))
-        //         nMinimumAmount = AmountFromValue(options["minimumAmount"]);
+            if (options.exists("maximumAmount"))
+                nMaximumAmount = AmountFromValue(options["maximumAmount"]);
 
-        //     if (options.exists("maximumAmount"))
-        //         nMaximumAmount = AmountFromValue(options["maximumAmount"]);
+            if (options.exists("minimumSumAmount"))
+                nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
 
-        //     if (options.exists("minimumSumAmount"))
-        //         nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
-
-        //     if (options.exists("maximumCount"))
-        //         nMaximumCount = options["maximumCount"].get_int64();
-        // }
+            if (options.exists("maximumCount"))
+                nMaximumCount = options["maximumCount"].get_int64();
+        }
 
         const auto& node = EnsureNodeContext(request.context);
         // Get exclude inputs already used in mempool
@@ -422,7 +420,17 @@ namespace PocketWeb::PocketWebRpc
         node.mempool->GetAllInputs(mempoolInputs);
 
         // Get unspents from DB
-        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, ::ChainActive().Height(), mempoolInputs);
+        return request.DbConnection()->WebRpcRepoInst->GetUnspents(
+            destinations,
+            ::ChainActive().Height(),
+            mempoolInputs,
+            minConf,
+            maxConf,
+            nMinimumAmount,
+            nMaximumAmount,
+            nMinimumSumAmount,
+            nMaximumCount
+        );
     },
         };
     }
