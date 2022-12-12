@@ -31,13 +31,14 @@ RPCHelpMan gettemplate()
 // @formatter:off
 static const CRPCCommand commands[] =
 {
-    {"hidden",       "generatepocketnettransaction",      &GenerateTransaction,             {"address", "privKey", "outCount", "type", "payload"}},
-    {"hidden",       "generatepocketnetaddress",          &GenerateAddress,                 {}},
-
     // Old methods
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecomendedsubscriptionsforuser",&gettemplate,                       {"address", "count"}},
+
+    {"hidden",       "generatepocketnettransaction",        &GenerateTransaction,           {"address", "privKey", "outCount", "type", "payload"}},
+    {"hidden",       "generatetransaction",                 &GenerateTransaction,           {"address", "privKey", "outCount", "type", "payload"}},
+    {"hidden",       "generateaddress",                     &GenerateAddress,               {}},
 
     // Search
     {"search",          "search",                           &Search,                        {"keyword", "type", "topBlock", "pageStart", "pageSize", "address"}},
