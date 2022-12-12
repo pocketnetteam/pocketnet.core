@@ -248,7 +248,9 @@ namespace PocketDb
             TryBindStatementInt(stmt, 6, heightWindow);
             TryBindStatementInt(stmt, 7, heightWindow);
             TryBindStatementInt(stmt, 8, heightWindow);
-            TryBindStatementText(stmt, 9, address);
+            TryBindStatementInt(stmt, 9, heightWindow);
+            TryBindStatementInt(stmt, 10, heightWindow);
+            TryBindStatementText(stmt, 11, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -1026,7 +1028,7 @@ namespace PocketDb
             cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
                 on ua.String1 = c.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
 
-            join Transactions r ON c.String2 = r.Hash
+            join Transactions r ON r.Hash = c.String2
 
             join Payload pl ON pl.TxHash = c.Hash
 
@@ -1037,7 +1039,7 @@ namespace PocketDb
                 on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
 
             left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                on o.TxHash = c.Hash and o.AddressHash = t.String1 and o.AddressHash != c.String1
+                on o.TxHash = r.Hash and o.AddressHash = t.String1 and o.AddressHash != c.String1
 
             where c.Type in (204, 205, 206)
                 and c.Height is not null
