@@ -37,7 +37,7 @@ public:
     void run(const util::Ref& context, CChainParams const&, boost::thread_group&);
 
     void worker(const util::Ref& context, CChainParams const&, std::string const& walletName);
-    bool stake(const util::Ref& context, CChainParams const& chainparams, unsigned int blocks = 1);
+    bool stake(const util::Ref& context, CChainParams const& chainparams, unsigned int blocks = 1, const std::string& wallet_name = "");
 
     bool signBlock(std::shared_ptr<CBlock>, std::shared_ptr<CWallet>, int64_t);
 

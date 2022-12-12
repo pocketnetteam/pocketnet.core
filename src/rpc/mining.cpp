@@ -430,7 +430,8 @@ static RPCHelpMan stake()
     return RPCHelpMan{"stake",
         "\nStake one or more blocks\n",
         {
-            {"count", RPCArg::Type::NUM, RPCArg::Optional::NO, "Count of new blocks."},
+            {"count", RPCArg::Type::NUM, /* default */ "1", "Count of new blocks."},
+            {"wallet_name", RPCArg::Type::STR, /* default */ "", "Count of new blocks."},
         },
         RPCResult{RPCResult::Type::NONE, "", ""},
         RPCExamples{
@@ -444,8 +445,15 @@ static RPCHelpMan stake()
         if (Params().NetworkID() != NetworkId::NetworkRegTest)
             throw JSONRPCError(RPC_MISC_ERROR, "Only for RegTestNet");
 
-        const int num_blocks{request.params[0].get_int()};
-        if (!Staker::getInstance()->stake(request.context, Params(), num_blocks))
+        int num_blocks = 1;
+        if (request.params.size() > 0 && request.params[0].isNum())
+            num_blocks = request.params[0].get_int();
+
+        std::string wallet_name = "";
+        if (request.params.size() > 1 && request.params[1].isStr())
+            wallet_name = request.params[1].get_str();
+        
+        if (!Staker::getInstance()->stake(request.context, Params(), num_blocks, wallet_name))
             throw JSONRPCError(RPC_MISC_ERROR, "Stake failed, see debug.log");
         
         return NullUniValue;
