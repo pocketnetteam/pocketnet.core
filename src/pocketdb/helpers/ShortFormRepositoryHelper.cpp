@@ -3,6 +3,8 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/helpers/ShortFormRepositoryHelper.h"
+#include "pocketdb/models/shortform/ShortTxData.h"
+#include "pocketdb/models/shortform/ShortTxType.h"
 
 std::optional<std::vector<PocketDb::ShortTxOutput>> _parseOutputs(const std::string& jsonStr)
 {
