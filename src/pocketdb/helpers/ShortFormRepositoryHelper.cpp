@@ -5,6 +5,8 @@
 #include "pocketdb/helpers/ShortFormRepositoryHelper.h"
 #include "pocketdb/models/shortform/ShortTxData.h"
 #include "pocketdb/models/shortform/ShortTxType.h"
+#include "pocketdb/models/shortform/ShortAccount.h"
+#include "pocketdb/models/shortform/ShortTxOutput.h"
 
 std::optional<std::vector<PocketDb::ShortTxOutput>> _parseOutputs(const std::string& jsonStr)
 {
