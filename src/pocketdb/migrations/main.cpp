@@ -227,7 +227,30 @@ namespace PocketDb
 
 
         _indexes = R"sql(
+            create index if not exists Chain_Id on Chain (Id);
+            create index if not exists TxOutputs_SpentHeight_AddressId on TxOutputs (SpentHeight, AddressId);
+            create index if not exists TxOutputs_TxHeight_AddressId on TxOutputs (TxHeight, AddressId);
+            create index if not exists TxOutputs_SpentTxId on TxOutputs (SpentTxId);
+            create index if not exists TxOutputs_TxId_AddressId_Value on TxOutputs (TxId, AddressId, Value);
+            create index if not exists TxOutputs_AddressId_TxHeight_SpentHeight on TxOutputs (AddressId, TxHeight, SpentHeight);
 
+            create unique index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
+
+            create index if not exists Ratings_Last_Id_Height on Ratings (Last, Id, Height);
+            create index if not exists Ratings_Height_Last on Ratings (Height, Last);
+            create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
+            create index if not exists Ratings_Type_Id_Last_Height on Ratings (Type, Id, Last, Height);
+            create index if not exists Ratings_Type_Id_Last_Value on Ratings (Type, Id, Last, Value);
+            create index if not exists Ratings_Type_Id_Height_Value on Ratings (Type, Id, Height, Value);
+
+            create index if not exists Payload_String2_nocase_TxId on Payload (String2 collate nocase, TxId);
+            create index if not exists Payload_String7 on Payload (String7);
+            create index if not exists Payload_String1_TxId on Payload (String1, TxId);
+
+            create index if not exists Balances_Height on Balances (Height);
+            create index if not exists Balances_AddressId_Last_Height on Balances (AddressId, Last, Height);
+            create index if not exists Balances_Last_Value on Balances (Last, Value);
+            create index if not exists Balances_AddressId_Last on Balances (AddressId, Last);
         )sql";
 
         _postProcessing = R"sql(
