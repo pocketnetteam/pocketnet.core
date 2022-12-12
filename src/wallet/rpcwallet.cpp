@@ -2571,7 +2571,7 @@ static RPCHelpMan getwalletinfo()
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
-    const CWallet* const pwallet = wallet.get();
+    CWallet* const pwallet = wallet.get();
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -2590,7 +2590,19 @@ static RPCHelpMan getwalletinfo()
     obj.pushKV("balance", ValueFromAmount(bal.m_mine_trusted));
     obj.pushKV("unconfirmed_balance", ValueFromAmount(bal.m_mine_untrusted_pending));
     obj.pushKV("immature_balance", ValueFromAmount(bal.m_mine_immature));
-    obj.pushKV("total_balance", ValueFromAmount(bal.m_mine_trusted + bal.m_mine_untrusted_pending + bal.m_mine_immature));
+    obj.pushKV("ttl_balance", ValueFromAmount(bal.m_mine_trusted + bal.m_mine_untrusted_pending + bal.m_mine_immature));
+
+    // Get balance from sql db
+    std::vector<std::string> addresses = pwallet->GetUniqueAddresses();
+    auto infos = PocketDb::ExplorerRepoInst.GetAddressesInfo(addresses);
+    CAmount total_sql_balance = 0;
+    for (const auto& info : infos)
+    {
+        auto[_, balance] = info.second;
+        total_sql_balance += balance;
+    }
+    obj.pushKV("sql_balance", ValueFromAmount(total_sql_balance));
+
     obj.pushKV("txcount",       (int)pwallet->mapWallet.size());
     if (kp_oldest > 0) {
         obj.pushKV("keypoololdest", kp_oldest);
