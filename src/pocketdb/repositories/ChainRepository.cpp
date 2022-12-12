@@ -174,7 +174,7 @@ namespace PocketDb
         auto stmt = SetupSqlStatement(R"sql(
             insert into Balances (AddressId, Last, Height, Value)
             select
-                saldo.AddressHash,
+                saldo.AddressID,
                 1,
                 ?,
                 sum(ifnull(saldo.Amount,0)) + ifnull(b.Value,0)
@@ -183,7 +183,7 @@ namespace PocketDb
                 select 'unspent',
                        o.AddressId,
                        sum(o.Value)Amount
-                from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
+                from TxOutputs o indexed by TxOutputs_TxHeight_AddressId
                 where  o.TxHeight = ?
                 group by o.AddressId
 
@@ -192,12 +192,12 @@ namespace PocketDb
                 select 'spent',
                        o.AddressId,
                        -sum(o.Value)Amount
-                from TxOutputs o indexed by TxOutputs_SpentHeight_AddressHash
+                from TxOutputs o indexed by TxOutputs_SpentHeight_AddressId
                 where o.SpentHeight = ?
                 group by o.AddressId
 
             ) saldo
-            left join Balances b indexed by Balances_AddressHash_Last
+            left join Balances b indexed by Balances_AddressId_Last
                 on b.AddressId = saldo.AddressId and b.Last = 1
             where saldo.AddressId is not null
             group by saldo.AddressId
@@ -209,7 +209,7 @@ namespace PocketDb
 
         // Remove old Last records
         auto stmtOld = SetupSqlStatement(R"sql(
-            update Balances indexed by Balances_AddressHash_Last_Height
+            update Balances indexed by Balances_AddressId_Last_Height
               set Last = 0
             where Balances.Last = 1
               and Balances.Height < ?
@@ -233,20 +233,19 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
+                        from Transactions a -- TODO (losty): index
                         join Chain c
                             on c.TxId = a.Id
                             and c.Last = 1
                         where a.Type in (100,170)
                             and a.Int1 = Transactions.Int1
-                            and a.Height is not null
                         limit 1
                     ),
                     ifnull(
                         -- new record
                         (
                             select max( c.Id ) + 1
-                            from Chain a -- TODO (losty): index
+                            from Chain a indexed by Chain_Id
                         ),
                         0 -- for first record
                     )
@@ -270,11 +269,10 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
+                        from Transactions a -- TODO (losty): index
                         join Chain c
                             on c.TxId = a.Id
                             and c.Last = 1
-                            and c.BlockId > 0 -- tx is in block (analog Height>0)
                         where a.Type in (103)
                             and a.Last = 1
                             and a.Int1 = Transactions.Int1
@@ -284,7 +282,7 @@ namespace PocketDb
                         -- new record
                         (
                             select max( c.Id ) + 1
-                            from Chain c -- TODO (losty): index
+                            from Chain c indexed by Chain_Id
                         ),
                         0 -- for first record
                     )
@@ -308,11 +306,10 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions t indexed by Transactions_Type_Last_String2_Height
+                        from Transactions t -- TODO (losty): index
                         join Chain c
                             on c.TxId = t.Id
                             and c.Last = 1
-                            and c.BlockId > 0 -- tx is in block
                         where t.Type in (200,201,202,209,210,207)
                             -- String2 = RootTxHash
                             and t.Int2 = Transactions.Int2
@@ -322,7 +319,7 @@ namespace PocketDb
                     ifnull(
                         (
                             select max( c.Id ) + 1
-                            from Chain c -- TODO (losty): index
+                            from Chain c indexed by Chain_Id
                         ),
                         0 -- for first record
                     )
@@ -359,7 +356,7 @@ namespace PocketDb
                     ifnull(
                         (
                             select max( c.Id ) + 1
-                            from Chian c
+                            from Chian c indexed by Chain_Id
                         ),
                         0 -- for first record
                     )
@@ -402,7 +399,7 @@ namespace PocketDb
                         -- new record
                         (
                             select max( c.Id ) + 1
-                            from Chain c -- TODO (losty): index
+                            from Chain c indexed by Chain_Id
                         ),
                         0 -- for first record
                     )
@@ -418,17 +415,17 @@ namespace PocketDb
             select
               usc.Id,
               utc.Id
-            from Transactions b
-            join Transactions us
+            from Transactions b -- TODO (losty): index
+            join Transactions us -- TODO (losty): index
               on us.Type in (100, 170) and us.Int1 = b.Int1
-            join Chain usc
+            join Chain usc -- TODO (losty): index
               on usc.TxId = us.Id
                 and usc.Last = 1
                 and usc.BlockId > 0
-            join Transactions ut
+            join Transactions ut -- TODO (losty): index
               on ut.Type in (100, 170)
                 and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
-            join Chain utc
+            join Chain utc -- TODO (losty): index
               on utc.TxId = ut.Id
                 and utc.Last = 1
                 and utc.BlockId > 0
@@ -443,17 +440,17 @@ namespace PocketDb
             where exists
             (select
               1
-            from Transactions b
-            join Transactions us
+            from Transactions b -- TODO (losty): index
+            join Transactions us -- TODO (losty): index
               on us.Type in (100, 170) and us.Int1 = b.Int1
-            join Chain usc
+            join Chain usc -- TODO (losty): index
               on usc.TxId = us.Id
                 and usc.Last = 1
                 and usc.Id = BlockingLists.IdSource
                 and usc.BlockId > 0
-            join Transactions ut
+            join Transactions ut -- TODO (losty): index
               on ut.Type in (100, 170) and ut.Int1 = b.Int2
-            join Chain utc
+            join Chain utc -- TODO (losty): index
               on utc.TxId = ut.Id
                 and utc.Last = 1
                 and utc.Id = BlockingLists.IdTarget
@@ -478,7 +475,7 @@ namespace PocketDb
                     (
                         select c.Id
                         from Transactions a -- TODO (losty): index
-                        join Chain c
+                        join Chain c -- TODO (losty): index
                             on c.TxId = a.Id
                             and c.Last = 1
                             and c.BlockId > 0
@@ -493,7 +490,7 @@ namespace PocketDb
                         -- new record
                         (
                             select max( c.Id ) + 1
-                            from Chain c -- TODO (losty): index
+                            from Chain c indexed by Chain_Id
                         ),
                         0 -- for first record
                     )
@@ -517,11 +514,11 @@ namespace PocketDb
               (
                 (
                   select sum(i.Value)
-                  from TxOutputs i -- TODO (losty): index
+                  from TxOutputs i indexed by TxOutputs_SpentTxId
                   where i.SpentTxId = Transactions.Id
                 ) - (
                   select sum(o.Value)
-                  from TxOutputs o -- TODO (losty): index
+                  from TxOutputs o indexed by TxOutputs_TxId_AddressId_Value
                   where TxId = Transactions.Id
                 )
               )
@@ -656,14 +653,14 @@ namespace PocketDb
                     b1.AddressId
                     ,(
                         select max(b2.Height)
-                        from Balances b2 -- TODO (losty): index
+                        from Balances b2 indexed by Balances_AddressId_Last_Height
                         where b2.AddressId = b1.AddressId
                           and b2.Last = 0
                           and b2.Height < ?
                         limit 1
                     )Height
 
-                from Balances b1 -- TODO (losty): index
+                from Balances b1 indexed by Balances_Height
 
                 where b1.Height >= ?
                   and b1.Last = 1
