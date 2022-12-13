@@ -18,7 +18,7 @@ namespace PocketDb
 
                 auto blockId = UpdateBlockData(blockHash, height);
                 if (blockId == -1) {
-                    // TODO (losty): error?
+                    // TODO (losty-db): error?
                 }
                 // All transactions must have a blockHash & height relation
                 UpdateTransactionChainData(blockId, txInfo.BlockNumber, height, txInfo.TxId);
@@ -115,7 +115,7 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, blockHash);
             TryBindStatementInt(stmt, 2, height);
 
-            // TODO (losty): error
+            // TODO (losty-db): error
             if (sqlite3_step(*stmt) == SQLITE_ROW) {
                 if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
             }
@@ -137,7 +137,7 @@ namespace PocketDb
         TryStepStatement(stmt);
 
 
-        // TODO (losty): can we remove duplicate of TxHeight in TxOutput?
+        // TODO (losty-db): can we remove duplicate of TxHeight in TxOutput?
         auto stmtOuts = SetupSqlStatement(R"sql(
             UPDATE TxOutputs SET
                 TxHeight = ?
@@ -233,7 +233,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions a -- TODO (losty): index
+                        from Transactions a -- TODO (losty-db): index
                         join Chain c
                             on c.TxId = a.Id
                             and c.Last = 1
@@ -269,7 +269,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions a -- TODO (losty): index
+                        from Transactions a -- TODO (losty-db): index
                         join Chain c
                             on c.TxId = a.Id
                             and c.Last = 1
@@ -306,7 +306,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions t -- TODO (losty): index
+                        from Transactions t -- TODO (losty-db): index
                         join Chain c
                             on c.TxId = t.Id
                             and c.Last = 1
@@ -343,7 +343,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select max( c.Id )
-                        from Transactions t -- TODO (losty): index
+                        from Transactions t -- TODO (losty-db): index
                         join Chain c
                             on c.TxId = t.Id
                             and c.Last = 1
@@ -381,7 +381,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions a -- TODO (losty): index
+                        from Transactions a -- TODO (losty-db): index
                         join Chain c
                             on c.TxId = a.Id
                             and c.Last = 1
@@ -390,7 +390,7 @@ namespace PocketDb
                             -- String1 = AddressHash
                             and a.Int1 = Transactions.Int1
                             -- String2 = AddressToHash
-                            -- TODO (losty): is -1 ok?
+                            -- TODO (losty-db): is -1 ok?
                             and ifnull(a.Int2,-1) = ifnull(Transactions.Int2,-1)
                             and ifnull(a.Int3,-1) = ifnull(Transactions.Int3,-1)
                         limit 1
@@ -415,17 +415,17 @@ namespace PocketDb
             select
               usc.Id,
               utc.Id
-            from Transactions b -- TODO (losty): index
-            join Transactions us -- TODO (losty): index
+            from Transactions b -- TODO (losty-db): index
+            join Transactions us -- TODO (losty-db): index
               on us.Type in (100, 170) and us.Int1 = b.Int1
-            join Chain usc -- TODO (losty): index
+            join Chain usc -- TODO (losty-db): index
               on usc.TxId = us.Id
                 and usc.Last = 1
                 and usc.BlockId > 0
-            join Transactions ut -- TODO (losty): index
+            join Transactions ut -- TODO (losty-db): index
               on ut.Type in (100, 170)
                 and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
-            join Chain utc -- TODO (losty): index
+            join Chain utc -- TODO (losty-db): index
               on utc.TxId = ut.Id
                 and utc.Last = 1
                 and utc.BlockId > 0
@@ -440,17 +440,17 @@ namespace PocketDb
             where exists
             (select
               1
-            from Transactions b -- TODO (losty): index
-            join Transactions us -- TODO (losty): index
+            from Transactions b -- TODO (losty-db): index
+            join Transactions us -- TODO (losty-db): index
               on us.Type in (100, 170) and us.Int1 = b.Int1
-            join Chain usc -- TODO (losty): index
+            join Chain usc -- TODO (losty-db): index
               on usc.TxId = us.Id
                 and usc.Last = 1
                 and usc.Id = BlockingLists.IdSource
                 and usc.BlockId > 0
-            join Transactions ut -- TODO (losty): index
+            join Transactions ut -- TODO (losty-db): index
               on ut.Type in (100, 170) and ut.Int1 = b.Int2
-            join Chain utc -- TODO (losty): index
+            join Chain utc -- TODO (losty-db): index
               on utc.TxId = ut.Id
                 and utc.Last = 1
                 and utc.Id = BlockingLists.IdTarget
@@ -474,8 +474,8 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions a -- TODO (losty): index
-                        join Chain c -- TODO (losty): index
+                        from Transactions a -- TODO (losty-db): index
+                        join Chain c -- TODO (losty-db): index
                             on c.TxId = a.Id
                             and c.Last = 1
                             and c.BlockId > 0
@@ -570,7 +570,7 @@ namespace PocketDb
     void ChainRepository::ClearOldLast(const int64_t& txId)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            UPDATE Chain -- TODO (losty): indexing
+            UPDATE Chain -- TODO (losty-db): indexing
             SET
                 Last = 0
             FROM (
@@ -594,7 +594,7 @@ namespace PocketDb
         // ----------------------------------------
         // Restore old Last transactions
         auto stmt1 = SetupSqlStatement(R"sql(
-            update Chain -- TODO (losty): index
+            update Chain -- TODO (losty-db): index
                 set Last=1
             from (
                 select c1.Id, max(b2.Id)BlockId -- TODO (losty-critical): is this ok??? Is max(blockId) the same as max(height)?

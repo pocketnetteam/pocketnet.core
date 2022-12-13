@@ -10,7 +10,7 @@
 class AccountDataTranslator : public PocketHelpers::ITxDbDataTranslator
 {
 public:
-    // TODO (losty): using PocketDb::TransRepoInst here is a dirty hack to avoid header cycle dependency
+    // TODO (losty-db): using PocketDb::TransRepoInst here is a dirty hack to avoid header cycle dependency
     // because TransactionRepository requires to use this helper class. Consider extract required methods to
     // some kind of database accessor.
     bool ToModel(PocketHelpers::PTransactionRef& tx, const PocketHelpers::TxData& data) override
@@ -53,7 +53,7 @@ bool PocketHelpers::DbViewHelper::ModelToDbView(TxData& data, const PTransaction
 #define TRANSLATOR(txType, TranslatorName) \
     {PocketTx::TxType::txType, std::make_shared<TranslatorName>()}
 
-// TODO (losty): !!! fill for all other models
+// TODO (losty-db): !!! fill for all other models
 const std::map<PocketDb::TxType, std::shared_ptr<PocketHelpers::ITxDbDataTranslator>> PocketHelpers::DbViewHelper::m_translatorSelector = {
     TRANSLATOR(ACCOUNT_USER, AccountDataTranslator),
 };

@@ -9,7 +9,7 @@ namespace PocketDb
     class CollectDataToModelConverter
     {
     public:
-        // TODO (losty): consider remove `repository` parameter from here.
+        // TODO (losty-db): consider remove `repository` parameter from here.
         static optional<CollectData> ModelToCollectData(const PTransactionRef& ptx, TransactionRepository& repository)
         {
             if (!ptx->GetHash()) return nullopt;
@@ -239,7 +239,7 @@ namespace PocketDb
             {
                 auto collectData = CollectDataToModelConverter::ModelToCollectData(ptx, *this);
                 if (!collectData) {
-                    // TODO (losty): error!!!
+                    // TODO (losty-db): error!!!
                     LogPrintf("DEBUG: failed to convert model to CollectData in %s\n", __func__);
                     continue;
                 }
@@ -267,7 +267,7 @@ namespace PocketDb
         auto txIdMap = GetTxIds(txHashes);
 
         if (txIdMap.size() != txHashes.size()) {
-            // TODO (losty): error
+            // TODO (losty-db): error
             LogPrintf("DEBUG: missing ids for requested hashses\n");
         }
 
@@ -355,7 +355,7 @@ namespace PocketDb
             if (auto ptx = CollectDataToModelConverter::CollectDataToModel(collectData); ptx)
                 pBlock->emplace_back(ptx);
             else {
-                // TODO (losty): error!!!
+                // TODO (losty-db): error!!!
                 LogPrintf("DEBUG: failed to get model from CollectData in %s\n" , __func__);
             }
         }
@@ -778,7 +778,7 @@ namespace PocketDb
             }
 
             while (sqlite3_step(*stmt) == SQLITE_ROW) {
-                // TODO (losty): error
+                // TODO (losty-db): error
                 auto[ok1, hash] = TryGetColumnString(*stmt, 0);
                 auto[ok2, txId] = TryGetColumnInt64(*stmt, 1);
                 if (ok1 && ok2) res.emplace(hash, txId);

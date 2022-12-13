@@ -43,7 +43,7 @@ namespace PocketServices
             txInfo.BlockNumber = (int) i;
             txInfo.Time = tx->nTime;
             txInfo.Type = txType;
-            if (auto txId = TransRepoInst.TxHashToId(hash); txId) txInfo.TxId = *txId; // TODO (losty): else?
+            if (auto txId = TransRepoInst.TxHashToId(hash); txId) txInfo.TxId = *txId; // TODO (losty-db): else?
 
             if (!tx->IsCoinBase())
             {
