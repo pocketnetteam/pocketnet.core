@@ -1152,7 +1152,7 @@ void CWallet::MarkConflicted(const uint256& hashBlock, int conflicting_height, c
 
 void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmation confirm, bool update_tx)
 {
-	if (update_tx) {
+	if (!update_tx) {
 		if (ptx->IsCoinStake()) {
 			if (IsFromMe(*ptx)) {
 				// Do not flush the wallet here for performance reasons
@@ -1169,7 +1169,7 @@ void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmatio
 				}
 				else
 				{
-					LogPrintf("SyncTransaction : Warning: Could not find %s in wallet. Trying to refund someone else's tx?", ptx->GetHash().ToString());
+					LogPrintf("SyncTransaction : Warning: Could not find %s in wallet. Trying to refund someone else's tx?\n", ptx->GetHash().ToString());
 				}
 
 				LogPrintf("SyncTransaction : Refunding inputs of orphan tx %s\n", ptx->GetHash().ToString());
@@ -1189,7 +1189,7 @@ void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmatio
 		MarkInputsDirty(ptx);
 	}
 
-	if (update_tx && ptx->IsCoinStake() && IsFromMe(*ptx)) {
+	if (!update_tx && ptx->IsCoinStake() && IsFromMe(*ptx)) {
 		AbandonTransaction(ptx->GetHash());
 		LogPrintf("SyncTransaction : Removing tx %s from mapTxSpends\n", ptx->GetHash().ToString());
 		for (auto & txin : ptx->vin) {
@@ -1270,7 +1270,7 @@ void CWallet::blockDisconnected(const CBlock& block, int height)
 	m_last_block_processed_height = height - 1;
 	m_last_block_processed = block.hashPrevBlock;
 	for (const CTransactionRef& ptx : block.vtx) {
-		SyncTransaction(ptx, {CWalletTx::Status::UNCONFIRMED, /* block height */ 0, /* block hash */ {}, /* index */ 0});
+		SyncTransaction(ptx, {CWalletTx::Status::UNCONFIRMED, /* block height */ 0, /* block hash */ {}, /* index */ 0}, false);
 	}
 }
 
