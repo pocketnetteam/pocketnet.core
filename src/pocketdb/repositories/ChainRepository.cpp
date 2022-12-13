@@ -156,7 +156,7 @@ namespace PocketDb
                 UPDATE TxOutputs SET
                     SpentHeight = ?,
                     SpentTxId = ?
-                WHERE TxId = (select Hash from Transactions where Id = ?) and Number = ?
+                WHERE TxId = ? and Number = ?
             )sql");
 
             TryBindStatementInt(stmt, 1, height);
@@ -174,7 +174,7 @@ namespace PocketDb
         auto stmt = SetupSqlStatement(R"sql(
             insert into Balances (AddressId, Last, Height, Value)
             select
-                saldo.AddressID,
+                saldo.AddressId,
                 1,
                 ?,
                 sum(ifnull(saldo.Amount,0)) + ifnull(b.Value,0)
