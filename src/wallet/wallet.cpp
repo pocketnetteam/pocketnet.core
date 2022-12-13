@@ -1152,7 +1152,7 @@ void CWallet::MarkConflicted(const uint256& hashBlock, int conflicting_height, c
 
 void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmation confirm, bool update_tx)
 {
-	if (!update_tx) {
+	if (update_tx) {
 		if (ptx->IsCoinStake()) {
 			if (IsFromMe(*ptx)) {
 				// Do not flush the wallet here for performance reasons
@@ -1189,7 +1189,7 @@ void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmatio
 		MarkInputsDirty(ptx);
 	}
 
-	if (!update_tx && ptx->IsCoinStake() && IsFromMe(*ptx)) {
+	if (update_tx && ptx->IsCoinStake() && IsFromMe(*ptx)) {
 		AbandonTransaction(ptx->GetHash());
 		LogPrintf("SyncTransaction : Removing tx %s from mapTxSpends\n", ptx->GetHash().ToString());
 		for (auto & txin : ptx->vin) {
