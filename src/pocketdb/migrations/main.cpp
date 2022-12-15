@@ -11,7 +11,7 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Chain
             (
-                TxId     integer primary key,
+                TxId     integer primary key, -- Transactions.Id
                 BlockId  int     null,
                 BlockNum int     null,
                 Height int     not null
@@ -39,7 +39,7 @@ namespace PocketDb
             (
                 Id      integer primary key,
                 Type      int    not null,
-                Hash      text   not null,
+                HashId    int    not null, -- Id of tx hash in Registry table
                 Time      int    not null,
 
                 -- AccountUser.AddressId
@@ -53,7 +53,7 @@ namespace PocketDb
                 -- Blocking.AddressId
                 -- Complain.AddressId
                 -- Boost.AddressId
-                Int1   int   null,
+                RegId1   int   null,
 
                 -- AccountUser.ReferrerAddressId
                 -- ContentPost.RootTxId
@@ -67,41 +67,46 @@ namespace PocketDb
                 -- Complain.ContentRootTxId
                 -- Boost.ContentRootTxId
                 -- ModerationFlag.ContentTxId
-                Int2   int   null,
+                RegId2   int   null,
 
                 -- ContentPost.RelayRootTxId
                 -- ContentVideo.RelayRootTxId
                 -- Comment.ContentRootTxId
-                Int3   int   null,
+                RegId3   int   null,
 
                 -- Comment.ParentRootTxId
-                Int4   int   null,
+                RegId4   int   null,
 
                 -- Comment.AnswerRootTxId
-                Int5   int   null,
+                RegId5   int   null,
 
                 -- ScoreContent.Value
                 -- ScoreComment.Value
                 -- Complain.Reason
                 -- Boost.Amount
                 -- ModerationFlag.Reason
-                Int6      int    null,
+                Int1      int    null,
             );
         )sql");
 
         _tables.emplace_back(R"sql(
-            create table if not exists Blocks
+            -- Registry to handle all strings by id
+            -- - BlockHashes
+            -- - AddressHashes
+            -- - TxHashes
+            create table if not exists Registry
             (
-                Id     integer primary key,
-                Hash   text    not null,
+                Id integer primary key,
+                String text not null
             );
         )sql");
 
         _tables.emplace_back(R"sql(
-            create table if not exists Addresses
+            create table if not exists List
             (
-                Id   integer primary key,
-                Hash text    not null
+                TxId   int not null, -- TxId that List belongs to
+                Number int not null, -- Allowes to use different lists for one tx
+                RegId  int not null, -- Entry that list contains
             );
         )sql");
 
