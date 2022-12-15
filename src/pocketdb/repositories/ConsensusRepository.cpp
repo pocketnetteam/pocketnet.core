@@ -195,13 +195,19 @@ namespace PocketDb
 
                 UNION
 
-                SELECT Type
-                FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
-                WHERE Type = 306
-                    and String1 = ?
-                    and String2 = ?
-                    and Height is not null
-                    and Last = 1
+                SELECT b.Type
+                FROM Transactions b indexed by Transactions_Type_Last_String1_String2_Height
+                WHERE b.Type = 306
+                    and b.String1 = ?
+                    and b.String2 = ?
+                    and b.Height is not null
+                    and b.Last = 1
+                    and not exists (select 1 from BlockingLists bl
+                                    join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+                                        on us.Last = 1 and us.Id = bl.IdSource and us.Type in (100, 170) and us.String1 = b.String1 and us.Height is not null
+                                    join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+                                        on ut.Last = 1 and ut.Id = bl.IdTarget and ut.Type in (100, 170) and ut.String1 = b.String2 and ut.Height is not null
+                                    )
             )sql");
 
             TryBindStatementText(stmt, 1, address);
