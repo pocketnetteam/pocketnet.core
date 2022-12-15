@@ -102,7 +102,7 @@ namespace PocketDb
         )sql");
 
         _tables.emplace_back(R"sql(
-            create table if not exists List
+            create table if not exists Lists
             (
                 TxId   int not null, -- TxId that List belongs to
                 Number int not null, -- Allowes to use different lists for one tx
