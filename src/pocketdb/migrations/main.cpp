@@ -86,9 +86,6 @@ namespace PocketDb
                 -- Boost.Amount
                 -- ModerationFlag.Reason
                 Int6      int    null,
-
-                -- Blocking.AddressesTo
-                String1   text   null
             );
         )sql");
 
