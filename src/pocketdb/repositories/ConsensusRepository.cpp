@@ -184,9 +184,20 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
+                SELECT 305
+                FROM BlockingLists b
+                JOIN Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+                ON us.Last = 1 and us.Id = b.IdSource and us.Type in (100, 170) and us.Height is not null
+                JOIN Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+                ON ut.Last = 1 and ut.Id = b.IdTarget and ut.Type in (100, 170) and ut.Height is not null
+                WHERE us.String1 = ?
+                    and ut.String1 = ?
+
+                UNION
+
                 SELECT Type
                 FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
-                WHERE Type in (305, 306)
+                WHERE Type = 306
                     and String1 = ?
                     and String2 = ?
                     and Height is not null
