@@ -158,13 +158,10 @@ namespace PocketDb
             create table if not exists TxOutputs
             (
                 TxId            int    not null, -- Transactions.TxId
-                TxHeight        int    null,     -- Transactions.Height
                 Number          int    not null, -- Number in tx.vout
                 AddressId       int    not null, -- Address
                 Value           int    not null, -- Amount
                 ScriptPubKey    text   not null, -- Original script
-                SpentHeight     int    null,     -- Where spent
-                SpentTxId       int    null,     -- Who spent
                 primary key (TxId, Number, AddressId)
             );
         )sql");
