@@ -14,6 +14,7 @@ namespace PocketDb
                 TxId     integer primary key,
                 BlockId  int     null,
                 BlockNum int     null,
+                Height int     not null
 
                 -- AccountUser.Id
                 -- ContentPost.Id
@@ -96,7 +97,6 @@ namespace PocketDb
             (
                 Id     integer primary key,
                 Hash   text    not null,
-                Height int     not null
             );
         )sql");
 
