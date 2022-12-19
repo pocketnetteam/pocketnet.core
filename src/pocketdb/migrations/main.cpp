@@ -14,7 +14,7 @@ namespace PocketDb
                 TxId     integer primary key, -- Transactions.Id
                 BlockId  int     null,
                 BlockNum int     null,
-                Height int     not null
+                Height   int     not null
 
                 -- AccountUser.Id
                 -- ContentPost.Id
