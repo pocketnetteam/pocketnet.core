@@ -38,7 +38,7 @@ namespace PocketDb
         PTransactionRef ptx;
         std::vector<TransactionOutput> outputs;
         std::vector<TransactionInput> inputs;
-        TxData txData;
+        TxContextualData txContextData;
         std::optional<Payload> payload;
     };
 

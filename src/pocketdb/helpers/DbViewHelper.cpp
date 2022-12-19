@@ -7,44 +7,44 @@
 #include "pocketdb/pocketnet.h"
 
 
-class AccountDataTranslator : public PocketHelpers::ITxDbDataTranslator
+class BlockingDataTransaclator : public PocketHelpers::ITxDbDataTranslator
 {
 public:
     // TODO (losty-db): using PocketDb::TransRepoInst here is a dirty hack to avoid header cycle dependency
     // because TransactionRepository requires to use this helper class. Consider extract required methods to
     // some kind of database accessor.
-    bool ToModel(PocketHelpers::PTransactionRef& tx, const PocketHelpers::TxData& data) override
+    bool Inject(PocketHelpers::PTransactionRef& tx, const PocketHelpers::TxContextualData& data) override
     {
-        if (data.int1)
-            if (auto val = PocketDb::TransRepoInst.TxIdToHash(*data.int1); val)
-                tx->SetString1(*val);
+        if (data.list)
+            tx->SetString3(*data.list);
+        else 
+            return false;
 
         return true;
     };
 
-    bool FromModel(PocketHelpers::TxData& data, const PocketHelpers::PTransactionRef& tx) override
+    bool Extract(PocketHelpers::TxContextualData& data, const PocketHelpers::PTransactionRef& tx) override
     {
-        if (tx->GetString1()) data.int1 = PocketDb::TransRepoInst.TxHashToId(*tx->GetString1());
-
+        data.list = tx->GetString3();
         return true;
     }
 };
 
 
 
-bool PocketHelpers::DbViewHelper::DbViewToModel(PTransactionRef& tx, const TxData& data)
+bool PocketHelpers::DbViewHelper::Inject(PTransactionRef& tx, const TxContextualData& data)
 {
     if (auto translator = m_translatorSelector.find(*tx->GetType()); translator != m_translatorSelector.end()) {
-        return translator->second->ToModel(tx, data);
+        return translator->second->Inject(tx, data);
     }
 
     return false;
 }
 
-bool PocketHelpers::DbViewHelper::ModelToDbView(TxData& data, const PTransactionRef& tx)
+bool PocketHelpers::DbViewHelper::Extract(TxContextualData& data, const PTransactionRef& tx)
 {
     if (auto translator = m_translatorSelector.find(*tx->GetType()); translator != m_translatorSelector.end()) {
-        return translator->second->FromModel(data, tx);
+        return translator->second->Extract(data, tx);
     }
 
     return false;
@@ -55,6 +55,6 @@ bool PocketHelpers::DbViewHelper::ModelToDbView(TxData& data, const PTransaction
 
 // TODO (losty-db): !!! fill for all other models
 const std::map<PocketDb::TxType, std::shared_ptr<PocketHelpers::ITxDbDataTranslator>> PocketHelpers::DbViewHelper::m_translatorSelector = {
-    TRANSLATOR(ACCOUNT_USER, AccountDataTranslator),
+    TRANSLATOR(ACTION_BLOCKING, BlockingDataTransaclator),
 };
 

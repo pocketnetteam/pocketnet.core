@@ -11,29 +11,24 @@
 
 namespace PocketHelpers
 {
-    struct TxData
+    struct TxContextualData
     {
-        optional<int64_t> int1;
-        optional<int64_t> int2;
-        optional<int64_t> int3;
-        optional<int64_t> int4;
-        optional<int64_t> int5;
-        optional<int64_t> int6;
-        optional<string> string1;
+        optional<string> list;
     };
 
     class ITxDbDataTranslator
     {
     public:
-        virtual bool ToModel(PocketHelpers::PTransactionRef& tx, const TxData& data) = 0;
-        virtual bool FromModel(TxData& data, const PocketHelpers::PTransactionRef& tx) = 0;
+        virtual bool Inject(PocketHelpers::PTransactionRef& tx, const TxContextualData& data) = 0;
+        virtual bool Extract(TxContextualData& data, const PocketHelpers::PTransactionRef& tx) = 0;
     };
 
     class DbViewHelper
     {
     public:
-        static bool DbViewToModel(PTransactionRef& tx, const TxData& data);
-        static bool ModelToDbView(TxData& data, const PTransactionRef& tx);
+        // TODO (losty-db): rename below methods
+        static bool Inject(PTransactionRef& tx, const TxContextualData& data);
+        static bool Extract(TxContextualData& data, const PTransactionRef& tx);
     private:
         static const map<TxType, shared_ptr<ITxDbDataTranslator>> m_translatorSelector;
     };
