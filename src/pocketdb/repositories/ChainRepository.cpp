@@ -128,12 +128,13 @@ namespace PocketDb
     void ChainRepository::UpdateTransactionChainData(const int64_t& blockId, int blockNumber, int height, const int64_t& txId)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            INSERT INTO Chain (TxId, BlockId, BlockNum)
-            VALUES(?, ?, ?)
+            INSERT INTO Chain (TxId, BlockId, BlockNum, Height)
+            VALUES(?, ?, ?, ?)
         )sql");
         TryBindStatementInt64(stmt, 1, txId);
         TryBindStatementInt64(stmt, 2, blockId);
         TryBindStatementInt(stmt, 3, blockNumber);
+        TryBindStatementInt(stmt, 4, height);
         TryStepStatement(stmt);
 
 
