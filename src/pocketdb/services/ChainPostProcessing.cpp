@@ -217,7 +217,8 @@ namespace PocketServices
             if (txInfo.IsModerationVote())
             {
                 ChainRepoInst.IndexModerationBan(
-                    txInfo.Hash
+                    txInfo.Hash,
+                    reputationConsensus->GetConsensusLimit(moderation_jury_vote_count)
                 );
             }
         }

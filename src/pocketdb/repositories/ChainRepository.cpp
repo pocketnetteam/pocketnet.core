@@ -475,54 +475,50 @@ namespace PocketDb
         TryStepStatement(stmt);
     }
 
+
     void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount)
     {
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-
                 insert into Jury
 
                 select
-
                     f.ROWID, /* Unique id of Flag record */
                     f.String3, /* Address of the content author */
                     f.Int1, /* Reason */
                     null /* Verdict */
-
                 from Transactions f indexed by sqlite_autoindex_Transactions_1
-
                 where f.Hash = ?
 
-                -- Is there no active punishment listed on the account ?
-                and not exists (
-                    select 1
-                    from Ban b indexed by Ban_AddressHash_Reason_Ending
-                    where b.AddressHash = f.String3
-                        and b.Reason = f.Int1
-                        and b.Ending > f.Height
-                )
+                    -- Is there no active punishment listed on the account ?
+                    and not exists (
+                        select 1
+                        from Ban b indexed by Ban_AddressHash_Reason_Ending
+                        where b.AddressHash = f.String3
+                            and b.Reason = f.Int1
+                            and b.Ending > f.Height
+                    )
 
-                -- there is no active jury for the same reason
-                and not exists (
-                    select 1
-                    from Jury j indexed by Jury_AddressHash_Reason_Verdict
-                    where j.AddressHash = f.String3
-                        and j.Reason = f.Int1
-                        and j.Verdict is not null
-                )
+                    -- there is no active jury for the same reason
+                    and not exists (
+                        select 1
+                        from Jury j indexed by Jury_AddressHash_Reason_Verdict
+                        where j.AddressHash = f.String3
+                            and j.Reason = f.Int1
+                            and j.Verdict is not null
+                    )
 
-                -- if there are X flags of the same reason for X time
-                and ? <= (
-                    select count()
-                    from Transactions ff indexed by Transactions_Type_Last_String2_Height
-                    where ff.Type in (410)
-                        and ff.Last = 0
-                        and ff.String3 = f.String3
-                        and ff.Height > ?
-                        and ff.Hash != f.Hash
-                )
-
+                    -- if there are X flags of the same reason for X time
+                    and ? <= (
+                        select count()
+                        from Transactions ff indexed by Transactions_Type_Last_String2_Height
+                        where ff.Type in (410)
+                            and ff.Last = 0
+                            and ff.String3 = f.String3
+                            and ff.Height > ?
+                            and ff.Hash != f.Hash
+                    )
             )sql");
 
             TryBindStatementText(stmt, 1, flagTxHash);
@@ -533,7 +529,7 @@ namespace PocketDb
         });
     }
 
-    void ChainRepository::IndexModerationBan(const string& voteTxHash)
+    void ChainRepository::IndexModerationBan(const string& voteTxHash, int votesCount)
     {
         TryTransactionStep(__func__, [&]()
         {
@@ -573,7 +569,7 @@ namespace PocketDb
                   cross join Transactions f indexed by sqlite_autoindex_Transactions_1
                     on f.Hash = v.String2
                   where v.Hash = ?
-                    and 8 <= (
+                    and ? <= (
                       select count()
                       from Transactions vv indexed by Transactions_Type_Last_String2_Height
                       where vv.Type in (420) -- Votes
@@ -585,6 +581,7 @@ namespace PocketDb
                 )
             )sql");
             TryBindStatementText(stmt_update_1, 1, voteTxHash);
+            TryBindStatementInt(stmt_update_1, 2, votesCount);
             TryStepStatement(stmt_update_1);
             
             auto stmt_ban = SetupSqlStatement(R"sql(

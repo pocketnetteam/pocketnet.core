@@ -49,7 +49,7 @@ namespace PocketDb
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);
 
         void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount);
-        void IndexModerationBan(const string& voteTxHash);
+        void IndexModerationBan(const string& voteTxHash, int votesCount);
 
         void IndexBadges_Shark(int height, const BadgeSharkConditions& conditions);
         void IndexBadges_Whale(int height, const BadgeWhaleConditions& conditions);
