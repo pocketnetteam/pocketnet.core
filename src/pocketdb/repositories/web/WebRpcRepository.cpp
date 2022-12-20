@@ -461,7 +461,9 @@ namespace PocketDb
                 ) as Blockings
 
                 , (
-                    select (f.Type)Type, (count())Cnt
+                    select json_group_object(gr.Type, gr.Cnt)
+                    from (
+                      select (f.Type)Type, (count())Cnt
                         from Transactions f indexed by Transactions_Type_Last_String1_Height_Id
                         where f.Type in (200,201,202,209,210,220,207)
                         and f.Last = 1
