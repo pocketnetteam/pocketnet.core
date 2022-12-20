@@ -717,7 +717,7 @@ namespace PocketDb
                   or ifnull((select sum(l.Value) from Ratings l where l.Type in (111,112,113) and l.Last = 1 and l.Id = Badges.AccountId),0) < ?
 
                   -- Account must be registered above N months
-                  or ? - (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = Badges.AccountId) <= ?
+                  or (? - (select f.Height from Transactions f indexed by Transactions_Id_First where f.Id = Badges.AccountId and f.First = 1)) <= ?
 
                   -- Account must be active (not deleted)
                   or not exists (select 1 from Transactions u indexed by Transactions_Id_Last where u.Type = 100 and u.Last = 1 and u.Id = Badges.AccountId)
@@ -752,7 +752,7 @@ namespace PocketDb
                 and ifnull((select sum(l.Value) from Ratings l indexed by Ratings_Type_Id_Last_Value where l.Type in (111,112,113) and l.Last = 1 and l.Id = lc.Id),0) >= ?
 
                 -- Account must be registered above N months
-                and ? - (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = lc.Id) > ?
+                and (? - (select f.Height from Transactions f indexed by Transactions_Id_First where f.Id = lc.Id and f.First = 1)) > ?
 
                 -- Account must be active
                 and exists (select 1 from Transactions u indexed by Transactions_Id_Last where u.Type = 100 and u.Last = 1 and u.Id = lc.Id)

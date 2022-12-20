@@ -20,17 +20,29 @@ namespace PocketDb
                 Height    int    null,
 
                 -- AccountUser
+                -- AccountSetting
+                -- AccountDelete
                 -- ContentPost
                 -- ContentVideo
+                -- ContentArticle
                 -- ContentDelete
+                -- ContentStream
+                -- ContentAudio
                 -- Comment
                 -- Blocking
                 -- Subscribe
                 Last      int    not null default 0,
+                First     int    not null default 0,
 
                 -- AccountUser.Id
+                -- AccountSetting.Id
+                -- AccountDelete.Id
                 -- ContentPost.Id
                 -- ContentVideo.Id
+                -- ContentArticle.Id
+                -- ContentStream.Id
+                -- ContentAudio.Id
+                -- ContentDelete.Id
                 -- Comment.Id
                 Id        int    null,
 
@@ -50,8 +62,13 @@ namespace PocketDb
                 -- AccountUser.ReferrerAddressHash
                 -- ContentPost.RootTxHash
                 -- ContentVideo.RootTxHash
+                -- ContentArticle.RootTxHash
+                -- ContentStream.RootTxHash
+                -- ContentAudio.RootTxHash
                 -- ContentDelete.RootTxHash
                 -- Comment.RootTxHash
+                -- CommentEdit.RootTxHash
+                -- CommentDelete.RootTxHash
                 -- ScorePost.ContentRootTxHash
                 -- ScoreComment.CommentRootTxHash
                 -- Subscribe.AddressToHash
@@ -234,7 +251,6 @@ namespace PocketDb
         
         _preProcessing = R"sql(
             insert or ignore into System (Db, Version) values ('main', 0);
-            delete from Balances where AddressHash = '';
         )sql";
 
 

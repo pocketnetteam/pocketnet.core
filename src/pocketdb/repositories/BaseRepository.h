@@ -90,9 +90,25 @@ namespace PocketDb
             if (res != SQLITE_ROW && res != SQLITE_DONE)
                 throw std::runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
         }
+        
+        void TryStepStatement(const shared_ptr<sqlite3_stmt*>& stmt)
+        {
+            int res = sqlite3_step(*stmt);
+            FinalizeSqlStatement(*stmt);
+
+            if (res != SQLITE_ROW && res != SQLITE_DONE)
+                throw std::runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
+        }
+
+        bool ExistsRows(const shared_ptr<sqlite3_stmt*>& stmt)
+        {
+            int res = sqlite3_step(*stmt);
+            FinalizeSqlStatement(*stmt);
+            return res == SQLITE_ROW;
+        }
 
         void TryTransactionBulk(const string& func, const vector<shared_ptr<sqlite3_stmt*>>& stmts)
-    {
+        {
             if (!m_database.BeginTransaction())
                 throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
                 
