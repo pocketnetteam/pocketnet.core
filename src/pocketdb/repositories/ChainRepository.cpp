@@ -173,6 +173,7 @@ namespace PocketDb
                 select 'unspent',
                        o.AddressId,
                        sum(o.Value)Amount
+                -- TODO (losty-db): fix me
                 from TxOutputs o indexed by TxOutputs_TxHeight_AddressId
                 where  o.TxHeight = ?
                 group by o.AddressId
