@@ -21,7 +21,13 @@ namespace PocketDb
                 -- ContentVideo.Id
                 -- Comment.Id
                 Id       int     null,
+            );
+        )sql");
 
+
+        _tables.emplace_back(R"sql(
+            create table if not exists Last
+            (
                 -- AccountUser
                 -- ContentPost
                 -- ContentVideo
@@ -29,10 +35,11 @@ namespace PocketDb
                 -- Comment
                 -- Blocking
                 -- Subscribe
-                First    int     not null default 0,
-                Last     int     not null default 0
+                TxId integer primary key
             );
         )sql");
+
+        // TODO (losty-db): create table First
 
         _tables.emplace_back(R"sql(
             create table if not exists Transactions
