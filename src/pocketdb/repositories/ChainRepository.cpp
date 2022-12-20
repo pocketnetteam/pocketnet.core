@@ -25,7 +25,7 @@ namespace PocketDb
 
                 // The outputs are needed for the explorer
                 // TODO (aok) (v0.20.19+): replace with update inputs spent with TxInputs table over loop
-                UpdateTransactionOutputs(txInfo, height);
+                // UpdateTransactionOutputs(txInfo, height);
 
                 // Account and Content must have unique ID
                 // Also all edited transactions must have Last=(0/1) field
@@ -136,17 +136,6 @@ namespace PocketDb
         TryBindStatementInt(stmt, 3, blockNumber);
         TryBindStatementInt(stmt, 4, height);
         TryStepStatement(stmt);
-
-
-        // TODO (losty-db): can we remove duplicate of TxHeight in TxOutput?
-        auto stmtOuts = SetupSqlStatement(R"sql(
-            UPDATE TxOutputs SET
-                TxHeight = ?
-            WHERE TxId = ? and TxHeight is null
-        )sql");
-        TryBindStatementInt(stmtOuts, 1, height);
-        TryBindStatementInt64(stmtOuts, 2, txId);
-        TryStepStatement(stmtOuts);
     }
 
     void ChainRepository::UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height)
