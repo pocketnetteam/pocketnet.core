@@ -359,8 +359,6 @@ namespace PocketWeb::PocketWebRpc
         }
         CWallet* const pwallet = wallet.get();
 
-        UniValue result(UniValue::VOBJ);
-
         // Create address
         CKey secretKey;
         secretKey.MakeNewKey(true);
