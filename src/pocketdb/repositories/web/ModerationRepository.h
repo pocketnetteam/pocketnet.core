@@ -17,6 +17,8 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
+        UniValue GetAssignedJury(const string& address, const Pagination& pagination);
+
     };
 
     typedef std::shared_ptr<ModerationRepository> ModerationRepositoryRef;

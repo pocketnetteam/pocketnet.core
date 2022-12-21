@@ -868,7 +868,7 @@ namespace PocketDb
                 left join Ratings lca indexed by Ratings_Type_Id_Last_Value
                     on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
 
-                left join Badges bmod indexed by Badges_AccountId_Badge
+                left join Badges bmod
                     on bmod.AccountId = u.Id and bmod.Badge = 3
 
                 where u.Type in (100, 170)

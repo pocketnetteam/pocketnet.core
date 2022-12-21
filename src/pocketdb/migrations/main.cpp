@@ -220,7 +220,7 @@ namespace PocketDb
                 Reason        int   not null,
                 Verdict       int   null,
                 primary key (FlagRowId)
-            ) without rowid;
+            );
         )sql");
 
         _tables.emplace_back(R"sql(
@@ -255,7 +255,8 @@ namespace PocketDb
                 -- Shark = 1
                 -- Whale = 2
                 -- Moderator = 3
-                Badge       int   not null
+                Badge       int   not null,
+                primary key (AccountId, Badge)
             ) without rowid;
         )sql");
         
@@ -323,10 +324,7 @@ namespace PocketDb
 
             create index if not exists Ban_AddressHash_Reason_Ending on Ban (AddressHash, Reason, Ending);
             create index if not exists Jury_AddressHash_Reason_Verdict on Jury (AddressHash, Reason, Verdict);
-
-            create unique index if not exists Badges_AccountId_Badge on Badges (AccountId, Badge);
-            create index if not exists Badges_Badge_AccountId on Badges (Badge, AccountId);
-
+            
         )sql";
 
         _postProcessing = R"sql(

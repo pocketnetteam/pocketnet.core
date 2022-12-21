@@ -19,6 +19,14 @@ namespace PocketDb
     using namespace std;
     using namespace PocketHelpers;
 
+    struct Pagination {
+        int TopHeight;
+        int PageStart;
+        int PageSize;
+        string OrderBy;
+        bool Desc;
+    };
+
     class BaseRepository : protected RowAccessor
     {
     private:

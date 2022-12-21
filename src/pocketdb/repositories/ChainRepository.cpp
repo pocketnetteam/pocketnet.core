@@ -708,7 +708,7 @@ namespace PocketDb
 
               where
 
-                not exists (select 1 from Badges b indexed by Badges_AccountId_Badge where b.AccountId = lc.Id and b.Badge = ?)
+                not exists (select 1 from Badges b where b.AccountId = lc.Id and b.Badge = ?)
 
                 -- The main filtering rule is performed by the main filter
                 -- Likers over root comments must be above N
@@ -781,7 +781,7 @@ namespace PocketDb
 
               where
 
-                not exists (select 1 from Badges b indexed by Badges_AccountId_Badge where b.AccountId = lc.Id and b.Badge = ?)
+                not exists (select 1 from Badges b where b.AccountId = lc.Id and b.Badge = ?)
 
                 -- The main filtering rule is performed by the main filter
                 -- Likers over root comments must be above N
