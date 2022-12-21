@@ -20,8 +20,6 @@ namespace PocketDb
                 if (blockId == -1) {
                     // TODO (losty-db): error?
                 }
-                // All transactions must have a blockHash & height relation
-                UpdateTransactionChainData(blockId, txInfo.BlockNumber, height, txInfo.TxId);
 
                 // The outputs are needed for the explorer
                 // TODO (aok) (v0.20.19+): replace with update inputs spent with TxInputs table over loop
@@ -29,27 +27,34 @@ namespace PocketDb
 
                 // Account and Content must have unique ID
                 // Also all edited transactions must have Last=(0/1) field
+                optional<int64_t> id;
+                optional<int64_t> lastTxId;
                 if (txInfo.IsAccount())
-                    IndexAccount(txInfo.TxId);
+                    tie(id, lastTxId) = IndexAccount(txInfo.TxId);
 
                 if (txInfo.IsAccountSetting())
-                    IndexAccountSetting(txInfo.TxId);
+                    tie(id, lastTxId) = IndexAccountSetting(txInfo.TxId);
 
                 if (txInfo.IsContent())
-                    IndexContent(txInfo.TxId);
+                    tie(id, lastTxId) = IndexContent(txInfo.TxId);
 
                 if (txInfo.IsComment())
-                    IndexComment(txInfo.TxId);
+                    tie(id, lastTxId) = IndexComment(txInfo.TxId);
 
                 if (txInfo.IsBlocking())
-                    IndexBlocking(txInfo.TxId);
+                    tie(id, lastTxId) = IndexBlocking(txInfo.TxId);
 
                 if (txInfo.IsSubscribe())
-                    IndexSubscribe(txInfo.TxId);
+                    tie(id, lastTxId) = IndexSubscribe(txInfo.TxId);
 
                 // Calculate and save fee for future selects
                 if (txInfo.IsBoostContent())
                     IndexBoostContent(txInfo.TxId);
+
+                if (lastTxId) ClearOldLast(*lastTxId);
+
+                // All transactions must have a blockHash & height relation
+                UpdateTransactionChainData(blockId, txInfo.BlockNumber, height, txInfo.TxId, id, lastTxId.has_value());
             }
 
             int64_t nTime2 = GetTimeMicros();
@@ -125,17 +130,27 @@ namespace PocketDb
 
     }
 
-    void ChainRepository::UpdateTransactionChainData(const int64_t& blockId, int blockNumber, int height, const int64_t& txId)
+    void ChainRepository::UpdateTransactionChainData(const int64_t& blockId, int blockNumber, int height, const int64_t& txId, const optional<int64_t>& id, bool fIsCreateLast)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            INSERT INTO Chain (TxId, BlockId, BlockNum, Height)
-            VALUES(?, ?, ?, ?)
+            INSERT INTO Chain (TxId, BlockId, BlockNum, Height )sql" + string(id ? ", Id" : "") + R"sql(
+            VALUES(?, ?, ?, ?, )sql" + string(id ? ", ?" : "") + R"sql( )
         )sql");
         TryBindStatementInt64(stmt, 1, txId);
         TryBindStatementInt64(stmt, 2, blockId);
         TryBindStatementInt(stmt, 3, blockNumber);
         TryBindStatementInt(stmt, 4, height);
+        if (id) TryBindStatementInt64(stmt, 5, *id);
         TryStepStatement(stmt);
+
+        if (fIsCreateLast) {
+            auto stmtInsertLast = SetupSqlStatement(R"sql(
+                INSERT INTO Last (TxId)
+                VALUES (?)
+            )sql");
+            TryBindStatementInt64(stmt, 1, txId);
+            TryStepStatement(stmt);
+        }
     }
 
     void ChainRepository::UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height)
@@ -215,192 +230,253 @@ namespace PocketDb
         TryStepStatement(stmtOld);
     }
 
-    void ChainRepository::IndexAccount(const int64_t& txId)
+    // <id, lastTxID>
+    pair<int64_t, int64_t> ChainRepository::IndexAccount(const int64_t& txId)
     {
         // Get new ID or copy previous
-        auto setIdStmt = SetupSqlStatement(R"sql(
-            UPDATE Chain SET
-                Id = ifnull(
+        auto sql = string(R"sql(
+            select *
+            from ifnull(
                     -- copy self Id
                     (
-                        select c.Id
+                        select c.Id, b.Id
                         from Transactions a -- TODO (losty-db): index
+                        join Transactions b
+                            on b.Type in (100, 170)
+                            and b.Int1 = a.Int1
                         join Chain c
-                            on c.TxId = a.Id
-                            and c.Last = 1
+                            on c.TxId = b.Id
+                        join Last l
+                            on l.TxId = c.TxId
                         where a.Type in (100,170)
-                            and a.Int1 = Transactions.Int1
+                            and a.Id = ?
                         limit 1
                     ),
                     ifnull(
                         -- new record
                         (
-                            select max( c.Id ) + 1
+                            select max( c.Id ) + 1, -1
                             from Chain a indexed by Chain_Id
                         ),
-                        0 -- for first record
+                        (select 0, -1) -- for first record
                     )
-                ),
-                Last = 1
-            WHERE TxId = ?
+                )
         )sql");
-        TryBindStatementInt64(setIdStmt, 1, txId);
-        TryStepStatement(setIdStmt);
 
-        // Clear old last records for set new last
-        ClearOldLast(txId);
+        int64_t id = 0;
+        int64_t lastTxId = -1;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt64(stmt, 1, txId);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            }
+            // TODO (losty-db): error
+        });
+
+        return {id, lastTxId};
     }
 
-    void ChainRepository::IndexAccountSetting(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexAccountSetting(const int64_t& txId)
     {
         // Get new ID or copy previous
-        auto setIdStmt = SetupSqlStatement(R"sql(
-            UPDATE Chain SET
-                Id = ifnull(
+        auto sql = string(R"sql(
+            select *
+            from ifnull(
                     -- copy self Id
                     (
-                        select c.Id
+                        select c.Id, b.Id
                         from Transactions a -- TODO (losty-db): index
+                        join Transactions b
+                            on b.Type in (103)
+                            and b.Int1 = a.Int1
                         join Chain c
-                            on c.TxId = a.Id
-                            and c.Last = 1
+                            on c.TxId = b.Id
+                        join Last l
+                            on l.TxId = c.TxId
                         where a.Type in (103)
-                            and a.Last = 1
-                            and a.Int1 = Transactions.Int1
+                            and a.Id = ?
                         limit 1
                     ),
                     ifnull(
                         -- new record
                         (
-                            select max( c.Id ) + 1
-                            from Chain c indexed by Chain_Id
+                            select max( c.Id ) + 1, -1
+                            from Chain a indexed by Chain_Id
                         ),
-                        0 -- for first record
+                        (select 0, -1) -- for first record
                     )
-                ),
-                Last = 1
-            WHERE TxId = ?
+                )
         )sql");
-        TryBindStatementInt64(setIdStmt, 1, txId);
-        TryStepStatement(setIdStmt);
 
-        // Clear old last records for set new last
-        ClearOldLast(txId);
+        int64_t id = 0;
+        int64_t lastTxId = -1;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt64(stmt, 1, txId);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            }
+            // TODO (losty-db): error
+        });
+
+        return {id, lastTxId};
     }
 
-    void ChainRepository::IndexContent(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexContent(const int64_t& txId)
     {
         // Get new ID or copy previous
-        auto setIdStmt = SetupSqlStatement(R"sql(
-            UPDATE Chain SET
-                Id = ifnull(
+        auto sql = string(R"sql(
+            select *
+            from ifnull(
                     -- copy self Id
                     (
-                        select c.Id
-                        from Transactions t -- TODO (losty-db): index
+                        select c.Id, b.Id
+                        from Transactions a -- TODO (losty-db): index
+                        join Transactions b
+                            on b.Type in (200,201,202,209,210,207)
+                            and b.Int2 = a.Int2
                         join Chain c
-                            on c.TxId = t.Id
-                            and c.Last = 1
-                        where t.Type in (200,201,202,209,210,207)
-                            -- String2 = RootTxHash
-                            and t.Int2 = Transactions.Int2
+                            on c.TxId = b.Id
+                        join Last l
+                            on l.TxId = c.TxId
+                        where a.Type in (200,201,202,209,210,207)
+                            and a.Id = ?
                         limit 1
                     ),
-                    -- new record
                     ifnull(
+                        -- new record
                         (
-                            select max( c.Id ) + 1
-                            from Chain c indexed by Chain_Id
+                            select max( c.Id ) + 1, -1
+                            from Chain a indexed by Chain_Id
                         ),
-                        0 -- for first record
+                        (select 0, -1) -- for first record
                     )
-                ),
-                Last = 1
-            WHERE TxId = ?
+                )
         )sql");
-        TryBindStatementInt64(setIdStmt, 1, txId);
-        TryStepStatement(setIdStmt);
 
-        // Clear old last records for set new last
-        ClearOldLast(txId);
+        int64_t id = 0;
+        int64_t lastTxId = -1;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt64(stmt, 1, txId);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            }
+            // TODO (losty-db): error
+        });
+
+        return {id, lastTxId};
     }
 
-    void ChainRepository::IndexComment(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexComment(const int64_t& txId)
     {
         // Get new ID or copy previous
-        auto setIdStmt = SetupSqlStatement(R"sql(
-            UPDATE Chain SET
-                Id = ifnull(
+        auto sql = string(R"sql(
+            select *
+            from ifnull(
                     -- copy self Id
                     (
-                        select max( c.Id )
-                        from Transactions t -- TODO (losty-db): index
+                        select max( c.Id ), b.Id
+                        from Transactions a -- TODO (losty-db): index
+                        join Transactions b
+                            on b.Type in (204,205,206)
+                            and b.Int2 = a.Int2
                         join Chain c
-                            on c.TxId = t.Id
-                            and c.Last = 1
-                            and c.BlockId > 0
-                        where t.Type in (204,205,206)
-                            -- String2 = RootTxHash
-                            and t.Int2 = Transactions.Int2
+                            on c.TxId = b.Id
+                        join Last l
+                            on l.TxId = c.TxId
+                        where a.Type in (204,205,206)
+                            and a.Id = ?
+                        limit 1
                     ),
-                    -- new record
                     ifnull(
+                        -- new record
                         (
-                            select max( c.Id ) + 1
-                            from Chian c indexed by Chain_Id
+                            select max( c.Id ) + 1, -1
+                            from Chain a indexed by Chain_Id
                         ),
-                        0 -- for first record
+                        (select 0, -1) -- for first record
                     )
-                ),
-                Last = 1
-            WHERE TxId = ?
+                )
         )sql");
-        TryBindStatementInt64(setIdStmt, 1, txId);
-        TryStepStatement(setIdStmt);
 
-        // Clear old last records for set new last
-        ClearOldLast(txId);
+        int64_t id = 0;
+        int64_t lastTxId = -1;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt64(stmt, 1, txId);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            }
+            // TODO (losty-db): error
+        });
+
+        return {id, lastTxId};
     }
 
-    void ChainRepository::IndexBlocking(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexBlocking(const int64_t& txId)
     {
         // TODO (o1q): double check multiple locks
         // Set last=1 for new transaction
-        auto setLastStmt = SetupSqlStatement(R"sql(
-            UPDATE Chain SET
-                Id = ifnull(
+         auto sql = string(R"sql(
+            select *
+            from ifnull(
                     -- copy self Id
                     (
-                        select c.Id
+                        select c.Id, b.Id
                         from Transactions a -- TODO (losty-db): index
+                        join Transactions b
+                            on b.Type in (305,306)
+                            and b.Int1 = a.Int1
+                            and ifnull(b.int2,-1) = ifnull(a.Int2,-1)
+                            and ifnull(b.int3,-1) = ifnull(a.Int3,-1)
                         join Chain c
-                            on c.TxId = a.Id
-                            and c.Last = 1
-                            and c.BlockId > 0
-                        where a.Type in (305, 306)
-                            -- String1 = AddressHash
-                            and a.Int1 = Transactions.Int1
-                            -- String2 = AddressToHash
-                            -- TODO (losty-db): is -1 ok?
-                            and ifnull(a.Int2,-1) = ifnull(Transactions.Int2,-1)
-                            and ifnull(a.Int3,-1) = ifnull(Transactions.Int3,-1)
+                            on c.TxId = b.Id
+                        join Last l
+                            on l.TxId = c.TxId
+                        where a.Type in (305,306)
+                            and a.Id = ?
                         limit 1
                     ),
                     ifnull(
                         -- new record
                         (
-                            select max( c.Id ) + 1
-                            from Chain c indexed by Chain_Id
+                            select max( c.Id ) + 1, -1
+                            from Chain a indexed by Chain_Id
                         ),
-                        0 -- for first record
+                        (select 0, -1) -- for first record
                     )
-                ),
-                Last = 1
-            WHERE TxId = ?
+                )
         )sql");
-        TryBindStatementInt64(setLastStmt, 1, txId);
-        TryStepStatement(setLastStmt);
 
+        int64_t id = 0;
+        int64_t lastTxId = -1;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt64(stmt, 1, txId);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            }
+            // TODO (losty-db): error
+        });
+
+        // TODO (losty-db): validate!
         auto insListStmt = SetupSqlStatement(R"sql(
             insert into BlockingLists (IdSource, IdTarget)
             select
@@ -412,14 +488,12 @@ namespace PocketDb
             join Chain usc -- TODO (losty-db): index
               on usc.TxId = us.Id
                 and usc.Last = 1
-                and usc.BlockId > 0
             join Transactions ut -- TODO (losty-db): index
               on ut.Type in (100, 170)
                 and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
             join Chain utc -- TODO (losty-db): index
               on utc.TxId = ut.Id
                 and utc.Last = 1
-                and utc.BlockId > 0
             where b.Type in (305) and b.Id = ?
                 and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
         )sql");
@@ -438,14 +512,12 @@ namespace PocketDb
               on usc.TxId = us.Id
                 and usc.Last = 1
                 and usc.Id = BlockingLists.IdSource
-                and usc.BlockId > 0
             join Transactions ut -- TODO (losty-db): index
               on ut.Type in (100, 170) and ut.Int1 = b.Int2
             join Chain utc -- TODO (losty-db): index
               on utc.TxId = ut.Id
                 and utc.Last = 1
                 and utc.Id = BlockingLists.IdTarget
-                and utc.BlockId > 0
             where b.Type in (306) and b.Id = ?
             )
         )sql");
@@ -453,51 +525,62 @@ namespace PocketDb
         TryStepStatement(delListStmt);
 
         // Clear old last records for set new last
-        ClearOldLast(txId);
+        return {id, lastTxId};
     }
 
-    void ChainRepository::IndexSubscribe(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexSubscribe(const int64_t& txId)
     {
-        // Set last=1 for new transaction
-        auto setLastStmt = SetupSqlStatement(R"sql(
-            UPDATE Chain SET
-                Id = ifnull(
+         // Get new ID or copy previous
+        auto sql = string(R"sql(
+            select *
+            from ifnull(
                     -- copy self Id
                     (
-                        select c.Id
+                        select c.Id, b.Id
                         from Transactions a -- TODO (losty-db): index
-                        join Chain c -- TODO (losty-db): index
-                            on c.TxId = a.Id
-                            and c.Last = 1
-                            and c.BlockId > 0
-                        where a.Type in (302, 303, 304)
-                            -- String1 = AddressHash
-                            and a.Int1 = Transactions.Int1
-                            -- String2 = AddressToHash
-                            and a.Int2 = Transactions.Int2
+                        join Transactions b
+                            on b.Type in (302,303,304)
+                            and b.Int1 = a.Int1
+                            and b.Int2 = a.Int2
+                        join Chain c
+                            on c.TxId = b.Id
+                        join Last l
+                            on l.TxId = c.TxId
+                        where a.Type in (302,303,304)
+                            and a.Id = ?
                         limit 1
                     ),
                     ifnull(
                         -- new record
                         (
-                            select max( c.Id ) + 1
-                            from Chain c indexed by Chain_Id
+                            select max( c.Id ) + 1, -1
+                            from Chain a indexed by Chain_Id
                         ),
-                        0 -- for first record
+                        (select 0, -1) -- for first record
                     )
-                ),
-                Last = 1
-            WHERE TxId = ?
+                )
         )sql");
-        TryBindStatementInt64(setLastStmt, 1, txId);
-        TryStepStatement(setLastStmt);
 
-        // Clear old last records for set new last
-        ClearOldLast(txId);
+        int64_t id = 0;
+        int64_t lastTxId = -1;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt64(stmt, 1, txId);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
+                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            }
+            // TODO (losty-db): error
+        });
+
+        return {id, lastTxId};
     }
     
     void ChainRepository::IndexBoostContent(const int64_t& txId)
     {
+        // TODO (losty-db): calculate this before inserting tx data to db
         // Set transaction fee
         auto stmt = SetupSqlStatement(R"sql(
             update Transactions
@@ -558,23 +641,14 @@ namespace PocketDb
         }
     }
     
-    void ChainRepository::ClearOldLast(const int64_t& txId)
+    void ChainRepository::ClearOldLast(const int64_t& lastTxId)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            UPDATE Chain -- TODO (losty-db): indexing
-            SET
-                Last = 0
-            FROM (
-                select c.TxId, c.Id,
-                from Chain c
-                where c.TxId = ?
-            ) as cInner
-            WHERE   Chain.Id = cInner.Id
-                and Chain.Last = 1
-                and Chain.TxId != cInner.TxId
+            delete from Last
+            where TxId = ?
         )sql");
 
-        TryBindStatementInt64(stmt, 1, txId);
+        TryBindStatementInt64(stmt, 1, lastTxId);
         TryStepStatement(stmt);
     }
 
