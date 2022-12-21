@@ -210,7 +210,8 @@ namespace PocketServices
                 ChainRepoInst.IndexModerationJury(
                     txInfo.Hash,
                     reputationConsensus->GetHeight() - reputationConsensus->GetConsensusLimit(moderation_jury_flag_depth),
-                    reputationConsensus->GetConsensusLimit(moderation_jury_flag_count)
+                    reputationConsensus->GetConsensusLimit(moderation_jury_flag_count),
+                    reputationConsensus->GetConsensusLimit(moderation_jury_moders_count)
                 );
             }
 

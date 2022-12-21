@@ -51,8 +51,9 @@ namespace PocketConsensus
                 || !juryFlag->GetHeight() || (Height - *juryFlag->GetHeight() < 10))
                 return {false, SocialConsensusResult_NotAllowed};
 
-            // TODO (moderation): votes allowed if moderator requested by system
-            // algotihm for select moderators
+            // Votes allowed if moderator requested by system
+            if (!ConsensusRepoInst.AllowJuryModerate(*ptx->GetAddress(), *ptx->GetJuryId()))
+                return {false, SocialConsensusResult_NotAllowed};
 
             return Success;
         }

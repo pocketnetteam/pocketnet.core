@@ -263,10 +263,9 @@ namespace PocketConsensus
         badge_period_moderator,
 
         moderation_flag_count,
-
         moderation_jury_flag_count,
         moderation_jury_flag_depth,
-
+        moderation_jury_moders_count,
         moderation_jury_vote_count,
     };
 
@@ -673,6 +672,11 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 43200} }}, // TODO (moderation): set actual depth
             { NetworkTest,    { {0, 4320} }},
             { NetworkRegTest, { {0, 10} } }
+        }},
+        { moderation_jury_moders_count, {
+            { NetworkMain,    { {0, 80} }},
+            { NetworkTest,    { {0, 5} }},
+            { NetworkRegTest, { {0, 3} } }
         }},
         { moderation_jury_vote_count, {
             { NetworkMain,    { {0, 8} }},

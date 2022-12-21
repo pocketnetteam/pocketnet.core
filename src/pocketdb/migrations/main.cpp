@@ -220,19 +220,29 @@ namespace PocketDb
                 Reason        int   not null,
                 Verdict       int   null,
                 primary key (FlagRowId)
-            );
+            ) without rowid;
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists JuryModers
+            (
+                -- Link to uniq id of address
+                AccountId     int   not null,
+                -- Link to the Flag (via ROWID) that initiated this ury
+                FlagRowId     int   not null,
+                primary key (AccountId, FlagRowId)
+            ) without rowid;
         )sql");
 
         _tables.emplace_back(R"sql(
             create table if not exists Ban
             (
                 -- Link to the Vote (via ROWID) that initiated this ban
-                VoteRowId     int   not null,
+                VoteRowId     int   primary key,
                 AddressHash   text  not null,
                 Reason        int   not null,
                 -- The height to which the penalty continues to apply
-                Ending        int   not null,
-                primary key (VoteRowId)
+                Ending        int   not null
             );
         )sql");
 
@@ -246,7 +256,7 @@ namespace PocketDb
                 -- Whale = 2
                 -- Moderator = 3
                 Badge       int   not null
-            );
+            ) without rowid;
         )sql");
         
         _preProcessing = R"sql(

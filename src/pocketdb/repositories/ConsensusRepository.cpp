@@ -2409,5 +2409,38 @@ namespace PocketDb
         return result;
     }
 
+    bool ConsensusRepository::AllowJuryModerate(const string& address, const string& flagTxHash)
+    {
+        bool result = false;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select 1
+                from JuryModers jm
+                where jm.AccountId = (
+                        select u.Id
+                        from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                        where u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = ?
+                    )
+                    and jm.FlagRowId = (
+                        select f.ROWID
+                        from Transactions f indexed by sqlite_autoindex_Transactions_1
+                        where f.Hash = ?
+                    )
+            )sql");
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, flagTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
 
 }

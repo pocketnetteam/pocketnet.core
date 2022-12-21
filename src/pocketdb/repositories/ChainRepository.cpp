@@ -476,11 +476,11 @@ namespace PocketDb
     }
 
 
-    void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount)
+    void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModersCount)
     {
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            auto stmtJury = SetupSqlStatement(R"sql(
                 insert into Jury
 
                 select
@@ -520,12 +520,54 @@ namespace PocketDb
                             and ff.Hash != f.Hash
                     )
             )sql");
+            TryBindStatementText(stmtJury, 1, flagTxHash);
+            TryBindStatementInt(stmtJury, 2, flagsMinCount);
+            TryBindStatementInt(stmtJury, 3, flagsDepth);
+            TryStepStatement(stmtJury);
 
-            TryBindStatementText(stmt, 1, flagTxHash);
-            TryBindStatementInt(stmt, 2, flagsMinCount);
-            TryBindStatementInt(stmt, 3, flagsDepth);
-
-            TryStepStatement(stmt);
+            // Mechanism of distribution of moderators for voting
+            // As a "nonce" we use the hash of the flag transaction that the jury created.
+            // We sort the moderator registration hashes and compare them with the flag hash
+            // to get all the moderator IDs before and after
+            auto stmtJuryModers = SetupSqlStatement(R"sql(
+                insert into JuryModers (AccountId, FlagRowId)
+                with
+                  h as (
+                    select ? as hash
+                  ),
+                  f as (
+                    select f.ROWID, f.Hash
+                    from Transactions f indexed by sqlite_autoindex_Transactions_1,
+                        Jury j indexed by sqlite_autoindex_Jury_1,
+                        h
+                    where f.Hash = h.hash and j.FlagRowId = f.ROWID
+                  ),
+                  c as (
+                    select ?/2 as cnt
+                  ),
+                  a as (
+                    select b.AccountId, u.Hash
+                    from Badges b indexed by Badges_Badge_AccountId
+                    cross join Transactions u indexed by Transactions_Id_First on u.Id = b.AccountId and u.First = 1
+                    where b.Badge = 3
+                  ),
+                  l as (
+                    select a.AccountId, a.Hash, row_number() over (order by a.Hash)row_number
+                    from a,f
+                    where a.Hash > f.hash
+                  ),
+                  r as (
+                    select a.AccountId, a.Hash, row_number() over (order by a.Hash desc)row_number
+                    from a,f
+                    where a.Hash < f.hash
+                  )
+                select l.AccountId, f.ROWID from l,c,f where l.row_number <= c.cnt + (c.cnt - (select count() from r where r.row_number <= c.cnt))
+                union
+                select r.AccountId, f.ROWID from r,c,f where r.row_number <= c.cnt + (c.cnt - (select count() from l where l.row_number <= c.cnt))
+            )sql");
+            TryBindStatementText(stmtJuryModers, 1, flagTxHash);
+            TryBindStatementInt(stmtJuryModers, 2, juryModersCount);
+            TryStepStatement(stmtJuryModers);
         });
     }
 
