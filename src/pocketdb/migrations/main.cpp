@@ -238,11 +238,12 @@ namespace PocketDb
             create table if not exists Ban
             (
                 -- Link to the Vote (via ROWID) that initiated this ban
-                VoteRowId     int   primary key,
+                VoteRowId     int   not null,
                 AddressHash   text  not null,
                 Reason        int   not null,
                 -- The height to which the penalty continues to apply
-                Ending        int   not null
+                Ending        int   not null,
+                primary key (VoteRowId)
             );
         )sql");
 
@@ -324,7 +325,7 @@ namespace PocketDb
 
             create index if not exists Ban_AddressHash_Reason_Ending on Ban (AddressHash, Reason, Ending);
             create index if not exists Jury_AddressHash_Reason_Verdict on Jury (AddressHash, Reason, Verdict);
-            
+
         )sql";
 
         _postProcessing = R"sql(
