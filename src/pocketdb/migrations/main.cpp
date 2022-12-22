@@ -104,7 +104,7 @@ namespace PocketDb
             create table if not exists Registry
             (
                 Id integer primary key,
-                String text not null
+                String text not null unique
             );
         )sql");
 
