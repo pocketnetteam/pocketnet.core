@@ -824,9 +824,11 @@ namespace PocketDb
     optional<int64_t> TransactionRepository::TxHashToId(const string& hash)
     {
         auto sql = R"sql(
-            select Id
-            from Transactions
-            where Hash = ?
+            select t.Id
+            from Transactions t
+            join Registry r
+                on r.String = ?
+                and r.Id = t.HashId
         )sql";
 
         optional<int64_t> id;
