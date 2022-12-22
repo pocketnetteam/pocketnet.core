@@ -326,9 +326,10 @@ namespace PocketDb
         
         TransactionReconstructor reconstructor(initData);
 
+        // TODO (aok, loststyg): check statis stmt
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
             size_t i = 1;
 
             for (const auto& [hash, txId] : txIdMap)
@@ -355,7 +356,7 @@ namespace PocketDb
                 }
             }
 
-            FinalizeSqlStatement(*stmt);
+            ResetSqlStatement(*stmt);
         });
 
         auto pBlock = std::make_shared<PocketBlock>();

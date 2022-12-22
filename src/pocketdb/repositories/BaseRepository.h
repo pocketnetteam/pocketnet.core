@@ -131,6 +131,11 @@ namespace PocketDb
             return sqlite3_finalize(stmt);
         }
 
+        int ResetSqlStatement(sqlite3_stmt* stmt)
+        {
+            return sqlite3_reset(stmt);
+        }
+
         // --------------------------------
         // BINDS
         // --------------------------------
