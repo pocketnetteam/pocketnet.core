@@ -139,7 +139,6 @@ namespace PocketTx
     // Transaction info for indexing spents and other
     struct TransactionIndexingInfo
     {
-        int64_t TxId;
         string Hash;
         int BlockNumber;
         int64_t Time;

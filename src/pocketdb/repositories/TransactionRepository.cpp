@@ -10,7 +10,7 @@ namespace PocketDb
     {
     public:
         // TODO (losty-db): consider remove `repository` parameter from here.
-        static optional<CollectData> ModelToCollectData(const PTransactionRef& ptx, TransactionRepository& repository)
+        static optional<CollectData> ModelToCollectData(const PTransactionRef& ptx)
         {
             if (!ptx->GetHash()) return nullopt;
             TxContextualData txData;
@@ -19,10 +19,7 @@ namespace PocketDb
                 return nullopt;
             }
 
-            auto txId = repository.TxHashToId(*ptx->GetHash());
-            if (!txId) return nullopt;
-
-            CollectData collectData(*txId, *ptx->GetHash());
+            CollectData collectData(*ptx->GetHash());
             collectData.txContextData = std::move(txData);
             collectData.inputs = ptx->Inputs();
             collectData.outputs = ptx->OutputsConst();
@@ -225,36 +222,70 @@ namespace PocketDb
         }
     };
 
+    static const auto _findStringsAndListsToBeInserted(const std::vector<CollectData>& collectDataVec)
+    {
+        vector<string> stringsToBeInserted;
+        vector<string> listsToBeInserted;
+        for (const auto& collectData: collectDataVec)
+        {
+            const auto& txData = collectData.txContextData;
+            if (txData.string1) stringsToBeInserted.emplace_back(*txData.string1);
+            if (txData.string2) stringsToBeInserted.emplace_back(*txData.string2);
+            if (txData.string3) stringsToBeInserted.emplace_back(*txData.string3);
+            if (txData.string4) stringsToBeInserted.emplace_back(*txData.string4);
+            if (txData.string5) stringsToBeInserted.emplace_back(*txData.string5);
+            stringsToBeInserted.emplace_back(collectData.txHash);
+            if (txData.list) listsToBeInserted.emplace_back(*txData.list);
+        }
+
+        return std::pair { stringsToBeInserted, listsToBeInserted };
+    }
+
     void TransactionRepository::InsertTransactions(PocketBlock& pocketBlock)
     {
+        std::vector<CollectData> collectDataVec;
+        for (const auto& ptx: pocketBlock)
+        {
+            auto collectData = CollectDataToModelConverter::ModelToCollectData(ptx);
+            if (!collectData) {
+                // TODO (losty-db): error
+                LogPrintf("DEBUG: failed to convert model to CollecData\n");
+                continue;
+            }
+            collectDataVec.emplace_back(std::move(*collectData));
+        }
+
+        vector<string> registyStrings;
+        vector<string> lists;
+        tie(registyStrings, lists) = _findStringsAndListsToBeInserted(collectDataVec);
+
         TryTransactionStep(__func__, [&]()
         {
-            for (const auto& ptx: pocketBlock)
-            {
-                auto collectData = CollectDataToModelConverter::ModelToCollectData(ptx, *this);
-                if (!collectData) {
-                    // TODO (losty-db): error!!!
-                    LogPrintf("DEBUG: failed to convert model to CollectData in %s\n", __func__);
-                    continue;
-                }
+            InsertRegistry(registyStrings);
+            InsertLists(lists);
+        });
 
+        TryTransactionStep(__func__, [&]()
+        {
+            for (const auto& collectData: collectDataVec)
+            {
                 // Filling Registry with text data
                 // TODO (lostystyg): implement insert into registry
 
                 // Insert general transaction
-                InsertTransactionModel(*collectData);
+                InsertTransactionModel(collectData);
 
                 // Inputs
-                InsertTransactionInputs(collectData->inputs, collectData->txId);
+                InsertTransactionInputs(collectData.inputs, collectData.txHash);
 
                 // Outputs
-                InsertTransactionOutputs(collectData->outputs, collectData->txId);
+                InsertTransactionOutputs(collectData.outputs, collectData.txHash);
 
                 // Also need insert payload of transaction
                 // But need get new rowId
                 // If last id equal 0 - insert ignored - or already exists or error -> paylod not inserted
-                if (collectData->payload)
-                    InsertTransactionPayload(*collectData->payload);
+                if (collectData.payload)
+                    InsertTransactionPayload(*collectData.payload);
             }
         });
     }
@@ -262,6 +293,8 @@ namespace PocketDb
     PocketBlockRef TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs, bool includeOutputs)
     {
         string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
+
+        // TODO (losty-db): grab directly in sql
         auto txIdMap = GetTxIds(txHashes);
 
         if (txIdMap.size() != txHashes.size()) {
@@ -325,7 +358,7 @@ namespace PocketDb
 
         std::map<int64_t, CollectData> initData;
         for (const auto& [hash, txId]: txIdMap) {
-            initData.emplace(txId, CollectData{txId,hash});
+            initData.emplace(txId, CollectData{hash});
         }
         
         TransactionReconstructor reconstructor(initData);
@@ -598,7 +631,7 @@ namespace PocketDb
         });
     }
 
-    void TransactionRepository::InsertTransactionInputs(const vector<TransactionInput>& inputs, int64_t txId)
+    void TransactionRepository::InsertTransactionInputs(const vector<TransactionInput>& inputs, const string& txHash)
     {
         for (const auto& input: inputs)
         {
@@ -606,27 +639,27 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR IGNORE INTO TxInputs
                 (
-                    SpentTxHash,
-                    TxHash,
+                    SpentTxId,
+                    TxId,
                     Number
                 )
                 VALUES
                 (
-                    (select Id from Transactions where Hash = ?),
-                    ?,
+                    (select RowId from Transactions where HashId = (select Id from Registry where String = ?)),
+                    (select RowId from Transactions where HashId = (select Id from Registry where String = ?)),
                     ?
                 )
             )sql");
 
             TryBindStatementText(stmt, 1, input.GetSpentTxHash());
-            TryBindStatementInt64(stmt, 2, txId);
+            TryBindStatementText(stmt, 2, txHash);
             TryBindStatementInt64(stmt, 3, input.GetNumber());
 
             TryStepStatement(stmt);
         }
     }
     
-    void TransactionRepository::InsertTransactionOutputs(const vector<TransactionOutput>& outputs, int64_t txId)
+    void TransactionRepository::InsertTransactionOutputs(const vector<TransactionOutput>& outputs, const string& txHash)
     {
         for (const auto& output: outputs)
         {
@@ -641,18 +674,19 @@ namespace PocketDb
                 )
                 VALUES
                 (
+                    (select RowId from Transactions where HashId = (select Id from Registry where String = ?)),
                     ?,
-                    ?,
-                    (select Id from Addresses where Hash = ?),
+                    (select Id from Registry where String = ?),
                     ?,
                     ?
                 )
             )sql");
 
-            TryBindStatementInt64(stmt, 1, txId);
+            TryBindStatementText(stmt, 1, txHash);
             TryBindStatementInt64(stmt, 2, output.GetNumber());
             TryBindStatementText(stmt, 3, output.GetAddressHash());
             TryBindStatementInt64(stmt, 4, output.GetValue());
+            // TODO (losty-db): move this to registry!
             TryBindStatementText(stmt, 5, output.GetScriptPubKey());
 
             TryStepStatement(stmt);
@@ -663,7 +697,7 @@ namespace PocketDb
     {
         auto stmt = SetupSqlStatement(R"sql(
             INSERT OR FAIL INTO Payload (
-                TxHash,
+                TxId,
                 String1,
                 String2,
                 String3,
@@ -673,7 +707,12 @@ namespace PocketDb
                 String7
             ) SELECT
                 ?,?,?,?,?,?,?,?
-            WHERE not exists (select 1 from Payload p where p.TxHash = ?)
+            WHERE not exists 
+                (select 1 from Payload p where p.TxId =
+                    (select RowId from Transactions where HashId =
+                        (select Id from Registry where String = ?)
+                    )
+                )
         )sql");
 
         TryBindStatementText(stmt, 1, payload.GetTxHash());
@@ -692,34 +731,35 @@ namespace PocketDb
     void TransactionRepository::InsertTransactionModel(const CollectData& collectData)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            INSERT OR FAIL INTO Transactions (
+            INSERT OR IGNORE INTO Transactions (
                 Type,
-                Id,
-                HashId,
                 Time,
-                String1,
-                String2,
-                String3,
-                String4,
-                String5,
                 Int1
-            ) SELECT ?,?,?,?,?,?,?,?,?,?,?
-            WHERE not exists (select 1 from Transactions t where t.Id=?)
+                HashId,
+                RegId1,
+                RegId2,
+                RegId3,
+                RegId4,
+                RegId5,
+            ) with h as (select Id as HashId from Registry where String = ?)
+            SELECT ?,?,?, h.HashId,
+                (select Id from Registry where String = ?),
+                (select Id from Registry where String = ?),
+                (select Id from Registry where String = ?),
+                (select Id from Registry where String = ?),
+                (select Id from Registry where String = ?)
+            WHERE not exists (select 1 from Transactions t where t.HashId = h.HashId)
         )sql");
 
-        TryBindStatementInt(stmt, 1, (int)*collectData.ptx->GetType());
-        TryBindStatementInt64(stmt, 2, collectData.txId);
-        TryBindStatementText(stmt, 3, collectData.txHash);
-        TryBindStatementInt64(stmt, 4, collectData.ptx->GetTime());
+        TryBindStatementText(stmt, 1, collectData.txHash);
+        TryBindStatementInt(stmt, 2, (int)*collectData.ptx->GetType());
+        TryBindStatementInt64(stmt, 3, collectData.ptx->GetTime());
+        TryBindStatementInt64(stmt, 4, collectData.ptx->GetInt1());
         TryBindStatementText(stmt, 5, collectData.ptx->GetString1());
         TryBindStatementText(stmt, 6, collectData.ptx->GetString2());
         TryBindStatementText(stmt, 7, collectData.ptx->GetString3());
         TryBindStatementText(stmt, 8, collectData.ptx->GetString4());
         TryBindStatementText(stmt, 9, collectData.ptx->GetString5());
-        TryBindStatementInt64(stmt, 10, collectData.ptx->GetInt1());
-        TryBindStatementInt64(stmt, 2, collectData.txId);
-
-        // TODO (losty-db): insert list!!!
 
         TryStepStatement(stmt);
     }
@@ -892,6 +932,34 @@ namespace PocketDb
         });
 
         return id;
+    }
+
+    void TransactionRepository::InsertRegistry(const vector<string> &strings)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            insert or ignore into Registry (string) values
+            )sql" + join(vector<string>(strings.size(), "(?)"), ",") + R"sql( ;
+        )sql");
+
+        int i = 0;
+        for (const auto& string: strings)
+        {
+            TryBindStatementText(stmt, i++, string);
+        }
+    }
+
+    void TransactionRepository::InsertLists(const vector<string> &lists)
+    {
+        static auto stmt = SetupSqlStatement(R"sql(
+            insert or ignore into Registry (string)
+            select json_each(?)
+        )sql");
+
+        for (const auto& list: lists) {
+            TryBindStatementText(stmt, 1, list);
+            TryStepStatement(stmt);
+            ResetSqlStatement(*stmt);
+        }
     }
 
 } // namespace PocketDb

@@ -13,6 +13,12 @@ namespace PocketHelpers
 {
     struct TxContextualData
     {
+        optional<string> string1;
+        optional<string> string2;
+        optional<string> string3;
+        optional<string> string4;
+        optional<string> string5;
+        optional<int> int1;
         optional<string> list;
     };
 
@@ -30,6 +36,7 @@ namespace PocketHelpers
         static bool Inject(PTransactionRef& tx, const TxContextualData& data);
         static bool Extract(TxContextualData& data, const PTransactionRef& tx);
     private:
+        static const shared_ptr<ITxDbDataTranslator> m_defaultDataTranslator;
         static const map<TxType, shared_ptr<ITxDbDataTranslator>> m_translatorSelector;
     };
 }

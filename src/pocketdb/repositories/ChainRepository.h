@@ -56,17 +56,17 @@ namespace PocketDb
         void RestoreOldLast(int height);
 
         // Returns blockId
-        int64_t UpdateBlockData(const std::string& blockHash, int height);
-        void UpdateTransactionChainData(const int64_t& blockId, int blockNumber, int height, const int64_t& txId, const optional<int64_t>& id, bool fIsCreateLast);
+        void UpdateBlockData(const std::string& blockHash);
+        void UpdateTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast);
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
 
-        pair<int64_t, int64_t> IndexAccount(const int64_t& txId);
-        pair<int64_t, int64_t> IndexAccountSetting(const int64_t& txId);
-        pair<int64_t, int64_t> IndexContent(const int64_t& txId);
-        pair<int64_t, int64_t> IndexComment(const int64_t& txId);
-        pair<int64_t, int64_t> IndexBlocking(const int64_t& txId);
-        pair<int64_t, int64_t> IndexSubscribe(const int64_t& txId);
-        void IndexBoostContent(const int64_t& txId);
+        pair<int64_t, int64_t> IndexAccount(const string& txHash);
+        pair<int64_t, int64_t> IndexAccountSetting(const string& txHash);
+        pair<int64_t, int64_t> IndexContent(const string& txHash);
+        pair<int64_t, int64_t> IndexComment(const string& txHash);
+        pair<int64_t, int64_t> IndexBlocking(const string& txHash);
+        pair<int64_t, int64_t> IndexSubscribe(const string& txHash);
+        void IndexBoostContent(const string& txHash);
 
         void ClearOldLast(const int64_t& txId);
 

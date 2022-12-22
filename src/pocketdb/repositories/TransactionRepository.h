@@ -28,12 +28,10 @@ namespace PocketDb
 
     struct CollectData
     {
-        CollectData(int64_t _txId, std::string _txHash)
-            : txId(_txId),
-              txHash(std::move(_txHash))
+        explicit CollectData(std::string _txHash)
+            : txHash(std::move(_txHash))
         {}
         
-        const int64_t txId;
         const std::string txHash;
         PTransactionRef ptx;
         std::vector<TransactionOutput> outputs;
@@ -69,8 +67,10 @@ namespace PocketDb
         optional<int64_t> AddressHashToId(const string& hash);
 
     private:
-        void InsertTransactionInputs(const vector<TransactionInput>& intputs, int64_t txId);
-        void InsertTransactionOutputs(const vector<TransactionOutput>& outputs, int64_t txId);
+        void InsertRegistry(const vector<string>& strings);
+        void InsertLists(const vector<string>& lists);
+        void InsertTransactionInputs(const vector<TransactionInput>& intputs, const string& txHash);
+        void InsertTransactionOutputs(const vector<TransactionOutput>& outputs, const string& txHash);
         void InsertTransactionPayload(const Payload& payload);
         void InsertTransactionModel(const CollectData& ptx);
 

@@ -8,53 +8,61 @@ namespace PocketDb
 {
     void ChainRepository::IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
+        struct ChainData
+        {
+            const TransactionIndexingInfo indexingInfo;
+            const optional<int64_t> lastTxId; 
+            const optional<int64_t> id;
+        };
+
+        std::vector<ChainData> chainData;
+        for (const auto& txInfo: txs)
+        {
+            // Account and Content must have unique ID
+            // Also all edited transactions must have Last=(0/1) field
+            optional<int64_t> id;
+            optional<int64_t> lastTxId;
+            if (txInfo.IsAccount())
+                tie(id, lastTxId) = IndexAccount(txInfo.Hash);
+
+            if (txInfo.IsAccountSetting())
+                tie(id, lastTxId) = IndexAccountSetting(txInfo.Hash);
+
+            if (txInfo.IsContent())
+                tie(id, lastTxId) = IndexContent(txInfo.Hash);
+
+            if (txInfo.IsComment())
+                tie(id, lastTxId) = IndexComment(txInfo.Hash);
+
+            if (txInfo.IsBlocking())
+                tie(id, lastTxId) = IndexBlocking(txInfo.Hash);
+
+            if (txInfo.IsSubscribe())
+                tie(id, lastTxId) = IndexSubscribe(txInfo.Hash);
+
+            ChainData data {txInfo, lastTxId, id};
+            chainData.emplace_back(data);
+        }
+
         TryTransactionStep(__func__, [&]()
         {
             int64_t nTime1 = GetTimeMicros();
 
             // Each transaction is processed individually
-            for (const auto& txInfo : txs)
+            for (const auto& txInfo : chainData)
             {
-
-                auto blockId = UpdateBlockData(blockHash, height);
-                if (blockId == -1) {
-                    // TODO (losty-db): error?
-                }
-
                 // The outputs are needed for the explorer
                 // TODO (aok) (v0.20.19+): replace with update inputs spent with TxInputs table over loop
                 // UpdateTransactionOutputs(txInfo, height);
 
-                // Account and Content must have unique ID
-                // Also all edited transactions must have Last=(0/1) field
-                optional<int64_t> id;
-                optional<int64_t> lastTxId;
-                if (txInfo.IsAccount())
-                    tie(id, lastTxId) = IndexAccount(txInfo.TxId);
-
-                if (txInfo.IsAccountSetting())
-                    tie(id, lastTxId) = IndexAccountSetting(txInfo.TxId);
-
-                if (txInfo.IsContent())
-                    tie(id, lastTxId) = IndexContent(txInfo.TxId);
-
-                if (txInfo.IsComment())
-                    tie(id, lastTxId) = IndexComment(txInfo.TxId);
-
-                if (txInfo.IsBlocking())
-                    tie(id, lastTxId) = IndexBlocking(txInfo.TxId);
-
-                if (txInfo.IsSubscribe())
-                    tie(id, lastTxId) = IndexSubscribe(txInfo.TxId);
-
                 // Calculate and save fee for future selects
-                if (txInfo.IsBoostContent())
-                    IndexBoostContent(txInfo.TxId);
+                if (txInfo.indexingInfo.IsBoostContent())
+                    IndexBoostContent(txInfo.indexingInfo.Hash);
 
-                if (lastTxId) ClearOldLast(*lastTxId);
+                if (txInfo.lastTxId) ClearOldLast(*txInfo.lastTxId);
 
                 // All transactions must have a blockHash & height relation
-                UpdateTransactionChainData(blockId, txInfo.BlockNumber, height, txInfo.TxId, id, lastTxId.has_value());
+                UpdateTransactionChainData(blockHash, txInfo.indexingInfo.BlockNumber, height, txInfo.indexingInfo.Hash, txInfo.id, txInfo.lastTxId.has_value());
             }
 
             int64_t nTime2 = GetTimeMicros();
@@ -105,39 +113,24 @@ namespace PocketDb
         return {exists, last};
     }
 
-    int64_t ChainRepository::UpdateBlockData(const std::string& blockHash, int height)
+    void ChainRepository::UpdateBlockData(const std::string& blockHash)
     {
-        auto sql = R"sql(
-            INSERT OR IGNORE INTO Blocks (Hash, Height)
-            VALUES (?, ?)
-            RETURNING Id
-        )sql";
+        auto stmt = SetupSqlStatement(R"sql(
+            INSERT OR IGNORE INTO Registry (String)
+            VALUES (?)
+        )sql");
 
-        int64_t id = -1;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, blockHash);
-            TryBindStatementInt(stmt, 2, height);
-
-            // TODO (losty-db): error
-            if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
-            }
-        });
-
-        auto stmt = SetupSqlStatement(sql);
-
+        TryStepStatement(stmt);
     }
 
-    void ChainRepository::UpdateTransactionChainData(const int64_t& blockId, int blockNumber, int height, const int64_t& txId, const optional<int64_t>& id, bool fIsCreateLast)
+    void ChainRepository::UpdateTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast)
     {
         auto stmt = SetupSqlStatement(R"sql(
             INSERT INTO Chain (TxId, BlockId, BlockNum, Height )sql" + string(id ? ", Id" : "") + R"sql(
-            VALUES(?, ?, ?, ?, )sql" + string(id ? ", ?" : "") + R"sql( )
+            VALUES((select RowId from Transactions where HashId = (select Id from Registry where String = ?)), (select Id from Registry where String = ?), ?, ?, )sql" + string(id ? ", ?" : "") + R"sql( )
         )sql");
-        TryBindStatementInt64(stmt, 1, txId);
-        TryBindStatementInt64(stmt, 2, blockId);
+        TryBindStatementText(stmt, 1, txHash);
+        TryBindStatementText(stmt, 2, blockHash);
         TryBindStatementInt(stmt, 3, blockNumber);
         TryBindStatementInt(stmt, 4, height);
         if (id) TryBindStatementInt64(stmt, 5, *id);
@@ -146,9 +139,9 @@ namespace PocketDb
         if (fIsCreateLast) {
             auto stmtInsertLast = SetupSqlStatement(R"sql(
                 INSERT INTO Last (TxId)
-                VALUES (?)
+                select RowId from Transactions where HashId = (select Id from Registry where String = ?)
             )sql");
-            TryBindStatementInt64(stmt, 1, txId);
+            TryBindStatementText(stmt, 1, txHash);
             TryStepStatement(stmt);
         }
     }
@@ -160,12 +153,12 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 UPDATE TxOutputs SET
                     SpentHeight = ?,
-                    SpentTxId = ?
+                    SpentTxId = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
                 WHERE TxId = ? and Number = ?
             )sql");
 
             TryBindStatementInt(stmt, 1, height);
-            TryBindStatementInt64(stmt, 2, txInfo.TxId);
+            TryBindStatementText(stmt, 2, txInfo.Hash);
             TryBindStatementText(stmt, 3, input.first);
             TryBindStatementInt(stmt, 4, input.second);
             TryStepStatement(stmt);
@@ -231,7 +224,7 @@ namespace PocketDb
     }
 
     // <id, lastTxID>
-    pair<int64_t, int64_t> ChainRepository::IndexAccount(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexAccount(const string& txHash)
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -249,7 +242,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (100,170)
-                            and a.Id = ?
+                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -268,7 +261,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, txId);
+            TryBindStatementText(stmt, 1, txHash);
             
             if (sqlite3_step(*stmt) == SQLITE_ROW) {
                 if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
@@ -280,7 +273,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexAccountSetting(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexAccountSetting(const string& txHash)
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -298,7 +291,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (103)
-                            and a.Id = ?
+                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -317,7 +310,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, txId);
+            TryBindStatementText(stmt, 1, txHash);
             
             if (sqlite3_step(*stmt) == SQLITE_ROW) {
                 if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
@@ -329,7 +322,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexContent(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexContent(const string& txHash)
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -347,7 +340,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (200,201,202,209,210,207)
-                            and a.Id = ?
+                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -366,7 +359,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, txId);
+            TryBindStatementText(stmt, 1, txHash);
             
             if (sqlite3_step(*stmt) == SQLITE_ROW) {
                 if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
@@ -378,7 +371,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexComment(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexComment(const string& txHash)
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -396,7 +389,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (204,205,206)
-                            and a.Id = ?
+                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -415,7 +408,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, txId);
+            TryBindStatementText(stmt, 1, txHash);
             
             if (sqlite3_step(*stmt) == SQLITE_ROW) {
                 if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
@@ -427,7 +420,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexBlocking(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexBlocking(const string& txHash)
     {
         // TODO (o1q): double check multiple locks
         // Set last=1 for new transaction
@@ -448,7 +441,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (305,306)
-                            and a.Id = ?
+                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -467,7 +460,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, txId);
+            TryBindStatementText(stmt, 1, txHash);
             
             if (sqlite3_step(*stmt) == SQLITE_ROW) {
                 if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
@@ -476,59 +469,62 @@ namespace PocketDb
             // TODO (losty-db): error
         });
 
-        // TODO (losty-db): validate!
-        auto insListStmt = SetupSqlStatement(R"sql(
-            insert into BlockingLists (IdSource, IdTarget)
-            select
-              usc.Id,
-              utc.Id
-            from Transactions b -- TODO (losty-db): index
-            join Transactions us -- TODO (losty-db): index
-              on us.Type in (100, 170) and us.Int1 = b.Int1
-            join Chain usc -- TODO (losty-db): index
-              on usc.TxId = us.Id
-                and usc.Last = 1
-            join Transactions ut -- TODO (losty-db): index
-              on ut.Type in (100, 170)
-                and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
-            join Chain utc -- TODO (losty-db): index
-              on utc.TxId = ut.Id
-                and utc.Last = 1
-            where b.Type in (305) and b.Id = ?
-                and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
-        )sql");
-        TryBindStatementInt64(insListStmt, 1, txId);
-        TryStepStatement(insListStmt);
+        // TODO (losty-db): bad bad bad!!!
+        TryTransactionStep(__func__, [&]()
+        {
+            auto insListStmt = SetupSqlStatement(R"sql(
+                insert into BlockingLists (IdSource, IdTarget)
+                select
+                usc.Id,
+                utc.Id
+                from Transactions b -- TODO (losty-db): index
+                join Transactions us -- TODO (losty-db): index
+                on us.Type in (100, 170) and us.Int1 = b.Int1
+                join Chain usc -- TODO (losty-db): index
+                on usc.TxId = us.Id
+                    and usc.Last = 1
+                join Transactions ut -- TODO (losty-db): index
+                on ut.Type in (100, 170)
+                    and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
+                join Chain utc -- TODO (losty-db): index
+                on utc.TxId = ut.Id
+                    and utc.Last = 1
+                where b.Type in (305) and b.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                    and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
+            )sql");
+            TryBindStatementText(insListStmt, 1, txHash);
+            TryStepStatement(insListStmt);
 
-        auto delListStmt = SetupSqlStatement(R"sql(
-            delete from BlockingLists
-            where exists
-            (select
-              1
-            from Transactions b -- TODO (losty-db): index
-            join Transactions us -- TODO (losty-db): index
-              on us.Type in (100, 170) and us.Int1 = b.Int1
-            join Chain usc -- TODO (losty-db): index
-              on usc.TxId = us.Id
-                and usc.Last = 1
-                and usc.Id = BlockingLists.IdSource
-            join Transactions ut -- TODO (losty-db): index
-              on ut.Type in (100, 170) and ut.Int1 = b.Int2
-            join Chain utc -- TODO (losty-db): index
-              on utc.TxId = ut.Id
-                and utc.Last = 1
-                and utc.Id = BlockingLists.IdTarget
-            where b.Type in (306) and b.Id = ?
-            )
-        )sql");
-        TryBindStatementInt64(delListStmt, 1, txId);
-        TryStepStatement(delListStmt);
+            auto delListStmt = SetupSqlStatement(R"sql(
+                delete from BlockingLists
+                where exists
+                (select
+                1
+                from Transactions b -- TODO (losty-db): index
+                join Transactions us -- TODO (losty-db): index
+                on us.Type in (100, 170) and us.Int1 = b.Int1
+                join Chain usc -- TODO (losty-db): index
+                on usc.TxId = us.Id
+                    and usc.Last = 1
+                    and usc.Id = BlockingLists.IdSource
+                join Transactions ut -- TODO (losty-db): index
+                on ut.Type in (100, 170) and ut.Int1 = b.Int2
+                join Chain utc -- TODO (losty-db): index
+                on utc.TxId = ut.Id
+                    and utc.Last = 1
+                    and utc.Id = BlockingLists.IdTarget
+                where b.Type in (306) and b.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                )
+            )sql");
+            TryBindStatementText(delListStmt, 1, txHash);
+            TryStepStatement(delListStmt);
+        });
 
         // Clear old last records for set new last
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexSubscribe(const int64_t& txId)
+    pair<int64_t, int64_t> ChainRepository::IndexSubscribe(const string& txHash)
     {
          // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -547,7 +543,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (302,303,304)
-                            and a.Id = ?
+                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -566,7 +562,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, txId);
+            TryBindStatementText(stmt, 1, txHash);
             
             if (sqlite3_step(*stmt) == SQLITE_ROW) {
                 if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
@@ -578,7 +574,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
     
-    void ChainRepository::IndexBoostContent(const int64_t& txId)
+    void ChainRepository::IndexBoostContent(const string& txHash)
     {
         // TODO (losty-db): calculate this before inserting tx data to db
         // Set transaction fee
@@ -596,10 +592,10 @@ namespace PocketDb
                   where TxId = Transactions.Id
                 )
               )
-            where Transactions.Id = ?
+            where Transactions.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
               and Transactions.Type in (208)
         )sql");
-        TryBindStatementInt64(stmt, 1, txId);
+        TryBindStatementText(stmt, 1, txHash);
         TryStepStatement(stmt);
     }
 
