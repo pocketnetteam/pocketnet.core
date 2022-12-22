@@ -237,6 +237,10 @@ namespace PocketDb
                     LogPrintf("DEBUG: failed to convert model to CollectData in %s\n", __func__);
                     continue;
                 }
+
+                // Filling Registry with text data
+                // TODO (lostystyg): implement insert into registry
+
                 // Insert general transaction
                 InsertTransactionModel(*collectData);
 
@@ -691,7 +695,7 @@ namespace PocketDb
             INSERT OR FAIL INTO Transactions (
                 Type,
                 Id,
-                Hash,
+                HashId,
                 Time,
                 String1,
                 String2,

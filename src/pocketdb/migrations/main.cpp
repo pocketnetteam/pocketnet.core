@@ -20,7 +20,7 @@ namespace PocketDb
                 -- ContentPost.Id
                 -- ContentVideo.Id
                 -- Comment.Id
-                Id       int     null,
+                Uid       int     null,
             );
         )sql");
 
@@ -44,7 +44,7 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Transactions
             (
-                Id      integer primary key,
+                RowId     integer primary key,
                 Type      int    not null,
                 HashId    int    not null, -- Id of tx hash in Registry table
                 Time      int    not null,
@@ -103,7 +103,7 @@ namespace PocketDb
             -- - TxHashes
             create table if not exists Registry
             (
-                Id integer primary key,
+                RowId integer primary key,
                 String text not null unique
             );
         )sql");
@@ -190,7 +190,7 @@ namespace PocketDb
                 Type   int not null,
                 Last   int not null,
                 Height int not null,
-                Id     int not null,
+                Uid     int not null,
                 Value  int not null,
                 primary key (Type, Height, Id, Value)
             );
