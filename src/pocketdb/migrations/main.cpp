@@ -14,13 +14,13 @@ namespace PocketDb
                 TxId     integer primary key, -- Transactions.Id
                 BlockId  int     null,
                 BlockNum int     null,
-                Height   int     not null
+                Height   int     not null,
 
                 -- AccountUser.Id
                 -- ContentPost.Id
                 -- ContentVideo.Id
                 -- Comment.Id
-                Uid       int     null,
+                Uid       int     null
             );
         )sql");
 
@@ -92,7 +92,7 @@ namespace PocketDb
                 -- Complain.Reason
                 -- Boost.Amount
                 -- ModerationFlag.Reason
-                Int1      int    null,
+                Int1      int    null
             );
         )sql");
 
@@ -113,7 +113,7 @@ namespace PocketDb
             (
                 TxId   int not null, -- TxId that List belongs to
                 Number int not null, -- Allowes to use different lists for one tx
-                RegId  int not null, -- Entry that list contains
+                RegId  int not null  -- Entry that list contains
             );
         )sql");
 
@@ -192,7 +192,7 @@ namespace PocketDb
                 Height int not null,
                 Uid     int not null,
                 Value  int not null,
-                primary key (Type, Height, Id, Value)
+                primary key (Type, Height, Uid, Value)
             );
         )sql");
 
@@ -228,21 +228,21 @@ namespace PocketDb
         
         _preProcessing = R"sql(
             insert or ignore into System (Db, Version) values ('main', 1);
-            delete from Balances where AddressId = (select Id from Addresses where Hash = '');
+            delete from Balances where AddressId = (select RowId from Registry where String = '');
         )sql";
 
 
         _indexes = R"sql(
-            create index if not exists Chain_Id on Chain (Id);
+            create index if not exists Chain_Uid on Chain (Uid);
 
             create unique index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
 
-            create index if not exists Ratings_Last_Id_Height on Ratings (Last, Id, Height);
+            create index if not exists Ratings_Last_Uid_Height on Ratings (Last, Uid, Height);
             create index if not exists Ratings_Height_Last on Ratings (Height, Last);
-            create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
-            create index if not exists Ratings_Type_Id_Last_Height on Ratings (Type, Id, Last, Height);
-            create index if not exists Ratings_Type_Id_Last_Value on Ratings (Type, Id, Last, Value);
-            create index if not exists Ratings_Type_Id_Height_Value on Ratings (Type, Id, Height, Value);
+            create index if not exists Ratings_Type_Uid_Value on Ratings (Type, Uid, Value);
+            create index if not exists Ratings_Type_Uid_Last_Height on Ratings (Type, Uid, Last, Height);
+            create index if not exists Ratings_Type_Uid_Last_Value on Ratings (Type, Uid, Last, Value);
+            create index if not exists Ratings_Type_Uid_Height_Value on Ratings (Type, Uid, Height, Value);
 
             create index if not exists Payload_String2_nocase_TxId on Payload (String2 collate nocase, TxId);
             create index if not exists Payload_String7 on Payload (String7);
