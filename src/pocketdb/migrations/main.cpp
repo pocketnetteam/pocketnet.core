@@ -168,7 +168,7 @@ namespace PocketDb
             (
                 TxId            int    not null, -- Transactions.TxId
                 Number          int    not null, -- Number in tx.vout
-                AddressId       int    not null, -- Address
+                AddressId       int    null, -- Address
                 Value           int    not null, -- Amount
                 ScriptPubKey    text   not null, -- Original script
                 primary key (TxId, Number, AddressId)
