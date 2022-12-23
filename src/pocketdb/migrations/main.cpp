@@ -12,8 +12,8 @@ namespace PocketDb
             create table if not exists Chain
             (
                 TxId     integer primary key, -- Transactions.Id
-                BlockId  int     null,
-                BlockNum int     null,
+                BlockId  int     not null,
+                BlockNum int     not null,
                 Height   int     not null,
 
                 -- AccountUser.Id
