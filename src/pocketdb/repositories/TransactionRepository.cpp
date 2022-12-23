@@ -128,19 +128,19 @@ namespace PocketDb
             if (auto[ok, value] = TryGetColumnInt64(stmt, 4); ok) ptx->SetHeight(value);
             // TODO (losty-db): implement "first" field
             // if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) ptx->SetFirst(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) ptx->SetLast(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 7); ok) ptx->SetId(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 8); ok) txContextData.int1 = value;
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) ptx->SetLast(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) ptx->SetId(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 7); ok) txContextData.int1 = value;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) txContextData.string1 = value;
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) txContextData.string2 = value;
-            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) txContextData.string3 = value;
-            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) txContextData.string4 = value;
-            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) txContextData.string5 = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) txContextData.string1 = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) txContextData.string2 = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) txContextData.string3 = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) txContextData.string4 = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) txContextData.string5 = value;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) ptx->SetBlockHash(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) ptx->SetBlockHash(value);
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 15); ok) txContextData.list = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) txContextData.list = value;
 
             ptx->SetHash(collectData.txHash);
             collectData.ptx = std::move(ptx);            
@@ -239,6 +239,10 @@ namespace PocketDb
             if (txData.string5) stringsToBeInserted.emplace_back(*txData.string5);
             stringsToBeInserted.emplace_back(collectData.txHash);
             if (txData.list) listsToBeInserted.emplace_back(*txData.list);
+            
+            for (const auto& output: collectData.outputs) {
+                if (output.GetAddressHash()) stringsToBeInserted.emplace_back(*output.GetAddressHash());
+            }
         }
 
         return std::pair { stringsToBeInserted, listsToBeInserted };
@@ -351,7 +355,7 @@ namespace PocketDb
         // Outputs part
         (includeOutputs ? string(R"sql(
             union
-            select (2)tp, TxId, Value, Number, null, null, null, null,(select a.String from Registry a where a.Id = AddressId), ScriptPubKey, null, null, null
+            select (3)tp, TxId, Value, Number, null, null, null, null,(select a.String from Registry a where a.RowId = AddressId), ScriptPubKey, null, null, null, null, null
             from TxOutputs
             where TxId in ( )sql" + txReplacers + R"sql( )
         )sql") : "") +
@@ -364,13 +368,15 @@ namespace PocketDb
         for (const auto& [hash, txId]: txIdMap) {
             initData.emplace(txId, CollectData{hash});
         }
+
+        LogPrintf(sql.c_str());
         
         TransactionReconstructor reconstructor(initData);
 
         // TODO (aok, loststyg): check statis stmt
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             size_t i = 1;
 
             for (const auto& [hash, txId] : txIdMap)
@@ -388,6 +394,8 @@ namespace PocketDb
                 for (const auto& [hash, txId] : txIdMap)
                     TryBindStatementInt64(stmt, i++, txId);
 
+            LogPrintf(sqlite3_expanded_sql(*stmt));
+
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 // TODO (aok): maybe throw exception if errors?
@@ -397,7 +405,7 @@ namespace PocketDb
                 }
             }
 
-            ResetSqlStatement(*stmt);
+            FinalizeSqlStatement(*stmt);
         });
 
         auto pBlock = std::make_shared<PocketBlock>();
@@ -561,7 +569,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            // Clear Payload table
+            // Clear Payload tablew
             auto stmt = SetupSqlStatement(R"sql(
                 delete from Payload
                 where TxHash = ?
@@ -669,21 +677,23 @@ namespace PocketDb
         {
             // Build transaction output
             auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR IGNORE INTO TxOutputs (
+                INSERT OR FAIL INTO TxOutputs (
                     TxId,
                     Number,
                     AddressId,
                     Value,
                     ScriptPubKey
                 )
-                VALUES
-                (
+                select 
                     (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)),
                     ?,
                     (select RowId from Registry where String = ?),
                     ?,
                     ?
-                )
+                -- TODO (losty-db): better way to do this?
+                WHERE not exists (select 1 from TxOutputs where
+                    Number = ?
+                    and TxId = (select t.RowId from Transactions t where t.HashId = (select r.RowId as HashId from Registry r where r.String = ?)))
             )sql");
 
             TryBindStatementText(stmt, 1, txHash);
@@ -692,6 +702,9 @@ namespace PocketDb
             TryBindStatementInt64(stmt, 4, output.GetValue());
             // TODO (losty-db): move this to registry!
             TryBindStatementText(stmt, 5, output.GetScriptPubKey());
+            TryBindStatementInt64(stmt, 6, output.GetNumber());
+            TryBindStatementText(stmt, 7, txHash);
+            LogPrintf(sqlite3_expanded_sql(*stmt));
 
             TryStepStatement(stmt);
         }
