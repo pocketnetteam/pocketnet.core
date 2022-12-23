@@ -57,7 +57,7 @@ namespace PocketDb
 
         // Returns blockId
         void IndexBlockData(const std::string& blockHash);
-        void UpdateTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast);
+        void InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast);
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
 
         pair<int64_t, int64_t> IndexAccount(const string& txHash);

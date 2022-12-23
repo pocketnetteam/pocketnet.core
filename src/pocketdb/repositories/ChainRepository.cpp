@@ -64,7 +64,7 @@ namespace PocketDb
                 if (txInfo.lastTxId) ClearOldLast(*txInfo.lastTxId);
 
                 // All transactions must have a blockHash & height relation
-                UpdateTransactionChainData(blockHash, txInfo.indexingInfo.BlockNumber, height, txInfo.indexingInfo.Hash, txInfo.id, txInfo.lastTxId.has_value());
+                InsertTransactionChainData(blockHash, txInfo.indexingInfo.BlockNumber, height, txInfo.indexingInfo.Hash, txInfo.id, txInfo.lastTxId.has_value());
             }
 
             int64_t nTime2 = GetTimeMicros();
@@ -127,17 +127,21 @@ namespace PocketDb
         TryStepStatement(stmt);
     }
 
-    void ChainRepository::UpdateTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast)
+    void ChainRepository::InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            INSERT INTO Chain (TxId, BlockId, BlockNum, Height )sql" + string(id ? ", Id" : "") + R"sql( )
-            VALUES((select RowId from Transactions where HashId = (select RowId from Registry where String = ?)), (select RowId from Registry where String = ?), ?, ? )sql" + string(id ? ", ?" : "") + R"sql( )
+            -- TODO (losty-db): use WITH statement for TxId
+            INSERT OR FAIL INTO Chain (TxId, BlockId, BlockNum, Height )sql" + string(id ? ", Id" : "") + R"sql( )
+            select (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)), (select RowId from Registry where String = ?), ?, ? )sql" + string(id ? ", ?" : "") + R"sql(
+            where not exists (select 1 from Chain where TxId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)))
         )sql");
-        TryBindStatementText(stmt, 1, txHash);
-        TryBindStatementText(stmt, 2, blockHash);
-        TryBindStatementInt(stmt, 3, blockNumber);
-        TryBindStatementInt(stmt, 4, height);
-        if (id) TryBindStatementInt64(stmt, 5, *id);
+        int i = 1;
+        TryBindStatementText(stmt, i++, txHash);
+        TryBindStatementText(stmt, i++, blockHash);
+        TryBindStatementInt(stmt, i++, blockNumber);
+        TryBindStatementInt(stmt, i++, height);
+        if (id) TryBindStatementInt64(stmt, i++, *id);
+        TryBindStatementText(stmt, i++, txHash);
         TryStepStatement(stmt);
 
         if (fIsCreateLast) {
