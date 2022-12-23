@@ -48,7 +48,7 @@ namespace PocketDb
         {
             int64_t nTime1 = GetTimeMicros();
 
-            UpdateBlockData(blockHash);
+            IndexBlockData(blockHash);
 
             // Each transaction is processed individually
             for (const auto& txInfo : chainData)
@@ -115,12 +115,14 @@ namespace PocketDb
         return {exists, last};
     }
 
-    void ChainRepository::UpdateBlockData(const std::string& blockHash)
+    void ChainRepository::IndexBlockData(const std::string& blockHash)
     {
         auto stmt = SetupSqlStatement(R"sql(
             INSERT OR IGNORE INTO Registry (String)
             VALUES (?)
         )sql");
+
+        TryBindStatementText(stmt, 1, blockHash);
 
         TryStepStatement(stmt);
     }
