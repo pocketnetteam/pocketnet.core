@@ -369,8 +369,6 @@ namespace PocketDb
             initData.emplace(txId, CollectData{hash});
         }
 
-        LogPrintf(sql.c_str());
-        
         TransactionReconstructor reconstructor(initData);
 
         // TODO (aok, loststyg): check statis stmt
@@ -393,8 +391,6 @@ namespace PocketDb
             if (includeOutputs)
                 for (const auto& [hash, txId] : txIdMap)
                     TryBindStatementInt64(stmt, i++, txId);
-
-            LogPrintf(sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -704,7 +700,6 @@ namespace PocketDb
             TryBindStatementText(stmt, 5, output.GetScriptPubKey());
             TryBindStatementInt64(stmt, 6, output.GetNumber());
             TryBindStatementText(stmt, 7, txHash);
-            LogPrintf(sqlite3_expanded_sql(*stmt));
 
             TryStepStatement(stmt);
         }
