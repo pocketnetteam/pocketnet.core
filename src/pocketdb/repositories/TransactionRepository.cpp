@@ -122,25 +122,28 @@ namespace PocketDb
             PTransactionRef ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<TxType>(txType));
             if (!ptx) return false;
 
+            PocketHelpers::TxContextualData txContextData;
+
             if (auto[ok, value] = TryGetColumnInt64(stmt, 3); ok) ptx->SetTime(value);
             if (auto[ok, value] = TryGetColumnInt64(stmt, 4); ok) ptx->SetHeight(value);
             // TODO (losty-db): implement "first" field
             // if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) ptx->SetFirst(value);
             if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) ptx->SetLast(value);
             if (auto[ok, value] = TryGetColumnInt64(stmt, 7); ok) ptx->SetId(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 8); ok) ptx->SetInt1(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) ptx->SetString1(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) ptx->SetString2(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) ptx->SetString3(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) ptx->SetString4(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) ptx->SetString5(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 8); ok) txContextData.int1 = value;
+
+            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) txContextData.string1 = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) txContextData.string2 = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) txContextData.string3 = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) txContextData.string4 = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) txContextData.string5 = value;
+
             if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) ptx->SetBlockHash(value);
 
-            collectData.ptx = std::move(ptx);
-
-            PocketHelpers::TxContextualData txContextData;
             if (auto[ok, value] = TryGetColumnString(stmt, 15); ok) txContextData.list = value;
-            
+
+            ptx->SetHash(collectData.txHash);
+            collectData.ptx = std::move(ptx);            
             collectData.txContextData = std::move(txContextData);
 
             return true;
@@ -300,28 +303,29 @@ namespace PocketDb
         if (txIdMap.size() != txHashes.size()) {
             // TODO (losty-db): error
             LogPrintf("DEBUG: missing ids for requested hashses\n");
+            return nullptr;
         }
 
         auto sql = R"sql(
-            select (0)tp, t.Type, t.Time, c.Height, c.First, c.Last, c.Id, t.Int1 
-                (select r.String from Registry r where r.Id = t.RegId1),
-                (select r.String from Registry r where r.Id = t.RegId2),
-                (select r.String from Registry r where r.Id = t.RegId3),
-                (select r.String from Registry r where r.Id = t.RegId4)
-                (select r.String from Registry r where r.Id = t.RegId5)
-                (select r.String from Registry r where r.Id = c.BlockId),
+           select (0)tp, t.RowId, t.Type, t.Time, c.Height, ifnull((select 1 from Last l where l.TxId = t.RowId),0), c.Uid, t.Int1,
+                (select r.String from Registry r where r.RowId = t.RegId1),
+                (select r.String from Registry r where r.RowId = t.RegId2),
+                (select r.String from Registry r where r.RowId = t.RegId3),
+                (select r.String from Registry r where r.RowId = t.RegId4),
+                (select r.String from Registry r where r.RowId = t.RegId5),
+                (select r.String from Registry r where r.RowId = c.BlockId),
                 (
                     -- TODO (losty-db): empty string instead of empty array
                     select json_group_array(
-                        (select rr.String from Registry rr where rr.Id = l.RegId)
+                        (select rr.String from Registry rr where rr.RowId = l.RegId)
                     )
                     from Lists l
-                    where l.TxId = t.Id
+                    where l.TxId = t.RowId
                 )
             from Transactions t
             left join Chain c
-                on c.TxId = t.Id
-            where t.Id in ( )sql" + txReplacers + R"sql( )
+                on c.TxId = t.RowId
+            where t.RowId in ( )sql" + txReplacers + R"sql( )
         )sql" +
 
         // Payload part
@@ -645,8 +649,8 @@ namespace PocketDb
                 )
                 VALUES
                 (
-                    (select RowId from Transactions where HashId = (select Id from Registry where String = ?)),
-                    (select RowId from Transactions where HashId = (select Id from Registry where String = ?)),
+                    (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)),
+                    (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)),
                     ?
                 )
             )sql");
@@ -674,9 +678,9 @@ namespace PocketDb
                 )
                 VALUES
                 (
-                    (select RowId from Transactions where HashId = (select Id from Registry where String = ?)),
+                    (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)),
                     ?,
-                    (select Id from Registry where String = ?),
+                    (select RowId from Registry where String = ?),
                     ?,
                     ?
                 )
@@ -710,7 +714,7 @@ namespace PocketDb
             WHERE not exists 
                 (select 1 from Payload p where p.TxId =
                     (select RowId from Transactions where HashId =
-                        (select Id from Registry where String = ?)
+                        (select RowId from Registry where String = ?)
                     )
                 )
         )sql");
@@ -730,36 +734,38 @@ namespace PocketDb
 
     void TransactionRepository::InsertTransactionModel(const CollectData& collectData)
     {
+        // TODO (losty-db): WITH not working?
         auto stmt = SetupSqlStatement(R"sql(
-            INSERT OR IGNORE INTO Transactions (
+            INSERT OR FAIL INTO Transactions (
                 Type,
                 Time,
-                Int1
+                Int1,
                 HashId,
                 RegId1,
                 RegId2,
                 RegId3,
                 RegId4,
-                RegId5,
-            ) with h as (select Id as HashId from Registry where String = ?)
-            SELECT ?,?,?, h.HashId,
-                (select Id from Registry where String = ?),
-                (select Id from Registry where String = ?),
-                (select Id from Registry where String = ?),
-                (select Id from Registry where String = ?),
-                (select Id from Registry where String = ?)
-            WHERE not exists (select 1 from Transactions t where t.HashId = h.HashId)
+                RegId5
+            )
+            SELECT ?,?,?, (select RowId as HashId from Registry where String = ?),
+                (select RowId from Registry where String = ?),
+                (select RowId from Registry where String = ?),
+                (select RowId from Registry where String = ?),
+                (select RowId from Registry where String = ?),
+                (select RowId from Registry where String = ?)
+            WHERE not exists (select 1 from Transactions t where t.HashId = (select RowId as HashId from Registry where String = ?))
         )sql");
 
-        TryBindStatementText(stmt, 1, collectData.txHash);
-        TryBindStatementInt(stmt, 2, (int)*collectData.ptx->GetType());
-        TryBindStatementInt64(stmt, 3, collectData.ptx->GetTime());
-        TryBindStatementInt64(stmt, 4, collectData.ptx->GetInt1());
+        TryBindStatementInt(stmt, 1, (int)*collectData.ptx->GetType());
+        TryBindStatementInt64(stmt, 2, collectData.ptx->GetTime());
+        TryBindStatementInt64(stmt, 3, collectData.ptx->GetInt1());
+        TryBindStatementText(stmt, 4, collectData.txHash);
         TryBindStatementText(stmt, 5, collectData.ptx->GetString1());
         TryBindStatementText(stmt, 6, collectData.ptx->GetString2());
         TryBindStatementText(stmt, 7, collectData.ptx->GetString3());
         TryBindStatementText(stmt, 8, collectData.ptx->GetString4());
         TryBindStatementText(stmt, 9, collectData.ptx->GetString5());
+        TryBindStatementText(stmt, 10, collectData.txHash);
 
         TryStepStatement(stmt);
     }
@@ -819,7 +825,11 @@ namespace PocketDb
         string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
 
         auto sql = R"sql(
-            select Hash, Id from Transactions where Hash in ( )sql" + txReplacers + R"sql( )
+            select r.String, t.RowId
+            from Transactions t
+            join Registry r
+                on t.HashId = r.RowId
+                and r.String in  ( )sql" + txReplacers + R"sql( )
         )sql";
 
         map<string,int64_t> res;
@@ -936,20 +946,24 @@ namespace PocketDb
 
     void TransactionRepository::InsertRegistry(const vector<string> &strings)
     {
+        if (strings.empty()) return;
+
         auto stmt = SetupSqlStatement(R"sql(
-            insert or ignore into Registry (string) values
+            insert or ignore into Registry (String) values
             )sql" + join(vector<string>(strings.size(), "(?)"), ",") + R"sql( ;
         )sql");
 
-        int i = 0;
+        int i = 1;
         for (const auto& string: strings)
         {
             TryBindStatementText(stmt, i++, string);
         }
+        TryStepStatement(stmt);
     }
 
     void TransactionRepository::InsertLists(const vector<string> &lists)
     {
+        if (lists.empty()) return;
         static auto stmt = SetupSqlStatement(R"sql(
             insert or ignore into Registry (string)
             select json_each(?)

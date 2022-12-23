@@ -48,6 +48,8 @@ namespace PocketDb
         {
             int64_t nTime1 = GetTimeMicros();
 
+            UpdateBlockData(blockHash);
+
             // Each transaction is processed individually
             for (const auto& txInfo : chainData)
             {
@@ -87,8 +89,8 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                ifnull((select 1 from Transactions where BlockHash = ? and Height = ? limit 1), 0)current,
-                ifnull((select 1 from Transactions where Height = ? limit 1), 0)next
+                ifnull((select 1 from Chain c where c.BlockId = (select r.RowId from Registry r where r.String = ?) and c.Height = ? limit 1), 0)current,
+                ifnull((select 1 from Chain where Height = ? limit 1), 0)next
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -126,8 +128,8 @@ namespace PocketDb
     void ChainRepository::UpdateTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            INSERT INTO Chain (TxId, BlockId, BlockNum, Height )sql" + string(id ? ", Id" : "") + R"sql(
-            VALUES((select RowId from Transactions where HashId = (select Id from Registry where String = ?)), (select Id from Registry where String = ?), ?, ?, )sql" + string(id ? ", ?" : "") + R"sql( )
+            INSERT INTO Chain (TxId, BlockId, BlockNum, Height )sql" + string(id ? ", Id" : "") + R"sql( )
+            VALUES((select RowId from Transactions where HashId = (select RowId from Registry where String = ?)), (select RowId from Registry where String = ?), ?, ? )sql" + string(id ? ", ?" : "") + R"sql( )
         )sql");
         TryBindStatementText(stmt, 1, txHash);
         TryBindStatementText(stmt, 2, blockHash);
@@ -139,7 +141,7 @@ namespace PocketDb
         if (fIsCreateLast) {
             auto stmtInsertLast = SetupSqlStatement(R"sql(
                 INSERT INTO Last (TxId)
-                select RowId from Transactions where HashId = (select Id from Registry where String = ?)
+                select RowId from Transactions where HashId = (select RowId from Registry where String = ?)
             )sql");
             TryBindStatementText(stmt, 1, txHash);
             TryStepStatement(stmt);
@@ -153,7 +155,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 UPDATE TxOutputs SET
                     SpentHeight = ?,
-                    SpentTxId = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                    SpentTxId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                 WHERE TxId = ? and Number = ?
             )sql");
 
@@ -182,8 +184,8 @@ namespace PocketDb
                        o.AddressId,
                        sum(o.Value)Amount
                 -- TODO (losty-db): fix me
-                from TxOutputs o indexed by TxOutputs_TxHeight_AddressId
-                where  o.TxHeight = ?
+                from TxOutputs o
+                join Chain c on c.TxId = o.TxId and c.Height = ?
                 group by o.AddressId
 
                 union
@@ -191,8 +193,9 @@ namespace PocketDb
                 select 'spent',
                        o.AddressId,
                        -sum(o.Value)Amount
-                from TxOutputs o indexed by TxOutputs_SpentHeight_AddressId
-                where o.SpentHeight = ?
+                from TxInputs i
+                join Chain ci on ci.TxId = i.SpentTxId and ci.Height = ?
+                join TxOutputs o on o.TxId = i.TxId and o.Number = i.Number
                 group by o.AddressId
 
             ) saldo
@@ -242,7 +245,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (100,170)
-                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -291,7 +294,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (103)
-                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -340,7 +343,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (200,201,202,209,210,207)
-                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -389,7 +392,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (204,205,206)
-                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -441,7 +444,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (305,306)
-                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -489,7 +492,7 @@ namespace PocketDb
                 join Chain utc -- TODO (losty-db): index
                 on utc.TxId = ut.Id
                     and utc.Last = 1
-                where b.Type in (305) and b.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                where b.Type in (305) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                     and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
             )sql");
             TryBindStatementText(insListStmt, 1, txHash);
@@ -513,7 +516,7 @@ namespace PocketDb
                 on utc.TxId = ut.Id
                     and utc.Last = 1
                     and utc.Id = BlockingLists.IdTarget
-                where b.Type in (306) and b.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                where b.Type in (306) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                 )
             )sql");
             TryBindStatementText(delListStmt, 1, txHash);
@@ -543,7 +546,7 @@ namespace PocketDb
                         join Last l
                             on l.TxId = c.TxId
                         where a.Type in (302,303,304)
-                            and a.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                         limit 1
                     ),
                     ifnull(
@@ -592,7 +595,7 @@ namespace PocketDb
                   where TxId = Transactions.Id
                 )
               )
-            where Transactions.Id = (select RowId from Transactions where HashId = (select Id from Registry where String = ?))
+            where Transactions.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
               and Transactions.Type in (208)
         )sql");
         TryBindStatementText(stmt, 1, txHash);
