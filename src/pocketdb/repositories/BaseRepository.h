@@ -195,6 +195,15 @@ namespace PocketDb
                     __func__, index, value));
         }
 
+        bool TryBindStatementNull(shared_ptr<sqlite3_stmt*>& stmt, int index)
+        {
+            int res = sqlite3_bind_null(*stmt, index);
+            if (!CheckValidResult(stmt, res))
+                return false;
+
+            return true;
+        }
+
         void SetLastInsertRowId(int64_t value)
         {
             sqlite3_set_last_insert_rowid(m_database.m_db, value);
