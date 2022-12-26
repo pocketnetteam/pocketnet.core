@@ -135,17 +135,19 @@ namespace PocketDb
     {
         auto stmt = SetupSqlStatement(R"sql(
             -- TODO (losty-db): use WITH statement for TxId
-            INSERT OR FAIL INTO Chain (TxId, BlockId, BlockNum, Height )sql" + string(id ? ", Id" : "") + R"sql( )
-            select (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)), (select RowId from Registry where String = ?), ?, ? )sql" + string(id ? ", ?" : "") + R"sql(
-            where not exists (select 1 from Chain where TxId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)))
+            with t as (
+                select RowId from Transactions where
+                    HashId = (select RowId from Registry where String = ?)
+            )
+            INSERT OR FAIL INTO Chain (TxId, BlockId, BlockNum, Height, Uid)
+            select (select t.RowId from t), (select RowId from Registry where String = ?), ?, ?, ?
+            where not exists (select 1 from Chain,t where TxId = (t.RowId )) and (select t.RowId > 0 from t)
         )sql");
-        int i = 1;
-        TryBindStatementText(stmt, i++, txHash);
-        TryBindStatementText(stmt, i++, blockHash);
-        TryBindStatementInt(stmt, i++, blockNumber);
-        TryBindStatementInt(stmt, i++, height);
-        if (id) TryBindStatementInt64(stmt, i++, *id); // TODO (losty-db): try TryBindStatementNull if !id
-        TryBindStatementText(stmt, i++, txHash);
+        TryBindStatementText(stmt, 1, txHash);
+        TryBindStatementText(stmt, 2, blockHash);
+        TryBindStatementInt(stmt, 3, blockNumber);
+        TryBindStatementInt(stmt, 4, height);
+        if (id) TryBindStatementInt64(stmt, 5, *id);
         TryStepStatement(stmt);
 
         if (fIsCreateLast) {
@@ -153,8 +155,8 @@ namespace PocketDb
                 INSERT INTO Last (TxId)
                 select RowId from Transactions where HashId = (select RowId from Registry where String = ?)
             )sql");
-            TryBindStatementText(stmt, 1, txHash);
-            TryStepStatement(stmt);
+            TryBindStatementText(stmtInsertLast, 1, txHash);
+            TryStepStatement(stmtInsertLast);
         }
     }
 
