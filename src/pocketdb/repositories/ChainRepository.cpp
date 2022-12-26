@@ -596,16 +596,19 @@ namespace PocketDb
             set Int1 =
               (
                 (
-                  select sum(i.Value)
-                  from TxOutputs i indexed by TxOutputs_SpentTxId
-                  where i.SpentTxId = Transactions.Id
+                  select sum(oo.Value)
+                  from TxInputs i -- TODO (losty-db): index
+                  join TxOutputs oo -- TODO (losty-db): index
+                    on oo.TxId = i.TxId
+                    and oo.Number = i.Number
+                  where i.SpentTxId = Transactions.RowId
                 ) - (
                   select sum(o.Value)
-                  from TxOutputs o indexed by TxOutputs_TxId_AddressId_Value
-                  where TxId = Transactions.Id
+                  from TxOutputs o -- TODO (losty-db): index
+                  where TxId = Transactions.RowId
                 )
               )
-            where Transactions.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
+            where Transactions.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
               and Transactions.Type in (208)
         )sql");
         TryBindStatementText(stmt, 1, txHash);
