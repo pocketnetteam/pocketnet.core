@@ -712,6 +712,10 @@ namespace PocketDb
     void TransactionRepository::InsertTransactionPayload(const Payload& payload)
     {
         auto stmt = SetupSqlStatement(R"sql(
+            with t as (
+                select RowId from Transactions where HashId =
+                        (select RowId from Registry where String = ?)
+            )
             INSERT OR FAIL INTO Payload (
                 TxId,
                 String1,
@@ -722,13 +726,8 @@ namespace PocketDb
                 String6,
                 String7
             ) SELECT
-                ?,?,?,?,?,?,?,?
-            WHERE not exists 
-                (select 1 from Payload p where p.TxId =
-                    (select RowId from Transactions where HashId =
-                        (select RowId from Registry where String = ?)
-                    )
-                )
+                (select t.RowId from t),?,?,?,?,?,?,?
+            WHERE not exists (select 1 from Payload p,t  where p.TxId = t.RowId)
         )sql");
 
         TryBindStatementText(stmt, 1, payload.GetTxHash());
