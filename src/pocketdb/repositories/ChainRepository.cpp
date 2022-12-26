@@ -140,7 +140,7 @@ namespace PocketDb
         TryBindStatementText(stmt, i++, blockHash);
         TryBindStatementInt(stmt, i++, blockNumber);
         TryBindStatementInt(stmt, i++, height);
-        if (id) TryBindStatementInt64(stmt, i++, *id);
+        if (id) TryBindStatementInt64(stmt, i++, *id); // TODO (losty-db): try TryBindStatementNull if !id
         TryBindStatementText(stmt, i++, txHash);
         TryStepStatement(stmt);
 
