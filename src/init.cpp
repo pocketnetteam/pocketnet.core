@@ -667,7 +667,6 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlsharedcache", strprintf("Experimental: enable shared cache for sqlite connections (default: disabled)"), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
-    argsman.AddArg("-withoutweb", strprintf("Disable WEB part of database (default: %u)", false), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
 
 
 #if HAVE_DECL_DAEMON
@@ -1655,7 +1654,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     PocketWeb::PocketFrontendInst.Init();
 
     // Always start WEB DB building thread
-    if (!args.GetBoolArg("-withoutweb", false))
+    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     if (ShutdownRequested())
@@ -2116,7 +2115,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         return false;
     }
 
-    if (!gArgs.GetBoolArg("-withoutweb", false) && gArgs.GetArg("-reindex", 0) == 0)
+    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE) && gArgs.GetArg("-reindex", 0) == 0)
         PocketServices::WebPostProcessorInst.Enqueue(ChainActive().Height());
 
     fs::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
