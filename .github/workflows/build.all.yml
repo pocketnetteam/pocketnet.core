@@ -1,5 +1,5 @@
 name: Build
-run-name: "Build: ${{ inputs.platform }} | ${{ inputs.depsBase }} | ${{ inputs.tag || 'latest' }} | ${{ github.ref_name }}"
+run-name: "Build: ${{ inputs.platform }} . ${{ inputs.depsBase }} . ${{ inputs.tag || 'latest' }} . ${{ github.ref_name }}"
 
 on:
   workflow_dispatch:
