@@ -35,6 +35,8 @@ namespace PocketTx
     #define OR_STREAM "73747265616d" // Post for stream hosting
     #define OR_AUDIO "617564696f" // Post for audio hosting
 
+    #define OR_COLLECTION "636F6C6C656374696F6E" // Collection of contents
+
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
     #define OR_TRANSLATE "7472616e736c617465"                 // Post for translating words
@@ -82,6 +84,8 @@ namespace PocketTx
 
         CONTENT_STREAM = 209,
         CONTENT_AUDIO = 210,
+
+        CONTENT_COLLECTION = 220,
 
         ACTION_SCORE_CONTENT = 300,
         ACTION_SCORE_COMMENT = 301,
@@ -162,6 +166,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_ARTICLE ||
                    Type == TxType::CONTENT_STREAM ||
                    Type == TxType::CONTENT_AUDIO ||
+//                   Type == TxType::CONTENT_COLLECTION || // TODO (o1q): is collection content????
                    Type == TxType::CONTENT_DELETE;
         }
 
