@@ -36,8 +36,12 @@ namespace PocketDb
             if (!DbViewHelper::Inject(ptx, collectData.txContextData))
                 return nullptr;
 
-            ptx->Inputs() = collectData.inputs;
-            ptx->Outputs() = collectData.outputs;
+            auto outputs = collectData.outputs;
+            std::sort(outputs.begin(), outputs.end(), [](const TransactionOutput& elem1, const TransactionOutput& elem2) { return *elem1.GetNumber() < *elem2.GetNumber(); });
+            auto inputs = collectData.inputs;
+            std::sort(inputs.begin(), inputs.end(), [](const TransactionInput& elem1, const TransactionInput& elem2) { return *elem1.GetNumber() < *elem2.GetNumber(); });
+            ptx->Inputs() = std::move(inputs);
+            ptx->Outputs() = std::move(outputs);
             if (collectData.payload) ptx->SetPayload(*collectData.payload);
             return ptx;
         }
