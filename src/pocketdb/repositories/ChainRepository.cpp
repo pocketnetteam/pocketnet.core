@@ -243,32 +243,29 @@ namespace PocketDb
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
-            select *
-            from ifnull(
-                    -- copy self Id
+            with l as (
+                select b.RowId
+                from Transactions a -- TODO (losty-db): index
+                join Transactions b
+                    on b.Type in (100, 170)
+                    and b.Int1 = a.Int1
+                join Last l
+                    on l.TxId = b.RowId
+                where a.Type in (100,170)
+                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
+                limit 1
+            )
+            select ifnull(
+                (select c.Uid from Chain c,l where c.TxId = l.RowId),
+                ifnull(
+                    -- new record
                     (
-                        select c.Id, b.Id
-                        from Transactions a -- TODO (losty-db): index
-                        join Transactions b
-                            on b.Type in (100, 170)
-                            and b.Int1 = a.Int1
-                        join Chain c
-                            on c.TxId = b.Id
-                        join Last l
-                            on l.TxId = c.TxId
-                        where a.Type in (100,170)
-                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                        limit 1
+                        select max( c.Uid ) + 1
+                        from Chain c -- TODO (losty-db): index
                     ),
-                    ifnull(
-                        -- new record
-                        (
-                            select max( c.Id ) + 1, -1
-                            from Chain a indexed by Chain_Id
-                        ),
-                        (select 0, -1) -- for first record
-                    )
+                    (select 0) -- for first record
                 )
+           ), l.RowId from l
         )sql");
 
         int64_t id = 0;
@@ -292,32 +289,29 @@ namespace PocketDb
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
-            select *
-            from ifnull(
-                    -- copy self Id
-                    (
-                        select c.Id, b.Id
-                        from Transactions a -- TODO (losty-db): index
-                        join Transactions b
-                            on b.Type in (103)
-                            and b.Int1 = a.Int1
-                        join Chain c
-                            on c.TxId = b.Id
-                        join Last l
-                            on l.TxId = c.TxId
-                        where a.Type in (103)
-                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                        limit 1
-                    ),
-                    ifnull(
-                        -- new record
-                        (
-                            select max( c.Id ) + 1, -1
-                            from Chain a indexed by Chain_Id
-                        ),
-                        (select 0, -1) -- for first record
-                    )
-                )
+            with l as (
+                select b.RowId
+                from Transactions a -- TODO (losty-db): index
+                join Transactions b
+                    on b.Type in (103)
+                    and b.Int1 = a.Int1
+                join Last l
+                    on l.TxId = b.RowId
+                where a.Type in (103)
+                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
+                limit 1
+            )
+            select ifnull(
+                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+                        ifnull(
+                            -- new record
+                            (
+                                select max( c.Uid ) + 1
+                                from Chain c -- TODO (losty-db): index
+                            ),
+                            (select 0) -- for first record
+                        )
+                ), l.RowId from l
         )sql");
 
         int64_t id = 0;
@@ -341,32 +335,29 @@ namespace PocketDb
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
-            select *
-            from ifnull(
-                    -- copy self Id
-                    (
-                        select c.Id, b.Id
-                        from Transactions a -- TODO (losty-db): index
-                        join Transactions b
-                            on b.Type in (200,201,202,209,210,207)
-                            and b.Int2 = a.Int2
-                        join Chain c
-                            on c.TxId = b.Id
-                        join Last l
-                            on l.TxId = c.TxId
-                        where a.Type in (200,201,202,209,210,207)
-                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                        limit 1
-                    ),
-                    ifnull(
-                        -- new record
-                        (
-                            select max( c.Id ) + 1, -1
-                            from Chain a indexed by Chain_Id
-                        ),
-                        (select 0, -1) -- for first record
-                    )
-                )
+            with l as (
+                select b.RowId
+                from Transactions a -- TODO (losty-db): index
+                join Transactions b
+                    on b.Type in (200,201,202,209,210,207)
+                    and b.RegId2 = a.RegId2
+                join Last l
+                    on l.TxId = b.RowId
+                where a.Type in (200,201,202,209,210,207)
+                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
+                limit 1
+            )
+            select ifnull(
+                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+                        ifnull(
+                            -- new record
+                            (
+                                select max( c.Uid ) + 1
+                                from Chain c -- TODO (losty-db): index
+                            ),
+                            (select 0) -- for first record
+                        )
+                ), l.RowId from l
         )sql");
 
         int64_t id = 0;
@@ -390,32 +381,29 @@ namespace PocketDb
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
-            select *
-            from ifnull(
-                    -- copy self Id
-                    (
-                        select max( c.Id ), b.Id
-                        from Transactions a -- TODO (losty-db): index
-                        join Transactions b
-                            on b.Type in (204,205,206)
-                            and b.Int2 = a.Int2
-                        join Chain c
-                            on c.TxId = b.Id
-                        join Last l
-                            on l.TxId = c.TxId
-                        where a.Type in (204,205,206)
-                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                        limit 1
-                    ),
-                    ifnull(
-                        -- new record
-                        (
-                            select max( c.Id ) + 1, -1
-                            from Chain a indexed by Chain_Id
-                        ),
-                        (select 0, -1) -- for first record
-                    )
-                )
+            with l as (
+                select b.RowId
+                from Transactions a -- TODO (losty-db): index
+                join Transactions b
+                    on b.Type in (204,205,206)
+                    and b.RegId2 = a.RegId2
+                join Last l
+                    on l.TxId = b.RowId
+                where a.Type in (204,205,206)
+                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
+                limit 1
+            )
+            select ifnull(
+                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+                        ifnull(
+                            -- new record
+                            (
+                                select max( c.Uid ) + 1
+                                from Chain c -- TODO (losty-db): index
+                            ),
+                            (select 0) -- for first record
+                        )
+                ), l.RowId from l
         )sql");
 
         int64_t id = 0;
@@ -440,34 +428,31 @@ namespace PocketDb
         // TODO (o1q): double check multiple locks
         // Set last=1 for new transaction
          auto sql = string(R"sql(
-            select *
-            from ifnull(
-                    -- copy self Id
-                    (
-                        select c.Id, b.Id
-                        from Transactions a -- TODO (losty-db): index
-                        join Transactions b
-                            on b.Type in (305,306)
-                            and b.Int1 = a.Int1
-                            and ifnull(b.int2,-1) = ifnull(a.Int2,-1)
-                            and ifnull(b.int3,-1) = ifnull(a.Int3,-1)
-                        join Chain c
-                            on c.TxId = b.Id
-                        join Last l
-                            on l.TxId = c.TxId
-                        where a.Type in (305,306)
-                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                        limit 1
-                    ),
-                    ifnull(
-                        -- new record
-                        (
-                            select max( c.Id ) + 1, -1
-                            from Chain a indexed by Chain_Id
-                        ),
-                        (select 0, -1) -- for first record
-                    )
-                )
+            with l as (
+                select b.RowId
+                from Transactions a -- TODO (losty-db): index
+                join Transactions b
+                    on b.Type in (305,306)
+                    and b.Int1 = a.Int1
+                    and ifnull(b.RegId2,-1) = ifnull(a.RegId2,-1)
+                    and ifnull(b.RegId3,-1) = ifnull(a.RegId3,-1)
+                join Last l
+                    on l.TxId = b.RowId
+                where a.Type in (305,306)
+                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
+                limit 1
+            )
+            select ifnull(
+                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+                        ifnull(
+                            -- new record
+                            (
+                                select max( c.Uid ) + 1
+                                from Chain c -- TODO (losty-db): index
+                            ),
+                            (select 0) -- for first record
+                        )
+                ), l.RowId from l
         )sql");
 
         int64_t id = 0;
@@ -543,33 +528,30 @@ namespace PocketDb
     {
          // Get new ID or copy previous
         auto sql = string(R"sql(
-            select *
-            from ifnull(
-                    -- copy self Id
-                    (
-                        select c.Id, b.Id
-                        from Transactions a -- TODO (losty-db): index
-                        join Transactions b
-                            on b.Type in (302,303,304)
-                            and b.Int1 = a.Int1
-                            and b.Int2 = a.Int2
-                        join Chain c
-                            on c.TxId = b.Id
-                        join Last l
-                            on l.TxId = c.TxId
-                        where a.Type in (302,303,304)
-                            and a.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                        limit 1
-                    ),
-                    ifnull(
-                        -- new record
-                        (
-                            select max( c.Id ) + 1, -1
-                            from Chain a indexed by Chain_Id
-                        ),
-                        (select 0, -1) -- for first record
-                    )
-                )
+            with l as (
+                select b.RowId
+                from Transactions a -- TODO (losty-db): index
+                join Transactions b
+                    on b.Type in (302,303,304)
+                    and b.RegId1 = a.RegId1
+                    and b.RegId2 = a.RegId2
+                join Last l
+                    on l.TxId = b.RowId
+                where a.Type in (302,303,304)
+                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
+                limit 1
+            )
+            select ifnull(
+                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+                        ifnull(
+                            -- new record
+                            (
+                                select max( c.Uid ) + 1
+                                from Chain c -- TODO (losty-db): index
+                            ),
+                            (select 0) -- for first record
+                        )
+                ), l.RowId from l
         )sql");
 
         int64_t id = 0;
