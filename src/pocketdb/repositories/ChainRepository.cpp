@@ -46,9 +46,13 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
+            IndexBlockData(blockHash);
+        });
+
+        TryTransactionStep(__func__, [&]()
+        {
             int64_t nTime1 = GetTimeMicros();
 
-            IndexBlockData(blockHash);
 
             // Each transaction is processed individually
             for (const auto& txInfo : chainData)
