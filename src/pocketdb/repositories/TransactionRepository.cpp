@@ -738,7 +738,6 @@ namespace PocketDb
         TryBindStatementText(stmt, 6, payload.GetString5());
         TryBindStatementText(stmt, 7, payload.GetString6());
         TryBindStatementText(stmt, 8, payload.GetString7());
-        TryBindStatementText(stmt, 9, payload.GetTxHash());
 
         TryStepStatement(stmt);
     }
