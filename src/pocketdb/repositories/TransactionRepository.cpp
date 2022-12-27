@@ -274,10 +274,6 @@ namespace PocketDb
         {
             InsertRegistry(registyStrings);
             InsertRegistryLists(lists);
-        });
-
-        TryTransactionStep(__func__, [&]()
-        {
             for (const auto& collectData: collectDataVec)
             {
                 // Filling Registry with text data
