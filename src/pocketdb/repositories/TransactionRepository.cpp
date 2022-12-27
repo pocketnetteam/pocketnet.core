@@ -332,7 +332,7 @@ namespace PocketDb
                     )
                     from Lists l
                     where l.TxId = t.RowId
-                    order by l.Order asc
+                    order by l.OrderIndex asc
                 )
             from Transactions t
             left join Chain c
@@ -999,7 +999,7 @@ namespace PocketDb
             with t as (
                 select a.RowId from Transactions a where a.HashId = (select r.RowId from Registry r where r.String = ?)
             )
-            insert or ignore into Lists (TxId, Order, RegId)
+            insert or ignore into Lists (TxId, OrderIndex, RegId)
             select * from (
                 select t.RowId from t), 
                 (
