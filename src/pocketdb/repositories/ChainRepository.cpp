@@ -654,24 +654,16 @@ namespace PocketDb
 
         // ----------------------------------------
         // Restore old Last transactions
+        // TODO (losty-critical): validate!!!
         auto stmt1 = SetupSqlStatement(R"sql(
-            update Chain -- TODO (losty-db): index
-                set Last=1
-            from (
-                select c1.Id, max(b2.Id)BlockId -- TODO (losty-critical): is this ok??? Is max(blockId) the same as max(height)?
-                from Chain c1
-                join Blocks b1
-                    on b1.Id = c1.BlockId
-                    and b1.Height >= ?
-                join Chain c2 on c2.Id = c1.Id and c2.Last = 0
-                join Blocks b2 on b2.Id = c2.BlockId and b2.Height <= ?
-                where c1.Last = 1
-                group by c1.Id
-            )c
-            where Chain.Id = c.Id and Chain.BlockId = c.BlockId
+            insert into Last (TxId) -- TODO (losty-db): index
+            select TxId from (
+                select c.TxId, max(c.Height)Height
+                from Chain c
+                where c.Uid > 0 and not exists (select 1 from Last l where l.TxId = c.TxId)
+                group by c.Uid
+            )
         )sql");
-        TryBindStatementInt(stmt1, 1, height);
-        TryBindStatementInt(stmt1, 2, height);
         TryStepStatement(stmt1);
 
         int64_t nTime1 = GetTimeMicros();
@@ -680,18 +672,18 @@ namespace PocketDb
         // ----------------------------------------
         // Restore Last for deleting ratings
         auto stmt2 = SetupSqlStatement(R"sql(
-            update Ratings indexed by Ratings_Type_Id_Height_Value
+            update Ratings indexed by Ratings_Type_Uid_Height_Value
                 set Last=1
             from (
-                select r1.Type, r1.Id, max(r2.Height)Height
-                from Ratings r1 indexed by Ratings_Type_Id_Last_Height
-                join Ratings r2 indexed by Ratings_Type_Id_Last_Height on r2.Type = r1.Type and r2.Id = r1.Id and r2.Last = 0 and r2.Height < ?
+                select r1.Type, r1.Uid, max(r2.Height)Height
+                from Ratings r1 indexed by Ratings_Type_Uid_Last_Height
+                join Ratings r2 indexed by Ratings_Type_Uid_Last_Height on r2.Type = r1.Type and r2.Uid = r1.Uid and r2.Last = 0 and r2.Height < ?
                 where r1.Height >= ?
                   and r1.Last = 1
-                group by r1.Type, r1.Id
+                group by r1.Type, r1.Uid
             )r
             where Ratings.Type = r.Type
-              and Ratings.Id = r.Id
+              and Ratings.Uid = r.Uid
               and Ratings.Height = r.Height
         )sql");
         TryBindStatementInt(stmt2, 1, height);
@@ -745,54 +737,63 @@ namespace PocketDb
     {
         int64_t nTime0 = GetTimeMicros();
 
+        auto stmt0 = SetupSqlStatement(R"sql(
+            delete from Last
+            where TxId in (select c.TxId from Chain c where c.Height > ?)
+        )sql");
+        TryBindStatementInt64(stmt0, 1, height);
+        TryStepStatement(stmt0);
         // ----------------------------------------
         // Rollback general transaction information
-        auto stmt0 = SetupSqlStatement(R"sql(
-            delete from Chain c
-            WHERE BlockId in (select Id from Blocks where Height >= ?)
+        auto stmt1 = SetupSqlStatement(R"sql(
+            delete from Chain
+            WHERE Height >= ?
         )sql");
-        TryBindStatementInt(stmt0, 1, height);
-        TryStepStatement(stmt0);
+        TryBindStatementInt64(stmt1, 1, height);
+        TryStepStatement(stmt1);
 
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Chain:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
-        auto stmt1 = SetupSqlStatement(R"sql(
-            delete from Blocks
-            where Height >= ?
-        )sql");
-        TryBindStatementInt(stmt1, 1, height);
-        TryStepStatement(stmt1);
+        // TODO (losty-db): delete blocks from db?
+        // auto stmt1 = SetupSqlStatement(R"sql(
+        //     delete from Blocks
+        //     where Height >= ?
+        // )sql");
+        // TryBindStatementInt(stmt1, 1, height);
+        // TryStepStatement(stmt1);
 
         int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Blocks:Height = null): %.2fms\n", 0.001 * (nTime2 - nTime1));
+        // LogPrint(BCLog::BENCH, "        - RollbackHeight (Blocks:Height = null): %.2fms\n", 0.001 * (nTime2 - nTime1));
 
         // ----------------------------------------
         // Rollback spent transaction outputs
-        auto stmt2 = SetupSqlStatement(R"sql(
-            UPDATE TxOutputs SET
-                SpentHeight = null,
-                SpentTxId = null
-            WHERE SpentHeight >= ?
-        )sql");
-        TryBindStatementInt(stmt2, 1, height);
-        TryStepStatement(stmt2);
+
+        // auto stmt2 = SetupSqlStatement(R"sql(
+        //     UPDATE TxOutputs SET
+        //         SpentHeight = null,
+        //         SpentTxId = null
+        //     WHERE SpentHeight >= ?
+        // )sql");
+        // TryBindStatementInt(stmt2, 1, height);
+        // TryStepStatement(stmt2);
 
         int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:SpentHeight = null): %.2fms\n", 0.001 * (nTime3 - nTime2));
+        // LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:SpentHeight = null): %.2fms\n", 0.001 * (nTime3 - nTime2));
 
         // ----------------------------------------
         // Rollback transaction outputs height
-        auto stmt3 = SetupSqlStatement(R"sql(
-            UPDATE TxOutputs SET
-                TxHeight = null
-            WHERE TxHeight >= ?
-        )sql");
-        TryBindStatementInt(stmt3, 1, height);
-        TryStepStatement(stmt3);
+
+        // auto stmt3 = SetupSqlStatement(R"sql(
+        //     UPDATE TxOutputs SET
+        //         TxHeight = null
+        //     WHERE TxHeight >= ?
+        // )sql");
+        // TryBindStatementInt(stmt3, 1, height);
+        // TryStepStatement(stmt3);
 
         int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:TxHeight = null): %.2fms\n", 0.001 * (nTime4 - nTime3));
+        // LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:TxHeight = null): %.2fms\n", 0.001 * (nTime4 - nTime3));
 
         // ----------------------------------------
         // Remove ratings
@@ -829,24 +830,23 @@ namespace PocketDb
                 select bl.ROWID
                 from Transactions b
                 join Chain bc
-                  on bc.TxId =  b.Id
-                join Blocks bcb
-                  on bcb.Id = bc.BlockId
-                    and bcb.Height >= ? -- TODO (losty-cirtical): very bad
+                  on bc.TxId =  b.RowId
+                    and bc.Height >= ?
                 join Transactions us
                   on us.Type in (100, 170)
-                    and us.String1 = b.String1
+                    and us.RegId1 = b.RegId1
                 join Chain usc
-                  on usc.TxId = us.Id
-                    and usc.Last = 1
-                    and usc.BlockId > 0
+                  on usc.TxId = us.RowId
+                join Last usl
+                  on usl.TxId = us.RowId
                 join Transactions ut
                   on ut.Type in (100, 170)
-                    and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.String1))
+                    and ut.Int1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
                 join Chain utc
-                  on utc.Last = 1
-                    and utc.BlockId > 0
-                join BlockingLists bl on bl.IdSource = usc.Id and bl.IdTarget = utc.Id
+                  on utc.TxId = ut.RowId
+                join Last utl
+                  on utl.TxId = ut.RowId
+                join BlockingLists bl on bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid
                 where b.Type in (305)
             )
         )sql");
@@ -863,28 +863,28 @@ namespace PocketDb
                 IdTarget
             )
             select distinct
-              usc.Id,
-              utc.Id
+              usc.Uid,
+              utc.Uid
             from Transactions b
             join Chain bc
-              on bc.TxId = b.Id
-            join Blocks bcb
-              on bcb.Id = bc.BlockId
-                and bcb.Height >= ? -- TODO (losty-critical): very bad
+              on bc.TxId = b.RowId
+                and bc.Height >= ?
             join Transactions us
               on us.Type in (100, 170) and us.Int1 = b.Int1
             join Chain usc
-              on usc.TxId = us.Id
-                and usc.Last = 1
+              on usc.TxId = us.RowId
+            join Last usl
+                on usl.TxId = us.RowId
             join Transactions ut
-              on ut.Type in (100, 170) and ut.Last = 1
+              on ut.Type in (100, 170)
                 --and ut.String1 = b.String2
-                and ut.Int1 in (select b.Int2 union select cast (value as int) from json_each(b.String1))
+                and ut.Int1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
             join Chain utc
-              on utc.TxId = ut.Id
-                and utc.Last = 1
+              on utc.TxId = ut.RowId
+            join Last utl
+              on utl.TxId = ut.RowId
             where b.Type in (306)
-              and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
+              and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid)
         )sql");
         TryBindStatementInt(insListStmt, 1, height);
         TryStepStatement(insListStmt);
