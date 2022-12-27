@@ -1145,9 +1145,10 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/Subscribe.hpp
         pocketdb/consensus/social/SubscribeCancel.hpp
         pocketdb/consensus/social/SubscribePrivate.hpp
-        pocketdb/consensus/social/AccountUser.hpp
-        pocketdb/consensus/social/AccountSetting.hpp
-        pocketdb/consensus/social/AccountDelete.hpp
+        pocketdb/consensus/social/account/Account.hpp
+        pocketdb/consensus/social/account/AccountUser.hpp
+        pocketdb/consensus/social/account/AccountSetting.hpp
+        pocketdb/consensus/social/account/AccountDelete.hpp
         pocketdb/consensus/social/ContentDelete.hpp
         pocketdb/consensus/social/BoostContent.hpp
         pocketdb/consensus/moderation/Flag.hpp

@@ -1051,9 +1051,11 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
         return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result), (int)result);
 
     // Check transaction with pocketnet consensus rules
-    // TODO (optimization): DEBUG!
-    // if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
-    //     return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_UNWARRANT, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result), (int)result);
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
+    {
+        // TODO (optimization): DEBUG!
+        // return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_UNWARRANT, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result), (int)result);
+    }
 
     // At this point, we believe that all the checks have been carried
     // out and we can safely save the transaction to the database for
@@ -2467,17 +2469,18 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
         // -----------------------------------------------------------------------------------------------------------------
         // Pocketnet Consensus rules
-        // TODO (optimization): DEBUG!
-        // if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(block, pocketBlock, pindex->nHeight); !ok)
-        // {
-        //     LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
-        //         (int)result, pindex->GetBlockHash().GetHex());
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(block, pocketBlock, pindex->nHeight); !ok)
+        {
+            LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
+                (int)result, pindex->GetBlockHash().GetHex());
 
-        //     // We do not mark the block invalid for situations where the chain can be rebuilt.
-        //     // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
-        //     // we need to think about marking the block incomplete and requesting it from the network again.
-        //     return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-validate-social-consensus", "", true);
-        // }
+            // We do not mark the block invalid for situations where the chain can be rebuilt.
+            // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
+            // we need to think about marking the block incomplete and requesting it from the network again.
+            
+            // TODO (optimization): DEBUG!
+            // return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-validate-social-consensus", "", true);
+        }
         
         LogPrint(BCLog::CONSENSUS, "    Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
 

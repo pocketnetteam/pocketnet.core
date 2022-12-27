@@ -182,8 +182,10 @@ POCKETDB_H = \
     pocketdb/consensus/social/Subscribe.hpp \
     pocketdb/consensus/social/SubscribeCancel.hpp \
     pocketdb/consensus/social/SubscribePrivate.hpp \
+    pocketdb/consensus/social/Account.hpp \
     pocketdb/consensus/social/AccountUser.hpp \
     pocketdb/consensus/social/AccountSetting.hpp \
+    pocketdb/consensus/social/AccountDelete.hpp \
     pocketdb/consensus/social/ContentDelete.hpp \
     \
     pocketdb/consensus/moderation/Flag.hpp \

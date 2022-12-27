@@ -26,11 +26,14 @@ namespace PocketConsensus
     template<class T>
     class SocialConsensus : public BaseConsensus
     {
+    private:
+        typedef shared_ptr<T> TRef;
+
     public:
         SocialConsensus(int height) : BaseConsensus(height) {}
 
         // Validate transaction in block for miner & network full block sync
-        virtual ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block)
+        virtual ConsensusValidateResult Validate(const CTransactionRef& tx, const TRef& ptx, const PocketBlockRef& block)
         {
             // TODO (aok): optimize algorithm
             // Account must be registered
@@ -76,8 +79,12 @@ namespace PocketConsensus
         }
 
         // Generic transactions validating
-        virtual ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx)
+        virtual ConsensusValidateResult Check(const CTransactionRef& tx, const TRef& ptx)
         {
+            // All social transactions must have an address
+            if (IsEmpty(ptx->GetAddress()))
+                return {false, SocialConsensusResult_Failed};
+
             if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
                 return {false, result};
 
@@ -87,7 +94,7 @@ namespace PocketConsensus
     protected:
         ConsensusValidateResult Success{true, SocialConsensusResult_Success};
 
-        virtual ConsensusValidateResult ValidateLimits(const shared_ptr<T>& ptx, const PocketBlockRef& block)
+        virtual ConsensusValidateResult ValidateLimits(const TRef& ptx, const PocketBlockRef& block)
         {
             if (block)
                 return ValidateBlock(ptx, block);
@@ -95,12 +102,22 @@ namespace PocketConsensus
                 return ValidateMempool(ptx);
         }
 
-        virtual ConsensusValidateResult ValidateBlock(const shared_ptr<T>& ptx, const PocketBlockRef& block) = 0;
+        virtual ConsensusValidateResult ValidateBlock(const TRef& ptx, const PocketBlockRef& block) = 0;
 
-        virtual ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) = 0;
+        virtual ConsensusValidateResult ValidateMempool(const TRef& ptx) = 0;
+
+        virtual ConsensusValidateResult ValidateLimit(ConsensusLimit limit, int count)
+        {
+            if (count >= GetConsensusLimit(limit))
+                return {false, SocialConsensusResult_ExceededLimit};
+
+            return Success;
+        }
+        
+        virtual ConsensusValidateResult ValidatePayloadSize(const TRef& ptx) = 0;
 
         // Generic check consistence Transaction and Payload
-        virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const shared_ptr<T>& ptx)
+        virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const TRef& ptx)
         {
             auto ptxORHash = ptx->BuildHash();
             auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
@@ -115,9 +132,9 @@ namespace PocketConsensus
         }
 
         // Get addresses from transaction for check registration
-        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& tx)
+        virtual vector<string> GetAddressesForCheckRegistration(const TRef& ptx)
         {
-            return { *tx->GetAddress() };
+            return { *ptx->GetAddress() };
         }
 
         // Check empty pointer
