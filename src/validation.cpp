@@ -1088,7 +1088,6 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
         {
             PocketBlock pocketBlock{_pocketTx};
             PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
-            //LogPrintf("DEBUG InsertTransactions to mempool: %s\n", tx.GetHash().GetHex());
         }
         catch (const std::exception& e)
         {

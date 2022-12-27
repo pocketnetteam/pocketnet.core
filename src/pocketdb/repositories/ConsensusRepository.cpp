@@ -10,6 +10,167 @@ namespace PocketDb
 
     void ConsensusRepository::Destroy() {}
 
+    tuple<uint16_t, uint16_t, uint16_t, uint16_t> ConsensusRepository::AccountUser(
+        const string& address, int depth, const string& name)
+    {
+        #pragma region Prepare
+
+        tuple<uint16_t, uint16_t, uint16_t, uint16_t> result{0,0,0,0};
+        
+        auto _name = EscapeValue(name);
+
+        string sql = R"sql(
+            with
+
+                addressRegId as (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        String = ?
+                    ),
+
+                chainCnt as (
+                    select
+                        count() cnt
+                    from
+                        addressRegId,
+                        Transactions t, -- todo : index
+                        Chain c -- todo : index
+                    where
+                        -- filter registrations transactions by address
+                        t.Type = 100 and
+                        t.RegId1 = addressRegId.RowId and
+                        -- filter by height for exclude mempool
+                        -- losty - right?
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    ),
+
+                lastType as (
+                    select
+                        ifnull(min(t.Type),0) type
+                    from
+                        addressRegId,
+                        Transactions t, -- todo : index
+                        Chain c, -- todo : index
+                        Last l
+                    where
+                        -- filter registrations & deleting transactions by address
+                        t.Type in (100,170) and
+                        t.RegId1 = addressRegId.RowId and
+                        -- filter by height for exclude mempool
+                        c.TxId = t.RowId and
+                        c.Height is not null
+                        -- filter by Last
+                        l.TxId = t.RowId
+                    ),
+
+                dublicate as (
+                    select
+                        count() cnt
+                    from
+                        addressRegId,
+                        Payload p, -- todo : index
+                        Transactions t, -- todo : index
+                        Chain c, -- todo : index
+                        Last l
+                    where
+                        -- find all same names in payload
+                        (p.String2 like ? escape '\') and -- todo : ?
+                        -- link with payload
+                        p.TxId = t.RowId and
+                        -- filter registrations transactions
+                        t.Type = 100 and
+                        -- filter by height for exclude mempool
+                        -- losty - right?
+                        c.TxId = t.RowId and
+                        c.Height is not null
+                        -- filter by Last
+                        l.TxId = t.RowId and
+                        -- exclude self
+                        t.RegId1 != addressRegId.RowId
+                    ),
+
+                mempool as (
+                    select
+                        count() cnt
+                    from
+                        addressRegId,
+                        Transactions t
+                    where
+                        -- filter registrations transactions and address
+                        t.Type in (100, 170) and
+                        t.RegId1 = addressRegId.RowId and
+                        -- filter for non-chain transactions
+                        not exists(select 1 from Chain c where c.TxId = t.RowId)
+                )
+
+            select
+                chainCnt.cnt,
+                lastType.type,
+                dublicate.cnt,
+                mempool.cnt
+            from
+                chainCnt,
+                lastType,
+                dublicate,
+                mempool
+        )sql";
+
+        #pragma endregion
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, depth);
+            TryBindStatementText(stmt, 3, _name);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    get<0>(result) = value;
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok)
+                    get<1>(result) = value;
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)
+                    get<2>(result) = value;
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok)
+                    get<3>(result) = value;
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+        
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // ------------------------------------------------------------------------------------------
+
     bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
     {
         bool result = false;

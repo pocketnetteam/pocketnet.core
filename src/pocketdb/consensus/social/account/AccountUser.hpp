@@ -43,6 +43,10 @@ namespace PocketConsensus
                 if (type == TxType::ACCOUNT_DELETE)
                     return {false, SocialConsensusResult_AccountDeleted};
 
+            // Daily change limit
+            if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
+                return {false, SocialConsensusResult_ChangeInfoLimit};
+
             return Success;
         }
 
@@ -58,10 +62,6 @@ namespace PocketConsensus
             // Name check
             if (auto[ok, result] = CheckLogin(ptx); !ok)
                 return {false, result};
-
-            // Daily change limit
-            if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
-                return {false, SocialConsensusResult_ChangeInfoLimit};
 
             return Success;
         }
