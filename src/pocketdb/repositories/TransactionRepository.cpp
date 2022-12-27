@@ -332,6 +332,7 @@ namespace PocketDb
                     )
                     from Lists l
                     where l.TxId = t.RowId
+                    order by l.Order asc
                 )
             from Transactions t
             left join Chain c
