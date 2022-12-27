@@ -30,7 +30,7 @@ namespace PocketConsensus
         ConsensusValidateResult Validate(const CTransactionRef& tx, const TRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
+            if (auto[ok, code] = Base::ValidatePayloadSize(ptx); !ok)
                 return {false, code};
 
             return Base::Validate(tx, ptx, block);

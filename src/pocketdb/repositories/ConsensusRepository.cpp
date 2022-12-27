@@ -624,7 +624,7 @@ namespace PocketDb
 
     AccountData ConsensusRepository::GetAccountData(const string& address)
     {
-        AccountData result = {address,-1,0,0,0,0,0};
+        AccountData result = {address,-1,0,0,0,0,0,0};
 
         TryTransactionStep(__func__, [&]()
         {

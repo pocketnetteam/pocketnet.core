@@ -80,10 +80,12 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<ModerationFlag>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                {
                     if (*ptx->GetContentTxHash() == *blockPtx->GetContentTxHash())
                         return {false, SocialConsensusResult_Duplicate};
                     else
                         count += 1;
+                }
             }
 
             // Check limit

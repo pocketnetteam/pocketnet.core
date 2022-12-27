@@ -114,7 +114,10 @@ namespace PocketConsensus
             return Success;
         }
         
-        virtual ConsensusValidateResult ValidatePayloadSize(const TRef& ptx) = 0;
+        virtual ConsensusValidateResult ValidatePayloadSize(const TRef& ptx)
+        {
+            return Success;
+        }
 
         // Generic check consistence Transaction and Payload
         virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const TRef& ptx)

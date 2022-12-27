@@ -26,9 +26,9 @@
 #include "pocketdb/consensus/social/Subscribe.hpp"
 #include "pocketdb/consensus/social/SubscribeCancel.hpp"
 #include "pocketdb/consensus/social/SubscribePrivate.hpp"
-#include "pocketdb/consensus/social/AccountUser.hpp"
-#include "pocketdb/consensus/social/AccountSetting.hpp"
-#include "pocketdb/consensus/social/AccountDelete.hpp"
+#include "pocketdb/consensus/social/account/AccountUser.hpp"
+#include "pocketdb/consensus/social/account/AccountSetting.hpp"
+#include "pocketdb/consensus/social/account/AccountDelete.hpp"
 #include "pocketdb/consensus/social/ContentDelete.hpp"
 
 #include "pocketdb/consensus/moderation/Flag.hpp"

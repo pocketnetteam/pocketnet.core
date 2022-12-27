@@ -107,7 +107,6 @@ namespace PocketDb
 
     vector<int64_t> SearchRepository::SearchUsersOld(const SearchRequest& request)
     {
-        auto func = __func__;
         vector<int64_t> result;
 
         string heightWhere = request.TopBlock > 0 ? " and t.Height <= ? " : "";
@@ -166,7 +165,6 @@ namespace PocketDb
 
     vector<int64_t> SearchRepository::SearchUsers(const string& keyword)
     {
-        auto func = __func__;
         vector<int64_t> result;
 
         string _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
@@ -233,7 +231,6 @@ namespace PocketDb
 
     vector<string> SearchRepository::GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
     {
-        auto func = __func__;
         vector<string> ids;
 
         if (address.empty())
@@ -372,7 +369,6 @@ namespace PocketDb
 
     vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
     {
-        auto func = __func__;
         vector<int64_t> ids;
 
         if (contentAddress.empty())
@@ -569,7 +565,6 @@ namespace PocketDb
 
     vector<int64_t> SearchRepository::GetContentFromAddressSubscriptions(const string& address, const vector<int>& contentTypes, const string& lang, int cntOut, bool rest)
     {
-        auto func = __func__;
         vector<int64_t> ids;
 
         if (address.empty())

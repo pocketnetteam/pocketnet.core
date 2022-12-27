@@ -312,16 +312,11 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     int64_t nValueIn = *txPrev.OutputsConst()[prevout.n].GetValue();
     arith_uint256 bnWeight = std::min(nValueIn, Params().GetConsensus().nStakeMaximumThreshold);
     bnTarget *= bnWeight;
-
     targetProofOfStake = bnTarget;
-
-    uint64_t nStakeModifier = pindexPrev->nStakeModifier;
-    int nStakeModifierHeight = pindexPrev->nHeight;
-    int64_t nStakeModifierTime = pindexPrev->nTime;
 
     // Calculate hash
     CDataStream ss(SER_GETHASH, 0);
-    ss << nStakeModifier << nTimeBlockFrom << uint32_t(*txPrev.GetTime()) << prevout.hash << prevout.n << nTimeTx;
+    ss << pindexPrev->nStakeModifier << nTimeBlockFrom << uint32_t(*txPrev.GetTime()) << prevout.hash << prevout.n << nTimeTx;
     hashProofOfStakeSource = ss;
     hashProofOfStake = UintToArith256(Hash(ss));
 

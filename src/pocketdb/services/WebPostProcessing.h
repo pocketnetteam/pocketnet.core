@@ -53,7 +53,6 @@ namespace PocketServices
         SQLiteDatabaseRef sqliteDbInst;
         WebRepositoryRef webRepoInst;
 
-        uint32_t sleep = 5 * 1000;
         bool shutdown = false;
 
         Mutex _running_mutex;
