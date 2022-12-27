@@ -10,7 +10,7 @@ namespace PocketDb
 
     void ConsensusRepository::Destroy() {}
 
-    const ConsensusData_AccountUser& ConsensusRepository::AccountUser(
+    ConsensusData_AccountUser ConsensusRepository::AccountUser(
         const string& address, int depth, const string& name)
     {
         #pragma region Prepare

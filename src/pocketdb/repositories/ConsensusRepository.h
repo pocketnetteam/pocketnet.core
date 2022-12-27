@@ -95,7 +95,7 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        const ConsensusData_AccountUser& AccountUser(const string& address, int depth, const string& name);
+        ConsensusData_AccountUser AccountUser(const string& address, int depth, const string& name);
 
 
 
