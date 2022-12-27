@@ -229,7 +229,7 @@ namespace PocketDb
         }
     };
 
-    static const auto _findStringsAndListsToBeInserted(const std::vector<CollectData>& collectDataVec)
+    static auto _findStringsAndListsToBeInserted(const std::vector<CollectData>& collectDataVec)
     {
         vector<string> stringsToBeInserted;
         vector<string> listsToBeInserted;
