@@ -273,7 +273,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             InsertRegistry(registyStrings);
-            InsertLists(lists);
+            InsertRegistryLists(lists);
         });
 
         TryTransactionStep(__func__, [&]()
@@ -285,6 +285,9 @@ namespace PocketDb
 
                 // Insert general transaction
                 InsertTransactionModel(collectData);
+
+                // Insert lists for transaction
+                if (collectData.txContextData.list) InsertList(*collectData.txContextData.list, collectData.txHash);
 
                 // Inputs
                 InsertTransactionInputs(collectData.inputs, collectData.txHash);
@@ -746,6 +749,9 @@ namespace PocketDb
     {
         // TODO (losty-db): WITH not working?
         auto stmt = SetupSqlStatement(R"sql(
+            with h as (
+                select RowId as HashId from Registry where String = ?
+            )
             INSERT OR FAIL INTO Transactions (
                 Type,
                 Time,
@@ -757,27 +763,27 @@ namespace PocketDb
                 RegId4,
                 RegId5
             )
-            SELECT ?,?,?, (select RowId as HashId from Registry where String = ?),
+            SELECT ?,?,?, (select h.HashId from h),
                 (select RowId from Registry where String = ?),
                 (select RowId from Registry where String = ?),
                 (select RowId from Registry where String = ?),
                 (select RowId from Registry where String = ?),
                 (select RowId from Registry where String = ?)
-            WHERE not exists (select 1 from Transactions t where t.HashId = (select RowId as HashId from Registry where String = ?))
+            WHERE not exists (select 1 from Transactions a,h where a.HashId = h.HashId)
         )sql");
 
-        TryBindStatementInt(stmt, 1, (int)*collectData.ptx->GetType());
-        TryBindStatementInt64(stmt, 2, collectData.ptx->GetTime());
-        TryBindStatementInt64(stmt, 3, collectData.ptx->GetInt1());
-        TryBindStatementText(stmt, 4, collectData.txHash);
-        TryBindStatementText(stmt, 5, collectData.ptx->GetString1());
-        TryBindStatementText(stmt, 6, collectData.ptx->GetString2());
-        TryBindStatementText(stmt, 7, collectData.ptx->GetString3());
-        TryBindStatementText(stmt, 8, collectData.ptx->GetString4());
-        TryBindStatementText(stmt, 9, collectData.ptx->GetString5());
-        TryBindStatementText(stmt, 10, collectData.txHash);
-
+        TryBindStatementText(stmt, 1, collectData.txHash);
+        TryBindStatementInt(stmt, 2, (int)*collectData.ptx->GetType());
+        TryBindStatementInt64(stmt, 3, collectData.ptx->GetTime());
+        TryBindStatementInt64(stmt, 4, collectData.txContextData.int1);
+        TryBindStatementText(stmt, 5, collectData.txContextData.string1);
+        TryBindStatementText(stmt, 6, collectData.txContextData.string2);
+        TryBindStatementText(stmt, 7, collectData.txContextData.string3);
+        TryBindStatementText(stmt, 8, collectData.txContextData.string4);
+        TryBindStatementText(stmt, 9, collectData.txContextData.string5);
         TryStepStatement(stmt);
+
+        if (!collectData.txContextData.list) return;
     }
 
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(
@@ -971,7 +977,7 @@ namespace PocketDb
         TryStepStatement(stmt);
     }
 
-    void TransactionRepository::InsertLists(const vector<string> &lists)
+    void TransactionRepository::InsertRegistryLists(const vector<string> &lists)
     {
         if (lists.empty()) return;
         static auto stmt = SetupSqlStatement(R"sql(
@@ -981,9 +987,30 @@ namespace PocketDb
 
         for (const auto& list: lists) {
             TryBindStatementText(stmt, 1, list);
-            TryStepStatement(stmt);
+            sqlite3_step(*stmt); // TODO (losty-db): indirect
             ResetSqlStatement(*stmt);
         }
+    }
+
+    void TransactionRepository::InsertList(const string &list, const string& txHash)
+    {
+        static auto stmt = SetupSqlStatement(R"sql(
+            with t as (
+                select a.RowId from Transactions a where a.HashId = (select r.RowId from Registry r where r.String = ?)
+            )
+            insert or ignore into Lists (TxId, Order, RegId)
+            select * from (
+                select t.RowId from t), 
+                (
+                    select key, -- key will be the index in array
+                    (select RowId from Registry where String = value) 
+                    from json_each(?)
+                )
+        )sql");
+        TryBindStatementText(stmt, 1, txHash);
+        TryBindStatementText(stmt, 2, list);
+        sqlite3_step(*stmt); // TODO (losty-db): indirect
+        ResetSqlStatement(*stmt);
     }
 
 } // namespace PocketDb
