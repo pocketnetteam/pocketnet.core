@@ -64,7 +64,13 @@ namespace PocketDb
                 if (txInfo.lastTxId) ClearOldLast(*txInfo.lastTxId);
 
                 // All transactions must have a blockHash & height relation
-                InsertTransactionChainData(blockHash, txInfo.indexingInfo.BlockNumber, height, txInfo.indexingInfo.Hash, txInfo.id, txInfo.lastTxId.has_value());
+                InsertTransactionChainData(blockHash,
+                                            txInfo.indexingInfo.BlockNumber,
+                                            height,
+                                            txInfo.indexingInfo.Hash,
+                                            txInfo.id,
+                                            txInfo.id.has_value() /* each tx with id should have last */
+                                        );
             }
 
             int64_t nTime2 = GetTimeMicros();
@@ -235,7 +241,7 @@ namespace PocketDb
     }
 
     // <id, lastTxID>
-    pair<int64_t, int64_t> ChainRepository::IndexAccount(const string& txHash)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccount(const string& txHash)
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -244,7 +250,7 @@ namespace PocketDb
                 from Transactions a -- TODO (losty-db): index
                 join Transactions b
                     on b.Type in (100, 170)
-                    and b.Int1 = a.Int1
+                    and b.RegId1 = a.RegId1
                 join Last l
                     on l.TxId = b.RowId
                 where a.Type in (100,170)
@@ -261,11 +267,11 @@ namespace PocketDb
                     ),
                     (select 0) -- for first record
                 )
-           ), l.RowId from l
+           ), (select l.RowId from l)
         )sql");
 
-        int64_t id = 0;
-        int64_t lastTxId = -1;
+        optional<int64_t> id;
+        optional<int64_t> lastTxId;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
@@ -281,7 +287,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexAccountSetting(const string& txHash)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccountSetting(const string& txHash)
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -290,7 +296,7 @@ namespace PocketDb
                 from Transactions a -- TODO (losty-db): index
                 join Transactions b
                     on b.Type in (103)
-                    and b.Int1 = a.Int1
+                    and b.RegId1 = a.RegId1
                 join Last l
                     on l.TxId = b.RowId
                 where a.Type in (103)
@@ -307,11 +313,11 @@ namespace PocketDb
                             ),
                             (select 0) -- for first record
                         )
-                ), l.RowId from l
+                ), (select l.RowId from l)
         )sql");
 
-        int64_t id = 0;
-        int64_t lastTxId = -1;
+        optional<int64_t> id;
+        optional<int64_t> lastTxId;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
@@ -327,7 +333,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexContent(const string& txHash)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexContent(const string& txHash)
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -353,11 +359,11 @@ namespace PocketDb
                             ),
                             (select 0) -- for first record
                         )
-                ), l.RowId from l
+                ), (select l.RowId from l)
         )sql");
 
-        int64_t id = 0;
-        int64_t lastTxId = -1;
+        optional<int64_t> id;
+        optional<int64_t> lastTxId;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
@@ -373,7 +379,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexComment(const string& txHash)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexComment(const string& txHash)
     {
         // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -399,11 +405,11 @@ namespace PocketDb
                             ),
                             (select 0) -- for first record
                         )
-                ), l.RowId from l
+                ), (select l.RowId from l)
         )sql");
 
-        int64_t id = 0;
-        int64_t lastTxId = -1;
+        optional<int64_t> id;
+        optional<int64_t> lastTxId;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
@@ -419,7 +425,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexBlocking(const string& txHash)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexBlocking(const string& txHash)
     {
         // TODO (o1q): double check multiple locks
         // Set last=1 for new transaction
@@ -429,7 +435,7 @@ namespace PocketDb
                 from Transactions a -- TODO (losty-db): index
                 join Transactions b
                     on b.Type in (305,306)
-                    and b.Int1 = a.Int1
+                    and b.RegId1 = a.RegId1
                     and ifnull(b.RegId2,-1) = ifnull(a.RegId2,-1)
                     and ifnull(b.RegId3,-1) = ifnull(a.RegId3,-1)
                 join Last l
@@ -448,11 +454,11 @@ namespace PocketDb
                             ),
                             (select 0) -- for first record
                         )
-                ), l.RowId from l
+                ), (select l.RowId from l)
         )sql");
 
-        int64_t id = 0;
-        int64_t lastTxId = -1;
+        optional<int64_t> id;
+        optional<int64_t> lastTxId;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
@@ -520,7 +526,7 @@ namespace PocketDb
         return {id, lastTxId};
     }
 
-    pair<int64_t, int64_t> ChainRepository::IndexSubscribe(const string& txHash)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSubscribe(const string& txHash)
     {
          // Get new ID or copy previous
         auto sql = string(R"sql(
@@ -547,11 +553,11 @@ namespace PocketDb
                             ),
                             (select 0) -- for first record
                         )
-                ), l.RowId from l
+                ), (select l.RowId from l)
         )sql");
 
-        int64_t id = 0;
-        int64_t lastTxId = -1;
+        optional<int64_t> id;
+        optional<int64_t> lastTxId;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);

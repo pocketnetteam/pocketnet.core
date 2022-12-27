@@ -60,12 +60,12 @@ namespace PocketDb
         void InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast);
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
 
-        pair<int64_t, int64_t> IndexAccount(const string& txHash);
-        pair<int64_t, int64_t> IndexAccountSetting(const string& txHash);
-        pair<int64_t, int64_t> IndexContent(const string& txHash);
-        pair<int64_t, int64_t> IndexComment(const string& txHash);
-        pair<int64_t, int64_t> IndexBlocking(const string& txHash);
-        pair<int64_t, int64_t> IndexSubscribe(const string& txHash);
+        pair<optional<int64_t>, optional<int64_t>> IndexAccount(const string& txHash);
+        pair<optional<int64_t>, optional<int64_t>> IndexAccountSetting(const string& txHash);
+        pair<optional<int64_t>, optional<int64_t>> IndexContent(const string& txHash);
+        pair<optional<int64_t>, optional<int64_t>> IndexComment(const string& txHash);
+        pair<optional<int64_t>, optional<int64_t>> IndexBlocking(const string& txHash);
+        pair<optional<int64_t>, optional<int64_t>> IndexSubscribe(const string& txHash);
         void IndexBoostContent(const string& txHash);
 
         void ClearOldLast(const int64_t& txId);
