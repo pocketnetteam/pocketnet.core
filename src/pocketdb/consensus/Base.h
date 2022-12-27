@@ -228,7 +228,7 @@ namespace PocketConsensus
         ConsensusLimit_edit_comment_depth,
         ConsensusLimit_edit_user_depth,
 
-        ConsensusLimit_edit_user_daily_count,
+        edit_account_daily_count,
         account_settings_daily_count,
 
         ConsensusLimit_multiple_lock_addresses_count,
@@ -352,9 +352,9 @@ namespace PocketConsensus
             { NetworkMain, { {0, 3600}, {1180000, 60} } },
             { NetworkTest, { {0, 30} } }
         } },
-        { ConsensusLimit_edit_user_daily_count, {
-            { NetworkMain, { {0, 10} } },
-            { NetworkTest, { {0, 10} } }
+        { edit_account_daily_count, {
+            { NetworkMain, { {0, 256}, {1381841, 10} } },
+            { NetworkTest, { {0, 256}, {162000, 10} } }
         } },
         { ConsensusLimit_edit_post_depth, {
             { NetworkMain, { {0, 86400}, {1180000, 1440} } },

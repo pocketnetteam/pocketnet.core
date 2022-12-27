@@ -73,6 +73,20 @@ namespace PocketDb
         }
     };
 
+    // ----------------------------------------------------------------------
+    // Consensus data
+    // ----------------------------------------------------------------------
+
+    struct ConsensusData_AccountUser {
+        uint16_t LastTxType = -1;
+        uint16_t EditsCount = 0;
+        uint16_t MempoolCount = 0;
+        uint16_t DuplicatesChainCount = 0;
+        uint16_t DuplicatesMempoolCount = 0;
+    };
+
+    // ----------------------------------------------------------------------
+
     class ConsensusRepository : public TransactionRepository
     {
     public:
@@ -81,7 +95,7 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        tuple<uint16_t, uint16_t, uint16_t, uint16_t> AccountUser(const string& address, int depth, const string& name);
+        const ConsensusData_AccountUser& AccountUser(const string& address, int depth, const string& name);
 
 
 

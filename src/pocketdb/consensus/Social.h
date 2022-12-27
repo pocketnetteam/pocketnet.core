@@ -35,47 +35,10 @@ namespace PocketConsensus
         // Validate transaction in block for miner & network full block sync
         virtual ConsensusValidateResult Validate(const CTransactionRef& tx, const TRef& ptx, const PocketBlockRef& block)
         {
-            // TODO (aok): optimize algorithm
-            // Account must be registered
-            vector<string> addressesForCheck;
-            vector<string> addresses = GetAddressesForCheckRegistration(ptx);
-            if (!addresses.empty())
-            {
-                // First check block - maybe user registration this?
-                if (block)
-                {
-                    for (const string& address : addresses)
-                    {
-                        bool inBlock = false;
-                        for (auto& blockTx: *block)
-                        {
-                            if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
-                                continue;
-
-                            if (*blockTx->GetString1() == address)
-                            {
-                                inBlock = true;
-                                break;
-                            }
-                        }
-
-                        if (!inBlock)
-                            addressesForCheck.push_back(address);
-                    }
-                }
-                else
-                {
-                    addressesForCheck = addresses;
-                }
-
-                // Check registrations in DB
-                if (!addressesForCheck.empty() &&
-                    !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck))
-                    return {false, SocialConsensusResult_NotRegistered};
-            }
-
-            // Check limits
-            return ValidateLimits(ptx, block);
+            if (block)
+                return ValidateBlock(ptx, block);
+            else
+                return ValidateMempool(ptx);
         }
 
         // Generic transactions validating
@@ -93,14 +56,6 @@ namespace PocketConsensus
 
     protected:
         ConsensusValidateResult Success{true, SocialConsensusResult_Success};
-
-        virtual ConsensusValidateResult ValidateLimits(const TRef& ptx, const PocketBlockRef& block)
-        {
-            if (block)
-                return ValidateBlock(ptx, block);
-            else
-                return ValidateMempool(ptx);
-        }
 
         virtual ConsensusValidateResult ValidateBlock(const TRef& ptx, const PocketBlockRef& block) = 0;
 
