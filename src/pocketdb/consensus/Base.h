@@ -290,7 +290,7 @@ namespace PocketConsensus
         } },
         { ConsensusLimit_threshold_likers_count, {
             { NetworkMain,    { {0, 0}, {1124000, 100} }},
-            { NetworkTest,    { {0, 0}, {100000, 10}, {9999999, 1} }},
+            { NetworkTest,    { {0, 0}, {100000, 10}, {1470000, 1} }},
             { NetworkRegTest, { {0, 1} } }
         }},
         { ConsensusLimit_threshold_low_likers_count, {
