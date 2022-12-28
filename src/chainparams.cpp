@@ -424,9 +424,9 @@ public:
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 1;
-        
-        consensus.nPosFirstBlock = 10;
+        consensus.nMinerConfirmationWindow = 100;
+
+        consensus.nPosFirstBlock = 1020;
         consensus.nStakeMinAge = 1;
         consensus.nPosTargetSpacing = consensus.nPowTargetSpacing;
         consensus.nPosTargetTimespan = 1;
