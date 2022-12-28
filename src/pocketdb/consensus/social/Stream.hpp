@@ -260,7 +260,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                                   [&](int target, const ConsensusCheckpoint<StreamConsensus>& itm)
                                   {
-                                      return target < itm.Height(Params().NetworkIDString());
+                                      return target < itm.Height(Params().NetworkID());
                                   }
             ))->m_func(m_height);
         }
