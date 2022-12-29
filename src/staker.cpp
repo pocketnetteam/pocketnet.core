@@ -119,7 +119,6 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     CHECK_NONFATAL(node.mempool); // Mempool should be always available here
     CHECK_NONFATAL(node.chainman); // Same for this
     bool running = true;
-    int nLastCoinStakeSearchInterval = 0;
 
     auto wallet = GetWallet(walletName);
     if (!wallet) return;
@@ -137,10 +136,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             }
 
             while (wallet->IsLocked() && !ShutdownRequested())
-            {
-                nLastCoinStakeSearchInterval = 0;
                 m_interrupt.sleep_for(std::chrono::milliseconds{1000});
-            }
 
             if (gArgs.GetBoolArg("-stakingrequirespeers", DEFAULT_STAKINGREQUIRESPEERS))
             {
@@ -191,7 +187,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                     blocktemplate->pocketBlock->emplace_back(ptx);
 
                 CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
-                UninterruptibleSleep(std::chrono::milliseconds{500});
+                UninterruptibleSleep(std::chrono::milliseconds{minerSleep});
             }
             else
             {
@@ -203,6 +199,57 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     {
         LogPrintf("Staker worker thread runtime error: %s\n", e.what());
         return;
+    }
+}
+
+bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, unsigned int blocks)
+{
+    const auto& node = EnsureNodeContext(context);
+    CHECK_NONFATAL(node.mempool); // Mempool should be always available here
+    CHECK_NONFATAL(node.chainman); // Same for this
+
+    auto wallet = GetWallet("");
+    if (!wallet) return false;
+
+    try
+    {
+        while (wallet->IsLocked() && !ShutdownRequested())
+            m_interrupt.sleep_for(std::chrono::milliseconds{100});
+
+        if (ShutdownRequested())
+            return false;
+
+        uint64_t nFees = 0;
+        auto assembler = BlockAssembler(*node.mempool, chainparams);
+
+        for (unsigned int i = 0; i < blocks; i++)
+        {
+            bool blockSigned = false;
+            while (!blockSigned)
+            {
+                // Nullopt for scriptPubKeyIn because coinbase script is only usefull for mining blocks
+                auto blocktemplate = assembler.CreateNewBlock(
+                    nullopt, true, &nFees
+                );
+
+                auto block = std::make_shared<CBlock>(blocktemplate->block);
+
+                if (signBlock(block, wallet, nFees))
+                {
+                    // Extend pocketBlock with coinStake transaction
+                    if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
+                        blocktemplate->pocketBlock->emplace_back(ptx);
+
+                    blockSigned = CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
+                    UninterruptibleSleep(std::chrono::milliseconds{250});
+                }
+            }
+        }
+    }
+    catch (const std::runtime_error& e)
+    {
+        LogPrintf("Staker runtime error: %s\n", e.what());
+        return false;
     }
 }
 
@@ -312,7 +359,6 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
 #endif
     return false;
 }
-
 
 void Staker::stop()
 {

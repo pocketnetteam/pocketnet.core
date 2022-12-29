@@ -1917,6 +1917,42 @@ static RPCHelpMan abandontransaction()
     };
 }
 
+static RPCHelpMan potencialabandontransactions()
+{
+    return RPCHelpMan{"potencialabandontransactions",
+        "\nGet all potencial abandon in-wallet transactions\n",
+        {
+        },
+        RPCResult{RPCResult::Type::NONE, "", ""},
+        RPCExamples{
+            HelpExampleCli("potencialabandontransactions", "")
+          + HelpExampleRpc("potencialabandontransactions", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!wallet) return NullUniValue;
+    CWallet* const pwallet = wallet.get();
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    LOCK(pwallet->cs_wallet);
+
+    UniValue result{UniValue::VARR};
+    const CWallet::TxItems & txOrdered = pwallet->wtxOrdered;
+    for (CWallet::TxItems::const_reverse_iterator it = txOrdered.rbegin(); it != txOrdered.rend(); ++it)
+    {
+        const CWalletTx* wtx = (*it).second;
+        if (!wtx->isAbandoned() && wtx->GetDepthInMainChain() == 0 && !wtx->InMempool())
+            result.push_back(wtx->GetHash().GetHex());
+    }
+    
+    return result;
+},
+};
+}
 
 static RPCHelpMan backupwallet()
 {
@@ -2571,7 +2607,7 @@ static RPCHelpMan getwalletinfo()
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
-    const CWallet* const pwallet = wallet.get();
+    CWallet* const pwallet = wallet.get();
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -2590,6 +2626,19 @@ static RPCHelpMan getwalletinfo()
     obj.pushKV("balance", ValueFromAmount(bal.m_mine_trusted));
     obj.pushKV("unconfirmed_balance", ValueFromAmount(bal.m_mine_untrusted_pending));
     obj.pushKV("immature_balance", ValueFromAmount(bal.m_mine_immature));
+    obj.pushKV("ttl_balance", ValueFromAmount(bal.m_mine_trusted + bal.m_mine_untrusted_pending + bal.m_mine_immature));
+
+    // Get balance from sql db
+    std::vector<std::string> addresses = pwallet->GetUniqueAddresses();
+    auto infos = PocketDb::ExplorerRepoInst.GetAddressesInfo(addresses);
+    CAmount total_sql_balance = 0;
+    for (const auto& info : infos)
+    {
+        auto[_, balance] = info.second;
+        total_sql_balance += balance;
+    }
+    obj.pushKV("sql_balance", ValueFromAmount(total_sql_balance));
+
     obj.pushKV("txcount",       (int)pwallet->mapWallet.size());
     if (kp_oldest > 0) {
         obj.pushKV("keypoololdest", kp_oldest);
@@ -4934,6 +4983,7 @@ static const CRPCCommand commands[] =
     //  --------------------- ------------------------          -----------------------         ----------
     { "rawtransactions",    "fundrawtransaction",               &fundrawtransaction,            {"hexstring","options","iswitness"} },
     { "wallet",             "abandontransaction",               &abandontransaction,            {"txid"} },
+    { "wallet",             "potencialabandontransactions",     &potencialabandontransactions,  {} },
     { "wallet",             "abortrescan",                      &abortrescan,                   {} },
     { "wallet",             "addmultisigaddress",               &addmultisigaddress,            {"nrequired","keys","label","address_type"} },
     { "wallet",             "backupwallet",                     &backupwallet,                  {"destination"} },

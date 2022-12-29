@@ -1169,10 +1169,10 @@ void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmatio
 				}
 				else
 				{
-					LogPrintf("SyncTransaction : Warning: Could not find %s in wallet. Trying to refund someone else's tx?", ptx->GetHash().ToString());
+					LogPrintf("SyncTransaction : Warning: Could not find %s in wallet. Trying to refund someone else's tx?\n", ptx->GetHash().ToString());
 				}
 
-				LogPrintf("SyncTransaction : Refunding inputs of orphan tx %s\n", ptx->GetHash().ToString());
+				LogPrint(BCLog::WALLET, "SyncTransaction : Refunding inputs of orphan tx %s\n", ptx->GetHash().ToString());
 				MarkInputsDirty(ptx);
 			}
 		}
@@ -1191,7 +1191,7 @@ void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmatio
 
 	if (!update_tx && ptx->IsCoinStake() && IsFromMe(*ptx)) {
 		AbandonTransaction(ptx->GetHash());
-		LogPrintf("SyncTransaction : Removing tx %s from mapTxSpends\n", ptx->GetHash().ToString());
+		LogPrint(BCLog::WALLET, "SyncTransaction : Removing tx %s from mapTxSpends\n", ptx->GetHash().ToString());
 		for (auto & txin : ptx->vin) {
 			mapTxSpends.erase(txin.prevout);
 		}
@@ -1270,7 +1270,7 @@ void CWallet::blockDisconnected(const CBlock& block, int height)
 	m_last_block_processed_height = height - 1;
 	m_last_block_processed = block.hashPrevBlock;
 	for (const CTransactionRef& ptx : block.vtx) {
-		SyncTransaction(ptx, {CWalletTx::Status::UNCONFIRMED, /* block height */ 0, /* block hash */ {}, /* index */ 0});
+		SyncTransaction(ptx, {CWalletTx::Status::UNCONFIRMED, /* block height */ 0, /* block hash */ {}, /* index */ 0}, false);
 	}
 }
 
@@ -1972,8 +1972,8 @@ CAmount CWalletTx::GetDebit(const isminefilter& filter) const
 CAmount CWalletTx::GetCredit(const isminefilter& filter) const
 {
 	// Must wait until coinbase is safely deep enough in the chain before valuing it
-	if (IsImmatureCoinBase())
-	    return 0;
+	// if (IsImmatureCoinBase())
+	//     return 0;
 
 	CAmount credit = 0;
 	if (filter & ISMINE_SPENDABLE) {

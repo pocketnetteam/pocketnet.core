@@ -18,8 +18,8 @@
 
 #include <cassert>
 #include <memory> // for unique_ptr
-#include <mutex>
-#include <unordered_map>
+
+RPCServerInfo g_rpc_server_info;
 
 static Mutex g_rpc_warmup_mutex;
 static std::atomic<bool> g_rpc_running{false};
@@ -31,20 +31,6 @@ static RPCTimerInterface* timerInterface = nullptr;
 static Mutex g_deadline_timers_mutex;
 static std::map<std::string, std::unique_ptr<RPCTimerBase> > deadlineTimers GUARDED_BY(g_deadline_timers_mutex);
 static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& request, UniValue& result, bool last_handler, RPCCache* cache);
-
-struct RPCCommandExecutionInfo
-{
-    std::string method;
-    int64_t start;
-};
-
-struct RPCServerInfo
-{
-    Mutex mutex;
-    std::list<RPCCommandExecutionInfo> active_commands GUARDED_BY(mutex);
-};
-
-static RPCServerInfo g_rpc_server_info;
 
 struct RPCCommandExecution
 {

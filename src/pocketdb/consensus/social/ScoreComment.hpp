@@ -277,12 +277,12 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < ScoreCommentConsensus>> m_rules = {
-            { 0, -1, [](int height) { return make_shared<ScoreCommentConsensus>(height); }},
-            { 430000, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_430000>(height); }},
-            { 514184, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_514184>(height); }},
-            { 1124000, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_1124000>(height); }},
-            { 1180000, 0, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_1180000>(height); }},
-            { 1757000, 953000, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_disable_for_blocked>(height); }},
+            {       0,     -1, -1, [](int height) { return make_shared<ScoreCommentConsensus>(height); }},
+            {  430000,     -1, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_430000>(height); }},
+            {  514184,     -1, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_514184>(height); }},
+            { 1124000,     -1, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_1124000>(height); }},
+            { 1180000,      0, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_1180000>(height); }},
+            { 1757000, 953000,  0, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_disable_for_blocked>(height); }},
         };
     public:
         shared_ptr<ScoreCommentConsensus> Instance(int height)
@@ -291,7 +291,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<ScoreCommentConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }

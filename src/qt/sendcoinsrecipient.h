@@ -33,9 +33,6 @@ public:
     CAmount amount;
     // If from a payment request, this is used for storing the memo
     QString message;
-    // Keep the payment request around as a serialized string to ensure
-    // load/store is lossless.
-    std::string sPaymentRequest;
     // Empty if no authentication or invalid signature/cert/etc.
     QString authenticatedMerchant;
 
@@ -53,7 +50,7 @@ public:
         SER_WRITE(obj, message_str = obj.message.toStdString());
         SER_WRITE(obj, auth_merchant_str = obj.authenticatedMerchant.toStdString());
 
-        READWRITE(obj.nVersion, address_str, label_str, obj.amount, message_str, obj.sPaymentRequest, auth_merchant_str);
+        READWRITE(obj.nVersion, address_str, label_str, obj.amount, message_str, auth_merchant_str);
 
         SER_READ(obj, obj.address = QString::fromStdString(address_str));
         SER_READ(obj, obj.label = QString::fromStdString(label_str));
