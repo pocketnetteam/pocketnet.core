@@ -369,7 +369,7 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 30} } },
             { NetworkRegTest, { {0, 30} } }
         } },
-        { edit_user_daily_count, {
+        { edit_account_daily_count, {
             { NetworkMain,    { {0, 10} } },
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
