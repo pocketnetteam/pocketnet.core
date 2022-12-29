@@ -119,7 +119,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ModerationFlagConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<ModerationFlagConsensus>(height); }},
+            { 0, 0, 0, [](int height) { return make_shared<ModerationFlagConsensus>(height); }},
         };
     public:
         shared_ptr<ModerationFlagConsensus> Instance(int height)
@@ -128,7 +128,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<ModerationFlagConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }

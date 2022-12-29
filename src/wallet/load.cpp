@@ -44,7 +44,7 @@ bool VerifyWallets(interfaces::Chain& chain)
 
     // For backwards compatibility if an unnamed top level wallet exists in the
     // wallets directory, include it in the default list of wallets to load.
-    if (!gArgs.IsArgSet("wallet")) {
+    if (!gArgs.IsArgSet("wallet") && gArgs.GetBoolArg("-autowallet", true)) {
         gArgs.LockSettings([&](util::Settings& settings) {
             util::SettingsValue wallets(util::SettingsValue::VARR);
             wallets.push_back(""); // Default wallet name is ""

@@ -34,6 +34,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"generatetodescriptor",          0, "num_blocks"},
         {"generatetodescriptor",          2, "maxtries"},
         {"generateblock",                 1, "transactions"},
+        {"stakeblock",                    0, "count"},
         {"getnetworkhashps",              0, "nblocks"},
         {"getnetworkhashps",              1, "height"},
         {"sendtoaddress",                 1, "amount"},

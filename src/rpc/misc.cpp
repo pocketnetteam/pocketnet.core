@@ -654,28 +654,26 @@ static RPCHelpMan echo(const std::string& name)
 static RPCHelpMan echo() { return echo("echo"); }
 static RPCHelpMan echojson() { return echo("echojson"); }
 
-
-
 static RPCHelpMan stop()
 {
-    // TODO (rpc) validate nothing became broken here
     return RPCHelpMan{"stop",
-                "\nStop Pocketcoin server.\n",
-                {},
-                RPCResult{
-                    // TODO (rpc) validate if empty name is valid?
-                    RPCResult::Type::STR, "", "Message that pocketcoin stopping"
+                // Also accept the hidden 'wait' integer argument (milliseconds)
+                // For instance, 'stop 1000' makes the call wait 1 second before returning
+                // to the client (intended for testing)
+                "\nRequest a graceful shutdown of " PACKAGE_NAME ".",
+                {
+                    {"wait", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "how long to wait in ms", "", {}, /* hidden */ true},
                 },
-                RPCExamples{
-                    HelpExampleCli("stop", "")
-                  + HelpExampleRpc("stop", "")
-                },
-                [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+                RPCResult{RPCResult::Type::STR, "", "A string with the content for shutdown message"},
+                RPCExamples{""},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& jsonRequest) -> UniValue
 {
-    // Accept the deprecated and ignored 'detach' boolean argument
     // Event loop will exit after current HTTP requests have been handled, so
     // this reply will get back to the client.
     StartShutdown();
+    if (jsonRequest.params[0].isNum()) {
+        UninterruptibleSleep(std::chrono::milliseconds{jsonRequest.params[0].get_int()});
+    }
     return "Pocketcoin server stopping";
 },
     };
@@ -699,6 +697,51 @@ static RPCHelpMan uptime()
 {
     return GetTime() - GetStartupTime();
 },
+    };
+}
+
+static RPCHelpMan getrpcinfo()
+{
+    return RPCHelpMan{"getrpcinfo",
+                "\nReturns details of the RPC server.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::ARR, "active_commands", "All active commands",
+                        {
+                            {RPCResult::Type::OBJ, "", "Information about an active command",
+                            {
+                                 {RPCResult::Type::STR, "method", "The name of the RPC command"},
+                                 {RPCResult::Type::NUM, "duration", "The running time in microseconds"},
+                            }},
+                        }},
+                        {RPCResult::Type::STR, "logpath", "The complete file path to the debug log"},
+                    }
+                },
+                RPCExamples{
+                    HelpExampleCli("getrpcinfo", "")
+                + HelpExampleRpc("getrpcinfo", "")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    LOCK(g_rpc_server_info.mutex);
+    UniValue active_commands(UniValue::VARR);
+    for (const RPCCommandExecutionInfo& info : g_rpc_server_info.active_commands) {
+        UniValue entry(UniValue::VOBJ);
+        entry.pushKV("method", info.method);
+        entry.pushKV("duration", GetTimeMicros() - info.start);
+        active_commands.push_back(entry);
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("active_commands", active_commands);
+
+    const std::string path = LogInstance().m_file_path.string();
+    UniValue log_path(UniValue::VSTR, path);
+    result.pushKV("logpath", log_path);
+
+    return result;
+}
     };
 }
 
@@ -762,10 +805,11 @@ void RegisterMiscRPCCommands(CRPCTable &t)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    { "control",            "stop",                   &stop,                   {}},
+    { "control",            "stop",                   &stop,                   {"wait"}},
     { "control",            "getmemoryinfo",          &getmemoryinfo,          {"mode"}},
     { "control",            "logging",                &logging,                {"include", "exclude"}},
     { "control",            "uptime",                 &uptime,                 {}},
+    { "control",            "getrpcinfo",             &getrpcinfo,             {}},
     { "util",               "validateaddress",        &validateaddress,        {"address"}},
     { "util",               "createmultisig",         &createmultisig,         {"nrequired","keys","address_type"}},
     { "util",               "deriveaddresses",        &deriveaddresses,        {"descriptor", "range"}},
