@@ -35,7 +35,7 @@ namespace PocketTx
     #define OR_STREAM "73747265616d" // Post for stream hosting
     #define OR_AUDIO "617564696f" // Post for audio hosting
 
-    #define OR_COLLECTION "636F6C6C656374696F6E" // Collection of contents
+    #define OR_COLLECTION "636f6c6c656374696f6e" // Collection of contents
 
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
