@@ -105,9 +105,10 @@ class AccountDeleteTest(PocketcoinTestFramework):
         node.public().generatetransaction(
             address=accounts[0]['address'],
             privkeys=[ accounts[0]['privkey'] ],
-            outcount=10,
+            outcount=1,
             type=accDel.TxType,
-            payload=accDel.Serialize()
+            payload=accDel.Serialize(),
+            confirmations=10
         )
 
         # Change account info after delete account not allowed

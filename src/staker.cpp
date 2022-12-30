@@ -242,7 +242,7 @@ bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, un
                     blockSigned = CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
                 }
 
-                UninterruptibleSleep(std::chrono::milliseconds{250});
+                UninterruptibleSleep(std::chrono::milliseconds{50});
             }
         }
 
