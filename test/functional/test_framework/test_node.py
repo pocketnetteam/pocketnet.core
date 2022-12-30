@@ -122,6 +122,7 @@ class TestNode():
         self.process = None
         self.rpc_connected = False
         self.rpc = None
+        self.rpc_public = None
         self.url = None
         self.log = logging.getLogger('TestFramework.node%d' % i)
         self.cleanup_on_exit = True # Whether to kill the node when this object goes away
@@ -179,6 +180,9 @@ class TestNode():
             assert self.rpc_connected and self.rpc is not None, self._node_msg("Error: no RPC connection")
             return getattr(RPCOverloadWrapper(self.rpc, descriptors=self.descriptors), name)
 
+    def public(self):
+        return RPCPublicOverloadWrapper(self.rpc_public)
+
     def start(self, extra_args=None, *, cwd=None, stdout=None, stderr=None, **kwargs):
         """Start the node."""
         if extra_args is None:
@@ -226,6 +230,12 @@ class TestNode():
                     timeout=self.rpc_timeout // 2,  # Shorter timeout to allow for one retry in case of ETIMEDOUT
                     coveragedir=self.coverage_dir,
                 )
+                rpc_public = get_rpc_proxy(
+                    rpc_url(self.datadir, self.index+1, self.chain, self.rpchost),
+                    self.index,
+                    timeout=self.rpc_timeout // 2,  # Shorter timeout to allow for one retry in case of ETIMEDOUT
+                    coveragedir=self.coverage_dir,
+                )
                 rpc.getblockcount()
                 # If the call to getblockcount() succeeds then the RPC connection is up
                 if self.version_is_at_least(190000):
@@ -253,6 +263,7 @@ class TestNode():
                 if self.use_cli:
                     return
                 self.rpc = rpc
+                self.rpc_public = rpc_public
                 self.rpc_connected = True
                 self.url = self.rpc.url
                 return
@@ -715,3 +726,10 @@ class RPCOverloadWrapper():
         for res in import_res:
             if not res['success']:
                 raise JSONRPCException(res['error'])
+
+class RPCPublicOverloadWrapper():
+    def __init__(self, rpc):
+        self.rpc = rpc
+
+    def __getattr__(self, name):
+        return getattr(self.rpc, name)
