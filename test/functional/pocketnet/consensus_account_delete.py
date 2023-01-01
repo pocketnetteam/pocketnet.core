@@ -8,9 +8,9 @@ An AccountDelete functional test
 Launch this with command from 'test/functional/pocketnet' directory
 """
 
-# Import from root directory
 import sys
-sys.path.insert(0, '../')
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 # Imports should be in PEP8 ordering (std library first, then third party
 # libraries then local imports).
@@ -28,7 +28,7 @@ from test_framework.util import (
 )
 
 # Pocketnet framework
-from pocketnet.framework.models import *
+from framework.models import *
 
 
 class AccountDeleteTest(PocketcoinTestFramework):
@@ -57,78 +57,126 @@ class AccountDeleteTest(PocketcoinTestFramework):
         self.log.info("Generate account addresses")
         accounts = []
         for i in range(10):
-            accounts.append(node.public().generateaddress())
-            node.sendtoaddress(address=accounts[i]['address'], amount=10, destaddress=nodeAddress)
+            acc = node.public().generateaddress()
+            accounts.append(Account(acc['address'], acc['privkey']))
+            node.sendtoaddress(address=accounts[i].Address, amount=10, destaddress=nodeAddress)
 
         self.log.info("Stake 15 blocks and check balances")
         node.stakeblock(15)
 
         self.log.info("Check balance")
         for i in range(10):
-            assert(node.public().getaddressinfo(address=accounts[i]['address'])['balance'] == 10)
+            assert(node.public().getaddressinfo(address=accounts[i].Address)['balance'] == 10)
 
         # ------------------------------------------------
 
         self.log.info("Register accounts")
+        hashes = []
         for i in range(10):
-            acc = Account(f"test{i}",'image','en','about','s','b','pubkey')
-            accounts[i]['txHash'] = node.public().generatetransaction(
-                address=accounts[i]['address'],
-                privkeys=[ accounts[i]['privkey'] ],
-                outcount=10,
-                type=acc.TxType,
-                payload=acc.Serialize(),
-                confirmations=10
-            )
+            hashes.append(node.public().generatetransaction(accounts[i], AccountPayload(accounts[i].Address,'image','en','about','s','b','pubkey'), 10))
 
         self.log.info("Stake 10 block and check profiles")
         node.stakeblock(15)
 
         for i in range(10):
-            assert(node.public().getuserprofile(accounts[i]['address'])[0]['hash'] == accounts[i]['txHash'])
+            assert(node.public().getuserprofile(accounts[i].Address)[0]['hash'] == hashes[i])
         
         # ------------------------------------------------
         self.log.info("Create content from 0 account for check actions with content after delete account")
-        post = ContentPost('en','very long message','caption','url',['tag1','tag2'],['image1','image2'])
-        node.public().generatetransaction(
-            address=accounts[0]['address'],
-            privkeys=[ accounts[0]['privkey'] ],
-            outcount=1,
-            type=post.TxType,
-            payload=post.Serialize(),
-            confirmations=10
-        )
+        node.public().generatetransaction(accounts[0], ContentPostPayload('en','very long message','caption','url',['tag1','tag2'],['image1','image2']))
 
         # ------------------------------------------------
         self.log.info("Delete 0 account")
-        accDel = AccountDelete()
-        node.public().generatetransaction(
-            address=accounts[0]['address'],
-            privkeys=[ accounts[0]['privkey'] ],
-            outcount=1,
-            type=accDel.TxType,
-            payload=accDel.Serialize(),
-            confirmations=10
-        )
+        node.public().generatetransaction(accounts[0], AccountDeletePayload())
 
-        # Change account info after delete account not allowed
-        acc = Account(f"test{0}",'image','en','about','s','b','pubkey')
-        assert_raises_rpc_error(
-            61, "Failed SocialConsensusHelper::Validate with result 61",
-            node.public().generatetransaction,
-            address=accounts[0]['address'],
-            privkeys=[ accounts[0]['privkey'] ],
-            outcount=10,
-            type=acc.TxType,
-            payload=acc.Serialize(),
-            confirmations=10
-        )
+        self.log.info("Any actions after delete account not allowed")
+        test_actions_from_deleted_account(account[0])
 
-        # TODO : любые другие транзакции не должны допускаться от удаленного аккаунта
+        # TODO : actions with content from deleted account (delete tx in mempool)
+
+        # ------------------------------------------------
+        self.log.info("Stake 1 block for receive deleted account to blockchain from mempool")
+        node.stakeblock(1)
+
+        self.log.info("Again test actions from deleted account")
+        test_actions_from_deleted_account(account[0])
+
         # ------------------------------------------------
 
-        # TODO : лайки комментарии бусты репосты донаты не должны проходить для удаленного аккаунта - проверить с мемпулом
+        # TODO : actions with content from deleted account (delete tx already in blockchain)
 
+
+
+
+    def test_actions_from_deleted_account(account):
+        node = self.nodes[0]
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, AccountPayload(account.Address,'image','en','about','s','b','pubkey'))
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, AccountDeletePayload())
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, AccountSettingPayload(...)) # TODO
+
+        # -----------------------------------------------------------------
+        
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ContentPostPayload('en','very long message','caption','url',['tag1','tag2'],['image1','image2']))
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ContentPostEditPayload('en','very long message','caption','url',['tag1','tag2'],['image1','image2']))
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ContentVideoPayload('en','very long message','caption','url',['tag1','tag2'],['image1','image2']))
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ContentArticlePayload('en','very long message','caption','url',['tag1','tag2'],['image1','image2']))
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ContentAudioPayload('en','very long message','caption','url',['tag1','tag2'],['image1','image2']))
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ContentStreamPayload('en','very long message','caption','url',['tag1','tag2'],['image1','image2']))
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ContentDeletePayload('en','very long message','caption','url',['tag1','tag2'],['image1','image2']))
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ContentCommentPayload(...)) # TODO
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ContentCommentDeletePayload(...)) # TODO
+
+        # -----------------------------------------------------------------
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ActionScorePostPayload(...)) # TODO
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ActionScoreCommentPayload(...)) # TODO
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ActionSubscribePayload(...)) # TODO
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ActionSubscrivePrivatePayload(...)) # TODO
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ActionUnsubscribePayload(...)) # TODO
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ActionBlockingPayload(...)) # TODO
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ActionUnblockingPayload(...)) # TODO
+
+        assert_raises_rpc_error(61, "Failed SocialConsensusHelper::Validate with result 61", node.public().generatetransaction,
+            account, ActionBoostPayload(...)) # TODO
+
+    def test_actions_under_deleted_account(account):
+        pass
 
 if __name__ == '__main__':
     AccountDeleteTest().main()
