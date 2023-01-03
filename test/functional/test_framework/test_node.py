@@ -734,12 +734,13 @@ class RPCPublicOverloadWrapper():
     def __getattr__(self, name):
         return getattr(self.rpc, name)
 
-    def generatetransaction(self, account, tx, outCount=1, conf=10):
+    def generatetransaction(self, account, tx, outCount=1, conf=10, contentAddress=''):
         return self.__getattr__('generatetransaction')(
             address=account.Address,
             privkeys=[ account.PrivKey ],
             outcount=outCount,
             type=tx.TxType,
             payload=tx.Serialize(),
-            confirmations=conf
+            confirmations=conf,
+            contentaddress=contentAddress
         )

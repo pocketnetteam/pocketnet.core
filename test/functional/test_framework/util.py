@@ -8,6 +8,7 @@ from base64 import b64encode
 from binascii import unhexlify
 from decimal import Decimal, ROUND_DOWN
 from subprocess import CalledProcessError
+from enum import Enum
 import hashlib
 import inspect
 import json
@@ -133,6 +134,8 @@ def try_rpc(code, message, fun, *args, **kwds):
         fun(*args, **kwds)
     except JSONRPCException as e:
         # JSONRPCException was thrown as expected. Check the code and message values are correct.
+        if (isinstance(code, Enum)):
+            code = code.value
         if (code is not None) and (code != e.error["code"]):
             raise AssertionError("Unexpected JSONRPC error code %i" % e.error["code"])
         if (message is not None) and (message not in e.error['message']):
