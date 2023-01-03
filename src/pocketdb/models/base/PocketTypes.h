@@ -19,7 +19,6 @@ namespace PocketTx
     #define OR_ACCOUNT_DELETE "61636344656c"
 
     #define OR_SCORE "7570766f74655368617265"
-    #define OR_COMPLAIN "636f6d706c61696e5368617265"
     #define OR_POST "7368617265"
     #define OR_POSTEDIT "736861726565646974"
     #define OR_SUBSCRIBE "737562736372696265"
@@ -51,6 +50,7 @@ namespace PocketTx
     #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
     #define OR_CONTENT_BOOST "636f6e74656e74426f6f7374" // Boost content
 
+    #define OR_COMPLAIN "636f6d706c61696e5368617265"
     #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
     
 
