@@ -1623,7 +1623,7 @@ namespace PocketDb
                     when s.Type = 303 then 1
                     else 0
                 end,
-                r.Value,
+                ifnull(r.Value,0),
                 s.Height
             from
                 Transactions s indexed by Transactions_Type_Last_String1_String2_Height
@@ -1662,18 +1662,17 @@ namespace PocketDb
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                auto[ok, address] = TryGetColumnString(*stmt, 0);
-        
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok)
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
                     record.pushKV("adddress", value);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok)
                     record.pushKV("private", value);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)
                     record.pushKV("reputation", value);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok)
                     record.pushKV("height", value);
         
                 result.push_back(record);
@@ -1697,7 +1696,7 @@ namespace PocketDb
                     when s.Type = 303 then 1
                     else 0
                 end,
-                r.Value,
+                ifnull(r.Value,0),
                 s.Height
             from
                 Transactions s indexed by Transactions_Type_Last_String2_String1_Height
@@ -1736,18 +1735,17 @@ namespace PocketDb
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                auto[ok, address] = TryGetColumnString(*stmt, 0);
-        
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok)
-                    record.pushKV("adddress", value);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    record.pushKV("address", value);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok)
                     record.pushKV("private", value);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)
                     record.pushKV("reputation", value);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok)
                     record.pushKV("height", value);
         
                 result.push_back(record);
