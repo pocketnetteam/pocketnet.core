@@ -166,7 +166,6 @@ namespace PocketConsensus
             return {true, SocialConsensusResult_Success};
 
         // Check transactions with consensus logic
-        tuple<bool, SocialConsensusResult> result = {false, SocialConsensusResult_NotImplemeted};
         switch (*ptx->GetType())
         {
             case ACCOUNT_SETTING:
@@ -241,7 +240,6 @@ namespace PocketConsensus
             return {true, SocialConsensusResult_Success};
 
         // Validate transactions with consensus logic
-        tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
             case ACCOUNT_SETTING:

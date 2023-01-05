@@ -1959,7 +1959,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height,
+    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height, int confirmations,
         vector<pair<string, uint32_t>>& mempoolInputs)
     {
         UniValue result(UniValue::VARR);
@@ -1976,7 +1976,7 @@ namespace PocketDb
             from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
             join Transactions t on t.Hash=o.TxHash
             where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-              and o.TxHeight is not null
+              and o.TxHeight <= ?
               and o.SpentHeight is null
             order by o.TxHeight asc
         )sql";
@@ -1988,6 +1988,7 @@ namespace PocketDb
             int i = 1;
             for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, height - confirmations);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {

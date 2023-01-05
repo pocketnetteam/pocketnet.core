@@ -13,14 +13,17 @@ namespace PocketTx
     using namespace std;
 
     // OpReturn hex codes
+
+    #define OR_USERINFO "75736572496e666f"
+    #define OR_ACCOUNT_SETTING "616363536574"
+    #define OR_ACCOUNT_DELETE "61636344656c"
+
     #define OR_SCORE "7570766f74655368617265"
-    #define OR_COMPLAIN "636f6d706c61696e5368617265"
     #define OR_POST "7368617265"
     #define OR_POSTEDIT "736861726565646974"
     #define OR_SUBSCRIBE "737562736372696265"
     #define OR_SUBSCRIBEPRIVATE "73756273637269626550726976617465"
     #define OR_UNSUBSCRIBE "756e737562736372696265"
-    #define OR_USERINFO "75736572496e666f" // (userType = 0 ala gender)
     #define OR_BLOCKING "626c6f636b696e67"
     #define OR_UNBLOCKING "756e626c6f636b696e67"
 
@@ -46,9 +49,8 @@ namespace PocketTx
 
     #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
     #define OR_CONTENT_BOOST "636f6e74656e74426f6f7374" // Boost content
-    #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
-    #define OR_ACCOUNT_DELETE "61636344656c" // Public account settings (accSet)
 
+    #define OR_COMPLAIN "636f6d706c61696e5368617265"
     #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
     #define OR_MODERATION_VOTE "6d6f64566f7465" // Vote from moderator
     // #define OR_MODERATOR_REQUEST_SUBS "6d6f6452657153756273"

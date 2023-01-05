@@ -185,7 +185,18 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"generatetransaction",
                 "\nAdd new pocketnet transaction.\n",
                 {
-                    // TODO (rpc): provide arguments description
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"privkeys", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
+                        {
+                            {"privkey", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                    {"outcount", RPCArg::Type::NUM, RPCArg::Optional::NO, ""},
+                    {"type", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"payload", RPCArg::Type::STR, RPCArg::Optional::NO, "",},
+                    {"fee", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"contentaddress", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"confirmations", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                 },
                 {
                     // TODO (rpc): provide return description
@@ -195,8 +206,8 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        if (Params().NetworkIDString() != CBaseChainParams::TESTNET)
-            throw runtime_error("Only for testnet\n");
+        if (Params().NetworkIDString() != CBaseChainParams::TESTNET && Params().NetworkIDString() != CBaseChainParams::REGTEST)
+            throw runtime_error("Only for testnet or regtest\n");
 
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VARR, UniValue::VNUM, UniValue::VSTR, UniValue::VOBJ});
 
@@ -231,6 +242,11 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[6].isStr() && txPayload.exists("value") && txPayload["value"].isNum())
                 contentAddressValue = request.params[6].get_str() + " " + to_string(txPayload["value"].get_int());
 
+        // Confirmations
+        int64_t confirmations = 0;
+        if (request.params[7].isNum())
+            confirmations = request.params[7].get_int64();
+
         // Build template for transaction
         shared_ptr<Transaction> _ptx = PocketHelpers::TransactionHelper::CreateInstance(txType);
         if (!_ptx) throw JSONRPCError(RPC_PARSE_ERROR, "Failed create pocketnet transaction payload");
@@ -248,7 +264,7 @@ namespace PocketWeb::PocketWebRpc
         // Get unspents
         vector<pair<string, uint32_t>> mempoolInputs;
         node.mempool->GetAllInputs(mempoolInputs);
-        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActive().Height(), mempoolInputs);
+        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActive().Height(), confirmations, mempoolInputs);
 
         // Build inputs
         int64_t totalAmount = 0;

@@ -422,7 +422,7 @@ namespace PocketWeb::PocketWebRpc
         node.mempool->GetAllInputs(mempoolInputs);
 
         // Get unspents from DB
-        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, ::ChainActive().Height(), mempoolInputs);
+        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, ::ChainActive().Height(), 0, mempoolInputs);
     },
         };
     }
