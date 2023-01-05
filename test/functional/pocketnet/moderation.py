@@ -54,163 +54,83 @@ class AccountDeleteTest(PocketcoinTestFramework):
         self.log.info("Node balance: %s", node.public().getaddressinfo(nodeAddress))
 
         # ---------------------------------------------------------------------------------
-
         self.log.info("Generate account addresses")
+
         accounts = []
         for i in range(10):
             acc = node.public().generateaddress()
-            accounts.append(Account(acc['address'], acc['privkey']))
-            node.sendtoaddress(address=accounts[i].Address, amount=10, destaddress=nodeAddress)
+            accounts.append(Account(acc['address'], acc['privkey'], f'user{i}'))
+            node.sendtoaddress(address=accounts[i].Address, amount=1, destaddress=nodeAddress)
 
-        node.stakeblock(15)
+        node.stakeblock(1)
 
-        self.log.info("Check balance")
+        # ---------------------------------------------------------------------------------
+        self.log.info("Generate moderator addresses")
+
+        moders = []
         for i in range(10):
-            assert(node.public().getaddressinfo(address=accounts[i].Address)['balance'] == 10)
+            acc = node.public().generateaddress()
+            moders.append(Account(acc['address'], acc['privkey'], f'moderator{i}'))
+            node.sendtoaddress(address=moders[i].Address, amount=1, destaddress=nodeAddress)
+
+        node.stakeblock(1)
 
         # ---------------------------------------------------------------------------------
+        self.log.info("Generate post for set moderator badges")
 
-        self.log.info("Check delete not registered account")
-        assert_raises_rpc_error(1, None, pubGenTx, accounts[0], AccountDeletePayload())
+        # Create account
+        fakeAcc = node.public().generateaddress()
+        fakeAcc = Account(fakeAcc['address'], fakeAcc['privkey'], 'fake')
+        node.sendtoaddress(address=fakeAcc.Address, amount=1, destaddress=nodeAddress)
+        node.sendtoaddress(address=fakeAcc.Address, amount=1, destaddress=nodeAddress)
+        node.stakeblock(1)
+        fakeAccTx = pubGenTx(fakeAcc, AccountPayload(fakeAcc.Name,'image','en','about','s','b','pubkey'), 1, 0)
+        node.stakeblock(1)
+        fakePostTx = pubGenTx(fakeAcc, ContentPostPayload(), 1, 0)
+        node.stakeblock(1)
 
         # ---------------------------------------------------------------------------------
-
         self.log.info("Register accounts")
-        hashes = []
-        for i in range(10):
-            hashes.append(pubGenTx(accounts[i], AccountPayload(f'name{i}','image','en','about','s','b','pubkey'), 50))
+        
+        for acc in accounts:
+            pubGenTx(acc, AccountPayload(acc.Name,'image','en','about','s','b','pubkey'), 1000, 0)
 
-        node.stakeblock(15)
+        for acc in moders:
+            pubGenTx(acc, AccountPayload(acc.Name,'image','en','about','s','b','pubkey'), 1000, 0)
 
-        for i in range(10):
-            assert(node.public().getuserprofile(accounts[i].Address)[0]['hash'] == hashes[i])
+        node.stakeblock(10)
 
         # ---------------------------------------------------------------------------------
-        self.log.info("Prepare content")
-        
-        accounts[0].content.append(pubGenTx(accounts[0], ContentPostPayload()))
-        accounts[0].content.append(pubGenTx(accounts[0], ContentVideoPayload()))
-        accounts[0].content.append(pubGenTx(accounts[0], ContentArticlePayload()))
-        accounts[0].content.append(pubGenTx(accounts[0], ContentStreamPayload()))
-        accounts[0].content.append(pubGenTx(accounts[0], ContentAudioPayload()))
+        self.log.info("Prepare moderators badge")
+
+        # Create comments from moderators
+        for acc in moders:
+            acc.badgeComment = pubGenTx(acc, CommentPayload(fakePostTx))
         node.stakeblock(1)
 
-        accounts[0].comment.append(pubGenTx(accounts[0], CommentPayload(accounts[0].content[0])))
-        node.stakeblock(1)
-        
-        # ---------------------------------------------------------------------------------
-        self.log.info("Test 1 - delete & other txs in mempool")
+        # Like another for set comment liker
+        for i in range(len(moders)):
+            accTo = moders[0 if i == len(moders)-1 else i+1]
+            pubGenTx(moders[i], ScoreCommentPayload(accTo.badgeComment, 1, accTo.Address))
+        node.stakeblock(10)
 
-        # Delete Account 0
-        pubGenTx(accounts[0], AccountDeletePayload())
-
-        # Create content allowed in one block with delete transaction
-        accounts[0].content.append(pubGenTx(accounts[0], ContentPostPayload()))
-        accounts[0].content.append(pubGenTx(accounts[0], ContentVideoPayload()))
-        accounts[0].content.append(pubGenTx(accounts[0], ContentArticlePayload()))
-        accounts[0].content.append(pubGenTx(accounts[0], ContentStreamPayload()))
-        accounts[0].content.append(pubGenTx(accounts[0], ContentAudioPayload()))
-
-        pubGenTx(accounts[0], BoostPayload(accounts[0].content[0]))
-
-        accounts[0].comment.append(pubGenTx(accounts[0], CommentPayload(accounts[0].content[0])))
-        accounts[0].comment.append(pubGenTx(accounts[0], CommentPayload(accounts[0].content[0], accounts[0].comment[0])))
-        accounts[0].comment.append(pubGenTx(accounts[0], CommentPayload(accounts[0].content[0], accounts[0].comment[0], accounts[0].comment[0])))
-
-        # Test general account transactions
-        pubGenTx(accounts[0], AccountSettingPayload())
-        assert_raises_rpc_error(ConsensusResult.ChangeInfoDoubleInMempool, None, pubGenTx, accounts[0], AccountPayload(f'name{0}'))
-        assert_raises_rpc_error(ConsensusResult.ManyTransactions, None, pubGenTx, accounts[0], AccountDeletePayload())
-
-        # Account0 subscribe and blockings another
-        accounts[0].subscribes.append(accounts[1].Address)
-        pubGenTx(accounts[0], SubscribePayload(accounts[1].Address))
-
-        accounts[0].subscribes.append(accounts[2].Address)
-        pubGenTx(accounts[0], SubscribePrivatePayload(accounts[2].Address))
-
-        accounts[0].blockings.append(accounts[3].Address)
-        pubGenTx(accounts[0], BlockingPayload(accounts[3].Address))
-
-        # ------------------------------------------------
-        # Prepare another accounts
-        accounts[1].content.append(pubGenTx(accounts[1], ContentPostPayload()))
-        
-        accounts[1].comment.append(pubGenTx(accounts[1], CommentPayload(accounts[0].content[0])))
-        accounts[1].comment.append(pubGenTx(accounts[1], CommentPayload(accounts[0].content[0], accounts[0].comment[0])))
-        accounts[1].comment.append(pubGenTx(accounts[1], CommentPayload(accounts[0].content[0], accounts[0].comment[0], accounts[0].comment[0])))
-
-        # Account1 subscribed Account0
-        accounts[1].subscribes.append(accounts[0].Address)
-        pubGenTx(accounts[1], SubscribePayload(accounts[0].Address))
-
-        # Account2 subscribed private Account0
-        accounts[2].subscribes.append(accounts[0].Address)
-        pubGenTx(accounts[2], SubscribePrivatePayload(accounts[0].Address))
-
-        # Account3 block Account0
-        accounts[3].blockings.append(accounts[0].Address)
-        pubGenTx(accounts[3], BlockingPayload(accounts[0].Address))
-        
-        node.stakeblock(15)
+        # Check moderator badges
+        for acc in moders:
+            assert('moderator' in node.public().getuserstate(acc.Address)['badges'])
 
         # ---------------------------------------------------------------------------------
-        self.log.info("Test 2 - all txs from deleted account")
-
-        assert_raises_rpc_error(ConsensusResult.AccountDeleted, None, pubGenTx, accounts[0], AccountPayload(f'name{0}'))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], AccountDeletePayload())
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], AccountSettingPayload())
-
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ContentDeletePayload(accounts[0].content[0]))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ContentPostPayload())
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ContentVideoPayload())
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ContentArticlePayload())
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ContentStreamPayload())
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ContentAudioPayload())
-
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], BoostPayload(accounts[0].content[0]))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ComplainPayload(accounts[1].content[0]))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ModFlagPayload(accounts[1].content[0], accounts[1].Address))
-
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], CommentPayload(accounts[0].content[0]))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], CommentEditPayload(accounts[0].content[0], accounts[0].comment[0]))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], CommentDeletePayload(accounts[0].content[0], accounts[0].comment[0]))
-
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], SubscribePayload(accounts[4].Address))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], SubscribePrivatePayload(accounts[4].Address))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], UnsubscribePayload(accounts[1].Address))
-        # TODO : fix
-        # assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], BlockingPayload(accounts[1].Address))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], UnblockingPayload(accounts[3].Address))
-
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ScoreContentPayload(accounts[1].content[0], 5), contentAddress=accounts[1].Address)
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ScoreCommentPayload(accounts[1].comment[0], 1), contentAddress=accounts[1].Address)
-
-        node.stakeblock(15)
+        self.log.info("Test 1 - вердикт положительный")
 
         # ---------------------------------------------------------------------------------
-        self.log.info("Test 3 - actions from another under deleted accounts")
+        self.log.info("Test 1 - вердикт отрицательный")
 
-        pubGenTx(accounts[1], BoostPayload(accounts[0].content[0]))
-        pubGenTx(accounts[1], ComplainPayload(accounts[0].content[0]))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[1], ModFlagPayload(accounts[0].content[0], accounts[0].Address))
+        # ---------------------------------------------------------------------------------
+        self.log.info("Test 1 - не назначенный модератор не имеет права голоса")
 
-        pubGenTx(accounts[1], CommentPayload(accounts[0].content[0]))
-        pubGenTx(accounts[1], CommentEditPayload(accounts[0].content[0], accounts[1].comment[0]))
-        pubGenTx(accounts[1], CommentDeletePayload(accounts[0].content[0], accounts[1].comment[1], accounts[0].comment[0]))
-
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[4], SubscribePayload(accounts[0].Address))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[5], SubscribePrivatePayload(accounts[0].Address))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[1], UnsubscribePayload(accounts[0].Address))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[2], UnsubscribePayload(accounts[0].Address))
+        # ---------------------------------------------------------------------------------
+        self.log.info("Test 1 - не модератор не имеет права голоса")
         
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[1], BlockingPayload(accounts[0].Address))
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[3], UnblockingPayload(accounts[0].Address))
-
-        pubGenTx(accounts[1], ScoreContentPayload(accounts[0].content[0], 5), contentAddress=accounts[0].Address)
-        pubGenTx(accounts[1], ScoreCommentPayload(accounts[0].comment[0], 1), contentAddress=accounts[0].Address)
-
-        node.stakeblock(1)
+        
 
 if __name__ == '__main__':
     AccountDeleteTest().main()

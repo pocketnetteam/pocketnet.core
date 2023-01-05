@@ -77,9 +77,11 @@ class ConsensusResult(Enum):
 class Account:
     Address = ''
     PrivKey = ''
-    def __init__(self, address, privkey):
+    Name = ''
+    def __init__(self, address, privkey, name):
         self.Address = address
         self.PrivKey = privkey
+        self.Name = name
 
         self.content = []
         self.comment = []
@@ -304,9 +306,11 @@ class ScoreContentPayload:
     TxType = '7570766f74655368617265'
     ContentTx = ''
     Value = 0
-    def __init__(self, contentTx, value):
+    ContentAddress = ''
+    def __init__(self, contentTx, value, contentAddress):
         self.ContentTx = contentTx
         self.Value = value
+        self.ContentAddress = contentAddress
     def Serialize(self):
         return {
             'share': self.ContentTx,
@@ -319,9 +323,11 @@ class ScoreCommentPayload:
     TxType = '6353636f7265'
     CommentTx = ''
     Value = 0
-    def __init__(self, commentTx, value):
+    ContentAddress = ''
+    def __init__(self, commentTx, value, contentAddress):
         self.CommentTx = commentTx
         self.Value = value
+        self.ContentAddress = contentAddress
     def Serialize(self):
         return {
             'commentid': self.CommentTx,

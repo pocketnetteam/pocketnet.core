@@ -61,6 +61,7 @@ namespace PocketDb
         void ClearBlockingList();
         void RollbackHeight(int height);
         void RestoreOldLast(int height);
+        void SetFirst(const string& txHash);
 
         void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);

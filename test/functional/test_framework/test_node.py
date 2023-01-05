@@ -734,7 +734,11 @@ class RPCPublicOverloadWrapper():
     def __getattr__(self, name):
         return getattr(self.rpc, name)
 
-    def generatetransaction(self, account, tx, outCount=1, conf=10, contentAddress=''):
+    def generatetransaction(self, account, tx, outCount=1, conf=9):
+        contentAddress = ''
+        if (tx.TxType == '7570766f74655368617265' or tx.TxType == '6353636f7265'):
+            contentAddress = tx.ContentAddress
+
         return self.__getattr__('generatetransaction')(
             address=account.Address,
             privkeys=[ account.PrivKey ],

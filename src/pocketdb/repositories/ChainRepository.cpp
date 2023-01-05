@@ -229,6 +229,9 @@ namespace PocketDb
         TryBindStatementText(setIdStmt, 1, txHash);
         TryStepStatement(setIdStmt);
 
+        // Set first field
+        SetFirst(txHash);
+
         // Clear old last records for set new last
         ClearOldLast(txHash);
     }
@@ -263,6 +266,9 @@ namespace PocketDb
         )sql");
         TryBindStatementText(setIdStmt, 1, txHash);
         TryStepStatement(setIdStmt);
+
+        // Set first field
+        SetFirst(txHash);
 
         // Clear old last records for set new last
         ClearOldLast(txHash);
@@ -300,6 +306,9 @@ namespace PocketDb
         TryBindStatementText(setIdStmt, 1, txHash);
         TryStepStatement(setIdStmt);
 
+        // Set first field
+        SetFirst(txHash);
+
         // Clear old last records for set new last
         ClearOldLast(txHash);
     }
@@ -334,6 +343,9 @@ namespace PocketDb
         )sql");
         TryBindStatementText(setIdStmt, 1, txHash);
         TryStepStatement(setIdStmt);
+
+        // Set first field
+        SetFirst(txHash);
 
         // Clear old last records for set new last
         ClearOldLast(txHash);
@@ -409,6 +421,9 @@ namespace PocketDb
         TryBindStatementText(delListStmt, 1, txHash);
         TryStepStatement(delListStmt);
 
+        // Set first field
+        SetFirst(txHash);
+
         // Clear old last records for set new last
         ClearOldLast(txHash);
     }
@@ -446,6 +461,9 @@ namespace PocketDb
         )sql");
         TryBindStatementText(setLastStmt, 1, txHash);
         TryStepStatement(setLastStmt);
+
+        // Set first field
+        SetFirst(txHash);
 
         // Clear old last records for set new last
         ClearOldLast(txHash);
@@ -857,6 +875,20 @@ namespace PocketDb
             WHERE   Transactions.Id = tInner.Id
                 and Transactions.Last = 1
                 and Transactions.Hash != tInner.Hash
+        )sql");
+
+        TryBindStatementText(stmt, 1, txHash);
+        TryStepStatement(stmt);
+    }
+
+    void ChainRepository::SetFirst(const string& txHash)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            update Transactions set
+                First = 1
+            where
+                Hash = ? and
+                not exists (select 1 from Transactions t indexed by Transactions_Id_First where t.Id = Transactions.Id and t.First = 1)
         )sql");
 
         TryBindStatementText(stmt, 1, txHash);
