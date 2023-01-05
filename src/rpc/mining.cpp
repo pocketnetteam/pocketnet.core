@@ -425,9 +425,9 @@ static RPCHelpMan generateblock()
     };
 }
 
-static RPCHelpMan stake()
+static RPCHelpMan stakeblock()
 {
-    return RPCHelpMan{"stake",
+    return RPCHelpMan{"stakeblock",
         "\nStake one or more blocks\n",
         {
             {"count", RPCArg::Type::NUM, /* default */ "1", "Count of new blocks."},
@@ -1284,7 +1284,7 @@ static const CRPCCommand commands[] =
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
     { "generating",         "generatetodescriptor",   &generatetodescriptor,   {"num_blocks","descriptor","maxtries"} },
     { "generating",         "generateblock",          &generateblock,          {"output","transactions"} },
-    { "generating",         "stake",                  &stake,             {"count"} },
+    { "generating",         "stakeblock",             &stakeblock,             {"count"} },
 
     { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
 

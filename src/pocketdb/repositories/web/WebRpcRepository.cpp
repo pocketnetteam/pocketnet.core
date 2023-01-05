@@ -458,6 +458,19 @@ namespace PocketDb
                     where bl.IdSource = u.id
                 ) as Blockings
 
+                , (
+                    select json_group_object(gr.Type, gr.Cnt)
+                    from (
+                      select (f.Type)Type, (count())Cnt
+                        from Transactions f indexed by Transactions_Type_Last_String1_Height_Id
+                        where f.Type in (200,201,202,209,210,220,207)
+                        and f.Last = 1
+                        and f.String1 = u.String1
+                        and f.Height > 0
+                        group by f.Type
+                    )gr
+                ) as ContentJson
+
             )sql";
         }
 
@@ -656,6 +669,12 @@ namespace PocketDb
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("blocking", subscribes);
+                        }
+
+                        if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                            UniValue content(UniValue::VOBJ);
+                            content.read(value);
+                            record.pushKV("content", content);
                         }
                     }
                 }

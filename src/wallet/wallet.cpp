@@ -1172,7 +1172,7 @@ void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmatio
 					LogPrintf("SyncTransaction : Warning: Could not find %s in wallet. Trying to refund someone else's tx?\n", ptx->GetHash().ToString());
 				}
 
-				LogPrintf("SyncTransaction : Refunding inputs of orphan tx %s\n", ptx->GetHash().ToString());
+				LogPrint(BCLog::WALLET, "SyncTransaction : Refunding inputs of orphan tx %s\n", ptx->GetHash().ToString());
 				MarkInputsDirty(ptx);
 			}
 		}
@@ -1191,7 +1191,7 @@ void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmatio
 
 	if (!update_tx && ptx->IsCoinStake() && IsFromMe(*ptx)) {
 		AbandonTransaction(ptx->GetHash());
-		LogPrintf("SyncTransaction : Removing tx %s from mapTxSpends\n", ptx->GetHash().ToString());
+		LogPrint(BCLog::WALLET, "SyncTransaction : Removing tx %s from mapTxSpends\n", ptx->GetHash().ToString());
 		for (auto & txin : ptx->vin) {
 			mapTxSpends.erase(txin.prevout);
 		}
