@@ -1627,10 +1627,10 @@ namespace PocketDb
                 s.Height
             from
                 Transactions s indexed by Transactions_Type_Last_String1_String2_Height
-                cross join Transactions u
-                    on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = s.String2
-                left join Ratings r
-                    on r.Type = 0 and r.Last = 1 and r.Id = u.Id and r.Value > 0
+                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    on u.Type in (100, 170) and u.Last = 1 and u.String1 = s.String2 and u.Height > 0
+                left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                    on r.Type = 0 and r.Id = u.Id and r.Last = 1
             where
                 s.Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
                 s.Last = 1 and
@@ -1639,7 +1639,7 @@ namespace PocketDb
         )sql";
 
         if (orderBy == "reputation")
-            sql += " order by r.Height "s + (orderDesc ? " desc "s : ""s);
+            sql += " order by r.Value "s + (orderDesc ? " desc "s : ""s);
         if (orderBy == "height")
             sql += " order by s.Height "s + (orderDesc ? " desc "s : ""s);
         
@@ -1700,10 +1700,10 @@ namespace PocketDb
                 s.Height
             from
                 Transactions s indexed by Transactions_Type_Last_String2_String1_Height
-                cross join Transactions u
-                    on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = s.String1
-                left join Ratings r
-                    on r.Type = 0 and r.Last = 1 and r.Id = u.Id and r.Value > 0
+                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    on u.Type in (100, 170) and u.Last = 1 and u.String1 = s.String1 and u.Height > 0
+                left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                    on r.Type = 0 and r.Id = u.Id and r.Last = 1
             where
                 s.Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
                 s.Last = 1 and
@@ -1712,7 +1712,7 @@ namespace PocketDb
         )sql";
 
         if (orderBy == "reputation")
-            sql += " order by r.Height "s + (orderDesc ? " desc "s : ""s);
+            sql += " order by r.Value "s + (orderDesc ? " desc "s : ""s);
         if (orderBy == "height")
             sql += " order by s.Height "s + (orderDesc ? " desc "s : ""s);
         
