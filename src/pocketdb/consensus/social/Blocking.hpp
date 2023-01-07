@@ -119,7 +119,7 @@ namespace PocketConsensus
                 UniValue addrs(UniValue::VARR);
                 if (!addrs.read(*ptx->GetAddressesTo()))
                     return {false, SocialConsensusResult_Failed};
-                if (addrs.size() > GetConsensusLimit(ConsensusLimit_multiple_lock_addresses_count))
+                if (addrs.size() > (size_t)GetConsensusLimit(ConsensusLimit_multiple_lock_addresses_count))
                     return {false, SocialConsensusResult_Failed};
             }
 
