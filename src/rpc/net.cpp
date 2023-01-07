@@ -865,7 +865,8 @@ static RPCHelpMan getstakinginfo()
     };
 }
 
-static RPCHelpMan getnetstakeweight() {
+static RPCHelpMan getnetstakeweight()
+{
     return RPCHelpMan{"getnetstakeweight",
                       "\nReturns netstakeweight for given height.\n",
                       {
