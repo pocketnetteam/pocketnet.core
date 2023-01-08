@@ -36,8 +36,8 @@ static const CRPCCommand commands[] =
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecomendedsubscriptionsforuser",&gettemplate,                       {"address", "count"}},
 
-    {"hidden",       "generatepocketnettransaction",        &GenerateTransaction,           {"address", "privKey", "outCount", "type", "payload"}},
-    {"hidden",       "generatetransaction",                 &GenerateTransaction,           {"address", "privKey", "outCount", "type", "payload"}},
+    {"hidden",       "generatepocketnettransaction",        &GenerateTransaction,           {"address", "privkeys", "outcount", "type", "payload", "fee", "contentaddress", "confirmations"}},
+    {"hidden",       "generatetransaction",                 &GenerateTransaction,           {"address", "privkeys", "outcount", "type", "payload", "fee", "contentaddress", "confirmations"}},
     {"hidden",       "generateaddress",                     &GenerateAddress,               {}},
 
     // Search
@@ -91,8 +91,8 @@ static const CRPCCommand commands[] =
     {"accounts",        "getaddressid",                     &GetAccountId,                   {"address_or_id"}},
     {"accounts",        "getaccountsetting",                &GetAccountSetting,              {"address"}},
     {"accounts",        "getuserstatistic",                 &GetAccountStatistic,            {"address", "height", "depth"}},
-    {"accounts",        "getusersubscribes",                &GetAccountSubscribes,           {"address", "height", "depth"}},
-    {"accounts",        "getusersubscribers",               &GetAccountSubscribers,          {"address", "height", "depth"}},
+    {"accounts",        "getusersubscribes",                &GetAccountSubscribes,           {"address", "types", "orderby", "orderdesc", "offset", "limit"}},
+    {"accounts",        "getusersubscribers",               &GetAccountSubscribers,          {"address", "types", "orderby", "orderdesc", "offset", "limit"}},
     {"accounts",        "getuserblockings",                 &GetAccountBlockings,            {"address"}},
     {"accounts",        "getuserblockers",                  &GetAccountBlockers,             {"address"}},
     {"accounts",        "gettopaccounts",                   &GetTopAccounts,                 {"topHeight","countOut","lang","tags","contentTypes","adrsExcluded","tagsExcluded","depth"}},
