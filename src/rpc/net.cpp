@@ -872,8 +872,7 @@ static RPCHelpMan getnetstakeweight()
         "\nReturns netstakeweight for given height.\n",
         {
             {
-                "nHeight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG,
-                "Block height for calculation"
+                "nHeight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Block height for calculation"
             }
         },
         RPCResult
