@@ -40,18 +40,14 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            for (const auto& type: types)
-                TryBindStatementInt(stmt, i++, type);
-            TryBindStatementInt(stmt, i++, addressId);
-            TryBindStatementInt(stmt, i++, likerId);
+            stmt->Bind(types, addressId, likerId);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
                 result = true;
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -62,7 +58,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Insert new Last record
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Ratings (
                     Type,
                     Last,
@@ -80,17 +76,21 @@ namespace PocketDb
                         limit 1
                     ), 0) + ?
             )sql");
-            TryBindStatementInt(stmt, 1, *rating.GetType());
-            TryBindStatementInt(stmt, 2, rating.GetHeight());
-            TryBindStatementInt64(stmt, 3, rating.GetId());
-            TryBindStatementInt(stmt, 4, *rating.GetType());
-            TryBindStatementInt64(stmt, 5, rating.GetId());
-            TryBindStatementInt(stmt, 6, rating.GetHeight());
-            TryBindStatementInt64(stmt, 7, rating.GetValue());
+
+            stmt->Bind(
+                *rating.GetType(),
+                rating.GetHeight(),
+                rating.GetId(),
+                *rating.GetType(),
+                rating.GetId(),
+                rating.GetHeight(),
+                rating.GetValue()
+                );
+
             TryStepStatement(stmt);
 
             // Clear old Last record
-            auto stmtUpdate = SetupSqlStatement(R"sql(
+            static auto stmtUpdate = SetupSqlStatement(R"sql(
                 update Ratings indexed by Ratings_Type_Id_Last_Height
                   set Last = 0
                 where Type = ?
@@ -98,9 +98,8 @@ namespace PocketDb
                   and Id = ?
                   and Height < ?
             )sql");
-            TryBindStatementInt(stmtUpdate, 1, *rating.GetType());
-            TryBindStatementInt64(stmtUpdate, 2, rating.GetId());
-            TryBindStatementInt(stmtUpdate, 3, rating.GetHeight());
+
+            stmtUpdate->Bind(*rating.GetType(), rating.GetId(), rating.GetHeight());
             TryStepStatement(stmtUpdate);
         });
     }
@@ -118,10 +117,8 @@ namespace PocketDb
                     Value
                 ) values ( ?,1,?,?,? )
             )sql");
-            TryBindStatementInt(stmtInsert, 1, *rating.GetType());
-            TryBindStatementInt(stmtInsert, 2, rating.GetHeight());
-            TryBindStatementInt64(stmtInsert, 3, rating.GetId());
-            TryBindStatementInt64(stmtInsert, 4, rating.GetValue());
+
+            stmtInsert->Bind(*rating.GetType(), rating.GetHeight(), rating.GetId(), rating.GetValue());
             TryStepStatement(stmtInsert);
         });
     }

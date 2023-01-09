@@ -79,7 +79,7 @@ namespace PocketDb
 
     protected:
         tuple<bool, PTransactionRef> CreateTransactionFromListRow(
-            const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload);
+            Stmt& stmt, bool includedPayload);
 
     };
 

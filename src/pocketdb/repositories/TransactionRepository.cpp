@@ -47,7 +47,7 @@ namespace PocketDb
         }
     };
 
-    class TransactionReconstructor : public RowAccessor
+    class TransactionReconstructor
     {
     public:
         TransactionReconstructor(std::map<int64_t, CollectData> initData) {
@@ -63,12 +63,12 @@ namespace PocketDb
          * Columns: PartType (0), TxHash (1), ...
          * PartTypes: 0 Tx, 1 Payload, 2 Input, 3 Output
          */
-        bool FeedRow(sqlite3_stmt* stmt)
+        bool FeedRow(Stmt& stmt)
         {
-            auto[okPartType, partType] = TryGetColumnInt(stmt, 0);
+            auto[okPartType, partType] = stmt.TryGetColumnInt(0);
             if (!okPartType) return false;
 
-            auto[okTxId, txId] = TryGetColumnInt64(stmt, 1);
+            auto[okTxId, txId] = stmt.TryGetColumnInt64(1);
             if (!okTxId) return false;
 
             auto dataItr = m_collectData.find(txId);
@@ -117,10 +117,10 @@ namespace PocketDb
          * Index:   0  1     2     3     4          5       6     7   8        9        10       11       12       13    14    15
          * Columns: 0, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
          */
-        bool ParseTransaction(sqlite3_stmt* stmt, CollectData& collectData)
+        bool ParseTransaction(Stmt& stmt, CollectData& collectData)
         {
             // Try get Type and create pocket transaction instance
-            auto[okType, txType] = TryGetColumnInt(stmt, 2);
+            auto[okType, txType] = stmt.TryGetColumnInt(2);
             if (!okType) return false;
             
             PTransactionRef ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<TxType>(txType));
@@ -128,23 +128,23 @@ namespace PocketDb
 
             PocketHelpers::TxContextualData txContextData;
 
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 3); ok) ptx->SetTime(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 4); ok) ptx->SetHeight(value);
+            if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok) ptx->SetTime(value);
+            if (auto[ok, value] = stmt.TryGetColumnInt64(4); ok) ptx->SetHeight(value);
             // TODO (losty-db): implement "first" field
-            // if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) ptx->SetFirst(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) ptx->SetLast(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) ptx->SetId(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 7); ok) txContextData.int1 = value;
+            // if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) ptx->SetFirst(value);
+            if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) ptx->SetLast(value);
+            if (auto[ok, value] = stmt.TryGetColumnInt64(6); ok) ptx->SetId(value);
+            if (auto[ok, value] = stmt.TryGetColumnInt64(7); ok) txContextData.int1 = value;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) txContextData.string1 = value;
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) txContextData.string2 = value;
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) txContextData.string3 = value;
-            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) txContextData.string4 = value;
-            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) txContextData.string5 = value;
+            if (auto[ok, value] = stmt.TryGetColumnString(8); ok) txContextData.string1 = value;
+            if (auto[ok, value] = stmt.TryGetColumnString(9); ok) txContextData.string2 = value;
+            if (auto[ok, value] = stmt.TryGetColumnString(10); ok) txContextData.string3 = value;
+            if (auto[ok, value] = stmt.TryGetColumnString(11); ok) txContextData.string4 = value;
+            if (auto[ok, value] = stmt.TryGetColumnString(12); ok) txContextData.string5 = value;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) ptx->SetBlockHash(value);
+            if (auto[ok, value] = stmt.TryGetColumnString(13); ok) ptx->SetBlockHash(value);
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) txContextData.list = value;
+            if (auto[ok, value] = stmt.TryGetColumnString(14); ok) txContextData.list = value;
 
             ptx->SetHash(collectData.txHash);
             collectData.ptx = std::move(ptx);            
@@ -158,17 +158,17 @@ namespace PocketDb
          * Index:   0  1       2     3     4     5     6     7     8        9        10       11       12       13       14       15
          * Columns: 1, TxHash, null, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
          */
-        bool ParsePayload(sqlite3_stmt* stmt, CollectData& collectData)
+        bool ParsePayload(Stmt& stmt, CollectData& collectData)
         {
             Payload payload;
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 2); ok) { payload.SetInt1(value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { payload.SetString1(value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { payload.SetString2(value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { payload.SetString3(value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { payload.SetString4(value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { payload.SetString5(value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { payload.SetString6(value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) { payload.SetString7(value); }
+            if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) { payload.SetInt1(value); }
+            if (auto[ok, value] = stmt.TryGetColumnString(8); ok) { payload.SetString1(value); }
+            if (auto[ok, value] = stmt.TryGetColumnString(9); ok) { payload.SetString2(value); }
+            if (auto[ok, value] = stmt.TryGetColumnString(10); ok) { payload.SetString3(value); }
+            if (auto[ok, value] = stmt.TryGetColumnString(11); ok) { payload.SetString4(value); }
+            if (auto[ok, value] = stmt.TryGetColumnString(12); ok) { payload.SetString5(value); }
+            if (auto[ok, value] = stmt.TryGetColumnString(13); ok) { payload.SetString6(value); }
+            if (auto[ok, value] = stmt.TryGetColumnString(14); ok) { payload.SetString7(value); }
 
             collectData.payload = std::move(payload);
 
@@ -180,21 +180,21 @@ namespace PocketDb
          * Index:   0  1              2     3     4         5         6        7     8              9     10    11    12    13    14    15
          * Columns: 2, i.SpentTxHash, null, null, i.TxHash, i.Number, o.Value, null, o.AddressHash, null, null, null, null, null, null, null
          */
-        bool ParseInput(sqlite3_stmt* stmt, CollectData& collectData)
+        bool ParseInput(Stmt& stmt, CollectData& collectData)
         {
             bool incomplete = false;
 
             TransactionInput input;
             input.SetSpentTxHash(collectData.txHash);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 2); ok) input.SetNumber(value);
+            if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) input.SetNumber(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 3); ok) input.SetValue(value);
+            if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok) input.SetValue(value);
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) input.SetTxHash(value);
+            if (auto[ok, value] = stmt.TryGetColumnString(8); ok) input.SetTxHash(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) input.SetAddressHash(value);
+            if (auto[ok, value] = stmt.TryGetColumnString(9); ok) input.SetAddressHash(value);
 
             collectData.inputs.emplace_back(input);
             return !incomplete;
@@ -205,23 +205,23 @@ namespace PocketDb
          * Index:   0  1       2     3       4            5      6     7     8     9     10            11    12    13    14           15
          * Columns: 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, SpentTxHash, SpentHeight
          */
-        bool ParseOutput(sqlite3_stmt* stmt, CollectData& collectData)
+        bool ParseOutput(Stmt& stmt, CollectData& collectData)
         {
             bool incomplete = false;
 
             TransactionOutput output;
             output.SetTxHash(collectData.txHash);
 
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 2); ok) output.SetValue(value);
+            if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) output.SetValue(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 3); ok) output.SetNumber(value);
+            if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok) output.SetNumber(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) output.SetAddressHash(value);
+            if (auto[ok, value] = stmt.TryGetColumnString(8); ok) output.SetAddressHash(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) output.SetScriptPubKey(value);
+            if (auto[ok, value] = stmt.TryGetColumnString(9); ok) output.SetScriptPubKey(value);
             else incomplete = true;
 
             collectData.outputs.emplace_back(output);
@@ -382,21 +382,21 @@ namespace PocketDb
             size_t i = 1;
 
             for (const auto& [hash, txId] : txIdMap)
-                TryBindStatementInt64(stmt, i++, txId);
+                stmt->TryBindStatementInt64(i++, txId);
             
             if (includePayload)
                 for (const auto& [hash, txId] : txIdMap)
-                    TryBindStatementInt64(stmt, i++, txId);
+                    stmt->TryBindStatementInt64(i++, txId);
 
             if (includeInputs)
                 for (const auto& [hash, txId] : txIdMap)
-                    TryBindStatementInt64(stmt, i++, txId);
+                    stmt->TryBindStatementInt64(i++, txId);
 
             if (includeOutputs)
                 for (const auto& [hash, txId] : txIdMap)
-                    TryBindStatementInt64(stmt, i++, txId);
+                    stmt->TryBindStatementInt64(i++, txId);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 // TODO (aok): maybe throw exception if errors?
                 if (!reconstructor.FeedRow(*stmt))
@@ -404,8 +404,6 @@ namespace PocketDb
                     break;
                 }
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         auto pBlock = std::make_shared<PocketBlock>();
@@ -456,22 +454,19 @@ namespace PocketDb
         shared_ptr<TransactionOutput> result = nullptr;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt64(stmt, 1, txId);
-            TryBindStatementInt(stmt, 2, number);
+            stmt->Bind(txId, number);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
                 result = make_shared<TransactionOutput>();
                 result->SetTxHash(txHash);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result->SetNumber(value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result->SetAddressHash(value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result->SetValue(value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result->SetScriptPubKey(value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok) result->SetNumber(value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result->SetAddressHash(value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) result->SetValue(value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) result->SetScriptPubKey(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -489,13 +484,13 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, hash);
+            stmt->Bind(hash);
 
-            result = (sqlite3_step(*stmt) == SQLITE_ROW);
+            result = (stmt->Step() == SQLITE_ROW);
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -514,14 +509,14 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, hash);
+            stmt->Bind(hash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
                 result = true;
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -540,13 +535,12 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+            if (stmt->Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = value;
-
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -556,7 +550,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 delete from Transactions
                 where Height is null
             )sql");
@@ -570,7 +564,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear Payload tablew
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt1 = SetupSqlStatement(R"sql(
                 delete from Payload
                 where TxHash = ?
                   and exists(
@@ -580,11 +574,11 @@ namespace PocketDb
                       and t.Height isnull
                   )
             )sql");
-            TryBindStatementText(stmt, 1, hash);
-            TryStepStatement(stmt);
+            stmt1->Bind(hash);
+            TryStepStatement(stmt1);
 
             // Clear TxOutputs table
-            stmt = SetupSqlStatement(R"sql(
+            static auto stmt2 = SetupSqlStatement(R"sql(
                 delete from TxOutputs
                 where TxHash = ?
                   and exists(
@@ -594,17 +588,17 @@ namespace PocketDb
                       and t.Height isnull
                   )
             )sql");
-            TryBindStatementText(stmt, 1, hash);
-            TryStepStatement(stmt);
+            stmt2->Bind(hash);
+            TryStepStatement(stmt2);
 
             // Clear Transactions table
-            stmt = SetupSqlStatement(R"sql(
+            static auto stmt3 = SetupSqlStatement(R"sql(
                 delete from Transactions
                 where Hash = ?
                   and Height isnull
             )sql");
-            TryBindStatementText(stmt, 1, hash);
-            TryStepStatement(stmt);
+            stmt3->Bind(hash);
+            TryStepStatement(stmt3);
         });
     }
 
@@ -613,7 +607,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear Payload table
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt1 = SetupSqlStatement(R"sql(
                 delete from Payload
                 where TxHash in (
                   select t.Hash
@@ -621,10 +615,10 @@ namespace PocketDb
                   where t.Height is null
                 )
             )sql");
-            TryStepStatement(stmt);
+            TryStepStatement(stmt1);
 
             // Clear TxOutputs table
-            stmt = SetupSqlStatement(R"sql(
+            static auto stmt2 = SetupSqlStatement(R"sql(
                 delete from TxOutputs
                 where TxHash in (
                   select t.Hash
@@ -632,14 +626,14 @@ namespace PocketDb
                   where t.Height is null
                 )
             )sql");
-            TryStepStatement(stmt);
+            TryStepStatement(stmt2);
 
             // Clear Transactions table
-            stmt = SetupSqlStatement(R"sql(
+            static auto stmt3 = SetupSqlStatement(R"sql(
                 delete from Transactions
                 where Height isnull
             )sql");
-            TryStepStatement(stmt);
+            TryStepStatement(stmt3);
         });
     }
 
@@ -648,7 +642,7 @@ namespace PocketDb
         for (const auto& input: inputs)
         {
             // Build transaction output
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR IGNORE INTO TxInputs
                 (
                     SpentTxId,
@@ -663,10 +657,7 @@ namespace PocketDb
                 )
             )sql");
 
-            TryBindStatementText(stmt, 1, input.GetSpentTxHash());
-            TryBindStatementText(stmt, 2, txHash);
-            TryBindStatementInt64(stmt, 3, input.GetNumber());
-
+            stmt->Bind(input.GetSpentTxHash(), txHash, input.GetNumber());
             TryStepStatement(stmt);
         }
     }
@@ -676,7 +667,7 @@ namespace PocketDb
         for (const auto& output: outputs)
         {
             // Build transaction output
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO TxOutputs (
                     TxId,
                     Number,
@@ -696,22 +687,14 @@ namespace PocketDb
                     and TxId = (select t.RowId from Transactions t where t.HashId = (select r.RowId as HashId from Registry r where r.String = ?)))
             )sql");
 
-            TryBindStatementText(stmt, 1, txHash);
-            TryBindStatementInt64(stmt, 2, output.GetNumber());
-            TryBindStatementText(stmt, 3, output.GetAddressHash());
-            TryBindStatementInt64(stmt, 4, output.GetValue());
-            // TODO (losty-db): move this to registry!
-            TryBindStatementText(stmt, 5, output.GetScriptPubKey());
-            TryBindStatementInt64(stmt, 6, output.GetNumber());
-            TryBindStatementText(stmt, 7, txHash);
-
+            stmt->Bind(txHash, output.GetNumber(), output.GetAddressHash(), output.GetValue(), output.GetScriptPubKey(), output.GetNumber(), txHash);
             TryStepStatement(stmt);
         }
     }
 
     void TransactionRepository::InsertTransactionPayload(const Payload& payload)
     {
-        auto stmt = SetupSqlStatement(R"sql(
+        static auto stmt = SetupSqlStatement(R"sql(
             with t as (
                 select RowId from Transactions where HashId =
                         (select RowId from Registry where String = ?)
@@ -730,22 +713,14 @@ namespace PocketDb
             WHERE not exists (select 1 from Payload p,t  where p.TxId = t.RowId)
         )sql");
 
-        TryBindStatementText(stmt, 1, payload.GetTxHash());
-        TryBindStatementText(stmt, 2, payload.GetString1());
-        TryBindStatementText(stmt, 3, payload.GetString2());
-        TryBindStatementText(stmt, 4, payload.GetString3());
-        TryBindStatementText(stmt, 5, payload.GetString4());
-        TryBindStatementText(stmt, 6, payload.GetString5());
-        TryBindStatementText(stmt, 7, payload.GetString6());
-        TryBindStatementText(stmt, 8, payload.GetString7());
-
+        stmt->Bind(payload.GetTxHash(), payload.GetString1(), payload.GetString2(), payload.GetString3(), payload.GetString4(), payload.GetString5(), payload.GetString6(), payload.GetString7());
         TryStepStatement(stmt);
     }
 
     void TransactionRepository::InsertTransactionModel(const CollectData& collectData)
     {
         // TODO (losty-db): WITH not working?
-        auto stmt = SetupSqlStatement(R"sql(
+        static auto stmt = SetupSqlStatement(R"sql(
             with h as (
                 select RowId as HashId from Registry where String = ?
             )
@@ -769,28 +744,31 @@ namespace PocketDb
             WHERE not exists (select 1 from Transactions a,h where a.HashId = h.HashId)
         )sql");
 
-        TryBindStatementText(stmt, 1, collectData.txHash);
-        TryBindStatementInt(stmt, 2, (int)*collectData.ptx->GetType());
-        TryBindStatementInt64(stmt, 3, collectData.ptx->GetTime());
-        TryBindStatementInt64(stmt, 4, collectData.txContextData.int1);
-        TryBindStatementText(stmt, 5, collectData.txContextData.string1);
-        TryBindStatementText(stmt, 6, collectData.txContextData.string2);
-        TryBindStatementText(stmt, 7, collectData.txContextData.string3);
-        TryBindStatementText(stmt, 8, collectData.txContextData.string4);
-        TryBindStatementText(stmt, 9, collectData.txContextData.string5);
+        stmt->Bind(
+            collectData.txHash,
+            (int)*collectData.ptx->GetType(),
+            collectData.ptx->GetTime(),
+            collectData.txContextData.int1,
+            collectData.txContextData.string1,
+            collectData.txContextData.string2,
+            collectData.txContextData.string3,
+            collectData.txContextData.string4,
+            collectData.txContextData.string5
+        );
+
         TryStepStatement(stmt);
 
         if (!collectData.txContextData.list) return;
     }
 
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(
-        const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
+        Stmt& stmt, bool includedPayload)
     {
         // TODO (aok): move deserialization logic to models ?
 
-        auto[ok0, _txType] = TryGetColumnInt(*stmt, 0);
-        auto[ok1, txHash] = TryGetColumnString(*stmt, 1);
-        auto[ok2, nTime] = TryGetColumnInt64(*stmt, 2);
+        auto[ok0, _txType] = stmt.TryGetColumnInt(0);
+        auto[ok1, txHash] = stmt.TryGetColumnString(1);
+        auto[ok2, nTime] = stmt.TryGetColumnInt64(2);
 
         if (!ok0 || !ok1 || !ok2)
             return make_tuple(false, nullptr);
@@ -803,30 +781,30 @@ namespace PocketDb
         if (ptx == nullptr)
             return make_tuple(false, nullptr);
 
-        if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) ptx->SetLast(value == 1);
-        if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) ptx->SetId(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) ptx->SetString1(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) ptx->SetString2(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) ptx->SetString3(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) ptx->SetString4(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) ptx->SetString5(value);
-        if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) ptx->SetInt1(value);
+        if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) ptx->SetLast(value == 1);
+        if (auto[ok, value] = stmt.TryGetColumnInt64(4); ok) ptx->SetId(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(5); ok) ptx->SetString1(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(6); ok) ptx->SetString2(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(7); ok) ptx->SetString3(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(8); ok) ptx->SetString4(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(9); ok) ptx->SetString5(value);
+        if (auto[ok, value] = stmt.TryGetColumnInt64(10); ok) ptx->SetInt1(value);
 
         if (!includedPayload)
             return make_tuple(true, ptx);
 
-        if (auto[ok, value] = TryGetColumnString(*stmt, 11); !ok)
+        if (auto[ok, value] = stmt.TryGetColumnString(11); !ok)
             return make_tuple(true, ptx);
 
         auto payload = Payload();
-        if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) payload.SetTxHash(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) payload.SetString1(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) payload.SetString2(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) payload.SetString3(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) payload.SetString4(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok) payload.SetString5(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok) payload.SetString6(value);
-        if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok) payload.SetString7(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(11); ok) payload.SetTxHash(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(12); ok) payload.SetString1(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(13); ok) payload.SetString2(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(14); ok) payload.SetString3(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(15); ok) payload.SetString4(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(16); ok) payload.SetString5(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(17); ok) payload.SetString6(value);
+        if (auto[ok, value] = stmt.TryGetColumnString(18); ok) payload.SetString7(value);
 
         ptx->SetPayload(payload);
 
@@ -848,20 +826,19 @@ namespace PocketDb
         map<string,int64_t> res;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
             int i = 1;
             for (const auto& hash: txHashes) {
-                TryBindStatementText(stmt, i++, hash);
+                stmt->TryBindStatementText(i++, hash);
             }
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW) {
+            while (stmt->Step() == SQLITE_ROW) {
                 // TODO (losty-db): error
-                auto[ok1, hash] = TryGetColumnString(*stmt, 0);
-                auto[ok2, txId] = TryGetColumnInt64(*stmt, 1);
+                auto[ok1, hash] = stmt->TryGetColumnString(0);
+                auto[ok2, txId] = stmt->TryGetColumnInt64(1);
                 if (ok1 && ok2) res.emplace(hash, txId);
             }
-
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return res;
@@ -878,12 +855,12 @@ namespace PocketDb
         optional<string> hash;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, id);
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto [ok, val] = TryGetColumnString(*stmt, 0); ok)
+            static auto stmt = SetupSqlStatement(sql);
+            stmt->Bind(id);
+            if (stmt->Step() == SQLITE_ROW)
+                if (auto [ok, val] = stmt->TryGetColumnString(0); ok)
                     hash = val;
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return hash;
@@ -902,12 +879,12 @@ namespace PocketDb
         optional<int64_t> id;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, hash);
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok)
+            static auto stmt = SetupSqlStatement(sql);
+            stmt->Bind(hash);
+            if (stmt->Step() == SQLITE_ROW)
+                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok)
                     id = val;
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return id;
@@ -924,12 +901,12 @@ namespace PocketDb
         optional<string> hash;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, id);
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto [ok, val] = TryGetColumnString(*stmt, 0); ok)
+            static auto stmt = SetupSqlStatement(sql);
+            stmt->Bind(id);
+            if (stmt->Step() == SQLITE_ROW)
+                if (auto [ok, val] = stmt->TryGetColumnString(0); ok)
                     hash = val;
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return hash;
@@ -946,12 +923,12 @@ namespace PocketDb
         optional<int64_t> id;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, hash);
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok)
+            static auto stmt = SetupSqlStatement(sql);
+            stmt->Bind(hash);
+            if (stmt->Step() == SQLITE_ROW)
+                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok)
                     id = val;
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return id;
@@ -969,7 +946,7 @@ namespace PocketDb
         int i = 1;
         for (const auto& string: strings)
         {
-            TryBindStatementText(stmt, i++, string);
+            stmt->TryBindStatementText(i++, string);
         }
         TryStepStatement(stmt);
     }
@@ -983,9 +960,8 @@ namespace PocketDb
         )sql");
 
         for (const auto& list: lists) {
-            TryBindStatementText(stmt, 1, list);
-            sqlite3_step(*stmt); // TODO (losty-db): indirect
-            ResetSqlStatement(*stmt);
+            stmt->Bind(list);
+            TryStepStatement(stmt);
         }
     }
 
@@ -1004,10 +980,8 @@ namespace PocketDb
                     from json_each(?)
                 )
         )sql");
-        TryBindStatementText(stmt, 1, txHash);
-        TryBindStatementText(stmt, 2, list);
-        sqlite3_step(*stmt); // TODO (losty-db): indirect
-        ResetSqlStatement(*stmt);
+        stmt->Bind(txHash, list);
+        TryStepStatement(stmt);
     }
 
 } // namespace PocketDb

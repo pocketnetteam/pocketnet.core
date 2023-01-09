@@ -29,17 +29,17 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
+            stmt->Bind(address);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) result.pushKV("id", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) result.pushKV("id", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -60,17 +60,17 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt64(stmt, 1, id);
+            stmt->Bind(id);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) result.pushKV("id", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) result.pushKV("id", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -95,21 +95,21 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, _name);
+            stmt->Bind(_name);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", valueStr);
+                if (auto[ok, valueStr] = stmt->TryGetColumnString(0); ok) record.pushKV("name", valueStr);
+                if (auto[ok, valueStr] = stmt->TryGetColumnString(1); ok) record.pushKV("address", valueStr);
 
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -139,21 +139,18 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            for (size_t i = 0; i < addresses.size(); i++)
-                TryBindStatementText(stmt, (int) i + 1, addresses[i]);
+            stmt->Bind(addresses);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("time", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("txid", valueStr);
+                if (auto[ok, valueStr] = stmt->TryGetColumnString(0); ok) record.pushKV("address", valueStr);
+                if (auto[ok, valueStr] = stmt->TryGetColumnString(1); ok) record.pushKV("time", valueStr);
+                if (auto[ok, valueStr] = stmt->TryGetColumnString(2); ok) record.pushKV("txid", valueStr);
 
                 result.push_back(record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -173,18 +170,18 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, count);
+            static auto stmt = SetupSqlStatement(sql);
+            stmt->Bind(count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue addr(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) addr.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) addr.pushKV("balance", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) addr.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) addr.pushKV("balance", value);
                 result.push_back(addr);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -240,50 +237,40 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, heightWindow);
-            TryBindStatementInt(stmt, 2, heightWindow);
-            TryBindStatementInt(stmt, 3, heightWindow);
-            TryBindStatementInt(stmt, 4, heightWindow);
-            TryBindStatementInt(stmt, 5, heightWindow);
-            TryBindStatementInt(stmt, 6, heightWindow);
-            TryBindStatementInt(stmt, 7, heightWindow);
-            TryBindStatementInt(stmt, 8, heightWindow);
-            TryBindStatementInt(stmt, 9, heightWindow);
-            TryBindStatementInt(stmt, 10, heightWindow);
-            TryBindStatementText(stmt, 11, address);
+            stmt->Bind(heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, address);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
                 int i = 0;
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("address_id", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) result.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("address_id", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) result.pushKV("address", value);
 
                 bool isDeleted = false;
-                if (auto[ok, Type] = TryGetColumnInt(*stmt, i++); ok)
+                if (auto[ok, Type] = stmt->TryGetColumnInt(i++); ok)
                 {
                     isDeleted = (Type==TxType::ACCOUNT_DELETE);
                     if (isDeleted) result.pushKV("deleted", true);
                 }
 
                 if (!isDeleted) {
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("post_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("video_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("article_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("stream_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("audio_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("comment_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("score_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok)
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("post_spent", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("video_spent", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("article_spent", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("stream_spent", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("audio_spent", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("comment_spent", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("score_spent", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok)
                         result.pushKV("comment_score_spent", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("complain_spent", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("complain_spent", value);
 
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) result.pushKV("mod_flag_spent", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("mod_flag_spent", value);
                 }
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -306,17 +293,17 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
+            stmt->Bind(address);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     result = value;
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -383,32 +370,20 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            // Referrals
-            TryBindStatementInt(stmt, i++, nHeight);
-            TryBindStatementInt(stmt, i++, nHeight - depthR);
-            // Commentators
-            TryBindStatementInt(stmt, i++, nHeight);
-            TryBindStatementInt(stmt, i++, nHeight - depthC);
-            TryBindStatementInt(stmt, i++, cntC);
-            // Addresses
-            for (const auto& address: addresses)
-                TryBindStatementText(stmt, i++, address);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            stmt->Bind(nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC, addresses);
+            
+            if (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                auto[ok0, address] = TryGetColumnString(*stmt, 0);
-                auto[ok1, ReferralsCountHist] = TryGetColumnInt(*stmt, 1);
-                auto[ok2, CommentatorsCountHist] = TryGetColumnInt(*stmt, 2);
+                auto[ok0, address] = stmt->TryGetColumnString(0);
+                auto[ok1, ReferralsCountHist] = stmt->TryGetColumnInt(1);
+                auto[ok2, CommentatorsCountHist] = stmt->TryGetColumnInt(2);
 
                 record.pushKV("address", address);
                 record.pushKV("histreferals", ReferralsCountHist);
                 record.pushKV("commentators", CommentatorsCountHist);
                 result.push_back(record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -596,24 +571,17 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            // Bind parameters
-            int i = 1;
-            TryBindStatementInt(stmt, i++, firstFlagsDepth * 1440);
-            for (const string& address : addresses)
-                TryBindStatementText(stmt, i++, address);
-            for (int64_t id : ids)
-                TryBindStatementInt64(stmt, i++, id);
-
+            stmt->Bind(firstFlagsDepth * 1440, addresses, ids);
             // Fetch data
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 int i = 0;
-                auto[ok0, hash] = TryGetColumnString(*stmt, i++);
-                auto[ok1, address] = TryGetColumnString(*stmt, i++);
-                auto[ok2, id] = TryGetColumnInt64(*stmt, i++);
-                auto[ok3, Type] = TryGetColumnInt(*stmt, i++);
+                auto[ok0, hash] = stmt->TryGetColumnString(i++);
+                auto[ok1, address] = stmt->TryGetColumnString(i++);
+                auto[ok2, id] = stmt->TryGetColumnInt64(i++);
+                auto[ok3, Type] = stmt->TryGetColumnInt(i++);
                 bool isDeleted = (Type==TxType::ACCOUNT_DELETE);
 
                 record.pushKV("hash", hash);
@@ -623,31 +591,31 @@ namespace PocketDb
                 if (isDeleted) record.pushKV("deleted", true);
 
                 if(!isDeleted) {
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("name", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("i", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("b", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("r", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("postcnt", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("dltdcnt", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("reputation", value / 10.0);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribes_count", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("subscribers_count", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("blockings_count", value);
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("likers_count", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("k", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("a", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("l", value);
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("s", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("update", value);
-                    if (auto [ok, value] = TryGetColumnInt64(*stmt, i++); ok) record.pushKV("regdate", value);
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("name", value);
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("i", value);
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("b", value);
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("r", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("postcnt", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("dltdcnt", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("reputation", value / 10.0);
+                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("k", value);
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("a", value);
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("l", value);
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("s", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) record.pushKV("update", value);
+                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) record.pushKV("regdate", value);
 
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
                         UniValue flags(UniValue::VOBJ);
                         flags.read(value);
                         record.pushKV("flags", flags);
                     }
 
-                    if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
                         UniValue flags(UniValue::VOBJ);
                         flags.read(value);
                         record.pushKV("firstFlags", flags);
@@ -655,25 +623,25 @@ namespace PocketDb
 
                     if (!shortForm) {
 
-                        if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                        if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("subscribes", subscribes);
                         }
 
-                        if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                        if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("subscribers", subscribes);
                         }
 
-                        if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                        if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("blocking", subscribes);
                         }
 
-                        if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                        if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
                             UniValue content(UniValue::VOBJ);
                             content.read(value);
                             record.pushKV("content", content);
@@ -683,8 +651,6 @@ namespace PocketDb
 
                 result.emplace_back(address, id, record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -794,37 +760,35 @@ namespace PocketDb
         TryTransactionStep(func, [&]()
         {
             int i = 1;
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, i++, lang);
-            TryBindStatementInt(stmt, i++, height);
-            TryBindStatementInt(stmt, i++, count);
+            stmt->Bind(lang, height, count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 int i = 0;
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("id", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("id", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok)
                 {
                     record.pushKV("time", value);
                     record.pushKV("timeUpd", value);
                 }
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("addressContent", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("addressCommentParent", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("addressCommentAnswer", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, i++); ok) record.pushKV("edit", value == 1);
-                if (auto[ok, value] = TryGetColumnString(*stmt, i++); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("block", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
+                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
@@ -833,7 +797,7 @@ namespace PocketDb
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -936,42 +900,38 @@ namespace PocketDb
         TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
 
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt64(stmt, i++, (int64_t)(0.5 * COIN));
-            for (int64_t id : ids)
-                TryBindStatementInt64(stmt, i++, id);
+            stmt->Bind(address, (int64_t)(0.5 * COIN), ids);
 
             // ---------------------------
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                auto[okContentId, contentId] = TryGetColumnInt(*stmt, 0);
-                auto[okCommentId, commentId] = TryGetColumnInt(*stmt, 1);
-                auto[okType, txType] = TryGetColumnInt(*stmt, 2);
-                auto[okRoot, rootTxHash] = TryGetColumnString(*stmt, 3);
+                auto[okContentId, contentId] = stmt->TryGetColumnInt(0);
+                auto[okCommentId, commentId] = stmt->TryGetColumnInt(1);
+                auto[okType, txType] = stmt->TryGetColumnInt(2);
+                auto[okRoot, rootTxHash] = stmt->TryGetColumnString(3);
 
                 record.pushKV("id", rootTxHash);
                 record.pushKV("cid", commentId);
                 record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
                 record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("myScore", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(7); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(8); ok) record.pushKV("block", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(9); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(10); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(11); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(12); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(13); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(14); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(16); ok) record.pushKV("myScore", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(17); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
@@ -979,8 +939,6 @@ namespace PocketDb
                                 
                 result.emplace(contentId, record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -1081,42 +1039,42 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
-            TryBindStatementText(stmt, i++, addressHash);
-            TryBindStatementText(stmt, i++, postHash);
+            stmt->TryBindStatementText(i++, addressHash);
+            stmt->TryBindStatementText(i++, postHash);
             if (!parentHash.empty())
-                TryBindStatementText(stmt, i++, parentHash);
+                stmt->TryBindStatementText(i++, parentHash);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                //auto[ok0, txHash] = TryGetColumnString(stmt, 1);
-                auto[ok1, rootTxHash] = TryGetColumnString(*stmt, 2);
+                //auto[ok0, txHash] = stmt->TryGetColumnString(stmt, 1);
+                auto[ok1, rootTxHash] = stmt->TryGetColumnString(2);
                 record.pushKV("id", rootTxHash);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok)
                     record.pushKV("postid", value);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("myScore", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(7); ok) record.pushKV("block", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(8); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(15); ok) record.pushKV("children", value);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(16); ok)
                 {
                     record.pushKV("amount", value);
                     record.pushKV("donation", "true");
                 }
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                 {
                     switch (static_cast<TxType>(value))
                     {
@@ -1139,8 +1097,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -1232,44 +1188,42 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
-            TryBindStatementText(stmt, i++, addressHash);
-            for (const string& cmntHash : cmntHashes)
-                TryBindStatementText(stmt, i++, cmntHash);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            stmt->Bind(addressHash, cmntHashes);
+
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                //auto[ok0, txHash] = TryGetColumnString(stmt, 1);
-                auto[ok1, rootTxHash] = TryGetColumnString(*stmt, 2);
+                //auto[ok0, txHash] = stmt->TryGetColumnString(stmt, 1);
+                auto[ok1, rootTxHash] = stmt->TryGetColumnString(2);
                 record.pushKV("id", rootTxHash);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok)
                     record.pushKV("postid", value);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("myScore", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(7); ok) record.pushKV("block", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(8); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(15); ok) record.pushKV("children", value);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(16); ok)
                 {
                     record.pushKV("amount", value);
                     record.pushKV("donation", "true");
                 }
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 17); ok && value > 0) record.pushKV("blck", 1);
+                if (auto[ok, value] = stmt->TryGetColumnInt(17); ok && value > 0) record.pushKV("blck", 1);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                 {
                     switch (static_cast<TxType>(value))
                     {
@@ -1292,8 +1246,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -1324,22 +1276,17 @@ namespace PocketDb
             {
                 auto stmt = SetupSqlStatement(sql);
 
-                int i = 1;
-                TryBindStatementText(stmt, i++, addressHash);
-                for (const auto& postHash: postHashes)
-                    TryBindStatementText(stmt, i++, postHash);
+                stmt->Bind(addressHash, postHashes);
 
-                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                while (stmt->Step() == SQLITE_ROW)
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("value", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("value", value);
 
                     result.push_back(record);
                 }
-
-                FinalizeSqlStatement(*stmt);
             });
         }
 
@@ -1374,25 +1321,20 @@ namespace PocketDb
             {
                 auto stmt = SetupSqlStatement(sql);
 
-                int i = 1;
-                TryBindStatementText(stmt, i++, addressHash);
-                for (const auto& commentHash: commentHashes)
-                    TryBindStatementText(stmt, i++, commentHash);
+                stmt->Bind(addressHash, commentHashes);
 
-                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                while (stmt->Step() == SQLITE_ROW)
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("cmntid", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("myScore", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("cmntid", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("myScore", value);
 
                     result.push_back(record);
                 }
-
-                FinalizeSqlStatement(*stmt);
             });
         }
 
@@ -1431,27 +1373,27 @@ namespace PocketDb
 
         TryTransactionStep(func, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, postTxHash);
+            stmt->Bind(postTxHash);
 
             // ---------------------------------------------
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("value", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("value", value);
 
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -1492,27 +1434,21 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
+            stmt->Bind(address, postHashes);
 
-            int i = 2;
-            for (const auto& postHash: postHashes)
-                TryBindStatementText(stmt, i++, postHash);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("value", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(5); ok) record.pushKV("value", value);
 
                 result.push_back(record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -1584,28 +1520,27 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementText(stmt, 2, address);
+            stmt->Bind(address, address);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("id", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("about", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("regdate", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) record.pushKV("ratingscnt", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok) record.pushKV("id", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("about", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(5); ok) record.pushKV("regdate", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(6); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(7); ok) record.pushKV("ratingscnt", value);
 
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -1636,22 +1571,21 @@ namespace PocketDb
         // TryTransactionStep(__func__, [&]()
         // {
         //     auto stmt = SetupSqlStatement(sql);
+        //     
+        //     stmt->Bind(address);
         //
-        //     int i = 1;
-        //     TryBindStatementText(stmt, i++, address);
-        //
-        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
+        //     while (stmt->Step() == SQLITE_ROW)
         //     {
         //         UniValue record(UniValue::VOBJ);
-        //         auto[ok, address] = TryGetColumnString(*stmt, 0);
+        //         auto[ok, address] = stmt->TryGetColumnString(0);
         //
-        //         if (auto[ok1, value] = TryGetColumnString(*stmt, 1); ok1) record.pushKV("adddress", value);
-        //         if (auto[ok2, value] = TryGetColumnString(*stmt, 2); ok2) record.pushKV("private", value);
+        //         if (auto[ok1, value] = stmt->TryGetColumnString(1); ok1) record.pushKV("adddress", value);
+        //         if (auto[ok2, value] = stmt->TryGetColumnString(2); ok2) record.pushKV("private", value);
         //
         //         result[address].push_back(record);
         //     }
         //
-        //     FinalizeSqlStatement(*stmt);
+        //     stmt->Reset();
         // });
 
         return result;
@@ -1670,7 +1604,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select
                   bl.IdTarget
                 from BlockingLists bl
@@ -1678,13 +1612,14 @@ namespace PocketDb
                 cross join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
                 where us.String1 = ?
             )sql");
-            TryBindStatementText(stmt, 1, address);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+            stmt->Bind(address);
+
+            while (stmt->Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     result.push_back(value);
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -1696,7 +1631,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select
                   bl.IdSource
                 from BlockingLists bl
@@ -1704,13 +1639,14 @@ namespace PocketDb
                 cross join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
                 where ut.String1 = ?
             )sql");
-            TryBindStatementText(stmt, 1, address);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+            stmt->Bind(address);
+
+            while (stmt->Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     result.push_back(value);
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -1799,47 +1735,47 @@ namespace PocketDb
             int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementInt(stmt, i++, topHeight - depth);
-            TryBindStatementInt(stmt, i++, topHeight);
+            stmt->TryBindStatementInt(i++, topHeight - depth);
+            stmt->TryBindStatementInt(i++, topHeight);
 
-            TryBindStatementInt(stmt, i++, badReputationLimit);
+            stmt->TryBindStatementInt(i++, badReputationLimit);
 
             if (!tags.empty())
             {
                 for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
+                    stmt->TryBindStatementText(i++, tag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             if (!adrsExcluded.empty())
                 for (const auto& exadr: adrsExcluded)
-                    TryBindStatementText(stmt, i++, exadr);
+                    stmt->TryBindStatementText(i++, exadr);
 
             if (!tagsExcluded.empty())
             {
                 for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, i++, extag);
+                    stmt->TryBindStatementText(i++, extag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
-            TryBindStatementInt(stmt, i++, countOut);
+            stmt->TryBindStatementInt(i++, countOut);
 
             // ---------------------------------------------
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.push_back(value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.push_back(value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         // Complete!
@@ -1864,19 +1800,15 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            TryBindStatementText(stmt, i++, lang);
-            TryBindStatementInt(stmt, i++, pageSize);
-            TryBindStatementInt(stmt, i++, pageStart);
-                
+            stmt->Bind(lang, pageSize, pageStart);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto[ok0, vLang] = TryGetColumnString(*stmt, 0);
-                auto[ok1, vValue] = TryGetColumnString(*stmt, 1);
-                auto[ok2, vCount] = TryGetColumnInt(*stmt, 2);
+                auto[ok0, vLang] = stmt->TryGetColumnString(0);
+                auto[ok1, vValue] = stmt->TryGetColumnString(1);
+                auto[ok2, vCount] = stmt->TryGetColumnInt(2);
 
                 UniValue record(UniValue::VOBJ);
                 record.pushKV("tag", vValue);
@@ -1885,7 +1817,7 @@ namespace PocketDb
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -1908,18 +1840,14 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            
-            int i = 1;
-            for (const string& txHash : txHashes)
-                TryBindStatementText(stmt, i++, txHash);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            stmt->Bind(txHashes);
+
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     result.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -1943,19 +1871,15 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            for (const string& txHash : txHashes)
-                TryBindStatementText(stmt, i++, txHash);
+            stmt->Bind(txHashes);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto[ok0, contenthash] = TryGetColumnString(*stmt, 0);
-                auto[ok1, contentaddress] = TryGetColumnString(*stmt, 1);
+                auto[ok0, contenthash] = stmt->TryGetColumnString(0);
+                auto[ok1, contentaddress] = stmt->TryGetColumnString(1);
                 if(ok0 && ok1)
                     result.emplace(contenthash,contentaddress);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -1987,16 +1911,14 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            for (const auto& address: addresses)
-                TryBindStatementText(stmt, i++, address);
+            stmt->Bind(addresses);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                auto[ok0, txHash] = TryGetColumnString(*stmt, 0);
-                auto[ok1, txOut] = TryGetColumnInt(*stmt, 1);
+                auto[ok0, txHash] = stmt->TryGetColumnString(0);
+                auto[ok1, txOut] = stmt->TryGetColumnInt(1);
 
                 string _txHash = txHash;
                 int _txOut = txOut;
@@ -2013,19 +1935,19 @@ namespace PocketDb
                 record.pushKV("txid", txHash);
                 record.pushKV("vout", txOut);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(3); ok)
                 {
                     record.pushKV("amount", ValueFromAmount(value));
                     record.pushKV("amountSat", value);
                 }
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("scriptPubKey", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("scriptPubKey", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(5); ok)
                 {
                     record.pushKV("coinbase", value == 2 || value == 3);
                     record.pushKV("pockettx", value > 3);
                 }
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt(6); ok)
                 {
                     record.pushKV("confirmations", height - value);
                     record.pushKV("height", value);
@@ -2033,8 +1955,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -2060,14 +1980,15 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, height);
+            static auto stmt = SetupSqlStatement(sql);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            stmt->Bind(height);
+
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto[okType, typeInt] = TryGetColumnInt(*stmt, 0);
-                auto[okLang, lang] = TryGetColumnString(*stmt, 1);
-                auto[okCount, count] = TryGetColumnInt(*stmt, 2);
+                auto[okType, typeInt] = stmt->TryGetColumnInt(0);
+                auto[okLang, lang] = stmt->TryGetColumnString(1);
+                auto[okCount, count] = stmt->TryGetColumnInt(2);
                 if (!okType || !okLang || !okCount)
                     continue;
 
@@ -2080,7 +2001,7 @@ namespace PocketDb
                 resultCount += count;
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return {resultCount, resultData};
@@ -2104,15 +2025,15 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sqlCount);
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, address);
+            static auto stmt = SetupSqlStatement(sqlCount);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+            stmt->Bind(height, address);
+
+            if (stmt->Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     resultCount = value;
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         // Try get last N records
@@ -2140,16 +2061,15 @@ namespace PocketDb
 
             TryTransactionStep(__func__, [&]()
             {
-                auto stmt = SetupSqlStatement(sql);
-                TryBindStatementInt(stmt, 1, height);
-                TryBindStatementText(stmt, 2, address);
-                TryBindStatementInt(stmt, 3, count);
+                static auto stmt = SetupSqlStatement(sql);
 
-                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                stmt->Bind(height, address, count);
+
+                while (stmt->Step() == SQLITE_ROW)
                 {
-                    auto[okHash, hash] = TryGetColumnString(*stmt, 0);
-                    auto[okTime, time] = TryGetColumnInt64(*stmt, 1);
-                    auto[okHeight, block] = TryGetColumnInt(*stmt, 2);
+                    auto[okHash, hash] = stmt->TryGetColumnString(0);
+                    auto[okTime, time] = stmt->TryGetColumnInt64(1);
+                    auto[okHeight, block] = stmt->TryGetColumnInt(2);
                     if (!okHash || !okTime || !okHeight)
                         continue;
 
@@ -2157,13 +2077,13 @@ namespace PocketDb
                     record.pushKV("txid", hash);
                     record.pushKV("time", time);
                     record.pushKV("nblock", block);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("nameFrom", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("avatarFrom", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("nameFrom", value);
+                    if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
                     resultData.push_back(record);
                 }
 
-                FinalizeSqlStatement(*stmt);
+                stmt->Reset();
             });
         }
 
@@ -2209,22 +2129,23 @@ namespace PocketDb
 
         TryTransactionStep(func, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, address);
+            static auto stmt = SetupSqlStatement(sql);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            stmt->Bind(address);
+
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                auto[ok0, id] = TryGetColumnInt64(*stmt, 0);
-                auto[ok1, hash] = TryGetColumnString(*stmt, 1);
-                auto[ok2, time] = TryGetColumnString(*stmt, 2);
-                auto[ok3, caption] = TryGetColumnString(*stmt, 3);
-                auto[ok4, message] = TryGetColumnString(*stmt, 4);
-                auto[ok5, settings] = TryGetColumnString(*stmt, 5);
-                auto[ok6, reputation] = TryGetColumnString(*stmt, 6);
-                auto[ok7, scoreCnt] = TryGetColumnString(*stmt, 7);
-                auto[ok8, scoreSum] = TryGetColumnString(*stmt, 8);
+                auto[ok0, id] = stmt->TryGetColumnInt64(0);
+                auto[ok1, hash] = stmt->TryGetColumnString(1);
+                auto[ok2, time] = stmt->TryGetColumnString(2);
+                auto[ok3, caption] = stmt->TryGetColumnString(3);
+                auto[ok4, message] = stmt->TryGetColumnString(4);
+                auto[ok5, settings] = stmt->TryGetColumnString(5);
+                auto[ok6, reputation] = stmt->TryGetColumnString(6);
+                auto[ok7, scoreCnt] = stmt->TryGetColumnString(7);
+                auto[ok8, scoreSum] = stmt->TryGetColumnString(8);
                 
                 if (ok3) record.pushKV("content", HtmlUtils::UrlDecode(caption));
                 else record.pushKV("content", HtmlUtils::UrlDecode(message).substr(0, 100));
@@ -2239,7 +2160,7 @@ namespace PocketDb
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -2267,25 +2188,25 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, address);
+            static auto stmt = SetupSqlStatement(sql);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            stmt->Bind(height, address);
+
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("msg", "reshare");
-                if (auto[ok, val] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", val);
-                if (auto[ok, val] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txidRepost", val);
-                if (auto[ok, val] = TryGetColumnString(*stmt, 2); ok) record.pushKV("addrFrom", val);
-                if (auto[ok, val] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("time", val);
-                if (auto[ok, val] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("nblock", val);
+                if (auto[ok, val] = stmt->TryGetColumnString(0); ok) record.pushKV("txid", val);
+                if (auto[ok, val] = stmt->TryGetColumnString(1); ok) record.pushKV("txidRepost", val);
+                if (auto[ok, val] = stmt->TryGetColumnString(2); ok) record.pushKV("addrFrom", val);
+                if (auto[ok, val] = stmt->TryGetColumnInt64(3); ok) record.pushKV("time", val);
+                if (auto[ok, val] = stmt->TryGetColumnInt(4); ok) record.pushKV("nblock", val);
 
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -2316,30 +2237,28 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, address);
-            TryBindStatementInt(stmt, 3, limit);
+            stmt->Bind(height, address, limit);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("addr", address);
                 record.pushKV("msg", "event");
                 record.pushKV("mesType", "upvoteShare");
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(5); ok) record.pushKV("nblock", value);
 
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -2370,30 +2289,28 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementInt(stmt, 2, height);
-            TryBindStatementInt(stmt, 3, limit);
+            stmt->Bind(address, height, limit);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("addr", address);
                 record.pushKV("msg", "event");
                 record.pushKV("mesType", "cScore");
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("commentid", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("commentid", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(5); ok) record.pushKV("nblock", value);
 
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -2420,26 +2337,24 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementInt(stmt, 2, height);
-            TryBindStatementInt(stmt, 3, count);
+            stmt->Bind(address, height, count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto[okTxHash, txHash] = TryGetColumnString(*stmt, 0);
+                auto[okTxHash, txHash] = stmt->TryGetColumnString(0);
                 if (!okTxHash) continue;
 
                 UniValue record(UniValue::VOBJ);
                 record.pushKV("txid", txHash);
                 record.pushKV("addr", address);
                 record.pushKV("msg", "transaction");
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("amount", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("amount", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(3); ok) record.pushKV("nblock", value);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt(4); ok)
                 {
                     auto stringType = TransactionHelper::TxStringType((TxType) value);
                     if (!stringType.empty())
@@ -2449,7 +2364,7 @@ namespace PocketDb
                 result.emplace(txHash, record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -2481,13 +2396,11 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, address);
-            TryBindStatementInt(stmt, 3, count);
+            stmt->Bind(height, address, count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
@@ -2495,18 +2408,18 @@ namespace PocketDb
                 record.pushKV("msg", "comment");
                 record.pushKV("mesType", "answer");
                 record.pushKV("reason", "answer");
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("answerid", value);
 
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -2547,14 +2460,9 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            TryBindStatementInt(stmt, i++, height);
-            TryBindStatementText(stmt, i++, address);
-            for (const auto& excludePost: excludePosts)
-                TryBindStatementText(stmt, i++, excludePost);
-            TryBindStatementInt(stmt, i, count);
+            stmt->Bind(height, address, excludePosts, count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
@@ -2562,14 +2470,14 @@ namespace PocketDb
                 record.pushKV("msg", "comment");
                 record.pushKV("mesType", "post");
                 record.pushKV("reason", "post");
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(7); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
@@ -2577,8 +2485,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -2613,19 +2519,17 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, address);
-            TryBindStatementInt(stmt, 3, count);
+            stmt->Bind(height, address, count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("addr", address);
                 record.pushKV("msg", "event");
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                 {
                     switch (value)
                     {
@@ -2635,17 +2539,17 @@ namespace PocketDb
                         default: record.pushKV("mesType", "unknown"); break;
                     }
                 }
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("nameFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("avatarFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("nameFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("avatarFrom", value);
 
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -2682,32 +2586,30 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, address);
-            TryBindStatementInt(stmt, 3, count);
+            stmt->Bind(height, address, count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("addr", address);
                 record.pushKV("msg", "event");
                 record.pushKV("mesType", "contentBoost");
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("boostAmount", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("nameFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("avatarFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(5); ok) record.pushKV("boostAmount", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("nameFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(7); ok) record.pushKV("avatarFrom", value);
 
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -2740,24 +2642,13 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+            stmt->Bind(contentTypes, nHeight, links, countOut);
 
-            TryBindStatementInt(stmt, i++, nHeight);
-
-            for (const auto& link: links)
-                TryBindStatementText(stmt, i++, link);
-
-            TryBindStatementInt(stmt, i++, countOut);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         if (ids.empty())
@@ -2796,26 +2687,21 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
-            TryBindStatementText(stmt, i++, addresses[0]);
+            stmt->Bind(contentTypes, addresses[0]);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("address", addresses[0]);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("scoreSum", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) record.pushKV("scoreCnt", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok) record.pushKV("countLikers", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok) record.pushKV("scoreSum", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(1); ok) record.pushKV("scoreCnt", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(2); ok) record.pushKV("countLikers", value);
 
                 result.push_back(record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -2866,22 +2752,13 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            TryBindStatementText(stmt, i++, lang);
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
-            TryBindStatementInt(stmt, i++, nHeight);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, badReputationLimit);
-            TryBindStatementInt(stmt, i++, countOut);
+            stmt->Bind(lang, contentTypes, nHeight, nHeight - depth, badReputationLimit, countOut);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     ids.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         if (ids.empty())
@@ -2962,79 +2839,73 @@ namespace PocketDb
         TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
 
-            TryBindStatementText(stmt, i++, address);
-
-            for (int64_t id : ids)
-                TryBindStatementInt64(stmt, i++, id);
+            stmt->Bind(address, ids);
 
             // ---------------------------
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                auto[okHash, txHash] = TryGetColumnString(*stmt, 0);
-                auto[okId, txId] = TryGetColumnInt64(*stmt, 1);
+                auto[okHash, txHash] = stmt->TryGetColumnString(0);
+                auto[okId, txId] = stmt->TryGetColumnInt64(1);
                 record.pushKV("txid", txHash);
                 record.pushKV("id", txId);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("edit", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("repost", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("edit", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("repost", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok)
                 {
                     authors.emplace_back(value);
                     record.pushKV("address", value);
                 }
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("c", value); // caption
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("m", value); // message
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("u", value); // url
+                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("l", value); // lang
+                if (auto[ok, value] = stmt->TryGetColumnString(8); ok) record.pushKV("c", value); // caption
+                if (auto[ok, value] = stmt->TryGetColumnString(9); ok) record.pushKV("m", value); // message
+                if (auto[ok, value] = stmt->TryGetColumnString(10); ok) record.pushKV("u", value); // url
                 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt(7); ok)
                 {
                     record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
                     if ((TxType)value == CONTENT_DELETE)
                         record.pushKV("deleted", "true");
                 }
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(11); ok)
                 {
                     UniValue t(UniValue::VARR);
                     t.read(value);
                     record.pushKV("t", t);
                 }
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(12); ok)
                 {
                     UniValue ii(UniValue::VARR);
                     ii.read(value);
                     record.pushKV("i", ii);
                 }
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(13); ok)
                 {
                     UniValue s(UniValue::VOBJ);
                     s.read(value);
                     record.pushKV("s", s);
                 }
 
-                if (auto [ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("scoreCnt", value);
-                if (auto [ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("scoreSum", value);
-                if (auto [ok, value] = TryGetColumnInt(*stmt, 16); ok && value > 0) record.pushKV("reposted", value);
-                if (auto [ok, value] = TryGetColumnInt(*stmt, 17); ok) record.pushKV("comments", value);
+                if (auto [ok, value] = stmt->TryGetColumnString(14); ok) record.pushKV("scoreCnt", value);
+                if (auto [ok, value] = stmt->TryGetColumnString(15); ok) record.pushKV("scoreSum", value);
+                if (auto [ok, value] = stmt->TryGetColumnInt(16); ok && value > 0) record.pushKV("reposted", value);
+                if (auto [ok, value] = stmt->TryGetColumnInt(17); ok) record.pushKV("comments", value);
 
                 if (!address.empty())
                 {
-                    if (auto [ok, value] = TryGetColumnString(*stmt, 18); ok)
+                    if (auto [ok, value] = stmt->TryGetColumnString(18); ok)
                         record.pushKV("myVal", value);
                 }
 
                 tmpResult[txId] = record;                
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         // ---------------------------------------------
@@ -3148,56 +3019,54 @@ namespace PocketDb
             int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementInt(stmt, i++, topHeight - depth);
-            TryBindStatementInt(stmt, i++, topHeight);
+            stmt->TryBindStatementInt(i++, topHeight - depth);
+            stmt->TryBindStatementInt(i++, topHeight);
 
-            TryBindStatementInt(stmt, i++, badReputationLimit);
+            stmt->TryBindStatementInt(i++, badReputationLimit);
 
             if (topContentId > 0)
-                TryBindStatementInt64(stmt, i++, topContentId);
+                stmt->TryBindStatementInt64(i++, topContentId);
 
             if (!tags.empty())
             {
                 for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
+                    stmt->TryBindStatementText(i++, tag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             if (!txidsExcluded.empty())
                 for (const auto& extxid: txidsExcluded)
-                    TryBindStatementText(stmt, i++, extxid);
+                    stmt->TryBindStatementText(i++, extxid);
 
             if (!adrsExcluded.empty())
                 for (const auto& exadr: adrsExcluded)
-                    TryBindStatementText(stmt, i++, exadr);
+                    stmt->TryBindStatementText(i++, exadr);
 
             if (!tagsExcluded.empty())
             {
                 for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, i++, extag);
+                    stmt->TryBindStatementText(i++, extag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
-            TryBindStatementInt(stmt, i++, countOut);
+            stmt->TryBindStatementInt(i++, countOut);
 
             // ---------------------------------------------
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
+                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
                 ids.push_back(contentId);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         // Get content data
@@ -3315,56 +3184,54 @@ namespace PocketDb
             int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementInt(stmt, i++, topHeight - depth);
-            TryBindStatementInt(stmt, i++, topHeight);
+            stmt->TryBindStatementInt(i++, topHeight - depth);
+            stmt->TryBindStatementInt(i++, topHeight);
 
-            TryBindStatementInt(stmt, i++, badReputationLimit);
+            stmt->TryBindStatementInt(i++, badReputationLimit);
 
             // if (topContentId > 0)
-            //     TryBindStatementInt64(stmt, i++, topContentId);
+            //     stmt->TryBindStatementInt64(i++, topContentId);
 
             if (!tags.empty())
             {
                 for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
+                    stmt->TryBindStatementText(i++, tag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             if (!txidsExcluded.empty())
                 for (const auto& extxid: txidsExcluded)
-                    TryBindStatementText(stmt, i++, extxid);
+                    stmt->TryBindStatementText(i++, extxid);
 
             if (!adrsExcluded.empty())
                 for (const auto& exadr: adrsExcluded)
-                    TryBindStatementText(stmt, i++, exadr);
+                    stmt->TryBindStatementText(i++, exadr);
 
             if (!tagsExcluded.empty())
             {
                 for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, i++, extag);
+                    stmt->TryBindStatementText(i++, extag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
-            TryBindStatementInt(stmt, i++, countOut);
+            stmt->TryBindStatementInt(i++, countOut);
 
             // ---------------------------------------------
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
+                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
                 ids.push_back(contentId);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         // Get content data
@@ -3512,60 +3379,58 @@ namespace PocketDb
             int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementInt(stmt, i++, topHeight);
+            stmt->TryBindStatementInt(i++, topHeight);
             
-            TryBindStatementText(stmt, i++, addressFeed);
+            stmt->TryBindStatementText(i++, addressFeed);
 
             if (topContentId > 0)
-                TryBindStatementInt64(stmt, i++, topContentId);
+                stmt->TryBindStatementInt64(i++, topContentId);
 
             if (!tags.empty())
             {
                 for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
+                    stmt->TryBindStatementText(i++, tag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             if (!txidsExcluded.empty())
                 for (const auto& extxid: txidsExcluded)
-                    TryBindStatementText(stmt, i++, extxid);
+                    stmt->TryBindStatementText(i++, extxid);
 
             if (!adrsExcluded.empty())
                 for (const auto& exadr: adrsExcluded)
-                    TryBindStatementText(stmt, i++, exadr);
+                    stmt->TryBindStatementText(i++, exadr);
 
             if (!tagsExcluded.empty())
             {
                 for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, i++, extag);
+                    stmt->TryBindStatementText(i++, extag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             if (!_keyword.empty())
-                TryBindStatementText(stmt, i++, _keyword);
+                stmt->TryBindStatementText(i++, _keyword);
 
-            TryBindStatementInt(stmt, i++, countOut);
+            stmt->TryBindStatementInt(i++, countOut);
 
-            TryBindStatementInt(stmt, i++, pageNumber * countOut);
+            stmt->TryBindStatementInt(i++, pageNumber * countOut);
 
             // ---------------------------------------------
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         // Get content data
@@ -3669,58 +3534,56 @@ namespace PocketDb
             int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementText(stmt, i++, addressFeed);
+            stmt->TryBindStatementText(i++, addressFeed);
             if (!addresses_extended.empty())
                 for (const auto& adr_ex: addresses_extended)
-                    TryBindStatementText(stmt, i++, adr_ex);
+                    stmt->TryBindStatementText(i++, adr_ex);
 
-            TryBindStatementInt(stmt, i++, topHeight);
+            stmt->TryBindStatementInt(i++, topHeight);
 
             if (topContentId > 0)
-                TryBindStatementInt64(stmt, i++, topContentId);
+                stmt->TryBindStatementInt64(i++, topContentId);
 
             if (!tags.empty())
             {
                 for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
+                    stmt->TryBindStatementText(i++, tag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             if (!txidsExcluded.empty())
                 for (const auto& extxid: txidsExcluded)
-                    TryBindStatementText(stmt, i++, extxid);
+                    stmt->TryBindStatementText(i++, extxid);
 
             if (!adrsExcluded.empty())
                 for (const auto& exadr: adrsExcluded)
-                    TryBindStatementText(stmt, i++, exadr);
+                    stmt->TryBindStatementText(i++, exadr);
 
             if (!tagsExcluded.empty())
             {
                 for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, i++, extag);
+                    stmt->TryBindStatementText(i++, extag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
-            TryBindStatementInt(stmt, i++, countOut);
+            stmt->TryBindStatementInt(i++, countOut);
 
             // ---------------------------------------------
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         // Get content data
@@ -3822,55 +3685,53 @@ namespace PocketDb
             int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementInt(stmt, i++, topHeight);
+            stmt->TryBindStatementInt(i++, topHeight);
 
-            TryBindStatementInt(stmt, i++, badReputationLimit);
+            stmt->TryBindStatementInt(i++, badReputationLimit);
 
             if (topContentId > 0)
-                TryBindStatementInt64(stmt, i++, topContentId);
+                stmt->TryBindStatementInt64(i++, topContentId);
 
             if (!tags.empty())
             {
                 for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
+                    stmt->TryBindStatementText(i++, tag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             if (!txidsExcluded.empty())
                 for (const auto& extxid: txidsExcluded)
-                    TryBindStatementText(stmt, i++, extxid);
+                    stmt->TryBindStatementText(i++, extxid);
             
             if (!adrsExcluded.empty())
                 for (const auto& exadr: adrsExcluded)
-                    TryBindStatementText(stmt, i++, exadr);
+                    stmt->TryBindStatementText(i++, exadr);
             
             if (!tagsExcluded.empty())
             {
                 for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, i++, extag);
+                    stmt->TryBindStatementText(i++, extag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
                     
-            TryBindStatementInt(stmt, i++, countOut);
+            stmt->TryBindStatementInt(i++, countOut);
 
             // ---------------------------------------------
             
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
+                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
                 ids.push_back(contentId);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         // Get content data
@@ -3985,59 +3846,59 @@ namespace PocketDb
             int i = 1;
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementInt(stmt, i++, durationBlocksForPrevPosts);
+            stmt->TryBindStatementInt(i++, durationBlocksForPrevPosts);
 
-            TryBindStatementInt(stmt, i++, cntPrevPosts);
+            stmt->TryBindStatementInt(i++, cntPrevPosts);
             
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementInt(stmt, i++, topHeight);
-            TryBindStatementInt(stmt, i++, topHeight - cntBlocksForResult);
+            stmt->TryBindStatementInt(i++, topHeight);
+            stmt->TryBindStatementInt(i++, topHeight - cntBlocksForResult);
 
-            TryBindStatementInt(stmt, i++, badReputationLimit);
+            stmt->TryBindStatementInt(i++, badReputationLimit);
             
             if (!tags.empty())
             {
                 for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
+                    stmt->TryBindStatementText(i++, tag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             if (!txidsExcluded.empty())
                 for (const auto& extxid: txidsExcluded)
-                    TryBindStatementText(stmt, i++, extxid);
+                    stmt->TryBindStatementText(i++, extxid);
             
             if (!adrsExcluded.empty())
                 for (const auto& exadr: adrsExcluded)
-                    TryBindStatementText(stmt, i++, exadr);
+                    stmt->TryBindStatementText(i++, exadr);
             
             if (!tagsExcluded.empty())
             {
                 for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, i++, extag);
+                    stmt->TryBindStatementText(i++, extag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             // ---------------------------------------------
             
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 HierarchicalRecord record{};
 
-                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
-                auto[ok1, contentRating] = TryGetColumnInt(*stmt, 1);
-                auto[ok2, accountRating] = TryGetColumnInt(*stmt, 2);
-                auto[ok3, contentOrigHeight] = TryGetColumnInt(*stmt, 3);
-                auto[ok4, contentScores] = TryGetColumnInt(*stmt, 4);
+                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
+                auto[ok1, contentRating] = stmt->TryGetColumnInt(1);
+                auto[ok2, accountRating] = stmt->TryGetColumnInt(2);
+                auto[ok3, contentOrigHeight] = stmt->TryGetColumnInt(3);
+                auto[ok4, contentScores] = stmt->TryGetColumnInt(4);
 
                 record.Id = contentId;
                 record.LAST5 = 1.0 * contentScores;
@@ -4048,8 +3909,6 @@ namespace PocketDb
 
                 postsRanks.push_back(record);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         // ---------------------------------------------
@@ -4221,48 +4080,48 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
 
-            TryBindStatementInt(stmt, i++, topHeight);
-            TryBindStatementInt(stmt, i++, topHeight - cntBlocksForResult);
+            stmt->TryBindStatementInt(i++, topHeight);
+            stmt->TryBindStatementInt(i++, topHeight - cntBlocksForResult);
 
-            TryBindStatementInt(stmt, i++, badReputationLimit);
+            stmt->TryBindStatementInt(i++, badReputationLimit);
 
             if (!tags.empty())
             {
                 for (const auto& tag: tags)
-                    TryBindStatementText(stmt, i++, tag);
+                    stmt->TryBindStatementText(i++, tag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             if (!txidsExcluded.empty())
                 for (const auto& extxid: txidsExcluded)
-                    TryBindStatementText(stmt, i++, extxid);
+                    stmt->TryBindStatementText(i++, extxid);
 
             if (!adrsExcluded.empty())
                 for (const auto& exadr: adrsExcluded)
-                    TryBindStatementText(stmt, i++, exadr);
+                    stmt->TryBindStatementText(i++, exadr);
 
             if (!tagsExcluded.empty())
             {
                 for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, i++, extag);
+                    stmt->TryBindStatementText(i++, extag);
 
                 if (!lang.empty())
-                    TryBindStatementText(stmt, i++, lang);
+                    stmt->TryBindStatementText(i++, lang);
             }
 
             // ---------------------------------------------
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
-                auto[ok1, contentHash] = TryGetColumnString(*stmt, 1);
-                auto[ok2, sumBoost] = TryGetColumnInt64(*stmt, 2);
+                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
+                auto[ok1, contentHash] = stmt->TryGetColumnString(1);
+                auto[ok2, sumBoost] = stmt->TryGetColumnInt64(2);
                 UniValue boost(UniValue::VOBJ);
                 boost.pushKV("id", contentId);
                 boost.pushKV("txid", contentHash);
@@ -4270,7 +4129,7 @@ namespace PocketDb
                 result.push_back(boost);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         // Complete!
@@ -4315,20 +4174,16 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            int i = 1;
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, i++, lang);
-            TryBindStatementInt(stmt, i++, height);
-            TryBindStatementInt(stmt, i++, count * 100);
-            TryBindStatementInt(stmt, i++, count);
+            stmt->Bind(lang, height, count * 100, count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result.push_back(value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok) result.push_back(value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -4443,38 +4298,35 @@ namespace PocketDb
 
         TryTransactionStep(func, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            TryBindStatementText(stmt, i++, postTxHash);
-            TryBindStatementText(stmt, i++, postTxHash);
-            TryBindStatementText(stmt, i++, postTxHash);
+            stmt->Bind(postTxHash, postTxHash, postTxHash);
 
             // ---------------------------------------------
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok && value > 0) {
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt->TryGetColumnInt(5); ok && value > 0) {
                     record.pushKV("value", value);
                     resultScores.push_back(record);
                 }
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok && value > 0) {
+                if (auto[ok, value] = stmt->TryGetColumnInt(6); ok && value > 0) {
                     record.pushKV("value", value);
                     resultBoosts.push_back(record);
                 }
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok && value > 0) {
+                if (auto[ok, value] = stmt->TryGetColumnInt(7); ok && value > 0) {
                     record.pushKV("value", value);
                     resultDonations.push_back(record);
                 }
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         result.pushKV("scores",resultScores);
@@ -4499,13 +4351,13 @@ namespace PocketDb
     template <class QueryParams>
     static inline auto _constructSelectsBasedOnFilters(
                 const std::set<ShortTxType>& filters,
-                const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>>& selects,
+                const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>>& selects,
                 const std::string& footer, const std::string& separator = "union")
     {
         auto predicate = _choosePredicate(filters);
 
         // Binds that should be performed to constructed query
-        std::vector<std::function<void(std::shared_ptr<sqlite3_stmt*>&, int&, QueryParams const&)>> binds;
+        std::vector<std::function<void(std::shared_ptr<Stmt>&, int&, QueryParams const&)>> binds;
         // Query elemets that will be used to construct full query
         std::vector<std::string> queryElems;
         for (const auto& select: selects) {
@@ -4542,7 +4394,7 @@ namespace PocketDb
             const int64_t& blockNumMax;
         } queryParams{address, heightMax, heightMin, blockNumMax};
 
-        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
+        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>> selects = {
         {
             ShortTxType::Answer, { R"sql(
             -- My answers to other's comments
@@ -4641,12 +4493,12 @@ namespace PocketDb
               and c.Height > 0
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams) {
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams) {
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }},
 
@@ -4753,12 +4605,12 @@ namespace PocketDb
                 and p.Height > 0
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }},
 
@@ -4828,12 +4680,12 @@ namespace PocketDb
                 and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementText(i++, queryParams.address);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
             }
         }},
 
@@ -4932,12 +4784,12 @@ namespace PocketDb
                 and c.Height > 0
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }},
 
@@ -5017,12 +4869,12 @@ namespace PocketDb
                 and c.Height > 0
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }},
 
@@ -5121,12 +4973,12 @@ namespace PocketDb
                 and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementText(i++, queryParams.address);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
             }
         }},
 
@@ -5221,12 +5073,12 @@ namespace PocketDb
                 and (b.Height < ? or (b.Height = ? and b.BlockNum < ?))
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementText(i++, queryParams.address);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
             }
         }},
         };
@@ -5253,12 +5105,12 @@ namespace PocketDb
                 bind(stmt, i, queryParams);
             }
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 reconstructor.FeedRow(*stmt);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return reconstructor.GetResult();
@@ -5274,11 +5126,11 @@ namespace PocketDb
         // Static because it will not be changed for entire node run
 
         static const auto heightBinder =
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.height);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.height);
             };
 
-        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
+        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>> selects = {
         {
             ShortTxType::Money, { R"sql(
                 -- Incoming money
@@ -6174,10 +6026,10 @@ namespace PocketDb
                     int i = 1;
                     selectData.binding(stmt, i, queryParams);
 
-                    while (sqlite3_step(*stmt) == SQLITE_ROW)
+                    while (stmt->Step() == SQLITE_ROW)
                         reconstructor.FeedRow(*stmt);
 
-                    FinalizeSqlStatement(*stmt);
+                    stmt->Reset();
                 });
             }
         }
@@ -6196,7 +6048,7 @@ namespace PocketDb
             const int64_t& blockNumMax;
         } queryParams {address, heightMax, heightMin, blockNumMax};
 
-        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
+        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>> selects = {
         {
             ShortTxType::Money, { R"sql(
                 -- Incoming money
@@ -6288,14 +6140,14 @@ namespace PocketDb
                     and o.TxHeight > ?
                     and o.TxHeight <= ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
             }
         }},
 
@@ -6365,12 +6217,12 @@ namespace PocketDb
                     and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
                     and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementText(i++, queryParams.address);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
             }
         }},
 
@@ -6459,12 +6311,12 @@ namespace PocketDb
                     and c.String1 = ?
                     and c.Height > 0
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }},
 
@@ -6574,12 +6426,12 @@ namespace PocketDb
                     and p.Height > 0
                     and p.String1 = ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }},
 
@@ -6649,12 +6501,12 @@ namespace PocketDb
                     and subs.Height > ?
                     and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementText(i++, queryParams.address);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
             }
         }},
 
@@ -6738,12 +6590,12 @@ namespace PocketDb
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }},
 
@@ -6827,12 +6679,12 @@ namespace PocketDb
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }},
 
@@ -6917,12 +6769,12 @@ namespace PocketDb
                     and subs.Height > 0
                     and subs.String1 = ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }},
 
@@ -7020,12 +6872,12 @@ namespace PocketDb
                     and tBoost.Height > ?
                     and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementText(i++, queryParams.address);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
             }
         }},
 
@@ -7113,12 +6965,12 @@ namespace PocketDb
                     and p.Height > 0
                     and p.String1 = ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+                stmt->TryBindStatementText(i++, queryParams.address);
             }
         }}};
 
@@ -7145,12 +6997,12 @@ namespace PocketDb
                 bind(stmt, i, queryParams);
             }
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 reconstructor.FeedRow(*stmt);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
         return reconstructor.GetResult();
     }
@@ -7165,7 +7017,7 @@ namespace PocketDb
             const std::set<std::string>& addresses;
         } queryParams {heightMax, heightMin, addresses};
 
-        const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
+        const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>> selects = {
         {
             ShortTxType::Referal, { R"sql(
                 -- referals
@@ -7181,11 +7033,11 @@ namespace PocketDb
                     and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                     and t.ROWID = (select min(tt.ROWID) from Transactions tt indexed by Transactions_Id where tt.Id = t.Id)
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
                 for (const auto& address: queryParams.addresses) {
-                    TryBindStatementText(stmt, i++, address);
+                    stmt->TryBindStatementText(i++, address);
                 }
             }
         }},
@@ -7213,12 +7065,12 @@ namespace PocketDb
                     and c.String5 is null
                     and c.Height between ? and ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
                 for (const auto& address: queryParams.addresses) {
-                    TryBindStatementText(stmt, i++, address);
+                    stmt->TryBindStatementText(i++, address);
                 }
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
             }
         }},
 
@@ -7237,11 +7089,11 @@ namespace PocketDb
                     and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
                 for (const auto& address: queryParams.addresses) {
-                    TryBindStatementText(stmt, i++, address);
+                    stmt->TryBindStatementText(i++, address);
                 }
             }
         }},
@@ -7266,12 +7118,12 @@ namespace PocketDb
                     and s.Last = 0
                     and s.Height between ? and ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
                 for (const auto& address: queryParams.addresses) {
-                    TryBindStatementText(stmt, i++, address);
+                    stmt->TryBindStatementText(i++, address);
                 }
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
             }
         }},
 
@@ -7295,12 +7147,12 @@ namespace PocketDb
                     and s.Last = 0
                     and s.Height between ? and ?
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
                 for (const auto& address: queryParams.addresses) {
-                    TryBindStatementText(stmt, i++, address);
+                    stmt->TryBindStatementText(i++, address);
                 }
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
             }
         }},
 
@@ -7327,12 +7179,12 @@ namespace PocketDb
                     and r.String3 is not null
 
         )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
                 for (const auto& address: queryParams.addresses) {
-                    TryBindStatementText(stmt, i++, address);
+                    stmt->TryBindStatementText(i++, address);
                 }
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
+                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
             }
         }}
         };
@@ -7351,12 +7203,12 @@ namespace PocketDb
                 bind(stmt, i, queryParams);
             }
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 reconstructor.FeedRow(*stmt);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
         return reconstructor.GetResult();
     }

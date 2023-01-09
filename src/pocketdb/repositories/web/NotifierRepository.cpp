@@ -29,18 +29,18 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
+            stmt->Bind(address);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("avatar", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("name", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) result.pushKV("avatar", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -60,16 +60,16 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
+            
+            stmt->Bind(postHash);
 
-            TryBindStatementText(stmt, 1, postHash);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("lang", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("lang", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -90,17 +90,17 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, postHash);
+            stmt->Bind(postHash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("hash", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("rootHash", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("hash", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("rootHash", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -131,22 +131,22 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, boostHash);
+            stmt->Bind(boostHash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("hash", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("boostAddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("boostAmount", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("boostName", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("boostAvatar", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) result.pushKV("contentAddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) result.pushKV("contentHash", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("hash", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("boostAddress", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) result.pushKV("boostAmount", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) result.pushKV("boostName", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) result.pushKV("boostAvatar", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) result.pushKV("contentAddress", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) result.pushKV("contentHash", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -175,20 +175,20 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, repostHash);
+            stmt->Bind(repostHash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("hash", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("addressRepost", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("nameRepost", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("avatarRepost", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("hash", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("address", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) result.pushKV("addressRepost", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) result.pushKV("nameRepost", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) result.pushKV("avatarRepost", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -216,20 +216,20 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, addressTo);
+            stmt->Bind(addressTo);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addressTo", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("nameFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatarFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("addressTo", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("nameFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("avatarFrom", value);
                 result.push_back(record);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -264,9 +264,9 @@ namespace PocketDb
 //
 //            if (sqlite3_step(*stmt) == SQLITE_ROW)
 //            {
-//                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("referrerAddress", value);
-//                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("referralName", value);
-//                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("referralAvatar", value);
+//                if (auto[ok, value] =stmt->TryGetColumnString(*stmt, 0); ok) result.pushKV("referrerAddress", value);
+//                if (auto[ok, value] =stmt->TryGetColumnString(*stmt, 1); ok) result.pushKV("referralName", value);
+//                if (auto[ok, value] =stmt->TryGetColumnString(*stmt, 2); ok) result.pushKV("referralAvatar", value);
 //            }
 //
 //            FinalizeSqlStatement(*stmt);
@@ -298,20 +298,20 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, postScoreHash);
+            stmt->Bind(postScoreHash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("postTxHash", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("value", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("postAddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("scoreName", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("scoreAvatar", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("postTxHash", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("value", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) result.pushKV("postAddress", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) result.pushKV("scoreName", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) result.pushKV("scoreAvatar", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -339,18 +339,18 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, subscribeHash);
+            stmt->Bind(subscribeHash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("addressTo", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("nameFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("avatarFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("addressTo", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("nameFrom", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) result.pushKV("avatarFrom", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -379,19 +379,20 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, commentScoreHash);
+            static auto stmt = SetupSqlStatement(sql);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            stmt->Bind(commentScoreHash);
+
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("commentHash", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("value", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("commentAddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("scoreCommentName", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("scoreCommentAvatar", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("commentHash", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("value", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) result.pushKV("commentAddress", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) result.pushKV("scoreCommentName", value);
+                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) result.pushKV("scoreCommentAvatar", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -432,28 +433,28 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, commentHash);
+            stmt->Bind(commentHash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("postHash", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("parentHash", value); else result.pushKV("parentHash", "");
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("answerHash", value); else result.pushKV("answerHash", "");
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("rootHash", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("postAddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) result.pushKV("answerAddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) result.pushKV("commentName", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) result.pushKV("commentAvatar", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok)
+                if (auto[ok, value] =stmt->TryGetColumnString(0); ok) result.pushKV("postHash", value);
+                if (auto[ok, value] =stmt->TryGetColumnString(1); ok) result.pushKV("parentHash", value); else result.pushKV("parentHash", "");
+                if (auto[ok, value] =stmt->TryGetColumnString(2); ok) result.pushKV("answerHash", value); else result.pushKV("answerHash", "");
+                if (auto[ok, value] =stmt->TryGetColumnString(3); ok) result.pushKV("rootHash", value);
+                if (auto[ok, value] =stmt->TryGetColumnString(4); ok) result.pushKV("postAddress", value);
+                if (auto[ok, value] =stmt->TryGetColumnString(5); ok) result.pushKV("answerAddress", value);
+                if (auto[ok, value] =stmt->TryGetColumnString(6); ok) result.pushKV("commentName", value);
+                if (auto[ok, value] =stmt->TryGetColumnString(7); ok) result.pushKV("commentAvatar", value);
+                if (auto[ok, value] =stmt->TryGetColumnString(8); ok)
                 {
                     result.pushKV("donation", "true");
                     result.pushKV("amount", value);
                 }
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -481,22 +482,21 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, address);
+            stmt->Bind(height, address);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) result.pushKV("cntTotal", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) result.pushKV("cntPost", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok) result.pushKV("cntVideo", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) result.pushKV("cntArticle", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) result.pushKV("cntStream", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) result.pushKV("cntAudio", value);
+                if (auto[ok, value] =stmt->TryGetColumnInt(0); ok) result.pushKV("cntTotal", value);
+                if (auto[ok, value] =stmt->TryGetColumnInt(1); ok) result.pushKV("cntPost", value);
+                if (auto[ok, value] =stmt->TryGetColumnInt(2); ok) result.pushKV("cntVideo", value);
+                if (auto[ok, value] =stmt->TryGetColumnInt(3); ok) result.pushKV("cntArticle", value);
+                if (auto[ok, value] =stmt->TryGetColumnInt(4); ok) result.pushKV("cntStream", value);
+                if (auto[ok, value] =stmt->TryGetColumnInt(5); ok) result.pushKV("cntAudio", value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;

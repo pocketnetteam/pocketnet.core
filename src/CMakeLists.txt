@@ -1064,6 +1064,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/SQLiteConnection.h
         pocketdb/SQLiteDatabase.cpp
         pocketdb/SQLiteConnection.cpp
+        pocketdb/stmt.h
+        pocketdb/stmt.cpp
         pocketdb/web/PocketContentRpc.cpp
         pocketdb/web/PocketCommentsRpc.cpp
         pocketdb/web/PocketSystemRpc.cpp
@@ -1102,7 +1104,6 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/services/ChainPostProcessing.h
         pocketdb/services/WebPostProcessing.h
         pocketdb/services/Accessor.h
-        pocketdb/repositories/RowAccessor.hpp
         pocketdb/repositories/BaseRepository.h
         pocketdb/repositories/TransactionRepository.h
         pocketdb/repositories/TransactionRepository.cpp

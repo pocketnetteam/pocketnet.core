@@ -26,24 +26,24 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, blockHash);
+            static auto stmt = SetupSqlStatement(sql);
+            stmt->Bind(blockHash);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto[okId, id] = TryGetColumnInt64(*stmt, 0);
+                auto[okId, id] = stmt->TryGetColumnInt64(0);
                 if (!okId) continue;
 
-                auto[okLang, lang] = TryGetColumnString(*stmt, 1);
+                auto[okLang, lang] = stmt->TryGetColumnString(1);
                 if (!okLang) continue;
 
-                auto[okValue, value] = TryGetColumnString(*stmt, 2);
+                auto[okValue, value] = stmt->TryGetColumnString(2);
                 if (!okValue) continue;
 
                 result.emplace_back(WebTag(id, lang, value));
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -71,8 +71,8 @@ namespace PocketDb
             )sql");
             for (const auto& tag: contentTags)
             {
-                TryBindStatementText(tagsStmt, i++, tag.Lang);
-                TryBindStatementText(tagsStmt, i++, tag.Value);
+                tagsStmt->TryBindStatementText(i++, tag.Lang);
+                tagsStmt->TryBindStatementText(i++, tag.Value);
             }
             TryStepStatement(tagsStmt);
 
@@ -82,22 +82,20 @@ namespace PocketDb
                 delete from web.TagsMap
                 where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
             )sql");
-            for (const auto& id: ids) TryBindStatementInt64(idsStmt, i++, id);
+            idsStmt->Bind(ids);
             TryStepStatement(idsStmt);
 
             // Insert new mappings ContentId <-> TagId
             for (const auto& contentTag : contentTags)
             {
-                auto stmt = SetupSqlStatement(R"sql(
+                static auto stmt = SetupSqlStatement(R"sql(
                     insert or ignore
                     into web.TagsMap (ContentId, TagId) values (
                         ?,
                         (select t.Id from web.Tags t where t.Value = ? and t.Lang = ?)
                     )
                 )sql");
-                TryBindStatementInt64(stmt, 1, contentTag.ContentId);
-                TryBindStatementText(stmt, 2, contentTag.Value);
-                TryBindStatementText(stmt, 3, contentTag.Lang);
+                stmt->Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang);
                 TryStepStatement(stmt);
             }
         });
@@ -126,13 +124,13 @@ namespace PocketDb
        
        TryTransactionStep(__func__, [&]()
        {
-           auto stmt = SetupSqlStatement(sql);
-           TryBindStatementText(stmt, 1, blockHash);
+           static auto stmt = SetupSqlStatement(sql);
+           stmt->Bind(blockHash);
 
-           while (sqlite3_step(*stmt) == SQLITE_ROW)
+           while (stmt->Step() == SQLITE_ROW)
            {
-                auto[okType, type] = TryGetColumnInt(*stmt, 0);
-                auto[okId, id] = TryGetColumnInt64(*stmt, 1);
+                auto[okType, type] = stmt->TryGetColumnInt(0);
+                auto[okId, id] = stmt->TryGetColumnInt64(1);
                 if (!okType || !okId)
                     continue;
 
@@ -140,37 +138,37 @@ namespace PocketDb
                 {
                 case ACCOUNT_USER:
 
-                    if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
+                    if (auto[ok, string2] = stmt->TryGetColumnString(3); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
 
-                    if (auto[ok, string4] = TryGetColumnString(*stmt, 5); ok)    
+                    if (auto[ok, string4] = stmt->TryGetColumnString(5); ok)    
                         result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
 
-                    // if (auto[ok, string5] = TryGetColumnString(*stmt, 6); ok)
+                    // if (auto[ok, string5] = stmt->TryGetColumnString(6); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
 
                     break;
                 case CONTENT_POST:
 
-                    if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
+                    if (auto[ok, string2] = stmt->TryGetColumnString(3); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
                     
-                    if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
+                    if (auto[ok, string3] = stmt->TryGetColumnString(4); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
 
-                    // if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
+                    // if (auto[ok, string7] = stmt->TryGetColumnString(8); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
 
                     break;
                 case CONTENT_VIDEO:
 
-                    if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
+                    if (auto[ok, string2] = stmt->TryGetColumnString(3); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
 
-                    if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
+                    if (auto[ok, string3] = stmt->TryGetColumnString(4); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
 
-                    // if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
+                    // if (auto[ok, string7] = stmt->TryGetColumnString(8); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
 
                     break;
@@ -182,7 +180,7 @@ namespace PocketDb
                 // case CONTENT_COMMENT_EDIT:
 
                     // TODO (aok): implement extract message from JSON
-                    // if (auto[ok, string1] = TryGetColumnString(*stmt, 2); ok)
+                    // if (auto[ok, string1] = stmt->TryGetColumnString(2); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 
                     // break;
@@ -191,7 +189,7 @@ namespace PocketDb
                 }
            }
 
-           FinalizeSqlStatement(*stmt);
+           stmt->Reset();
        });
 
         return result;
@@ -224,8 +222,7 @@ namespace PocketDb
                 )
             )sql");
 
-            int i = 1;
-            for (const auto& id: ids) TryBindStatementInt64(delContentStmt, i++, id);
+            delContentStmt->Bind(ids);
             TryStepStatement(delContentStmt);
 
             // ---------------------------------------------------------
@@ -238,8 +235,7 @@ namespace PocketDb
                 )
             )sql");
 
-            i = 1;
-            for (const auto& id: ids) TryBindStatementInt64(delContentMapStmt, i++, id);
+            delContentMapStmt->Bind(ids);
             TryStepStatement(delContentMapStmt);
 
             // ---------------------------------------------------------
@@ -249,11 +245,10 @@ namespace PocketDb
             {
                 SetLastInsertRowId(0);
 
-                auto stmtMap = SetupSqlStatement(R"sql(
+                static auto stmtMap = SetupSqlStatement(R"sql(
                     insert or ignore into ContentMap (ContentId, FieldType) values (?,?)
                 )sql");
-                TryBindStatementInt64(stmtMap, 1, contentItm.ContentId);
-                TryBindStatementInt(stmtMap, 2, (int)contentItm.FieldType);
+                stmtMap->Bind(contentItm.ContentId, (int)contentItm.FieldType);
                 TryStepStatement(stmtMap);
 
                 // ---------------------------------------------------------
@@ -261,11 +256,10 @@ namespace PocketDb
                 auto lastRowId = GetLastInsertRowId();
                 if (lastRowId > 0)
                 {
-                    auto stmtContent = SetupSqlStatement(R"sql(
+                    static auto stmtContent = SetupSqlStatement(R"sql(
                         replace into web.Content (ROWID, Value) values (?,?)
                     )sql");
-                    TryBindStatementInt64(stmtContent, 1, lastRowId);
-                    TryBindStatementText(stmtContent, 2, contentItm.Value);
+                    stmtContent->Bind(lastRowId, contentItm.Value);
                     TryStepStatement(stmtContent);
                 }
                 else
@@ -293,13 +287,13 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear badges table before insert new values
-            auto stmtClear = SetupSqlStatement(R"sql(
+            static auto stmtClear = SetupSqlStatement(R"sql(
                 delete from web.Badges
             )sql");
             TryStepStatement(stmtClear);
 
             // Clear old Last record
-            auto stmtInsert = SetupSqlStatement(R"sql(
+            static auto stmtInsert = SetupSqlStatement(R"sql(
                 insert into web.Badges (AccountId, Badge)
                 select uc.Uid, 1
                 from Transactions u
@@ -315,13 +309,7 @@ namespace PocketDb
                   and ifnull((select r.Value from Ratings r where r.Type = 113 and r.Last = 1 and r.Uid = uc.Uid),0) >= ?
                   and ? - (select min(reg1.Height) from Chain reg1 where reg1.Uid = uc.Uid) > ?
             )sql");
-            int i = 1;
-            TryBindStatementInt(stmtInsert, i++, cond.LikersAll);
-            TryBindStatementInt64(stmtInsert, i++, cond.LikersContent);
-            TryBindStatementInt64(stmtInsert, i++, cond.LikersComment);
-            TryBindStatementInt64(stmtInsert, i++, cond.LikersAnswer);
-            TryBindStatementInt64(stmtInsert, i++, cond.Height);
-            TryBindStatementInt64(stmtInsert, i++, cond.RegistrationDepth);
+            stmtInsert->Bind(cond.LikersAll, cond.LikersContent, cond.LikersComment, cond.LikersAnswer, cond.Height, cond.RegistrationDepth);
             TryStepStatement(stmtInsert);
         });
     }
@@ -331,13 +319,13 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear badges table before insert new values
-            auto stmtClear = SetupSqlStatement(R"sql(
+            static auto stmtClear = SetupSqlStatement(R"sql(
                 delete from web.Authors
             )sql");
             TryStepStatement(stmtClear);
 
             // Clear old Last record
-            auto stmtInsert = SetupSqlStatement(R"sql(
+            static auto stmtInsert = SetupSqlStatement(R"sql(
                 insert into web.Authors (AccountId, SharkCommented)
           
                 select

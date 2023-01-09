@@ -16,7 +16,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select t.Height, t.Type, count(*)
                 from Transactions t indexed by Transactions_Height_Type
                 where   t.Height > ?
@@ -24,20 +24,19 @@ namespace PocketDb {
                 group by t.Height, t.Type
             )sql");
 
-            TryBindStatementInt(stmt, 1, bottomHeight);
-            TryBindStatementInt(stmt, 2, topHeight);
+            stmt->Bind(bottomHeight, topHeight);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto [ok0, sHeight] = TryGetColumnInt(*stmt, 0);
-                auto [ok1, sType] = TryGetColumnInt(*stmt, 1);
-                auto [ok2, sCount] = TryGetColumnInt(*stmt, 2);
+                auto [ok0, sHeight] = stmt->TryGetColumnInt(0);
+                auto [ok1, sType] = stmt->TryGetColumnInt(1);
+                auto [ok2, sCount] = stmt->TryGetColumnInt(2);
 
                 if (ok0 && ok1 && ok2)
                     result[sHeight][sType] = sCount;
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -49,7 +48,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select (t.Time / ?), t.Type, count()
                 from Transactions t
                 where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
@@ -58,17 +57,13 @@ namespace PocketDb {
                 group by t.time / ?, t.Type
             )sql");
 
-            int i = 1;
-            TryBindStatementInt(stmt, i++, period);
-            TryBindStatementInt64(stmt, i++, top - (depth * period));
-            TryBindStatementInt64(stmt, i++, top);
-            TryBindStatementInt(stmt, i++, period);
+            stmt->Bind(period, top - (depth * period), top, period);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = TryGetColumnString(*stmt, 0);
-                auto [okType, type] = TryGetColumnString(*stmt, 1);
-                auto [okCount, count] = TryGetColumnInt(*stmt, 2);
+                auto [okPart, part] = stmt->TryGetColumnString(0);
+                auto [okType, type] = stmt->TryGetColumnString(1);
+                auto [okCount, count] = stmt->TryGetColumnInt(2);
 
                 if (!okPart || !okType || !okCount)
                     continue;
@@ -79,7 +74,7 @@ namespace PocketDb {
                 result.At(part).pushKV(type, count);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -91,7 +86,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select (t.Height / 60)Hour, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByHour
                 where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
@@ -100,14 +95,13 @@ namespace PocketDb {
                 group by (t.Height / 60), t.Type
             )sql");
 
-            TryBindStatementInt(stmt, 1, topHeight);
-            TryBindStatementInt(stmt, 2, topHeight - depth);
+            stmt->Bind(topHeight, topHeight - depth);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = TryGetColumnString(*stmt, 0);
-                auto [okType, type] = TryGetColumnString(*stmt, 1);
-                auto [okCount, count] = TryGetColumnInt(*stmt, 2);
+                auto [okPart, part] = stmt->TryGetColumnString(0);
+                auto [okType, type] = stmt->TryGetColumnString(1);
+                auto [okCount, count] = stmt->TryGetColumnInt(2);
 
                 if (!okPart || !okType || !okCount)
                     continue;
@@ -118,7 +112,7 @@ namespace PocketDb {
                 result.At(part).pushKV(type, count);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -130,7 +124,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select (t.Height / 1440)Day, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByDay
                 where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
@@ -139,14 +133,13 @@ namespace PocketDb {
                 group by (t.Height / 1440), t.Type
             )sql");
 
-            TryBindStatementInt(stmt, 1, topHeight);
-            TryBindStatementInt(stmt, 2, topHeight - depth);
+            stmt->Bind(topHeight, topHeight - depth);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = TryGetColumnInt(*stmt, 0);
-                auto [okType, type] = TryGetColumnInt(*stmt, 1);
-                auto [okCount, count] = TryGetColumnInt(*stmt, 2);
+                auto [okPart, part] = stmt->TryGetColumnInt(0);
+                auto [okType, type] = stmt->TryGetColumnInt(1);
+                auto [okCount, count] = stmt->TryGetColumnInt(2);
 
                 if (!okPart || !okType || !okCount)
                     continue;
@@ -157,7 +150,7 @@ namespace PocketDb {
                 result.At(to_string(part)).pushKV(to_string(type), count);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -169,7 +162,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select (u.Height / 60)
                   ,(
                     select
@@ -188,13 +181,12 @@ namespace PocketDb {
                 order by (u.Height / 60) desc
             )sql");
 
-            TryBindStatementInt(stmt, 1, topHeight);
-            TryBindStatementInt(stmt, 2, topHeight - depth);
+            stmt->Bind(topHeight, topHeight - depth);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = TryGetColumnString(*stmt, 0);
-                auto [okCount, count] = TryGetColumnInt(*stmt, 1);
+                auto [okPart, part] = stmt->TryGetColumnString(0);
+                auto [okCount, count] = stmt->TryGetColumnInt(1);
 
                 if (!okPart || !okCount)
                     continue;
@@ -202,7 +194,7 @@ namespace PocketDb {
                 result.pushKV(part, count);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -214,7 +206,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select (u.Height / 1440)
                   ,(
                     select
@@ -235,13 +227,12 @@ namespace PocketDb {
                 order by (u.Height / 1440) desc
             )sql");
 
-            TryBindStatementInt(stmt, 1, topHeight);
-            TryBindStatementInt(stmt, 2, topHeight - depth);
+            stmt->Bind(topHeight, topHeight - depth);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = TryGetColumnString(*stmt, 0);
-                auto [okCount, count] = TryGetColumnInt(*stmt, 1);
+                auto [okPart, part] = stmt->TryGetColumnString(0);
+                auto [okCount, count] = stmt->TryGetColumnInt(1);
 
                 if (!okPart || !okCount)
                     continue;
@@ -249,7 +240,7 @@ namespace PocketDb {
                 result.pushKV(part, count);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -261,7 +252,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select t.Type, count()
                 from Transactions t indexed by Transactions_Type_Last_Height_Id
                 where t.Type in (100,200,201,202,208,209,210)
@@ -270,16 +261,16 @@ namespace PocketDb {
                 group by t.Type
             )sql");
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto [okType, type] = TryGetColumnString(*stmt, 0);
-                auto [okCount, count] = TryGetColumnInt(*stmt, 1);
+                auto [okType, type] = stmt->TryGetColumnString(0);
+                auto [okCount, count] = stmt->TryGetColumnInt(1);
 
                 if (okType && okCount)
                     result.pushKV(type, count);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -294,28 +285,26 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select AddressHash, Height, Value
                 from Balances indexed by Balances_AddressHash_Last
                 where AddressHash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )
                   and Last = 1
             )sql");
 
-            size_t i = 1;
-            for (auto& hash : hashes)
-                TryBindStatementText(stmt, i++, hash);
+            stmt->Bind(hashes);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                auto [ok0, address] = TryGetColumnString(*stmt, 0);
-                auto [ok1, height] = TryGetColumnInt(*stmt, 1);
-                auto [ok2, value] = TryGetColumnInt64(*stmt, 2);
+                auto [ok0, address] = stmt->TryGetColumnString(0);
+                auto [ok1, height] = stmt->TryGetColumnInt(1);
+                auto [ok2, value] = stmt->TryGetColumnInt64(2);
 
                 if (ok0 && ok1 && ok2)
                     infos.emplace(address, make_tuple(height, value));
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return infos;
@@ -327,7 +316,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select distinct o.TxHash
                 from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
                 join Transactions t on t.Hash = o.TxHash
@@ -337,19 +326,16 @@ namespace PocketDb {
                 limit ?, ?
             )sql");
 
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementInt(stmt, 2, pageInitBlock);
-            TryBindStatementInt(stmt, 3, pageStart);
-            TryBindStatementInt(stmt, 4, pageSize);
+            stmt->Bind(address, pageInitBlock, pageSize, pageSize);
 
             int i = 0;
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     txHashes.emplace(value, i++);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return txHashes;
@@ -361,7 +347,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select t.Hash
                 from Transactions t indexed by Transactions_BlockHash
                 where t.BlockHash = ?
@@ -369,18 +355,16 @@ namespace PocketDb {
                 limit ?, ?
             )sql");
 
-            TryBindStatementText(stmt, 1, blockHash);
-            TryBindStatementInt(stmt, 2, pageStart);
-            TryBindStatementInt(stmt, 3, pageSize);
+            stmt->Bind(blockHash, pageStart, pageSize);
 
             int i = 0;
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     txHashes.emplace(value, i++);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return txHashes;
@@ -392,7 +376,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select b.Height, sum(b.Value)Amount
                 from Balances b indexed by Balances_Height
                 where b.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
@@ -402,17 +386,13 @@ namespace PocketDb {
                 limit ?
             )sql");
 
-            int i = 1;
-            for (const string& address : addresses)
-                TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, topHeight);
-            TryBindStatementInt(stmt, i++, count);
+            stmt->Bind(addresses, topHeight, count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[okHeight, height] = TryGetColumnInt(*stmt, 0); okHeight)
+                if (auto[okHeight, height] = stmt->TryGetColumnInt(0); okHeight)
                 {
-                    if (auto[okValue, value] = TryGetColumnInt64(*stmt, 1); okValue)
+                    if (auto[okValue, value] = stmt->TryGetColumnInt64(1); okValue)
                     {
                         UniValue record(UniValue::VARR);
                         record.push_back(height);
@@ -423,7 +403,7 @@ namespace PocketDb {
                 }
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;

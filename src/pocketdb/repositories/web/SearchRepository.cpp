@@ -25,18 +25,16 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, keyword);
-            TryBindStatementInt(stmt, 2, request.PageSize);
-            TryBindStatementInt(stmt, 3, request.PageStart);
+            static auto stmt = SetupSqlStatement(sql);
+            stmt->Bind(keyword, request.PageSize, request.PageStart);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     result.push_back(value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -86,20 +84,18 @@ namespace PocketDb
 
             int i = 1;
             if (request.TopBlock > 0)
-                TryBindStatementInt(stmt, i++, request.TopBlock);
+                stmt->TryBindStatementInt(i++, request.TopBlock);
             if (!request.Address.empty())
-                TryBindStatementText(stmt, i++, request.Address);
-            TryBindStatementText(stmt, i++, keyword);
-            TryBindStatementInt(stmt, i++, request.PageSize);
-            TryBindStatementInt(stmt, i++, request.PageStart);
+                stmt->TryBindStatementText(i++, request.Address);
+            stmt->TryBindStatementText(i++, keyword);
+            stmt->TryBindStatementInt(i++, request.PageSize);
+            stmt->TryBindStatementInt(i++, request.PageStart);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return ids;
@@ -145,19 +141,17 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             if (request.TopBlock > 0)
-                TryBindStatementInt(stmt, i++, request.TopBlock);
+                stmt->TryBindStatementInt(i++, request.TopBlock);
             for (const auto& fieldtype: request.FieldTypes)
-                TryBindStatementInt(stmt, i++, fieldtype);
-            TryBindStatementText(stmt, i++, keyword);
-            TryBindStatementInt(stmt, i++, request.PageSize);
-            TryBindStatementInt(stmt, i++, request.PageStart);
+                stmt->TryBindStatementInt(i++, fieldtype);
+            stmt->TryBindStatementText(i++, keyword);
+            stmt->TryBindStatementInt(i++, request.PageSize);
+            stmt->TryBindStatementInt(i++, request.PageStart);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result.push_back(value);
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok) result.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return result;
@@ -205,25 +199,25 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            int i = 1;
-            auto stmt = SetupSqlStatement(sql);
+            static auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, i++, (int)ContentFieldType::ContentFieldType_AccountUserName);
-            TryBindStatementText(stmt, i++, _keyword);
-            TryBindStatementInt(stmt, i++, 10);
+            stmt->Bind(
+                (int)ContentFieldType::ContentFieldType_AccountUserName,
+                keyword,
+                10,
+                (int)ContentFieldType::ContentFieldType_AccountUserAbout,
+                _keyword,
+                10
+            );
 
-            TryBindStatementInt(stmt, i++, (int)ContentFieldType::ContentFieldType_AccountUserAbout);
-            TryBindStatementText(stmt, i++, _keyword);
-            TryBindStatementInt(stmt, i++, 10);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     if (find(result.begin(), result.end(), value) == result.end())
                         result.push_back(value);
             }
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -330,38 +324,36 @@ namespace PocketDb
 
             int i = 1;
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementText(stmt, i++, address);
+            stmt->TryBindStatementText(i++, address);
             if (!addressExclude.empty())
-                TryBindStatementText(stmt, i++, addressExclude);
+                stmt->TryBindStatementText(i++, addressExclude);
 
             if (!lang.empty())
-                TryBindStatementText(stmt, i++, lang);
+                stmt->TryBindStatementText(i++, lang);
 
-            TryBindStatementInt(stmt, i++, nHeight-depth);
+            stmt->TryBindStatementInt(i++, nHeight-depth);
 
-            TryBindStatementInt(stmt, i++, minReputation);
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, limitSubscriptions);
+            stmt->TryBindStatementInt(i++, minReputation);
+            stmt->TryBindStatementText(i++, address);
+            stmt->TryBindStatementInt(i++, limitSubscriptions);
 
-            TryBindStatementInt(stmt, i++, minReputation);
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, limitSubscriptions);
+            stmt->TryBindStatementInt(i++, minReputation);
+            stmt->TryBindStatementText(i++, address);
+            stmt->TryBindStatementInt(i++, limitSubscriptions);
 
-            TryBindStatementInt(stmt, i++, limitSubscriptionsTotal);
+            stmt->TryBindStatementInt(i++, limitSubscriptionsTotal);
 
-            TryBindStatementInt(stmt, i++, cntRates);
+            stmt->TryBindStatementInt(i++, cntRates);
 
-            TryBindStatementInt(stmt, i++, cntOut);
+            stmt->TryBindStatementInt(i++, cntOut);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     ids.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return ids;
@@ -472,38 +464,36 @@ namespace PocketDb
 
             int i = 1;
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementText(stmt, i++, contentAddress);
+            stmt->TryBindStatementText(i++, contentAddress);
             if (!address.empty())
-                TryBindStatementText(stmt, i++, address);
+                stmt->TryBindStatementText(i++, address);
 
             if (!lang.empty())
-                TryBindStatementText(stmt, i++, lang);
+                stmt->TryBindStatementText(i++, lang);
 
-            TryBindStatementInt(stmt, i++, nHeight-depth);
+            stmt->TryBindStatementInt(i++, nHeight-depth);
 
-            TryBindStatementInt(stmt, i++, minReputation);
-            TryBindStatementText(stmt, i++, contentAddress);
-            TryBindStatementInt(stmt, i++, limitSubscriptions);
+            stmt->TryBindStatementInt(i++, minReputation);
+            stmt->TryBindStatementText(i++, contentAddress);
+            stmt->TryBindStatementInt(i++, limitSubscriptions);
 
-            TryBindStatementInt(stmt, i++, minReputation);
-            TryBindStatementText(stmt, i++, contentAddress);
-            TryBindStatementInt(stmt, i++, limitSubscriptions);
+            stmt->TryBindStatementInt(i++, minReputation);
+            stmt->TryBindStatementText(i++, contentAddress);
+            stmt->TryBindStatementInt(i++, limitSubscriptions);
 
-            TryBindStatementInt(stmt, i++, limitSubscriptionsTotal);
+            stmt->TryBindStatementInt(i++, limitSubscriptionsTotal);
 
-            TryBindStatementInt(stmt, i++, cntRates);
+            stmt->TryBindStatementInt(i++, cntRates);
 
-            TryBindStatementInt(stmt, i++, cntOut);
+            stmt->TryBindStatementInt(i++, cntOut);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return ids;
@@ -542,22 +532,20 @@ namespace PocketDb
             int i = 1;
 
             if (!lang.empty())
-                TryBindStatementText(stmt, i++, lang);
+                stmt->TryBindStatementText(i++, lang);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementText(stmt, i++, contentAddress);
+            stmt->TryBindStatementText(i++, contentAddress);
 
-            TryBindStatementInt(stmt, i++, cntOut);
+            stmt->TryBindStatementInt(i++, cntOut);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Reset() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return ids;
@@ -615,27 +603,25 @@ namespace PocketDb
             int i = 1;
 
             if (!lang.empty())
-                TryBindStatementText(stmt, i++, lang);
+                stmt->TryBindStatementText(i++, lang);
 
             for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+                stmt->TryBindStatementInt(i++, contenttype);
 
-            TryBindStatementText(stmt, i++, address);
+            stmt->TryBindStatementText(i++, address);
 
-            TryBindStatementInt(stmt, i++, cntOut);
+            stmt->TryBindStatementInt(i++, cntOut);
 
-            TryBindStatementText(stmt, i++, address);
+            stmt->TryBindStatementText(i++, address);
 
             if (rest)
-                TryBindStatementInt(stmt, i++, cntOut);
+                stmt->TryBindStatementInt(i++, cntOut);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return ids;

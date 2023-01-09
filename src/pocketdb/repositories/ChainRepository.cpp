@@ -102,20 +102,16 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, blockHash);
-            TryBindStatementInt(stmt, 2, height);
-            TryBindStatementInt(stmt, 3, height + 1);
+            stmt->Bind(blockHash, height, height + 1);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok && value == 1)
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok && value == 1)
                     exists = true;
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok && value == 1)
+                if (auto[ok, value] = stmt->TryGetColumnInt(1); ok && value == 1)
                     last = false;
             }
-
-            FinalizeSqlStatement(*stmt);
         });
 
         return {exists, last};
@@ -127,8 +123,7 @@ namespace PocketDb
             INSERT OR IGNORE INTO Registry (String)
             VALUES (?)
         )sql");
-
-        TryBindStatementText(stmt, 1, blockHash);
+        stmt->Bind(blockHash);
 
         TryStepStatement(stmt);
     }
@@ -145,11 +140,9 @@ namespace PocketDb
             select (select t.RowId from t), (select RowId from Registry where String = ?), ?, ?, ?
             where not exists (select 1 from Chain,t where TxId = (t.RowId )) and (select t.RowId > 0 from t)
         )sql");
-        TryBindStatementText(stmt, 1, txHash);
-        TryBindStatementText(stmt, 2, blockHash);
-        TryBindStatementInt(stmt, 3, blockNumber);
-        TryBindStatementInt(stmt, 4, height);
-        if (id) TryBindStatementInt64(stmt, 5, *id);
+
+        stmt->Bind(txHash, blockHash, blockNumber, height, id);
+
         TryStepStatement(stmt);
 
         if (fIsCreateLast) {
@@ -157,7 +150,7 @@ namespace PocketDb
                 INSERT INTO Last (TxId)
                 select RowId from Transactions where HashId = (select RowId from Registry where String = ?)
             )sql");
-            TryBindStatementText(stmtInsertLast, 1, txHash);
+            stmtInsertLast->Bind(txHash);
             TryStepStatement(stmtInsertLast);
         }
     }
@@ -172,11 +165,8 @@ namespace PocketDb
                     SpentTxId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                 WHERE TxId = ? and Number = ?
             )sql");
+            stmt->Bind(height, txInfo.Hash, input.first, input.second);
 
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, txInfo.Hash);
-            TryBindStatementText(stmt, 3, input.first);
-            TryBindStatementInt(stmt, 4, input.second);
             TryStepStatement(stmt);
         }
     }
@@ -218,9 +208,7 @@ namespace PocketDb
             where saldo.AddressId is not null
             group by saldo.AddressId
         )sql");
-        TryBindStatementInt(stmt, 1, height);
-        TryBindStatementInt(stmt, 2, height);
-        TryBindStatementInt(stmt, 3, height);
+        stmt->Bind(height, height, height);
         TryStepStatement(stmt);
 
         // Remove old Last records
@@ -235,8 +223,7 @@ namespace PocketDb
                 where b.Height = ?
               )
         )sql");
-        TryBindStatementInt(stmtOld, 1, height);
-        TryBindStatementInt(stmtOld, 2, height);
+        stmtOld->Bind(height, height);
         TryStepStatement(stmtOld);
     }
 
@@ -275,11 +262,11 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, txHash);
+            stmt->Bind(txHash);
             
-            if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            if (stmt->Step() == SQLITE_ROW) {
+                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
+                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
             // TODO (losty-db): error
         });
@@ -321,11 +308,11 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, txHash);
+            stmt->Bind(txHash);
             
-            if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            if (stmt->Step() == SQLITE_ROW) {
+                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
+                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
             // TODO (losty-db): error
         });
@@ -367,11 +354,11 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, txHash);
+            stmt->Bind(txHash);
             
-            if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            if (stmt->Step() == SQLITE_ROW) {
+                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
+                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
             // TODO (losty-db): error
         });
@@ -413,11 +400,11 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, txHash);
+            stmt->Bind(txHash);
             
-            if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            if (stmt->Step() == SQLITE_ROW) {
+                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
+                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
             // TODO (losty-db): error
         });
@@ -462,11 +449,11 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, txHash);
+            stmt->Bind(txHash);
             
-            if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            if (stmt->Step() == SQLITE_ROW) {
+                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
+                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
             // TODO (losty-db): error
         });
@@ -494,7 +481,7 @@ namespace PocketDb
                 where b.Type in (305) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                     and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
             )sql");
-            TryBindStatementText(insListStmt, 1, txHash);
+            insListStmt->Bind(txHash);
             TryStepStatement(insListStmt);
 
             auto delListStmt = SetupSqlStatement(R"sql(
@@ -518,7 +505,7 @@ namespace PocketDb
                 where b.Type in (306) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
                 )
             )sql");
-            TryBindStatementText(delListStmt, 1, txHash);
+            delListStmt->Bind(txHash);
             TryStepStatement(delListStmt);
         });
 
@@ -561,11 +548,11 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, txHash);
+            stmt->Bind(txHash);
             
-            if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 0); ok) id = val;
-                if (auto [ok, val] = TryGetColumnInt64(*stmt, 1); ok) lastTxId = val;
+            if (stmt->Step() == SQLITE_ROW) {
+                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
+                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
             // TODO (losty-db): error
         });
@@ -597,7 +584,7 @@ namespace PocketDb
             where Transactions.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
               and Transactions.Type in (208)
         )sql");
-        TryBindStatementText(stmt, 1, txHash);
+        stmt->Bind(txHash);
         TryStepStatement(stmt);
     }
 
@@ -645,8 +632,8 @@ namespace PocketDb
             delete from Last
             where TxId = ?
         )sql");
+        stmt->Bind(lastTxId);
 
-        TryBindStatementInt64(stmt, 1, lastTxId);
         TryStepStatement(stmt);
     }
 
@@ -688,8 +675,7 @@ namespace PocketDb
               and Ratings.Uid = r.Uid
               and Ratings.Height = r.Height
         )sql");
-        TryBindStatementInt(stmt2, 1, height);
-        TryBindStatementInt(stmt2, 2, height);
+        stmt2->Bind(height, height);
         TryStepStatement(stmt2);
 
         int64_t nTime2 = GetTimeMicros();
@@ -727,8 +713,7 @@ namespace PocketDb
               and Balances.AddressId = b.AddressId
               and Balances.Height = b.Height
         )sql");
-        TryBindStatementInt(stmt3, 1, height);
-        TryBindStatementInt(stmt3, 2, height);
+        stmt3->Bind(height, height);
         TryStepStatement(stmt3);
 
         int64_t nTime3 = GetTimeMicros();
@@ -743,7 +728,7 @@ namespace PocketDb
             delete from Last
             where TxId in (select c.TxId from Chain c where c.Height > ?)
         )sql");
-        TryBindStatementInt64(stmt0, 1, height);
+        stmt0->Bind(height);
         TryStepStatement(stmt0);
         // ----------------------------------------
         // Rollback general transaction information
@@ -751,7 +736,7 @@ namespace PocketDb
             delete from Chain
             WHERE Height >= ?
         )sql");
-        TryBindStatementInt64(stmt1, 1, height);
+        stmt1->Bind(height);
         TryStepStatement(stmt1);
 
         int64_t nTime1 = GetTimeMicros();
@@ -803,7 +788,7 @@ namespace PocketDb
             delete from Ratings
             where Height >= ?
         )sql");
-        TryBindStatementInt(stmt4, 1, height);
+        stmt4->Bind(height);
         TryStepStatement(stmt4);
 
         int64_t nTime5 = GetTimeMicros();
@@ -815,7 +800,7 @@ namespace PocketDb
             delete from Balances
             where Height >= ?
         )sql");
-        TryBindStatementInt(stmt5, 1, height);
+        stmt5->Bind(height);
         TryStepStatement(stmt5);
 
         int64_t nTime6 = GetTimeMicros();
@@ -852,7 +837,7 @@ namespace PocketDb
                 where b.Type in (305)
             )
         )sql");
-        TryBindStatementInt(delListStmt, 1, height);
+        delListStmt->Bind(height);
         TryStepStatement(delListStmt);
         
         int64_t nTime1 = GetTimeMicros();
@@ -888,7 +873,7 @@ namespace PocketDb
             where b.Type in (306)
               and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid)
         )sql");
-        TryBindStatementInt(insListStmt, 1, height);
+        insListStmt->Bind(height);
         TryStepStatement(insListStmt);
         
         int64_t nTime2 = GetTimeMicros();

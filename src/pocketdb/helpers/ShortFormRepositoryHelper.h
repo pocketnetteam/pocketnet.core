@@ -5,8 +5,8 @@
 #ifndef POCKETDB_SHORTFORMREPOSITORYSHELPER_H
 #define POCKETDB_SHORTFORMREPOSITORYSHELPER_H
 
-#include "pocketdb/repositories/RowAccessor.hpp"
 #include "pocketdb/helpers/ShortFormModelsHelper.h"
+#include "pocketdb/stmt.h"
 
 #include <string>
 #include <map>
@@ -55,36 +55,36 @@ namespace PocketHelpers
         std::vector<UniValue> m_data;
     };
 
-    class ShortFormParser : public RowAccessor
+    class ShortFormParser
     {
     public:
         void Reset(const int& startIndex);
 
-        ShortForm ParseFull(sqlite3_stmt* stmt);
+        ShortForm ParseFull(Stmt& stmt);
 
-        int64_t ParseBlockNum(sqlite3_stmt* stmt);
+        int64_t ParseBlockNum(Stmt& stmt);
 
-        ShortTxType ParseType(sqlite3_stmt* stmt);
+        ShortTxType ParseType(Stmt& stmt);
 
-        std::string ParseHash(sqlite3_stmt* stmt);
+        std::string ParseHash(Stmt& stmt);
 
-        std::optional<std::vector<ShortTxOutput>> ParseOutputs(sqlite3_stmt* stmt);
+        std::optional<std::vector<ShortTxOutput>> ParseOutputs(Stmt& stmt);
 
-        std::optional<ShortAccount> ParseAccount(sqlite3_stmt* stmt, const int& index);
+        std::optional<ShortAccount> ParseAccount(Stmt& stmt, const int& index);
 
     protected:
-        std::optional<ShortTxData> ProcessTxData(sqlite3_stmt* stmt, int& index);
+        std::optional<ShortTxData> ProcessTxData(Stmt& stmt, int& index);
 
     private:
         int m_startIndex = 0;
     };
 
-    class EventsReconstructor : public RowAccessor
+    class EventsReconstructor
     {
     public:
         EventsReconstructor();
 
-        void FeedRow(sqlite3_stmt* stmt);
+        void FeedRow(Stmt& stmt);
 
         std::vector<ShortForm> GetResult() const;
     private:
@@ -92,12 +92,12 @@ namespace PocketHelpers
         std::vector<ShortForm> m_result;
     };
 
-    class NotificationsReconstructor : public RowAccessor
+    class NotificationsReconstructor
     {
     public:
         NotificationsReconstructor();
 
-        void FeedRow(sqlite3_stmt* stmt);
+        void FeedRow(Stmt& stmt);
 
         NotificationsResult GetResult() const;
     private:
@@ -105,10 +105,10 @@ namespace PocketHelpers
         NotificationsResult m_notifications;
     };
 
-    class NotificationSummaryReconstructor : public RowAccessor
+    class NotificationSummaryReconstructor
     {
     public:
-        void FeedRow(sqlite3_stmt* stmt);
+        void FeedRow(Stmt& stmt);
 
         auto GetResult() const
         {

@@ -12,19 +12,19 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 select Version
                 from System
                 where Db = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, db);
+            stmt->Bind(db);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+            if (stmt->Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = value;
 
-            FinalizeSqlStatement(*stmt);
+            stmt->Reset();
         });
 
         return result;
@@ -34,14 +34,13 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            static auto stmt = SetupSqlStatement(R"sql(
                 update System
                     set Version = ?
                 where Db = ?
             )sql");
 
-            TryBindStatementInt(stmt, 1, version);
-            TryBindStatementText(stmt, 2, db);
+            stmt->Bind(version, db);
             TryStepStatement(stmt);
         });
     }

@@ -10,7 +10,7 @@
 #include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/helpers/TransactionHelper.h"
-#include "pocketdb/repositories/RowAccessor.hpp"
+#include "pocketdb/stmt.h"
 
 #include <boost/algorithm/string/replace.hpp>
 
@@ -19,7 +19,7 @@ namespace PocketDb
     using namespace std;
     using namespace PocketHelpers;
 
-    class BaseRepository : protected RowAccessor
+    class BaseRepository
     {
     private:
     protected:
@@ -82,17 +82,17 @@ namespace PocketDb
             }
         }
 
-        void TryStepStatement(shared_ptr<sqlite3_stmt*>& stmt)
+        void TryStepStatement(const shared_ptr<Stmt>& stmt)
         {
-            int res = sqlite3_step(*stmt);
-            FinalizeSqlStatement(*stmt);
+            int res = stmt->Step();
+            stmt->Reset();
 
             if (res != SQLITE_ROW && res != SQLITE_DONE)
                 throw std::runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
         }
 
-        void TryTransactionBulk(const string& func, const vector<shared_ptr<sqlite3_stmt*>>& stmts)
-    {
+        void TryTransactionBulk(const string& func, const vector<shared_ptr<Stmt>>& stmts)
+        {
             if (!m_database.BeginTransaction())
                 throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
                 
@@ -103,105 +103,11 @@ namespace PocketDb
                 throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
         }
 
-        shared_ptr<sqlite3_stmt*> SetupSqlStatement(const std::string& sql) const
+        shared_ptr<Stmt> SetupSqlStatement(const std::string& sql) const
         {
-            sqlite3_stmt* stmt;
-
-            int res = sqlite3_prepare_v2(m_database.m_db, sql.c_str(), (int) sql.size(), &stmt, nullptr);
-            if (res != SQLITE_OK)
-                throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\nSql: %s",
-                    sqlite3_errstr(res), sql));
-
-            return std::make_shared<sqlite3_stmt*>(stmt);
-        }
-
-        bool CheckValidResult(shared_ptr<sqlite3_stmt*> stmt, int result)
-        {
-            if (result != SQLITE_OK)
-            {
-                FinalizeSqlStatement(*stmt);
-                return false;
-            }
-
-            return true;
-        }
-
-        int FinalizeSqlStatement(sqlite3_stmt* stmt)
-        {
-            return sqlite3_finalize(stmt);
-        }
-
-        int ResetSqlStatement(sqlite3_stmt* stmt)
-        {
-            return sqlite3_reset(stmt);
-        }
-
-        // --------------------------------
-        // BINDS
-        // --------------------------------
-
-        // Forces user to handle memory more correct because of SQLITE_STATIC requires it
-        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string&& value) = delete;
-        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string& value)
-        {
-            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
-            if (!CheckValidResult(stmt, res))
-                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%s\n",
-                    __func__, index, value));
-        }
-
-        // Forces user to handle memory more correct because of SQLITE_STATIC requires it
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<std::string>&& value) = delete;
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<std::string>& value)
-        {
-            if (!value) return true;
-
-            int res = sqlite3_bind_text(*stmt, index, value->c_str(), (int) value->size(), SQLITE_STATIC);
-            if (!CheckValidResult(stmt, res))
-                return false;
-
-            return true;
-        }
-
-        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<int>& value)
-        {
-            if (!value) return true;
-
-            TryBindStatementInt(stmt, index, *value);
-            return true;
-        }
-
-        void TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, int value)
-        {
-            int res = sqlite3_bind_int(*stmt, index, value);
-            if (!CheckValidResult(stmt, res))
-                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
-                    __func__, index, value));
-        }
-
-        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, const optional<int64_t>& value)
-        {
-            if (!value) return true;
-
-            TryBindStatementInt64(stmt, index, *value);
-            return true;
-        }
-
-        void TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, int64_t value)
-        {
-            int res = sqlite3_bind_int64(*stmt, index, value);
-            if (!CheckValidResult(stmt, res))
-                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
-                    __func__, index, value));
-        }
-
-        bool TryBindStatementNull(shared_ptr<sqlite3_stmt*>& stmt, int index)
-        {
-            int res = sqlite3_bind_null(*stmt, index);
-            if (!CheckValidResult(stmt, res))
-                return false;
-
-            return true;
+            auto stmt = std::make_shared<Stmt>();
+            stmt->Init(m_database, sql);
+            return stmt;
         }
 
         void SetLastInsertRowId(int64_t value)

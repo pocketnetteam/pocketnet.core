@@ -130,10 +130,10 @@ void PocketHelpers::ShortFormParser::Reset(const int& startIndex)
     m_startIndex = startIndex;
 }
 
-PocketDb::ShortForm PocketHelpers::ShortFormParser::ParseFull(sqlite3_stmt* stmt)
+PocketDb::ShortForm PocketHelpers::ShortFormParser::ParseFull(Stmt& stmt)
 {
     int index = m_startIndex;
-    auto [ok, type] = TryGetColumnString(stmt, index++);
+    auto [ok, type] = stmt.TryGetColumnString(index++);
     if (!ok) {
         throw std::runtime_error("Missing row type");
     }
@@ -148,9 +148,9 @@ PocketDb::ShortForm PocketHelpers::ShortFormParser::ParseFull(sqlite3_stmt* stmt
     return {PocketHelpers::ShortTxTypeConvertor::strToType(type), *txData, relatedContent};
 }
 
-int64_t PocketHelpers::ShortFormParser::ParseBlockNum(sqlite3_stmt* stmt)
+int64_t PocketHelpers::ShortFormParser::ParseBlockNum(Stmt& stmt)
 {
-    auto [ok, val] = TryGetColumnInt64(stmt, m_startIndex+5);
+    auto [ok, val] = stmt.TryGetColumnInt64(m_startIndex+5);
     if (!ok) {
         throw std::runtime_error("Failed to extract blocknum from stmt");
     }
@@ -158,9 +158,9 @@ int64_t PocketHelpers::ShortFormParser::ParseBlockNum(sqlite3_stmt* stmt)
     return val;
 }
 
-PocketDb::ShortTxType PocketHelpers::ShortFormParser::ParseType(sqlite3_stmt* stmt)
+PocketDb::ShortTxType PocketHelpers::ShortFormParser::ParseType(Stmt& stmt)
 {
-    auto [ok, val] = TryGetColumnString(stmt, m_startIndex);
+    auto [ok, val] = stmt.TryGetColumnString(m_startIndex);
     if (!ok) {
         throw std::runtime_error("Failed to extract short tx type");
     }
@@ -173,9 +173,9 @@ PocketDb::ShortTxType PocketHelpers::ShortFormParser::ParseType(sqlite3_stmt* st
     return type;
 }
 
-std::string PocketHelpers::ShortFormParser::ParseHash(sqlite3_stmt* stmt)
+std::string PocketHelpers::ShortFormParser::ParseHash(Stmt& stmt)
 {
-    auto [ok, hash] = TryGetColumnString(stmt, m_startIndex+1);
+    auto [ok, hash] = stmt.TryGetColumnString(m_startIndex+1);
     if (!ok) {
         throw std::runtime_error("Failed to extract tx hash from stmt");
     }
@@ -183,21 +183,21 @@ std::string PocketHelpers::ShortFormParser::ParseHash(sqlite3_stmt* stmt)
     return hash;
 }
 
-std::optional<std::vector<PocketDb::ShortTxOutput>> PocketHelpers::ShortFormParser::ParseOutputs(sqlite3_stmt* stmt)
+std::optional<std::vector<PocketDb::ShortTxOutput>> PocketHelpers::ShortFormParser::ParseOutputs(Stmt& stmt)
 {
-    auto [ok, str] = TryGetColumnString(stmt, m_startIndex + 11);
+    auto [ok, str] = stmt.TryGetColumnString(m_startIndex + 11);
     if (ok) {
         return _parseOutputs(str);
     }
     return std::nullopt;
 }
 
-std::optional<PocketDb::ShortAccount> PocketHelpers::ShortFormParser::ParseAccount(sqlite3_stmt* stmt, const int& index)
+std::optional<PocketDb::ShortAccount> PocketHelpers::ShortFormParser::ParseAccount(Stmt& stmt, const int& index)
 {
-    auto [ok1, lang] = TryGetColumnString(stmt, index);
-    auto [ok2, name] = TryGetColumnString(stmt, index+1);
-    auto [ok3, avatar] = TryGetColumnString(stmt, index+2);
-    auto [ok4, reputation] = TryGetColumnInt64(stmt, index+3);
+    auto [ok1, lang] = stmt.TryGetColumnString(index);
+    auto [ok2, name] = stmt.TryGetColumnString(index+1);
+    auto [ok3, avatar] = stmt.TryGetColumnString(index+2);
+    auto [ok4, reputation] = stmt.TryGetColumnInt64(index+3);
     if (ok2 && ok4) { // TODO (losty): can there be no avatar?
         auto acc = PocketDb::ShortAccount(name, avatar, reputation);
         if (ok1) acc.SetLang(lang);
@@ -206,32 +206,32 @@ std::optional<PocketDb::ShortAccount> PocketHelpers::ShortFormParser::ParseAccou
     return std::nullopt;
 }
 
-std::optional<PocketDb::ShortTxData> PocketHelpers::ShortFormParser::ProcessTxData(sqlite3_stmt* stmt, int& index)
+std::optional<PocketDb::ShortTxData> PocketHelpers::ShortFormParser::ProcessTxData(Stmt& stmt, int& index)
 {
     const auto i = index;
 
     static const auto stmtOffset = 19;
     index += stmtOffset;
 
-    auto [ok1, hash] = TryGetColumnString(stmt, i);
-    auto [ok2, txType] = TryGetColumnInt(stmt, i+1);
+    auto [ok1, hash] = stmt.TryGetColumnString(i);
+    auto [ok2, txType] = stmt.TryGetColumnInt(i+1);
 
     if (ok1 && ok2) {
         PocketDb::ShortTxData txData(hash, (PocketTx::TxType)txType);
-        if (auto [ok, val] = TryGetColumnString(stmt, i+2); ok) txData.SetAddress(val);
-        if (auto [ok, val] = TryGetColumnInt64(stmt, i+3); ok) txData.SetHeight(val);
-        if (auto [ok, val] = TryGetColumnInt64(stmt, i+4); ok) txData.SetBlockNum(val);
-        if (auto [ok, val] = TryGetColumnInt64(stmt, i+5); ok) txData.SetTime(val);
-        if (auto [ok, val] = TryGetColumnString(stmt, i+6); ok) txData.SetRootTxHash(val);
-        if (auto [ok, val] = TryGetColumnString(stmt, i+7); ok) txData.SetPostHash(val);
-        if (auto [ok, val] = TryGetColumnInt64(stmt, i+8); ok) txData.SetVal(val);
-        if (auto [ok, val] = TryGetColumnString(stmt, i+9); ok) txData.SetInputs(_parseOutputs(val));
-        if (auto [ok, val] = TryGetColumnString(stmt, i+10); ok) txData.SetOutputs(_parseOutputs(val));
-        if (auto [ok, val] = TryGetColumnString(stmt, i+11); ok) txData.SetDescription(val);
-        if (auto [ok, val] = TryGetColumnString(stmt, i+12); ok) txData.SetCommentParentId(val);
-        if (auto [ok, val] = TryGetColumnString(stmt, i+13); ok) txData.SetCommentAnswerId(val);
+        if (auto [ok, val] = stmt.TryGetColumnString(i+2); ok) txData.SetAddress(val);
+        if (auto [ok, val] = stmt.TryGetColumnInt64(i+3); ok) txData.SetHeight(val);
+        if (auto [ok, val] = stmt.TryGetColumnInt64(i+4); ok) txData.SetBlockNum(val);
+        if (auto [ok, val] = stmt.TryGetColumnInt64(i+5); ok) txData.SetTime(val);
+        if (auto [ok, val] = stmt.TryGetColumnString(i+6); ok) txData.SetRootTxHash(val);
+        if (auto [ok, val] = stmt.TryGetColumnString(i+7); ok) txData.SetPostHash(val);
+        if (auto [ok, val] = stmt.TryGetColumnInt64(i+8); ok) txData.SetVal(val);
+        if (auto [ok, val] = stmt.TryGetColumnString(i+9); ok) txData.SetInputs(_parseOutputs(val));
+        if (auto [ok, val] = stmt.TryGetColumnString(i+10); ok) txData.SetOutputs(_parseOutputs(val));
+        if (auto [ok, val] = stmt.TryGetColumnString(i+11); ok) txData.SetDescription(val);
+        if (auto [ok, val] = stmt.TryGetColumnString(i+12); ok) txData.SetCommentParentId(val);
+        if (auto [ok, val] = stmt.TryGetColumnString(i+13); ok) txData.SetCommentAnswerId(val);
         txData.SetAccount(ParseAccount(stmt, i+14));
-        if (auto [ok, val] = TryGetColumnString(stmt, i+18); ok) txData.SetMultipleAddresses(_processMultipleAddresses(val));
+        if (auto [ok, val] = stmt.TryGetColumnString(i+18); ok) txData.SetMultipleAddresses(_processMultipleAddresses(val));
         return txData;
     }
 
@@ -243,7 +243,7 @@ PocketHelpers::EventsReconstructor::EventsReconstructor()
     m_parser.Reset(0);
 }
 
-void PocketHelpers::EventsReconstructor::FeedRow(sqlite3_stmt* stmt)
+void PocketHelpers::EventsReconstructor::FeedRow(Stmt& stmt)
 {
     m_result.emplace_back(std::move(m_parser.ParseFull(stmt)));
 }
@@ -258,7 +258,7 @@ PocketHelpers::NotificationsReconstructor::NotificationsReconstructor()
     m_parser.Reset(5);
 }
 
-void PocketHelpers::NotificationsReconstructor::FeedRow(sqlite3_stmt* stmt)
+void PocketHelpers::NotificationsReconstructor::FeedRow(Stmt& stmt)
 {
     // Notifiers data for current row context. Possible more than one notifier for the same context
     std::map<std::string, std::optional<PocketDb::ShortAccount>> notifiers;
@@ -266,7 +266,7 @@ void PocketHelpers::NotificationsReconstructor::FeedRow(sqlite3_stmt* stmt)
     //  - First column in query
     //  - Outputs (e.x. for money)
     //  TODO (losty): generalize collecting account data because there could be more variants in the future
-    auto [ok, addressOne] = TryGetColumnString(stmt, 0);
+    auto [ok, addressOne] = stmt.TryGetColumnString(0);
     if (ok) {
         auto pulp = m_parser.ParseAccount(stmt, 1);
         notifiers.insert(std::move(std::make_pair(std::move(addressOne), std::move(pulp))));
@@ -294,10 +294,10 @@ PocketHelpers::NotificationsResult PocketHelpers::NotificationsReconstructor::Ge
     return m_notifications;
 }
 
-void PocketHelpers::NotificationSummaryReconstructor::FeedRow(sqlite3_stmt* stmt)
+void PocketHelpers::NotificationSummaryReconstructor::FeedRow(Stmt& stmt)
 {
-    auto [ok1, typeStr] = TryGetColumnString(stmt, 0);
-    auto [ok2, address] = TryGetColumnString(stmt, 1);
+    auto [ok1, typeStr] = stmt.TryGetColumnString(0);
+    auto [ok2, address] = stmt.TryGetColumnString(1);
     if (!ok1 || !ok2) return;
 
     if (auto type = PocketHelpers::ShortTxTypeConvertor::strToType(typeStr); type != PocketDb::ShortTxType::NotSet) {
