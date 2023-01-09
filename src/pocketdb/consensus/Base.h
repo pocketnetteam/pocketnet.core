@@ -453,7 +453,6 @@ namespace PocketConsensus
             { NetworkTest, { {0, 15} } },
             { NetworkRegTest, { {0, 15} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_trial_audio, {
             { NetworkMain, { {0, 5} } },
             { NetworkTest, { {0, 15} } },
@@ -501,7 +500,6 @@ namespace PocketConsensus
             { NetworkTest, { {0, 30} } },
             { NetworkRegTest, { {0, 30} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_full_audio, {
             { NetworkMain, { {0, 30} } },
             { NetworkTest, { {0, 30} } },
@@ -572,7 +570,6 @@ namespace PocketConsensus
             { NetworkTest, { {0, 5} } },
             { NetworkRegTest, { {0, 5} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_audio_edit_count, {
             { NetworkMain, { {0, 5} } },
             { NetworkTest, { {0, 5} } },
@@ -623,7 +620,6 @@ namespace PocketConsensus
             { NetworkTest, { {0, 60000} } },
             { NetworkRegTest, { {0, 60000} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_max_audio_size, {
             { NetworkMain, { {0, 60000} } },
             { NetworkTest, { {0, 60000} } },
