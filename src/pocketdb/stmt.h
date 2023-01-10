@@ -72,13 +72,15 @@ namespace PocketDb
         public:
             static void bind(Stmt& stmt, int& i, T const& t)
             {
+                // Using is_same_v here to bind int to statement where the value is literally int. If it is long, long long, short, etc we want
+                // to convert it to int64_t below to prevent any overflows
                 if constexpr (std::is_same_v<T, int> || std::is_same_v<T, std::optional<int>>) {
                     stmt.TryBindStatementInt(i++, t);
                 }
-                else if constexpr (std::is_convertible_v<T, int64_t> || std::is_same_v<T, optional<int64_t>>) {
+                else if constexpr (std::is_convertible_v<T, int64_t> || std::is_convertible_v<T, optional<int64_t>>) {
                     stmt.TryBindStatementInt64(i++, t);
                 }
-                else if constexpr (std::is_convertible_v<T, string> || std::is_same_v<T, optional<string>>) {
+                else if constexpr (std::is_convertible_v<T, string> || std::is_convertible_v<T, optional<string>>) {
                     stmt.TryBindStatementText(i++, t);
                 } else {
                     // TODO (losty): use something like std::is_vetor_v
