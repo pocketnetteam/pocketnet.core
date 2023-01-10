@@ -104,7 +104,7 @@ namespace PocketDb
             create table if not exists Registry
             (
                 RowId integer primary key,
-                String text not null unique
+                String text not null
             );
         )sql");
 
@@ -234,6 +234,10 @@ namespace PocketDb
 
         _indexes = R"sql(
             create index if not exists Chain_Uid on Chain (Uid);
+
+            create unique index if not exists Registry_String on Registry (String);
+
+            create unique index if not exists Transactions_HashId on Transactions (HashId);
 
             create unique index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
 
