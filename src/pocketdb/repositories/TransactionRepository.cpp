@@ -826,7 +826,7 @@ namespace PocketDb
         map<string,int64_t> res;
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             int i = 1;
             for (const auto& hash: txHashes) {
                 stmt->TryBindStatementText(i++, hash);
