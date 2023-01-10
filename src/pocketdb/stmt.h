@@ -27,6 +27,7 @@ namespace PocketDb
         // --------------------------------
         // BINDS
         // --------------------------------
+        // Thanks to Itaros (https://github.com/Itaros) for help in implementing this
         template <class ...Binds>
         void Bind(const Binds&... binds)
         {
