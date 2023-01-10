@@ -143,20 +143,13 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result.LastTxType = value;
-
-                if (auto[ok, value] = stmt->TryGetColumnInt(1); ok)
-                    result.EditsCount = value;
-
-                if (auto[ok, value] = stmt->TryGetColumnInt(2); ok)
-                    result.MempoolCount = value;
-
-                if (auto[ok, value] = stmt->TryGetColumnInt(3); ok)
-                    result.DuplicatesChainCount = value;
-
-                if (auto[ok, value] = stmt->TryGetColumnInt(4); ok)
-                    result.DuplicatesMempoolCount = value;
+                stmt->Collect(
+                    result.LastTxType,
+                    result.EditsCount,
+                    result.MempoolCount,
+                    result.DuplicatesChainCount,
+                    result.DuplicatesMempoolCount
+                );
             }
 
             stmt->Reset();
