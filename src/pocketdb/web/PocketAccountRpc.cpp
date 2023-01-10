@@ -6,6 +6,7 @@
 #include "rpc/blockchain.h"
 #include "rpc/util.h"
 #include "validation.h"
+#include "util/html.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -549,54 +550,102 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetAccountSubscribes()
     {
-        return RPCHelpMan{"GetAccountSubscribes",
-                "\nReturn subscribes accounts list with pagination - NOT IMPLEMENTED\n",
-                {
-                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
-                },
-                {
-                    // TODO (rpc): provide return description
-                },
-                RPCExamples{
-                    // TODO (rpc): provide correct examples
-                    HelpExampleCli("GetAccountSubscribes", "\"address\"") +
-                    HelpExampleRpc("GetAccountSubscribes", "\"address\"")
-                },
+        return RPCHelpMan{
+            "getusersubscribes",
+            "\nReturn subscribes accounts list with pagination\n",
+            {
+                {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address for filter"},
+                {"orderby", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Order by field (reputation|height) (Default: height)"},
+                {"orderdesc", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Order by desc (Default: true)"},
+                {"offset", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Skip first N records (Default: 0)"},
+                {"limit", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Limit N result records (Default: 10) (0 - not limitted)"},
+            },
+            {
+                // TODO (rpc): provide return description
+            },
+            RPCExamples{
+                // TODO (rpc): provide correct examples
+                HelpExampleCli("getusersubscribes", "\"address\"") +
+                HelpExampleRpc("getusersubscribes", "\"address\"")
+            },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-    {
-        RPCTypeCheck(request.params, {UniValue::VSTR});
+        {
+            RPCTypeCheck(request.params, {UniValue::VSTR});
 
-        string address = request.params[0].get_str();
+            string address = request.params[0].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetSubscribesAddresses(address);
-    },
-        };
+            string orderBy = "height";
+            if (request.params.size() > 1 && request.params[1].isStr())
+            {
+                orderBy = request.params[1].get_str();
+                HtmlUtils::StringToLower(orderBy);
+            }
+
+            bool orderDesc = true;
+            if (request.params.size() > 2 && request.params[2].isBool())
+                orderDesc = request.params[2].get_bool();
+
+            int offset = 0;
+            if (request.params.size() > 3 && request.params[3].isNum())
+                offset = min(0, request.params[3].get_int());
+
+            int limit = 10;
+            if (request.params.size() > 4 && request.params[4].isNum())
+                limit = min(0, request.params[4].get_int());
+
+            return request.DbConnection()->WebRpcRepoInst->GetSubscribesAddresses(
+                address, { ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE }, orderBy, orderDesc, offset, limit);
+        }};
     }
 
     RPCHelpMan GetAccountSubscribers()
     {
-        return RPCHelpMan{"GetAccountSubscribers",
-                "\nReturn subscribers accounts list with pagination - NOT IMPLEMENTED\n",
-                {
-                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
-                },
-                {
-                    // TODO (rpc): provide return description
-                },
-                RPCExamples{
-                    // TODO (rpc): provide correct examples
-                    HelpExampleCli("GetAccountSubscribers", "\"address\"") +
-                    HelpExampleRpc("GetAccountSubscribers", "\"address\"")
-                },
+        return RPCHelpMan{
+            "getusersubscribers",
+            "\nReturn subscribers accounts list with pagination\n",
+            {
+                {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address for filter"},
+                {"orderby", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Order by field (reputation|height) (Default: height)"},
+                {"orderdesc", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Order by desc (Default: true)"},
+                {"offset", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Skip first N records (Default: 0)"},
+                {"limit", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Limit N result records (Default: 10) (0 - not limitted)"},
+            },
+            {
+                // TODO (rpc): provide return description
+            },
+            RPCExamples{
+                // TODO (rpc): provide correct examples
+                HelpExampleCli("getusersubscribers", "\"address\"") +
+                HelpExampleRpc("getusersubscribers", "\"address\"")
+            },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-    {
-        RPCTypeCheck(request.params, {UniValue::VSTR});
+        {
+            RPCTypeCheck(request.params, {UniValue::VSTR});
 
-        string address = request.params[0].get_str();
+            string address = request.params[0].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetSubscribersAddresses(address);
-    },
-        };
+            string orderBy = "height";
+            if (request.params.size() > 1 && request.params[1].isStr())
+            {
+                orderBy = request.params[1].get_str();
+                HtmlUtils::StringToLower(orderBy);
+            }
+
+            bool orderDesc = true;
+            if (request.params.size() > 2 && request.params[2].isBool())
+                orderDesc = request.params[2].get_bool();
+
+            int offset = 0;
+            if (request.params.size() > 3 && request.params[3].isNum())
+                offset = min(0, request.params[3].get_int());
+
+            int limit = 10;
+            if (request.params.size() > 4 && request.params[4].isNum())
+                limit = min(0, request.params[4].get_int());
+
+            return request.DbConnection()->WebRpcRepoInst->GetSubscribersAddresses(
+                address, { ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE }, orderBy, orderDesc, offset, limit);
+        }};
     }
 
     RPCHelpMan GetAccountBlockings()
