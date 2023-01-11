@@ -12,6 +12,12 @@
 
 namespace PocketDb
 {
+    /**
+    * Wrapper around sqlite3_stmt pointer.
+    * Implemets RAII and calls sqlite3_finalize on object destruction.
+    * If stmt object is not dynamically generated, it can be created as static and
+    * reused by calling Stmt::Reset() method at the end of processing queue.
+    */
     class Stmt
     {
     public:
