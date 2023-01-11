@@ -129,7 +129,11 @@ static const CRPCCommand commands[] =
     {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },
 
     // Moderation
-    {"moderation",     "getassignedjury",                  &GetAssignedJury,                {"address", "topHeight", "count"}},
+    {"moderation",     "getjury",                          &GetJury,                        {"juryid"}},
+    {"moderation",     "getjuryassigned",                  &GetJuryAssigned,                {"address", "topHeight", "count"}},
+    {"moderation",     "getjurymoderators",                &GetJuryModerators,              {"juryid"}},
+    {"moderation",     "getbans",                          &GetBans,                        {"address"}},
+    
     
 };
 // @formatter:on

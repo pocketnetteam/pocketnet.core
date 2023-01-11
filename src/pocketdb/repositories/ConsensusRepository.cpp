@@ -2417,7 +2417,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select 1
-                from JuryModers jm
+                from JuryModerators jm
                 where jm.AccountId = (
                         select u.Id
                         from Transactions u indexed by Transactions_Type_Last_String1_Height_Id

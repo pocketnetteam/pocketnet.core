@@ -10,7 +10,64 @@ namespace PocketDb
 
     void ModerationRepository::Destroy() {}
 
-    UniValue ModerationRepository::GetAssignedJury(const string& address, const Pagination& pagination)
+    UniValue ModerationRepository::GetJury(const string& jury)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                with
+                    flag as (
+                        select
+                            ROWID
+                        from
+                            Transactions
+                        where
+                            Hash = ?
+                    ),
+                    juryRec as (
+                        select
+                            j.*
+                        from
+                            Jury j,
+                            flag
+                        where
+                            j.FlagRowId = flag.ROWID
+                    )
+                select
+                    j.AddressHash,
+                    j.Reason,
+                    ifnull(j.Verdict,-1)
+                from
+                    juryRec j
+            )sql");
+
+            TryBindStatementText(stmt, 1, jury);
+            
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                result.pushKV("id", jury);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    result.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok)
+                    result.pushKV("reason", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok && value > -1)
+                {
+                    result.pushKV("verdict", value);
+
+                    // TODO (aok): add object with ban information if verditc == 1
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue ModerationRepository::GetJuryAssigned(const string& address, const Pagination& pagination)
     {
         UniValue result(UniValue::VARR);
 
@@ -22,12 +79,12 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select f.Hash
                 from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                cross join JuryModers jm on jm.AccountId = u.Id
+                cross join JuryModerators jm on jm.AccountId = u.Id
                 cross join Transactions f on f.ROWID = jm.FlagRowId
                 where u.Type in (100)
                   and u.Last = 1
                   and u.Height is not null
-                  and u.String1 ? 
+                  and u.String1 = ? 
                   and f.Height <= ?
                 )sql" + orderBy + R"sql(
                 limit ? offset ?
@@ -40,8 +97,107 @@ namespace PocketDb
             
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (auto[ok, hash] = TryGetColumnInt(*stmt, 0); ok)
-                    result.push_back(hash);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue ModerationRepository::GetJuryModerators(const string& jury)
+    {
+        UniValue result(UniValue::VARR);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                with
+                    flag as (
+                        select
+                            ROWID
+                        from
+                            Transactions
+                        where
+                            Hash = ?
+                    ),
+                    jurymod as (
+                        select
+                            jm.AccountId
+                        from
+                            JuryModerators jm,
+                            flag
+                        where
+                            jm.FlagRowId = flag.ROWID
+                    ),
+                    moderators as (
+                        select
+                            u.String1 as Address
+                        from
+                            Transactions u indexed by Transactions_Id_First,
+                            jurymod
+                        where
+                            u.Id = jurymod.AccountId and
+                            u.First = 1
+                    )
+
+                select
+                    m.Address
+                from
+                    moderators m
+            )sql");
+
+            TryBindStatementText(stmt, 1, jury);
+            
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    result.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue ModerationRepository::GetBans(const string& address)
+    {
+        UniValue result(UniValue::VARR);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select
+                    f.Hash as JuryId,
+                    b.Reason,
+                    b.Ending
+                from
+                    Ban b indexed by Ban_AddressHash_Reason_Ending
+                    join Transactions v
+                        on v.ROWID = b.VoteRowId
+                    join Transactions f
+                        on f.Hash = v.String2
+                where
+                    b.AddressHash = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+                
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    record.pushKV("juryId", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok)
+                    record.pushKV("reason", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok)
+                    record.pushKV("ending", value);
+                
+                result.push_back(record);
             }
 
             FinalizeSqlStatement(*stmt);

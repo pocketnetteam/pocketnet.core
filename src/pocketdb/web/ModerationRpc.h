@@ -14,7 +14,11 @@ namespace PocketWeb::PocketWebRpc
     using namespace std;
     using namespace PocketConsensus;
 
-    RPCHelpMan GetAssignedJury();
+    RPCHelpMan GetJury();
+    RPCHelpMan GetJuryAssigned();
+    RPCHelpMan GetJuryModerators();
+
+    RPCHelpMan GetBans();
 
 }
 

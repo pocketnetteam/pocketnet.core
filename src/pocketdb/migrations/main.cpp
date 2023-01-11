@@ -224,7 +224,7 @@ namespace PocketDb
         )sql");
 
         _tables.emplace_back(R"sql(
-            create table if not exists JuryModers
+            create table if not exists JuryModerators
             (
                 -- Link to uniq id of address
                 AccountId     int   not null,
@@ -326,6 +326,8 @@ namespace PocketDb
 
             create index if not exists Ban_AddressHash_Reason_Ending on Ban (AddressHash, Reason, Ending);
             create index if not exists Jury_AddressHash_Reason_Verdict on Jury (AddressHash, Reason, Verdict);
+
+            create index if not exists Badges_Badge_AccountId on Badges (Badge, AccountId);
 
         )sql";
 

@@ -69,6 +69,8 @@ namespace PocketConsensus
                     addressesForCheck = addresses;
                 }
 
+                // TODO (moderation): !! extend ExistsUserRegistrations for detect BAN
+
                 // Check registrations in DB
                 if (!addressesForCheck.empty() &&
                     !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck))

@@ -494,7 +494,7 @@ namespace PocketDb
     }
 
 
-    void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModersCount)
+    void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount)
     {
         TryTransactionStep(__func__, [&]()
         {
@@ -506,7 +506,7 @@ namespace PocketDb
                     f.String3, /* Address of the content author */
                     f.Int1, /* Reason */
                     null /* Verdict */
-                from Transactions f indexed by sqlite_autoindex_Transactions_1
+                from Transactions f
                 where f.Hash = ?
 
                     -- Is there no active punishment listed on the account ?
@@ -535,7 +535,6 @@ namespace PocketDb
                             and ff.Last = 0
                             and ff.String3 = f.String3
                             and ff.Height > ?
-                            and ff.Hash != f.Hash
                     )
             )sql");
             TryBindStatementText(stmtJury, 1, flagTxHash);
@@ -547,16 +546,16 @@ namespace PocketDb
             // As a "nonce" we use the hash of the flag transaction that the jury created.
             // We sort the moderator registration hashes and compare them with the flag hash
             // to get all the moderator IDs before and after
-            auto stmtJuryModers = SetupSqlStatement(R"sql(
-                insert into JuryModers (AccountId, FlagRowId)
+            auto stmtJuryModerators = SetupSqlStatement(R"sql(
+                insert into JuryModerators (AccountId, FlagRowId)
                 with
                   h as (
                     select ? as hash
                   ),
                   f as (
                     select f.ROWID, f.Hash
-                    from Transactions f indexed by sqlite_autoindex_Transactions_1,
-                        Jury j indexed by sqlite_autoindex_Jury_1,
+                    from Transactions f,
+                        Jury j,
                         h
                     where f.Hash = h.hash and j.FlagRowId = f.ROWID
                   ),
@@ -583,9 +582,9 @@ namespace PocketDb
                 union
                 select r.AccountId, f.ROWID from r,c,f where r.row_number <= c.cnt + (c.cnt - (select count() from l where l.row_number <= c.cnt))
             )sql");
-            TryBindStatementText(stmtJuryModers, 1, flagTxHash);
-            TryBindStatementInt(stmtJuryModers, 2, juryModersCount);
-            TryStepStatement(stmtJuryModers);
+            TryBindStatementText(stmtJuryModerators, 1, flagTxHash);
+            TryBindStatementInt(stmtJuryModerators, 2, juryModeratorsCount);
+            TryStepStatement(stmtJuryModerators);
         });
     }
 
@@ -595,13 +594,13 @@ namespace PocketDb
         {
             auto stmt_update_0 = SetupSqlStatement(R"sql(
               -- if there is at least one negative vote, then the defendant is acquitted
-              update Jury indexed by sqlite_autoindex_Jury_1 set
+              update Jury set
                 Verdict = 0
               where Jury.Verdict is null
                 and Jury.FlagRowId = (
                   select f.ROWID
-                  from Transactions v indexed by sqlite_autoindex_Transactions_1
-                  cross join Transactions f indexed by sqlite_autoindex_Transactions_1
+                  from Transactions v
+                  cross join Transactions f
                     on f.Hash = v.String2
                   where v.Hash = ?
                     and exists (
@@ -620,13 +619,13 @@ namespace PocketDb
             
             auto stmt_update_1 = SetupSqlStatement(R"sql(
               -- if there are X positive votes, then the defendant is punished
-              update Jury indexed by sqlite_autoindex_Jury_1 set
+              update Jury set
                 Verdict = 1
               where Jury.Verdict is null
                 and Jury.FlagRowId = (
                   select f.ROWID
-                  from Transactions v indexed by sqlite_autoindex_Transactions_1
-                  cross join Transactions f indexed by sqlite_autoindex_Transactions_1
+                  from Transactions v
+                  cross join Transactions f
                     on f.Hash = v.String2
                   where v.Hash = ?
                     and ? <= (
@@ -654,6 +653,7 @@ namespace PocketDb
                 j.AddressHash, /* Address of the content author */
                 j.Reason, /* Reason */
                 (
+                  -- // TODO (moderation) : !! consensus variable with height
                   case (select count() from Ban b indexed by Ban_AddressHash_Reason_Ending where b.AddressHash = f.String3)
                     when 0 then 43200    -- 1 month
                     when 1 then 129600   -- 3 month
@@ -661,12 +661,12 @@ namespace PocketDb
                   end
                 ) /* Ban period */
 
-              from Transactions v indexed by sqlite_autoindex_Transactions_1
+              from Transactions v
 
-              join Transactions f indexed by sqlite_autoindex_Transactions_1
+              join Transactions f
                 on f.Hash = v.String2
 
-              join Jury j indexed by sqlite_autoindex_Transactions_1
+              join Jury j
                 on j.FlagRowId = f.ROWID and j.Verdict = 1
 
               where v.Hash = ?
