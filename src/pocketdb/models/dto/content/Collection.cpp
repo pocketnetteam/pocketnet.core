@@ -121,7 +121,7 @@ namespace PocketTx
             for (size_t i = 0; i < ids.size(); ++i)
             {
                 data += (i ? "," : "");
-                data += std::to_string(ids[i].get_int64());
+                data += ids[i].get_str();
             }
         }
 
