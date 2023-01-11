@@ -744,9 +744,9 @@ namespace PocketDb
             TryBindStatementInt(stmt_insert, 1, conditions.Number);
             TryBindStatementInt(stmt_insert, 2, conditions.Number);
             TryBindStatementInt64(stmt_insert, 3, conditions.LikersComment);
-            TryBindStatementInt64(stmt_insert, 3, conditions.LikersAll);
-            TryBindStatementInt(stmt_insert, 4, height);
-            TryBindStatementInt64(stmt_insert, 5, conditions.RegistrationDepth);
+            TryBindStatementInt64(stmt_insert, 4, conditions.LikersAll);
+            TryBindStatementInt(stmt_insert, 5, height);
+            TryBindStatementInt64(stmt_insert, 6, conditions.RegistrationDepth);
             TryStepStatement(stmt_insert);
         });
     }
@@ -817,9 +817,9 @@ namespace PocketDb
             TryBindStatementInt(stmt_insert, 1, conditions.Number);
             TryBindStatementInt(stmt_insert, 2, conditions.Number);
             TryBindStatementInt64(stmt_insert, 3, conditions.LikersComment);
-            TryBindStatementInt64(stmt_insert, 3, conditions.LikersAll);
-            TryBindStatementInt64(stmt_insert, 4, height);
-            TryBindStatementInt64(stmt_insert, 5, conditions.RegistrationDepth);
+            TryBindStatementInt64(stmt_insert, 4, conditions.LikersAll);
+            TryBindStatementInt64(stmt_insert, 5, height);
+            TryBindStatementInt64(stmt_insert, 6, conditions.RegistrationDepth);
             TryStepStatement(stmt_insert);
         });
     }
