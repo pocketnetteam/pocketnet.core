@@ -50,7 +50,7 @@ namespace PocketDb
     class TransactionReconstructor
     {
     public:
-        TransactionReconstructor(std::map<int64_t, CollectData> initData) {
+        TransactionReconstructor(std::map<std::string, CollectData> initData) {
             m_collectData = std::move(initData);
         };
 
@@ -68,10 +68,10 @@ namespace PocketDb
             auto[okPartType, partType] = stmt.TryGetColumnInt(0);
             if (!okPartType) return false;
 
-            auto[okTxId, txId] = stmt.TryGetColumnInt64(1);
-            if (!okTxId) return false;
+            auto[okTxHash, txHash] = stmt.TryGetColumnString(1);
+            if (!okTxHash) return false;
 
-            auto dataItr = m_collectData.find(txId);
+            auto dataItr = m_collectData.find(txHash);
             if (dataItr == m_collectData.end()) return false;
 
             auto& data = dataItr->second;
@@ -110,7 +110,7 @@ namespace PocketDb
 
     private:
 
-        map<int64_t, CollectData> m_collectData;
+        map<std::string, CollectData> m_collectData;
 
         /**
          * This method parses transaction data, constructs if needed and return construct entry to fill
@@ -304,17 +304,17 @@ namespace PocketDb
     {
         string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
 
-        // TODO (losty-db): grab directly in sql
-        auto txIdMap = GetTxIds(txHashes);
-
-        if (txIdMap.size() != txHashes.size()) {
-            // TODO (losty-db): error
-            LogPrintf("DEBUG: missing ids for requested hashses\n");
-            return nullptr;
-        }
-
         auto sql = R"sql(
-           select (0)tp, t.RowId, t.Type, t.Time, c.Height, ifnull((select 1 from Last l where l.TxId = t.RowId),0), c.Uid, t.Int1,
+            with TxData as (
+                select t.RowId as Id, r.String as Hash
+                from Transactions t
+                join Registry r
+                    on r.String in ( )sql" + txReplacers + R"sql( )
+                    and r.RowId = t.HashId
+            )
+            select (0)tp,
+                (select Hash from TxData where Id = t.RowId),
+                t.Type, t.Time, c.Height, ifnull((select 1 from Last l where l.TxId = t.RowId),0), c.Uid, t.Int1,
                 (select r.String from Registry r where r.RowId = t.RegId1),
                 (select r.String from Registry r where r.RowId = t.RegId2),
                 (select r.String from Registry r where r.RowId = t.RegId3),
@@ -333,44 +333,50 @@ namespace PocketDb
             from Transactions t
             left join Chain c
                 on c.TxId = t.RowId
-            where t.RowId in ( )sql" + txReplacers + R"sql( )
+            where t.RowId in ( select Id from TxData )
         )sql" +
 
         // Payload part
         (includePayload ? string(R"sql(
             union
-            select (1)tp, TxId, Int1, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7
+            select (1)tp,
+                (select Hash from TxData where Id = TxId),
+                Int1, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7
             from Payload
-            where TxId in ( )sql" + txReplacers + R"sql( )
+            where TxId in ( select Id from TxData )
         )sql") : "") +
 
         // Inputs part
         (includeInputs ? string(R"sql(
             union
-            select (2)tp, i.SpentTxId, i.Number, o.Value, null, null, null, null,
+            select (2)tp,
+                (select Hash from TxData where Id = i.SpentTxId),
+                i.Number, o.Value, null, null, null, null,
                 (select r.String from Registry r where r.Id = i.TxId),
                 (select a.String from Registry a where a.Id = o.AddressId),
                 null, null, null, null, null
             from TxInputs i
             join TxOutputs o on o.TxId = i.TxId and o.Number = i.Number
-            where i.SpentTxId in ( )sql" + txReplacers + R"sql( )
+            where i.SpentTxId in ( select Id from TxData )
         )sql") : "") +
         
         // Outputs part
         (includeOutputs ? string(R"sql(
             union
-            select (3)tp, TxId, Value, Number, null, null, null, null,(select a.String from Registry a where a.RowId = AddressId), ScriptPubKey, null, null, null, null, null
+            select (3)tp,
+            (select Hash from TxData where Id = TxId),
+            Value, Number, null, null, null, null,(select a.String from Registry a where a.RowId = AddressId), ScriptPubKey, null, null, null, null, null
             from TxOutputs
-            where TxId in ( )sql" + txReplacers + R"sql( )
+            where TxId in ( select Id from TxData )
         )sql") : "") +
 
         string(R"sql(
             order by tp asc
         )sql");
 
-        std::map<int64_t, CollectData> initData;
-        for (const auto& [hash, txId]: txIdMap) {
-            initData.emplace(txId, CollectData{hash});
+        std::map<std::string, CollectData> initData;
+        for (const auto& hash: txHashes) {
+            initData.emplace(hash, CollectData{hash});
         }
 
         TransactionReconstructor reconstructor(initData);
@@ -379,22 +385,8 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            size_t i = 1;
 
-            for (const auto& [hash, txId] : txIdMap)
-                stmt->TryBindStatementInt64(i++, txId);
-            
-            if (includePayload)
-                for (const auto& [hash, txId] : txIdMap)
-                    stmt->TryBindStatementInt64(i++, txId);
-
-            if (includeInputs)
-                for (const auto& [hash, txId] : txIdMap)
-                    stmt->TryBindStatementInt64(i++, txId);
-
-            if (includeOutputs)
-                for (const auto& [hash, txId] : txIdMap)
-                    stmt->TryBindStatementInt64(i++, txId);
+            stmt->Bind(txHashes);
 
             while (stmt->Step() == SQLITE_ROW)
             {
