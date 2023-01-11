@@ -68,7 +68,7 @@ public:
         // TODO (losty-critical): check all below todos
         strNetworkID = CBaseChainParams::MAIN;
         networkId = NetworkMain;
-        consensus.signet_blocks = false; // TODO (losty): may be change??
+        consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 2100000;
         consensus.BIP16Exception = uint256();
@@ -76,9 +76,9 @@ public:
         consensus.BIP34Hash = uint256S("00000b6321951f2ed170bbc9b7a360995176f2df418b0e275149bfce2fde3d6c");
         consensus.BIP65Height = 0; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 0; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-        consensus.CSVHeight = 1; // 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5 // TODO (aok): these values are changed from time to height, need to investigate them from very beginning. See other "TODO (losty): " in this file for same.
-        consensus.SegwitHeight = 1; // 0000000000000000001c8018d9cb3b742ef25114f27563e3fc4a1902167f9893 // TODO (losty): may be change??
-        consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window // TODO (losty): may be change??
+        consensus.CSVHeight = 1; // 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5
+        consensus.SegwitHeight = 1; // 0000000000000000001c8018d9cb3b742ef25114f27563e3fc4a1902167f9893
+        consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
         consensus.powLimit = ArithToUint256(~arith_uint256(0) >> 16);
         printf("%s\n", consensus.powLimit.ToString().c_str());
         consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60;
@@ -101,8 +101,8 @@ public:
         consensus.nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE; // TODO (losty): probably return 1199145601???
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT; // TODO (losty): probably return 1230767999???
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
         // Deployment of Taproot (BIPs 340-342)
@@ -116,10 +116,10 @@ public:
         consensus.nHeight_version_1_0_0 = 108300;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000468b769a98426fb23d"); // 1882338
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000005142d01d2ea9e0af44"); // 2045508
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x5ca3972693e188404c6d9abba5f5d9be6ef4229e70e8a141f82ad946ac17d86b"); // 1882338
+        consensus.defaultAssumeValid = uint256S("0xc08624db131ac96f8d7b0fa788745b810d2b7661d15cf905490c92502b64d605"); // 2045508
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -184,8 +184,8 @@ public:
     {
         strNetworkID = CBaseChainParams::TESTNET;
         networkId = NetworkTest;
-        consensus.signet_blocks = false; // TODO (losty): may be change??
-        consensus.signet_challenge.clear(); // TODO (losty): may be change??
+        consensus.signet_blocks = false;
+        consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 2100000;
         consensus.BIP16Exception = uint256(); // uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22");
 
@@ -194,9 +194,9 @@ public:
 
         consensus.BIP65Height = 0; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 0; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-        consensus.CSVHeight = 1; // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb //TODO (losty): may be change???
-        consensus.SegwitHeight = 1; // 00000000002b980fcd729daaa248fd9316a5200e9b367f4ff2c42453e84201ca //TODO (losty): may be change???
-        consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window //TODO (losty): may be change???
+        consensus.CSVHeight = 1; // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb
+        consensus.SegwitHeight = 1; // 00000000002b980fcd729daaa248fd9316a5200e9b367f4ff2c42453e84201ca
+        consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
         consensus.powLimit = ArithToUint256(~arith_uint256(0) >> 16);
         consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60;
         consensus.nPowTargetSpacing = 1 * 30;
@@ -219,9 +219,9 @@ public:
         consensus.nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE; // TODO (losty): may be change back to 1199145601
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT; // TODO (losty): may be change back to 1230767999
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay // TODO (losty): may be change???
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0;
 
         // Deployment of Taproot (BIPs 340-342)
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
@@ -407,35 +407,43 @@ public:
     {
         strNetworkID =  CBaseChainParams::REGTEST;
         networkId = NetworkRegTest;
-        consensus.signet_blocks = false; // TODO (losty): may be change?
-        consensus.signet_challenge.clear(); // TODO (losty): may be change?
-        consensus.nSubsidyHalvingInterval = 150;
+        consensus.signet_blocks = false;
+        consensus.signet_challenge.clear();
+        consensus.nSubsidyHalvingInterval = 5000;
         consensus.BIP16Exception = uint256();
-        consensus.BIP34Height = 500; // BIP34 activated on regtest (Used in functional tests)
+        consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256();
-        consensus.BIP65Height = 1351; // BIP65 activated on regtest (Used in functional tests)
-        consensus.BIP66Height = 1251; // BIP66 activated on regtest (Used in functional tests)
-        consensus.CSVHeight = 432; // CSV activated on regtest (Used in rpc activation tests)
+        consensus.BIP65Height = 0;
+        consensus.BIP66Height = 0;
+        consensus.CSVHeight = 1;
         consensus.SegwitHeight = std::numeric_limits<int>::max(); // SEGWIT is disabled on regtest
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 1 * 30;
+        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60;
+        consensus.nPowTargetSpacing = 1;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
-        consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
+        consensus.nRuleChangeActivationThreshold = 108; 
         consensus.nMinerConfirmationWindow = 100;
-        consensus.nPosFirstBlock = 200;
+
+        consensus.nPosFirstBlock = 1020;
+        consensus.nStakeMinAge = 1;
+        consensus.nPosTargetSpacing = consensus.nPowTargetSpacing;
+        consensus.nPosTargetTimespan = 1;
+        
+        consensus.nStakeCombineThreshold = 5 * COIN;
+        consensus.nStakeSplitThreshold = 10 * COIN;
+
+        consensus.nStakeMinimumThreshold = 0 * COIN;
+        consensus.nStakeMaximumThreshold = 10000 * COIN;
+        consensus.nDailyBlockCount = (24 * 60 * 60) / consensus.nPosTargetSpacing;
+        consensus.nModifierInterval = 1; // time to elapse before new modifier is computed
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
-        consensus.nMinerConfirmationWindow = 100;
-        consensus.nPosFirstBlock = 1020;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
-
-        consensus.nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
@@ -449,7 +457,7 @@ public:
         pchMessageStart[1] = 0xbf;
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
-        nDefaultPort = 36060;
+        nDefaultPort = 11010;
         nPruneAfterHeight = 1000;
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;

@@ -8,6 +8,7 @@ from base64 import b64encode
 from binascii import unhexlify
 from decimal import Decimal, ROUND_DOWN
 from subprocess import CalledProcessError
+from enum import Enum
 import hashlib
 import inspect
 import json
@@ -133,6 +134,8 @@ def try_rpc(code, message, fun, *args, **kwds):
         fun(*args, **kwds)
     except JSONRPCException as e:
         # JSONRPCException was thrown as expected. Check the code and message values are correct.
+        if (isinstance(code, Enum)):
+            code = code.value
         if (code is not None) and (code != e.error["code"]):
             raise AssertionError("Unexpected JSONRPC error code %i" % e.error["code"])
         if (message is not None) and (message not in e.error['message']):
@@ -354,6 +357,7 @@ def initialize_datadir(dirname, n, chain):
         f.write("[{}]\n".format(chain_name_conf_section))
         f.write("port=" + str(p2p_port(n)) + "\n")
         f.write("rpcport=" + str(rpc_port(n)) + "\n")
+        f.write("publicrpcport=" + str(rpc_port(n+1)) + "\n")
         f.write("fallbackfee=0.0002\n")
         f.write("server=1\n")
         f.write("keypool=1\n")
@@ -363,6 +367,8 @@ def initialize_datadir(dirname, n, chain):
         f.write("printtoconsole=0\n")
         f.write("upnp=0\n")
         f.write("shrinkdebugfile=0\n")
+        f.write("autowallet=0\n")
+        f.write("staking=0\n")
         os.makedirs(os.path.join(datadir, 'stderr'), exist_ok=True)
         os.makedirs(os.path.join(datadir, 'stdout'), exist_ok=True)
     return datadir

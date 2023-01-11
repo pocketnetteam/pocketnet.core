@@ -24,6 +24,7 @@ namespace PocketDb
     using namespace std;
     using namespace PocketTx;
     using namespace PocketHelpers;
+    using namespace std::literals::string_literals;
 
     struct HierarchicalRecord
     {
@@ -83,8 +84,12 @@ namespace PocketDb
         map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int firstFlagsDepth = 14);
         map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int firstFlagsDepth = 14);
 
-        UniValue GetSubscribesAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
-        UniValue GetSubscribersAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+        UniValue GetSubscribesAddresses(
+            const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE },
+            const string& orderBy = "height", bool orderDesc = true, int offset = 0, int limit = 10);
+        UniValue GetSubscribersAddresses(
+            const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE },
+            const string& orderBy = "height", bool orderDesc = true, int offset = 0, int limit = 10);
         UniValue GetBlockings(const string& address);
         UniValue GetBlockers(const string& address);
 
@@ -98,7 +103,7 @@ namespace PocketDb
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
         map<string,string> GetContentsAddresses(const vector<string>& txHashes);
 
-        UniValue GetUnspents(const vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
+        UniValue GetUnspents(const vector<string>& addresses, int height, int confirmations, vector<pair<string, uint32_t>>& mempoolInputs);
 
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
