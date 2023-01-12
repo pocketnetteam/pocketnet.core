@@ -77,6 +77,10 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_NotRegistered};
             }
 
+            // Check active account ban
+            if (PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height))
+                return {false, SocialConsensusResult_AccountBanned};
+
             // Check limits
             return ValidateLimits(ptx, block);
         }

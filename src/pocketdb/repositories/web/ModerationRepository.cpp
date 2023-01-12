@@ -172,10 +172,10 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select
                     f.Hash as JuryId,
-                    b.Reason,
+                    f.Int1 as Reason,
                     b.Ending
                 from
-                    Ban b indexed by Ban_AddressHash_Reason_Ending
+                    Ban b indexed by Ban_AddressHash_Ending
                     join Transactions v
                         on v.ROWID = b.VoteRowId
                     join Transactions f

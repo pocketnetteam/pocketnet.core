@@ -240,7 +240,6 @@ namespace PocketDb
                 -- Link to the Vote (via ROWID) that initiated this ban
                 VoteRowId     int   not null,
                 AddressHash   text  not null,
-                Reason        int   not null,
                 -- The height to which the penalty continues to apply
                 Ending        int   not null,
                 primary key (VoteRowId)
@@ -324,7 +323,7 @@ namespace PocketDb
             create index if not exists Balances_Last_Value on Balances (Last, Value);
             create index if not exists Balances_AddressHash_Last on Balances (AddressHash, Last);
 
-            create index if not exists Ban_AddressHash_Reason_Ending on Ban (AddressHash, Reason, Ending);
+            create index if not exists Ban_AddressHash_Ending on Ban (AddressHash, Ending);
             create index if not exists Jury_AddressHash_Reason_Verdict on Jury (AddressHash, Reason, Verdict);
 
             create index if not exists Badges_Badge_AccountId on Badges (Badge, AccountId);

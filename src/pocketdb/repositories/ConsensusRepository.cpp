@@ -176,6 +176,35 @@ namespace PocketDb
         return result;
     }
 
+    bool ConsensusRepository::ExistsAccountBan(const string& address, int height)
+    {
+        auto result = false;
+
+        string sql = R"sql(
+            select
+                1
+            from
+                Ban indexed by Ban_AddressHash_Ending
+            where
+                AddressHash = ? and
+                Ending > ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+
+            result = (sqlite3_step(*stmt) == SQLITE_ROW);
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     tuple<bool, TxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
     {
         bool blockingExists = false;

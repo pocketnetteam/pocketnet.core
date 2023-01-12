@@ -89,8 +89,6 @@ class AccountDeleteTest(PocketcoinTestFramework):
         fakePostTx = pubGenTx(fakeAcc, ContentPostPayload(), 1, 0)
         node.stakeblock(1)
 
-        self.log.info(f'Blockchain height: {node.getblockcount()}')
-
         # ---------------------------------------------------------------------------------
         self.log.info("Register accounts")
         
@@ -101,8 +99,6 @@ class AccountDeleteTest(PocketcoinTestFramework):
             pubGenTx(acc, AccountPayload(acc.Name,'image','en','about','s','b','pubkey'), 1000, 0)
 
         node.stakeblock(20)
-
-        self.log.info(f'Blockchain height: {node.getblockcount()}')
 
         # ---------------------------------------------------------------------------------
         self.log.info("Prepare moderators badge")
@@ -122,28 +118,26 @@ class AccountDeleteTest(PocketcoinTestFramework):
         for acc in moders:
             assert('moderator' in node.public().getuserstate(acc.Address)['badges'])
 
-        self.log.info(f'Blockchain height: {node.getblockcount()}')
-
         # ---------------------------------------------------------------------------------
         self.log.info("Test 1 - flags not allowed & jury did not created")
 
         # Post for flags
         jury1 = {
             'post': pubGenTx(accounts[0], ContentPostPayload()),
-            'address': accounts[0].Address
+            'account': accounts[0]
         }
 
         # Content in mempool not accepted flags
-        assert_raises_rpc_error(12, None, pubGenTx, moders[0], ModFlagPayload(jury1['post'], jury1['address'], 1))
+        assert_raises_rpc_error(12, None, pubGenTx, moders[0], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
         node.stakeblock(1)
 
         # We need 2 flags in 10 blocks for create jury
         # /src/pocketdb/consensus/Base.h:674 moderation_jury_flag_count
         # /src/pocketdb/consensus/Base.h:679 moderation_jury_flag_depth
 
-        lastFlagTx = pubGenTx(moders[0], ModFlagPayload(jury1['post'], jury1['address'], 1))
+        lastFlagTx = pubGenTx(moders[0], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
         node.stakeblock(10)
-        lastFlagTx = pubGenTx(moders[1], ModFlagPayload(jury1['post'], jury1['address'], 1))
+        lastFlagTx = pubGenTx(moders[1], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
         node.stakeblock(1)
         assert('id' not in node.public().getjury(lastFlagTx))
         assert(len(node.public().getjurymoderators(lastFlagTx)) == 0)
@@ -151,7 +145,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Test 2 - jury created and moderators assigned")
 
-        lastFlagTx = pubGenTx(moders[3], ModFlagPayload(jury1['post'], jury1['address'], 1))
+        lastFlagTx = pubGenTx(moders[3], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
         node.stakeblock(1)
         jury1['data'] = node.public().getjury(lastFlagTx)
         assert('id' in jury1['data'] and jury1['data']['id'] == lastFlagTx)
@@ -199,13 +193,14 @@ class AccountDeleteTest(PocketcoinTestFramework):
         assert(node.public().getjury(jury1['data']['id'])['verdict'] == 1)
 
         # Check ban
-        assert(node.public().getbans(jury1['address'])[0]['juryId'] == jury1['data']['id'])
-        assert(node.public().getbans(jury1['address'])[0]['reason'] == 1)
-        assert(node.public().getbans(jury1['address'])[0]['ending'] == 43200)
+        assert(node.public().getbans(jury1['account'].Address)[0]['juryId'] == jury1['data']['id'])
+        assert(node.public().getbans(jury1['account'].Address)[0]['reason'] == 1)
+        assert(node.public().getbans(jury1['account'].Address)[0]['ending'] == 43200)
 
         # ---------------------------------------------------------------------------------
         self.log.info("Test 5 - banned account can not create pocketnet transactions")
-        assert('not implement')
+        assert_raises_rpc_error(68, None, pubGenTx, jury1['account'], AccountPayload(jury1['account'].Name))
+        assert_raises_rpc_error(68, None, pubGenTx, jury1['account'], ContentPostPayload())
 
 
 if __name__ == '__main__':

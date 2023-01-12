@@ -512,13 +512,13 @@ namespace PocketDb
                     -- Is there no active punishment listed on the account ?
                     and not exists (
                         select 1
-                        from Ban b indexed by Ban_AddressHash_Reason_Ending
+                        from Ban b indexed by Ban_AddressHash_Ending
                         where b.AddressHash = f.String3
-                            and b.Reason = f.Int1
                             and b.Ending > f.Height
                     )
 
                     -- there is no active jury for the same reason
+                    -- // TODO (moderation): !! j.Reason = f.Int1 ????
                     and not exists (
                         select 1
                         from Jury j indexed by Jury_AddressHash_Reason_Verdict
@@ -651,10 +651,9 @@ namespace PocketDb
                 
                 v.ROWID, /* Unique id of Flag record */
                 j.AddressHash, /* Address of the content author */
-                j.Reason, /* Reason */
                 (
                   -- // TODO (moderation) : !! consensus variable with height
-                  case (select count() from Ban b indexed by Ban_AddressHash_Reason_Ending where b.AddressHash = f.String3)
+                  case (select count() from Ban b indexed by Ban_AddressHash_Ending where b.AddressHash = f.String3)
                     when 0 then 43200    -- 1 month
                     when 1 then 129600   -- 3 month
                     else 51840000        -- 100 years
@@ -672,7 +671,7 @@ namespace PocketDb
               where v.Hash = ?
                 and not exists (
                   select 1
-                  from Ban b indexed by Ban_AddressHash_Reason_Ending
+                  from Ban b indexed by Ban_AddressHash_Ending
                   where b.AddressHash = f.String3
                     and b.Ending > v.Height
                 )
@@ -682,6 +681,7 @@ namespace PocketDb
         });
     }
 
+    // TODO (moderation): rollback jury insert update & ban insert
 
     void ChainRepository::IndexBadges_Shark(int height, const BadgeSharkConditions& conditions)
     {

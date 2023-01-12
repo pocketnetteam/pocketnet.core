@@ -83,6 +83,7 @@ namespace PocketConsensus
         SocialConsensusResult_ExceededLimit = 65,
         SocialConsensusResult_LowReputation = 66,
         SocialConsensusResult_AccountDeleted = 67,
+        SocialConsensusResult_AccountBanned = 68,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
@@ -153,6 +154,8 @@ namespace PocketConsensus
             case (SocialConsensusResult_SelfFlag): return "SelfFlag";
             case (SocialConsensusResult_ExceededLimit): return "ExceededLimit";
             case (SocialConsensusResult_LowReputation): return "LowReputation";
+            case (SocialConsensusResult_AccountDeleted): return "AccountDeleted";
+            case (SocialConsensusResult_AccountBanned): return "AccountBanned";
 
             default: return "Unknown";
         }
