@@ -218,6 +218,15 @@ namespace PocketDb
                 FlagRowId     int   not null,
                 AddressHash   text  not null,
                 Reason        int   not null,
+                primary key (FlagRowId)
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists JuryVerdict
+            (
+                -- Link to the Flag (via ROWID) that initiated this ury
+                FlagRowId     int   not null,
                 Verdict       int   null,
                 primary key (FlagRowId)
             );
@@ -235,7 +244,7 @@ namespace PocketDb
         )sql");
 
         _tables.emplace_back(R"sql(
-            create table if not exists Ban
+            create table if not exists JuryBan
             (
                 -- Link to the Vote (via ROWID) that initiated this ban
                 VoteRowId     int   not null,
@@ -323,8 +332,8 @@ namespace PocketDb
             create index if not exists Balances_Last_Value on Balances (Last, Value);
             create index if not exists Balances_AddressHash_Last on Balances (AddressHash, Last);
 
-            create index if not exists Ban_AddressHash_Ending on Ban (AddressHash, Ending);
-            create index if not exists Jury_AddressHash_Reason_Verdict on Jury (AddressHash, Reason, Verdict);
+            create index if not exists Jury_AddressHash_Reason on Jury (AddressHash, Reason);
+            create index if not exists JuryBan_AddressHash_Ending on JuryBan (AddressHash, Ending);
 
             create index if not exists Badges_Badge_AccountId on Badges (Badge, AccountId);
 

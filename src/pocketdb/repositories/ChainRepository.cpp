@@ -502,17 +502,18 @@ namespace PocketDb
                 insert into Jury
 
                 select
+
                     f.ROWID, /* Unique id of Flag record */
                     f.String3, /* Address of the content author */
-                    f.Int1, /* Reason */
-                    null /* Verdict */
+                    f.Int1 /* Reason */
+
                 from Transactions f
                 where f.Hash = ?
 
                     -- Is there no active punishment listed on the account ?
                     and not exists (
                         select 1
-                        from Ban b indexed by Ban_AddressHash_Ending
+                        from JuryBan b indexed by JuryBan_AddressHash_Ending
                         where b.AddressHash = f.String3
                             and b.Ending > f.Height
                     )
@@ -521,10 +522,12 @@ namespace PocketDb
                     -- // TODO (moderation): !! j.Reason = f.Int1 ????
                     and not exists (
                         select 1
-                        from Jury j indexed by Jury_AddressHash_Reason_Verdict
+                        from Jury j indexed by Jury_AddressHash_Reason
+                        left join JuryVerdict jv
+                            on jv.FlagRowId = j.FlagRowId
                         where j.AddressHash = f.String3
                             and j.Reason = f.Int1
-                            and j.Verdict is not null
+                            and jv.Verdict is null
                     )
 
                     -- if there are X flags of the same reason for X time
@@ -593,88 +596,93 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt_update_0 = SetupSqlStatement(R"sql(
-              -- if there is at least one negative vote, then the defendant is acquitted
-              update Jury set
-                Verdict = 0
-              where Jury.Verdict is null
-                and Jury.FlagRowId = (
-                  select f.ROWID
-                  from Transactions v
-                  cross join Transactions f
-                    on f.Hash = v.String2
-                  where v.Hash = ?
-                    and exists (
-                      select 1
-                      from Transactions vv indexed by Transactions_Type_Last_String2_Height
-                      where vv.Type in (420) -- Votes
-                        and vv.Last = 0
-                        and vv.String2 = f.Hash -- JuryId over FlagTxHash
-                        and vv.Height > 0
-                        and vv.Int1 = 0 -- Negative verdict
-                    )
-                )
+                -- if there is at least one negative vote, then the defendant is acquitted
+                insert or ignore into
+                    JuryVerdict (FlagRowId, Verdict)
+                select
+                    f.ROWID,
+                    0
+                from
+                    Transactions v
+                    cross join Transactions f
+                        on f.Hash = v.String2
+                    cross join Transactions vv indexed by Transactions_Type_Last_String2_Height
+                        on vv.Type in (420) and -- Votes
+                        vv.Last = 0 and
+                        vv.String2 = f.Hash and -- JuryId over FlagTxHash
+                        vv.Height > 0 and
+                        vv.Int1 = 0 -- Negative verdict
+                where
+                    v.Hash = ?
             )sql");
             TryBindStatementText(stmt_update_0, 1, voteTxHash);
             TryStepStatement(stmt_update_0);
             
             auto stmt_update_1 = SetupSqlStatement(R"sql(
-              -- if there are X positive votes, then the defendant is punished
-              update Jury set
-                Verdict = 1
-              where Jury.Verdict is null
-                and Jury.FlagRowId = (
-                  select f.ROWID
-                  from Transactions v
-                  cross join Transactions f
-                    on f.Hash = v.String2
-                  where v.Hash = ?
-                    and ? <= (
-                      select count()
-                      from Transactions vv indexed by Transactions_Type_Last_String2_Height
-                      where vv.Type in (420) -- Votes
-                        and vv.Last = 0
-                        and vv.String2 = f.Hash -- JuryId over FlagTxHash
-                        and vv.Height > 0
-                        and vv.Int1 = 1 -- Positive verdict
+                -- if there are X positive votes, then the defendant is punished
+                insert or ignore into
+                    JuryVerdict (FlagRowId, Verdict)
+                select
+                    f.ROWID,
+                    1
+                from
+                    Transactions v
+                    cross join Transactions f
+                        on f.Hash = v.String2
+                where
+                    v.Hash = ? and
+                    ? <= (
+                        select
+                            count()
+                        from
+                            Transactions vv indexed by Transactions_Type_Last_String2_Height
+                        where
+                            vv.Type in (420) and -- Votes
+                            vv.Last = 0 and
+                            vv.String2 = f.Hash and -- JuryId over FlagTxHash
+                            vv.Height > 0 and
+                            vv.Int1 = 1 -- Positive verdict
                     )
-                )
             )sql");
             TryBindStatementText(stmt_update_1, 1, voteTxHash);
             TryBindStatementInt(stmt_update_1, 2, votesCount);
             TryStepStatement(stmt_update_1);
             
             auto stmt_ban = SetupSqlStatement(R"sql(
-              -- If the defendant is punished, then we need to create a ban record
-              insert into Ban
-
-              select
-                
-                v.ROWID, /* Unique id of Flag record */
-                j.AddressHash, /* Address of the content author */
-                (
-                  -- // TODO (moderation) : !! consensus variable with height
-                  case (select count() from Ban b indexed by Ban_AddressHash_Ending where b.AddressHash = f.String3)
-                    when 0 then 43200    -- 1 month
-                    when 1 then 129600   -- 3 month
-                    else 51840000        -- 100 years
-                  end
-                ) /* Ban period */
-
-              from Transactions v
-
-              join Transactions f
-                on f.Hash = v.String2
-
-              join Jury j
-                on j.FlagRowId = f.ROWID and j.Verdict = 1
-
-              where v.Hash = ?
-                and not exists (
-                  select 1
-                  from Ban b indexed by Ban_AddressHash_Ending
-                  where b.AddressHash = f.String3
-                    and b.Ending > v.Height
-                )
+                -- If the defendant is punished, then we need to create a ban record
+                insert into
+                    JuryBan (VoteRowId, AddressHash, Ending)
+                select
+                    v.ROWID, /* Unique id of Vote record */
+                    j.AddressHash, /* Address of the content author */
+                    (
+                        -- // TODO (moderation) : !! consensus variable with height
+                        case ( select count() from JuryBan b indexed by JuryBan_AddressHash_Ending where b.AddressHash = f.String3 )
+                            when 0 then 43200 -- 1 month
+                            when 1 then 129600 -- 3 month
+                            else 51840000 -- 100 years
+                        end
+                    ) /* Ban period */
+                from
+                    Transactions v
+                    join Transactions f
+                        on f.Hash = v.String2
+                    cross join Jury j
+                        on j.FlagRowId = f.ROWID
+                    cross join JuryVerdict jv
+                        on jv.FlagRowId = j.FlagRowId and
+                           jv.Verdict = 1
+                where
+                    v.Hash = ? and
+                    not exists (
+                        select
+                            1
+                        from
+                            JuryBan b indexed by JuryBan_AddressHash_Ending
+                        where
+                            b.AddressHash = f.String3 and
+                            b.Ending > v.Height
+                    )
             )sql");
             TryBindStatementText(stmt_ban, 1, voteTxHash);
             TryStepStatement(stmt_ban);

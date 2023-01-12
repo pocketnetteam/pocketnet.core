@@ -28,19 +28,30 @@ namespace PocketDb
                     ),
                     juryRec as (
                         select
-                            j.*
+                            j.AddressHash,
+                            j.Reason
                         from
                             Jury j,
                             flag
                         where
                             j.FlagRowId = flag.ROWID
+                    ),
+                    juryVerd as (
+                        select
+                            jv.Verdict
+                        from
+                            juryVerdict jv,
+                            flag
+                        where
+                            jv.FlagRowId = flag.ROWID
                     )
                 select
                     j.AddressHash,
                     j.Reason,
-                    ifnull(j.Verdict,-1)
+                    ifnull(jv.Verdict, -1)
                 from
                     juryRec j
+                    left join juryVerd jv
             )sql");
 
             TryBindStatementText(stmt, 1, jury);
@@ -175,10 +186,10 @@ namespace PocketDb
                     f.Int1 as Reason,
                     b.Ending
                 from
-                    Ban b indexed by Ban_AddressHash_Ending
-                    join Transactions v
+                    JuryBan b indexed by JuryBan_AddressHash_Ending
+                    cross join Transactions v
                         on v.ROWID = b.VoteRowId
-                    join Transactions f
+                    cross join Transactions f
                         on f.Hash = v.String2
                 where
                     b.AddressHash = ?

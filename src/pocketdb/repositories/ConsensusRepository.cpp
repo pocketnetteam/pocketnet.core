@@ -184,7 +184,7 @@ namespace PocketDb
             select
                 1
             from
-                Ban indexed by Ban_AddressHash_Ending
+                JuryBan indexed by JuryBan_AddressHash_Ending
             where
                 AddressHash = ? and
                 Ending > ?
@@ -409,15 +409,22 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select 1
-                from Transactions t indexed by sqlite_autoindex_Transactions_1
-                join Jury j indexed by sqlite_autoindex_Jury_1
-                  on j.FlagRowId = t.ROWID and j.Verdict is null
-                where t.Hash = ?
+                select
+                    1
+                from
+                    Transactions t indexed by sqlite_autoindex_Transactions_1
+                    join Jury j indexed by sqlite_autoindex_Jury_1
+                        on j.FlagRowId = t.ROWID
+                    left join JuryVerdict jv
+                        on jv.FlagRowId = j.FlagRowId
+                where
+                    t.Hash = ? and
+                    jv.Verdict is null
             )sql");
             TryBindStatementText(stmt, 1, juryId);
 
             result = (sqlite3_step(*stmt) == SQLITE_ROW);
+            
             FinalizeSqlStatement(*stmt);
         });
 
