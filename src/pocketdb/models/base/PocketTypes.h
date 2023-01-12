@@ -168,7 +168,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_ARTICLE ||
                    Type == TxType::CONTENT_STREAM ||
                    Type == TxType::CONTENT_AUDIO ||
-//                   Type == TxType::CONTENT_COLLECTION || // TODO (o1q): is collection content????
+                   Type == TxType::CONTENT_COLLECTION ||
                    Type == TxType::CONTENT_DELETE;
         }
 
