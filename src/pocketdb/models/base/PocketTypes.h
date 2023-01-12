@@ -85,6 +85,9 @@ namespace PocketTx
         CONTENT_STREAM = 209,
         CONTENT_AUDIO = 210,
 
+        CONTENT_BARTERON_OFFER = 211,
+        CONTENT_BARTERON_REQUEST = 212,
+
         ACTION_SCORE_CONTENT = 300,
         ACTION_SCORE_COMMENT = 301,
 
