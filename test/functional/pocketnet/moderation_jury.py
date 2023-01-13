@@ -31,7 +31,7 @@ from test_framework.util import (
 from framework.models import *
 
 
-class AccountDeleteTest(PocketcoinTestFramework):
+class ModerationJuryTest(PocketcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         # TODO : запустить несколько нод для проверки синхронизации и спорных транзакций
@@ -204,4 +204,4 @@ class AccountDeleteTest(PocketcoinTestFramework):
 
 
 if __name__ == '__main__':
-    AccountDeleteTest().main()
+    ModerationJuryTest().main()
