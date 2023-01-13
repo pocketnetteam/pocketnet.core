@@ -289,12 +289,12 @@ namespace PocketConsensus
         { ConsensusLimit_threshold_reputation, {
             { NetworkMain,    { {0, 500}, {292800, 1000} } },
             { NetworkTest,    { {0, 100}, {761000, 10} } },
-            { NetworkRegTest, { {0, 0}, {1500, 0} } }
+            { NetworkRegTest, { {0, 0} } }
         } },
         { ConsensusLimit_threshold_reputation_score, {
             { NetworkMain,    { {0, -10000}, {108300, 500}, {292800, 1000} } },
             { NetworkTest,    { {0, 0}, {100000, 100} } },
-            { NetworkRegTest, { {0, 0}, {1500, 0} } }
+            { NetworkRegTest, { {0, 0} } }
         } },
         { ConsensusLimit_threshold_balance, {
             { NetworkMain,    { {0, 50 * COIN} } },

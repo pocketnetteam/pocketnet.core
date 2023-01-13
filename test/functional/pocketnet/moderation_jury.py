@@ -150,7 +150,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
         jury1['data'] = node.public().getjury(lastFlagTx)
         assert('id' in jury1['data'] and jury1['data']['id'] == lastFlagTx)
         jury1['mods'] = node.public().getjurymoderators(lastFlagTx)
-        assert(len(jury1['mods']) != 0)
+        assert(len(jury1['mods']) == 4)
 
         # ---------------------------------------------------------------------------------
         self.log.info("Test 3 - not assigned moderator dont allowed vote")
