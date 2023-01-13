@@ -57,10 +57,6 @@ namespace PocketDb
 
     private:
 
-        void RollbackBlockingList(int height);
-        void ClearBlockingList();
-        void RollbackHeight(int height);
-        void RestoreOldLast(int height);
         void SetFirst(const string& txHash);
 
         void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
@@ -74,7 +70,15 @@ namespace PocketDb
         void IndexSubscribe(const string& txHash);
         void IndexBoostContent(const string& txHash);
 
+        void ClearBlockingList();
+        void RollbackBlockingList(int height);
+        void RollbackHeight(int height);
+        void RestoreOldLast(int height);
         void ClearOldLast(const string& txHash);
+        
+        void RollbackBadges(int height);
+        void RollbackModerationJury(int height);
+        void RollbackModerationBan(int height);
 
     };
 

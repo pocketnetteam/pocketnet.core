@@ -90,8 +90,10 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select f.Hash
                 from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                cross join JuryModerators jm on jm.AccountId = u.Id
-                cross join Transactions f on f.ROWID = jm.FlagRowId
+                cross join JuryModerators jm indexed by JuryModerators_AccountId_FlagRowId
+                    on jm.AccountId = u.Id
+                cross join Transactions f
+                    on f.ROWID = jm.FlagRowId
                 where u.Type in (100)
                   and u.Last = 1
                   and u.Height is not null

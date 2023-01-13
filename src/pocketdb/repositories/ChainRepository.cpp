@@ -519,7 +519,6 @@ namespace PocketDb
                     )
 
                     -- there is no active jury for the same reason
-                    -- // TODO (moderation): !! j.Reason = f.Int1 ????
                     and not exists (
                         select 1
                         from Jury j indexed by Jury_AddressHash_Reason
@@ -591,6 +590,46 @@ namespace PocketDb
         });
     }
 
+    void ChainRepository::RollbackModerationJury(int height)
+    {
+        auto stmtJury = SetupSqlStatement(R"sql(
+            delete
+            from
+                Jury
+            where
+                FlagRowId in (
+                    select
+                        f.ROWID
+                    from
+                        Transactions f indexed by Transactions_Height_Type
+                    where
+                        f.Height = ? and
+                        f.Type = 410
+                )
+        )sql");
+        TryBindStatementInt(stmtJury, 1, height);
+        TryStepStatement(stmtJury);
+
+        auto stmtJuryModerators = SetupSqlStatement(R"sql(
+            delete
+            from
+                JuryModerators
+            where
+                FlagRowId in (
+                    select
+                        f.ROWID
+                    from
+                        Transactions f indexed by Transactions_Height_Type
+                    where
+                        f.Height = ? and
+                        f.Type = 410
+                        
+                )
+        )sql");
+        TryBindStatementInt(stmtJuryModerators, 1, height);
+        TryStepStatement(stmtJuryModerators);
+    }
+
     void ChainRepository::IndexModerationBan(const string& voteTxHash, int votesCount)
     {
         TryTransactionStep(__func__, [&]()
@@ -598,9 +637,10 @@ namespace PocketDb
             auto stmt_update_0 = SetupSqlStatement(R"sql(
                 -- if there is at least one negative vote, then the defendant is acquitted
                 insert or ignore into
-                    JuryVerdict (FlagRowId, Verdict)
+                    JuryVerdict (FlagRowId, VoteRowId, Verdict)
                 select
                     f.ROWID,
+                    v.ROWID,
                     0
                 from
                     Transactions v
@@ -608,10 +648,10 @@ namespace PocketDb
                         on f.Hash = v.String2
                     cross join Transactions vv indexed by Transactions_Type_Last_String2_Height
                         on vv.Type in (420) and -- Votes
-                        vv.Last = 0 and
-                        vv.String2 = f.Hash and -- JuryId over FlagTxHash
-                        vv.Height > 0 and
-                        vv.Int1 = 0 -- Negative verdict
+                           vv.Last = 0 and
+                           vv.String2 = f.Hash and -- JuryId over FlagTxHash
+                           vv.Height > 0 and
+                           vv.Int1 = 0 -- Negative verdict
                 where
                     v.Hash = ?
             )sql");
@@ -621,9 +661,10 @@ namespace PocketDb
             auto stmt_update_1 = SetupSqlStatement(R"sql(
                 -- if there are X positive votes, then the defendant is punished
                 insert or ignore into
-                    JuryVerdict (FlagRowId, Verdict)
+                    JuryVerdict (FlagRowId, VoteRowId, Verdict)
                 select
                     f.ROWID,
+                    v.ROWID,
                     1
                 from
                     Transactions v
@@ -670,7 +711,8 @@ namespace PocketDb
                     cross join Jury j
                         on j.FlagRowId = f.ROWID
                     cross join JuryVerdict jv
-                        on jv.FlagRowId = j.FlagRowId and
+                        on jv.VoteRowId = v.ROWID and
+                           jv.FlagRowId = j.FlagRowId
                            jv.Verdict = 1
                 where
                     v.Hash = ? and
@@ -689,7 +731,45 @@ namespace PocketDb
         });
     }
 
-    // TODO (moderation): rollback jury insert update & ban insert
+    void ChainRepository::RollbackModerationBan(int height)
+    {
+        auto stmt_jury_verdict = SetupSqlStatement(R"sql(
+            delete
+            from
+                JuryVerdict indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
+            where
+                VoteRowId in (
+                    select
+                        v.ROWID
+                    from
+                        Transactions v indexed by Transactions_Height_Type
+                    where
+                        v.Height = ? and
+                        v.Type = 420
+                )
+        )sql");
+        TryBindStatementInt(stmt_jury_verdict, 1, height);
+        TryStepStatement(stmt_jury_verdict);
+        
+        auto stmt_jury_ban = SetupSqlStatement(R"sql(
+            delete
+            from
+                JuryBan
+            where
+                VoteRowId in (
+                    select
+                        v.ROWID
+                    from
+                        Transactions v indexed by Transactions_Height_Type
+                    where
+                        v.Height = ? and
+                        v.Type = 420
+                )
+        )sql");
+        TryBindStatementInt(stmt_jury_ban, 1, height);
+        TryStepStatement(stmt_jury_ban);
+    }
+
 
     void ChainRepository::IndexBadges_Shark(int height, const BadgeSharkConditions& conditions)
     {
@@ -832,6 +912,10 @@ namespace PocketDb
         });
     }
 
+    void ChainRepository::RollbackBadges(int height)
+    {
+        throw std::runtime_error(strprintf("%s: not implemented", __func__));
+    }
 
     bool ChainRepository::ClearDatabase()
     {
@@ -857,7 +941,13 @@ namespace PocketDb
             TryTransactionStep(__func__, [&]()
             {
                 RestoreOldLast(height);
+
                 RollbackBlockingList(height);
+                RollbackModerationJury(height);
+                RollbackModerationBan(height);
+                RollbackBadges(height);
+
+                // Rollback transactions must be lasted
                 RollbackHeight(height);
             });
 

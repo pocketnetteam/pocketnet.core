@@ -219,7 +219,7 @@ namespace PocketDb
                 AddressHash   text  not null,
                 Reason        int   not null,
                 primary key (FlagRowId)
-            );
+            ) without rowid;
         )sql");
 
         _tables.emplace_back(R"sql(
@@ -227,19 +227,22 @@ namespace PocketDb
             (
                 -- Link to the Flag (via ROWID) that initiated this ury
                 FlagRowId     int   not null,
+                -- Link to the Vote (via ROWID) that initiated this ury
+                VoteRowId     int   not null,
+                -- 1 or 0
                 Verdict       int   null,
                 primary key (FlagRowId)
-            );
+            ) without rowid;
         )sql");
 
         _tables.emplace_back(R"sql(
             create table if not exists JuryModerators
             (
-                -- Link to uniq id of address
-                AccountId     int   not null,
                 -- Link to the Flag (via ROWID) that initiated this ury
                 FlagRowId     int   not null,
-                primary key (AccountId, FlagRowId)
+                -- Link to uniq id of address
+                AccountId     int   not null,
+                primary key (FlagRowId, AccountId)
             ) without rowid;
         )sql");
 
@@ -252,7 +255,7 @@ namespace PocketDb
                 -- The height to which the penalty continues to apply
                 Ending        int   not null,
                 primary key (VoteRowId)
-            );
+            ) without rowid;
         )sql");
 
         _tables.emplace_back(R"sql(
@@ -265,7 +268,9 @@ namespace PocketDb
                 -- Whale = 2
                 -- Moderator = 3
                 Badge       int   not null,
-                primary key (AccountId, Badge)
+                Height      int   not null,
+                Cancel      int   not null default 0,
+                primary key (AccountId, Badge, Height)
             ) without rowid;
         )sql");
         
@@ -334,6 +339,8 @@ namespace PocketDb
 
             create index if not exists Jury_AddressHash_Reason on Jury (AddressHash, Reason);
             create index if not exists JuryBan_AddressHash_Ending on JuryBan (AddressHash, Ending);
+            create index if not exists JuryVerdict_VoteRowId_FlagRowId_Verdict on JuryVerdict (VoteRowId, FlagRowId, Verdict);
+            create index if not exists JuryModerators_AccountId_FlagRowId on JuryModerators (AccountId, FlagRowId);
 
             create index if not exists Badges_Badge_AccountId on Badges (Badge, AccountId);
 

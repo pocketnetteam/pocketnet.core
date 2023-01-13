@@ -2454,15 +2454,16 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select 1
                 from JuryModerators jm
-                where jm.AccountId = (
-                        select u.Id
-                        from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                        where u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = ?
-                    )
-                    and jm.FlagRowId = (
+                where 
+                    jm.FlagRowId = (
                         select f.ROWID
                         from Transactions f indexed by sqlite_autoindex_Transactions_1
                         where f.Hash = ?
+                    ) and
+                    jm.AccountId = (
+                        select u.Id
+                        from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                        where u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = ?
                     )
             )sql");
             TryBindStatementText(stmt, 1, address);
