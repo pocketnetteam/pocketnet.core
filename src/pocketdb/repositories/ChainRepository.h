@@ -51,10 +51,8 @@ namespace PocketDb
         void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount);
         void IndexModerationBan(const string& voteTxHash, int votesCount);
 
-        void IndexBadges_Shark(int height, const BadgeSharkConditions& conditions);
-        void IndexBadges_Whale(int height, const BadgeWhaleConditions& conditions);
-        void IndexBadges_Moderator(int height, const BadgeModeratorConditions& conditions);
-
+        void IndexBadges(int height, const BadgeConditions& conditions);
+        
     private:
 
         void SetFirst(const string& txHash);
@@ -75,8 +73,7 @@ namespace PocketDb
         void RollbackHeight(int height);
         void RestoreOldLast(int height);
         void ClearOldLast(const string& txHash);
-        
-        void RollbackBadges(int height);
+
         void RollbackModerationJury(int height);
         void RollbackModerationBan(int height);
 

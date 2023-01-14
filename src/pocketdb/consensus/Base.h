@@ -261,9 +261,7 @@ namespace PocketConsensus
 
         ConsensusLimit_bad_reputation,
 
-        badge_period_shark,
-        badge_period_whale,
-        badge_period_moderator,
+        badge_period,
 
         moderation_flag_count,
         moderation_jury_flag_count,
@@ -649,17 +647,7 @@ namespace PocketConsensus
         } },
 
         // BADGES
-        { badge_period_shark, {
-            { NetworkMain,    { {0, 1440} } },
-            { NetworkTest,    { {0, 100} } },
-            { NetworkRegTest, { {0, 5} } }
-        } },
-        { badge_period_whale, {
-            { NetworkMain,    { {0, 1440} } },
-            { NetworkTest,    { {0, 100} } },
-            { NetworkRegTest, { {0, 5} } }
-        } },
-        { badge_period_moderator, {
+        { badge_period, {
             { NetworkMain,    { {0, 1440} } },
             { NetworkTest,    { {0, 100} } },
             { NetworkRegTest, { {0, 5} } }

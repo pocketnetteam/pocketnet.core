@@ -268,9 +268,7 @@ namespace PocketDb
                 -- Whale = 2
                 -- Moderator = 3
                 Badge       int   not null,
-                Height      int   not null,
-                Cancel      int   not null default 0,
-                primary key (AccountId, Badge, Height)
+                primary key (AccountId, Badge)
             ) without rowid;
         )sql");
         

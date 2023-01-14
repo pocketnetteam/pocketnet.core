@@ -229,8 +229,7 @@ namespace PocketServices
     {
         auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
 
-        // Shark badges
-        if (height % reputationConsensus->GetConsensusLimit(badge_period_shark) == 0)
+        if (height % reputationConsensus->GetConsensusLimit(badge_period) == 0)
         {
             const BadgeSharkConditions sharkConditions = {
                 reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
@@ -239,18 +238,10 @@ namespace PocketServices
                 reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
                 reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
             };
-            ChainRepoInst.IndexBadges_Shark(height, sharkConditions);
-        }
+            ChainRepoInst.IndexBadges(height, sharkConditions);
 
-        // TODO (moderation): get BadgeWhaleConditions
-        if (height % reputationConsensus->GetConsensusLimit(badge_period_whale) == 0)
-        {
-            // implement
-        }
+            // TODO (moderation): get BadgeWhaleConditions
 
-        // Moderator badges
-        if (height % reputationConsensus->GetConsensusLimit(badge_period_moderator) == 0)
-        {
             const BadgeModeratorConditions moderatorConditions = {
                 reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
                 reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
@@ -258,7 +249,7 @@ namespace PocketServices
                 reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
                 reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
             };
-            ChainRepoInst.IndexBadges_Moderator(height, moderatorConditions);
+            ChainRepoInst.IndexBadges(height, moderatorConditions);
         }
     }
 
