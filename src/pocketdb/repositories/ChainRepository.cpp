@@ -712,7 +712,7 @@ namespace PocketDb
                         on j.FlagRowId = f.ROWID
                     cross join JuryVerdict jv
                         on jv.VoteRowId = v.ROWID and
-                           jv.FlagRowId = j.FlagRowId
+                           jv.FlagRowId = j.FlagRowId and
                            jv.Verdict = 1
                 where
                     v.Hash = ? and

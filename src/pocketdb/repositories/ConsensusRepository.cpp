@@ -2466,8 +2466,8 @@ namespace PocketDb
                         where u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = ?
                     )
             )sql");
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementText(stmt, 2, flagTxHash);
+            TryBindStatementText(stmt, 1, flagTxHash);
+            TryBindStatementText(stmt, 2, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
