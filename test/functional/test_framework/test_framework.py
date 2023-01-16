@@ -95,10 +95,10 @@ class PocketcoinTestFramework(metaclass=PocketcoinTestMetaClass):
     def __init__(self):
         """Sets test framework defaults. Do not override this method. Instead, override the set_test_params() method"""
         self.chain = 'regtest'
-        self.setup_clean_chain = False
+        self.setup_clean_chain = True
         self.nodes = []
         self.network_thread = None
-        self.rpc_timeout = 60  # Wait for up to 60 seconds for the RPC server to respond
+        self.rpc_timeout = 600  # Wait for up to 600 seconds for the RPC server to respond
         self.supports_cli = True
         self.bind_to_localhost_only = True
         self.parse_args()

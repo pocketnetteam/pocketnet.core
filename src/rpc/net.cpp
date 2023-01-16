@@ -865,6 +865,47 @@ static RPCHelpMan getstakinginfo()
     };
 }
 
+static RPCHelpMan getnetstakeweight()
+{
+    return RPCHelpMan {
+        "getnetstakeweight",
+        "\nReturns netstakeweight for given height.\n",
+        {
+            {
+                "nHeight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Block height for calculation"
+            }
+        },
+        RPCResult
+        {
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::NUM, "nHeight", ""},
+                {RPCResult::Type::NUM, "netstakeweight", ""}
+            }
+        },
+        RPCExamples {
+            HelpExampleCli("getaddressid", "123") +
+            HelpExampleRpc("getaddressid", "123")
+        },
+        [&](const RPCHelpMan &self, const JSONRPCRequest &request) -> UniValue {
+            
+            int nHeight = ChainActive().Height();
+            if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int() > 0) {
+                nHeight = min(nHeight, request.params[0].get_int());
+            }
+
+            uint64_t nNetworkWeight = GetPoSKernelPS(nHeight);
+
+            UniValue result(UniValue::VOBJ);
+            result.pushKV("nHeight", nHeight);
+            result.pushKV("nTime",(int64_t)ChainActive()[nHeight]->nTime);
+            result.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
+
+            return result;
+        }
+    };
+}
+
 static RPCHelpMan getnodeaddresses()
 {
     return RPCHelpMan{"getnodeaddresses",
@@ -987,6 +1028,7 @@ static const CRPCCommand commands[] =
     { "network",            "listbanned",             &listbanned,             {} },
     { "network",            "clearbanned",            &clearbanned,            {} },
     { "network",            "getstakinginfo",         &getstakinginfo,         {} },
+    { "network",            "getnetstakeweight",      &getnetstakeweight,      {"nHeight"} },
     { "network",            "setnetworkactive",       &setnetworkactive,       {"state"} },
     { "network",            "getnodeaddresses",       &getnodeaddresses,       {"count"} },
     { "hidden",             "addpeeraddress",         &addpeeraddress,         {"address", "port"} },

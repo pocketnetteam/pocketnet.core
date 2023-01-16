@@ -460,6 +460,19 @@ namespace PocketDb
                     where bl.IdSource = u.id
                 ) as Blockings
 
+                , (
+                    select json_group_object(gr.Type, gr.Cnt)
+                    from (
+                      select (f.Type)Type, (count())Cnt
+                        from Transactions f indexed by Transactions_Type_Last_String1_Height_Id
+                        where f.Type in (200,201,202,209,210,220,207)
+                        and f.Last = 1
+                        and f.String1 = u.String1
+                        and f.Height > 0
+                        group by f.Type
+                    )gr
+                ) as ContentJson
+
             )sql";
         }
 
@@ -658,6 +671,12 @@ namespace PocketDb
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("blocking", subscribes);
+                        }
+
+                        if (auto [ok, value] = TryGetColumnString(*stmt, i++); ok) {
+                            UniValue content(UniValue::VOBJ);
+                            content.read(value);
+                            record.pushKV("content", content);
                         }
                     }
                 }
@@ -1592,57 +1611,150 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetSubscribesAddresses(const string& address, const vector<TxType>& types)
+    UniValue WebRpcRepository::GetSubscribesAddresses(
+        const string& address, const vector<TxType>& types, const string& orderBy, bool orderDesc, int offset, int limit)
     {
         UniValue result(UniValue::VARR);
 
-        // TODO (aok) (v0.21): implement
-        // Should return pagination list of account profiles
+        string sql = R"sql(
+            select
+                s.String2,
+                case
+                    when s.Type = 303 then 1
+                    else 0
+                end,
+                ifnull(r.Value,0),
+                s.Height
+            from
+                Transactions s indexed by Transactions_Type_Last_String1_String2_Height
+                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    on u.Type in (100, 170) and u.Last = 1 and u.String1 = s.String2 and u.Height > 0
+                left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                    on r.Type = 0 and r.Id = u.Id and r.Last = 1
+            where
+                s.Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
+                s.Last = 1 and
+                s.Height > 0 and
+                s.String1 = ?
+        )sql";
 
-        // string sql = R"sql(
-        //     select
-        //         String1 as AddressHash,
-        //         String2 as AddressToHash,
-        //         case
-        //             when Type = 303 then 1
-        //             else 0
-        //         end as Private
-        //     from Transactions indexed by Transactions_Type_Last_String1_String2_Height
-        //     where Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
-        //       and Last = 1
-        //       and Height > 0
-        //       and String1 = ?
-        // )sql";
-        //
-        // TryTransactionStep(__func__, [&]()
-        // {
-        //     auto stmt = SetupSqlStatement(sql);
-        //
-        //     int i = 1;
-        //     TryBindStatementText(stmt, i++, address);
-        //
-        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
-        //     {
-        //         UniValue record(UniValue::VOBJ);
-        //         auto[ok, address] = TryGetColumnString(*stmt, 0);
-        //
-        //         if (auto[ok1, value] = TryGetColumnString(*stmt, 1); ok1) record.pushKV("adddress", value);
-        //         if (auto[ok2, value] = TryGetColumnString(*stmt, 2); ok2) record.pushKV("private", value);
-        //
-        //         result[address].push_back(record);
-        //     }
-        //
-        //     FinalizeSqlStatement(*stmt);
-        // });
+        if (orderBy == "reputation")
+            sql += " order by r.Value "s + (orderDesc ? " desc "s : ""s);
+        if (orderBy == "height")
+            sql += " order by s.Height "s + (orderDesc ? " desc "s : ""s);
+        
+        if (limit > 0)
+        {
+            sql += " limit ? "s;
+            sql += " offset ? "s;
+        }
+        
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, address);
+            if (limit > 0)
+            {
+                TryBindStatementInt(stmt, 2, limit);
+                TryBindStatementInt(stmt, 3, offset);
+            }
+        
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    record.pushKV("adddress", value);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok)
+                    record.pushKV("private", value);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)
+                    record.pushKV("reputation", value);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok)
+                    record.pushKV("height", value);
+        
+                result.push_back(record);
+            }
+        
+            FinalizeSqlStatement(*stmt);
+        });
 
         return result;
     }
 
-    UniValue WebRpcRepository::GetSubscribersAddresses(const string& address, const vector<TxType>& types)
+    UniValue WebRpcRepository::GetSubscribersAddresses(
+        const string& address, const vector<TxType>& types, const string& orderBy, bool orderDesc, int offset, int limit)
     {
-        // TODO (aok) (v0.21): implement
-        // Should return pagination list of account profiles
-        return UniValue(UniValue::VARR);
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select
+                s.String1,
+                case
+                    when s.Type = 303 then 1
+                    else 0
+                end,
+                ifnull(r.Value,0),
+                s.Height
+            from
+                Transactions s indexed by Transactions_Type_Last_String2_String1_Height
+                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    on u.Type in (100, 170) and u.Last = 1 and u.String1 = s.String1 and u.Height > 0
+                left join Ratings r indexed by Ratings_Type_Id_Last_Value
+                    on r.Type = 0 and r.Id = u.Id and r.Last = 1
+            where
+                s.Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
+                s.Last = 1 and
+                s.Height > 0 and
+                s.String2 = ?
+        )sql";
+
+        if (orderBy == "reputation")
+            sql += " order by r.Value "s + (orderDesc ? " desc "s : ""s);
+        if (orderBy == "height")
+            sql += " order by s.Height "s + (orderDesc ? " desc "s : ""s);
+        
+        if (limit > 0)
+        {
+            sql += " limit ? "s;
+            sql += " offset ? "s;
+        }
+        
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, address);
+            if (limit > 0)
+            {
+                TryBindStatementInt(stmt, 2, limit);
+                TryBindStatementInt(stmt, 3, offset);
+            }
+        
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    record.pushKV("address", value);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok)
+                    record.pushKV("private", value);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)
+                    record.pushKV("reputation", value);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok)
+                    record.pushKV("height", value);
+        
+                result.push_back(record);
+            }
+        
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     UniValue WebRpcRepository::GetBlockings(const string& address)
@@ -1942,7 +2054,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height,
+    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height, int confirmations,
         vector<pair<string, uint32_t>>& mempoolInputs)
     {
         UniValue result(UniValue::VARR);
@@ -1959,7 +2071,7 @@ namespace PocketDb
             from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
             join Transactions t on t.Hash=o.TxHash
             where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-              and o.TxHeight is not null
+              and o.TxHeight <= ?
               and o.SpentHeight is null
             order by o.TxHeight asc
         )sql";
@@ -1971,6 +2083,7 @@ namespace PocketDb
             int i = 1;
             for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, height - confirmations);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {

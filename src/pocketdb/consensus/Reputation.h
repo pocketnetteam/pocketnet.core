@@ -400,12 +400,12 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint<ReputationConsensus>> m_rules = {
-            { 0,           -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
-            { 151600,      -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
-            { 1180000,      0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
-            { 1324655,  65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
-            { 1700000, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
-            { 1757000, 947500, [](int height) { return make_shared<ReputationConsensus_checkpoint_badges>(height); }},
+            { 0,           -1, -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
+            { 151600,      -1, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
+            { 1180000,      0, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
+            { 1324655,  65000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
+            { 1700000, 761000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
+            { 1757000, 947500,  0, [](int height) { return make_shared<ReputationConsensus_checkpoint_badges>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
@@ -414,7 +414,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<ReputationConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }

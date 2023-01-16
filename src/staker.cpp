@@ -8,7 +8,6 @@
 #include <net.h>
 #include <pos.h>
 #include <validation.h>
-#include <wallet/wallet.h>
 #include <script/sign.h>
 #include <consensus/merkle.h>
 #include <rpc/blockchain.h>
@@ -119,7 +118,6 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     CHECK_NONFATAL(node.mempool); // Mempool should be always available here
     CHECK_NONFATAL(node.chainman); // Same for this
     bool running = true;
-    int nLastCoinStakeSearchInterval = 0;
 
     auto wallet = GetWallet(walletName);
     if (!wallet) return;
@@ -137,10 +135,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             }
 
             while (wallet->IsLocked() && !ShutdownRequested())
-            {
-                nLastCoinStakeSearchInterval = 0;
                 m_interrupt.sleep_for(std::chrono::milliseconds{1000});
-            }
 
             if (gArgs.GetBoolArg("-stakingrequirespeers", DEFAULT_STAKINGREQUIRESPEERS))
             {
@@ -191,7 +186,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                     blocktemplate->pocketBlock->emplace_back(ptx);
 
                 CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
-                UninterruptibleSleep(std::chrono::milliseconds{500});
+                UninterruptibleSleep(std::chrono::milliseconds{minerSleep});
             }
             else
             {
@@ -203,6 +198,60 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     {
         LogPrintf("Staker worker thread runtime error: %s\n", e.what());
         return;
+    }
+}
+
+bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, unsigned int blocks)
+{
+    const auto& node = EnsureNodeContext(context);
+    CHECK_NONFATAL(node.mempool); // Mempool should be always available here
+    CHECK_NONFATAL(node.chainman); // Same for this
+
+    auto wallet = GetWallet("");
+    if (!wallet) return false;
+
+    try
+    {
+        while (wallet->IsLocked() && !ShutdownRequested())
+            m_interrupt.sleep_for(std::chrono::milliseconds{100});
+
+        if (ShutdownRequested())
+            return false;
+
+        uint64_t nFees = 0;
+        auto assembler = BlockAssembler(*node.mempool, chainparams);
+
+        for (unsigned int i = 0; i < blocks; i++)
+        {
+            bool blockSigned = false;
+            while (!blockSigned)
+            {
+                // Nullopt for scriptPubKeyIn because coinbase script is only usefull for mining blocks
+                auto blocktemplate = assembler.CreateNewBlock(
+                    nullopt, true, &nFees
+                );
+
+                auto block = std::make_shared<CBlock>(blocktemplate->block);
+
+                if (signBlock(block, wallet, nFees))
+                {
+                    // Extend pocketBlock with coinStake transaction
+                    if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
+                        blocktemplate->pocketBlock->emplace_back(ptx);
+
+                    blockSigned = CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
+                }
+
+                UninterruptibleSleep(std::chrono::milliseconds{50});
+            }
+        }
+
+        return true;
+    }
+    catch (const std::runtime_error& e)
+    {
+        LogPrintf("Staker runtime error: %s\n", e.what());
+        return false;
     }
 }
 
@@ -240,6 +289,16 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
     auto legacyKeyStore = wallet->GetOrCreateLegacyScriptPubKeyMan();
     assert(legacyKeyStore);
 
+    // For regtest we can skip time checks
+    if (Params().NetworkID() == NetworkId::NetworkRegTest)
+    {
+        if (wallet->CreateCoinStake(*legacyKeyStore, block->nBits, 1, nFees, txCoinStake, key))
+            return sign(block, txCoinStake, vtx, *legacyKeyStore, key, wallet);
+
+        return false;
+    }
+    
+    // For main network algorithm in full-time mode
     if (nSearchTime > nLastCoinStakeSearchTime)
     {
         int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nLastCoinStakeSearchTime;
@@ -247,72 +306,76 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
         {
             if (txCoinStake.nTime > ::ChainActive().Tip()->GetMedianTimePast())
             {
-                // make sure coinstake would meet timestamp protocol
-                // as it would be the same as the block timestamp
-                CMutableTransaction txn(*block->vtx[0].get());
-                txn.nTime = block->nTime = txCoinStake.nTime;
-                block->vtx[0] = MakeTransactionRef(std::move(txn));
-
-                // We have to make sure that we have no future timestamps in
-                // our transactions set
-                for (auto it = vtx.begin(); it != vtx.end();)
-                {
-                    auto tx = *it;
-                    if (tx->nTime > block->nTime)
-                    {
-                        it = vtx.erase(it);
-                    }
-                    else
-                    {
-                        ++it;
-                    }
-                }
-
-                txCoinStake.nVersion = CTransaction::CURRENT_VERSION;
-
-                // After the changes, we need to resign inputs.
-                CMutableTransaction txNewConst(txCoinStake);
-
-                for (unsigned int i = 0; i < txCoinStake.vin.size(); i++)
-                {
-                    bool signSuccess;
-                    uint256 prevHash = txCoinStake.vin[i].prevout.hash;
-                    uint32_t n = txCoinStake.vin[i].prevout.n;
-                    assert(wallet->mapWallet.count(prevHash));
-                    auto prevTx = wallet->GetWalletTx(prevHash);
-                    const CScript& scriptPubKey = prevTx->tx->vout[n].scriptPubKey;
-                    SignatureData sigdata;
-                    signSuccess = ProduceSignature(*legacyKeyStore,
-                        MutableTransactionSignatureCreator(&txNewConst, i, prevTx->tx->vout[n].nValue, SIGHASH_ALL),
-                        scriptPubKey, sigdata);
-
-                    if (!signSuccess)
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        UpdateInput(txCoinStake.vin[i], sigdata);
-                    }
-                }
-
-                CTransactionRef txNew = MakeTransactionRef(std::move(txCoinStake));
-                block->vtx.insert(block->vtx.begin() + 1, txNew);
-                block->hashMerkleRoot = BlockMerkleRoot(*block);
-
-                return key.Sign(block->GetHash(), block->vchBlockSig);
+                return sign(block, txCoinStake, vtx, *legacyKeyStore, key, wallet);
             }
         }
+
         lastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
         nLastCoinStakeSearchTime = nSearchTime;
     }
-    else
-    {
-    }
 #endif
+
     return false;
 }
 
+bool Staker::sign(std::shared_ptr<CBlock> block, CMutableTransaction& txCoinStake, std::vector<CTransactionRef>& vtx,
+    LegacyScriptPubKeyMan& legacyKeyStore, CKey& key, std::shared_ptr<CWallet> wallet)
+{
+    // make sure coinstake would meet timestamp protocol
+    // as it would be the same as the block timestamp
+    CMutableTransaction txn(*block->vtx[0].get());
+    txn.nTime = block->nTime = txCoinStake.nTime;
+    block->vtx[0] = MakeTransactionRef(std::move(txn));
+
+    // We have to make sure that we have no future timestamps in
+    // our transactions set
+    for (auto it = vtx.begin(); it != vtx.end();)
+    {
+        auto tx = *it;
+        if (tx->nTime > block->nTime)
+        {
+            it = vtx.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    txCoinStake.nVersion = CTransaction::CURRENT_VERSION;
+
+    // After the changes, we need to resign inputs.
+    CMutableTransaction txNewConst(txCoinStake);
+
+    for (unsigned int i = 0; i < txCoinStake.vin.size(); i++)
+    {
+        bool signSuccess;
+        uint256 prevHash = txCoinStake.vin[i].prevout.hash;
+        uint32_t n = txCoinStake.vin[i].prevout.n;
+        assert(wallet->mapWallet.count(prevHash));
+        auto prevTx = wallet->GetWalletTx(prevHash);
+        const CScript& scriptPubKey = prevTx->tx->vout[n].scriptPubKey;
+        SignatureData sigdata;
+        signSuccess = ProduceSignature(legacyKeyStore,
+            MutableTransactionSignatureCreator(&txNewConst, i, prevTx->tx->vout[n].nValue, SIGHASH_ALL),
+            scriptPubKey, sigdata);
+
+        if (!signSuccess)
+        {
+            return false;
+        }
+        else
+        {
+            UpdateInput(txCoinStake.vin[i], sigdata);
+        }
+    }
+
+    CTransactionRef txNew = MakeTransactionRef(std::move(txCoinStake));
+    block->vtx.insert(block->vtx.begin() + 1, txNew);
+    block->hashMerkleRoot = BlockMerkleRoot(*block);
+
+    return key.Sign(block->GetHash(), block->vchBlockSig);
+}
 
 void Staker::stop()
 {

@@ -97,6 +97,44 @@ double GetPoSKernelPS()
     return result;
 }
 
+double GetPoSKernelPS(int nHeight)
+{
+    int nPoSInterval = 72;
+    double dStakeKernelsTriedAvg = 0;
+    int nStakesHandled = 0, nStakesTime = 0;
+
+    CBlockIndex *pindex = ChainActive()[nHeight];
+
+    CBlockIndex *pindexPrevStake = NULL;
+
+    while (pindex && nStakesHandled < nPoSInterval)
+    {
+        if (pindex->IsProofOfStake())
+        {
+            if (pindexPrevStake)
+            {
+                dStakeKernelsTriedAvg += GetPosDifficulty(pindexPrevStake) * 4294967296.0;
+                nStakesTime += pindexPrevStake->nTime - pindex->nTime;
+                nStakesHandled++;
+            }
+            pindexPrevStake = pindex;
+        }
+
+        pindex = pindex->pprev;
+    }
+
+    double result = 0;
+
+    if (nStakesTime)
+    {
+        result = dStakeKernelsTriedAvg / nStakesTime;
+    }
+
+    result *= STAKE_TIMESTAMP_MASK + 1;
+
+    return result;
+}
+
 int64_t GetProofOfStakeReward(int nHeight, int64_t nFees, const Consensus::Params &consensusParams)
 {
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;

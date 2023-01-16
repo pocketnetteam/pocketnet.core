@@ -103,11 +103,11 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < LotteryConsensus>> m_rules = {
-            {0,       -1, [](int height) { return make_shared<LotteryConsensus>(height); }},
-            {514185,  -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_514185>(height); }},
-            {1035000, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1035000>(height); }},
-            {1124000, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1124000>(height); }},
-            {1180000, 0,  [](int height) { return make_shared<LotteryConsensus_checkpoint_1180000>(height); }},
+            {0,       -1, -1, [](int height) { return make_shared<LotteryConsensus>(height); }},
+            {514185,  -1, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_514185>(height); }},
+            {1035000, -1, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1035000>(height); }},
+            {1124000, -1, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1124000>(height); }},
+            {1180000,  0,  0, [](int height) { return make_shared<LotteryConsensus_checkpoint_1180000>(height); }},
         };
     public:
         shared_ptr<LotteryConsensus> Instance(int height)
@@ -116,7 +116,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<LotteryConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }

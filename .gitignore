@@ -168,3 +168,4 @@ dist/
 /build_msvc/libpocketcoin_server/pocketdbworker.cpp
 *.user
 conf
+**/.cache

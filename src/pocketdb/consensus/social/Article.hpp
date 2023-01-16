@@ -268,8 +268,8 @@ namespace PocketConsensus
     {
     protected:
         const vector<ConsensusCheckpoint < ArticleConsensus>> m_rules = {
-            {       0,      0, [](int height) { return make_shared<ArticleConsensus>(height); }},
-            { 1586000, 528000, [](int height) { return make_shared<ArticleConsensus_checkpoint_accept>(height); }},
+            {       0,      0, -1, [](int height) { return make_shared<ArticleConsensus>(height); }},
+            { 1586000, 528000,  0, [](int height) { return make_shared<ArticleConsensus_checkpoint_accept>(height); }},
         };
     public:
         shared_ptr<ArticleConsensus> Instance(int height)
@@ -278,7 +278,7 @@ namespace PocketConsensus
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
                 [&](int target, const ConsensusCheckpoint<ArticleConsensus>& itm)
                 {
-                    return target < itm.Height(Params().NetworkIDString());
+                    return target < itm.Height(Params().NetworkID());
                 }
             ))->m_func(m_height);
         }

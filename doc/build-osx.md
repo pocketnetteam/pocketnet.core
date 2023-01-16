@@ -38,6 +38,15 @@ from the root of the repository.
 
 **Note**: You only need Berkeley DB if the wallet is enabled (see the section *Disable-Wallet mode* below).
 
+OpenSSL
+-------
+For compiler to find `openssl` library you have to set the following environment variables
+
+    export LDFLAGS="-L/usr/local/opt/openssl/lib"
+    export CPPFLAGS="-I/usr/local/opt/openssl/include"
+
+**Note**: This step is required if you see `configure: error: libcrypto missing` while building the Pocketcoin Core.
+
 Build Pocketcoin Core
 ------------------------
 
