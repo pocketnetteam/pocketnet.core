@@ -149,6 +149,10 @@ namespace PocketConsensus
             auto accountData = ConsensusRepoInst.GetAccountData(address);
             return GetBadges(accountData, limit);
         }
+        virtual bool UseBadges()
+        {
+            return false;
+        }
 
         virtual AccountMode GetAccountMode(int reputation, int64_t balance)
         {
@@ -377,6 +381,10 @@ namespace PocketConsensus
             badgeSet.Moderator = data.ModeratorBadge;
             
             return badgeSet;
+        }
+        virtual bool UseBadges()
+        {
+            return true;
         }
     };
 

@@ -4,7 +4,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
-An AccountDelete functional test
+An Moderation Jury functional test
 Launch this with command from 'test/functional/pocketnet' directory
 """
 

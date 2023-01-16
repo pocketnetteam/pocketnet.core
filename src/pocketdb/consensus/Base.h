@@ -261,8 +261,6 @@ namespace PocketConsensus
 
         ConsensusLimit_bad_reputation,
 
-        badge_period,
-
         moderation_flag_count,
         moderation_jury_flag_count,
         moderation_jury_flag_depth,
@@ -334,7 +332,7 @@ namespace PocketConsensus
         { threshold_shark_likers_all, {
             { NetworkMain,    { {0, 100} } },
             { NetworkTest,    { {0, 1} } },
-            { NetworkRegTest, { {0, 0}, {1500, 1} } }
+            { NetworkRegTest, { {0, 0}, {1100, 1}, {1150, 2} } }
         } },
         { threshold_shark_likers_content, {
             { NetworkMain,    { {0, 0} } },
@@ -344,7 +342,7 @@ namespace PocketConsensus
         { threshold_shark_likers_comment, {
             { NetworkMain,    { {0, 15}, {1873500, 25} } },
             { NetworkTest,    { {0, 1} } },
-            { NetworkRegTest, { {0, 0}, {1500, 1} } }
+            { NetworkRegTest, { {0, 0}, {1100, 1} } }
         } },
         { threshold_shark_likers_comment_answer, {
             { NetworkMain,    { {0, 0} } },
@@ -644,13 +642,6 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 2048} } },
             { NetworkTest,    { {0, 2048} } },
             { NetworkRegTest, { {0, 2048} } }
-        } },
-
-        // BADGES
-        { badge_period, {
-            { NetworkMain,    { {0, 1440} } },
-            { NetworkTest,    { {0, 100} } },
-            { NetworkRegTest, { {0, 5} } }
         } },
 
         // MODERATION

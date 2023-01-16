@@ -43,18 +43,25 @@ namespace PocketDb
         bool ClearDatabase();
 
         // Erase all calculated data great or equals block
-        bool Rollback(int height);
+        void RollbackBlockingList(int height);
+        void RollbackHeight(int height);
+        void RestoreOldLast(int height);
 
+        void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount);
+        void RollbackModerationJury(int height);
+
+        void IndexModerationBan(const string& voteTxHash, int votesCount);
+        void RollbackModerationBan(int height);
+
+        void IndexBadges(int height, const BadgeConditions& conditions);
+        void RollbackBadges(int height);
+        
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);
 
-        void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount);
-        void IndexModerationBan(const string& voteTxHash, int votesCount);
-
-        void IndexBadges(int height, const BadgeConditions& conditions);
-        
     private:
 
+        void ClearOldLast(const string& txHash);
         void SetFirst(const string& txHash);
 
         void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
@@ -67,15 +74,6 @@ namespace PocketDb
         void IndexBlocking(const string& txHash);
         void IndexSubscribe(const string& txHash);
         void IndexBoostContent(const string& txHash);
-
-        void ClearBlockingList();
-        void RollbackBlockingList(int height);
-        void RollbackHeight(int height);
-        void RestoreOldLast(int height);
-        void ClearOldLast(const string& txHash);
-
-        void RollbackModerationJury(int height);
-        void RollbackModerationBan(int height);
 
     };
 

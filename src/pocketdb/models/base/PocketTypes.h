@@ -226,7 +226,7 @@ namespace PocketTx
     struct BadgeConditions
     {
     protected:
-        BadgeConditions(int number, int64_t likersAll, int64_t likersContent, int64_t likersComment, int64_t likersAnswer, int64_t registrationDepth)
+        BadgeConditions(int number, int likersAll, int likersContent, int likersComment, int likersAnswer, int registrationDepth)
             : Number{number}, LikersAll{likersAll}, LikersContent{likersContent}, LikersComment{likersComment},
               LikersAnswer{likersAnswer}, RegistrationDepth{registrationDepth}
         { }
@@ -234,30 +234,30 @@ namespace PocketTx
     public:
         int Number;
 
-        int64_t LikersAll = 0;
-        int64_t LikersContent = 0;
-        int64_t LikersComment = 0;
-        int64_t LikersAnswer = 0;
-        int64_t RegistrationDepth = 0;
+        int LikersAll = 0;
+        int LikersContent = 0;
+        int LikersComment = 0;
+        int LikersAnswer = 0;
+        int RegistrationDepth = 0;
     };
 
     struct BadgeSharkConditions : public BadgeConditions
     {
-        BadgeSharkConditions(int64_t likersAll, int64_t likersContent, int64_t likersComment, int64_t likersAnswer, int64_t registrationDepth)
+        BadgeSharkConditions(int likersAll, int likersContent, int likersComment, int likersAnswer, int registrationDepth)
             : BadgeConditions{1, likersAll, likersContent, likersComment, likersAnswer, registrationDepth}
         { }
     };
 
     struct BadgeWhaleConditions : public BadgeConditions
     {
-        BadgeWhaleConditions(int64_t likersAll, int64_t likersContent, int64_t likersComment, int64_t likersAnswer, int64_t registrationDepth)
+        BadgeWhaleConditions(int likersAll, int likersContent, int likersComment, int likersAnswer, int registrationDepth)
             : BadgeConditions{2, likersAll, likersContent, likersComment, likersAnswer, registrationDepth}
         { }
     };
 
     struct BadgeModeratorConditions : public BadgeConditions
     {
-        BadgeModeratorConditions(int64_t likersAll, int64_t likersContent, int64_t likersComment, int64_t likersAnswer, int64_t registrationDepth)
+        BadgeModeratorConditions(int likersAll, int likersContent, int likersComment, int likersAnswer, int registrationDepth)
             : BadgeConditions{3, likersAll, likersContent, likersComment, likersAnswer, registrationDepth}
         { }
     };

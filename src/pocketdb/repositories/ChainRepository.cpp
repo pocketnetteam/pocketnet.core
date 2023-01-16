@@ -142,6 +142,40 @@ namespace PocketDb
     }
 
 
+    void ChainRepository::ClearOldLast(const string& txHash)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            UPDATE Transactions indexed by Transactions_Id_Last SET
+                Last = 0
+            FROM (
+                select t.Hash, t.id
+                from Transactions t
+                where   t.Hash = ?
+            ) as tInner
+            WHERE   Transactions.Id = tInner.Id
+                and Transactions.Last = 1
+                and Transactions.Hash != tInner.Hash
+        )sql");
+
+        TryBindStatementText(stmt, 1, txHash);
+        TryStepStatement(stmt);
+    }
+
+    void ChainRepository::SetFirst(const string& txHash)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            update Transactions set
+                First = 1
+            where
+                Hash = ? and
+                not exists (select 1 from Transactions t indexed by Transactions_Id_First where t.Id = Transactions.Id and t.First = 1)
+        )sql");
+
+        TryBindStatementText(stmt, 1, txHash);
+        TryStepStatement(stmt);
+    }
+
+
     void ChainRepository::IndexBalances(int height)
     {
         // Generate new balance records
@@ -566,7 +600,7 @@ namespace PocketDb
                   ),
                   a as (
                     select b.AccountId, u.Hash
-                    from Badges b indexed by Badges_Badge_AccountId
+                    from vBadges b
                     cross join Transactions u indexed by Transactions_Id_First on u.Id = b.AccountId and u.First = 1
                     where b.Badge = 3
                   ),
@@ -592,42 +626,45 @@ namespace PocketDb
 
     void ChainRepository::RollbackModerationJury(int height)
     {
-        auto stmtJury = SetupSqlStatement(R"sql(
-            delete
-            from
-                Jury
-            where
-                FlagRowId in (
-                    select
-                        f.ROWID
-                    from
-                        Transactions f indexed by Transactions_Height_Type
-                    where
-                        f.Height = ? and
-                        f.Type = 410
-                )
-        )sql");
-        TryBindStatementInt(stmtJury, 1, height);
-        TryStepStatement(stmtJury);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmtJury = SetupSqlStatement(R"sql(
+                delete
+                from
+                    Jury
+                where
+                    FlagRowId in (
+                        select
+                            f.ROWID
+                        from
+                            Transactions f indexed by Transactions_Height_Type
+                        where
+                            f.Height >= ? and
+                            f.Type = 410
+                    )
+            )sql");
+            TryBindStatementInt(stmtJury, 1, height);
+            TryStepStatement(stmtJury);
 
-        auto stmtJuryModerators = SetupSqlStatement(R"sql(
-            delete
-            from
-                JuryModerators
-            where
-                FlagRowId in (
-                    select
-                        f.ROWID
-                    from
-                        Transactions f indexed by Transactions_Height_Type
-                    where
-                        f.Height = ? and
-                        f.Type = 410
-                        
-                )
-        )sql");
-        TryBindStatementInt(stmtJuryModerators, 1, height);
-        TryStepStatement(stmtJuryModerators);
+            auto stmtJuryModerators = SetupSqlStatement(R"sql(
+                delete
+                from
+                    JuryModerators
+                where
+                    FlagRowId in (
+                        select
+                            f.ROWID
+                        from
+                            Transactions f indexed by Transactions_Height_Type
+                        where
+                            f.Height >= ? and
+                            f.Type = 410
+                            
+                    )
+            )sql");
+            TryBindStatementInt(stmtJuryModerators, 1, height);
+            TryStepStatement(stmtJuryModerators);
+        });
     }
 
     void ChainRepository::IndexModerationBan(const string& voteTxHash, int votesCount)
@@ -733,111 +770,429 @@ namespace PocketDb
 
     void ChainRepository::RollbackModerationBan(int height)
     {
-        auto stmt_jury_verdict = SetupSqlStatement(R"sql(
-            delete
-            from
-                JuryVerdict indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
-            where
-                VoteRowId in (
-                    select
-                        v.ROWID
-                    from
-                        Transactions v indexed by Transactions_Height_Type
-                    where
-                        v.Height = ? and
-                        v.Type = 420
-                )
-        )sql");
-        TryBindStatementInt(stmt_jury_verdict, 1, height);
-        TryStepStatement(stmt_jury_verdict);
-        
-        auto stmt_jury_ban = SetupSqlStatement(R"sql(
-            delete
-            from
-                JuryBan
-            where
-                VoteRowId in (
-                    select
-                        v.ROWID
-                    from
-                        Transactions v indexed by Transactions_Height_Type
-                    where
-                        v.Height = ? and
-                        v.Type = 420
-                )
-        )sql");
-        TryBindStatementInt(stmt_jury_ban, 1, height);
-        TryStepStatement(stmt_jury_ban);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt_jury_verdict = SetupSqlStatement(R"sql(
+                delete
+                from
+                    JuryVerdict indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
+                where
+                    VoteRowId in (
+                        select
+                            v.ROWID
+                        from
+                            Transactions v indexed by Transactions_Height_Type
+                        where
+                            v.Height >= ? and
+                            v.Type = 420
+                    )
+            )sql");
+            TryBindStatementInt(stmt_jury_verdict, 1, height);
+            TryStepStatement(stmt_jury_verdict);
+            
+            auto stmt_jury_ban = SetupSqlStatement(R"sql(
+                delete
+                from
+                    JuryBan
+                where
+                    VoteRowId in (
+                        select
+                            v.ROWID
+                        from
+                            Transactions v indexed by Transactions_Height_Type
+                        where
+                            v.Height >= ? and
+                            v.Type = 420
+                    )
+            )sql");
+            TryBindStatementInt(stmt_jury_ban, 1, height);
+            TryStepStatement(stmt_jury_ban);
+        });
     }
+
 
     void ChainRepository::IndexBadges(int height, const BadgeConditions& conditions)
     {
         TryTransactionStep(__func__, [&]()
         {
             auto stmt_delete = SetupSqlStatement(R"sql(
-              delete from Badges
-              where
+                insert into
+                    Badges (AccountId, Badge, Cancel, Height)
 
-                Badge in (?)
+                select
+                    b.AccountId, b.Badge, 1, ?
 
-                and (
-                  -- Likers over root comments must be above N
-                  ifnull((select lc.Value from Ratings lc indexed by Ratings_Type_Id_Last_Value where lc.Type in (112) and lc.Last = 1 and lc.Id = Badges.AccountId),0) < ?
+                from
+                    vBadges b
 
-                  -- Sum liker must be above N
-                  or ifnull((select sum(l.Value) from Ratings l where l.Type in (111,112,113) and l.Last = 1 and l.Id = Badges.AccountId),0) < ?
+                where
+                    b.Badge = ? and
+                    (
+                        -- Likers over root comments must be above N
+                        ? > ifnull((
+                            select
+                                lc.Value
+                            from
+                                Ratings lc indexed by Ratings_Type_Id_Last_Value
+                            where
+                                lc.Type in (112) and
+                                lc.Last = 1 and
+                                lc.Id = b.AccountId
+                        ), 0) or
 
-                  -- Account must be registered above N months
-                  or ? - (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = Badges.AccountId) <= ?
+                        -- Sum liker must be above N
+                        ? > ifnull((
+                            select
+                                sum(l.Value)
+                            from
+                                Ratings l
+                            where
+                                l.Type in (111, 112, 113) and
+                                l.Last = 1 and
+                                l.Id = b.AccountId
+                        ), 0) or
 
-                  -- Account must be active (not deleted)
-                  or not exists (select 1 from Transactions u indexed by Transactions_Id_Last where u.Type = 100 and u.Last = 1 and u.Id = Badges.AccountId)
-                )
+                        -- Account must be registered above N months
+                        ? >= (? - (
+                            select
+                                reg.Height
+                            from
+                                Transactions reg indexed by Transactions_Id_First
+                            where
+                                reg.Id = b.AccountId and
+                                reg.First = 1
+                        )) or
+
+                        -- Account must be active (not deleted)
+                        not exists (
+                            select
+                            1
+                            from
+                                Transactions u indexed by Transactions_Id_Last
+                            where
+                                u.Type = 100 and
+                                u.Last = 1 and
+                                u.Id = b.AccountId
+                        )
+                    )
             )sql");
-            TryBindStatementInt(stmt_delete, 1, conditions.Number);
-            TryBindStatementInt64(stmt_delete, 2, conditions.LikersComment);
-            TryBindStatementInt64(stmt_delete, 3, conditions.LikersAll);
-            TryBindStatementInt(stmt_delete, 4, height);
-            TryBindStatementInt64(stmt_delete, 5, conditions.RegistrationDepth);
+            TryBindStatementInt(stmt_delete, 1, height);
+            TryBindStatementInt(stmt_delete, 2, conditions.Number);
+            TryBindStatementInt(stmt_delete, 3, conditions.LikersComment);
+            TryBindStatementInt(stmt_delete, 4, conditions.LikersAll);
+            TryBindStatementInt(stmt_delete, 5, conditions.RegistrationDepth);
+            TryBindStatementInt(stmt_delete, 6, height);
             TryStepStatement(stmt_delete);
             
             auto stmt_insert = SetupSqlStatement(R"sql(
-              insert into Badges
+                insert into
+                    Badges (AccountId, Badge, Cancel, Height)
 
-              select
+                select
+                    lc.Id, ?, 0, ?
 
-                lc.Id,
-                ?
+                from
+                    Ratings lc indexed by Ratings_Type_Id_Last_Value
 
-              from Ratings lc indexed by Ratings_Type_Id_Last_Value
+                where
+                    not exists(select 1 from vBadges b where b.Badge = ? and b.AccountId = lc.Id) and
 
-              where
+                    -- The main filtering rule is performed by the main filter
+                    -- Likers over root comments must be above N
+                    lc.Type = 112 and
+                    lc.Id > 0 and
+                    lc.Last = 1 and
+                    lc.Value >= ? and
 
-                not exists (select 1 from Badges b where b.AccountId = lc.Id and b.Badge = ?)
+                    -- Sum liker must be above N
+                    ? <= ifnull((
+                        select
+                            sum(l.Value)
+                        from
+                            Ratings l indexed by Ratings_Type_Id_Last_Value
+                        where
+                            l.Type in (111, 112, 113) and
+                            l.Last = 1 and
+                            l.Id = lc.Id
+                    ), 0) and
 
-                -- The main filtering rule is performed by the main filter
-                -- Likers over root comments must be above N
-                and lc.Type = 112 and lc.Id > 0 and lc.Last = 1 and lc.Value >= ?
-                
-                -- Sum liker must be above N
-                and ifnull((select sum(l.Value) from Ratings l indexed by Ratings_Type_Id_Last_Value where l.Type in (111,112,113) and l.Last = 1 and l.Id = lc.Id),0) >= ?
+                    -- Account must be registered above N months
+                    ? < (? - (
+                        select
+                            reg.Height
+                        from Transactions reg indexed by Transactions_Id_First
+                        where
+                            reg.Id = lc.Id and
+                            reg.First = 1
+                    )) and
 
-                -- Account must be registered above N months
-                and ? - (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = lc.Id) > ?
-
-                -- Account must be active
-                and exists (select 1 from Transactions u indexed by Transactions_Id_Last where u.Type = 100 and u.Last = 1 and u.Id = lc.Id)
+                    -- Account must be active
+                    exists (
+                        select
+                            1
+                        from
+                            Transactions u indexed by Transactions_Id_Last
+                        where
+                            u.Type = 100 and
+                            u.Last = 1 and
+                            u.Id = lc.Id
+                    )
             )sql");
             TryBindStatementInt(stmt_insert, 1, conditions.Number);
-            TryBindStatementInt(stmt_insert, 2, conditions.Number);
-            TryBindStatementInt64(stmt_insert, 3, conditions.LikersComment);
-            TryBindStatementInt64(stmt_insert, 4, conditions.LikersAll);
-            TryBindStatementInt(stmt_insert, 5, height);
-            TryBindStatementInt64(stmt_insert, 6, conditions.RegistrationDepth);
+            TryBindStatementInt(stmt_insert, 2, height);
+            TryBindStatementInt(stmt_insert, 3, conditions.Number);
+            TryBindStatementInt(stmt_insert, 4, conditions.LikersComment);
+            TryBindStatementInt(stmt_insert, 5, conditions.LikersAll);
+            TryBindStatementInt(stmt_insert, 6, conditions.RegistrationDepth);
+            TryBindStatementInt(stmt_insert, 7, height);
             TryStepStatement(stmt_insert);
         });
     }
     
+    void ChainRepository::RollbackBadges(int height)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt_delete = SetupSqlStatement(R"sql(
+                delete from
+                    Badges
+                where
+                    Height >= ?
+            )sql");
+            TryBindStatementInt(stmt_delete, 1, height);
+            TryStepStatement(stmt_delete);
+        });
+    }
+
+
+    void ChainRepository::RestoreOldLast(int height)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            int64_t nTime0 = GetTimeMicros();
+
+            // ----------------------------------------
+            // Restore old Last transactions
+            auto stmt1 = SetupSqlStatement(R"sql(
+                update Transactions indexed by Transactions_Height_Id
+                    set Last=1
+                from (
+                    select t1.Id, max(t2.Height)Height
+                    from Transactions t1 indexed by Transactions_Last_Id_Height
+                    join Transactions t2 indexed by Transactions_Last_Id_Height on t2.Id = t1.Id and t2.Height < ? and t2.Last = 0
+                    where t1.Height >= ?
+                    and t1.Last = 1
+                    group by t1.Id
+                )t
+                where Transactions.Id = t.Id and Transactions.Height = t.Height
+            )sql");
+            TryBindStatementInt(stmt1, 1, height);
+            TryBindStatementInt(stmt1, 2, height);
+            TryStepStatement(stmt1);
+
+            int64_t nTime1 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RestoreOldLast (Transactions): %.2fms\n", 0.001 * (nTime1 - nTime0));
+
+            // ----------------------------------------
+            // Restore Last for deleting ratings
+            auto stmt2 = SetupSqlStatement(R"sql(
+                update Ratings indexed by Ratings_Type_Id_Height_Value
+                    set Last=1
+                from (
+                    select r1.Type, r1.Id, max(r2.Height)Height
+                    from Ratings r1 indexed by Ratings_Type_Id_Last_Height
+                    join Ratings r2 indexed by Ratings_Type_Id_Last_Height on r2.Type = r1.Type and r2.Id = r1.Id and r2.Last = 0 and r2.Height < ?
+                    where r1.Height >= ?
+                    and r1.Last = 1
+                    group by r1.Type, r1.Id
+                )r
+                where Ratings.Type = r.Type
+                and Ratings.Id = r.Id
+                and Ratings.Height = r.Height
+            )sql");
+            TryBindStatementInt(stmt2, 1, height);
+            TryBindStatementInt(stmt2, 2, height);
+            TryStepStatement(stmt2);
+
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RestoreOldLast (Ratings): %.2fms\n", 0.001 * (nTime2 - nTime1));
+
+            // ----------------------------------------
+            // Restore Last for deleting balances
+            auto stmt3 = SetupSqlStatement(R"sql(
+                update Balances set
+
+                    Last = 1
+
+                from (
+                    select
+
+                        b1.AddressHash
+                        ,(
+                            select max(b2.Height)
+                            from Balances b2 indexed by Balances_AddressHash_Last_Height
+                            where b2.AddressHash = b1.AddressHash
+                            and b2.Last = 0
+                            and b2.Height < ?
+                            limit 1
+                        )Height
+
+                    from Balances b1 indexed by Balances_Height
+
+                    where b1.Height >= ?
+                    and b1.Last = 1
+                    and b1.AddressHash != ''
+
+                    group by b1.AddressHash
+                )b
+                where b.Height is not null
+                and Balances.AddressHash = b.AddressHash
+                and Balances.Height = b.Height
+            )sql");
+            TryBindStatementInt(stmt3, 1, height);
+            TryBindStatementInt(stmt3, 2, height);
+            TryStepStatement(stmt3);
+
+            int64_t nTime3 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
+        });
+    }
+
+    void ChainRepository::RollbackHeight(int height)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            int64_t nTime0 = GetTimeMicros();
+
+            // ----------------------------------------
+            // Rollback general transaction information
+            auto stmt0 = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    BlockHash = null,
+                    BlockNum = null,
+                    Height = null,
+                    Id = null,
+                    Last = 0
+                WHERE Height >= ?
+            )sql");
+            TryBindStatementInt(stmt0, 1, height);
+            TryStepStatement(stmt0);
+
+            int64_t nTime1 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RollbackHeight (Transactions:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
+
+            // ----------------------------------------
+            // Rollback spent transaction outputs
+            auto stmt2 = SetupSqlStatement(R"sql(
+                UPDATE TxOutputs SET
+                    SpentHeight = null,
+                    SpentTxHash = null
+                WHERE SpentHeight >= ?
+            )sql");
+            TryBindStatementInt(stmt2, 1, height);
+            TryStepStatement(stmt2);
+
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:SpentHeight = null): %.2fms\n", 0.001 * (nTime2 - nTime1));
+
+            // ----------------------------------------
+            // Rollback transaction outputs height
+            auto stmt3 = SetupSqlStatement(R"sql(
+                UPDATE TxOutputs SET
+                    TxHeight = null
+                WHERE TxHeight >= ?
+            )sql");
+            TryBindStatementInt(stmt3, 1, height);
+            TryStepStatement(stmt3);
+
+            int64_t nTime3 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:TxHeight = null): %.2fms\n", 0.001 * (nTime3 - nTime2));
+
+            // ----------------------------------------
+            // Remove ratings
+            auto stmt4 = SetupSqlStatement(R"sql(
+                delete from Ratings
+                where Height >= ?
+            )sql");
+            TryBindStatementInt(stmt4, 1, height);
+            TryStepStatement(stmt4);
+
+            int64_t nTime4 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime4 - nTime3));
+
+            // ----------------------------------------
+            // Remove balances
+            auto stmt5 = SetupSqlStatement(R"sql(
+                delete from Balances
+                where Height >= ?
+            )sql");
+            TryBindStatementInt(stmt5, 1, height);
+            TryStepStatement(stmt5);
+
+            int64_t nTime5 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime5 - nTime4));
+        });
+    }
+
+    void ChainRepository::RollbackBlockingList(int height)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            int64_t nTime0 = GetTimeMicros();
+
+            auto delListStmt = SetupSqlStatement(R"sql(
+                delete from BlockingLists where ROWID in
+                (
+                    select bl.ROWID
+                    from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                    join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+                    on us.Type in (100, 170) and us.Last = 1
+                        and us.String1 = b.String1
+                        and us.Height > 0
+                    join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+                    on ut.Type in (100, 170) and ut.Last = 1
+                        and ut.String1 in (select b.String2 union select value from json_each(b.String3))
+                        and ut.Height > 0
+                    join BlockingLists bl on bl.IdSource = us.Id and bl.IdTarget = ut.Id
+                    where b.Type in (305)
+                    and b.Height >= ?
+                )
+            )sql");
+            TryBindStatementInt(delListStmt, 1, height);
+            TryStepStatement(delListStmt);
+            
+            int64_t nTime1 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RollbackList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
+
+            auto insListStmt = SetupSqlStatement(R"sql(
+                insert into BlockingLists
+                (
+                    IdSource,
+                    IdTarget
+                )
+                select distinct
+                us.Id,
+                ut.Id
+                from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
+                on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
+                join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
+                on ut.Type in (100, 170) and ut.Last = 1
+                    --and ut.String1 = b.String2
+                    and ut.String1 in (select b.String2 union select value from json_each(b.String3))
+                    and ut.Height > 0
+                where b.Type in (306)
+                and b.Height >= ?
+                and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
+            )sql");
+            TryBindStatementInt(insListStmt, 1, height);
+            TryStepStatement(insListStmt);
+            
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - RollbackList (Insert blocking list): %.2fms\n", 0.001 * (nTime2 - nTime1));
+        });
+    }
+
 
     bool ChainRepository::ClearDatabase()
     {
@@ -848,303 +1203,49 @@ namespace PocketDb
 
         LogPrintf("Rollback to first block..\n");
         RollbackHeight(0);
-        ClearBlockingList();
+        
+        int64_t nTime0 = GetTimeMicros();
+
+        // Clear tables
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                delete from BlockingLists
+            )sql");
+            TryStepStatement(stmt);
+
+            stmt = SetupSqlStatement(R"sql(
+                delete from Jury
+            )sql");
+            TryStepStatement(stmt);
+
+            stmt = SetupSqlStatement(R"sql(
+                delete from JuryModerators
+            )sql");
+            TryStepStatement(stmt);
+
+            stmt = SetupSqlStatement(R"sql(
+                delete from JuryVerdict
+            )sql");
+            TryStepStatement(stmt);
+
+            stmt = SetupSqlStatement(R"sql(
+                delete from JuryBan
+            )sql");
+            TryStepStatement(stmt);
+
+            stmt = SetupSqlStatement(R"sql(
+                delete from Badges
+            )sql");
+            TryStepStatement(stmt);
+        });
+        
+        int64_t nTime1 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - ClearBlockingList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
         m_database.CreateStructure();
 
         return true;
-    }
-
-    bool ChainRepository::Rollback(int height)
-    {
-        try
-        {
-            // Update transactions
-            TryTransactionStep(__func__, [&]()
-            {
-                RestoreOldLast(height);
-
-                RollbackBlockingList(height);
-                RollbackModerationJury(height);
-                RollbackModerationBan(height);
-                // TODO (moderation) : implement RollbackBadges(height);
-
-                // Rollback transactions must be lasted
-                RollbackHeight(height);
-            });
-
-            return true;
-        }
-        catch (std::exception& ex)
-        {
-            LogPrintf("Error: Rollback to height %d failed with message: %s\n", height, ex.what());
-            return false;
-        }
-    }
-    
-    void ChainRepository::ClearOldLast(const string& txHash)
-    {
-        auto stmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions indexed by Transactions_Id_Last SET
-                Last = 0
-            FROM (
-                select t.Hash, t.id
-                from Transactions t
-                where   t.Hash = ?
-            ) as tInner
-            WHERE   Transactions.Id = tInner.Id
-                and Transactions.Last = 1
-                and Transactions.Hash != tInner.Hash
-        )sql");
-
-        TryBindStatementText(stmt, 1, txHash);
-        TryStepStatement(stmt);
-    }
-
-    void ChainRepository::SetFirst(const string& txHash)
-    {
-        auto stmt = SetupSqlStatement(R"sql(
-            update Transactions set
-                First = 1
-            where
-                Hash = ? and
-                not exists (select 1 from Transactions t indexed by Transactions_Id_First where t.Id = Transactions.Id and t.First = 1)
-        )sql");
-
-        TryBindStatementText(stmt, 1, txHash);
-        TryStepStatement(stmt);
-    }
-
-    void ChainRepository::RestoreOldLast(int height)
-    {
-        int64_t nTime0 = GetTimeMicros();
-
-        // ----------------------------------------
-        // Restore old Last transactions
-        auto stmt1 = SetupSqlStatement(R"sql(
-            update Transactions indexed by Transactions_Height_Id
-                set Last=1
-            from (
-                select t1.Id, max(t2.Height)Height
-                from Transactions t1 indexed by Transactions_Last_Id_Height
-                join Transactions t2 indexed by Transactions_Last_Id_Height on t2.Id = t1.Id and t2.Height < ? and t2.Last = 0
-                where t1.Height >= ?
-                  and t1.Last = 1
-                group by t1.Id
-            )t
-            where Transactions.Id = t.Id and Transactions.Height = t.Height
-        )sql");
-        TryBindStatementInt(stmt1, 1, height);
-        TryBindStatementInt(stmt1, 2, height);
-        TryStepStatement(stmt1);
-
-        int64_t nTime1 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Transactions): %.2fms\n", 0.001 * (nTime1 - nTime0));
-
-        // ----------------------------------------
-        // Restore Last for deleting ratings
-        auto stmt2 = SetupSqlStatement(R"sql(
-            update Ratings indexed by Ratings_Type_Id_Height_Value
-                set Last=1
-            from (
-                select r1.Type, r1.Id, max(r2.Height)Height
-                from Ratings r1 indexed by Ratings_Type_Id_Last_Height
-                join Ratings r2 indexed by Ratings_Type_Id_Last_Height on r2.Type = r1.Type and r2.Id = r1.Id and r2.Last = 0 and r2.Height < ?
-                where r1.Height >= ?
-                  and r1.Last = 1
-                group by r1.Type, r1.Id
-            )r
-            where Ratings.Type = r.Type
-              and Ratings.Id = r.Id
-              and Ratings.Height = r.Height
-        )sql");
-        TryBindStatementInt(stmt2, 1, height);
-        TryBindStatementInt(stmt2, 2, height);
-        TryStepStatement(stmt2);
-
-        int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Ratings): %.2fms\n", 0.001 * (nTime2 - nTime1));
-
-        // ----------------------------------------
-        // Restore Last for deleting balances
-        auto stmt3 = SetupSqlStatement(R"sql(
-            update Balances set
-
-                Last = 1
-
-            from (
-                select
-
-                    b1.AddressHash
-                    ,(
-                        select max(b2.Height)
-                        from Balances b2 indexed by Balances_AddressHash_Last_Height
-                        where b2.AddressHash = b1.AddressHash
-                          and b2.Last = 0
-                          and b2.Height < ?
-                        limit 1
-                    )Height
-
-                from Balances b1 indexed by Balances_Height
-
-                where b1.Height >= ?
-                  and b1.Last = 1
-                  and b1.AddressHash != ''
-
-                group by b1.AddressHash
-            )b
-            where b.Height is not null
-              and Balances.AddressHash = b.AddressHash
-              and Balances.Height = b.Height
-        )sql");
-        TryBindStatementInt(stmt3, 1, height);
-        TryBindStatementInt(stmt3, 2, height);
-        TryStepStatement(stmt3);
-
-        int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
-    }
-
-    void ChainRepository::RollbackHeight(int height)
-    {
-        int64_t nTime0 = GetTimeMicros();
-
-        // ----------------------------------------
-        // Rollback general transaction information
-        auto stmt0 = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                BlockHash = null,
-                BlockNum = null,
-                Height = null,
-                Id = null,
-                Last = 0
-            WHERE Height >= ?
-        )sql");
-        TryBindStatementInt(stmt0, 1, height);
-        TryStepStatement(stmt0);
-
-        int64_t nTime1 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Transactions:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
-
-        // ----------------------------------------
-        // Rollback spent transaction outputs
-        auto stmt2 = SetupSqlStatement(R"sql(
-            UPDATE TxOutputs SET
-                SpentHeight = null,
-                SpentTxHash = null
-            WHERE SpentHeight >= ?
-        )sql");
-        TryBindStatementInt(stmt2, 1, height);
-        TryStepStatement(stmt2);
-
-        int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:SpentHeight = null): %.2fms\n", 0.001 * (nTime2 - nTime1));
-
-        // ----------------------------------------
-        // Rollback transaction outputs height
-        auto stmt3 = SetupSqlStatement(R"sql(
-            UPDATE TxOutputs SET
-                TxHeight = null
-            WHERE TxHeight >= ?
-        )sql");
-        TryBindStatementInt(stmt3, 1, height);
-        TryStepStatement(stmt3);
-
-        int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (TxOutputs:TxHeight = null): %.2fms\n", 0.001 * (nTime3 - nTime2));
-
-        // ----------------------------------------
-        // Remove ratings
-        auto stmt4 = SetupSqlStatement(R"sql(
-            delete from Ratings
-            where Height >= ?
-        )sql");
-        TryBindStatementInt(stmt4, 1, height);
-        TryStepStatement(stmt4);
-
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime4 - nTime3));
-
-        // ----------------------------------------
-        // Remove balances
-        auto stmt5 = SetupSqlStatement(R"sql(
-            delete from Balances
-            where Height >= ?
-        )sql");
-        TryBindStatementInt(stmt5, 1, height);
-        TryStepStatement(stmt5);
-
-        int64_t nTime5 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime5 - nTime4));
-    }
-
-    void ChainRepository::RollbackBlockingList(int height)
-    {
-        int64_t nTime0 = GetTimeMicros();
-
-        auto delListStmt = SetupSqlStatement(R"sql(
-            delete from BlockingLists where ROWID in
-            (
-                select bl.ROWID
-                from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-                  on us.Type in (100, 170) and us.Last = 1
-                    and us.String1 = b.String1
-                    and us.Height > 0
-                join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-                  on ut.Type in (100, 170) and ut.Last = 1
-                    and ut.String1 in (select b.String2 union select value from json_each(b.String3))
-                    and ut.Height > 0
-                join BlockingLists bl on bl.IdSource = us.Id and bl.IdTarget = ut.Id
-                where b.Type in (305)
-                  and b.Height >= ?
-            )
-        )sql");
-        TryBindStatementInt(delListStmt, 1, height);
-        TryStepStatement(delListStmt);
-        
-        int64_t nTime1 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
-
-        auto insListStmt = SetupSqlStatement(R"sql(
-            insert into BlockingLists
-            (
-                IdSource,
-                IdTarget
-            )
-            select distinct
-              us.Id,
-              ut.Id
-            from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-            join Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-              on us.Type in (100, 170) and us.Last = 1 and us.String1 = b.String1 and us.Height > 0
-            join Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-              on ut.Type in (100, 170) and ut.Last = 1
-                --and ut.String1 = b.String2
-                and ut.String1 in (select b.String2 union select value from json_each(b.String3))
-                and ut.Height > 0
-            where b.Type in (306)
-              and b.Height >= ?
-              and not exists (select 1 from BlockingLists bl where bl.IdSource = us.Id and bl.IdTarget = ut.Id)
-        )sql");
-        TryBindStatementInt(insListStmt, 1, height);
-        TryStepStatement(insListStmt);
-        
-        int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackList (Insert blocking list): %.2fms\n", 0.001 * (nTime2 - nTime1));
-    }
-
-    void ChainRepository::ClearBlockingList()
-    {
-        int64_t nTime0 = GetTimeMicros();
-
-        auto stmt = SetupSqlStatement(R"sql(
-            delete from BlockingLists
-        )sql");
-        TryStepStatement(stmt);
-        
-        int64_t nTime1 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - ClearBlockingList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
     }
 
 

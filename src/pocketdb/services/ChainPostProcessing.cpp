@@ -32,8 +32,26 @@ namespace PocketServices
 
     bool ChainPostProcessing::Rollback(int height)
     {
-        LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", height - 1);
-        return ChainRepoInst.Rollback(height);
+        try
+        {
+            LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", height - 1);
+            
+            ChainRepoInst.RestoreOldLast(height);
+            ChainRepoInst.RollbackBlockingList(height);
+            ChainRepoInst.RollbackModerationJury(height);
+            ChainRepoInst.RollbackModerationBan(height);
+            ChainRepoInst.RollbackBadges(height);
+
+            // Rollback transactions must be lasted
+            ChainRepoInst.RollbackHeight(height);
+
+            return true;
+        }
+        catch (std::exception& ex)
+        {
+            LogPrintf("Error: Rollback to height %d failed with message: %s\n", height, ex.what());
+            return false;
+        }
     }
 
     void ChainPostProcessing::PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs)
@@ -228,28 +246,27 @@ namespace PocketServices
     void ChainPostProcessing::IndexBadges(int height)
     {
         auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
-
-        if (height % reputationConsensus->GetConsensusLimit(badge_period) == 0)
+        if (reputationConsensus->UseBadges() && height % BadgePeriod() == 0)
         {
             const BadgeSharkConditions sharkConditions = {
-                reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
-                reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
-                reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment),
-                reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
-                reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
             };
             ChainRepoInst.IndexBadges(height, sharkConditions);
 
-            // TODO (moderation): get BadgeWhaleConditions
-
             const BadgeModeratorConditions moderatorConditions = {
-                reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
-                reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
-                reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment),
-                reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
-                reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
             };
             ChainRepoInst.IndexBadges(height, moderatorConditions);
+
+            // TODO (moderation): get BadgeWhaleConditions
         }
     }
 

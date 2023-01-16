@@ -268,8 +268,35 @@ namespace PocketDb
                 -- Whale = 2
                 -- Moderator = 3
                 Badge       int   not null,
-                primary key (AccountId, Badge)
+                Cancel      int   not null,
+                Height      int   not null,
+                primary key (AccountId, Badge, Cancel, Height)
             ) without rowid;
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create view if not exists vBadges as
+            
+            select
+                Badge, Cancel, AccountId, Height
+
+            from
+                Badges b indexed by Badges_Badge_Cancel_AccountId_Height
+
+            where
+                b.Badge in (0,1,2,3) and
+                b.Cancel = 0 and
+                not exists (
+                    select
+                        1
+                    from
+                        Badges bb indexed by Badges_Badge_Cancel_AccountId_Height
+                    where
+                        bb.Badge = b.Badge and
+                        bb.Cancel = 1 and
+                        bb.AccountId = b.AccountId and
+                        bb.Height > b.Height
+                );
         )sql");
         
         _preProcessing = R"sql(
@@ -340,7 +367,7 @@ namespace PocketDb
             create index if not exists JuryVerdict_VoteRowId_FlagRowId_Verdict on JuryVerdict (VoteRowId, FlagRowId, Verdict);
             create index if not exists JuryModerators_AccountId_FlagRowId on JuryModerators (AccountId, FlagRowId);
 
-            create index if not exists Badges_Badge_AccountId on Badges (Badge, AccountId);
+            create index if not exists Badges_Badge_Cancel_AccountId_Height on Badges (Badge, Cancel, AccountId, Height);
 
         )sql";
 

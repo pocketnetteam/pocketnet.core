@@ -8,6 +8,7 @@
 #include "util/system.h"
 #include "chain.h"
 #include "primitives/block.h"
+#include "chainparams.h"
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/helpers/TransactionHelper.h"
@@ -15,6 +16,7 @@
 
 namespace PocketServices
 {
+    using namespace std;
     using namespace PocketTx;
     using namespace PocketDb;
     using namespace PocketHelpers;
@@ -24,6 +26,8 @@ namespace PocketServices
     using std::tuple;
     using std::vector;
     using std::find;
+
+    
 
     class ChainPostProcessing
     {
@@ -36,6 +40,21 @@ namespace PocketServices
         static void IndexRatings(int height, vector<TransactionIndexingInfo>& txs);
         static void IndexModeration(int height, vector<TransactionIndexingInfo>& txs);
         static void IndexBadges(int height);
+    private:
+        static int BadgePeriod()
+        {
+            switch (Params().NetworkID())
+            {
+            case NetworkMain:
+                return 1440;
+            case NetworkTest:
+                return 100;
+            case NetworkRegTest:
+                return 5;
+            default:
+                throw std::runtime_error(strprintf("Not supported network"));
+            }
+        }
     };
 } // namespace PocketServices
 
