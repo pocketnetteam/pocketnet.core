@@ -38,6 +38,40 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         self.num_nodes = 1
         self.extra_args = [["-debug=consensus"]]
 
+    def create_jury(self, account, moders):
+        node = self.nodes[0]
+        pubGenTx = node.public().generatetransaction
+
+        # Post for flags
+        jury1 = {
+            'post': pubGenTx(account, ContentPostPayload()),
+            'account': account
+        }
+
+        node.stakeblock(1)
+
+        # We need 2 flags in 10 blocks for create jury
+        # /src/pocketdb/consensus/Base.h:674 moderation_jury_flag_count
+        # /src/pocketdb/consensus/Base.h:679 moderation_jury_flag_depth
+
+        lastFlagTx = pubGenTx(moders[0], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
+        node.stakeblock(10)
+        lastFlagTx = pubGenTx(moders[1], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
+        node.stakeblock(1)
+        assert('id' not in node.public().getjury(lastFlagTx))
+        assert(len(node.public().getjurymoderators(lastFlagTx)) == 0)
+
+        # ---------------------------------------------------------------------------------
+
+        lastFlagTx = pubGenTx(moders[3], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
+        node.stakeblock(1)
+        jury1['data'] = node.public().getjury(lastFlagTx)
+        assert('id' in jury1['data'] and jury1['data']['id'] == lastFlagTx)
+        jury1['mods'] = node.public().getjurymoderators(lastFlagTx)
+        assert(len(jury1['mods']) == 4)
+
+        return jury1
+
     def run_test(self):
         """Main test logic"""
         node = self.nodes[0]
@@ -121,36 +155,10 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Test 1 - jury created and moderators assigned")
 
-        # Post for flags
-        jury1 = {
-            'post': pubGenTx(accounts[0], ContentPostPayload()),
-            'account': accounts[0]
-        }
-
-        node.stakeblock(1)
-
-        # We need 2 flags in 10 blocks for create jury
-        # /src/pocketdb/consensus/Base.h:674 moderation_jury_flag_count
-        # /src/pocketdb/consensus/Base.h:679 moderation_jury_flag_depth
-
-        lastFlagTx = pubGenTx(moders[0], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
-        node.stakeblock(10)
-        lastFlagTx = pubGenTx(moders[1], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
-        node.stakeblock(1)
-        assert('id' not in node.public().getjury(lastFlagTx))
-        assert(len(node.public().getjurymoderators(lastFlagTx)) == 0)
+        jury1 = self.create_jury(accounts[0], moders)
 
         # ---------------------------------------------------------------------------------
-
-        lastFlagTx = pubGenTx(moders[3], ModFlagPayload(jury1['post'], jury1['account'].Address, 1))
-        node.stakeblock(1)
-        jury1['data'] = node.public().getjury(lastFlagTx)
-        assert('id' in jury1['data'] and jury1['data']['id'] == lastFlagTx)
-        jury1['mods'] = node.public().getjurymoderators(lastFlagTx)
-        assert(len(jury1['mods']) == 4)
-
-        # ---------------------------------------------------------------------------------
-        self.log.info("Test 2 - one of moderators vote negative")
+        self.log.info("Test 2 - second moderator vote negative")
 
         assigned = [moder for moder in moders if moder.Address in jury1['mods']]
         node.stakeblock(10)
@@ -181,6 +189,38 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         posts = node.public().getcontents(jury1["account"].Address)
         assert(node.public().getcontent(posts[0]['txid'])[0]['m'] == 'Not blocked')
 
+        # ---------------------------------------------------------------------------------
+        self.log.info("Test 4 - jury created and moderators assigned")
+
+        node.stakeblock(50)
+        jury1 = self.create_jury(accounts[0], moders)
+
+        # ---------------------------------------------------------------------------------
+        self.log.info("Test 5 - first moderator vote negative")
+
+        assigned = [moder for moder in moders if moder.Address in jury1['mods']]
+        node.stakeblock(10)
+
+        pubGenTx(assigned[0], ModVotePayload(jury1['data']['id'], 0))
+        node.stakeblock(1)
+        assert('verdict' in node.public().getjury(jury1['data']['id']))
+        assert(node.public().getjury(jury1['data']['id'])['verdict'] == 0)
+
+        # Check second vote is not needed and account is not banned
+        bans = node.public().getbans(jury1['account'].Address)
+        assert(len(bans) == 0)
+
+        # ---------------------------------------------------------------------------------
+        self.log.info("Test 6 - account can create pocketnet transactions after first negative vote")
+
+        pubGenTx(jury1['account'], AccountPayload(jury1['account'].Name))
+        node.stakeblock(1)
+        pubGenTx(jury1['account'], ContentPostPayload(message='Not blocked again'))
+        node.stakeblock(1)
+        posts = node.public().getcontents(jury1["account"].Address)
+        assert(node.public().getcontent(posts[0]['txid'])[0]['m'] == 'Not blocked again')
+
 
 if __name__ == '__main__':
     ModerationJuryNegativeTest().main()
+
