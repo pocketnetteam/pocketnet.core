@@ -69,7 +69,7 @@ namespace PocketDb
                     p.String7 pString7
                 from Transactions t indexed by Transactions_Hash_Height
                 left join Payload p on t.Hash = p.TxHash
-                where t.Type in (200,201,202,203,204,209,210)
+                where t.Type in (200,201,202,203,204,209,210,220)
                   and t.Hash = ?
                   and t.String2 = ?
                   and t.Height is not null
