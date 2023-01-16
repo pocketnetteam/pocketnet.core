@@ -158,7 +158,7 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         jury1 = self.create_jury(accounts[0], moders)
 
         # ---------------------------------------------------------------------------------
-        self.log.info("Test 2 - second moderator vote negative")
+        self.log.info("Test 2 - first moderator voted yes, second moderator voted no")
 
         assigned = [moder for moder in moders if moder.Address in jury1['mods']]
         node.stakeblock(10)
@@ -192,33 +192,32 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Test 4 - jury created and moderators assigned")
 
-        node.stakeblock(50)
-        jury1 = self.create_jury(accounts[0], moders)
+        jury2 = self.create_jury(accounts[1], moders)
 
         # ---------------------------------------------------------------------------------
-        self.log.info("Test 5 - first moderator vote negative")
+        self.log.info("Test 5 - first moderator voted no")
 
-        assigned = [moder for moder in moders if moder.Address in jury1['mods']]
+        assigned = [moder for moder in moders if moder.Address in jury2['mods']]
         node.stakeblock(10)
 
-        pubGenTx(assigned[0], ModVotePayload(jury1['data']['id'], 0))
+        pubGenTx(assigned[0], ModVotePayload(jury2['data']['id'], 0))
         node.stakeblock(1)
-        assert('verdict' in node.public().getjury(jury1['data']['id']))
-        assert(node.public().getjury(jury1['data']['id'])['verdict'] == 0)
+        assert('verdict' in node.public().getjury(jury2['data']['id']))
+        assert(node.public().getjury(jury2['data']['id'])['verdict'] == 0)
 
         # Check second vote is not needed and account is not banned
-        bans = node.public().getbans(jury1['account'].Address)
+        bans = node.public().getbans(jury2['account'].Address)
         assert(len(bans) == 0)
 
         # ---------------------------------------------------------------------------------
         self.log.info("Test 6 - account can create pocketnet transactions after first negative vote")
 
-        pubGenTx(jury1['account'], AccountPayload(jury1['account'].Name))
+        pubGenTx(jury2['account'], AccountPayload(jury2['account'].Name))
         node.stakeblock(1)
-        pubGenTx(jury1['account'], ContentPostPayload(message='Not blocked again'))
+        pubGenTx(jury2['account'], ContentPostPayload(message='Not blocked after first no'))
         node.stakeblock(1)
-        posts = node.public().getcontents(jury1["account"].Address)
-        assert(node.public().getcontent(posts[0]['txid'])[0]['m'] == 'Not blocked again')
+        posts = node.public().getcontents(jury2["account"].Address)
+        assert(node.public().getcontent(posts[0]['txid'])[0]['m'] == 'Not blocked after first no')
 
 
 if __name__ == '__main__':
