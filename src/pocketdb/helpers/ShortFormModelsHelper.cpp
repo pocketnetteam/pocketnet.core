@@ -102,6 +102,9 @@ bool PocketHelpers::ShortTxFilterValidator::Events::IsFilterAllowed(PocketDb::Sh
         PocketDb::ShortTxType::PrivateContent,
         PocketDb::ShortTxType::Boost,
         PocketDb::ShortTxType::Repost,
+        PocketDb::ShortTxType::JuryAssigned,
+        PocketDb::ShortTxType::JuryBanned,
+        PocketDb::ShortTxType::JuryModerate,
     };
 
     return allowed.find(type) != allowed.end();

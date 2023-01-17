@@ -6262,9 +6262,9 @@ namespace PocketDb
                     p.String3,
                     ifnull(rn.Value, 0),
                     -- type of shortForm
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql(')TP,
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql('),
                     -- Flag data
-                    f.Hash,
+                    f.Hash, -- Jury Tx
                     f.Type,
                     f.String1,
                     f.Height,
@@ -6279,10 +6279,10 @@ namespace PocketDb
                     null,
                     null,
                     -- Account data for tx creator
-                    pa.String1,
-                    pa.String2,
-                    pa.String3,
-                    ifnull(rna.Value, 0),
+                    null,
+                    null,
+                    null,
+                    null,
                     -- Additional data
                     null,
                     -- Related Content
@@ -6305,22 +6305,15 @@ namespace PocketDb
                     ),
                     c.String4,
                     c.String5,
-                    -- Account data for Related Content creator
-                    pa.String1,
-                    pa.String2,
-                    pa.String3,
-                    ifnull(rna.Value, 0),
-                    --
-                    null
+                    -- Account data for related tx
+                    u.String1,
+                    p.String1,
+                    p.String2,
+                    p.String3,
+                    ifnull(rn.Value, 0)
 
                 from
                     Transactions f indexed by Transactions_Height_Type
-
-                    cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
-                        on ua.Type = 100 and ua.Last = 1 and ua.String1 = f.String1 and ua.Height > 0
-
-                    cross join Payload pa
-                        on pa.TxHash = ua.Hash
 
                     cross join Jury j
                         on j.FlagRowId = f.ROWID
@@ -6340,9 +6333,6 @@ namespace PocketDb
                     left join Ratings rn indexed by Ratings_Type_Id_Last_Height
                         on rn.Type = 0 and rn.Id = j.AccountId and rn.Last = 1
 
-                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                        on rna.Type = 0 and rna.Id = ua.Id and rna.Last = 1
-
                 where
                     f.Type = 410 and
                     f.Height = ?
@@ -6352,14 +6342,176 @@ namespace PocketDb
 
         {
             ShortTxType::JuryBanned, { R"sql(
-                
+                select
+                    -- Notifier data
+                    u.String1,
+                    p.String1,
+                    p.String2,
+                    p.String3,
+                    ifnull(rn.Value, 0),
+                    -- type of shortForm
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryBanned) + R"sql('),
+                    -- Tx data
+                    v.Hash, -- Jury Tx
+                    v.Type,
+                    v.String1,
+                    v.Height,
+                    v.BlockNum,
+                    v.Time,
+                    null,
+                    v.String2, -- Tx of content
+                    v.Int1, -- Value
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    -- Account data for tx creator
+                    null,
+                    null,
+                    null,
+                    null,
+                    -- Additional data
+                    null,
+                    -- Related Content
+                    c.Hash,
+                    c.Type,
+                    c.String1,
+                    c.Height,
+                    c.BlockNum,
+                    c.Time,
+                    c.String2,
+                    c.String3,
+                    null,
+                    null,
+                    null,
+                    (
+                        case
+                            when c.Type in (204,205) then cp.String1
+                            else cp.String2
+                        end
+                    ),
+                    c.String4,
+                    c.String5,
+                    -- Account data for related tx
+                    u.String1,
+                    p.String1,
+                    p.String2,
+                    p.String3,
+                    ifnull(rn.Value, 0)
+
+                from
+                    Transactions v indexed by Transactions_Height_Type
+
+                    cross join JuryBan jb
+                        on jb.VoteRowId = v.ROWID
+
+                    cross join Transactions u indexed by Transactions_Id_Last
+                        on u.Id = jb.AccountId and u.Last = 1
+
+                    cross join Payload p
+                        on p.TxHash = u.Hash
+
+                    cross join JuryVerdict jv indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
+                        on jv.VoteRowId = jb.VoteRowId
+
+                    cross join Transactions f
+                        on f.ROWID = jv.FlagRowId
+
+                    cross join Transactions c
+                        on c.Hash = f.String2
+
+                    cross join Payload cp
+                        on cp.TxHash = c.Hash
+
+                    left join Ratings rn indexed by Ratings_Type_Id_Last_Height
+                        on rn.Type = 0 and rn.Id = jb.AccountId and rn.Last = 1
+
+                where
+                    v.Type = 420 and
+                    v.Height = ?
             )sql",
             heightBinder
         }},
 
         {
             ShortTxType::JuryModerate, { R"sql(
-                
+                select
+                    -- Notifier data
+                    u.String1,
+                    p.String1,
+                    p.String2,
+                    p.String3,
+                    ifnull(rn.Value, 0),
+                    -- type of shortForm
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryModerate) + R"sql('),
+                    -- Tx data
+                    f.Hash, -- Jury Tx
+                    f.Type,
+                    f.String1,
+                    f.Height,
+                    f.BlockNum,
+                    f.Time,
+                    null,
+                    f.String2, -- Tx of content
+                    f.Int1, -- Value
+                    null,
+                    null,
+                    null, -- Jury Tx
+                    null,
+                    null,
+                    -- Account data for tx creator
+                    null,
+                    null,
+                    null,
+                    null,
+                    -- Additional data
+                    null,
+                    -- Related Content
+                    c.Hash,
+                    c.Type,
+                    c.String1,
+                    c.Height,
+                    c.BlockNum,
+                    c.Time,
+                    c.String2,
+                    c.String3,
+                    null,
+                    null,
+                    null,
+                    (
+                        case
+                            when c.Type in (204,205) then cp.String1
+                            else cp.String2
+                        end
+                    ),
+                    c.String4,
+                    c.String5
+
+                from
+                    Transactions f indexed by Transactions_Height_Type
+
+                    cross join JuryModerators jm
+                        on jm.FlagRowId = f.ROWID
+
+                    cross join Transactions u indexed by Transactions_Id_Last
+                        on u.Id = jm.AccountId and u.Last = 1
+
+                    cross join Payload p
+                        on p.TxHash = u.Hash
+
+                    cross join Transactions c
+                        on c.Hash = f.String2
+
+                    cross join Payload cp
+                        on cp.TxHash = c.Hash
+
+                    left join Ratings rn indexed by Ratings_Type_Id_Last_Height
+                        on rn.Type = 0 and rn.Id = jm.AccountId and rn.Last = 1
+
+                where
+                    f.Type = 410 and
+                    f.Height = ?
             )sql",
             heightBinder
         }}
