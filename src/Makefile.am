@@ -175,6 +175,8 @@ POCKETDB_H = \
     pocketdb/consensus/social/Article.hpp \
     pocketdb/consensus/social/Stream.hpp \
     pocketdb/consensus/social/Audio.hpp \
+    pocketdb/consensus/social/BarteronOffer.hpp \
+    pocketdb/consensus/social/BarteronRequest.hpp \
     pocketdb/consensus/social/BoostContent.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
     pocketdb/consensus/social/ScoreContent.hpp \
@@ -209,6 +211,7 @@ POCKETDB_H = \
     pocketdb/models/dto/account/Delete.h \
     pocketdb/models/dto/account/Setting.h \
     pocketdb/models/dto/account/User.h \
+    pocketdb/models/dto/account/BarteronRequest.h
     pocketdb/models/dto/action/ScoreContent.h \
     pocketdb/models/dto/action/ScoreComment.h \
     pocketdb/models/dto/action/Blocking.h \
@@ -224,6 +227,7 @@ POCKETDB_H = \
     pocketdb/models/dto/content/Article.h \
     pocketdb/models/dto/content/Stream.h \
     pocketdb/models/dto/content/Audio.h \
+    pocketdb/models/dto/content/BarteronOffer.h \
     pocketdb/models/dto/moderation/Flag.h \
     \
     pocketdb/models/web/WebTag.h \
@@ -304,6 +308,7 @@ POCKETDB_CPP = \
     pocketdb/models/dto/account/Setting.cpp \
     pocketdb/models/dto/account/Delete.cpp \
     pocketdb/models/dto/account/User.cpp \
+    pocketdb/models/dto/account/BarteronRequest.cpp \
     pocketdb/models/dto/action/ScoreContent.cpp \
     pocketdb/models/dto/action/ScoreComment.cpp \
     pocketdb/models/dto/action/Blocking.cpp \
@@ -320,6 +325,7 @@ POCKETDB_CPP = \
     pocketdb/models/dto/content/Article.cpp \
     pocketdb/models/dto/content/Stream.cpp \
     pocketdb/models/dto/content/Audio.cpp \
+    pocketdb/models/dto/content/BarteronOffer.cpp
     pocketdb/models/dto/moderation/Flag.cpp \
     pocketdb/models/shortform/ShortForm.cpp \
     pocketdb/models/shortform/ShortAccount.cpp \

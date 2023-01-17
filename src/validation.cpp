@@ -622,7 +622,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     if (!CheckFinalTx(tx, STANDARD_LOCKTIME_VERIFY_FLAGS))
     {
         TxType txType = TransactionHelper::ParseType(ptx);
-        if(!TransactionHelper::IsIn(txType, vector<TxType>{TxType::CONTENT_POST, TxType::CONTENT_VIDEO, TxType::CONTENT_ARTICLE, TxType::CONTENT_STREAM, TxType::CONTENT_AUDIO}))
+        if(!TransactionHelper::IsIn(txType, vector<TxType>{TxType::CONTENT_POST, TxType::CONTENT_VIDEO, TxType::CONTENT_ARTICLE, TxType::CONTENT_STREAM, TxType::CONTENT_AUDIO, TxType::CONTENT_BARTERON_OFFER}))
             return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "non-final");
     }
 

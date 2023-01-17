@@ -187,6 +187,8 @@ namespace PocketConsensus
                 case CONTENT_ARTICLE:
                 case CONTENT_STREAM:
                 case CONTENT_AUDIO:
+                case CONTENT_BARTERON_OFFER:
+                case ACCOUNT_BARTERON_REQUEST:
                     return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
                 default:
                     return true;

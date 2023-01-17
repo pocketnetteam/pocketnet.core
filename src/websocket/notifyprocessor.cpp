@@ -145,6 +145,19 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                             contentLangCnt[OR_AUDIO][lang] += 1;
                         }
                     }
+                    else if (spl[1] == OR_BARTERON_OFFER) {
+                        optype = "barteron_offer";
+                        sharesCnt += 1;
+
+                        auto response = notifierRepoInst->GetPostLang(txid);
+
+                        if (response.exists("lang"))
+                        {
+                            std::string lang = response["lang"].get_str();
+
+                            contentLangCnt[OR_BARTERON_OFFER][lang] += 1;
+                        }
+                    }
                     else if (spl[1] == OR_CONTENT_BOOST)
                         optype = "contentBoost";
                     else if (spl[1] == OR_SCORE)
@@ -189,7 +202,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
             // Event for new PocketNET transaction
-            if (optype == "share" || optype == "video" || optype == "article" || optype == "stream" || optype == "audio")
+            if (optype == "share" || optype == "video" || optype == "article" || optype == "stream" || optype == "audio" || optype == "barteron_offer")
             {
                 auto response = notifierRepoInst->GetPostInfo(txid);
                 if (response.exists("hash") && response.exists("rootHash") && response["hash"].get_str() != response["rootHash"].get_str())
@@ -422,6 +435,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             contentsSubscribes.pushKV("video", (countResponse.exists("cntVideo") ? countResponse["cntVideo"].get_int() : 0));
             contentsSubscribes.pushKV("article", (countResponse.exists("cntArticle") ? countResponse["cntArticle"].get_int() : 0));
             contentsSubscribes.pushKV("stream", (countResponse.exists("cntStream") ? countResponse["cntStream"].get_int() : 0));
+            contentsSubscribes.pushKV("barteron_offer", (countResponse.exists("cntStream") ? countResponse["cntBarteronOffer"].get_int() : 0));
             contentsSubscribes.pushKV("audio", (countResponse.exists("cntAudio") ? countResponse["cntAudio"].get_int() : 0));
 
             msg.pushKV("contentsSubscribes", contentsSubscribes);

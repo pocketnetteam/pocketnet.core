@@ -43,6 +43,11 @@ namespace PocketHelpers
             return TxType::CONTENT_STREAM;
         else if (op == OR_AUDIO)
             return TxType::CONTENT_AUDIO;
+        else if (op == OR_BARTERON_OFFER)
+            return TxType::CONTENT_BARTERON_OFFER;
+        else if (op == OR_BARTERON_REQUEST)
+            return TxType::ACCOUNT_BARTERON_REQUEST;
+
             
         else if (op == OR_CONTENT_BOOST)
             return TxType::BOOST_CONTENT;
