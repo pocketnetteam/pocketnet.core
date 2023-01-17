@@ -20,7 +20,10 @@ namespace PocketDb
         PrivateContent,
         Boost,
         Repost,
-        Blocking
+        Blocking,
+        JuryAssigned,
+        JuryModerate,
+        JuryBanned,
     };
 }
 

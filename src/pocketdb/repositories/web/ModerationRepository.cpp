@@ -28,13 +28,23 @@ namespace PocketDb
                     ),
                     juryRec as (
                         select
-                            j.AddressHash,
+                            j.AccountId,
                             j.Reason
                         from
                             Jury j,
                             flag
                         where
                             j.FlagRowId = flag.ROWID
+                    ),
+                    account as (
+                        select
+                            u.String1 as AddressHash
+                        from
+                            Transactions u indexed by Transactions_Id_First,
+                            juryRec
+                        where
+                            u.Id = juryRec.AccountId and
+                            u.First = 1
                     ),
                     juryVerd as (
                         select
@@ -46,11 +56,12 @@ namespace PocketDb
                             jv.FlagRowId = flag.ROWID
                     )
                 select
-                    j.AddressHash,
+                    a.AddressHash,
                     j.Reason,
                     ifnull(jv.Verdict, -1)
                 from
                     juryRec j
+                    join account a
                     left join juryVerd jv
             )sql");
 
@@ -188,13 +199,18 @@ namespace PocketDb
                     f.Int1 as Reason,
                     b.Ending
                 from
-                    JuryBan b indexed by JuryBan_AddressHash_Ending
+                    Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    cross join JuryBan b indexed by JuryBan_AccountId_Ending
+                        on b.AccountId = u.Id
                     cross join Transactions v
                         on v.ROWID = b.VoteRowId
                     cross join Transactions f
                         on f.Hash = v.String2
                 where
-                    b.AddressHash = ?
+                    u.Type = 100 and
+                    u.Last = 1 and
+                    u.String1 = ? and
+                    u.Height > 0
             )sql");
 
             TryBindStatementText(stmt, 1, address);

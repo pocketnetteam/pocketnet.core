@@ -216,7 +216,8 @@ namespace PocketDb
             (
                 -- Link to the Flag (via ROWID) that initiated this ury
                 FlagRowId     int   not null,
-                AddressHash   text  not null,
+                -- Transactions.Id
+                AccountId     int   not null,
                 Reason        int   not null,
                 primary key (FlagRowId)
             ) without rowid;
@@ -240,7 +241,7 @@ namespace PocketDb
             (
                 -- Link to the Flag (via ROWID) that initiated this ury
                 FlagRowId     int   not null,
-                -- Link to uniq id of address
+                -- Transactions.Id
                 AccountId     int   not null,
                 primary key (FlagRowId, AccountId)
             ) without rowid;
@@ -251,7 +252,8 @@ namespace PocketDb
             (
                 -- Link to the Vote (via ROWID) that initiated this ban
                 VoteRowId     int   not null,
-                AddressHash   text  not null,
+                -- Transactions.Id
+                AccountId     int   not null,
                 -- The height to which the penalty continues to apply
                 Ending        int   not null,
                 primary key (VoteRowId)
@@ -362,8 +364,8 @@ namespace PocketDb
             create index if not exists Balances_Last_Value on Balances (Last, Value);
             create index if not exists Balances_AddressHash_Last on Balances (AddressHash, Last);
 
-            create index if not exists Jury_AddressHash_Reason on Jury (AddressHash, Reason);
-            create index if not exists JuryBan_AddressHash_Ending on JuryBan (AddressHash, Ending);
+            create index if not exists Jury_AccountId_Reason on Jury (AccountId, Reason);
+            create index if not exists JuryBan_AccountId_Ending on JuryBan (AccountId, Ending);
             create index if not exists JuryVerdict_VoteRowId_FlagRowId_Verdict on JuryVerdict (VoteRowId, FlagRowId, Verdict);
             create index if not exists JuryModerators_AccountId_FlagRowId on JuryModerators (AccountId, FlagRowId);
 

@@ -202,6 +202,5 @@ class ModerationJuryTest(PocketcoinTestFramework):
         assert_raises_rpc_error(68, None, pubGenTx, jury1['account'], AccountPayload(jury1['account'].Name))
         assert_raises_rpc_error(68, None, pubGenTx, jury1['account'], ContentPostPayload())
 
-
 if __name__ == '__main__':
     ModerationJuryTest().main()

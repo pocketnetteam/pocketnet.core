@@ -538,27 +538,30 @@ namespace PocketDb
                 select
 
                     f.ROWID, /* Unique id of Flag record */
-                    f.String3, /* Address of the content author */
+                    u.Id, /* Account unique id of the content author */
                     f.Int1 /* Reason */
 
                 from Transactions f
+                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    on u.Type = 100 and u.Last = 1 and u.String1 = f.String3 and u.Height > 0
+                
                 where f.Hash = ?
 
                     -- Is there no active punishment listed on the account ?
                     and not exists (
                         select 1
-                        from JuryBan b indexed by JuryBan_AddressHash_Ending
-                        where b.AddressHash = f.String3
+                        from JuryBan b indexed by JuryBan_AccountId_Ending
+                        where b.AccountId = u.Id
                             and b.Ending > f.Height
                     )
 
                     -- there is no active jury for the same reason
                     and not exists (
                         select 1
-                        from Jury j indexed by Jury_AddressHash_Reason
+                        from Jury j indexed by Jury_AccountId_Reason
                         left join JuryVerdict jv
                             on jv.FlagRowId = j.FlagRowId
-                        where j.AddressHash = f.String3
+                        where j.AccountId = u.Id
                             and j.Reason = f.Int1
                             and jv.Verdict is null
                     )
@@ -566,7 +569,7 @@ namespace PocketDb
                     -- if there are X flags of the same reason for X time
                     and ? <= (
                         select count()
-                        from Transactions ff indexed by Transactions_Type_Last_String2_Height
+                        from Transactions ff indexed by Transactions_Type_Last_String3_Height
                         where ff.Type in (410)
                             and ff.Last = 0
                             and ff.String3 = f.String3
@@ -729,13 +732,13 @@ namespace PocketDb
             auto stmt_ban = SetupSqlStatement(R"sql(
                 -- If the defendant is punished, then we need to create a ban record
                 insert into
-                    JuryBan (VoteRowId, AddressHash, Ending)
+                    JuryBan (VoteRowId, AccountId, Ending)
                 select
                     v.ROWID, /* Unique id of Vote record */
-                    j.AddressHash, /* Address of the content author */
+                    j.AccountId, /* Address of the content author */
                     (
                         -- // TODO (moderation) : !! consensus variable with height
-                        case ( select count() from JuryBan b indexed by JuryBan_AddressHash_Ending where b.AddressHash = f.String3 )
+                        case ( select count() from JuryBan b indexed by JuryBan_AccountId_Ending where b.AccountId = j.AccountId )
                             when 0 then 43200 -- 1 month
                             when 1 then 129600 -- 3 month
                             else 51840000 -- 100 years
@@ -757,9 +760,9 @@ namespace PocketDb
                         select
                             1
                         from
-                            JuryBan b indexed by JuryBan_AddressHash_Ending
+                            JuryBan b indexed by JuryBan_AccountId_Ending
                         where
-                            b.AddressHash = f.String3 and
+                            b.AccountId = j.AccountId and
                             b.Ending > v.Height
                     )
             )sql");

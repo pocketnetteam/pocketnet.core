@@ -6250,7 +6250,120 @@ namespace PocketDb
                     and r.String3 is not null
             )sql",
             heightBinder
+        }},
+
+        {
+            ShortTxType::JuryAssigned, { R"sql(
+                select
+                    -- Notifier data
+                    u.String1,
+                    p.String1,
+                    p.String2,
+                    p.String3,
+                    ifnull(rn.Value, 0),
+                    -- type of shortForm
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql(')TP,
+                    -- Flag data
+                    f.Hash,
+                    f.Type,
+                    f.String1,
+                    f.Height,
+                    f.BlockNum,
+                    f.Time,
+                    null,
+                    f.String2, -- Tx of content
+                    f.Int1,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    -- Account data for tx creator
+                    pa.String1,
+                    pa.String2,
+                    pa.String3,
+                    ifnull(rna.Value, 0),
+                    -- Additional data
+                    null,
+                    -- Related Content
+                    c.Hash,
+                    c.Type,
+                    c.String1,
+                    c.Height,
+                    c.BlockNum,
+                    c.Time,
+                    c.String2,
+                    c.String3,
+                    null,
+                    null,
+                    null,
+                    (
+                        case
+                            when c.Type in (204,205) then cp.String1
+                            else cp.String2
+                        end
+                    ),
+                    c.String4,
+                    c.String5,
+                    -- Account data for Related Content creator
+                    pa.String1,
+                    pa.String2,
+                    pa.String3,
+                    ifnull(rna.Value, 0),
+                    --
+                    null
+
+                from
+                    Transactions f indexed by Transactions_Height_Type
+
+                    cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
+                        on ua.Type = 100 and ua.Last = 1 and ua.String1 = f.String1 and ua.Height > 0
+
+                    cross join Payload pa
+                        on pa.TxHash = ua.Hash
+
+                    cross join Jury j
+                        on j.FlagRowId = f.ROWID
+
+                    cross join Transactions u indexed by Transactions_Id_Last
+                        on u.Id = j.AccountId and u.Last = 1
+
+                    cross join Payload p
+                        on p.TxHash = u.Hash
+
+                    cross join Transactions c
+                        on c.Hash = f.String2
+                    
+                    cross join Payload cp
+                        on cp.TxHash = c.Hash
+
+                    left join Ratings rn indexed by Ratings_Type_Id_Last_Height
+                        on rn.Type = 0 and rn.Id = j.AccountId and rn.Last = 1
+
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0 and rna.Id = ua.Id and rna.Last = 1
+
+                where
+                    f.Type = 410 and
+                    f.Height = ?
+            )sql",
+            heightBinder
+        }},
+
+        {
+            ShortTxType::JuryBanned, { R"sql(
+                
+            )sql",
+            heightBinder
+        }},
+
+        {
+            ShortTxType::JuryModerate, { R"sql(
+                
+            )sql",
+            heightBinder
         }}
+
         };
 
         auto predicate = _choosePredicate(filters);

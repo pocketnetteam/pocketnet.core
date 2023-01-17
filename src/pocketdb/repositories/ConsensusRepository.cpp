@@ -184,18 +184,22 @@ namespace PocketDb
             select
                 1
             from
-                JuryBan indexed by JuryBan_AddressHash_Ending
+                Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                cross join JuryBan b indexed by JuryBan_AccountId_Ending
+                    on b.AccountId = u.Id and b.Ending > ?
             where
-                AddressHash = ? and
-                Ending > ?
+                u.Type = 100 and
+                u.Last = 1 and
+                u.String1 = ? and
+                u.Height > 0
         )sql";
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
 
             result = (sqlite3_step(*stmt) == SQLITE_ROW);
 
@@ -412,8 +416,8 @@ namespace PocketDb
                 select
                     1
                 from
-                    Transactions t indexed by sqlite_autoindex_Transactions_1
-                    join Jury j indexed by sqlite_autoindex_Jury_1
+                    Transactions t
+                    join Jury j
                         on j.FlagRowId = t.ROWID
                     left join JuryVerdict jv
                         on jv.FlagRowId = j.FlagRowId
