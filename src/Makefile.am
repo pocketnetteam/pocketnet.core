@@ -113,6 +113,7 @@ POCKETDB_H = \
     pocketdb/pocketnet.h \
     pocketdb/SQLiteDatabase.h \
     pocketdb/SQLiteConnection.h \
+    pocketdb/stmt.h \
     \
     pocketdb/migrations/base.h \
     pocketdb/migrations/main.h \
@@ -242,6 +243,7 @@ POCKETDB_CPP = \
     pocketdb/SQLiteDatabase.cpp \
     pocketdb/SQLiteConnection.cpp \
     pocketdb/pocketnet.cpp \
+    pocketdb/stmt.cpp \
     \
     pocketdb/migrations/main.cpp \
     pocketdb/migrations/web.cpp \
