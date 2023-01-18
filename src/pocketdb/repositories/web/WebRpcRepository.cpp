@@ -5321,6 +5321,7 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
             }
         }},
+
         };
 
         static const auto footer = R"sql(
@@ -5371,1167 +5372,1167 @@ namespace PocketDb
             };
 
         static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
-        {
-            ShortTxType::Money, { R"sql(
-                -- Incoming money
-                select
-                    null, -- Will be filled
-                    null,
-                    null,
-                    null,
-                    null,
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
-                    t.Hash,
-                    t.Type,
-                    null,
-                    t.Height as Height,
-                    t.BlockNum as BlockNum,
-                    t.Time,
-                    null,
-                    null,
-                    null,
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'Number', Number,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
+            {
+                ShortTxType::Money, { R"sql(
+                    -- Incoming money
+                    select
+                        null, -- Will be filled
+                        null,
+                        null,
+                        null,
+                        null,
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
+                        t.Hash,
+                        t.Type,
+                        null,
+                        t.Height as Height,
+                        t.BlockNum as BlockNum,
+                        t.Time,
+                        null,
+                        null,
+                        null,
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'Number', Number,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs i
+                            where i.SpentTxHash = t.Hash
+                        ),
+                        (
+                            select json_group_array(json_object(
+                                    'Value', o.Value,
+                                    'AddressHash', o.AddressHash,
+                                    'ScriptPubKey', o.ScriptPubKey,
+                                    'Account', json_object(
+                                        'Lang', pna.String1,
+                                        'Name', pna.String2,
+                                        'Avatar', pna.String3,
+                                        'Rep', ifnull(rna.Value,0)
+                                    )
                                 ))
-                        from TxOutputs i
-                        where i.SpentTxHash = t.Hash
-                    ),
-                    (
-                        select json_group_array(json_object(
-                                'Value', o.Value,
-                                'AddressHash', o.AddressHash,
-                                'ScriptPubKey', o.ScriptPubKey,
-                                'Account', json_object(
-                                    'Lang', pna.String1,
-                                    'Name', pna.String2,
-                                    'Avatar', pna.String3,
-                                    'Rep', ifnull(rna.Value,0)
-                                )
-                            ))
-                        from TxOutputs o
-                        left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                            on na.Type = 100
-                            and na.Last = 1
-                            and na.String1 = o.AddressHash
-                        left join Payload pna
-                            on pna.TxHash = na.Hash
-                        left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                            on rna.Type = 0
-                            and rna.Id = na.Id
-                            and rna.Last = 1
-                        where o.TxHash = t.Hash
-                            and o.TxHeight = t.Height
-                        order by o.Number
-                    )
+                            from TxOutputs o
+                            left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                                on na.Type = 100
+                                and na.Last = 1
+                                and na.String1 = o.AddressHash
+                            left join Payload pna
+                                on pna.TxHash = na.Hash
+                            left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                                on rna.Type = 0
+                                and rna.Id = na.Id
+                                and rna.Last = 1
+                            where o.TxHash = t.Hash
+                                and o.TxHeight = t.Height
+                            order by o.Number
+                        )
 
-                from Transactions t indexed by Transactions_Height_Type
+                    from Transactions t indexed by Transactions_Height_Type
 
-                where t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
-                    and t.Height = ?
-        )sql",
-            heightBinder
-        }},
+                    where t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
+                        and t.Height = ?
+            )sql",
+                heightBinder
+            }},
 
-        {
-            ShortTxType::Referal, { R"sql(
-                -- referals
-                select
-                    t.String2,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
-                    t.Hash,
-                    t.Type,
-                    t.String1,
-                    t.Height as Height,
-                    t.BlockNum as BlockNum,
-                    t.Time,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    p.String1,
-                    p.String2,
-                    p.String3,
-                    ifnull(r.Value,0) -- TODO (losty): do we need rating if referal is always a new user?
+            {
+                ShortTxType::Referal, { R"sql(
+                    -- referals
+                    select
+                        t.String2,
+                        pna.String1,
+                        pna.String2,
+                        pna.String3,
+                        ifnull(rna.Value,0),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
+                        t.Hash,
+                        t.Type,
+                        t.String1,
+                        t.Height as Height,
+                        t.BlockNum as BlockNum,
+                        t.Time,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        p.String1,
+                        p.String2,
+                        p.String3,
+                        ifnull(r.Value,0) -- TODO (losty): do we need rating if referal is always a new user?
 
-                from Transactions t indexed by Transactions_Height_Type
+                    from Transactions t indexed by Transactions_Height_Type
 
-                left join Payload p
-                    on p.TxHash = t.Hash
+                    left join Payload p
+                        on p.TxHash = t.Hash
 
-                left join Ratings r indexed by Ratings_Type_Id_Last_Height
-                    on r.Type = 0
-                    and r.Id = t.Id
-                    and r.Last = 1
+                    left join Ratings r indexed by Ratings_Type_Id_Last_Height
+                        on r.Type = 0
+                        and r.Id = t.Id
+                        and r.Last = 1
 
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = t.String2
+                    left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                        on na.Type = 100
+                        and na.Last = 1
+                        and na.String1 = t.String2
 
-                left join Payload pna
-                    on pna.TxHash = na.Hash
+                    left join Payload pna
+                        on pna.TxHash = na.Hash
 
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0
+                        and rna.Id = na.Id
+                        and rna.Last = 1
 
-                where t.Type = 100
-                    and t.String2 is not null
-                    and t.Height = ?
-                    -- TODO (losty): this is not valid if we are asking for notifications from past. See how it is done in events
-                    and (select count(*) from Transactions tt indexed by Transactions_Id_Last where tt.Id = t.Id) = 1 -- Only original
-        )sql",
-            heightBinder
-        }},
+                    where t.Type = 100
+                        and t.String2 is not null
+                        and t.Height = ?
+                        -- TODO (losty): this is not valid if we are asking for notifications from past. See how it is done in events
+                        and (select count(*) from Transactions tt indexed by Transactions_Id_Last where tt.Id = t.Id) = 1 -- Only original
+            )sql",
+                heightBinder
+            }},
 
-        {
-            ShortTxType::Answer, { R"sql(
-                -- Comment answers
-                select
-                    c.String1,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                    a.Hash,
-                    a.Type,
-                    a.String1,
-                    a.Height as Height,
-                    a.BlockNum as BlockNum,
-                    a.Time,
-                    a.String2,
-                    a.String3,
-                    null,
-                    null,
-                    null,
-                    pa.String1,
-                    a.String4,
-                    a.String5,
-                    paa.String1,
-                    paa.String2,
-                    paa.String3,
-                    ifnull(ra.Value,0),
-                    null,
-                    post.Hash,
-                    post.Type,
-                    post.String1,
-                    post.Height,
-                    post.BlockNum,
-                    post.Time,
-                    post.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    ppost.String2,
-                    papost.String1,
-                    papost.String2,
-                    papost.String3,
-                    ifnull(rapost.Value,0)
+            {
+                ShortTxType::Answer, { R"sql(
+                    -- Comment answers
+                    select
+                        c.String1,
+                        pna.String1,
+                        pna.String2,
+                        pna.String3,
+                        ifnull(rna.Value,0),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
+                        a.Hash,
+                        a.Type,
+                        a.String1,
+                        a.Height as Height,
+                        a.BlockNum as BlockNum,
+                        a.Time,
+                        a.String2,
+                        a.String3,
+                        null,
+                        null,
+                        null,
+                        pa.String1,
+                        a.String4,
+                        a.String5,
+                        paa.String1,
+                        paa.String2,
+                        paa.String3,
+                        ifnull(ra.Value,0),
+                        null,
+                        post.Hash,
+                        post.Type,
+                        post.String1,
+                        post.Height,
+                        post.BlockNum,
+                        post.Time,
+                        post.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        ppost.String2,
+                        papost.String1,
+                        papost.String2,
+                        papost.String3,
+                        ifnull(rapost.Value,0)
 
-                from Transactions a indexed by Transactions_Height_Type -- Other answers
+                    from Transactions a indexed by Transactions_Height_Type -- Other answers
 
-                join Transactions c indexed by Transactions_Type_Last_String2_Height -- My comments
-                    on c.Type in (204, 205)
-                    and c.Last = 1
-                    and c.Height > 0
-                    and c.String2 = a.String5
-                    and c.String1 != a.String1
+                    join Transactions c indexed by Transactions_Type_Last_String2_Height -- My comments
+                        on c.Type in (204, 205)
+                        and c.Last = 1
+                        and c.Height > 0
+                        and c.String2 = a.String5
+                        and c.String1 != a.String1
+                        
+                    left join Transactions post indexed by Transactions_Type_Last_String2_Height
+                        on post.Type in (200,201,202,209,210)
+                        and post.Last = 1
+                        and post.String2 = a.String3
+
+                    left join Payload ppost
+                        on ppost.TxHash = post.Hash
+
+                    left join Transactions apost indexed by Transactions_Type_Last_String1_String2_Height
+                        on apost.Type = 100
+                        and apost.Last = 1
+                        and apost.String1 = post.String1
                     
-                left join Transactions post indexed by Transactions_Type_Last_String2_Height
-                    on post.Type in (200,201,202,209,210)
-                    and post.Last = 1
-                    and post.String2 = a.String3
-
-                left join Payload ppost
-                    on ppost.TxHash = post.Hash
-
-                left join Transactions apost indexed by Transactions_Type_Last_String1_String2_Height
-                    on apost.Type = 100
-                    and apost.Last = 1
-                    and apost.String1 = post.String1
-                
-                left join Payload papost
-                    on papost.TxHash = apost.Hash
-                
-                left join Ratings rapost indexed by Ratings_Type_Id_Last_Height
-                    on rapost.Type = 0
-                    and rapost.Id = apost.Id
-                    and rapost.Last = 1
-
-                left join Payload pa
-                    on pa.TxHash = a.Hash
-
-                left join Transactions aa indexed by Transactions_Type_Last_String1_Height_Id
-                    on aa.Type = 100
-                    and aa.Last = 1
-                    and aa.String1 = a.String1
-                    and aa.Height > 0
-
-                left join Payload paa
-                    on paa.TxHash = aa.Hash
-
-                left join Ratings ra indexed by Ratings_Type_Id_Last_Height
-                    on ra.Type = 0
-                    and ra.Id = aa.Id
-                    and ra.Last = 1
-
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = c.String1
-
-                left join Payload pna
-                    on pna.TxHash = na.Hash
-
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
-
-                where a.Type = 204 -- only orig
-                    and a.Height = ?
-        )sql",
-            heightBinder
-        }},
-
-        {
-            ShortTxType::Comment, { R"sql(
-                -- Comments for my content
-                select
-                    p.String1,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
-                    c.Hash,
-                    c.Type,
-                    c.String1,
-                    c.Height as Height,
-                    c.BlockNum as BlockNum,
-                    c.Time,
-                    c.String2,
-                    c.String3,
-                    null,
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'Number', Number,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs i
-                        where i.SpentTxHash = c.Hash
-                    ),
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs o
-                        where o.TxHash = c.Hash
-                            and o.TxHeight = c.Height
-                        order by o.Number
-                    ),
-                    pc.String1,
-                    null,
-                    null,
-                    pac.String1,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    null,
-                    p.Hash,
-                    p.Type,
-                    null,
-                    p.Height,
-                    p.BlockNum,
-                    p.Time,
-                    p.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pp.String2
-
-                from Transactions c indexed by Transactions_Height_Type
-
-                join Transactions p indexed by Transactions_Type_Last_String2_Height
-                    on p.Type in (200,201,202,209,210)
-                    and p.Last = 1
-                    and p.Height > 0
-                    and p.String2 = c.String3
-                    and p.String1 != c.String1
-
-                left join Payload pc
-                    on pC.TxHash = c.Hash
-
-                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                    on ac.String1 = c.String1
-                    and ac.Last = 1
-                    and ac.Type = 100
-                    and ac.Height > 0
-
-                left join Payload pac
-                    on pac.TxHash = ac.Hash
-
-                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                    on rac.Type = 0
-                    and rac.Id = ac.Id
-                    and rac.Last = 1
-                
-                left join Payload pp
-                    on pp.TxHash = p.Hash
-
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = p.String1
-
-                left join Payload pna
-                    on pna.TxHash = na.Hash
-
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
-
-                where c.Type = 204 -- only orig
-                    and c.String4 is null
-                    and c.String5 is null
-                    and c.Height = ?
-        )sql",
-            heightBinder
-        }},
-
-        {
-            ShortTxType::Subscriber, { R"sql(
-                -- Subscribers
-                select
-                    subs.String2,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
-                    subs.Hash,
-                    subs.Type,
-                    subs.String1,
-                    subs.Height as Height,
-                    subs.BlockNum as BlockNum,
-                    subs.Time,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pu.String1,
-                    pu.String2,
-                    pu.String3,
-                    ifnull(ru.Value,0)
-
-                from Transactions subs indexed by Transactions_Height_Type
-
-                left join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    on u.Type in (100)
-                    and u.Last = 1
-                    and u.String1 = subs.String1
-                    and u.Height > 0
-
-                left join Payload pu
-                    on pu.TxHash = u.Hash
-
-                left join Ratings ru indexed by Ratings_Type_Id_Last_Height
-                    on ru.Type = 0
-                    and ru.Id = u.Id
-                    and ru.Last = 1
-
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = subs.String2
-
-                left join Payload pna
-                    on pna.TxHash = na.Hash
-
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
-
-                where subs.Type in (302, 303) -- Ignoring unsubscribers?
-                    and subs.Height = ?
-        )sql",
-            heightBinder
-        }},
-
-        {
-            ShortTxType::CommentScore, { R"sql(
-                -- Comment scores
-                select
-                    c.String1,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
-                    s.Hash,
-                    s.Type,
-                    s.String1,
-                    s.Height as Height,
-                    s.BlockNum as BlockNum,
-                    s.Time,
-                    null,
-                    null,
-                    s.Int1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pacs.String1,
-                    pacs.String2,
-                    pacs.String3,
-                    ifnull(racs.Value,0),
-                    null,
-                    c.Hash,
-                    c.Type,
-                    null,
-                    c.Height,
-                    c.BlockNum,
-                    null,
-                    c.String2,
-                    c.String3,
-                    null,
-                    null,
-                    null,
-                    ps.String1,
-                    c.String4,
-                    c.String5
-
-                from Transactions s indexed by Transactions_Height_Type
-
-                join Transactions c indexed by Transactions_Type_Last_String2_Height
-                    on c.Type in (204,205)
-                    and c.Last = 1
-                    and c.Height > 0
-                    and c.String2 = s.String2
-
-                left join Payload ps
-                    on ps.TxHash = c.Hash
-
-                join Transactions acs indexed by Transactions_Type_Last_String1_Height_Id
-                    on acs.Type = 100
-                    and acs.Last = 1
-                    and acs.String1 = s.String1
-                    and acs.Height > 0
-
-                left join Payload pacs
-                    on pacs.TxHash = acs.Hash
-
-                left join Ratings racs indexed by Ratings_Type_Id_Last_Height
-                    on racs.Type = 0
-                    and racs.Id = acs.Id
-                    and racs.Last = 1
-
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = c.String1
-
-                left join Payload pna
-                    on pna.TxHash = na.Hash
-
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
-
-                where s.Type = 301
-                    and s.Height = ?
-        )sql",
-            heightBinder
-        }},
-
-        {
-            ShortTxType::ContentScore, { R"sql(
-                -- Content scores
-                select
-                    c.String1,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
-                    s.Hash,
-                    s.Type,
-                    s.String1,
-                    s.Height as Height,
-                    s.BlockNum as BlockNum,
-                    s.Time,
-                    null,
-                    null,
-                    s.Int1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pacs.String1,
-                    pacs.String2,
-                    pacs.String3,
-                    ifnull(racs.Value,0),
-                    null,
-                    c.Hash,
-                    c.Type,
-                    null,
-                    c.Height,
-                    c.BlockNum,
-                    c.Time,
-                    c.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    ps.String2
-
-                from Transactions s indexed by Transactions_Height_Type
-
-                join Transactions c indexed by Transactions_Type_Last_String2_Height
-                    on c.Type in (200,201,202,209,210)
-                    and c.Last = 1
-                    and c.Height > 0
-                    and c.String2 = s.String2
-
-                left join Payload ps
-                    on ps.TxHash = c.Hash
-
-                join Transactions acs indexed by Transactions_Type_Last_String1_Height_Id
-                    on acs.Type = 100
-                    and acs.Last = 1
-                    and acs.String1 = s.String1
-                    and acs.Height > 0
-
-                left join Payload pacs
-                    on pacs.TxHash = acs.Hash
-
-                left join Ratings racs indexed by Ratings_Type_Id_Last_Height
-                    on racs.Type = 0
-                    and racs.Id = acs.Id
-                    and racs.Last = 1
-
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = c.String1
-
-                left join Payload pna
-                    on pna.TxHash = na.Hash
-
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
-
-                where s.Type = 300
-                    and s.Height = ?
-        )sql",
-            heightBinder
-        }},
-
-        {
-            ShortTxType::PrivateContent, { R"sql(
-                -- Content from private subscribers
-                select
-                    subs.String1,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
-                    c.Hash,
-                    c.Type,
-                    c.String1,
-                    c.Height as Height,
-                    c.BlockNum as BlockNum,
-                    c.Time,
-                    c.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    p.String2,
-                    null,
-                    null,
-                    pac.String1,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    null,
-                    r.Hash,
-                    r.Type,
-                    r.String1,
-                    r.Height,
-                    r.BlockNum,
-                    r.Time,
-                    r.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pr.String2
-
-                from Transactions c indexed by Transactions_Height_Type -- content for private subscribers
-
-                join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
-                    on subs.Type = 303
-                    and subs.Last = 1
-                    and subs.String2 = c.String1
-                    and subs.Height > 0
-
-                left join Transactions r indexed by Transactions_Type_Last_String2_Height -- related content - possible reposts
-                    on r.String2 = c.String3
-                    and r.Type = 200
-                    and r.Last = 1
-
-                left join Payload pr
-                    on pr.TxHash = r.Hash
-
-                cross join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                    on ac.Type = 100
-                    and ac.Last = 1
-                    and ac.String1 = c.String1
-                    and ac.Height > 0
-
-                cross join Payload p
-                    on p.TxHash = c.Hash
-
-                cross join Payload pac
-                    on pac.TxHash = ac.Hash
-
-                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                    on rac.Type = 0
-                    and rac.Id = ac.Id
-                    and rac.Last = 1
-
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = subs.String1
-
-                left join Payload pna
-                    on pna.TxHash = na.Hash
-
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
-
-                where c.Type in (200,201,202,209,210)
-                    and c.Hash = c.String2 -- only orig
-                    and c.Height = ?
-        )sql",
-            heightBinder
-        }},
-
-        {
-            ShortTxType::Boost, { R"sql(
-                -- Boosts for my content
-                select
-                    tContent.String1,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
-                    tBoost.Hash,
-                    tboost.Type,
-                    tBoost.String1,
-                    tBoost.Height as Height,
-                    tBoost.BlockNum as BlockNum,
-                    tBoost.Time,
-                    tBoost.String2,
-                    null,
-                    null,
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'Number', Number,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs i
-                        where i.SpentTxHash = tBoost.Hash
-                    ),
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs o
-                        where o.TxHash = tBoost.Hash
-                            and o.TxHeight = tBoost.Height
-                        order by o.Number
-                    ),
-                    null,
-                    null,
-                    null,
-                    pac.String1,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    null,
-                    tContent.Hash,
-                    tContent.Type,
-                    null,
-                    tContent.Height,
-                    tContent.BlockNum,
-                    tContent.Time,
-                    tContent.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pContent.String2
-
-                from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
-
-                left join Transactions tContent indexed by Transactions_Type_Last_String2_Height
-                    on tContent.Type in (200,201,202,209,210)
-                    and tContent.Last in (0,1)
-                    and tContent.Height > 0
-                    and tContent.String2 = tBoost.String2
-
-                left join Payload pContent
-                    on pContent.TxHash = tContent.Hash
-
-                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                    on ac.String1 = tBoost.String1
-                    and ac.Type = 100
-                    and ac.Last = 1
-                    and ac.Height > 0
-
-                left join Payload pac
-                    on pac.TxHash = ac.Hash
-
-                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                    on rac.Type = 0
-                    and rac.Id = ac.Id
-                    and rac.Last = 1
-
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = tContent.String1
-
-                left join Payload pna
-                    on pna.TxHash = na.Hash
-
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
-
-                where tBoost.Type in (208)
-                    and tBoost.Last in (0,1)
-                    and tBoost.Height = ?
-        )sql",
-            heightBinder
-        }},
-
-        {
-            ShortTxType::Repost, { R"sql(
-                -- Reposts
-                select
-                    p.String1,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
-                    r.Hash,
-                    r.Type,
-                    r.String1,
-                    r.Height as Height,
-                    r.BlockNum as BlockNum,
-                    r.Time,
-                    r.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pr.String2,
-                    null,
-                    null,
-                    par.String1,
-                    par.String2,
-                    par.String3,
-                    ifnull(rar.Value,0),
-                    null,
-                    p.Hash,
-                    p.Type,
-                    null,
-                    p.Height,
-                    p.BlockNum,
-                    p.Time,
-                    p.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pp.String2
-
-                from Transactions r
-
-                join Transactions p indexed by Transactions_Type_Last_String2_Height
-                    on p.Type = 200
-                    and p.Last = 1
-                    and p.String2 = r.String3
-                    and p.Height > 0
-
-                left join Payload pp
-                    on pp.TxHash = p.Hash
-
-                left join Payload pr
-                    on pr.TxHash = r.Hash
-
-                join Transactions ar indexed by Transactions_Type_Last_String1_Height_Id
-                    on ar.Type = 100
-                    and ar.Last = 1
-                    and ar.String1 = r.String1
-                    and ar.Height > 0
-
-                left join Payload par
-                    on par.TxHash = ar.Hash
-
-                left join Ratings rar indexed by Ratings_Type_Id_Last_Height
-                    on rar.Type = 0
-                    and rar.Id = ar.Id
-                    and rar.Last = 1
-
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = p.String1
-
-                left join Payload pna
-                    on pna.TxHash = na.Hash
-
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
-
-                where r.Type = 200
-                    and r.Hash = r.String2 -- Only orig
-                    and r.Height = ?
-                    and r.String3 is not null
-            )sql",
-            heightBinder
-        }},
-
-        {
-            ShortTxType::JuryAssigned, { R"sql(
-                select
-                    -- Notifier data
-                    u.String1,
-                    p.String1,
-                    p.String2,
-                    p.String3,
-                    ifnull(rn.Value, 0),
-                    -- type of shortForm
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql('),
-                    -- Flag data
-                    f.Hash, -- Jury Tx
-                    f.Type,
-                    f.String1,
-                    f.Height,
-                    f.BlockNum,
-                    f.Time,
-                    null,
-                    f.String2, -- Tx of content
-                    f.Int1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    -- Account data for tx creator
-                    null,
-                    null,
-                    null,
-                    null,
-                    -- Additional data
-                    null,
-                    -- Related Content
-                    c.Hash,
-                    c.Type,
-                    c.String1,
-                    c.Height,
-                    c.BlockNum,
-                    c.Time,
-                    c.String2,
-                    c.String3,
-                    null,
-                    null,
-                    null,
-                    (
-                        case
-                            when c.Type in (204,205) then cp.String1
-                            else cp.String2
-                        end
-                    ),
-                    c.String4,
-                    c.String5,
-                    -- Account data for related tx
-                    u.String1,
-                    p.String1,
-                    p.String2,
-                    p.String3,
-                    ifnull(rn.Value, 0)
-
-                from
-                    Transactions f indexed by Transactions_Height_Type
-
-                    cross join Jury j
-                        on j.FlagRowId = f.ROWID
-
-                    cross join Transactions u indexed by Transactions_Id_Last
-                        on u.Id = j.AccountId and u.Last = 1
-
-                    cross join Payload p
-                        on p.TxHash = u.Hash
-
-                    cross join Transactions c
-                        on c.Hash = f.String2
+                    left join Payload papost
+                        on papost.TxHash = apost.Hash
                     
-                    cross join Payload cp
-                        on cp.TxHash = c.Hash
+                    left join Ratings rapost indexed by Ratings_Type_Id_Last_Height
+                        on rapost.Type = 0
+                        and rapost.Id = apost.Id
+                        and rapost.Last = 1
 
-                    left join Ratings rn indexed by Ratings_Type_Id_Last_Height
-                        on rn.Type = 0 and rn.Id = j.AccountId and rn.Last = 1
+                    left join Payload pa
+                        on pa.TxHash = a.Hash
 
-                where
-                    f.Type = 410 and
-                    f.Height = ?
+                    left join Transactions aa indexed by Transactions_Type_Last_String1_Height_Id
+                        on aa.Type = 100
+                        and aa.Last = 1
+                        and aa.String1 = a.String1
+                        and aa.Height > 0
+
+                    left join Payload paa
+                        on paa.TxHash = aa.Hash
+
+                    left join Ratings ra indexed by Ratings_Type_Id_Last_Height
+                        on ra.Type = 0
+                        and ra.Id = aa.Id
+                        and ra.Last = 1
+
+                    left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                        on na.Type = 100
+                        and na.Last = 1
+                        and na.String1 = c.String1
+
+                    left join Payload pna
+                        on pna.TxHash = na.Hash
+
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0
+                        and rna.Id = na.Id
+                        and rna.Last = 1
+
+                    where a.Type = 204 -- only orig
+                        and a.Height = ?
             )sql",
-            heightBinder
-        }},
+                heightBinder
+            }},
 
-        {
-            ShortTxType::JuryBanned, { R"sql(
-                select
-                    -- Notifier data
-                    u.String1,
-                    p.String1,
-                    p.String2,
-                    p.String3,
-                    ifnull(rn.Value, 0),
-                    -- type of shortForm
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryBanned) + R"sql('),
-                    -- Tx data
-                    v.Hash, -- Jury Tx
-                    v.Type,
-                    v.String1,
-                    v.Height,
-                    v.BlockNum,
-                    v.Time,
-                    null,
-                    v.String2, -- Tx of content
-                    v.Int1, -- Value
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    -- Account data for tx creator
-                    null,
-                    null,
-                    null,
-                    null,
-                    -- Additional data
-                    null,
-                    -- Related Content
-                    c.Hash,
-                    c.Type,
-                    c.String1,
-                    c.Height,
-                    c.BlockNum,
-                    c.Time,
-                    c.String2,
-                    c.String3,
-                    null,
-                    null,
-                    null,
-                    (
-                        case
-                            when c.Type in (204,205) then cp.String1
-                            else cp.String2
-                        end
-                    ),
-                    c.String4,
-                    c.String5,
-                    -- Account data for related tx
-                    u.String1,
-                    p.String1,
-                    p.String2,
-                    p.String3,
-                    ifnull(rn.Value, 0)
+            {
+                ShortTxType::Comment, { R"sql(
+                    -- Comments for my content
+                    select
+                        p.String1,
+                        pna.String1,
+                        pna.String2,
+                        pna.String3,
+                        ifnull(rna.Value,0),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
+                        c.Hash,
+                        c.Type,
+                        c.String1,
+                        c.Height as Height,
+                        c.BlockNum as BlockNum,
+                        c.Time,
+                        c.String2,
+                        c.String3,
+                        null,
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'Number', Number,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs i
+                            where i.SpentTxHash = c.Hash
+                        ),
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs o
+                            where o.TxHash = c.Hash
+                                and o.TxHeight = c.Height
+                            order by o.Number
+                        ),
+                        pc.String1,
+                        null,
+                        null,
+                        pac.String1,
+                        pac.String2,
+                        pac.String3,
+                        ifnull(rac.Value,0),
+                        null,
+                        p.Hash,
+                        p.Type,
+                        null,
+                        p.Height,
+                        p.BlockNum,
+                        p.Time,
+                        p.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pp.String2
 
-                from
-                    Transactions v indexed by Transactions_Height_Type
+                    from Transactions c indexed by Transactions_Height_Type
 
-                    cross join JuryBan jb
-                        on jb.VoteRowId = v.ROWID
+                    join Transactions p indexed by Transactions_Type_Last_String2_Height
+                        on p.Type in (200,201,202,209,210)
+                        and p.Last = 1
+                        and p.Height > 0
+                        and p.String2 = c.String3
+                        and p.String1 != c.String1
 
-                    cross join Transactions u indexed by Transactions_Id_Last
-                        on u.Id = jb.AccountId and u.Last = 1
+                    left join Payload pc
+                        on pC.TxHash = c.Hash
+
+                    left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                        on ac.String1 = c.String1
+                        and ac.Last = 1
+                        and ac.Type = 100
+                        and ac.Height > 0
+
+                    left join Payload pac
+                        on pac.TxHash = ac.Hash
+
+                    left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                        on rac.Type = 0
+                        and rac.Id = ac.Id
+                        and rac.Last = 1
+                    
+                    left join Payload pp
+                        on pp.TxHash = p.Hash
+
+                    left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                        on na.Type = 100
+                        and na.Last = 1
+                        and na.String1 = p.String1
+
+                    left join Payload pna
+                        on pna.TxHash = na.Hash
+
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0
+                        and rna.Id = na.Id
+                        and rna.Last = 1
+
+                    where c.Type = 204 -- only orig
+                        and c.String4 is null
+                        and c.String5 is null
+                        and c.Height = ?
+            )sql",
+                heightBinder
+            }},
+
+            {
+                ShortTxType::Subscriber, { R"sql(
+                    -- Subscribers
+                    select
+                        subs.String2,
+                        pna.String1,
+                        pna.String2,
+                        pna.String3,
+                        ifnull(rna.Value,0),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
+                        subs.Hash,
+                        subs.Type,
+                        subs.String1,
+                        subs.Height as Height,
+                        subs.BlockNum as BlockNum,
+                        subs.Time,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pu.String1,
+                        pu.String2,
+                        pu.String3,
+                        ifnull(ru.Value,0)
+
+                    from Transactions subs indexed by Transactions_Height_Type
+
+                    left join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                        on u.Type in (100)
+                        and u.Last = 1
+                        and u.String1 = subs.String1
+                        and u.Height > 0
+
+                    left join Payload pu
+                        on pu.TxHash = u.Hash
+
+                    left join Ratings ru indexed by Ratings_Type_Id_Last_Height
+                        on ru.Type = 0
+                        and ru.Id = u.Id
+                        and ru.Last = 1
+
+                    left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                        on na.Type = 100
+                        and na.Last = 1
+                        and na.String1 = subs.String2
+
+                    left join Payload pna
+                        on pna.TxHash = na.Hash
+
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0
+                        and rna.Id = na.Id
+                        and rna.Last = 1
+
+                    where subs.Type in (302, 303) -- Ignoring unsubscribers?
+                        and subs.Height = ?
+            )sql",
+                heightBinder
+            }},
+
+            {
+                ShortTxType::CommentScore, { R"sql(
+                    -- Comment scores
+                    select
+                        c.String1,
+                        pna.String1,
+                        pna.String2,
+                        pna.String3,
+                        ifnull(rna.Value,0),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
+                        s.Hash,
+                        s.Type,
+                        s.String1,
+                        s.Height as Height,
+                        s.BlockNum as BlockNum,
+                        s.Time,
+                        null,
+                        null,
+                        s.Int1,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pacs.String1,
+                        pacs.String2,
+                        pacs.String3,
+                        ifnull(racs.Value,0),
+                        null,
+                        c.Hash,
+                        c.Type,
+                        null,
+                        c.Height,
+                        c.BlockNum,
+                        null,
+                        c.String2,
+                        c.String3,
+                        null,
+                        null,
+                        null,
+                        ps.String1,
+                        c.String4,
+                        c.String5
+
+                    from Transactions s indexed by Transactions_Height_Type
+
+                    join Transactions c indexed by Transactions_Type_Last_String2_Height
+                        on c.Type in (204,205)
+                        and c.Last = 1
+                        and c.Height > 0
+                        and c.String2 = s.String2
+
+                    left join Payload ps
+                        on ps.TxHash = c.Hash
+
+                    join Transactions acs indexed by Transactions_Type_Last_String1_Height_Id
+                        on acs.Type = 100
+                        and acs.Last = 1
+                        and acs.String1 = s.String1
+                        and acs.Height > 0
+
+                    left join Payload pacs
+                        on pacs.TxHash = acs.Hash
+
+                    left join Ratings racs indexed by Ratings_Type_Id_Last_Height
+                        on racs.Type = 0
+                        and racs.Id = acs.Id
+                        and racs.Last = 1
+
+                    left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                        on na.Type = 100
+                        and na.Last = 1
+                        and na.String1 = c.String1
+
+                    left join Payload pna
+                        on pna.TxHash = na.Hash
+
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0
+                        and rna.Id = na.Id
+                        and rna.Last = 1
+
+                    where s.Type = 301
+                        and s.Height = ?
+            )sql",
+                heightBinder
+            }},
+
+            {
+                ShortTxType::ContentScore, { R"sql(
+                    -- Content scores
+                    select
+                        c.String1,
+                        pna.String1,
+                        pna.String2,
+                        pna.String3,
+                        ifnull(rna.Value,0),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
+                        s.Hash,
+                        s.Type,
+                        s.String1,
+                        s.Height as Height,
+                        s.BlockNum as BlockNum,
+                        s.Time,
+                        null,
+                        null,
+                        s.Int1,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pacs.String1,
+                        pacs.String2,
+                        pacs.String3,
+                        ifnull(racs.Value,0),
+                        null,
+                        c.Hash,
+                        c.Type,
+                        null,
+                        c.Height,
+                        c.BlockNum,
+                        c.Time,
+                        c.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        ps.String2
+
+                    from Transactions s indexed by Transactions_Height_Type
+
+                    join Transactions c indexed by Transactions_Type_Last_String2_Height
+                        on c.Type in (200,201,202,209,210)
+                        and c.Last = 1
+                        and c.Height > 0
+                        and c.String2 = s.String2
+
+                    left join Payload ps
+                        on ps.TxHash = c.Hash
+
+                    join Transactions acs indexed by Transactions_Type_Last_String1_Height_Id
+                        on acs.Type = 100
+                        and acs.Last = 1
+                        and acs.String1 = s.String1
+                        and acs.Height > 0
+
+                    left join Payload pacs
+                        on pacs.TxHash = acs.Hash
+
+                    left join Ratings racs indexed by Ratings_Type_Id_Last_Height
+                        on racs.Type = 0
+                        and racs.Id = acs.Id
+                        and racs.Last = 1
+
+                    left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                        on na.Type = 100
+                        and na.Last = 1
+                        and na.String1 = c.String1
+
+                    left join Payload pna
+                        on pna.TxHash = na.Hash
+
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0
+                        and rna.Id = na.Id
+                        and rna.Last = 1
+
+                    where s.Type = 300
+                        and s.Height = ?
+            )sql",
+                heightBinder
+            }},
+
+            {
+                ShortTxType::PrivateContent, { R"sql(
+                    -- Content from private subscribers
+                    select
+                        subs.String1,
+                        pna.String1,
+                        pna.String2,
+                        pna.String3,
+                        ifnull(rna.Value,0),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
+                        c.Hash,
+                        c.Type,
+                        c.String1,
+                        c.Height as Height,
+                        c.BlockNum as BlockNum,
+                        c.Time,
+                        c.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        p.String2,
+                        null,
+                        null,
+                        pac.String1,
+                        pac.String2,
+                        pac.String3,
+                        ifnull(rac.Value,0),
+                        null,
+                        r.Hash,
+                        r.Type,
+                        r.String1,
+                        r.Height,
+                        r.BlockNum,
+                        r.Time,
+                        r.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pr.String2
+
+                    from Transactions c indexed by Transactions_Height_Type -- content for private subscribers
+
+                    join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
+                        on subs.Type = 303
+                        and subs.Last = 1
+                        and subs.String2 = c.String1
+                        and subs.Height > 0
+
+                    left join Transactions r indexed by Transactions_Type_Last_String2_Height -- related content - possible reposts
+                        on r.String2 = c.String3
+                        and r.Type = 200
+                        and r.Last = 1
+
+                    left join Payload pr
+                        on pr.TxHash = r.Hash
+
+                    cross join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                        on ac.Type = 100
+                        and ac.Last = 1
+                        and ac.String1 = c.String1
+                        and ac.Height > 0
 
                     cross join Payload p
-                        on p.TxHash = u.Hash
+                        on p.TxHash = c.Hash
 
-                    cross join JuryVerdict jv indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
-                        on jv.VoteRowId = jb.VoteRowId
+                    cross join Payload pac
+                        on pac.TxHash = ac.Hash
 
-                    cross join Transactions f
-                        on f.ROWID = jv.FlagRowId
+                    left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                        on rac.Type = 0
+                        and rac.Id = ac.Id
+                        and rac.Last = 1
 
-                    cross join Transactions c
-                        on c.Hash = f.String2
+                    left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                        on na.Type = 100
+                        and na.Last = 1
+                        and na.String1 = subs.String1
 
-                    cross join Payload cp
-                        on cp.TxHash = c.Hash
+                    left join Payload pna
+                        on pna.TxHash = na.Hash
 
-                    left join Ratings rn indexed by Ratings_Type_Id_Last_Height
-                        on rn.Type = 0 and rn.Id = jb.AccountId and rn.Last = 1
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0
+                        and rna.Id = na.Id
+                        and rna.Last = 1
 
-                where
-                    v.Type = 420 and
-                    v.Height = ?
+                    where c.Type in (200,201,202,209,210)
+                        and c.Hash = c.String2 -- only orig
+                        and c.Height = ?
             )sql",
-            heightBinder
-        }},
+                heightBinder
+            }},
 
-        {
-            ShortTxType::JuryModerate, { R"sql(
-                select
-                    -- Notifier data
-                    u.String1,
-                    p.String1,
-                    p.String2,
-                    p.String3,
-                    ifnull(rn.Value, 0),
-                    -- type of shortForm
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryModerate) + R"sql('),
-                    -- Tx data
-                    f.Hash, -- Jury Tx
-                    f.Type,
-                    f.String1,
-                    f.Height,
-                    f.BlockNum,
-                    f.Time,
-                    null,
-                    f.String2, -- Tx of content
-                    f.Int1, -- Value
-                    null,
-                    null,
-                    null, -- Jury Tx
-                    null,
-                    null,
-                    -- Account data for tx creator
-                    null,
-                    null,
-                    null,
-                    null,
-                    -- Additional data
-                    null,
-                    -- Related Content
-                    c.Hash,
-                    c.Type,
-                    c.String1,
-                    c.Height,
-                    c.BlockNum,
-                    c.Time,
-                    c.String2,
-                    c.String3,
-                    null,
-                    null,
-                    null,
-                    (
-                        case
-                            when c.Type in (204,205) then cp.String1
-                            else cp.String2
-                        end
-                    ),
-                    c.String4,
-                    c.String5,
-                    -- Account data for related tx
-                    uc.String1,
-                    cpc.String1,
-                    cpc.String2,
-                    cpc.String3,
-                    ifnull(rnc.Value, 0)
+            {
+                ShortTxType::Boost, { R"sql(
+                    -- Boosts for my content
+                    select
+                        tContent.String1,
+                        pna.String1,
+                        pna.String2,
+                        pna.String3,
+                        ifnull(rna.Value,0),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
+                        tBoost.Hash,
+                        tboost.Type,
+                        tBoost.String1,
+                        tBoost.Height as Height,
+                        tBoost.BlockNum as BlockNum,
+                        tBoost.Time,
+                        tBoost.String2,
+                        null,
+                        null,
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'Number', Number,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs i
+                            where i.SpentTxHash = tBoost.Hash
+                        ),
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs o
+                            where o.TxHash = tBoost.Hash
+                                and o.TxHeight = tBoost.Height
+                            order by o.Number
+                        ),
+                        null,
+                        null,
+                        null,
+                        pac.String1,
+                        pac.String2,
+                        pac.String3,
+                        ifnull(rac.Value,0),
+                        null,
+                        tContent.Hash,
+                        tContent.Type,
+                        null,
+                        tContent.Height,
+                        tContent.BlockNum,
+                        tContent.Time,
+                        tContent.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pContent.String2
 
-                from
-                    Transactions f indexed by Transactions_Height_Type
+                    from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
 
-                    cross join JuryModerators jm
-                        on jm.FlagRowId = f.ROWID
+                    left join Transactions tContent indexed by Transactions_Type_Last_String2_Height
+                        on tContent.Type in (200,201,202,209,210)
+                        and tContent.Last in (0,1)
+                        and tContent.Height > 0
+                        and tContent.String2 = tBoost.String2
 
-                    cross join Transactions u indexed by Transactions_Id_Last
-                        on u.Id = jm.AccountId and u.Last = 1
+                    left join Payload pContent
+                        on pContent.TxHash = tContent.Hash
 
-                    cross join Payload p
-                        on p.TxHash = u.Hash
+                    left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                        on ac.String1 = tBoost.String1
+                        and ac.Type = 100
+                        and ac.Last = 1
+                        and ac.Height > 0
 
-                    left join Ratings rn indexed by Ratings_Type_Id_Last_Height
-                        on rn.Type = 0 and rn.Id = jm.AccountId and rn.Last = 1
+                    left join Payload pac
+                        on pac.TxHash = ac.Hash
 
-                    -- content
-                    cross join Transactions c
-                        on c.Hash = f.String2
+                    left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                        on rac.Type = 0
+                        and rac.Id = ac.Id
+                        and rac.Last = 1
 
-                    cross join Payload cp
-                        on cp.TxHash = c.Hash
+                    left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                        on na.Type = 100
+                        and na.Last = 1
+                        and na.String1 = tContent.String1
 
-                    -- content author
-                    cross join Transactions uc indexed by Transactions_Type_Last_String1_Height_Id
-                        on uc.Type = 100 and uc.Last = 1 and uc.String1 = c.String1 and uc.Height > 0
+                    left join Payload pna
+                        on pna.TxHash = na.Hash
 
-                    cross join Payload cpc
-                        on cpc.TxHash = uc.Hash
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0
+                        and rna.Id = na.Id
+                        and rna.Last = 1
 
-                    left join Ratings rnc indexed by Ratings_Type_Id_Last_Height
-                        on rnc.Type = 0 and rnc.Id = uc.Id and rnc.Last = 1
-
-                where
-                    f.Type = 410 and
-                    f.Height = (? - 10)
+                    where tBoost.Type in (208)
+                        and tBoost.Last in (0,1)
+                        and tBoost.Height = ?
             )sql",
-            heightBinder
-        }}
+                heightBinder
+            }},
+
+            {
+                ShortTxType::Repost, { R"sql(
+                    -- Reposts
+                    select
+                        p.String1,
+                        pna.String1,
+                        pna.String2,
+                        pna.String3,
+                        ifnull(rna.Value,0),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
+                        r.Hash,
+                        r.Type,
+                        r.String1,
+                        r.Height as Height,
+                        r.BlockNum as BlockNum,
+                        r.Time,
+                        r.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pr.String2,
+                        null,
+                        null,
+                        par.String1,
+                        par.String2,
+                        par.String3,
+                        ifnull(rar.Value,0),
+                        null,
+                        p.Hash,
+                        p.Type,
+                        null,
+                        p.Height,
+                        p.BlockNum,
+                        p.Time,
+                        p.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pp.String2
+
+                    from Transactions r
+
+                    join Transactions p indexed by Transactions_Type_Last_String2_Height
+                        on p.Type = 200
+                        and p.Last = 1
+                        and p.String2 = r.String3
+                        and p.Height > 0
+
+                    left join Payload pp
+                        on pp.TxHash = p.Hash
+
+                    left join Payload pr
+                        on pr.TxHash = r.Hash
+
+                    join Transactions ar indexed by Transactions_Type_Last_String1_Height_Id
+                        on ar.Type = 100
+                        and ar.Last = 1
+                        and ar.String1 = r.String1
+                        and ar.Height > 0
+
+                    left join Payload par
+                        on par.TxHash = ar.Hash
+
+                    left join Ratings rar indexed by Ratings_Type_Id_Last_Height
+                        on rar.Type = 0
+                        and rar.Id = ar.Id
+                        and rar.Last = 1
+
+                    left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                        on na.Type = 100
+                        and na.Last = 1
+                        and na.String1 = p.String1
+
+                    left join Payload pna
+                        on pna.TxHash = na.Hash
+
+                    left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                        on rna.Type = 0
+                        and rna.Id = na.Id
+                        and rna.Last = 1
+
+                    where r.Type = 200
+                        and r.Hash = r.String2 -- Only orig
+                        and r.Height = ?
+                        and r.String3 is not null
+                )sql",
+                heightBinder
+            }},
+
+            {
+                ShortTxType::JuryAssigned, { R"sql(
+                    select
+                        -- Notifier data
+                        u.String1,
+                        p.String1,
+                        p.String2,
+                        p.String3,
+                        ifnull(rn.Value, 0),
+                        -- type of shortForm
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql('),
+                        -- Flag data
+                        f.Hash, -- Jury Tx
+                        f.Type,
+                        null,
+                        f.Height,
+                        f.BlockNum,
+                        f.Time,
+                        null,
+                        null, -- Tx of content
+                        f.Int1,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Account data for tx creator
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Additional data
+                        null,
+                        -- Related Content
+                        c.Hash,
+                        c.Type,
+                        c.String1,
+                        c.Height,
+                        c.BlockNum,
+                        c.Time,
+                        c.String2,
+                        c.String3,
+                        null,
+                        null,
+                        null,
+                        (
+                            case
+                                when c.Type in (204,205) then cp.String1
+                                else cp.String2
+                            end
+                        ),
+                        c.String4,
+                        c.String5,
+                        -- Account data for related tx
+                        u.String1,
+                        p.String1,
+                        p.String2,
+                        p.String3,
+                        ifnull(rn.Value, 0)
+
+                    from
+                        Transactions f indexed by Transactions_Height_Type
+
+                        cross join Jury j
+                            on j.FlagRowId = f.ROWID
+
+                        cross join Transactions u indexed by Transactions_Id_Last
+                            on u.Id = j.AccountId and u.Last = 1
+
+                        cross join Payload p
+                            on p.TxHash = u.Hash
+
+                        cross join Transactions c
+                            on c.Hash = f.String2
+                        
+                        cross join Payload cp
+                            on cp.TxHash = c.Hash
+
+                        left join Ratings rn indexed by Ratings_Type_Id_Last_Height
+                            on rn.Type = 0 and rn.Id = j.AccountId and rn.Last = 1
+
+                    where
+                        f.Type = 410 and
+                        f.Height = ?
+                )sql",
+                heightBinder
+            }},
+
+            {
+                ShortTxType::JuryBanned, { R"sql(
+                    select
+                        -- Notifier data
+                        u.String1,
+                        p.String1,
+                        p.String2,
+                        p.String3,
+                        ifnull(rn.Value, 0),
+                        -- type of shortForm
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryBanned) + R"sql('),
+                        -- Tx data
+                        v.Hash,
+                        v.Type,
+                        null,
+                        v.Height,
+                        v.BlockNum,
+                        v.Time,
+                        null,
+                        v.String2, -- Jury Tx
+                        v.Int1, -- Value
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Account data for tx creator
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Additional data
+                        null,
+                        -- Related Content
+                        c.Hash,
+                        c.Type,
+                        c.String1,
+                        c.Height,
+                        c.BlockNum,
+                        c.Time,
+                        c.String2,
+                        c.String3,
+                        null,
+                        null,
+                        null,
+                        (
+                            case
+                                when c.Type in (204,205) then cp.String1
+                                else cp.String2
+                            end
+                        ),
+                        c.String4,
+                        c.String5,
+                        -- Account data for related tx
+                        u.String1,
+                        p.String1,
+                        p.String2,
+                        p.String3,
+                        ifnull(rn.Value, 0)
+
+                    from
+                        Transactions v indexed by Transactions_Height_Type
+
+                        cross join JuryBan jb
+                            on jb.VoteRowId = v.ROWID
+
+                        cross join Transactions u indexed by Transactions_Id_Last
+                            on u.Id = jb.AccountId and u.Last = 1
+
+                        cross join Payload p
+                            on p.TxHash = u.Hash
+
+                        cross join JuryVerdict jv indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
+                            on jv.VoteRowId = jb.VoteRowId
+
+                        cross join Transactions f
+                            on f.ROWID = jv.FlagRowId
+
+                        cross join Transactions c
+                            on c.Hash = f.String2
+
+                        cross join Payload cp
+                            on cp.TxHash = c.Hash
+
+                        left join Ratings rn indexed by Ratings_Type_Id_Last_Height
+                            on rn.Type = 0 and rn.Id = jb.AccountId and rn.Last = 1
+
+                    where
+                        v.Type = 420 and
+                        v.Height = ?
+                )sql",
+                heightBinder
+            }},
+
+            {
+                ShortTxType::JuryModerate, { R"sql(
+                    select
+                        -- Notifier data
+                        u.String1,
+                        p.String1,
+                        p.String2,
+                        p.String3,
+                        ifnull(rn.Value, 0),
+                        -- type of shortForm
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryModerate) + R"sql('),
+                        -- Tx data
+                        f.Hash, -- Jury Tx
+                        f.Type,
+                        null,
+                        f.Height,
+                        f.BlockNum,
+                        f.Time,
+                        null,
+                        null,
+                        f.Int1, -- Value
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Account data for tx creator
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Additional data
+                        null,
+                        -- Related Content
+                        c.Hash,
+                        c.Type,
+                        c.String1,
+                        c.Height,
+                        c.BlockNum,
+                        c.Time,
+                        c.String2,
+                        c.String3,
+                        null,
+                        null,
+                        null,
+                        (
+                            case
+                                when c.Type in (204,205) then cp.String1
+                                else cp.String2
+                            end
+                        ),
+                        c.String4,
+                        c.String5,
+                        -- Account data for related tx
+                        uc.String1,
+                        cpc.String1,
+                        cpc.String2,
+                        cpc.String3,
+                        ifnull(rnc.Value, 0)
+
+                    from
+                        Transactions f indexed by Transactions_Height_Type
+
+                        cross join JuryModerators jm
+                            on jm.FlagRowId = f.ROWID
+
+                        cross join Transactions u indexed by Transactions_Id_Last
+                            on u.Id = jm.AccountId and u.Last = 1
+
+                        cross join Payload p
+                            on p.TxHash = u.Hash
+
+                        left join Ratings rn indexed by Ratings_Type_Id_Last_Height
+                            on rn.Type = 0 and rn.Id = jm.AccountId and rn.Last = 1
+
+                        -- content
+                        cross join Transactions c
+                            on c.Hash = f.String2
+
+                        cross join Payload cp
+                            on cp.TxHash = c.Hash
+
+                        -- content author
+                        cross join Transactions uc indexed by Transactions_Type_Last_String1_Height_Id
+                            on uc.Type = 100 and uc.Last = 1 and uc.String1 = c.String1 and uc.Height > 0
+
+                        cross join Payload cpc
+                            on cpc.TxHash = uc.Hash
+
+                        left join Ratings rnc indexed by Ratings_Type_Id_Last_Height
+                            on rnc.Type = 0 and rnc.Id = uc.Id and rnc.Last = 1
+
+                    where
+                        f.Type = 410 and
+                        f.Height = (? - 10)
+                )sql",
+                heightBinder
+            }}
 
         };
 
@@ -6571,929 +6572,1099 @@ namespace PocketDb
         } queryParams {address, heightMax, heightMin, blockNumMax};
 
         static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<sqlite3_stmt*>&, QueryParams>> selects = {
-        {
-            ShortTxType::Money, { R"sql(
-                -- Incoming money
-                select distinct
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
-                    t.Hash,
-                    t.Type,
-                    null,
-                    o.TxHeight as Height,
-                    t.BlockNum as BlockNum,
-                    null,
-                    null,
-                    null,
-                    null,
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'Number', Number,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
+            {
+                ShortTxType::Money, { R"sql(
+                    -- Incoming money
+                    select distinct
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
+                        t.Hash,
+                        t.Type,
+                        null,
+                        o.TxHeight as Height,
+                        t.BlockNum as BlockNum,
+                        null,
+                        null,
+                        null,
+                        null,
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'Number', Number,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs i indexed by TxOutputs_SpentTxHash
+                            where i.SpentTxHash = t.Hash
+                        ),
+                        (
+                            select json_group_array(json_object(
+                                    'Value', oo.Value,
+                                    'AddressHash', oo.AddressHash,
+                                    'ScriptPubKey', oo.ScriptPubKey,
+                                    'Account', json_object(
+                                        'Lang', pna.String1,
+                                        'Name', pna.String2,
+                                        'Avatar', pna.String3,
+                                        'Rep', ifnull(rna.Value,0)
+                                    )
                                 ))
-                        from TxOutputs i indexed by TxOutputs_SpentTxHash
-                        where i.SpentTxHash = t.Hash
-                    ),
-                    (
-                        select json_group_array(json_object(
-                                'Value', oo.Value,
-                                'AddressHash', oo.AddressHash,
-                                'ScriptPubKey', oo.ScriptPubKey,
-                                'Account', json_object(
-                                    'Lang', pna.String1,
-                                    'Name', pna.String2,
-                                    'Avatar', pna.String3,
-                                    'Rep', ifnull(rna.Value,0)
-                                )
-                            ))
-                        from TxOutputs oo indexed by TxOutputs_TxHash_AddressHash_Value
-                        left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                            on na.Type = 100
-                            and na.Last = 1
-                            and na.String1 = oo.AddressHash
-                        left join Payload pna
-                            on pna.TxHash = na.Hash
-                        left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                            on rna.Type = 0
-                            and rna.Id = na.Id
-                            and rna.Last = 1
-                        where oo.TxHash = t.Hash
-                            and oo.TxHeight = t.Height
-                        order by oo.Number
-                    ),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_TxHash
-
-                join Transactions t indexed by Transactions_Hash_Type_Height
-                    on t.Hash = o.TxHash
-                    and t.Type in (1,2,3)
-                    and t.Height > ?
-                    and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
-
-                where o.AddressHash = ?
-                    and o.TxHeight > ?
-                    and o.TxHeight <= ?
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-            }
-        }},
-
-        {
-            ShortTxType::Referal, { R"sql(
-                -- referals
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
-                    t.Hash,
-                    t.Type,
-                    t.String1,
-                    t.Height as Height,
-                    t.BlockNum as BlockNum,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    p.String1,
-                    p.String2,
-                    p.String3,
-                    ifnull(r.Value,0),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions t indexed by Transactions_Type_Last_String2_Height
-
-                left join Transactions tLast indexed by Transactions_Type_Last_String1_Height_Id
-                    on tLast.Type = 100
-                    and tLast.Last = 1
-                    and tLast.String1 = t.String1
-
-                left join Payload p
-                    on p.TxHash = tLast.Hash
-
-                left join Ratings r indexed by Ratings_Type_Id_Last_Height
-                    on r.Type = 0
-                    and r.Id = tLast.Id
-                    and r.Last = 1
-
-                where t.Type = 100
-                    and t.Last in (0,1)
-                    and t.String2 = ?
-                    and t.Height > ?
-                    and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
-                    and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-            }
-        }},
-
-        {
-            ShortTxType::Answer, { R"sql(
-                -- Comment answers
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                    a.Hash,
-                    a.Type,
-                    a.String1,
-                    a.Height as Height,
-                    a.BlockNum as BlockNum,
-                    null,
-                    a.String2,
-                    a.String3,
-                    null,
-                    null,
-                    null,
-                    pa.String1,
-                    a.String4,
-                    a.String5,
-                    paa.String1,
-                    paa.String2,
-                    paa.String3,
-                    ifnull(ra.Value,0),
-                    null,
-                    c.Hash,
-                    c.Type,
-                    null,
-                    c.Height,
-                    c.BlockNum,
-                    null,
-                    c.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pc.String1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- My comments
-
-                left join Payload pc
-                    on pc.TxHash = c.Hash
-
-                join Transactions a indexed by Transactions_Type_Last_String5_Height -- Other answers
-                    on a.Type in (204, 205) and a.Last in (0,1)
-                    and a.Height > ?
-                    and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
-                    and a.String5 = c.String2
-                    and a.String1 != c.String1
-                    and a.Hash = a.String2
-
-                left join Transactions aLast indexed by Transactions_Type_Last_String2_Height
-                    on aLast.Type in (204,205)
-                    and aLast.Last = 1
-                    and aLast.String2 = a.Hash
-                    and aLast.Height > 0
-
-                left join Payload pa
-                    on pa.TxHash = aLast.Hash
-
-                left join Transactions aa indexed by Transactions_Type_Last_String1_Height_Id
-                    on aa.Type = 100
-                    and aa.Last = 1
-                    and aa.String1 = a.String1
-                    and aa.Height > 0
-
-                left join Payload paa
-                    on paa.TxHash = aa.Hash
-
-                left join Ratings ra indexed by Ratings_Type_Id_Last_Height
-                    on ra.Type = 0
-                    and ra.Id = aa.Id
-                    and ra.Last = 1
-
-                where c.Type in (204, 205)
-                    and c.Last = 1
-                    and c.String1 = ?
-                    and c.Height > 0
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
-            }
-        }},
-
-        {
-            ShortTxType::Comment, { R"sql(
-                -- Comments for my content
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
-                    c.Hash,
-                    c.Type,
-                    c.String1,
-                    c.Height as Height,
-                    c.BlockNum as BlockNum,
-                    null,
-                    c.String2,
-                    null,
-                    null,
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'Number', Number,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs i
-                        where i.SpentTxHash = c.Hash
-                    ),
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs o
-                        where o.TxHash = c.Hash
-                            and o.TxHeight = c.Height
-                        order by o.Number
-                    ),
-                    pc.String1,
-                    null,
-                    null,
-                    pac.String1,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    null,
-                    p.Hash,
-                    p.Type,
-                    null,
-                    p.Height,
-                    p.BlockNum,
-                    null,
-                    p.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pp.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
-
-                join Transactions c indexed by Transactions_Type_Last_String3_Height
-                    on c.Type = 204
-                    and c.Last in (0,1)
-                    and c.String3 = p.String2
-                    and c.String1 != p.String1
-                    and c.String4 is null
-                    and c.String5 is null
-                    and c.Height > ?
-                    and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
-
-                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
-                    on cLast.Type in (204,205)
-                    and cLast.Last = 1
-                    and cLast.String2 = c.Hash
-                    and cLast.Height > 0
-
-                left join Payload pc
-                    on pC.TxHash = cLast.Hash
-
-                join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                    on ac.String1 = c.String1
-                    and ac.Last = 1
-                    and ac.Type = 100
-                    and ac.Height > 0
-
-                left join Payload pac
-                    on pac.TxHash = ac.Hash
-
-                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                    on rac.Type = 0
-                    and rac.Id = ac.Id
-                    and rac.Last = 1
-
-                left join Payload pp
-                    on pp.TxHash = p.Hash
-
-                where p.Type in (200,201,202,209,210)
-                    and p.Last = 1
-                    and p.Height > 0
-                    and p.String1 = ?
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
-            }
-        }},
-
-        {
-            ShortTxType::Subscriber, { R"sql(
-                -- Subscribers
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
-                    subs.Hash,
-                    subs.Type,
-                    subs.String1,
-                    subs.Height as Height,
-                    subs.BlockNum as BlockNum,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pu.String1,
-                    pu.String2,
-                    pu.String3,
-                    ifnull(ru.Value,0),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions subs indexed by Transactions_Type_Last_String2_Height
-
-                join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    on u.Type in (100)
-                    and u.Last = 1
-                    and u.String1 = subs.String1
-                    and u.Height > 0
-
-                left join Payload pu
-                    on pu.TxHash = u.Hash
-
-                left join Ratings ru indexed by Ratings_Type_Id_Last_Height
-                    on ru.Type = 0
-                    and ru.Id = u.Id
-                    and ru.Last = 1
-
-                where subs.Type in (302, 303, 304) -- Ignoring unsubscribers?
-                    and subs.Last in (0,1)
-                    and subs.String2 = ?
-                    and subs.Height > ?
-                    and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-            }
-        }},
-
-        {
-            ShortTxType::CommentScore, { R"sql(
-                -- Comment scores
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
-                    s.Hash,
-                    s.Type,
-                    s.String1,
-                    s.Height as Height,
-                    s.BlockNum as BlockNum,
-                    null,
-                    null,
-                    null,
-                    s.Int1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pacs.String1,
-                    pacs.String2,
-                    pacs.String3,
-                    ifnull(racs.Value,0),
-                    null,
-                    c.Hash,
-                    c.Type,
-                    null,
-                    c.Height,
-                    c.BlockNum,
-                    null,
-                    c.String2,
-                    c.String3,
-                    null,
-                    null,
-                    null,
-                    ps.String1,
-                    c.String4,
-                    c.String5,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
-
-                join Transactions s indexed by Transactions_Type_Last_String2_Height
-                    on s.Type = 301
-                    and s.Last = 0
-                    and s.String2 = c.String2
-                    and s.Height > ?
-                    and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
-
-                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
-                    on cLast.Type in (204,205)
-                    and cLast.Last = 1
-                    and cLast.String2 = c.String2
-
-                left join Payload ps
-                    on ps.TxHash = cLast.Hash
-
-                join Transactions acs
-                    on acs.Type = 100
-                    and acs.Last = 1
-                    and acs.String1 = s.String1
-                    and acs.Height > 0
-
-                left join Payload pacs
-                    on pacs.TxHash = acs.Hash
-
-                left join Ratings racs indexed by Ratings_Type_Id_Last_Height
-                    on racs.Type = 0
-                    and racs.Id = acs.Id
-                    and racs.Last = 1
-
-                where c.Type in (204)
-                    and c.Last in (0,1)
-                    and c.Height > 0
-                    and c.String1 = ?
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
-            }
-        }},
-
-        {
-            ShortTxType::ContentScore, { R"sql(
-                -- Content scores
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
-                    s.Hash,
-                    s.Type,
-                    s.String1,
-                    s.Height as Height,
-                    s.BlockNum as BlockNum,
-                    null,
-                    null,
-                    null,
-                    s.Int1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pacs.String1,
-                    pacs.String2,
-                    pacs.String3,
-                    ifnull(racs.Value,0),
-                    null,
-                    c.Hash,
-                    c.Type,
-                    null,
-                    c.Height,
-                    c.BlockNum,
-                    null,
-                    c.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pc.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions c indexed by Transactions_Type_String1_Height_Time_Int1
-
-                join Transactions s indexed by Transactions_Type_Last_String2_Height
-                    on s.Type = 300
-                    and s.Last = 0
-                    and s.String2 = c.String2
-                    and s.Height > ?
-                    and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
-
-                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
-                    on cLast.Type = c.Type
-                    and cLast.Last = 1
-                    and cLast.String2 = c.String2
-
-                left join Payload pc
-                    on pc.TxHash = cLast.Hash
-
-                join Transactions acs
-                    on acs.Type = 100
-                    and acs.Last = 1
-                    and acs.String1 = s.String1
-                    and acs.Height > 0
-
-                left join Payload pacs
-                    on pacs.TxHash = acs.Hash
-
-                left join Ratings racs indexed by Ratings_Type_Id_Last_Height
-                    on racs.Type = 0
-                    and racs.Id = acs.Id
-                    and racs.Last = 1
-
-                where c.Type in (200,201,202,209,210)
-                    and c.Hash = c.String2 -- orig
-                    and c.Height > 0
-                    and c.String1 = ?
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
-            }
-        }},
-
-        {
-            ShortTxType::PrivateContent, { R"sql(
-                -- Content from private subscribers
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
-                    c.Hash,
-                    c.Type,
-                    c.String1,
-                    c.Height as Height,
-                    c.BlockNum as BlockNum,
-                    null,
-                    c.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    p.String2,
-                    null,
-                    null,
-                    pac.String1,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id -- Subscribers private
-
-                join Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- content for private subscribers
-                    on c.Type in (200,201,202,209,210)
-                    and c.Last in (0,1)
-                    and c.String1 = subs.String2
-                    and c.Hash = c.String2 -- orig
-                    and c.Height > ?
-                    and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
-
-                left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
-                    on cLast.Type = c.Type
-                    and cLast.Last = 1
-                    and cLast.String2 = c.String2
-
-                left join Payload p
-                    on p.TxHash = cLast.Hash
-
-                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                    on ac.Type = 100
-                    and ac.Last = 1
-                    and ac.String1 = c.String1
-                    and ac.Height > 0
-
-                left join Payload pac
-                    on pac.TxHash = ac.Hash
-
-                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                    on rac.Type = 0
-                    and rac.Id = ac.Id
-                    and rac.Last = 1
-                where subs.Type = 303
-                    and subs.Last = 1
-                    and subs.Height > 0
-                    and subs.String1 = ?
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
-            }
-        }},
-
-        {
-            ShortTxType::Boost, { R"sql(
-                -- Boosts for my content
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
-                    tBoost.Hash,
-                    tboost.Type,
-                    tBoost.String1,
-                    tBoost.Height as Height,
-                    tBoost.BlockNum as BlockNum,
-                    null,
-                    null,
-                    null,
-                    null,
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'Number', Number,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs i
-                        where i.SpentTxHash = tBoost.Hash
-                    ),
-                    (
-                        select json_group_array(json_object(
-                                'Value', Value,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs o
-                        where o.TxHash = tBoost.Hash
-                            and o.TxHeight = tBoost.Height
-                        order by o.Number
-                    ),
-                    null,
-                    null,
-                    null,
-                    pac.String1,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    null,
-                    tContent.Hash,
-                    tContent.Type,
-                    null,
-                    tContent.Height,
-                    tContent.BlockNum,
-                    null,
-                    tContent.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pContent.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
-
-                join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
-                    on tContent.Type in (200,201,202,209,210)
-                    and tContent.Last = 1
-                    and tContent.String1 = ?
-                    and tContent.String2 = tBoost.String2
-                    and tContent.Height > 0
-
-                left join Payload pContent
-                    on pContent.TxHash = tContent.Hash
-
-                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                    on ac.Type = 100
-                    and ac.Last = 1
-                    and ac.String1 = tBoost.String1
-                    and ac.Height > 0
-
-                left join Payload pac
-                    on pac.TxHash = ac.Hash
-
-                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                    on rac.Type = 0
-                    and rac.Id = ac.Id
-                    and rac.Last = 1
-
-                where tBoost.Type in (208)
-                    and tBoost.Last in (0,1)
-                    and tBoost.Height > ?
-                    and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementText(stmt, i++, queryParams.address);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-            }
-        }},
-
-        {
-            ShortTxType::Repost, { R"sql(
-                -- Reposts
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
-                    r.Hash,
-                    r.Type,
-                    r.String1,
-                    r.Height as Height,
-                    r.BlockNum as BlockNum,
-                    null,
-                    r.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pr.String2,
-                    null,
-                    null,
-                    par.String1,
-                    par.String2,
-                    par.String3,
-                    ifnull(rar.Value,0),
-                    null,
-                    p.Hash,
-                    p.Type,
-                    null,
-                    p.Height,
-                    p.BlockNum,
-                    null,
-                    p.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pp.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
-
-                left join Payload pp
-                    on pp.TxHash = p.Hash
-
-                join Transactions r indexed by Transactions_Type_Last_String3_Height
-                    on r.Type = 200
-                    and r.Last in (0,1)
-                    and r.Hash = r.String2
-                    and r.String3 = p.String2
-                    and r.Height > ?
-                    and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
-
-                left join Transactions rLast indexed by Transactions_Type_Last_String2_Height
-                    on rLast.Type = r.Type
-                    and rLast.Last = 1
-                    and rLast.String2 = r.String2
-
-                left join Payload pr
-                    on pr.TxHash = rLast.Hash
-
-                left join Transactions ar indexed by Transactions_Type_Last_String1_Height_Id
-                    on ar.Type = 100
-                    and ar.Last = 1
-                    and ar.String1 = r.String1
-                    and ar.Height > 0
-
-                left join Payload par
-                    on par.TxHash = ar.Hash
-
-                left join Ratings rar indexed by Ratings_Type_Id_Last_Height
-                    on rar.Type = 0
-                    and rar.Id = ar.Id
-                    and rar.Last = 1
-
-                where p.Type = 200
-                    and p.Last = 1
-                    and p.Height > 0
-                    and p.String1 = ?
-        )sql",
-            [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
-                TryBindStatementInt64(stmt, i++, queryParams.heightMin);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.heightMax);
-                TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
-                TryBindStatementText(stmt, i++, queryParams.address);
-            }
-        }}};
+                            from TxOutputs oo indexed by TxOutputs_TxHash_AddressHash_Value
+                            left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
+                                on na.Type = 100
+                                and na.Last = 1
+                                and na.String1 = oo.AddressHash
+                            left join Payload pna
+                                on pna.TxHash = na.Hash
+                            left join Ratings rna indexed by Ratings_Type_Id_Last_Height
+                                on rna.Type = 0
+                                and rna.Id = na.Id
+                                and rna.Last = 1
+                            where oo.TxHash = t.Hash
+                                and oo.TxHeight = t.Height
+                            order by oo.Number
+                        ),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_TxHash
+
+                    join Transactions t indexed by Transactions_Hash_Type_Height
+                        on t.Hash = o.TxHash
+                        and t.Type in (1,2,3)
+                        and t.Height > ?
+                        and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
+
+                    where o.AddressHash = ?
+                        and o.TxHeight > ?
+                        and o.TxHeight <= ?
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                }
+            }},
+
+            {
+                ShortTxType::Referal, { R"sql(
+                    -- referals
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
+                        t.Hash,
+                        t.Type,
+                        t.String1,
+                        t.Height as Height,
+                        t.BlockNum as BlockNum,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        p.String1,
+                        p.String2,
+                        p.String3,
+                        ifnull(r.Value,0),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from Transactions t indexed by Transactions_Type_Last_String2_Height
+
+                    left join Transactions tLast indexed by Transactions_Type_Last_String1_Height_Id
+                        on tLast.Type = 100
+                        and tLast.Last = 1
+                        and tLast.String1 = t.String1
+
+                    left join Payload p
+                        on p.TxHash = tLast.Hash
+
+                    left join Ratings r indexed by Ratings_Type_Id_Last_Height
+                        on r.Type = 0
+                        and r.Id = tLast.Id
+                        and r.Last = 1
+
+                    where t.Type = 100
+                        and t.Last in (0,1)
+                        and t.String2 = ?
+                        and t.Height > ?
+                        and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
+                        and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                }
+            }},
+
+            {
+                ShortTxType::Answer, { R"sql(
+                    -- Comment answers
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
+                        a.Hash,
+                        a.Type,
+                        a.String1,
+                        a.Height as Height,
+                        a.BlockNum as BlockNum,
+                        null,
+                        a.String2,
+                        a.String3,
+                        null,
+                        null,
+                        null,
+                        pa.String1,
+                        a.String4,
+                        a.String5,
+                        paa.String1,
+                        paa.String2,
+                        paa.String3,
+                        ifnull(ra.Value,0),
+                        null,
+                        c.Hash,
+                        c.Type,
+                        null,
+                        c.Height,
+                        c.BlockNum,
+                        null,
+                        c.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pc.String1,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- My comments
+
+                    left join Payload pc
+                        on pc.TxHash = c.Hash
+
+                    join Transactions a indexed by Transactions_Type_Last_String5_Height -- Other answers
+                        on a.Type in (204, 205) and a.Last in (0,1)
+                        and a.Height > ?
+                        and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
+                        and a.String5 = c.String2
+                        and a.String1 != c.String1
+                        and a.Hash = a.String2
+
+                    left join Transactions aLast indexed by Transactions_Type_Last_String2_Height
+                        on aLast.Type in (204,205)
+                        and aLast.Last = 1
+                        and aLast.String2 = a.Hash
+                        and aLast.Height > 0
+
+                    left join Payload pa
+                        on pa.TxHash = aLast.Hash
+
+                    left join Transactions aa indexed by Transactions_Type_Last_String1_Height_Id
+                        on aa.Type = 100
+                        and aa.Last = 1
+                        and aa.String1 = a.String1
+                        and aa.Height > 0
+
+                    left join Payload paa
+                        on paa.TxHash = aa.Hash
+
+                    left join Ratings ra indexed by Ratings_Type_Id_Last_Height
+                        on ra.Type = 0
+                        and ra.Id = aa.Id
+                        and ra.Last = 1
+
+                    where c.Type in (204, 205)
+                        and c.Last = 1
+                        and c.String1 = ?
+                        and c.Height > 0
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                }
+            }},
+
+            {
+                ShortTxType::Comment, { R"sql(
+                    -- Comments for my content
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
+                        c.Hash,
+                        c.Type,
+                        c.String1,
+                        c.Height as Height,
+                        c.BlockNum as BlockNum,
+                        null,
+                        c.String2,
+                        null,
+                        null,
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'Number', Number,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs i
+                            where i.SpentTxHash = c.Hash
+                        ),
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs o
+                            where o.TxHash = c.Hash
+                                and o.TxHeight = c.Height
+                            order by o.Number
+                        ),
+                        pc.String1,
+                        null,
+                        null,
+                        pac.String1,
+                        pac.String2,
+                        pac.String3,
+                        ifnull(rac.Value,0),
+                        null,
+                        p.Hash,
+                        p.Type,
+                        null,
+                        p.Height,
+                        p.BlockNum,
+                        null,
+                        p.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pp.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
+
+                    join Transactions c indexed by Transactions_Type_Last_String3_Height
+                        on c.Type = 204
+                        and c.Last in (0,1)
+                        and c.String3 = p.String2
+                        and c.String1 != p.String1
+                        and c.String4 is null
+                        and c.String5 is null
+                        and c.Height > ?
+                        and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
+
+                    left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                        on cLast.Type in (204,205)
+                        and cLast.Last = 1
+                        and cLast.String2 = c.Hash
+                        and cLast.Height > 0
+
+                    left join Payload pc
+                        on pC.TxHash = cLast.Hash
+
+                    join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                        on ac.String1 = c.String1
+                        and ac.Last = 1
+                        and ac.Type = 100
+                        and ac.Height > 0
+
+                    left join Payload pac
+                        on pac.TxHash = ac.Hash
+
+                    left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                        on rac.Type = 0
+                        and rac.Id = ac.Id
+                        and rac.Last = 1
+
+                    left join Payload pp
+                        on pp.TxHash = p.Hash
+
+                    where p.Type in (200,201,202,209,210)
+                        and p.Last = 1
+                        and p.Height > 0
+                        and p.String1 = ?
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                }
+            }},
+
+            {
+                ShortTxType::Subscriber, { R"sql(
+                    -- Subscribers
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
+                        subs.Hash,
+                        subs.Type,
+                        subs.String1,
+                        subs.Height as Height,
+                        subs.BlockNum as BlockNum,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pu.String1,
+                        pu.String2,
+                        pu.String3,
+                        ifnull(ru.Value,0),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
+
+                    join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                        on u.Type in (100)
+                        and u.Last = 1
+                        and u.String1 = subs.String1
+                        and u.Height > 0
+
+                    left join Payload pu
+                        on pu.TxHash = u.Hash
+
+                    left join Ratings ru indexed by Ratings_Type_Id_Last_Height
+                        on ru.Type = 0
+                        and ru.Id = u.Id
+                        and ru.Last = 1
+
+                    where subs.Type in (302, 303, 304) -- Ignoring unsubscribers?
+                        and subs.Last in (0,1)
+                        and subs.String2 = ?
+                        and subs.Height > ?
+                        and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                }
+            }},
+
+            {
+                ShortTxType::CommentScore, { R"sql(
+                    -- Comment scores
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
+                        s.Hash,
+                        s.Type,
+                        s.String1,
+                        s.Height as Height,
+                        s.BlockNum as BlockNum,
+                        null,
+                        null,
+                        null,
+                        s.Int1,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pacs.String1,
+                        pacs.String2,
+                        pacs.String3,
+                        ifnull(racs.Value,0),
+                        null,
+                        c.Hash,
+                        c.Type,
+                        null,
+                        c.Height,
+                        c.BlockNum,
+                        null,
+                        c.String2,
+                        c.String3,
+                        null,
+                        null,
+                        null,
+                        ps.String1,
+                        c.String4,
+                        c.String5,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+
+                    join Transactions s indexed by Transactions_Type_Last_String2_Height
+                        on s.Type = 301
+                        and s.Last = 0
+                        and s.String2 = c.String2
+                        and s.Height > ?
+                        and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
+
+                    left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                        on cLast.Type in (204,205)
+                        and cLast.Last = 1
+                        and cLast.String2 = c.String2
+
+                    left join Payload ps
+                        on ps.TxHash = cLast.Hash
+
+                    join Transactions acs
+                        on acs.Type = 100
+                        and acs.Last = 1
+                        and acs.String1 = s.String1
+                        and acs.Height > 0
+
+                    left join Payload pacs
+                        on pacs.TxHash = acs.Hash
+
+                    left join Ratings racs indexed by Ratings_Type_Id_Last_Height
+                        on racs.Type = 0
+                        and racs.Id = acs.Id
+                        and racs.Last = 1
+
+                    where c.Type in (204)
+                        and c.Last in (0,1)
+                        and c.Height > 0
+                        and c.String1 = ?
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                }
+            }},
+
+            {
+                ShortTxType::ContentScore, { R"sql(
+                    -- Content scores
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
+                        s.Hash,
+                        s.Type,
+                        s.String1,
+                        s.Height as Height,
+                        s.BlockNum as BlockNum,
+                        null,
+                        null,
+                        null,
+                        s.Int1,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pacs.String1,
+                        pacs.String2,
+                        pacs.String3,
+                        ifnull(racs.Value,0),
+                        null,
+                        c.Hash,
+                        c.Type,
+                        null,
+                        c.Height,
+                        c.BlockNum,
+                        null,
+                        c.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pc.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from Transactions c indexed by Transactions_Type_String1_Height_Time_Int1
+
+                    join Transactions s indexed by Transactions_Type_Last_String2_Height
+                        on s.Type = 300
+                        and s.Last = 0
+                        and s.String2 = c.String2
+                        and s.Height > ?
+                        and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
+
+                    left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                        on cLast.Type = c.Type
+                        and cLast.Last = 1
+                        and cLast.String2 = c.String2
+
+                    left join Payload pc
+                        on pc.TxHash = cLast.Hash
+
+                    join Transactions acs
+                        on acs.Type = 100
+                        and acs.Last = 1
+                        and acs.String1 = s.String1
+                        and acs.Height > 0
+
+                    left join Payload pacs
+                        on pacs.TxHash = acs.Hash
+
+                    left join Ratings racs indexed by Ratings_Type_Id_Last_Height
+                        on racs.Type = 0
+                        and racs.Id = acs.Id
+                        and racs.Last = 1
+
+                    where c.Type in (200,201,202,209,210)
+                        and c.Hash = c.String2 -- orig
+                        and c.Height > 0
+                        and c.String1 = ?
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                }
+            }},
+
+            {
+                ShortTxType::PrivateContent, { R"sql(
+                    -- Content from private subscribers
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
+                        c.Hash,
+                        c.Type,
+                        c.String1,
+                        c.Height as Height,
+                        c.BlockNum as BlockNum,
+                        null,
+                        c.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        p.String2,
+                        null,
+                        null,
+                        pac.String1,
+                        pac.String2,
+                        pac.String3,
+                        ifnull(rac.Value,0),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id -- Subscribers private
+
+                    join Transactions c indexed by Transactions_Type_Last_String1_Height_Id -- content for private subscribers
+                        on c.Type in (200,201,202,209,210)
+                        and c.Last in (0,1)
+                        and c.String1 = subs.String2
+                        and c.Hash = c.String2 -- orig
+                        and c.Height > ?
+                        and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
+
+                    left join Transactions cLast indexed by Transactions_Type_Last_String2_Height
+                        on cLast.Type = c.Type
+                        and cLast.Last = 1
+                        and cLast.String2 = c.String2
+
+                    left join Payload p
+                        on p.TxHash = cLast.Hash
+
+                    left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                        on ac.Type = 100
+                        and ac.Last = 1
+                        and ac.String1 = c.String1
+                        and ac.Height > 0
+
+                    left join Payload pac
+                        on pac.TxHash = ac.Hash
+
+                    left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                        on rac.Type = 0
+                        and rac.Id = ac.Id
+                        and rac.Last = 1
+                    where subs.Type = 303
+                        and subs.Last = 1
+                        and subs.Height > 0
+                        and subs.String1 = ?
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                }
+            }},
+
+            {
+                ShortTxType::Boost, { R"sql(
+                    -- Boosts for my content
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
+                        tBoost.Hash,
+                        tboost.Type,
+                        tBoost.String1,
+                        tBoost.Height as Height,
+                        tBoost.BlockNum as BlockNum,
+                        null,
+                        null,
+                        null,
+                        null,
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'Number', Number,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs i
+                            where i.SpentTxHash = tBoost.Hash
+                        ),
+                        (
+                            select json_group_array(json_object(
+                                    'Value', Value,
+                                    'AddressHash', AddressHash,
+                                    'ScriptPubKey', ScriptPubKey
+                                    ))
+                            from TxOutputs o
+                            where o.TxHash = tBoost.Hash
+                                and o.TxHeight = tBoost.Height
+                            order by o.Number
+                        ),
+                        null,
+                        null,
+                        null,
+                        pac.String1,
+                        pac.String2,
+                        pac.String3,
+                        ifnull(rac.Value,0),
+                        null,
+                        tContent.Hash,
+                        tContent.Type,
+                        null,
+                        tContent.Height,
+                        tContent.BlockNum,
+                        null,
+                        tContent.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pContent.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
+
+                    join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
+                        on tContent.Type in (200,201,202,209,210)
+                        and tContent.Last = 1
+                        and tContent.String1 = ?
+                        and tContent.String2 = tBoost.String2
+                        and tContent.Height > 0
+
+                    left join Payload pContent
+                        on pContent.TxHash = tContent.Hash
+
+                    left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                        on ac.Type = 100
+                        and ac.Last = 1
+                        and ac.String1 = tBoost.String1
+                        and ac.Height > 0
+
+                    left join Payload pac
+                        on pac.TxHash = ac.Hash
+
+                    left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                        on rac.Type = 0
+                        and rac.Id = ac.Id
+                        and rac.Last = 1
+
+                    where tBoost.Type in (208)
+                        and tBoost.Last in (0,1)
+                        and tBoost.Height > ?
+                        and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                }
+            }},
+
+            {
+                ShortTxType::Repost, { R"sql(
+                    -- Reposts
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
+                        r.Hash,
+                        r.Type,
+                        r.String1,
+                        r.Height as Height,
+                        r.BlockNum as BlockNum,
+                        null,
+                        r.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pr.String2,
+                        null,
+                        null,
+                        par.String1,
+                        par.String2,
+                        par.String3,
+                        ifnull(rar.Value,0),
+                        null,
+                        p.Hash,
+                        p.Type,
+                        null,
+                        p.Height,
+                        p.BlockNum,
+                        null,
+                        p.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        pp.String2,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
+
+                    left join Payload pp
+                        on pp.TxHash = p.Hash
+
+                    join Transactions r indexed by Transactions_Type_Last_String3_Height
+                        on r.Type = 200
+                        and r.Last in (0,1)
+                        and r.Hash = r.String2
+                        and r.String3 = p.String2
+                        and r.Height > ?
+                        and (r.Height < ? or (r.Height = ? and r.BlockNum < ?))
+
+                    left join Transactions rLast indexed by Transactions_Type_Last_String2_Height
+                        on rLast.Type = r.Type
+                        and rLast.Last = 1
+                        and rLast.String2 = r.String2
+
+                    left join Payload pr
+                        on pr.TxHash = rLast.Hash
+
+                    left join Transactions ar indexed by Transactions_Type_Last_String1_Height_Id
+                        on ar.Type = 100
+                        and ar.Last = 1
+                        and ar.String1 = r.String1
+                        and ar.Height > 0
+
+                    left join Payload par
+                        on par.TxHash = ar.Hash
+
+                    left join Ratings rar indexed by Ratings_Type_Id_Last_Height
+                        on rar.Type = 0
+                        and rar.Id = ar.Id
+                        and rar.Last = 1
+
+                    where p.Type = 200
+                        and p.Last = 1
+                        and p.Height > 0
+                        and p.String1 = ?
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                }
+            }},
+
+            {
+                ShortTxType::JuryAssigned, { R"sql(
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql('),
+                        -- Flag data
+                        f.Hash, -- Jury Tx
+                        f.Type,
+                        null,
+                        f.Height as Height,
+                        f.BlockNum as BlockNum,
+                        f.Time,
+                        null,
+                        null,
+                        f.Int1,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Account data for tx creator
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Additional data
+                        null,
+                        -- Related Content
+                        c.Hash,
+                        c.Type,
+                        c.String1,
+                        c.Height,
+                        c.BlockNum,
+                        c.Time,
+                        c.String2,
+                        c.String3,
+                        null,
+                        null,
+                        null,
+                        (
+                            case
+                                when c.Type in (204,205) then cp.String1
+                                else cp.String2
+                            end
+                        ),
+                        c.String4,
+                        c.String5
+
+                    from
+                        Transactions f indexed by Transactions_Type_Last_String3_Height
+
+                        cross join Jury j
+                            on j.FlagRowId = f.ROWID
+
+                        cross join Transactions c
+                            on c.Hash = f.String2
+
+                        cross join Payload cp
+                            on cp.TxHash = c.Hash
+
+                    where
+                        f.Type = 410 and
+                        f.Last = 0 and
+                        f.String3 = ? and
+                        f.Height > ? and
+                        (f.Height < ? or (f.Height = ? and f.BlockNum < ?))
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                }
+            }},
+
+            {
+                ShortTxType::JuryModerate, { R"sql(
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryModerate) + R"sql('),
+                        -- Tx data
+                        f.Hash, -- Jury Tx
+                        f.Type,
+                        null,
+                        f.Height as Height,
+                        f.BlockNum as BlockNum,
+                        f.Time,
+                        null,
+                        null, -- Tx of content
+                        f.Int1, -- Value
+                        null,
+                        null,
+                        null, -- Jury Tx
+                        null,
+                        null,
+                        -- Account data for tx creator
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Additional data
+                        null,
+                        -- Related Content
+                        c.Hash,
+                        c.Type,
+                        c.String1,
+                        c.Height,
+                        c.BlockNum,
+                        c.Time,
+                        c.String2,
+                        c.String3,
+                        null,
+                        null,
+                        null,
+                        (
+                            case
+                                when c.Type in (204,205) then cp.String1
+                                else cp.String2
+                            end
+                        ),
+                        c.String4,
+                        c.String5,
+                        -- Account data for related tx
+                        uc.String1,
+                        cpc.String1,
+                        cpc.String2,
+                        cpc.String3,
+                        ifnull(rnc.Value, 0)
+
+                    from
+                        vLastAccountTx acc
+
+                        cross join JuryModerators jm indexed by JuryModerators_AccountId_FlagRowId
+                            on jm.AccountId = acc.Id
+
+                        cross join Transactions f indexed by Transactions_Height_Type
+                            on f.ROWID = jm.FlagRowId
+
+                        -- content
+                        cross join Transactions c
+                            on c.Hash = f.String2
+
+                        cross join Payload cp
+                            on cp.TxHash = c.Hash
+
+                        -- content author
+                        cross join Transactions uc indexed by Transactions_Type_Last_String1_Height_Id
+                            on uc.Type = 100 and uc.Last = 1 and uc.String1 = c.String1 and uc.Height > 0
+
+                        cross join Payload cpc
+                            on cpc.TxHash = uc.Hash
+
+                        left join Ratings rnc indexed by Ratings_Type_Id_Last_Height
+                            on rnc.Type = 0 and rnc.Id = uc.Id and rnc.Last = 1
+
+                    where
+                        acc.String1 = ? and
+                        f.Height > ? and
+                        (f.Height < ? or (f.Height = ? and f.BlockNum < ?))
+                )sql",
+                [this](std::shared_ptr<sqlite3_stmt*>& stmt, int& i, QueryParams const& queryParams){
+                    TryBindStatementText(stmt, i++, queryParams.address);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMin);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.heightMax);
+                    TryBindStatementInt64(stmt, i++, queryParams.blockNumMax);
+                }
+            }}
+
+        };
 
         static const auto footer = R"sql(
 
