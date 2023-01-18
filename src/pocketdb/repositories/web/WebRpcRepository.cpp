@@ -6486,7 +6486,13 @@ namespace PocketDb
                         end
                     ),
                     c.String4,
-                    c.String5
+                    c.String5,
+                    -- Account data for related tx
+                    uc.String1,
+                    cpc.String1,
+                    cpc.String2,
+                    cpc.String3,
+                    ifnull(rnc.Value, 0)
 
                 from
                     Transactions f indexed by Transactions_Height_Type
@@ -6500,18 +6506,29 @@ namespace PocketDb
                     cross join Payload p
                         on p.TxHash = u.Hash
 
+                    left join Ratings rn indexed by Ratings_Type_Id_Last_Height
+                        on rn.Type = 0 and rn.Id = jm.AccountId and rn.Last = 1
+
+                    -- content
                     cross join Transactions c
                         on c.Hash = f.String2
 
                     cross join Payload cp
                         on cp.TxHash = c.Hash
 
-                    left join Ratings rn indexed by Ratings_Type_Id_Last_Height
-                        on rn.Type = 0 and rn.Id = jm.AccountId and rn.Last = 1
+                    -- content author
+                    cross join Transactions uc indexed by Transactions_Type_Last_String1_Height_Id
+                        on uc.Type = 100 and uc.Last = 1 and uc.String1 = c.String1 and uc.Height > 0
+
+                    cross join Payload cpc
+                        on cpc.TxHash = uc.Hash
+
+                    left join Ratings rnc indexed by Ratings_Type_Id_Last_Height
+                        on rnc.Type = 0 and rnc.Id = uc.Id and rnc.Last = 1
 
                 where
                     f.Type = 410 and
-                    f.Height = ?
+                    f.Height = (? - 10)
             )sql",
             heightBinder
         }}
