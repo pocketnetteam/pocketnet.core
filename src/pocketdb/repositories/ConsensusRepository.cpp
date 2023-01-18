@@ -1912,8 +1912,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -1939,8 +1938,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -1966,8 +1964,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -1993,8 +1990,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2020,8 +2016,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2047,8 +2042,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2074,8 +2068,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2101,8 +2094,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2128,8 +2120,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2155,8 +2146,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2182,8 +2172,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2209,8 +2198,7 @@ namespace PocketDb
             stmt->Bind(address, rootTxHash);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2238,8 +2226,7 @@ namespace PocketDb
             stmt->Bind(address, height);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });
@@ -2266,8 +2253,7 @@ namespace PocketDb
             stmt->Bind(address, addressTo);
 
             if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
+                stmt->Collect(result);
 
             stmt->Reset();
         });

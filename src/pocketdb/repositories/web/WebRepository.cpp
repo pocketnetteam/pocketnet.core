@@ -63,7 +63,6 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Insert new tags and ignore exists with unique index Lang+Value
-            int i = 1;
             auto tagsStmt = SetupSqlStatement(R"sql(
                 insert or ignore
                 into web.Tags (Lang, Value)
@@ -71,13 +70,11 @@ namespace PocketDb
             )sql");
             for (const auto& tag: contentTags)
             {
-                tagsStmt->TryBindStatementText(i++, tag.Lang);
-                tagsStmt->TryBindStatementText(i++, tag.Value);
+                tagsStmt->Bind(tag.Lang, tag.Value);
             }
             TryStepStatement(tagsStmt);
 
             // Delete exists mappings ContentId <-> TagId
-            i = 1;
             auto idsStmt = SetupSqlStatement(R"sql(
                 delete from web.TagsMap
                 where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )

@@ -29,7 +29,7 @@ namespace PocketHelpers
          * @param 2 - current column index
          * @param 3 - query parameters to be binded to stmt
          */
-        std::function<void (STMT, int&, QueryParams const&)> binding;
+        std::function<void (STMT, QueryParams const&)> binding;
     };
 
     struct NotifierEntry

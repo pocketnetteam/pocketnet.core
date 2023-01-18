@@ -82,14 +82,13 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
             if (request.TopBlock > 0)
-                stmt->TryBindStatementInt(i++, request.TopBlock);
+                stmt->Bind(request.TopBlock);
             if (!request.Address.empty())
-                stmt->TryBindStatementText(i++, request.Address);
-            stmt->TryBindStatementText(i++, keyword);
-            stmt->TryBindStatementInt(i++, request.PageSize);
-            stmt->TryBindStatementInt(i++, request.PageStart);
+                stmt->Bind(request.Address);
+            stmt->Bind(keyword);
+            stmt->Bind(request.PageSize);
+            stmt->Bind(request.PageStart);
 
             while (stmt->Step() == SQLITE_ROW)
             {
@@ -137,16 +136,14 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
             if (request.TopBlock > 0)
-                stmt->TryBindStatementInt(i++, request.TopBlock);
-            for (const auto& fieldtype: request.FieldTypes)
-                stmt->TryBindStatementInt(i++, fieldtype);
-            stmt->TryBindStatementText(i++, keyword);
-            stmt->TryBindStatementInt(i++, request.PageSize);
-            stmt->TryBindStatementInt(i++, request.PageStart);
+                stmt->Bind(request.TopBlock);
+            stmt->Bind(request.FieldTypes);
+            stmt->Bind(keyword);
+            stmt->Bind(request.PageSize);
+            stmt->Bind(request.PageStart);
 
             while (stmt->Step() == SQLITE_ROW)
             {
@@ -322,32 +319,30 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
+            stmt->Bind(contentTypes);
 
-            stmt->TryBindStatementText(i++, address);
+            stmt->Bind(address);
             if (!addressExclude.empty())
-                stmt->TryBindStatementText(i++, addressExclude);
+                stmt->Bind(addressExclude);
 
             if (!lang.empty())
-                stmt->TryBindStatementText(i++, lang);
+                stmt->Bind(lang);
 
-            stmt->TryBindStatementInt(i++, nHeight-depth);
+            stmt->Bind(nHeight-depth);
 
-            stmt->TryBindStatementInt(i++, minReputation);
-            stmt->TryBindStatementText(i++, address);
-            stmt->TryBindStatementInt(i++, limitSubscriptions);
+            stmt->Bind(minReputation);
+            stmt->Bind(address);
+            stmt->Bind(limitSubscriptions);
 
-            stmt->TryBindStatementInt(i++, minReputation);
-            stmt->TryBindStatementText(i++, address);
-            stmt->TryBindStatementInt(i++, limitSubscriptions);
+            stmt->Bind(minReputation);
+            stmt->Bind(address);
+            stmt->Bind(limitSubscriptions);
 
-            stmt->TryBindStatementInt(i++, limitSubscriptionsTotal);
+            stmt->Bind(limitSubscriptionsTotal);
 
-            stmt->TryBindStatementInt(i++, cntRates);
+            stmt->Bind(cntRates);
 
-            stmt->TryBindStatementInt(i++, cntOut);
+            stmt->Bind(cntOut);
 
             while (stmt->Step() == SQLITE_ROW)
             {
@@ -462,32 +457,26 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
+            stmt->Bind(contentTypes, contentAddress);
 
-            stmt->TryBindStatementText(i++, contentAddress);
             if (!address.empty())
-                stmt->TryBindStatementText(i++, address);
+                stmt->Bind(address);
 
             if (!lang.empty())
-                stmt->TryBindStatementText(i++, lang);
+                stmt->Bind(lang);
 
-            stmt->TryBindStatementInt(i++, nHeight-depth);
-
-            stmt->TryBindStatementInt(i++, minReputation);
-            stmt->TryBindStatementText(i++, contentAddress);
-            stmt->TryBindStatementInt(i++, limitSubscriptions);
-
-            stmt->TryBindStatementInt(i++, minReputation);
-            stmt->TryBindStatementText(i++, contentAddress);
-            stmt->TryBindStatementInt(i++, limitSubscriptions);
-
-            stmt->TryBindStatementInt(i++, limitSubscriptionsTotal);
-
-            stmt->TryBindStatementInt(i++, cntRates);
-
-            stmt->TryBindStatementInt(i++, cntOut);
+            stmt->Bind(
+                    nHeight-depth,
+                    minReputation,
+                    contentAddress,
+                    limitSubscriptions,
+                    minReputation,
+                    contentAddress,
+                    limitSubscriptions,
+                    limitSubscriptionsTotal,
+                    cntRates,
+                    cntOut
+            );
 
             while (stmt->Step() == SQLITE_ROW)
             {
@@ -529,17 +518,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-
             if (!lang.empty())
-                stmt->TryBindStatementText(i++, lang);
+                stmt->Bind(lang);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
-
-            stmt->TryBindStatementText(i++, contentAddress);
-
-            stmt->TryBindStatementInt(i++, cntOut);
+            stmt->Bind(contentTypes, contentAddress, cntOut);
 
             while (stmt->Reset() == SQLITE_ROW)
             {
@@ -600,22 +582,13 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            int i = 1;
-
             if (!lang.empty())
-                stmt->TryBindStatementText(i++, lang);
+                stmt->Bind(lang);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
-
-            stmt->TryBindStatementText(i++, address);
-
-            stmt->TryBindStatementInt(i++, cntOut);
-
-            stmt->TryBindStatementText(i++, address);
+            stmt->Bind(contentTypes, address, cntOut, address);
 
             if (rest)
-                stmt->TryBindStatementInt(i++, cntOut);
+                stmt->Bind(cntOut);
 
             while (stmt->Step() == SQLITE_ROW)
             {

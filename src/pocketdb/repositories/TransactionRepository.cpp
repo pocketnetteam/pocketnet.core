@@ -819,10 +819,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
-            for (const auto& hash: txHashes) {
-                stmt->TryBindStatementText(i++, hash);
-            }
+            stmt->Bind(txHashes);
 
             while (stmt->Step() == SQLITE_ROW) {
                 // TODO (losty-db): error
@@ -935,11 +932,7 @@ namespace PocketDb
             )sql" + join(vector<string>(strings.size(), "(?)"), ",") + R"sql( ;
         )sql");
 
-        int i = 1;
-        for (const auto& string: strings)
-        {
-            stmt->TryBindStatementText(i++, string);
-        }
+        stmt->Bind(strings);
         TryStepStatement(stmt);
     }
 

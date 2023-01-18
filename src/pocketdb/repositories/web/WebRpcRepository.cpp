@@ -1038,11 +1038,9 @@ namespace PocketDb
         TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
-            stmt->TryBindStatementText(i++, addressHash);
-            stmt->TryBindStatementText(i++, postHash);
+            stmt->Bind(addressHash,postHash);
             if (!parentHash.empty())
-                stmt->TryBindStatementText(i++, parentHash);
+                stmt->Bind(parentHash);
 
             while (stmt->Step() == SQLITE_ROW)
             {
@@ -1732,50 +1730,37 @@ namespace PocketDb
 
         TryTransactionStep(func, [&]()
         {
-            int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
+            if (!lang.empty()) stmt->Bind(lang);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
-
-            stmt->TryBindStatementInt(i++, topHeight - depth);
-            stmt->TryBindStatementInt(i++, topHeight);
-
-            stmt->TryBindStatementInt(i++, badReputationLimit);
+            stmt->Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
 
             if (!tags.empty())
             {
-                for (const auto& tag: tags)
-                    stmt->TryBindStatementText(i++, tag);
+                stmt->Bind(tags);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            if (!adrsExcluded.empty())
-                for (const auto& exadr: adrsExcluded)
-                    stmt->TryBindStatementText(i++, exadr);
+            stmt->Bind(adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                for (const auto& extag: tagsExcluded)
-                    stmt->TryBindStatementText(i++, extag);
+                stmt->Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            stmt->TryBindStatementInt(i++, countOut);
+            stmt->Bind(countOut);
 
             // ---------------------------------------------
             while (stmt->Step() == SQLITE_ROW)
             {
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.push_back(value);
             }
-
-            stmt->Reset();
         });
 
         // Complete!
@@ -3016,49 +3001,34 @@ namespace PocketDb
 
         TryTransactionStep(func, [&]()
         {
-            int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
+            if (!lang.empty()) stmt->Bind(lang);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
-
-            stmt->TryBindStatementInt(i++, topHeight - depth);
-            stmt->TryBindStatementInt(i++, topHeight);
-
-            stmt->TryBindStatementInt(i++, badReputationLimit);
+            stmt->Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
 
             if (topContentId > 0)
-                stmt->TryBindStatementInt64(i++, topContentId);
+                stmt->Bind(topContentId);
 
             if (!tags.empty())
             {
-                for (const auto& tag: tags)
-                    stmt->TryBindStatementText(i++, tag);
+                stmt->Bind(tags);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            if (!txidsExcluded.empty())
-                for (const auto& extxid: txidsExcluded)
-                    stmt->TryBindStatementText(i++, extxid);
-
-            if (!adrsExcluded.empty())
-                for (const auto& exadr: adrsExcluded)
-                    stmt->TryBindStatementText(i++, exadr);
+            stmt->Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                for (const auto& extag: tagsExcluded)
-                    stmt->TryBindStatementText(i++, extag);
+                stmt->Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            stmt->TryBindStatementInt(i++, countOut);
+            stmt->Bind(countOut);
 
             // ---------------------------------------------
 
@@ -3181,49 +3151,34 @@ namespace PocketDb
 
         TryTransactionStep(func, [&]()
         {
-            int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
+            if (!lang.empty()) stmt->Bind(lang);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
-
-            stmt->TryBindStatementInt(i++, topHeight - depth);
-            stmt->TryBindStatementInt(i++, topHeight);
-
-            stmt->TryBindStatementInt(i++, badReputationLimit);
+            stmt->Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
 
             // if (topContentId > 0)
             //     stmt->TryBindStatementInt64(i++, topContentId);
 
             if (!tags.empty())
             {
-                for (const auto& tag: tags)
-                    stmt->TryBindStatementText(i++, tag);
+                stmt->Bind(tags);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            if (!txidsExcluded.empty())
-                for (const auto& extxid: txidsExcluded)
-                    stmt->TryBindStatementText(i++, extxid);
-
-            if (!adrsExcluded.empty())
-                for (const auto& exadr: adrsExcluded)
-                    stmt->TryBindStatementText(i++, exadr);
+            stmt->Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                for (const auto& extag: tagsExcluded)
-                    stmt->TryBindStatementText(i++, extag);
+                stmt->Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            stmt->TryBindStatementInt(i++, countOut);
+            stmt->Bind(countOut);
 
             // ---------------------------------------------
 
@@ -3376,53 +3331,37 @@ namespace PocketDb
         vector<int64_t> ids;
         TryTransactionStep(func, [&]()
         {
-            int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
+            if (!lang.empty()) stmt->Bind(lang);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
-
-            stmt->TryBindStatementInt(i++, topHeight);
-            
-            stmt->TryBindStatementText(i++, addressFeed);
+            stmt->Bind(contentTypes, topHeight, addressFeed);
 
             if (topContentId > 0)
-                stmt->TryBindStatementInt64(i++, topContentId);
+                stmt->Bind(topContentId);
 
             if (!tags.empty())
             {
-                for (const auto& tag: tags)
-                    stmt->TryBindStatementText(i++, tag);
+                stmt->Bind(tags);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            if (!txidsExcluded.empty())
-                for (const auto& extxid: txidsExcluded)
-                    stmt->TryBindStatementText(i++, extxid);
-
-            if (!adrsExcluded.empty())
-                for (const auto& exadr: adrsExcluded)
-                    stmt->TryBindStatementText(i++, exadr);
+            stmt->Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                for (const auto& extag: tagsExcluded)
-                    stmt->TryBindStatementText(i++, extag);
+                stmt->Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
             if (!_keyword.empty())
-                stmt->TryBindStatementText(i++, _keyword);
+                stmt->Bind(_keyword);
 
-            stmt->TryBindStatementInt(i++, countOut);
-
-            stmt->TryBindStatementInt(i++, pageNumber * countOut);
+            stmt->Bind(countOut, pageNumber * countOut);
 
             // ---------------------------------------------
 
@@ -3531,51 +3470,31 @@ namespace PocketDb
         vector<int64_t> ids;
         TryTransactionStep(func, [&]()
         {
-            int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
+            if (!lang.empty()) stmt->Bind(lang);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
-
-            stmt->TryBindStatementText(i++, addressFeed);
-            if (!addresses_extended.empty())
-                for (const auto& adr_ex: addresses_extended)
-                    stmt->TryBindStatementText(i++, adr_ex);
-
-            stmt->TryBindStatementInt(i++, topHeight);
-
-            if (topContentId > 0)
-                stmt->TryBindStatementInt64(i++, topContentId);
+            stmt->Bind(contentTypes, addressFeed, addresses_extended, topHeight);
 
             if (!tags.empty())
             {
-                for (const auto& tag: tags)
-                    stmt->TryBindStatementText(i++, tag);
+                stmt->Bind(tags);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            if (!txidsExcluded.empty())
-                for (const auto& extxid: txidsExcluded)
-                    stmt->TryBindStatementText(i++, extxid);
-
-            if (!adrsExcluded.empty())
-                for (const auto& exadr: adrsExcluded)
-                    stmt->TryBindStatementText(i++, exadr);
+            stmt->Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                for (const auto& extag: tagsExcluded)
-                    stmt->TryBindStatementText(i++, extag);
+                stmt->Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            stmt->TryBindStatementInt(i++, countOut);
+            stmt->Bind(countOut);
 
             // ---------------------------------------------
 
@@ -3685,45 +3604,32 @@ namespace PocketDb
             int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
+            if (!lang.empty()) stmt->Bind(lang);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
-
-            stmt->TryBindStatementInt(i++, topHeight);
-
-            stmt->TryBindStatementInt(i++, badReputationLimit);
+            stmt->Bind(contentTypes, topHeight, badReputationLimit);
 
             if (topContentId > 0)
-                stmt->TryBindStatementInt64(i++, topContentId);
+                stmt->Bind(topContentId);
 
             if (!tags.empty())
             {
-                for (const auto& tag: tags)
-                    stmt->TryBindStatementText(i++, tag);
+                stmt->Bind(tags);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            if (!txidsExcluded.empty())
-                for (const auto& extxid: txidsExcluded)
-                    stmt->TryBindStatementText(i++, extxid);
-            
-            if (!adrsExcluded.empty())
-                for (const auto& exadr: adrsExcluded)
-                    stmt->TryBindStatementText(i++, exadr);
+            stmt->Bind(txidsExcluded, adrsExcluded);
             
             if (!tagsExcluded.empty())
             {
-                for (const auto& extag: tagsExcluded)
-                    stmt->TryBindStatementText(i++, extag);
+                stmt->Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
                     
-            stmt->TryBindStatementInt(i++, countOut);
+            stmt->Bind(countOut);
 
             // ---------------------------------------------
             
@@ -3843,49 +3749,29 @@ namespace PocketDb
         TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
-
-            stmt->TryBindStatementInt(i++, durationBlocksForPrevPosts);
-
-            stmt->TryBindStatementInt(i++, cntPrevPosts);
+            stmt->Bind(contentTypes, durationBlocksForPrevPosts, cntPrevPosts);
             
-            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
+            if (!lang.empty()) stmt->Bind(lang);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
+            stmt->Bind(contentTypes, topHeight, topHeight - cntBlocksForResult, badReputationLimit);
 
-            stmt->TryBindStatementInt(i++, topHeight);
-            stmt->TryBindStatementInt(i++, topHeight - cntBlocksForResult);
-
-            stmt->TryBindStatementInt(i++, badReputationLimit);
-            
             if (!tags.empty())
             {
-                for (const auto& tag: tags)
-                    stmt->TryBindStatementText(i++, tag);
+                stmt->Bind(tags);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            if (!txidsExcluded.empty())
-                for (const auto& extxid: txidsExcluded)
-                    stmt->TryBindStatementText(i++, extxid);
-            
-            if (!adrsExcluded.empty())
-                for (const auto& exadr: adrsExcluded)
-                    stmt->TryBindStatementText(i++, exadr);
+            stmt->Bind(txidsExcluded, adrsExcluded);
             
             if (!tagsExcluded.empty())
             {
-                for (const auto& extag: tagsExcluded)
-                    stmt->TryBindStatementText(i++, extag);
+                stmt->Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
             // ---------------------------------------------
@@ -3894,11 +3780,10 @@ namespace PocketDb
             {
                 HierarchicalRecord record{};
 
-                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
-                auto[ok1, contentRating] = stmt->TryGetColumnInt(1);
-                auto[ok2, accountRating] = stmt->TryGetColumnInt(2);
-                auto[ok3, contentOrigHeight] = stmt->TryGetColumnInt(3);
-                auto[ok4, contentScores] = stmt->TryGetColumnInt(4);
+                int64_t contentId;
+                int contentRating, accountRating, contentOrigHeight, contentScores;
+
+                stmt->Collect(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
 
                 record.Id = contentId;
                 record.LAST5 = 1.0 * contentScores;
@@ -4079,49 +3964,38 @@ namespace PocketDb
             int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            for (const auto& contenttype: contentTypes)
-                stmt->TryBindStatementInt(i++, contenttype);
+            stmt->Bind(contentTypes);
 
-            if (!lang.empty()) stmt->TryBindStatementText(i++, lang);
+            if (!lang.empty()) stmt->Bind(lang);
 
-            stmt->TryBindStatementInt(i++, topHeight);
-            stmt->TryBindStatementInt(i++, topHeight - cntBlocksForResult);
-
-            stmt->TryBindStatementInt(i++, badReputationLimit);
+            stmt->Bind(topHeight, topHeight - cntBlocksForResult, badReputationLimit);
 
             if (!tags.empty())
             {
-                for (const auto& tag: tags)
-                    stmt->TryBindStatementText(i++, tag);
+                stmt->Bind(tags);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
-            if (!txidsExcluded.empty())
-                for (const auto& extxid: txidsExcluded)
-                    stmt->TryBindStatementText(i++, extxid);
-
-            if (!adrsExcluded.empty())
-                for (const auto& exadr: adrsExcluded)
-                    stmt->TryBindStatementText(i++, exadr);
+            stmt->Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                for (const auto& extag: tagsExcluded)
-                    stmt->TryBindStatementText(i++, extag);
+                stmt->Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->TryBindStatementText(i++, lang);
+                    stmt->Bind(lang);
             }
 
             // ---------------------------------------------
 
             while (stmt->Step() == SQLITE_ROW)
             {
-                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
-                auto[ok1, contentHash] = stmt->TryGetColumnString(1);
-                auto[ok2, sumBoost] = stmt->TryGetColumnInt64(2);
+                int64_t contentId, sumBoost;
+                std::string contentHash;
+                stmt->Collect(contentId, contentHash, sumBoost);
+
                 UniValue boost(UniValue::VOBJ);
                 boost.pushKV("id", contentId);
                 boost.pushKV("txid", contentHash);
@@ -4357,7 +4231,7 @@ namespace PocketDb
         auto predicate = _choosePredicate(filters);
 
         // Binds that should be performed to constructed query
-        std::vector<std::function<void(std::shared_ptr<Stmt>&, int&, QueryParams const&)>> binds;
+        std::vector<std::function<void(std::shared_ptr<Stmt>&, QueryParams const&)>> binds;
         // Query elemets that will be used to construct full query
         std::vector<std::string> queryElems;
         for (const auto& select: selects) {
@@ -4493,12 +4367,14 @@ namespace PocketDb
               and c.Height > 0
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams) {
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }},
 
@@ -4605,12 +4481,14 @@ namespace PocketDb
                 and p.Height > 0
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }},
 
@@ -4680,12 +4558,14 @@ namespace PocketDb
                 and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementText(i++, queryParams.address);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.address,
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax
+                );
             }
         }},
 
@@ -4784,12 +4664,14 @@ namespace PocketDb
                 and c.Height > 0
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }},
 
@@ -4869,12 +4751,14 @@ namespace PocketDb
                 and c.Height > 0
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }},
 
@@ -4973,12 +4857,14 @@ namespace PocketDb
                 and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementText(i++, queryParams.address);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.address,
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax
+                );
             }
         }},
 
@@ -5073,12 +4959,14 @@ namespace PocketDb
                 and (b.Height < ? or (b.Height = ? and b.BlockNum < ?))
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementText(i++, queryParams.address);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.address,
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax
+                );
             }
         }},
         };
@@ -5099,10 +4987,9 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
 
             for (const auto& bind: binds) {
-                bind(stmt, i, queryParams);
+                bind(stmt, queryParams);
             }
 
             while (stmt->Step() == SQLITE_ROW)
@@ -5126,8 +5013,8 @@ namespace PocketDb
         // Static because it will not be changed for entire node run
 
         static const auto heightBinder =
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.height);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams){
+                stmt->Bind(queryParams.height);
             };
 
         static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>> selects = {
@@ -6023,8 +5910,7 @@ namespace PocketDb
                 {
                     auto stmt = SetupSqlStatement(selectData.query);
 
-                    int i = 1;
-                    selectData.binding(stmt, i, queryParams);
+                    selectData.binding(stmt, queryParams);
 
                     while (stmt->Step() == SQLITE_ROW)
                         reconstructor.FeedRow(*stmt);
@@ -6140,14 +6026,16 @@ namespace PocketDb
                     and o.TxHeight > ?
                     and o.TxHeight <= ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address,
+                    queryParams.heightMin,
+                    queryParams.heightMax
+                );
             }
         }},
 
@@ -6217,12 +6105,14 @@ namespace PocketDb
                     and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
                     and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementText(i++, queryParams.address);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.address,
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax
+                );
             }
         }},
 
@@ -6311,12 +6201,14 @@ namespace PocketDb
                     and c.String1 = ?
                     and c.Height > 0
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }},
 
@@ -6426,12 +6318,14 @@ namespace PocketDb
                     and p.Height > 0
                     and p.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }},
 
@@ -6501,12 +6395,14 @@ namespace PocketDb
                     and subs.Height > ?
                     and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementText(i++, queryParams.address);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.address,
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax
+                );
             }
         }},
 
@@ -6590,12 +6486,14 @@ namespace PocketDb
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }},
 
@@ -6679,12 +6577,14 @@ namespace PocketDb
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }},
 
@@ -6769,12 +6669,14 @@ namespace PocketDb
                     and subs.Height > 0
                     and subs.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }},
 
@@ -6872,12 +6774,14 @@ namespace PocketDb
                     and tBoost.Height > ?
                     and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementText(i++, queryParams.address);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.address,
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax
+                );
             }
         }},
 
@@ -6965,12 +6869,14 @@ namespace PocketDb
                     and p.Height > 0
                     and p.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                stmt->TryBindStatementInt64(i++, queryParams.blockNumMax);
-                stmt->TryBindStatementText(i++, queryParams.address);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(
+                    queryParams.heightMin,
+                    queryParams.heightMax,
+                    queryParams.heightMax,
+                    queryParams.blockNumMax,
+                    queryParams.address
+                );
             }
         }}};
 
@@ -6991,10 +6897,9 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
 
             for (const auto& bind: binds) {
-                bind(stmt, i, queryParams);
+                bind(stmt, queryParams);
             }
 
             while (stmt->Step() == SQLITE_ROW)
@@ -7033,12 +6938,8 @@ namespace PocketDb
                     and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                     and t.ROWID = (select min(tt.ROWID) from Transactions tt indexed by Transactions_Id where tt.Id = t.Id)
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                for (const auto& address: queryParams.addresses) {
-                    stmt->TryBindStatementText(i++, address);
-                }
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(queryParams.heightMin, queryParams.heightMax, queryParams.addresses);
             }
         }},
 
@@ -7065,12 +6966,8 @@ namespace PocketDb
                     and c.String5 is null
                     and c.Height between ? and ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                for (const auto& address: queryParams.addresses) {
-                    stmt->TryBindStatementText(i++, address);
-                }
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
             }
         }},
 
@@ -7089,12 +6986,8 @@ namespace PocketDb
                     and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
-                for (const auto& address: queryParams.addresses) {
-                    stmt->TryBindStatementText(i++, address);
-                }
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(queryParams.heightMin, queryParams.heightMax, queryParams.addresses);
             }
         }},
 
@@ -7118,12 +7011,8 @@ namespace PocketDb
                     and s.Last = 0
                     and s.Height between ? and ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                for (const auto& address: queryParams.addresses) {
-                    stmt->TryBindStatementText(i++, address);
-                }
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
             }
         }},
 
@@ -7147,12 +7036,8 @@ namespace PocketDb
                     and s.Last = 0
                     and s.Height between ? and ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                for (const auto& address: queryParams.addresses) {
-                    stmt->TryBindStatementText(i++, address);
-                }
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
             }
         }},
 
@@ -7179,12 +7064,8 @@ namespace PocketDb
                     and r.String3 is not null
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, int& i, QueryParams const& queryParams){
-                for (const auto& address: queryParams.addresses) {
-                    stmt->TryBindStatementText(i++, address);
-                }
-                stmt->TryBindStatementInt64(i++, queryParams.heightMin);
-                stmt->TryBindStatementInt64(i++, queryParams.heightMax);
+            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
+                stmt->Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
             }
         }}
         };
@@ -7197,10 +7078,9 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
 
             for (const auto& bind: binds) {
-                bind(stmt, i, queryParams);
+                bind(stmt, queryParams);
             }
 
             while (stmt->Step() == SQLITE_ROW)
