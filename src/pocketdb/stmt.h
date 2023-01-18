@@ -37,8 +37,7 @@ namespace PocketDb
         template <class ...Binds>
         void Bind(const Binds&... binds)
         {
-            int i = 1;
-            (Binder<Binds>::bind(*this, i, binds), ...);
+            (Binder<Binds>::bind(*this, m_currentBindIndex, binds), ...);
         }
         // Forces user to handle memory more correct because of SQLITE_STATIC requires it
         void TryBindStatementText(int index, const std::string&& value) = delete;
@@ -55,8 +54,7 @@ namespace PocketDb
         template <class ...Collects>
         void Collect(Collects&... collects)
         {
-            int i = 0;
-            (Collector<Collects>::collect(*this, i, collects), ...);
+            (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
         }
         tuple<bool, std::string> TryGetColumnString(int index);
         tuple<bool, int64_t> TryGetColumnInt64(int index);
@@ -69,8 +67,13 @@ namespace PocketDb
             return sqlite3_expanded_sql(m_stmt);
         }
 
+    protected:
+        void ResetInternalIndicies();
+
     private:
         sqlite3_stmt* m_stmt = nullptr;
+        int m_currentBindIndex = 1;
+        int m_currentCollectIndex = 0;
 
     private:
         template<class T>

@@ -22,6 +22,7 @@ void PocketDb::Stmt::Init(SQLiteDatabase& db, const std::string& sql)
 int PocketDb::Stmt::Finalize()
 {
     if (!m_stmt) return SQLITE_ERROR;
+    ResetInternalIndicies();
     auto res = sqlite3_finalize(m_stmt);
     m_stmt = nullptr;
     return res;
@@ -30,6 +31,7 @@ int PocketDb::Stmt::Finalize()
 int PocketDb::Stmt::Reset()
 {
     if (!m_stmt) return SQLITE_ERROR;
+    ResetInternalIndicies();
     return sqlite3_reset(m_stmt);
 }
 
@@ -108,6 +110,7 @@ bool PocketDb::Stmt::CheckValidResult(int result)
 
     return true;
 }
+
 std::tuple<bool, std::string> PocketDb::Stmt::TryGetColumnString( int index)
 {
     return sqlite3_column_type(m_stmt, index) == SQLITE_NULL ? make_tuple(false, "") : make_tuple(true, string(reinterpret_cast<const char*>(sqlite3_column_text(m_stmt, index))));
@@ -119,4 +122,10 @@ std::tuple<bool, int64_t> PocketDb::Stmt::TryGetColumnInt64(int index)
 std::tuple<bool, int> PocketDb::Stmt::TryGetColumnInt(int index)
 {
     return sqlite3_column_type(m_stmt, index) == SQLITE_NULL ? make_tuple(false, 0) : make_tuple(true, sqlite3_column_int(m_stmt, index));
+}
+
+void PocketDb::Stmt::ResetInternalIndicies()
+{
+    m_currentBindIndex = 1;
+    m_currentCollectIndex = 0;
 }
