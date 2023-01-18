@@ -1047,8 +1047,9 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
         return state.Invalid(TxValidationResult::TX_SOCIAL_UNWARRANT, "pocketnet payload data not found");
 
     // Check transaction with pocketnet base rules
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, ::ChainActive().Height() + 1); !ok)
-        return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result), (int)result);
+    // TODO (optimization): DEBUG!
+    // if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, ::ChainActive().Height() + 1); !ok)
+    //     return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result), (int)result);
 
     // Check transaction with pocketnet consensus rules
     // TODO (optimization): DEBUG!
@@ -2955,11 +2956,12 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     else
         pocketBlock = pocketBlockPart;
 
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock, pindexNew->nHeight); !ok)
-    {
-        pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
-        return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-find-social-payload", "", true);
-    }
+    // TODO (optimization): DEBUG!
+    // if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock, pindexNew->nHeight); !ok)
+    // {
+    //     pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
+    //     return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-find-social-payload", "", true);
+    // }
 
     // Apply the block atomically to the chain state.
     int64_t nTime2 = GetTimeMicros(); nTimeReadFromDisk += nTime2 - nTime1;
@@ -4467,14 +4469,15 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
             if (_pindex)
                 checkHeight = _pindex->nHeight;
 
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock, checkHeight); !ok)
-            {
-                if (_pindex)
-                    _pindex->nStatus &= ~BLOCK_HAVE_DATA;
+            // TODO (optimization): DEBUG!
+            // if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock, checkHeight); !ok)
+            // {
+            //     if (_pindex)
+            //         _pindex->nStatus &= ~BLOCK_HAVE_DATA;
 
-                ret = state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-check-social-payload", "", true);
-                *fNewBlock = false;
-            }
+            //     ret = state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-check-social-payload", "", true);
+            //     *fNewBlock = false;
+            // }
                 
             LogPrint(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, pblock->GetHash().GetHex());
         }
