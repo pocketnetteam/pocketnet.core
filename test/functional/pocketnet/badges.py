@@ -28,6 +28,7 @@ from test_framework.util import (
 )
 
 # Pocketnet framework
+from framework.helpers import rollback_node
 from framework.models import *
 
 
@@ -116,7 +117,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
                 assert('moderator' not in node.public().getuserstate(acc.Address)['badges'])
 
         # Rollback 1 block for remove all badges
-        node.invalidateblock(node.getbestblockhash())  # height : 1049
+        rollback_node(node, 1, self.log)  # height : 1049
         for acc in accounts:
             assert('moderator' not in node.public().getuserstate(acc.Address)['badges'])
 
@@ -134,7 +135,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Rollback chain to 1149 height for restore 1/2 badges")
 
-        node.invalidateblock(node.getbestblockhash())
+        rollback_node(node, 1, self.log)  # height : 1149
 
         # Recheck restored badges
         for acc in accounts:
