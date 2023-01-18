@@ -6307,11 +6307,11 @@ namespace PocketDb
                         c.String4,
                         c.String5,
                         -- Account data for related tx
-                        u.String1,
-                        p.String1,
-                        p.String2,
-                        p.String3,
-                        ifnull(rn.Value, 0)
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
 
                     from
                         Transactions f indexed by Transactions_Height_Type
@@ -6342,7 +6342,7 @@ namespace PocketDb
             }},
 
             {
-                ShortTxType::JuryBanned, { R"sql(
+                ShortTxType::JuryVerdict, { R"sql(
                     select
                         -- Notifier data
                         u.String1,
@@ -6351,7 +6351,7 @@ namespace PocketDb
                         p.String3,
                         ifnull(rn.Value, 0),
                         -- type of shortForm
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryBanned) + R"sql('),
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryVerdict) + R"sql('),
                         -- Tx data
                         v.Hash,
                         v.Type,
@@ -6395,11 +6395,11 @@ namespace PocketDb
                         c.String4,
                         c.String5,
                         -- Account data for related tx
-                        u.String1,
-                        p.String1,
-                        p.String2,
-                        p.String3,
-                        ifnull(rn.Value, 0)
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
 
                     from
                         Transactions v indexed by Transactions_Height_Type
@@ -7541,7 +7541,12 @@ namespace PocketDb
                             end
                         ),
                         c.String4,
-                        c.String5
+                        c.String5,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
 
                     from
                         Transactions f indexed by Transactions_Type_Last_String3_Height

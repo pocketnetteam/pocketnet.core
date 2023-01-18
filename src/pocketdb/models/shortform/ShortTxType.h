@@ -23,7 +23,7 @@ namespace PocketDb
         Blocking,
         JuryAssigned,
         JuryModerate,
-        JuryBanned,
+        JuryVerdict,
     };
 }
 
