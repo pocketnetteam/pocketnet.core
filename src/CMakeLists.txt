@@ -67,7 +67,9 @@ option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
 option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want to statically link internal libraries. Ignored for non-MSVC build (default=ON)" ON)
 
 # Disable warnings
-add_compile_options(-Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-deprecated)
+if(CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-Wall -Wno-unused-function -Wno-unused-parameter -Wno-deprecated)
+endif(CMAKE_COMPILER_IS_GNUCXX)
 
 # Specific msvc options
 if(MSVC)
