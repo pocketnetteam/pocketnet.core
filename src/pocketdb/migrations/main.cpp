@@ -170,7 +170,7 @@ namespace PocketDb
                 Number          int    not null, -- Number in tx.vout
                 AddressId       int    null, -- Address
                 Value           int    not null, -- Amount
-                ScriptPubKey    text   not null, -- Original script
+                ScriptPubKeyId  int    not null, -- Original script
                 primary key (TxId, Number, AddressId)
             );
         )sql");

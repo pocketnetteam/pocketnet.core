@@ -246,6 +246,7 @@ namespace PocketDb
             
             for (const auto& output: collectData.outputs) {
                 if (output.GetAddressHash()) stringsToBeInserted.emplace_back(*output.GetAddressHash());
+                if (output.GetScriptPubKey()) stringsToBeInserted.emplace_back(*output.GetScriptPubKey());
             }
         }
 
@@ -365,7 +366,10 @@ namespace PocketDb
             union
             select (3)tp,
             (select Hash from TxData where Id = TxId),
-            Value, Number, null, null, null, null,(select a.String from Registry a where a.RowId = AddressId), ScriptPubKey, null, null, null, null, null
+            Value, Number, null, null, null, null,
+            (select a.String from Registry a where a.RowId = AddressId),
+            (select String from Registry where RowId = ScriptPubKeyId),
+            null, null, null, null, null
             from TxOutputs
             where TxId in ( select Id from TxData )
         )sql") : "") +
@@ -437,7 +441,7 @@ namespace PocketDb
                 Number,
                 (select String from Registry where RowId = AddressId),
                 Value,
-                ScriptPubKey
+                (select String from Registry where RowId = ScriptPubKeyId)
             FROM TxOutputs
             WHERE TxId = ?
               and Number = ?
@@ -665,14 +669,14 @@ namespace PocketDb
                     Number,
                     AddressId,
                     Value,
-                    ScriptPubKey
+                    ScriptPubKeyId
                 )
                 select 
                     (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)),
                     ?,
                     (select RowId from Registry where String = ?),
                     ?,
-                    ?
+                    (select RowId from Registry where String = ?)
                 -- TODO (losty-db): better way to do this?
                 WHERE not exists (select 1 from TxOutputs where
                     Number = ?
