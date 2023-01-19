@@ -68,12 +68,13 @@ namespace PocketDb
         // Execute migration scripts
         if (gArgs.GetArg("-reindex", 0) == 0)
         {
-            if (!MigrationRepoInst.CreateBlockingList())
-            {
-                LogPrintf("SQLDB Migration: CreateBlockingList completed.\n");
-                StartShutdown();
-                return;
-            }
+            // TODO (aok) : bad
+            // if (!MigrationRepoInst.CreateBlockingList())
+            // {
+            //     LogPrintf("SQLDB Migration: CreateBlockingList completed.\n");
+            //     StartShutdown();
+            //     return;
+            // }
             
             // Any necessary logic for database modification
         }
