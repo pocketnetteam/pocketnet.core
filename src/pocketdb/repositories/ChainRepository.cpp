@@ -53,24 +53,22 @@ namespace PocketDb
             // Each transaction is processed individually
             for (const auto& txInfo : chainData)
             {
-                // The outputs are needed for the explorer
-                // TODO (aok) (v0.20.19+): replace with update inputs spent with TxInputs table over loop
-                // UpdateTransactionOutputs(txInfo, height);
-
                 // Calculate and save fee for future selects
                 if (txInfo.indexingInfo.IsBoostContent())
                     IndexBoostContent(txInfo.indexingInfo.Hash);
 
-                if (txInfo.lastTxId) ClearOldLast(*txInfo.lastTxId);
+                if (txInfo.lastTxId)
+                    ClearOldLast(*txInfo.lastTxId);
 
                 // All transactions must have a blockHash & height relation
-                InsertTransactionChainData(blockHash,
-                                            txInfo.indexingInfo.BlockNumber,
-                                            height,
-                                            txInfo.indexingInfo.Hash,
-                                            txInfo.id,
-                                            txInfo.id.has_value() /* each tx with id should have last */
-                                        );
+                InsertTransactionChainData(
+                    blockHash,
+                    txInfo.indexingInfo.BlockNumber,
+                    height,
+                    txInfo.indexingInfo.Hash,
+                    txInfo.id,
+                    txInfo.id.has_value() /* each tx with id should have last */
+                );
             }
 
             int64_t nTime2 = GetTimeMicros();
@@ -95,8 +93,32 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                ifnull((select 1 from Chain c where c.BlockId = (select r.RowId from Registry r where r.String = ?) and c.Height = ? limit 1), 0)current,
-                ifnull((select 1 from Chain where Height = ? limit 1), 0)next
+                ifnull((
+                    select
+                        1
+                    from
+                        Chain c indexed by Chain_Height_BlockId
+                    where
+                        c.Height = ? and
+                        c.BlockId = (
+                            select
+                                r.RowId
+                            from
+                                Registry r
+                            where
+                                r.String = ?
+                        )
+                    limit 1
+                ), 0),
+                ifnull((
+                    select
+                        1
+                    from
+                        Chain c indexed by Chain_Height_BlockId
+                    where
+                        c.Height = ?
+                    limit 1
+                ), 0)
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -120,8 +142,8 @@ namespace PocketDb
     void ChainRepository::IndexBlockData(const std::string& blockHash)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            INSERT OR IGNORE INTO Registry (String)
-            VALUES (?)
+            insert or ignore into Registry (String)
+            values (?)
         )sql");
         stmt->Bind(blockHash);
 
@@ -131,17 +153,51 @@ namespace PocketDb
     void ChainRepository::InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast)
     {
         auto stmt = SetupSqlStatement(R"sql(
-            -- TODO (losty-db): use WITH statement for TxId
-            with t as (
-                select RowId from Transactions where
-                    HashId = (select RowId from Registry where String = ?)
-            )
-            INSERT OR FAIL INTO Chain (TxId, BlockId, BlockNum, Height, Uid)
-            select (select t.RowId from t), (select RowId from Registry where String = ?), ?, ?, ?
-            where not exists (select 1 from Chain,t where TxId = (t.RowId )) and (select t.RowId > 0 from t)
+            with
+                blockReg as (
+                    select
+                        RowId
+                    from
+                        Registry
+                    where
+                        String = ?
+                ),
+                txReg as (
+                    select
+                        RowId
+                    from
+                        Registry
+                    where String = ?
+                ),
+                tx as (
+                    select
+                        t.RowId
+                    from
+                        Transactions t indexed by Transactions_HashId,
+                        txReg
+                    where
+                        t.HashId = txReg.RowId
+                )
+            insert or fail into Chain
+                (TxId, BlockId, BlockNum, Height, Uid)
+            select
+                tx.RowId, blockReg.RowId, ?, ?, ?
+            from
+                tx,
+                blockReg
+            where
+                not exists (
+                    select
+                        1
+                    from
+                        Chain,
+                        tx
+                    where
+                        TxId = tx.RowId
+                )
         )sql");
 
-        stmt->Bind(txHash, blockHash, blockNumber, height, id);
+        stmt->Bind(blockHash, txHash, blockNumber, height, id);
 
         TryStepStatement(stmt);
 
@@ -570,14 +626,14 @@ namespace PocketDb
               (
                 (
                   select sum(oo.Value)
-                  from TxInputs i -- TODO (losty-db): index
-                  join TxOutputs oo -- TODO (losty-db): index
+                  from TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                  join TxOutputs oo indexed by TxOutputs_TxId_Number
                     on oo.TxId = i.TxId
                     and oo.Number = i.Number
                   where i.SpentTxId = Transactions.RowId
                 ) - (
                   select sum(o.Value)
-                  from TxOutputs o -- TODO (losty-db): index
+                  from TxOutputs o indexed by TxOutputs_TxId_Number
                   where TxId = Transactions.RowId
                 )
               )

@@ -239,7 +239,14 @@ namespace PocketDb
 
             create unique index if not exists Transactions_HashId on Transactions (HashId);
 
-            create unique index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
+            create unique index if not exists Chain_Height_BlockId on Chain (Height, BlockId);
+
+            create index if not exists TxInputs_SpentTxId_Number_TxId on TxInputs (SpentTxId, Number, TxId);
+
+            create index if not exists TxOutputs_TxId_Number on TxOutputs (TxId, Number);
+
+
+            ------------------------------
 
             create index if not exists Ratings_Last_Uid_Height on Ratings (Last, Uid, Height);
             create index if not exists Ratings_Height_Last on Ratings (Height, Last);
