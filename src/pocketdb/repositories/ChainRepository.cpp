@@ -53,10 +53,6 @@ namespace PocketDb
             // Each transaction is processed individually
             for (const auto& txInfo : chainData)
             {
-                // Calculate and save fee for future selects
-                if (txInfo.indexingInfo.IsBoostContent())
-                    IndexBoostContent(txInfo.indexingInfo.Hash);
-
                 if (txInfo.lastTxId)
                     ClearOldLast(*txInfo.lastTxId);
 
@@ -615,35 +611,6 @@ namespace PocketDb
 
         return {id, lastTxId};
     }
-    
-    void ChainRepository::IndexBoostContent(const string& txHash)
-    {
-        // TODO (losty-db): calculate this before inserting tx data to db
-        // Set transaction fee
-        auto stmt = SetupSqlStatement(R"sql(
-            update Transactions
-            set Int1 =
-              (
-                (
-                  select sum(oo.Value)
-                  from TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-                  join TxOutputs oo indexed by TxOutputs_TxId_Number
-                    on oo.TxId = i.TxId
-                    and oo.Number = i.Number
-                  where i.SpentTxId = Transactions.RowId
-                ) - (
-                  select sum(o.Value)
-                  from TxOutputs o indexed by TxOutputs_TxId_Number
-                  where TxId = Transactions.RowId
-                )
-              )
-            where Transactions.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-              and Transactions.Type in (208)
-        )sql");
-        stmt->Bind(txHash);
-        TryStepStatement(stmt);
-    }
-
 
     bool ChainRepository::ClearDatabase()
     {

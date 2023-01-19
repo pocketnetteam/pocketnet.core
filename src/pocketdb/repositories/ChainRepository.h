@@ -66,7 +66,6 @@ namespace PocketDb
         pair<optional<int64_t>, optional<int64_t>> IndexComment(const string& txHash);
         pair<optional<int64_t>, optional<int64_t>> IndexBlocking(const string& txHash);
         pair<optional<int64_t>, optional<int64_t>> IndexSubscribe(const string& txHash);
-        void IndexBoostContent(const string& txHash);
 
         void ClearOldLast(const int64_t& txId);
 
