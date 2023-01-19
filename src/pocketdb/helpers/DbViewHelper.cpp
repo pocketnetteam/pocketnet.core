@@ -38,9 +38,6 @@ public:
 class BlockingDataTranslator : public PocketHelpers::ITxDbDataTranslator
 {
 public:
-    // TODO (losty-db): using PocketDb::TransRepoInst here is a dirty hack to avoid header cycle dependency
-    // because TransactionRepository requires to use this helper class. Consider extract required methods to
-    // some kind of database accessor.
     bool Inject(PocketHelpers::PTransactionRef& tx, const PocketHelpers::TxContextualData& data) override
     {
         if (data.string1) tx->SetString1(*data.string1);
