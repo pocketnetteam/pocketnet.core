@@ -435,7 +435,7 @@ namespace PocketDb
         auto sql = R"sql(
             SELECT
                 Number,
-                (select Hash from Address where Id = AddressId),
+                (select String from Registry where RowId = AddressId),
                 Value,
                 ScriptPubKey
             FROM TxOutputs
