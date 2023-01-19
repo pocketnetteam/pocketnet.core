@@ -27,6 +27,7 @@ namespace PocketHelpers
     public:
         virtual bool Inject(PocketHelpers::PTransactionRef& tx, const TxContextualData& data) = 0;
         virtual bool Extract(TxContextualData& data, const PocketHelpers::PTransactionRef& tx) = 0;
+        virtual ~ITxDbDataTranslator() = default;
     };
 
     class DbViewHelper
