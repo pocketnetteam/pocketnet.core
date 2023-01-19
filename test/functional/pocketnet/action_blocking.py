@@ -54,5 +54,27 @@ class ActionBlockingTest(PocketcoinTestFramework):
 
         # ---------------------------------------------------------------------------------
 
+        self.log.info("Generate account addresses")
+        nAddrs = 2
+        accounts = []
+        for i in range(nAddrs):
+            acc = node.public().generateaddress()
+            accounts.append(Account(acc['address'], acc['privkey']))
+            node.sendtoaddress(address=accounts[i].Address, amount=10, destaddress=nodeAddress)
+
+        node.stakeblock(15)
+
+        self.log.info("Check balance")
+        for i in range(nAddrs):
+            assert(node.public().getaddressinfo(address=accounts[i].Address)['balance'] == 10)
+
+        # ---------------------------------------------------------------------------------
+
+        # TODO (o1q):
+        self.log.info("Check blocking from not registered account")
+        # assert_raises_rpc_error(1, None, pubGenTx, accounts[0], AccountDeletePayload())
+
+        # ---------------------------------------------------------------------------------
+
 if __name__ == '__main__':
     ActionBlockingTest().main()
