@@ -3219,7 +3219,7 @@ namespace PocketDb
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("contentTypes", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("c", value); // caption
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("c", value); // image
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("i", value); // image
                 tmpResult[txId] = record;
             }
 
@@ -4590,8 +4590,8 @@ namespace PocketDb
 
             if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+//            for (const auto& contenttype: contentTypes)
+//                TryBindStatementInt(stmt, i++, contenttype);
 
             TryBindStatementInt(stmt, i++, topHeight);
 
