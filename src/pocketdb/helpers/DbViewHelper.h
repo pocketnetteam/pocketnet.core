@@ -33,7 +33,7 @@ namespace PocketHelpers
     class DbViewHelper
     {
     public:
-        // TODO (losty-db): rename below methods
+        // TODO (optimization): rename below methods
         static bool Inject(PTransactionRef& tx, const TxContextualData& data);
         static bool Extract(TxContextualData& data, const PTransactionRef& tx);
     private:

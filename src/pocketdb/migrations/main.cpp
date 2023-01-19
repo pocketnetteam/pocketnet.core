@@ -39,7 +39,7 @@ namespace PocketDb
             );
         )sql");
 
-        // TODO (losty-db): create table First
+        // TODO (optimization): create table First
 
         _tables.emplace_back(R"sql(
             create table if not exists Transactions

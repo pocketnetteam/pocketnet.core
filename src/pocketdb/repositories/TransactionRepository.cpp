@@ -9,7 +9,7 @@ namespace PocketDb
     class CollectDataToModelConverter
     {
     public:
-        // TODO (losty-db): consider remove `repository` parameter from here.
+        // TODO (optimization): consider remove `repository` parameter from here.
         static optional<CollectData> ModelToCollectData(const PTransactionRef& ptx)
         {
             if (!ptx->GetHash()) return nullopt;
@@ -130,7 +130,7 @@ namespace PocketDb
 
             if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok) ptx->SetTime(value);
             if (auto[ok, value] = stmt.TryGetColumnInt64(4); ok) ptx->SetHeight(value);
-            // TODO (losty-db): implement "first" field
+            // TODO (optimization): implement "first" field
             // if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) ptx->SetFirst(value);
             if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) ptx->SetLast(value);
             if (auto[ok, value] = stmt.TryGetColumnInt64(6); ok) ptx->SetId(value);
@@ -260,7 +260,7 @@ namespace PocketDb
         {
             auto collectData = CollectDataToModelConverter::ModelToCollectData(ptx);
             if (!collectData) {
-                // TODO (losty-db): error
+                // TODO (optimization): error
                 LogPrintf("DEBUG: failed to convert model to CollecData\n");
                 continue;
             }
@@ -323,7 +323,7 @@ namespace PocketDb
                 (select r.String from Registry r where r.RowId = t.RegId5),
                 (select r.String from Registry r where r.RowId = c.BlockId),
                 (
-                    -- TODO (losty-db): empty string instead of empty array
+                    -- TODO (optimization): empty string instead of empty array
                     select json_group_array(
                         (select rr.String from Registry rr where rr.RowId = l.RegId)
                     )
@@ -408,7 +408,7 @@ namespace PocketDb
             if (auto ptx = CollectDataToModelConverter::CollectDataToModel(collectData); ptx)
                 pBlock->emplace_back(ptx);
             else {
-                // TODO (losty-db): error!!!
+                // TODO (optimization): error!!!
                 LogPrintf("DEBUG: failed to get model from CollectData in %s\n" , __func__);
             }
         }
@@ -677,7 +677,7 @@ namespace PocketDb
                     (select RowId from Registry where String = ?),
                     ?,
                     (select RowId from Registry where String = ?)
-                -- TODO (losty-db): better way to do this?
+                -- TODO (optimization): better way to do this?
                 WHERE not exists (select 1 from TxOutputs where
                     Number = ?
                     and TxId = (select t.RowId from Transactions t where t.HashId = (select r.RowId as HashId from Registry r where r.String = ?)))
@@ -715,7 +715,7 @@ namespace PocketDb
 
     void TransactionRepository::InsertTransactionModel(const CollectData& collectData)
     {
-        // TODO (losty-db): WITH not working?
+        // TODO (optimization): WITH not working?
         static auto stmt = SetupSqlStatement(R"sql(
             with h as (
                 select RowId as HashId from Registry where String = ?
@@ -826,7 +826,7 @@ namespace PocketDb
             stmt->Bind(txHashes);
 
             while (stmt->Step() == SQLITE_ROW) {
-                // TODO (losty-db): error
+                // TODO (optimization): error
                 auto[ok1, hash] = stmt->TryGetColumnString(0);
                 auto[ok2, txId] = stmt->TryGetColumnInt64(1);
                 if (ok1 && ok2) res.emplace(hash, txId);

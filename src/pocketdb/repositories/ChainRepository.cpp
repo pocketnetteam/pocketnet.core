@@ -239,7 +239,7 @@ namespace PocketDb
                 select 'unspent',
                        o.AddressId,
                        sum(o.Value)Amount
-                -- TODO (losty-db): fix me
+                -- TODO (optimization): fix me
                 from TxOutputs o
                 join Chain c on c.TxId = o.TxId and c.Height = ?
                 group by o.AddressId
@@ -286,7 +286,7 @@ namespace PocketDb
         auto sql = string(R"sql(
             with l as (
                 select b.RowId
-                from Transactions a -- TODO (losty-db): index
+                from Transactions a -- TODO (optimization): index
                 join Transactions b
                     on b.Type in (100, 170)
                     and b.RegId1 = a.RegId1
@@ -302,7 +302,7 @@ namespace PocketDb
                     -- new record
                     (
                         select max( c.Uid ) + 1
-                        from Chain c -- TODO (losty-db): index
+                        from Chain c -- TODO (optimization): index
                     ),
                     (select 0) -- for first record
                 )
@@ -320,7 +320,7 @@ namespace PocketDb
                 if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
                 if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
-            // TODO (losty-db): error
+            // TODO (optimization): error
         });
 
         return {id, lastTxId};
@@ -332,7 +332,7 @@ namespace PocketDb
         auto sql = string(R"sql(
             with l as (
                 select b.RowId
-                from Transactions a -- TODO (losty-db): index
+                from Transactions a -- TODO (optimization): index
                 join Transactions b
                     on b.Type in (103)
                     and b.RegId1 = a.RegId1
@@ -348,7 +348,7 @@ namespace PocketDb
                             -- new record
                             (
                                 select max( c.Uid ) + 1
-                                from Chain c -- TODO (losty-db): index
+                                from Chain c -- TODO (optimization): index
                             ),
                             (select 0) -- for first record
                         )
@@ -366,7 +366,7 @@ namespace PocketDb
                 if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
                 if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
-            // TODO (losty-db): error
+            // TODO (optimization): error
         });
 
         return {id, lastTxId};
@@ -378,7 +378,7 @@ namespace PocketDb
         auto sql = string(R"sql(
             with l as (
                 select b.RowId
-                from Transactions a -- TODO (losty-db): index
+                from Transactions a -- TODO (optimization): index
                 join Transactions b
                     on b.Type in (200,201,202,209,210,207)
                     and b.RegId2 = a.RegId2
@@ -394,7 +394,7 @@ namespace PocketDb
                             -- new record
                             (
                                 select max( c.Uid ) + 1
-                                from Chain c -- TODO (losty-db): index
+                                from Chain c -- TODO (optimization): index
                             ),
                             (select 0) -- for first record
                         )
@@ -412,7 +412,7 @@ namespace PocketDb
                 if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
                 if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
-            // TODO (losty-db): error
+            // TODO (optimization): error
         });
 
         return {id, lastTxId};
@@ -424,7 +424,7 @@ namespace PocketDb
         auto sql = string(R"sql(
             with l as (
                 select b.RowId
-                from Transactions a -- TODO (losty-db): index
+                from Transactions a -- TODO (optimization): index
                 join Transactions b
                     on b.Type in (204,205,206)
                     and b.RegId2 = a.RegId2
@@ -440,7 +440,7 @@ namespace PocketDb
                             -- new record
                             (
                                 select max( c.Uid ) + 1
-                                from Chain c -- TODO (losty-db): index
+                                from Chain c -- TODO (optimization): index
                             ),
                             (select 0) -- for first record
                         )
@@ -458,7 +458,7 @@ namespace PocketDb
                 if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
                 if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
-            // TODO (losty-db): error
+            // TODO (optimization): error
         });
 
         return {id, lastTxId};
@@ -471,7 +471,7 @@ namespace PocketDb
          auto sql = string(R"sql(
             with l as (
                 select b.RowId
-                from Transactions a -- TODO (losty-db): index
+                from Transactions a -- TODO (optimization): index
                 join Transactions b
                     on b.Type in (305,306)
                     and b.RegId1 = a.RegId1
@@ -489,7 +489,7 @@ namespace PocketDb
                             -- new record
                             (
                                 select max( c.Uid ) + 1
-                                from Chain c -- TODO (losty-db): index
+                                from Chain c -- TODO (optimization): index
                             ),
                             (select 0) -- for first record
                         )
@@ -507,10 +507,10 @@ namespace PocketDb
                 if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
                 if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
-            // TODO (losty-db): error
+            // TODO (optimization): error
         });
 
-        // TODO (losty-db): bad bad bad!!!
+        // TODO (optimization): bad bad bad!!!
         // TryTransactionStep(__func__, [&]()
         // {
         //     auto insListStmt = SetupSqlStatement(R"sql(
@@ -518,16 +518,16 @@ namespace PocketDb
         //         select
         //         usc.Id,
         //         utc.Id
-        //         from Transactions b -- TODO (losty-db): index
-        //         join Transactions us -- TODO (losty-db): index
+        //         from Transactions b -- TODO (optimization): index
+        //         join Transactions us -- TODO (optimization): index
         //         on us.Type in (100, 170) and us.Int1 = b.Int1
-        //         join Chain usc -- TODO (losty-db): index
+        //         join Chain usc -- TODO (optimization): index
         //         on usc.TxId = us.Id
         //             and usc.Last = 1
-        //         join Transactions ut -- TODO (losty-db): index
+        //         join Transactions ut -- TODO (optimization): index
         //         on ut.Type in (100, 170)
         //             and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
-        //         join Chain utc -- TODO (losty-db): index
+        //         join Chain utc -- TODO (optimization): index
         //         on utc.TxId = ut.Id
         //             and utc.Last = 1
         //         where b.Type in (305) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
@@ -541,16 +541,16 @@ namespace PocketDb
         //         where exists
         //         (select
         //         1
-        //         from Transactions b -- TODO (losty-db): index
-        //         join Transactions us -- TODO (losty-db): index
+        //         from Transactions b -- TODO (optimization): index
+        //         join Transactions us -- TODO (optimization): index
         //         on us.Type in (100, 170) and us.Int1 = b.Int1
-        //         join Chain usc -- TODO (losty-db): index
+        //         join Chain usc -- TODO (optimization): index
         //         on usc.TxId = us.Id
         //             and usc.Last = 1
         //             and usc.Id = BlockingLists.IdSource
-        //         join Transactions ut -- TODO (losty-db): index
+        //         join Transactions ut -- TODO (optimization): index
         //         on ut.Type in (100, 170) and ut.Int1 = b.Int2
-        //         join Chain utc -- TODO (losty-db): index
+        //         join Chain utc -- TODO (optimization): index
         //         on utc.TxId = ut.Id
         //             and utc.Last = 1
         //             and utc.Id = BlockingLists.IdTarget
@@ -571,7 +571,7 @@ namespace PocketDb
         auto sql = string(R"sql(
             with l as (
                 select b.RowId
-                from Transactions a -- TODO (losty-db): index
+                from Transactions a -- TODO (optimization): index
                 join Transactions b
                     on b.Type in (302,303,304)
                     and b.RegId1 = a.RegId1
@@ -588,7 +588,7 @@ namespace PocketDb
                             -- new record
                             (
                                 select max( c.Uid ) + 1
-                                from Chain c -- TODO (losty-db): index
+                                from Chain c -- TODO (optimization): index
                             ),
                             (select 0) -- for first record
                         )
@@ -606,7 +606,7 @@ namespace PocketDb
                 if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
                 if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
             }
-            // TODO (losty-db): error
+            // TODO (optimization): error
         });
 
         return {id, lastTxId};
@@ -671,7 +671,7 @@ namespace PocketDb
         // Restore old Last transactions
         // TODO (losty-critical): validate!!!
         auto stmt1 = SetupSqlStatement(R"sql(
-            insert into Last (TxId) -- TODO (losty-db): index
+            insert into Last (TxId) -- TODO (optimization): index
             select TxId from (
                 select c.TxId, max(c.Height)Height
                 from Chain c
@@ -768,7 +768,7 @@ namespace PocketDb
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Chain:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
-        // TODO (losty-db): delete blocks from db?
+        // TODO (optimization): delete blocks from db?
         // auto stmt1 = SetupSqlStatement(R"sql(
         //     delete from Blocks
         //     where Height >= ?

@@ -91,7 +91,7 @@ public:
         return true;
     }
 protected:
-    // TODO (optimizations): find a better place for this maybe (calculate on tx deserialization or smth)
+    // TODO (optimization): find a better place for this maybe (calculate on tx deserialization or smth)
     int64_t calculateIntField(const std::vector<PocketTx::TransactionOutput>& outputs, const std::vector<PocketTx::TransactionInput>& inputs)
     {
         return 
