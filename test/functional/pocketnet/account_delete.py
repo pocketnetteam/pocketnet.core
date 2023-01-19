@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2022 The Bitcoin Core developers
-# Copyright (c) 2018-2023 The Pocketnet Core developers
-# Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# Copyright (c) 2018-2023 The Pocketnet developers
+# Distributed under the Apache 2.0 software license, see the accompanying
+# https://www.apache.org/licenses/LICENSE-2.0
 """
-An AccountDelete functional test
+An account deletion functional test
 Launch this with command from 'test/functional/pocketnet' directory
 """
 
