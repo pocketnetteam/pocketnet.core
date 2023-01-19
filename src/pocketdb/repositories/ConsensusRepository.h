@@ -83,6 +83,7 @@ namespace PocketDb
 
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);
+        tuple<bool, vector<PTransactionRef>>GetLastContents(const vector<string>& rootHashes, const vector<TxType>& types);
         tuple<bool, TxType> GetLastAccountType(const string& address);
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
         tuple<bool, TxType> GetLastBlockingType(const string& address, const string& addressTo);

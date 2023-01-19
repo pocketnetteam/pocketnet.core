@@ -3151,6 +3151,89 @@ namespace PocketDb
         return result;
     }
 
+    vector<UniValue> WebRpcRepository::GetCollectionsData(const vector<int64_t>& ids)
+    {
+        auto func = __func__;
+        vector<UniValue> result{};
+
+        if (ids.empty())
+            return result;
+
+        string sql = R"sql(
+            select
+                t.String2 as RootTxHash,
+                t.Id,
+                case when t.Hash != t.String2 then 'true' else null end edit,
+                t.String3 as ContentIds,
+                t.String1 as AddressHash,
+                t.Time,
+                p.String1 as Lang,
+                t.Type,
+                t.Int1 as ContentTypes,
+                p.String2 as Caption,
+                p.String3 as Image
+
+            from Transactions t indexed by Transactions_Last_Id_Height
+            cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
+                on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
+            left join Payload p on t.Hash = p.TxHash
+            where t.Height is not null
+              and t.Last = 1
+              and t.Type = 220
+              and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+        )sql";
+
+        // Get posts
+        unordered_map<int64_t, UniValue> tmpResult{};
+        TryTransactionStep(func, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+
+            for (int64_t id : ids)
+                TryBindStatementInt64(stmt, i++, id);
+
+            // ---------------------------
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                auto[okHash, txHash] = TryGetColumnString(*stmt, 0);
+                auto[okId, txId] = TryGetColumnInt64(*stmt, 1);
+                record.pushKV("txid", txHash);
+                record.pushKV("id", txId);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("edit", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("contentIds", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok)
+                {
+                    record.pushKV("address", value);
+                }
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("l", value); // lang
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok)
+                {
+                    record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
+                    if ((TxType)value == CONTENT_DELETE)
+                        record.pushKV("deleted", "true");
+                }
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("contentTypes", value); // caption
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("c", value); // caption
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("c", value); // image
+                tmpResult[txId] = record;
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // ---------------------------------------------
+        // Place in result data with source sorting
+        for (auto& id : ids)
+            result.push_back(tmpResult[id]);
+
+        return result;
+    }
+
     UniValue WebRpcRepository::GetTopFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4366,6 +4449,207 @@ namespace PocketDb
 
             FinalizeSqlStatement(*stmt);
         });
+
+        // Complete!
+        return result;
+    }
+
+    UniValue WebRpcRepository::GetProfileCollections(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
+                                   const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+                                   const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+                                   const string& address, const string& keyword, const string& orderby, const string& ascdesc)
+    {
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        if (addressFeed.empty())
+            return result;
+
+        // ---------------------------------------------
+        string _keyword;
+        if(!keyword.empty())
+        {
+            _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
+        }
+
+        string contentTypesWhere = " ( 220 ) ";
+
+        string contentIdWhere;
+        if (topContentId > 0)
+            contentIdWhere = " and t.Id < ? ";
+
+        string accountExistence = " join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id "
+                                  " on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null ";
+
+        string langFilter;
+        if (!lang.empty())
+            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
+
+        string sorting = "t.Id ";
+//        if (orderby == "comment")
+//        {
+//            sorting = R"sql(
+//                (
+//                    select count()
+//                    from Transactions s indexed by Transactions_Type_Last_String3_Height
+//                    where s.Type in (204, 205)
+//                      and s.Height is not null
+//                      and s.String3 = t.String2
+//                      and s.Last = 1
+//                      -- exclude commenters blocked by the author of the post
+//                      and not exists (
+//                        select 1
+//                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+//                        where b.Type in (305)
+//                            and b.Last = 1
+//                            and b.Height > 0
+//                            and b.String1 = t.String1
+//                            and b.String2 = s.String1
+//                      )
+//                )
+//            )sql";
+//        }
+//        if (orderby == "score")
+//        {
+//            sorting = R"sql(
+//                (
+//                    select count() from Transactions scr indexed by Transactions_Type_Last_String2_Height
+//                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2
+//                )
+//            )sql";
+//        }
+        sorting += " " + ascdesc;
+
+        string sql = R"sql(
+            select t.Id
+            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
+            )sql" + accountExistence + R"sql(
+            )sql" + langFilter + R"sql(
+            where t.Type in )sql" + contentTypesWhere + R"sql(
+                and t.Height > 0
+                and t.Height <= ?
+                and t.Last = 1
+                and t.String1 = ?
+                )sql" + contentIdWhere   + R"sql(
+        )sql";
+
+//        if (!tags.empty())
+//        {
+//            sql += R"sql(
+//                and t.id in (
+//                    select tm.ContentId
+//                    from web.Tags tag indexed by Tags_Lang_Value_Id
+//                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+//                        on tag.Id = tm.TagId
+//                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+//                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+//                )
+//            )sql";
+//        }
+
+//        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+//        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+//        if (!tagsExcluded.empty())
+//        {
+//            sql += R"sql( and t.Id not in (
+//                select tmEx.ContentId
+//                from web.Tags tagEx indexed by Tags_Lang_Value_Id
+//                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
+//                    on tagEx.Id=tmEx.TagId
+//                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
+//                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
+//             ) )sql";
+//        }
+//
+//        if(!_keyword.empty())
+//        {
+//            sql += R"sql(
+//                and t.id in (
+//                    select cm.ContentId
+//                    from web.Content c
+//                    join web.ContentMap cm on c.ROWID = cm.ROWID
+//                    where cm.FieldType in (2, 3, 4, 5)
+//                        and c.Value match ?
+//                )
+//            )sql";
+//        }
+
+        sql += R"sql( order by
+        )sql" + sorting   + R"sql(
+         limit ?
+         offset ?
+        )sql";
+
+        // ---------------------------------------------
+
+        vector<int64_t> ids;
+        TryTransactionStep(func, [&]()
+        {
+            int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementInt(stmt, i++, topHeight);
+
+            TryBindStatementText(stmt, i++, addressFeed);
+
+            if (topContentId > 0)
+                TryBindStatementInt64(stmt, i++, topContentId);
+
+//            if (!tags.empty())
+//            {
+//                for (const auto& tag: tags)
+//                    TryBindStatementText(stmt, i++, tag);
+//
+//                if (!lang.empty())
+//                    TryBindStatementText(stmt, i++, lang);
+//            }
+
+//            if (!txidsExcluded.empty())
+//                for (const auto& extxid: txidsExcluded)
+//                    TryBindStatementText(stmt, i++, extxid);
+
+//            if (!adrsExcluded.empty())
+//                for (const auto& exadr: adrsExcluded)
+//                    TryBindStatementText(stmt, i++, exadr);
+
+//            if (!tagsExcluded.empty())
+//            {
+//                for (const auto& extag: tagsExcluded)
+//                    TryBindStatementText(stmt, i++, extag);
+//
+//                if (!lang.empty())
+//                    TryBindStatementText(stmt, i++, lang);
+//            }
+
+//            if (!_keyword.empty())
+//                TryBindStatementText(stmt, i++, _keyword);
+
+            TryBindStatementInt(stmt, i++, countOut);
+
+            TryBindStatementInt(stmt, i++, pageNumber * countOut);
+
+            // ---------------------------------------------
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // Get content data
+        if (!ids.empty())
+        {
+            auto contents = GetCollectionsData(ids);
+            result.push_backV(contents);
+        }
 
         // Complete!
         return result;

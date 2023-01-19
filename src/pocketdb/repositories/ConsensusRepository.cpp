@@ -141,6 +141,60 @@ namespace PocketDb
         return {tx != nullptr, tx};
     }
 
+    tuple<bool, vector<PTransactionRef>> ConsensusRepository::GetLastContents(const vector<string> &rootHashes,
+                                                                              const vector<TxType> &types)
+    {
+        vector<PTransactionRef> txs;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            string sql = R"sql(
+                select
+                    t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                from Transactions t indexed by Transactions_Type_Last_String2_Height
+                left join Payload p on t.Hash = p.TxHash
+                where t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                  and t.String2 = in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
+                  and t.Last = 1
+                  and t.Height is not null
+            )sql";
+
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            for (const auto& rootHash: rootHashes)
+                TryBindStatementText(stmt, i++, rootHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
+                    txs.emplace_back(transaction);
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {txs.size() != 0, txs};
+    }
+
     bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
     {
         auto result = false;

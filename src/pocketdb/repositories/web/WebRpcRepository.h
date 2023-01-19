@@ -121,6 +121,7 @@ namespace PocketDb
         UniValue SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut);
 
         vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
+        vector<UniValue> GetCollectionsData(const vector<int64_t>& ids);
         
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
 
@@ -163,6 +164,11 @@ namespace PocketDb
         vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
 
         UniValue GetContentActions(const string& postTxHash);
+
+        UniValue GetProfileCollections(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight, const string& lang,
+                                       const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+                                       const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
+                                       const string& keyword, const string& orderby, const string& ascdesc);
 
         /**
          * Returns map where key is address. Value is map, where key - height, value - vector of transactions for this height.

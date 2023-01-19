@@ -236,6 +236,7 @@ namespace PocketConsensus
         ConsensusLimit_account_settings_daily_count,
 
         ConsensusLimit_multiple_lock_addresses_count,
+        ConsensusLimit_collection_ids_count,
 
         ConsensusLimit_max_user_size,
         ConsensusLimit_max_post_size,
@@ -611,6 +612,12 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 100} } },
             { NetworkTest,    { {0, 100} } },
             { NetworkRegTest, { {0, 100} } }
+        } },
+
+        { ConsensusLimit_collection_ids_count, {
+            { NetworkMain,    { {0, 100} } },
+            { NetworkTest,    { {0, 100} } },
+            { NetworkRegTest, { {0, 10} } }
         } },
 
         // Size
