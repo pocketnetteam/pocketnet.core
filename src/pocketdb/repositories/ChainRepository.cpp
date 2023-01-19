@@ -459,55 +459,55 @@ namespace PocketDb
         });
 
         // TODO (losty-db): bad bad bad!!!
-        TryTransactionStep(__func__, [&]()
-        {
-            auto insListStmt = SetupSqlStatement(R"sql(
-                insert into BlockingLists (IdSource, IdTarget)
-                select
-                usc.Id,
-                utc.Id
-                from Transactions b -- TODO (losty-db): index
-                join Transactions us -- TODO (losty-db): index
-                on us.Type in (100, 170) and us.Int1 = b.Int1
-                join Chain usc -- TODO (losty-db): index
-                on usc.TxId = us.Id
-                    and usc.Last = 1
-                join Transactions ut -- TODO (losty-db): index
-                on ut.Type in (100, 170)
-                    and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
-                join Chain utc -- TODO (losty-db): index
-                on utc.TxId = ut.Id
-                    and utc.Last = 1
-                where b.Type in (305) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                    and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
-            )sql");
-            insListStmt->Bind(txHash);
-            TryStepStatement(insListStmt);
+        // TryTransactionStep(__func__, [&]()
+        // {
+        //     auto insListStmt = SetupSqlStatement(R"sql(
+        //         insert into BlockingLists (IdSource, IdTarget)
+        //         select
+        //         usc.Id,
+        //         utc.Id
+        //         from Transactions b -- TODO (losty-db): index
+        //         join Transactions us -- TODO (losty-db): index
+        //         on us.Type in (100, 170) and us.Int1 = b.Int1
+        //         join Chain usc -- TODO (losty-db): index
+        //         on usc.TxId = us.Id
+        //             and usc.Last = 1
+        //         join Transactions ut -- TODO (losty-db): index
+        //         on ut.Type in (100, 170)
+        //             and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
+        //         join Chain utc -- TODO (losty-db): index
+        //         on utc.TxId = ut.Id
+        //             and utc.Last = 1
+        //         where b.Type in (305) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
+        //             and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
+        //     )sql");
+        //     insListStmt->Bind(txHash);
+        //     TryStepStatement(insListStmt);
 
-            auto delListStmt = SetupSqlStatement(R"sql(
-                delete from BlockingLists
-                where exists
-                (select
-                1
-                from Transactions b -- TODO (losty-db): index
-                join Transactions us -- TODO (losty-db): index
-                on us.Type in (100, 170) and us.Int1 = b.Int1
-                join Chain usc -- TODO (losty-db): index
-                on usc.TxId = us.Id
-                    and usc.Last = 1
-                    and usc.Id = BlockingLists.IdSource
-                join Transactions ut -- TODO (losty-db): index
-                on ut.Type in (100, 170) and ut.Int1 = b.Int2
-                join Chain utc -- TODO (losty-db): index
-                on utc.TxId = ut.Id
-                    and utc.Last = 1
-                    and utc.Id = BlockingLists.IdTarget
-                where b.Type in (306) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                )
-            )sql");
-            delListStmt->Bind(txHash);
-            TryStepStatement(delListStmt);
-        });
+        //     auto delListStmt = SetupSqlStatement(R"sql(
+        //         delete from BlockingLists
+        //         where exists
+        //         (select
+        //         1
+        //         from Transactions b -- TODO (losty-db): index
+        //         join Transactions us -- TODO (losty-db): index
+        //         on us.Type in (100, 170) and us.Int1 = b.Int1
+        //         join Chain usc -- TODO (losty-db): index
+        //         on usc.TxId = us.Id
+        //             and usc.Last = 1
+        //             and usc.Id = BlockingLists.IdSource
+        //         join Transactions ut -- TODO (losty-db): index
+        //         on ut.Type in (100, 170) and ut.Int1 = b.Int2
+        //         join Chain utc -- TODO (losty-db): index
+        //         on utc.TxId = ut.Id
+        //             and utc.Last = 1
+        //             and utc.Id = BlockingLists.IdTarget
+        //         where b.Type in (306) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
+        //         )
+        //     )sql");
+        //     delListStmt->Bind(txHash);
+        //     TryStepStatement(delListStmt);
+        // });
 
         // Clear old last records for set new last
         return {id, lastTxId};
@@ -598,7 +598,9 @@ namespace PocketDb
 
         LogPrintf("Rollback to first block..\n");
         RollbackHeight(0);
-        ClearBlockingList();
+
+        // TODO (aok) : bad
+        // ClearBlockingList();
 
         m_database.CreateStructure();
 
@@ -613,7 +615,8 @@ namespace PocketDb
             TryTransactionStep(__func__, [&]()
             {
                 RestoreOldLast(height);
-                RollbackBlockingList(height);
+                // TODO (aok) : bad
+                // RollbackBlockingList(height);
                 RollbackHeight(height);
             });
 
