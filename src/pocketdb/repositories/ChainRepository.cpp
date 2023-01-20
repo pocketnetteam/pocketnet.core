@@ -15,7 +15,7 @@ namespace PocketDb
             const optional<int64_t> id;
         };
 
-        std::vector<ChainData> chainData;
+        vector<ChainData> chainData;
         for (const auto& txInfo: txs)
         {
             // Account and Content must have unique ID
@@ -87,39 +87,37 @@ namespace PocketDb
         bool exists = false;
         bool last = true;
 
-        string sql = R"sql(
-            select
-                ifnull((
-                    select
-                        1
-                    from
-                        Chain c indexed by Chain_Height_BlockId
-                    where
-                        c.Height = ? and
-                        c.BlockId = (
-                            select
-                                r.RowId
-                            from
-                                Registry r
-                            where
-                                r.String = ?
-                        )
-                    limit 1
-                ), 0),
-                ifnull((
-                    select
-                        1
-                    from
-                        Chain c indexed by Chain_Height_BlockId
-                    where
-                        c.Height = ?
-                    limit 1
-                ), 0)
-        )sql";
-
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(R"sql(
+                select
+                    ifnull((
+                        select
+                            1
+                        from
+                            Chain c indexed by Chain_Height_BlockId
+                        where
+                            c.Height = ? and
+                            c.BlockId = (
+                                select
+                                    r.RowId
+                                from
+                                    Registry r
+                                where
+                                    r.String = ?
+                            )
+                        limit 1
+                    ), 0),
+                    ifnull((
+                        select
+                            1
+                        from
+                            Chain c indexed by Chain_Height_BlockId
+                        where
+                            c.Height = ?
+                        limit 1
+                    ), 0)
+            )sql");
             stmt->Bind(blockHash, height, height + 1);
 
             if (stmt->Step() == SQLITE_ROW)
@@ -135,9 +133,9 @@ namespace PocketDb
         return {exists, last};
     }
 
-    void ChainRepository::IndexBlockData(const std::string& blockHash)
+    void ChainRepository::IndexBlockData(const string& blockHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
+        static auto stmt = SetupSqlStatement(R"sql(
             insert or ignore into Registry (String)
             values (?)
         )sql");
@@ -148,7 +146,7 @@ namespace PocketDb
 
     void ChainRepository::InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast)
     {
-        auto stmt = SetupSqlStatement(R"sql(
+        static auto stmt = SetupSqlStatement(R"sql(
             with
                 blockReg as (
                     select
@@ -197,318 +195,426 @@ namespace PocketDb
 
         TryStepStatement(stmt);
 
-        if (fIsCreateLast) {
-            auto stmtInsertLast = SetupSqlStatement(R"sql(
-                INSERT INTO Last (TxId)
-                select RowId from Transactions where HashId = (select RowId from Registry where String = ?)
+        if (fIsCreateLast)
+        {
+            static auto stmtInsertLast = SetupSqlStatement(R"sql(
+                insert into Last
+                    (TxId)
+                select
+                    t.RowId
+                from
+                    Transactions t
+                where
+                    t.HashId = (
+                        select
+                            r.RowId
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
             )sql");
             stmtInsertLast->Bind(txHash);
             TryStepStatement(stmtInsertLast);
         }
     }
 
-    void ChainRepository::UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height)
-    {
-        for (auto& input : txInfo.Inputs)
-        {
-            auto stmt = SetupSqlStatement(R"sql(
-                UPDATE TxOutputs SET
-                    SpentHeight = ?,
-                    SpentTxId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                WHERE TxId = ? and Number = ?
-            )sql");
-            stmt->Bind(height, txInfo.Hash, input.first, input.second);
-
-            TryStepStatement(stmt);
-        }
-    }
-
-
     void ChainRepository::IndexBalances(int height)
     {
         // Generate new balance records
-        auto stmt = SetupSqlStatement(R"sql(
-            insert into Balances (AddressId, Last, Height, Value)
+        static auto stmt = SetupSqlStatement(R"sql(
+            with
+                height as (
+                    select ? as value
+                ),
+                saldo as (
+                    select
+                        'unspent',
+                        o.AddressId,
+                        +sum(o.Value)Amount
+                    from
+                        height,
+                        Chain c indexed by Chain_Height_BlockId
+                        cross join TxOutputs o indexed by sqlite_autoindex_TxOutputs_1
+                            on o.TxId = c.TxId
+                    where
+                        c.Height = height.value
+                    group by
+                        o.AddressId
+
+                    union
+
+                    select
+                        'spent',
+                        o.AddressId,
+                        -sum(o.Value)Amount
+                    from
+                        height,
+                        Chain ci indexed by Chain_Height_BlockId
+                        cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                            on i.SpentTxId = ci.TxId
+                        cross join TxOutputs o indexed by sqlite_autoindex_TxOutputs_1
+                            on o.TxId = i.TxId and o.Number = i.Number
+                    where
+                        ci.Height = height.value
+                    group by
+                        o.AddressId
+                )
+
+            insert into Balances
+                (AddressId, Last, Height, Value)
             select
                 saldo.AddressId,
                 1,
-                ?,
+                height.value,
                 sum(ifnull(saldo.Amount,0)) + ifnull(b.Value,0)
-            from (
-
-                select 'unspent',
-                       o.AddressId,
-                       sum(o.Value)Amount
-                -- TODO (optimization): fix me
-                from TxOutputs o
-                join Chain c on c.TxId = o.TxId and c.Height = ?
-                group by o.AddressId
-
-                union
-
-                select 'spent',
-                       o.AddressId,
-                       -sum(o.Value)Amount
-                from TxInputs i
-                join Chain ci on ci.TxId = i.SpentTxId and ci.Height = ?
-                join TxOutputs o on o.TxId = i.TxId and o.Number = i.Number
-                group by o.AddressId
-
-            ) saldo
+            from
+                height,
+                saldo
             left join Balances b indexed by Balances_AddressId_Last
                 on b.AddressId = saldo.AddressId and b.Last = 1
-            where saldo.AddressId is not null
-            group by saldo.AddressId
+            where
+                saldo.AddressId is not null
+            group by
+                saldo.AddressId
         )sql");
-        stmt->Bind(height, height, height);
+        stmt->Bind(height);
         TryStepStatement(stmt);
 
         // Remove old Last records
-        auto stmtOld = SetupSqlStatement(R"sql(
+        static auto stmtOld = SetupSqlStatement(R"sql(
             update Balances indexed by Balances_AddressId_Last_Height
-              set Last = 0
-            where Balances.Last = 1
-              and Balances.Height < ?
-              and Balances.AddressId in (
-                select b.AddressId
-                from Balances b indexed by Balances_Height
-                where b.Height = ?
-              )
+            set
+                Last = 0
+            where
+                Balances.AddressId in (
+                    select
+                        b.AddressId
+                    from
+                        Balances b indexed by Balances_Height
+                    where
+                        b.Height = ?
+                ) and
+                Balances.Last = 1 and
+                Balances.Height < ?
         )sql");
         stmtOld->Bind(height, height);
         TryStepStatement(stmtOld);
     }
 
-    // <id, lastTxID>
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccount(const string& txHash)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const string& txHash, const string& sql)
     {
-        // Get new ID or copy previous
-        auto sql = string(R"sql(
-            with l as (
-                select b.RowId
-                from Transactions a -- TODO (optimization): index
-                join Transactions b
-                    on b.Type in (100, 170)
-                    and b.RegId1 = a.RegId1
-                join Last l
-                    on l.TxId = b.RowId
-                where a.Type in (100,170)
-                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                limit 1
-            )
-            select ifnull(
-                (select c.Uid from Chain c,l where c.TxId = l.RowId),
-                ifnull(
-                    -- new record
-                    (
-                        select max( c.Uid ) + 1
-                        from Chain c -- TODO (optimization): index
-                    ),
-                    (select 0) -- for first record
-                )
-           ), (select l.RowId from l)
-        )sql");
-
         optional<int64_t> id;
         optional<int64_t> lastTxId;
         TryTransactionStep(__func__, [&]()
         {
+            // TODO (losty, aok) : static work here?
             auto stmt = SetupSqlStatement(sql);
             stmt->Bind(txHash);
             
-            if (stmt->Step() == SQLITE_ROW) {
-                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
-                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
-            }
-            // TODO (optimization): error
+            if (stmt->Step() != SQLITE_ROW)
+                throw runtime_error("IndexSocial failed - no return data");
+            
+            stmt->Collect(
+                id,
+                lastTxId
+            );
         });
 
         return {id, lastTxId};
+    }
+
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccount(const string& txHash)
+    {
+        return IndexSocial(
+            txHash,
+            R"sql(
+                with
+                    l as (
+                        select
+                            b.RowId
+                        from
+                            Transactions a -- primary key
+                            join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                on b.Type in (100, 170) and b.RegId1 = a.RegId1
+                            join Last l -- primary key
+                                on l.TxId = b.RowId
+                        where
+                            a.Type in (100, 170) and
+                            a.RowId = (
+                                select txHash.RowId
+                                from vTxRowId txHash
+                                where txHash.String = ?
+                            )
+                        limit 1
+                    )
+                select
+                    ifnull(
+                        (
+                            select
+                                c.Uid
+                            from
+                                Chain c, -- primary key
+                                l
+                            where
+                                c.TxId = l.RowId
+                        ),
+                        ifnull(
+                            -- new record
+                            (
+                                select
+                                    max(c.Uid) + 1
+                                from
+                                    Chain c indexed by Chain_Uid
+                            ),
+                            -- for first record
+                            (
+                                select 0
+                            )
+                        )
+                    ),
+                    (
+                        select l.RowId
+                        from l
+                    )
+            )sql"
+        );
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccountSetting(const string& txHash)
     {
-        // Get new ID or copy previous
-        auto sql = string(R"sql(
-            with l as (
-                select b.RowId
-                from Transactions a -- TODO (optimization): index
-                join Transactions b
-                    on b.Type in (103)
-                    and b.RegId1 = a.RegId1
-                join Last l
-                    on l.TxId = b.RowId
-                where a.Type in (103)
-                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                limit 1
-            )
-            select ifnull(
-                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+        return IndexSocial(
+            txHash,
+            R"sql(
+                with
+                    l as (
+                        select
+                            b.RowId
+                        from
+                            Transactions a -- primary key
+                            join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                on b.Type in (103)
+                                and b.RegId1 = a.RegId1
+                            join Last l -- primary key
+                                on l.TxId = b.RowId
+                        where
+                            a.Type in (103) and
+                            a.RowId = (
+                                select txHash.RowId
+                                from vTxRowId txHash
+                                where txHash.String = ?
+                            )
+                        limit 1
+                    )
+                select
+                    ifnull(
+                        (
+                            select
+                                c.Uid
+                            from
+                                Chain c, -- primary key
+                                l
+                            where
+                                c.TxId = l.RowId
+                        ),
                         ifnull(
                             -- new record
                             (
-                                select max( c.Uid ) + 1
-                                from Chain c -- TODO (optimization): index
+                                select
+                                    max(c.Uid) + 1
+                                from
+                                    Chain c indexed by Chain_Uid
                             ),
-                            (select 0) -- for first record
+                            -- for first record
+                            (
+                                select 0
+                            )
                         )
-                ), (select l.RowId from l)
-        )sql");
-
-        optional<int64_t> id;
-        optional<int64_t> lastTxId;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            stmt->Bind(txHash);
-            
-            if (stmt->Step() == SQLITE_ROW) {
-                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
-                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
-            }
-            // TODO (optimization): error
-        });
-
-        return {id, lastTxId};
+                    ),
+                    (
+                        select l.RowId
+                        from l
+                    )
+            )sql"
+        );
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexContent(const string& txHash)
     {
-        // Get new ID or copy previous
-        auto sql = string(R"sql(
-            with l as (
-                select b.RowId
-                from Transactions a -- TODO (optimization): index
-                join Transactions b
-                    on b.Type in (200,201,202,209,210,207)
-                    and b.RegId2 = a.RegId2
-                join Last l
-                    on l.TxId = b.RowId
-                where a.Type in (200,201,202,209,210,207)
-                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                limit 1
-            )
-            select ifnull(
-                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+        return IndexSocial(
+            txHash,
+            R"sql(
+                with
+                    l as (
+                        select
+                            b.RowId
+                        from
+                            Transactions a -- primary key
+                            join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                on b.Type in (200, 201, 202, 209, 210, 207) and
+                                b.RegId1 = a.RegId1 and
+                                b.RegId2 = a.RegId2
+                            join Last l -- primary key
+                                on l.TxId = b.RowId
+                        where
+                            a.Type in (200, 201, 202, 209, 210, 207) and
+                            a.RowId = (
+                                select txHash.RowId
+                                from vTxRowId txHash
+                                where txHash.String = ?
+                            )
+                        limit 1
+                    )
+                select
+                    ifnull(
+                        (
+                            select
+                                c.Uid
+                            from
+                                Chain c, -- primary key
+                                l
+                            where
+                                c.TxId = l.RowId
+                        ),
                         ifnull(
                             -- new record
                             (
-                                select max( c.Uid ) + 1
-                                from Chain c -- TODO (optimization): index
+                                select
+                                    max(c.Uid) + 1
+                                from
+                                    Chain c indexed by Chain_Uid
                             ),
-                            (select 0) -- for first record
+                            -- for first record
+                            (
+                                select 0
+                            )
                         )
-                ), (select l.RowId from l)
-        )sql");
-
-        optional<int64_t> id;
-        optional<int64_t> lastTxId;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            stmt->Bind(txHash);
-            
-            if (stmt->Step() == SQLITE_ROW) {
-                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
-                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
-            }
-            // TODO (optimization): error
-        });
-
-        return {id, lastTxId};
+                    ),
+                    (
+                        select l.RowId
+                        from l
+                    )
+            )sql"
+        );
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexComment(const string& txHash)
     {
-        // Get new ID or copy previous
-        auto sql = string(R"sql(
-            with l as (
-                select b.RowId
-                from Transactions a -- TODO (optimization): index
-                join Transactions b
-                    on b.Type in (204,205,206)
-                    and b.RegId2 = a.RegId2
-                join Last l
-                    on l.TxId = b.RowId
-                where a.Type in (204,205,206)
-                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                limit 1
-            )
-            select ifnull(
-                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+        return IndexSocial(
+            txHash,
+            R"sql(
+                with
+                    l as (
+                        select
+                            b.RowId
+                        from
+                            Transactions a -- primary key
+                            join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                on b.Type in (204, 205, 206) and
+                                b.RegId1 = a.RegId1 and
+                                b.RegId2 = a.RegId2
+                            join Last l -- primary key
+                                on l.TxId = b.RowId
+                        where
+                            a.Type in (204, 205, 206) and
+                            a.RowId = (
+                                select txHash.RowId
+                                from vTxRowId txHash
+                                where txHash.String = ?
+                            )
+                        limit 1
+                    )
+                select
+                    ifnull(
+                        (
+                            select
+                                c.Uid
+                            from
+                                Chain c, -- primary key
+                                l
+                            where
+                                c.TxId = l.RowId
+                        ),
                         ifnull(
                             -- new record
                             (
-                                select max( c.Uid ) + 1
-                                from Chain c -- TODO (optimization): index
+                                select
+                                    max(c.Uid) + 1
+                                from
+                                    Chain c indexed by Chain_Uid
                             ),
-                            (select 0) -- for first record
+                            -- for first record
+                            (
+                                select 0
+                            )
                         )
-                ), (select l.RowId from l)
-        )sql");
-
-        optional<int64_t> id;
-        optional<int64_t> lastTxId;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            stmt->Bind(txHash);
-            
-            if (stmt->Step() == SQLITE_ROW) {
-                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
-                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
-            }
-            // TODO (optimization): error
-        });
-
-        return {id, lastTxId};
+                    ),
+                    (
+                        select l.RowId
+                        from l
+                    )
+            )sql"
+        );
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexBlocking(const string& txHash)
     {
-        // TODO (o1q): double check multiple locks
-        // Set last=1 for new transaction
-         auto sql = string(R"sql(
-            with l as (
-                select b.RowId
-                from Transactions a -- TODO (optimization): index
-                join Transactions b
-                    on b.Type in (305,306)
-                    and b.RegId1 = a.RegId1
-                    and ifnull(b.RegId2,-1) = ifnull(a.RegId2,-1)
-                    and ifnull(b.RegId3,-1) = ifnull(a.RegId3,-1)
-                join Last l
-                    on l.TxId = b.RowId
-                where a.Type in (305,306)
-                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                limit 1
-            )
-            select ifnull(
-                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+        return IndexSocial(
+            txHash,
+            R"sql(
+                with
+                    l as (
+                        select
+                            b.RowId
+                        from
+                            Transactions a -- primary key
+                            join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                on b.Type in (305, 306) and
+                                b.RegId1 = a.RegId1 and
+                                ifnull(b.RegId2, -1) = ifnull(a.RegId2, -1) and
+                                ifnull(b.RegId3, -1) = ifnull(a.RegId3, -1)
+                            join Last l -- primary key
+                                on l.TxId = b.RowId
+                        where
+                            a.Type in (305, 306) and
+                            a.RowId = (
+                                select txHash.RowId
+                                from vTxRowId txHash
+                                where txHash.String = ?
+                            )
+                        limit 1
+                    )
+                select
+                    ifnull(
+                        (
+                            select
+                                c.Uid
+                            from
+                                Chain c, -- primary key
+                                l
+                            where
+                                c.TxId = l.RowId
+                        ),
                         ifnull(
                             -- new record
                             (
-                                select max( c.Uid ) + 1
-                                from Chain c -- TODO (optimization): index
+                                select
+                                    max(c.Uid) + 1
+                                from
+                                    Chain c indexed by Chain_Uid
                             ),
-                            (select 0) -- for first record
+                            -- for first record
+                            (
+                                select 0
+                            )
                         )
-                ), (select l.RowId from l)
-        )sql");
-
-        optional<int64_t> id;
-        optional<int64_t> lastTxId;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            stmt->Bind(txHash);
-            
-            if (stmt->Step() == SQLITE_ROW) {
-                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
-                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
-            }
-            // TODO (optimization): error
-        });
+                    ),
+                    (
+                        select l.RowId
+                        from l
+                    )
+            )sql"
+        );
 
         // TODO (optimization): bad bad bad!!!
         // TryTransactionStep(__func__, [&]()
@@ -560,57 +666,67 @@ namespace PocketDb
         //     delListStmt->Bind(txHash);
         //     TryStepStatement(delListStmt);
         // });
-
-        // Clear old last records for set new last
-        return {id, lastTxId};
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSubscribe(const string& txHash)
     {
-         // Get new ID or copy previous
-        auto sql = string(R"sql(
-            with l as (
-                select b.RowId
-                from Transactions a -- TODO (optimization): index
-                join Transactions b
-                    on b.Type in (302,303,304)
-                    and b.RegId1 = a.RegId1
-                    and b.RegId2 = a.RegId2
-                join Last l
-                    on l.TxId = b.RowId
-                where a.Type in (302,303,304)
-                    and a.RowId = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-                limit 1
-            )
-            select ifnull(
-                        (select c.Uid from Chain c,l where c.TxId = l.RowId),
+        return IndexSocial(
+            txHash,
+            R"sql(
+                with
+                    l as (
+                        select
+                            b.RowId
+                        from
+                            Transactions a -- primary key
+                            join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                on b.Type in (302, 303, 304) and
+                                b.RegId1 = a.RegId1 and
+                                b.RegId2 = a.RegId2
+                            join Last l
+                                on l.TxId = b.RowId
+                        where
+                            a.Type in (302, 303, 304) and
+                            a.RowId = (
+                                select txHash.RowId
+                                from vTxRowId txHash
+                                where txHash.String = ?
+                            )
+                        limit 1
+                    )
+                select
+                    ifnull(
+                        (
+                            select
+                                c.Uid
+                            from
+                                Chain c, -- primary key
+                                l
+                            where
+                                c.TxId = l.RowId
+                        ),
                         ifnull(
                             -- new record
                             (
-                                select max( c.Uid ) + 1
-                                from Chain c -- TODO (optimization): index
+                                select
+                                    max(c.Uid) + 1
+                                from
+                                    Chain c indexed by Chain_Uid
                             ),
-                            (select 0) -- for first record
+                            -- for first record
+                            (
+                                select 0
+                            )
                         )
-                ), (select l.RowId from l)
-        )sql");
-
-        optional<int64_t> id;
-        optional<int64_t> lastTxId;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            stmt->Bind(txHash);
-            
-            if (stmt->Step() == SQLITE_ROW) {
-                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok) id = val;
-                if (auto [ok, val] = stmt->TryGetColumnInt64(1); ok) lastTxId = val;
-            }
-            // TODO (optimization): error
-        });
-
-        return {id, lastTxId};
+                    ),
+                    (
+                        select l.RowId
+                        from l
+                    )
+            )sql"
+        );
     }
+
 
     bool ChainRepository::ClearDatabase()
     {
@@ -645,7 +761,7 @@ namespace PocketDb
 
             return true;
         }
-        catch (std::exception& ex)
+        catch (exception& ex)
         {
             LogPrintf("Error: Rollback to height %d failed with message: %s\n", height, ex.what());
             return false;

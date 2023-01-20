@@ -225,6 +225,19 @@ namespace PocketDb
             );
         )sql");
 
+        _views.emplace_back(R"sql(
+            drop view if exists vTxRowId;
+            create view if not exists vTxRowId as
+            select
+                t.RowId,
+                r.String
+            from
+                Registry r indexed by Registry_String,
+                Transactions t indexed by Transactions_HashId
+            where
+                t.HashId = r.RowId;
+        )sql");
+
         
         _preProcessing = R"sql(
             insert or ignore into System (Db, Version) values ('main', 1);
@@ -233,11 +246,12 @@ namespace PocketDb
 
 
         _indexes = R"sql(
-            create index if not exists Chain_Uid on Chain (Uid);
+            create index if not exists Chain_Uid on Chain (Uid desc);
 
             create unique index if not exists Registry_String on Registry (String);
 
             create unique index if not exists Transactions_HashId on Transactions (HashId);
+            create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3); -- // TODO - extend
 
             create index if not exists Chain_Height_BlockId on Chain (Height, BlockId);
 
