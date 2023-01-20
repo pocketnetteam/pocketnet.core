@@ -16,33 +16,36 @@ namespace PocketDb
         };
 
         vector<ChainData> chainData;
-        for (const auto& txInfo: txs)
+        TryTransactionStep(__func__, [&]()
         {
-            // Account and Content must have unique ID
-            // Also all edited transactions must have Last=(0/1) field
-            optional<int64_t> id;
-            optional<int64_t> lastTxId;
-            if (txInfo.IsAccount())
-                tie(id, lastTxId) = IndexAccount(txInfo.Hash);
+            for (const auto& txInfo: txs)
+            {
+                // Account and Content must have unique ID
+                // Also all edited transactions must have Last=(0/1) field
+                optional<int64_t> id;
+                optional<int64_t> lastTxId;
+                if (txInfo.IsAccount())
+                    tie(id, lastTxId) = IndexAccount(txInfo.Hash);
 
-            if (txInfo.IsAccountSetting())
-                tie(id, lastTxId) = IndexAccountSetting(txInfo.Hash);
+                if (txInfo.IsAccountSetting())
+                    tie(id, lastTxId) = IndexAccountSetting(txInfo.Hash);
 
-            if (txInfo.IsContent())
-                tie(id, lastTxId) = IndexContent(txInfo.Hash);
+                if (txInfo.IsContent())
+                    tie(id, lastTxId) = IndexContent(txInfo.Hash);
 
-            if (txInfo.IsComment())
-                tie(id, lastTxId) = IndexComment(txInfo.Hash);
+                if (txInfo.IsComment())
+                    tie(id, lastTxId) = IndexComment(txInfo.Hash);
 
-            if (txInfo.IsBlocking())
-                tie(id, lastTxId) = IndexBlocking(txInfo.Hash);
+                if (txInfo.IsBlocking())
+                    tie(id, lastTxId) = IndexBlocking(txInfo.Hash);
 
-            if (txInfo.IsSubscribe())
-                tie(id, lastTxId) = IndexSubscribe(txInfo.Hash);
+                if (txInfo.IsSubscribe())
+                    tie(id, lastTxId) = IndexSubscribe(txInfo.Hash);
 
-            ChainData data {txInfo, lastTxId, id};
-            chainData.emplace_back(data);
-        }
+                ChainData data {txInfo, lastTxId, id};
+                chainData.emplace_back(data);
+            }
+        });
 
         TryTransactionStep(__func__, [&]()
         {
@@ -302,32 +305,28 @@ namespace PocketDb
         TryStepStatement(stmtOld);
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const string& txHash, const string& sql)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(shared_ptr<Stmt> stmt, const string& txHash)
     {
+        stmt->Bind(txHash);
+        
+        if (stmt->Step() != SQLITE_ROW)
+            throw runtime_error("IndexSocial failed - no return data");
+        
         optional<int64_t> id;
         optional<int64_t> lastTxId;
-        TryTransactionStep(__func__, [&]()
-        {
-            // TODO (losty, aok) : static work here?
-            auto stmt = SetupSqlStatement(sql);
-            stmt->Bind(txHash);
-            
-            if (stmt->Step() != SQLITE_ROW)
-                throw runtime_error("IndexSocial failed - no return data");
-            
-            stmt->Collect(
-                id,
-                lastTxId
-            );
-        });
+        stmt->Collect(
+            id,
+            lastTxId
+        );
+
+        stmt->Reset();
 
         return {id, lastTxId};
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccount(const string& txHash)
     {
-        return IndexSocial(
-            txHash,
+        static auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -337,7 +336,7 @@ namespace PocketDb
                             Transactions a -- primary key
                             join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
                                 on b.Type in (100, 170) and 
-                                   b.RegId1 = a.RegId1
+                                    b.RegId1 = a.RegId1
                             join Last l -- primary key
                                 on l.TxId = b.RowId
                         where
@@ -380,12 +379,13 @@ namespace PocketDb
                     )
             )sql"
         );
+
+        return IndexSocial(stmt, txHash);
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccountSetting(const string& txHash)
     {
-        return IndexSocial(
-            txHash,
+        static auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -438,12 +438,13 @@ namespace PocketDb
                     )
             )sql"
         );
+
+        return IndexSocial(stmt, txHash);
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexContent(const string& txHash)
     {
-        return IndexSocial(
-            txHash,
+        static auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -497,12 +498,13 @@ namespace PocketDb
                     )
             )sql"
         );
+
+        return IndexSocial(stmt, txHash);
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexComment(const string& txHash)
     {
-        return IndexSocial(
-            txHash,
+        static auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -556,12 +558,13 @@ namespace PocketDb
                     )
             )sql"
         );
+
+        return IndexSocial(stmt, txHash);
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexBlocking(const string& txHash)
     {
-        return IndexSocial(
-            txHash,
+        static auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -617,6 +620,8 @@ namespace PocketDb
             )sql"
         );
 
+        return IndexSocial(stmt, txHash);
+
         // TODO (optimization): bad bad bad!!!
         // TryTransactionStep(__func__, [&]()
         // {
@@ -671,8 +676,7 @@ namespace PocketDb
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSubscribe(const string& txHash)
     {
-        return IndexSocial(
-            txHash,
+        static auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -726,6 +730,8 @@ namespace PocketDb
                     )
             )sql"
         );
+
+        return IndexSocial(stmt, txHash);
     }
 
 

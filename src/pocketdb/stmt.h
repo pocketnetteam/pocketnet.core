@@ -25,10 +25,17 @@ namespace PocketDb
         Stmt(Stmt&&) = default;
         Stmt() = default;
         ~Stmt();
+
         void Init(SQLiteDatabase& db, const std::string& sql);
         int Step();
         int Finalize();
         int Reset();
+        bool CheckValidResult(int result);
+
+        auto Log()
+        {
+            return sqlite3_expanded_sql(m_stmt);
+        }
 
         // --------------------------------
         // BINDS
@@ -51,6 +58,7 @@ namespace PocketDb
         void TryBindStatementInt64(int index, int64_t value);
         bool TryBindStatementNull(int index);
 
+        // Collect data
         template <class ...Collects>
         void Collect(Collects&... collects)
         {
@@ -59,13 +67,6 @@ namespace PocketDb
         tuple<bool, std::string> TryGetColumnString(int index);
         tuple<bool, int64_t> TryGetColumnInt64(int index);
         tuple<bool, int> TryGetColumnInt(int index);
-
-        bool CheckValidResult(int result);
-
-        auto Log()
-        {
-            return sqlite3_expanded_sql(m_stmt);
-        }
 
     protected:
         void ResetInternalIndicies();

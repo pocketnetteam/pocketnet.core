@@ -3794,6 +3794,8 @@ namespace PocketDb
 
                 postsRanks.push_back(record);
             }
+
+            stmt->Reset();
         });
 
         // ---------------------------------------------
