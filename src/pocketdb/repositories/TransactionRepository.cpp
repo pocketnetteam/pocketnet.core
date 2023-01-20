@@ -306,72 +306,171 @@ namespace PocketDb
         string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
 
         auto sql = R"sql(
-            with TxData as (
-                select t.RowId as Id, r.String as Hash
-                from Transactions t
-                join Registry r
-                    on r.String in ( )sql" + txReplacers + R"sql( )
-                    and r.RowId = t.HashId
-            )
-            select (0)tp,
-                (select Hash from TxData where Id = t.RowId),
-                t.Type, t.Time, c.Height, ifnull((select 1 from Last l where l.TxId = t.RowId),0), c.Uid, t.Int1,
-                (select r.String from Registry r where r.RowId = t.RegId1),
-                (select r.String from Registry r where r.RowId = t.RegId2),
-                (select r.String from Registry r where r.RowId = t.RegId3),
-                (select r.String from Registry r where r.RowId = t.RegId4),
-                (select r.String from Registry r where r.RowId = t.RegId5),
-                (select r.String from Registry r where r.RowId = c.BlockId),
-                (
-                    -- TODO (optimization): empty string instead of empty array
-                    select json_group_array(
-                        (select rr.String from Registry rr where rr.RowId = l.RegId)
-                    )
-                    from Lists l
+            with
+                txhash as (
+                    select
+                        t.RowId,
+                        t.String
+                    from
+                        vTxRowId t
+                    where
+                        t.String in ( )sql" + txReplacers + R"sql( )
+                )
+            select
+                (0)tp,
+                txhash.String,
+                t.Type,
+                t.Time,
+                c.Height,
+                ifnull((
+                    select 1
+                    from Last l -- primary key
                     where l.TxId = t.RowId
+                ), 0),
+                c.Uid,
+                t.Int1,
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = t.RegId1
+                ),
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = t.RegId2
+                ),
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = t.RegId3
+                ),
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = t.RegId4
+                ),
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = t.RegId5
+                ),
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = c.BlockId
+                ),
+                (
+                    select
+                        json_group_array(
+                            r.String
+                        )
+                    from
+                        Lists l indexed by Lists_TxId_OrderIndex_RegId
+                        cross join Registry r -- primary key
+                            on r.RowId = l.RegId
+                    where
+                        l.TxId = t.RowId
                     order by l.OrderIndex asc
                 )
-            from Transactions t
-            left join Chain c
-                on c.TxId = t.RowId
-            where t.RowId in ( select Id from TxData )
+            from
+                txhash
+                cross join Transactions t -- primary key
+                    on t.RowId = txhash.RowId
+                left join Chain c -- primary key
+                    on c.TxId = t.RowId
         )sql" +
 
         // Payload part
         (includePayload ? string(R"sql(
             union
-            select (1)tp,
-                (select Hash from TxData where Id = TxId),
-                Int1, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7
-            from Payload
-            where TxId in ( select Id from TxData )
+            select
+                (1) tp,
+                txhash.String,
+                Int1,
+                null,
+                null,
+                null,
+                null,
+                null,
+                String1,
+                String2,
+                String3,
+                String4,
+                String5,
+                String6,
+                String7
+            from
+                txhash
+                cross join Payload p -- primary key
+                    on p.TxId = txhash.RowId
         )sql") : "") +
 
         // Inputs part
         (includeInputs ? string(R"sql(
             union
-            select (2)tp,
-                (select Hash from TxData where Id = i.SpentTxId),
-                i.Number, o.Value, null, null, null, null,
-                (select r.String from Registry r where r.Id = i.TxId),
-                (select a.String from Registry a where a.Id = o.AddressId),
-                null, null, null, null, null
-            from TxInputs i
-            join TxOutputs o on o.TxId = i.TxId and o.Number = i.Number
-            where i.SpentTxId in ( select Id from TxData )
+            select
+                (2)tp,
+                txhash.String,
+                i.Number,
+                o.Value,
+                null,
+                null,
+                null,
+                null,
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = i.TxId
+                ),
+                (
+                    select a.String
+                    from Registry a
+                    where a.RowId = o.AddressId
+                ),
+                null,
+                null,
+                null,
+                null,
+                null
+            from
+                txhash
+                cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                    on i.SpentTxId = txhash.RowId
+                cross join TxOutputs o indexed by TxOutputs_TxId_Number
+                    on o.TxId = i.TxId and o.Number = i.Number
         )sql") : "") +
         
         // Outputs part
         (includeOutputs ? string(R"sql(
             union
-            select (3)tp,
-            (select Hash from TxData where Id = TxId),
-            Value, Number, null, null, null, null,
-            (select a.String from Registry a where a.RowId = AddressId),
-            (select String from Registry where RowId = ScriptPubKeyId),
-            null, null, null, null, null
-            from TxOutputs
-            where TxId in ( select Id from TxData )
+            select
+                (3)tp,
+                txhash.String,
+                o.Value,
+                o.Number,
+                null,
+                null,
+                null,
+                null,
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = o.AddressId
+                ),
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = o.ScriptPubKeyId
+                ),
+                null,
+                null,
+                null,
+                null,
+                null
+            from
+                txhash
+                cross join TxOutputs o
+                    on o.TxId = txhash.RowId
         )sql") : "") +
 
         string(R"sql(
@@ -385,7 +484,6 @@ namespace PocketDb
 
         TransactionReconstructor reconstructor(initData);
 
-        // TODO (aok, loststyg): check statis stmt
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
@@ -394,23 +492,19 @@ namespace PocketDb
 
             while (stmt->Step() == SQLITE_ROW)
             {
-                // TODO (aok): maybe throw exception if errors?
                 if (!reconstructor.FeedRow(*stmt))
-                {
-                    break;
-                }
+                    throw runtime_error("Transaction::List feedRow failed - no return data");
             }
         });
 
         auto pBlock = std::make_shared<PocketBlock>();
 
-        for (auto& collectData: reconstructor.GetResult()) {
+        for (auto& collectData: reconstructor.GetResult())
+        {
             if (auto ptx = CollectDataToModelConverter::CollectDataToModel(collectData); ptx)
                 pBlock->emplace_back(ptx);
-            else {
-                // TODO (optimization): error!!!
-                LogPrintf("DEBUG: failed to get model from CollectData in %s\n" , __func__);
-            }
+            else
+                throw runtime_error("Transaction::List reconstruct failed - no return data");
         }
 
         return pBlock;

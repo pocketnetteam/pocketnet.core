@@ -120,7 +120,7 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Payload
             (
-                TxId  text   primary key, -- Transactions.TxId
+                TxId integer primary key, -- Transactions.TxId
 
                 -- AccountUser.Lang
                 -- ContentPost.Lang
@@ -247,18 +247,18 @@ namespace PocketDb
 
         _indexes = R"sql(
             create index if not exists Chain_Uid on Chain (Uid desc);
+            create index if not exists Chain_Height_BlockId on Chain (Height, BlockId);
 
             create unique index if not exists Registry_String on Registry (String);
 
             create unique index if not exists Transactions_HashId on Transactions (HashId);
-            create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3); -- // TODO - extend
+            create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
 
-            create index if not exists Chain_Height_BlockId on Chain (Height, BlockId);
-
-            create index if not exists TxInputs_SpentTxId_Number_TxId on TxInputs (SpentTxId, Number, TxId);
+            create index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
 
             create index if not exists TxOutputs_TxId_Number on TxOutputs (TxId, Number);
 
+            create index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
 
             ------------------------------
 
@@ -276,7 +276,6 @@ namespace PocketDb
             create index if not exists Balances_Height on Balances (Height);
             create index if not exists Balances_AddressId_Last_Height on Balances (AddressId, Last, Height);
             create index if not exists Balances_Last_Value on Balances (Last, Value);
-            create index if not exists Balances_AddressId_Last on Balances (AddressId, Last);
         )sql";
 
         _postProcessing = R"sql(
