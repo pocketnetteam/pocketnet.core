@@ -27,7 +27,7 @@ from test_framework.util import (
 )
 
 # Pocketnet framework
-from framework.helpers import rollback_node
+from framework.helpers import generate_accounts, rollback_node
 from framework.models import *
 
 
@@ -54,14 +54,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
 
         # ---------------------------------------------------------------------------------
         self.log.info("Generate account addresses")
-
-        accounts = []
-        for i in range(10):
-            acc = node.public().generateaddress()
-            accounts.append(Account(acc['address'], acc['privkey'], f'user{i}'))
-            node.sendtoaddress(address=accounts[i].Address, amount=10, destaddress=nodeAddress)
-
-        node.stakeblock(1) # height : 1021
+        accounts = generate_accounts(node, nodeAddress, account_num=10) # height : 1021
 
         # ---------------------------------------------------------------------------------
         self.log.info("Generate post for set badges")

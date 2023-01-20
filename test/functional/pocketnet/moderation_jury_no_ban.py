@@ -27,7 +27,7 @@ from test_framework.util import (
 )
 
 # Pocketnet framework
-from framework.helpers import rollback_node
+from framework.helpers import generate_accounts, rollback_node
 from framework.models import *
 
 
@@ -122,25 +122,10 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
 
         # ---------------------------------------------------------------------------------
         self.log.info("Generate account addresses")
+        accounts = generate_accounts(node, nodeAddress, 10)
 
-        accounts = []
-        for i in range(10):
-            acc = node.public().generateaddress()
-            accounts.append(Account(acc['address'], acc['privkey'], f'user{i}'))
-            node.sendtoaddress(address=accounts[i].Address, amount=10, destaddress=nodeAddress)
-
-        node.stakeblock(1)
-
-        # ---------------------------------------------------------------------------------
         self.log.info("Generate moderator addresses")
-
-        moders = []
-        for i in range(10):
-            acc = node.public().generateaddress()
-            moders.append(Account(acc['address'], acc['privkey'], f'moderator{i}'))
-            node.sendtoaddress(address=moders[i].Address, amount=10, destaddress=nodeAddress)
-
-        node.stakeblock(1)
+        moders = generate_accounts(node, nodeAddress, 10, is_moderator=True)
 
         # ---------------------------------------------------------------------------------
         self.log.info("Generate post for set moderator badges")
@@ -159,10 +144,7 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Register accounts")
         
-        for acc in accounts:
-            pubGenTx(acc, AccountPayload(acc.Name,'image','en','about','s','b','pubkey'), 1000, 0)
-
-        for acc in moders:
+        for acc in accounts + moders:
             pubGenTx(acc, AccountPayload(acc.Name,'image','en','about','s','b','pubkey'), 1000, 0)
 
         node.stakeblock(20)
