@@ -84,8 +84,7 @@ namespace PocketDb
                 rating.GetHeight(),
                 rating.GetValue()
                 );
-
-            TryStepStatement(stmt);
+            stmt->Step();
 
             // Clear old Last record
             auto stmtUpdate = SetupSqlStatement(R"sql(
@@ -98,7 +97,7 @@ namespace PocketDb
             )sql");
 
             stmtUpdate->Bind(*rating.GetType(), rating.GetId(), rating.GetHeight());
-            TryStepStatement(stmtUpdate);
+            stmtUpdate->Step();
         });
     }
 
@@ -106,7 +105,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            auto stmtInsert = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 insert or fail into Ratings (
                     Type,
                     Last,
@@ -116,8 +115,8 @@ namespace PocketDb
                 ) values ( ?,1,?,?,? )
             )sql");
 
-            stmtInsert->Bind(*rating.GetType(), rating.GetHeight(), rating.GetId(), rating.GetValue());
-            TryStepStatement(stmtInsert);
+            stmt->Bind(*rating.GetType(), rating.GetHeight(), rating.GetId(), rating.GetValue());
+            stmt->Step();
         });
     }
 }

@@ -70,7 +70,7 @@ namespace PocketDb
             {
                 tagsStmt->Bind(tag.Lang, tag.Value);
             }
-            TryStepStatement(tagsStmt);
+            tagsStmt->Step();
 
             // Delete exists mappings ContentId <-> TagId
             auto idsStmt = SetupSqlStatement(R"sql(
@@ -78,7 +78,7 @@ namespace PocketDb
                 where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
             )sql");
             idsStmt->Bind(ids);
-            TryStepStatement(idsStmt);
+            idsStmt->Step();
 
             // Insert new mappings ContentId <-> TagId
             for (const auto& contentTag : contentTags)
@@ -91,7 +91,7 @@ namespace PocketDb
                     )
                 )sql");
                 stmt->Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang);
-                TryStepStatement(stmt);
+                stmt->Step();
             }
         });
     }
@@ -216,7 +216,7 @@ namespace PocketDb
             )sql");
 
             delContentStmt->Bind(ids);
-            TryStepStatement(delContentStmt);
+            delContentStmt->Step();
 
             // ---------------------------------------------------------
             int64_t nTime2 = GetTimeMicros();
@@ -229,7 +229,7 @@ namespace PocketDb
             )sql");
 
             delContentMapStmt->Bind(ids);
-            TryStepStatement(delContentMapStmt);
+            delContentMapStmt->Step();
 
             // ---------------------------------------------------------
             int64_t nTime3 = GetTimeMicros();
@@ -242,7 +242,7 @@ namespace PocketDb
                     insert or ignore into ContentMap (ContentId, FieldType) values (?,?)
                 )sql");
                 stmtMap->Bind(contentItm.ContentId, (int)contentItm.FieldType);
-                TryStepStatement(stmtMap);
+                stmtMap->Step();
 
                 // ---------------------------------------------------------
 
@@ -253,7 +253,7 @@ namespace PocketDb
                         replace into web.Content (ROWID, Value) values (?,?)
                     )sql");
                     stmtContent->Bind(lastRowId, contentItm.Value);
-                    TryStepStatement(stmtContent);
+                    stmtContent->Step();
                 }
                 else
                 {
@@ -283,7 +283,7 @@ namespace PocketDb
             auto stmtClear = SetupSqlStatement(R"sql(
                 delete from web.Badges
             )sql");
-            TryStepStatement(stmtClear);
+            stmtClear->Step();
 
             // Clear old Last record
             auto stmtInsert = SetupSqlStatement(R"sql(
@@ -303,7 +303,7 @@ namespace PocketDb
                   and ? - (select min(reg1.Height) from Chain reg1 where reg1.Uid = uc.Uid) > ?
             )sql");
             stmtInsert->Bind(cond.LikersAll, cond.LikersContent, cond.LikersComment, cond.LikersAnswer, cond.Height, cond.RegistrationDepth);
-            TryStepStatement(stmtInsert);
+            stmtInsert->Step();
         });
     }
 
@@ -312,13 +312,12 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear badges table before insert new values
-            auto stmtClear = SetupSqlStatement(R"sql(
+            SetupSqlStatement(R"sql(
                 delete from web.Authors
-            )sql");
-            TryStepStatement(stmtClear);
+            )sql")->Step();
 
             // Clear old Last record
-            auto stmtInsert = SetupSqlStatement(R"sql(
+            SetupSqlStatement(R"sql(
                 insert into web.Authors (AccountId, SharkCommented)
           
                 select
@@ -353,8 +352,7 @@ namespace PocketDb
                   and p.Height is not null
           
                 group by pu.Id
-            )sql");
-            TryStepStatement(stmtInsert);
+            )sql")->Step();
         });
     }
 }

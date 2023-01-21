@@ -631,12 +631,10 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            SetupSqlStatement(R"sql(
                 delete from Transactions
                 where Height is null
-            )sql");
-
-            TryStepStatement(stmt);
+            )sql")->Step();
         });
     }
 
@@ -656,7 +654,7 @@ namespace PocketDb
                   )
             )sql");
             stmt1->Bind(hash);
-            TryStepStatement(stmt1);
+            stmt1->Step();
 
             // Clear TxOutputs table
             auto stmt2 = SetupSqlStatement(R"sql(
@@ -670,7 +668,7 @@ namespace PocketDb
                   )
             )sql");
             stmt2->Bind(hash);
-            TryStepStatement(stmt2);
+            stmt2->Step();
 
             // Clear Transactions table
             auto stmt3 = SetupSqlStatement(R"sql(
@@ -679,7 +677,7 @@ namespace PocketDb
                   and Height isnull
             )sql");
             stmt3->Bind(hash);
-            TryStepStatement(stmt3);
+            stmt3->Step();
         });
     }
 
@@ -696,7 +694,7 @@ namespace PocketDb
                   where t.Height is null
                 )
             )sql");
-            TryStepStatement(stmt1);
+            stmt1->Step();
 
             // Clear TxOutputs table
             auto stmt2 = SetupSqlStatement(R"sql(
@@ -707,14 +705,14 @@ namespace PocketDb
                   where t.Height is null
                 )
             )sql");
-            TryStepStatement(stmt2);
+            stmt2->Step();
 
             // Clear Transactions table
             auto stmt3 = SetupSqlStatement(R"sql(
                 delete from Transactions
                 where Height isnull
             )sql");
-            TryStepStatement(stmt3);
+            stmt3->Step();
         });
     }
 
@@ -759,8 +757,7 @@ namespace PocketDb
                 txHash,
                 input.GetNumber()
             );
-
-            TryStepStatement(stmt);
+            stmt->Step(true);
         }
     }
     
@@ -873,29 +870,18 @@ namespace PocketDb
                 )
         )sql");
 
-        // stmt->Bind(
-        //     payload.GetTxHash(),
-        //     payload.GetString1(),
-        //     payload.GetString2(),
-        //     payload.GetString3(),
-        //     payload.GetString4(),
-        //     payload.GetString5(),
-        //     payload.GetString6(),
-        //     payload.GetString7(),
-        //     payload.GetInt1()
-        // );
-
-        stmt->TryBindStatementText(1, payload.GetTxHash());
-        stmt->TryBindStatementText(2, payload.GetString1());
-        stmt->TryBindStatementText(3, payload.GetString2());
-        stmt->TryBindStatementText(4, payload.GetString3());
-        stmt->TryBindStatementText(5, payload.GetString4());
-        stmt->TryBindStatementText(6, payload.GetString5());
-        stmt->TryBindStatementText(7, payload.GetString6());
-        stmt->TryBindStatementText(8, payload.GetString7());
-        stmt->TryBindStatementInt64(9, payload.GetInt1());
-
-        TryStepStatement(stmt);
+        stmt->Bind(
+            payload.GetTxHash(),
+            payload.GetString1(),
+            payload.GetString2(),
+            payload.GetString3(),
+            payload.GetString4(),
+            payload.GetString5(),
+            payload.GetString6(),
+            payload.GetString7(),
+            payload.GetInt1()
+        );
+        stmt->Step(true);
     }
 
     void TransactionRepository::InsertTransactionModel(const CollectData& collectData)
@@ -936,8 +922,7 @@ namespace PocketDb
             collectData.txContextData.string4,
             collectData.txContextData.string5
         );
-
-        TryStepStatement(stmt);
+        stmt->Step();
     }
 
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(
@@ -1115,12 +1100,14 @@ namespace PocketDb
         )sql");
 
         stmt->Bind(strings);
-        TryStepStatement(stmt);
+        stmt->Step();
     }
 
     void TransactionRepository::InsertRegistryLists(const vector<string> &lists)
     {
-        if (lists.empty()) return;
+        if (lists.empty())
+            return;
+
         auto stmt = SetupSqlStatement(R"sql(
             insert or ignore into Registry (string)
             select json_each(?)
@@ -1128,7 +1115,7 @@ namespace PocketDb
 
         for (const auto& list: lists) {
             stmt->Bind(list);
-            TryStepStatement(stmt);
+            stmt->Step(true);
         }
     }
 
@@ -1148,7 +1135,7 @@ namespace PocketDb
                 )
         )sql");
         stmt->Bind(txHash, list);
-        TryStepStatement(stmt);
+        stmt->Step();
     }
 
 } // namespace PocketDb

@@ -39,7 +39,7 @@ namespace PocketDb
             )sql");
 
             stmt->Bind(version, db);
-            TryStepStatement(stmt);
+            stmt->Step();
         });
     }
 

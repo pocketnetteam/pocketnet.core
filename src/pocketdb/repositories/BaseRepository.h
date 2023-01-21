@@ -101,7 +101,7 @@ namespace PocketDb
                 throw runtime_error(strprintf("%s: can't begin transaction\n", func));
                 
             for (auto stmt : stmts)
-                TryStepStatement(stmt);
+                stmt->Step();
 
             if (!m_database.CommitTransaction())
                 throw runtime_error(strprintf("%s: can't commit transaction\n", func));

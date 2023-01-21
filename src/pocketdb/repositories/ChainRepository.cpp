@@ -143,8 +143,7 @@ namespace PocketDb
             values (?)
         )sql");
         stmt->Bind(blockHash);
-
-        TryStepStatement(stmt);
+        stmt->Step();
     }
 
     void ChainRepository::InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast)
@@ -195,8 +194,7 @@ namespace PocketDb
         )sql");
 
         stmt->Bind(blockHash, txHash, blockNumber, height, id);
-
-        TryStepStatement(stmt);
+        stmt->Step();
 
         if (fIsCreateLast)
         {
@@ -218,7 +216,7 @@ namespace PocketDb
                     )
             )sql");
             stmtInsertLast->Bind(txHash);
-            TryStepStatement(stmtInsertLast);
+            stmtInsertLast->Step();
         }
     }
 
@@ -282,7 +280,7 @@ namespace PocketDb
                 saldo.AddressId
         )sql");
         stmt->Bind(height);
-        TryStepStatement(stmt);
+        stmt->Step();
 
         // Remove old Last records
         auto stmtOld = SetupSqlStatement(R"sql(
@@ -302,7 +300,7 @@ namespace PocketDb
                 Balances.Height < ?
         )sql");
         stmtOld->Bind(height, height);
-        TryStepStatement(stmtOld);
+        stmtOld->Step();
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(shared_ptr<Stmt> stmt, const string& txHash)
@@ -780,8 +778,7 @@ namespace PocketDb
             where TxId = ?
         )sql");
         stmt->Bind(lastTxId);
-
-        TryStepStatement(stmt);
+        stmt->Step();
     }
 
     void ChainRepository::RestoreOldLast(int height)
@@ -800,7 +797,7 @@ namespace PocketDb
                 group by c.Uid
             )
         )sql");
-        TryStepStatement(stmt1);
+        stmt1->Step();
 
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Transactions): %.2fms\n", 0.001 * (nTime1 - nTime0));
@@ -823,7 +820,7 @@ namespace PocketDb
               and Ratings.Height = r.Height
         )sql");
         stmt2->Bind(height, height);
-        TryStepStatement(stmt2);
+        stmt2->Step();
 
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Ratings): %.2fms\n", 0.001 * (nTime2 - nTime1));
@@ -861,7 +858,7 @@ namespace PocketDb
               and Balances.Height = b.Height
         )sql");
         stmt3->Bind(height, height);
-        TryStepStatement(stmt3);
+        stmt3->Step();
 
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
@@ -876,7 +873,7 @@ namespace PocketDb
             where TxId in (select c.TxId from Chain c where c.Height > ?)
         )sql");
         stmt0->Bind(height);
-        TryStepStatement(stmt0);
+        stmt0->Step();
         // ----------------------------------------
         // Rollback general transaction information
         auto stmt1 = SetupSqlStatement(R"sql(
@@ -884,7 +881,7 @@ namespace PocketDb
             WHERE Height >= ?
         )sql");
         stmt1->Bind(height);
-        TryStepStatement(stmt1);
+        stmt1->Step();
 
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Chain:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
@@ -936,7 +933,7 @@ namespace PocketDb
             where Height >= ?
         )sql");
         stmt4->Bind(height);
-        TryStepStatement(stmt4);
+        stmt4->Step();
 
         int64_t nTime5 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime5 - nTime4));
@@ -948,7 +945,7 @@ namespace PocketDb
             where Height >= ?
         )sql");
         stmt5->Bind(height);
-        TryStepStatement(stmt5);
+        stmt5->Step();
 
         int64_t nTime6 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime6 - nTime5));
@@ -985,7 +982,7 @@ namespace PocketDb
             )
         )sql");
         delListStmt->Bind(height);
-        TryStepStatement(delListStmt);
+        delListStmt->Step();
         
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
@@ -1021,7 +1018,7 @@ namespace PocketDb
               and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid)
         )sql");
         insListStmt->Bind(height);
-        TryStepStatement(insListStmt);
+        insListStmt->Step();
         
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackList (Insert blocking list): %.2fms\n", 0.001 * (nTime2 - nTime1));
@@ -1034,7 +1031,7 @@ namespace PocketDb
         auto stmt = SetupSqlStatement(R"sql(
             delete from BlockingLists
         )sql");
-        TryStepStatement(stmt);
+        stmt->Step();
         
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - ClearBlockingList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
