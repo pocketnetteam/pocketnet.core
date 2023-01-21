@@ -55,9 +55,6 @@ namespace PocketDb
     public:
         explicit WebRpcRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
-        void Init() override;
-        void Destroy() override;
-
         UniValue GetAddressId(const string& address);
         UniValue GetAddressId(int64_t id);
         UniValue GetUserAddress(const string& name);

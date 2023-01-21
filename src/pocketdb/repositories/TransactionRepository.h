@@ -44,8 +44,6 @@ namespace PocketDb
     {
     public:
         explicit TransactionRepository(SQLiteDatabase& db) : BaseRepository(db) {}
-        void Init() override {}
-        void Destroy() override {}
 
         //  Base transaction operations
         void InsertTransactions(PocketBlock& pocketBlock);

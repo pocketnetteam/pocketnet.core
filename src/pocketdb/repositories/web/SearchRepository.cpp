@@ -6,10 +6,6 @@
 
 namespace PocketDb
 {
-    void SearchRepository::Init() {}
-
-    void SearchRepository::Destroy() {}
-
     UniValue SearchRepository::SearchTags(const SearchRequest& request)
     {
         UniValue result(UniValue::VARR);

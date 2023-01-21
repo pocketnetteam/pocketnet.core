@@ -22,8 +22,6 @@ namespace PocketDb
     {
     public:
         explicit MigrationRepository(SQLiteDatabase& db) : BaseRepository(db) {}
-        void Init() override {}
-        void Destroy() override {}
 
         bool CreateBlockingList();
 

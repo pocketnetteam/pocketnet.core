@@ -6,10 +6,6 @@
 
 namespace PocketDb
 {
-    void NotifierRepository::Init() {}
-
-    void NotifierRepository::Destroy() {}
-
     UniValue NotifierRepository::GetAccountInfoByAddress(const string& address)
     {
         UniValue result(UniValue::VOBJ);

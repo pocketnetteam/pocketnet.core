@@ -14,9 +14,6 @@ namespace PocketDb
     public:
         explicit NotifierRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
-        void Init() override;
-        void Destroy() override;
-
         UniValue GetAccountInfoByAddress(const string& address);
         UniValue GetPostLang(const string& postHash);
         UniValue GetPostInfo(const string& postHash);

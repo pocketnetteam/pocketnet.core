@@ -6,10 +6,6 @@
 
 namespace PocketDb
 {
-    void ConsensusRepository::Init() {}
-
-    void ConsensusRepository::Destroy() {}
-
     ConsensusData_AccountUser ConsensusRepository::AccountUser(
         const string& address, int depth, const string& name)
     {

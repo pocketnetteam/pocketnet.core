@@ -138,13 +138,14 @@ namespace PocketDb
         {
         }
 
-        virtual ~BaseRepository()
+        virtual ~BaseRepository() = default;
+
+        virtual void Init() { }
+
+        virtual void Destroy()
         {
             _statements.clear();
         }
-
-        virtual void Init() = 0;
-        virtual void Destroy() = 0;
     };
 }
 

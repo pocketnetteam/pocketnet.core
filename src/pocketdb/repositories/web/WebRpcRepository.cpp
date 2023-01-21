@@ -10,10 +10,6 @@
 
 namespace PocketDb
 {
-    void WebRpcRepository::Init() {}
-
-    void WebRpcRepository::Destroy() {}
-
     UniValue WebRpcRepository::GetAddressId(const string& address)
     {
         UniValue result(UniValue::VOBJ);

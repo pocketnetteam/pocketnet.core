@@ -25,8 +25,6 @@ namespace PocketDb
     {
     public:
         explicit SearchRepository(SQLiteDatabase& db) : BaseRepository(db) {}
-        void Init() override;
-        void Destroy() override;
 
         UniValue SearchTags(const SearchRequest& request);
         vector<int64_t> SearchIds(const SearchRequest& request);

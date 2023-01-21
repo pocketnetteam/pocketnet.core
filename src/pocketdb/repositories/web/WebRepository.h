@@ -27,8 +27,6 @@ namespace PocketDb
     {
     public:
         explicit WebRepository(SQLiteDatabase& db) : BaseRepository(db) {}
-        void Init() override;
-        void Destroy() override;
 
         vector<WebTag> GetContentTags(const string& blockHash);
         void UpsertContentTags(const vector<WebTag>& contentTags);

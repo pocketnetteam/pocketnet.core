@@ -6,10 +6,6 @@
 
 namespace PocketDb
 {
-    void WebRepository::Init() {}
-
-    void WebRepository::Destroy() {}
-
     vector<WebTag> WebRepository::GetContentTags(const string& blockHash)
     {
         vector<WebTag> result;

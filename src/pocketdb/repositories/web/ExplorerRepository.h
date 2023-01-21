@@ -25,9 +25,6 @@ namespace PocketDb
     public:
         explicit ExplorerRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
-        void Init() override;
-        void Destroy() override;
-
         map<int, map<int, int>> GetBlocksStatistic(int bottomHeight, int topHeight);
         UniValue GetTransactionsStatistic(int64_t top, int depth, int period);
         UniValue GetTransactionsStatisticByHours(int topHeight, int depth);
