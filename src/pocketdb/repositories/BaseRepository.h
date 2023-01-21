@@ -85,9 +85,12 @@ namespace PocketDb
             }
         }
 
+        [[deprecated("Replaced stmt->Step(reset)")]]
         void TryStepStatement(const shared_ptr<Stmt>& stmt)
         {
             int res = stmt->Step();
+            stmt->Reset();
+
             if (res != SQLITE_ROW && res != SQLITE_DONE)
                 throw runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
         }
@@ -135,7 +138,10 @@ namespace PocketDb
         {
         }
 
-        virtual ~BaseRepository() = default;
+        virtual ~BaseRepository()
+        {
+            _statements.clear();
+        }
 
         virtual void Init() = 0;
         virtual void Destroy() = 0;

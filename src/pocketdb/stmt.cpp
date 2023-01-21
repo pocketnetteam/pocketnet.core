@@ -37,10 +37,22 @@ int PocketDb::Stmt::Reset()
     return sqlite3_clear_bindings(m_stmt);
 }
 
-int PocketDb::Stmt::Step()
+int PocketDb::Stmt::Step(bool reset)
 {
-    if (!m_stmt) return SQLITE_ERROR;
-    return sqlite3_step(m_stmt);
+    if (!m_stmt)
+        throw runtime_error(strprintf("%s: Stmt::Step() Statement not ready\n", __func__));
+
+    // Step
+    int res = sqlite3_step(m_stmt);
+
+    // Reset if need
+    if (reset)
+        Reset();
+    
+    if (res != SQLITE_ROW && res != SQLITE_DONE)
+        throw runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
+
+    return res;
 }
 
 void PocketDb::Stmt::TryBindStatementText(int index, const std::string& value)

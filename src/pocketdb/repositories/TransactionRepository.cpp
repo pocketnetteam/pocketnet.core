@@ -767,49 +767,49 @@ namespace PocketDb
     void TransactionRepository::InsertTransactionOutputs(const vector<TransactionOutput>& outputs, const string& txHash)
     {
         auto stmt = SetupSqlStatement(R"sql(
-                with
-                    tx as (
-                        select
-                            RowId
-                        from
-                            vTxRowId
-                        where
-                            String = ?
-                    )
-                insert or fail into
-                    TxOutputs (
-                        TxId,
-                        Number,
-                        AddressId,
-                        Value,
-                        ScriptPubKeyId
-                    )
-                select
-                    tx.RowId,
-                    ?,
-                    (
-                        select RowId
-                        from Registry
-                        where String = ?
-                    ),
-                    ?,
-                    (
-                        select RowId
-                        from Registry
-                        where String = ?
-                    )
-                from tx
-                where
-                    not exists(
-                        select
-                        1
+            with
+                tx as (
+                    select
+                        RowId
                     from
-                        TxOutputs indexed by TxOutputs_TxId_Number_AddressId
+                        vTxRowId
                     where
-                        TxId = tx.RowId and
-                        Number = ?           
-                    )
-            )sql");
+                        String = ?
+                )
+            insert or fail into
+                TxOutputs (
+                    TxId,
+                    Number,
+                    AddressId,
+                    Value,
+                    ScriptPubKeyId
+                )
+            select
+                tx.RowId,
+                ?,
+                (
+                    select RowId
+                    from Registry
+                    where String = ?
+                ),
+                ?,
+                (
+                    select RowId
+                    from Registry
+                    where String = ?
+                )
+            from tx
+            where
+                not exists(
+                    select
+                    1
+                from
+                    TxOutputs indexed by TxOutputs_TxId_Number_AddressId
+                where
+                    TxId = tx.RowId and
+                    Number = ?           
+                )
+        )sql");
 
         for (const auto& output: outputs)
         {
@@ -822,7 +822,7 @@ namespace PocketDb
                 output.GetNumber()
             );
 
-            TryStepStatement(stmt);
+            stmt->Step(true);
         }
     }
 

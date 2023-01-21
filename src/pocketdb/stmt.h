@@ -27,7 +27,7 @@ namespace PocketDb
         ~Stmt();
 
         void Init(SQLiteDatabase& db, const std::string& sql);
-        int Step();
+        int Step(bool reset = false);
         int Finalize();
         int Reset();
         bool CheckValidResult(int result);
