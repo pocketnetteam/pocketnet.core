@@ -108,11 +108,11 @@ namespace PocketDb
         public:
             static void collect(Stmt& stmt, int& i, T& t)
             {
-                if constexpr (std::is_same_v<T, int>) {
+                if constexpr (std::is_same_v<int, T> || std::is_same_v<std::optional<int>, T>) {
                     if (auto [ok, val] = stmt.TryGetColumnInt(i++); ok) t = val;
-                } else if constexpr (std::is_same_v<T, int64_t>) {
+                } else if constexpr (std::is_convertible_v<int64_t, T> || std::is_convertible_v<std::optional<int64_t>, T>) {
                     if (auto [ok, val] = stmt.TryGetColumnInt64(i++); ok) t = val;
-                } else if constexpr (std::is_same_v<T, std::string>) {
+                } else if constexpr (std::is_convertible_v<std::string, T> || std::is_convertible_v<std::optional<std::string>, T>) {
                     if (auto [ok, val] = stmt.TryGetColumnString(i++); ok) t = val;
                 }
             }
