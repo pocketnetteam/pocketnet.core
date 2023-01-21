@@ -108,19 +108,15 @@ namespace PocketDb
         {
             size_t key = hash<string>{}(sql);
 
-            auto _stmt = _statements.find(key);
-            if (_stmt != _statements.end())
-            {
-                _stmt->second->Reset();
-                return _stmt->second;
-            }
-            else
+            if (_statements.find(key) == _statements.end())
             {
                 auto stmt = make_shared<Stmt>();
                 stmt->Init(m_database, sql);
                 _statements[key] = stmt;
-                return stmt;
             }
+
+            _statements[key]->Reset();
+            return _statements[key];
         }
 
         void SetLastInsertRowId(int64_t value)
