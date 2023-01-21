@@ -111,15 +111,17 @@ namespace PocketDb
         {
             size_t key = hash<string>{}(sql);
 
-            if (_statements.find(key) == _statements.end())
+            auto itr = _statements.find(key);
+            if (itr == _statements.end())
             {
                 auto stmt = make_shared<Stmt>();
                 stmt->Init(m_database, sql);
-                _statements[key] = stmt;
+                itr = _statements.insert({key, stmt}).first;
             }
 
-            _statements[key]->Reset();
-            return _statements[key];
+            const auto& stmt = itr->second;
+            stmt->Reset();
+            return stmt;
         }
 
         void SetLastInsertRowId(int64_t value)
