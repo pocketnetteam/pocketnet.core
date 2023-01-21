@@ -138,7 +138,7 @@ namespace PocketDb
 
     void ChainRepository::IndexBlockData(const string& blockHash)
     {
-        static auto stmt = SetupSqlStatement(R"sql(
+        auto stmt = SetupSqlStatement(R"sql(
             insert or ignore into Registry (String)
             values (?)
         )sql");
@@ -149,7 +149,7 @@ namespace PocketDb
 
     void ChainRepository::InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast)
     {
-        static auto stmt = SetupSqlStatement(R"sql(
+        auto stmt = SetupSqlStatement(R"sql(
             with
                 blockReg as (
                     select
@@ -225,7 +225,7 @@ namespace PocketDb
     void ChainRepository::IndexBalances(int height)
     {
         // Generate new balance records
-        static auto stmt = SetupSqlStatement(R"sql(
+        auto stmt = SetupSqlStatement(R"sql(
             with
                 height as (
                     select ? as value
@@ -319,14 +319,12 @@ namespace PocketDb
             lastTxId
         );
 
-        stmt->Reset();
-
         return {id, lastTxId};
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccount(const string& txHash)
     {
-        static auto stmt = SetupSqlStatement(
+        auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -385,7 +383,7 @@ namespace PocketDb
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccountSetting(const string& txHash)
     {
-        static auto stmt = SetupSqlStatement(
+        auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -444,7 +442,7 @@ namespace PocketDb
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexContent(const string& txHash)
     {
-        static auto stmt = SetupSqlStatement(
+        auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -504,7 +502,7 @@ namespace PocketDb
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexComment(const string& txHash)
     {
-        static auto stmt = SetupSqlStatement(
+        auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -564,7 +562,7 @@ namespace PocketDb
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexBlocking(const string& txHash)
     {
-        static auto stmt = SetupSqlStatement(
+        auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (
@@ -676,7 +674,7 @@ namespace PocketDb
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSubscribe(const string& txHash)
     {
-        static auto stmt = SetupSqlStatement(
+        auto stmt = SetupSqlStatement(
             R"sql(
                 with
                     l as (

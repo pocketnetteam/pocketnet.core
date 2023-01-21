@@ -76,7 +76,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select 1
                 from Transactions b
                 join Chain bc
@@ -109,8 +109,6 @@ namespace PocketDb
             )sql");
 
             result = (stmt->Step() == SQLITE_ROW);
-
-            stmt->Reset();
         });
 
         return result;

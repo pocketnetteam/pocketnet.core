@@ -26,7 +26,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             stmt->Bind(blockHash);
 
             while (stmt->Step() == SQLITE_ROW)
@@ -42,8 +42,6 @@ namespace PocketDb
 
                 result.emplace_back(WebTag(id, lang, value));
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -85,7 +83,7 @@ namespace PocketDb
             // Insert new mappings ContentId <-> TagId
             for (const auto& contentTag : contentTags)
             {
-                static auto stmt = SetupSqlStatement(R"sql(
+                auto stmt = SetupSqlStatement(R"sql(
                     insert or ignore
                     into web.TagsMap (ContentId, TagId) values (
                         ?,
@@ -121,7 +119,7 @@ namespace PocketDb
        
        TryTransactionStep(__func__, [&]()
        {
-           static auto stmt = SetupSqlStatement(sql);
+           auto stmt = SetupSqlStatement(sql);
            stmt->Bind(blockHash);
 
            while (stmt->Step() == SQLITE_ROW)
@@ -185,8 +183,6 @@ namespace PocketDb
                     break;
                 }
            }
-
-           stmt->Reset();
        });
 
         return result;

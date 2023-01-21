@@ -12,7 +12,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select Version
                 from System
                 where Db = ?
@@ -23,8 +23,6 @@ namespace PocketDb
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = value;
-
-            stmt->Reset();
         });
 
         return result;
@@ -34,7 +32,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 update System
                     set Version = ?
                 where Db = ?

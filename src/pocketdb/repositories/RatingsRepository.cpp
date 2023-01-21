@@ -40,14 +40,12 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(types, addressId, likerId);
 
             if (stmt->Step() == SQLITE_ROW)
                 result = true;
-
-            stmt->Reset();
         });
 
         return result;
@@ -58,7 +56,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Insert new Last record
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Ratings (
                     Type,
                     Last,

@@ -29,7 +29,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address);
 
@@ -38,8 +38,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("address", value);
                 if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) result.pushKV("id", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -60,7 +58,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(id);
 
@@ -69,8 +67,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("address", value);
                 if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) result.pushKV("id", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -95,7 +91,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(_name);
 
@@ -108,8 +104,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -170,7 +164,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             stmt->Bind(count);
 
             while (stmt->Step() == SQLITE_ROW)
@@ -180,8 +174,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) addr.pushKV("balance", value);
                 result.push_back(addr);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -237,7 +229,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, address);
 
@@ -269,8 +261,6 @@ namespace PocketDb
                     if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("mod_flag_spent", value);
                 }
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -293,7 +283,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address);
 
@@ -302,8 +292,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     result = value;
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -760,7 +748,7 @@ namespace PocketDb
         TryTransactionStep(func, [&]()
         {
             int i = 1;
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(lang, height, count);
 
@@ -796,8 +784,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -1371,7 +1357,7 @@ namespace PocketDb
 
         TryTransactionStep(func, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(postTxHash);
 
@@ -1390,8 +1376,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -1518,7 +1502,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address, address);
 
@@ -1537,8 +1521,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -1582,8 +1564,6 @@ namespace PocketDb
         //
         //         result[address].push_back(record);
         //     }
-        //
-        //     stmt->Reset();
         // });
 
         return result;
@@ -1602,7 +1582,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select
                   bl.IdTarget
                 from BlockingLists bl
@@ -1616,8 +1596,6 @@ namespace PocketDb
             while (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     result.push_back(value);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1629,7 +1607,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select
                   bl.IdSource
                 from BlockingLists bl
@@ -1643,8 +1621,6 @@ namespace PocketDb
             while (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     result.push_back(value);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1785,7 +1761,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(lang, pageSize, pageStart);
 
@@ -1801,8 +1777,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -1965,7 +1939,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(height);
 
@@ -1985,8 +1959,6 @@ namespace PocketDb
                 resultData.At(type).pushKV(lang, count);
                 resultCount += count;
             }
-
-            stmt->Reset();
         });
 
         return {resultCount, resultData};
@@ -2010,15 +1982,13 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sqlCount);
+            auto stmt = SetupSqlStatement(sqlCount);
 
             stmt->Bind(height, address);
 
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     resultCount = value;
-
-            stmt->Reset();
         });
 
         // Try get last N records
@@ -2046,7 +2016,7 @@ namespace PocketDb
 
             TryTransactionStep(__func__, [&]()
             {
-                static auto stmt = SetupSqlStatement(sql);
+                auto stmt = SetupSqlStatement(sql);
 
                 stmt->Bind(height, address, count);
 
@@ -2067,8 +2037,6 @@ namespace PocketDb
                     if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
                     resultData.push_back(record);
                 }
-
-                stmt->Reset();
             });
         }
 
@@ -2114,7 +2082,7 @@ namespace PocketDb
 
         TryTransactionStep(func, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address);
 
@@ -2144,8 +2112,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -2173,7 +2139,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(height, address);
 
@@ -2190,8 +2156,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -2222,7 +2186,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(height, address, limit);
 
@@ -2242,8 +2206,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -2274,7 +2236,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address, height, limit);
 
@@ -2294,8 +2256,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -2322,7 +2282,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address, height, count);
 
@@ -2348,8 +2308,6 @@ namespace PocketDb
 
                 result.emplace(txHash, record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -2381,7 +2339,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(height, address, count);
 
@@ -2403,8 +2361,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -2504,7 +2460,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(height, address, count);
 
@@ -2533,8 +2489,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -2571,7 +2525,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(height, address, count);
 
@@ -2593,8 +2547,6 @@ namespace PocketDb
 
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -3794,8 +3746,6 @@ namespace PocketDb
 
                 postsRanks.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         // ---------------------------------------------
@@ -4004,8 +3954,6 @@ namespace PocketDb
                 boost.pushKV("boost", sumBoost);
                 result.push_back(boost);
             }
-
-            stmt->Reset();
         });
 
         // Complete!
@@ -4050,7 +3998,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(lang, height, count * 100, count);
 
@@ -4058,8 +4006,6 @@ namespace PocketDb
             {
                 if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok) result.push_back(value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -4174,7 +4120,7 @@ namespace PocketDb
 
         TryTransactionStep(func, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(postTxHash, postTxHash, postTxHash);
 
@@ -4201,8 +4147,6 @@ namespace PocketDb
                     resultDonations.push_back(record);
                 }
             }
-
-            stmt->Reset();
         });
 
         result.pushKV("scores",resultScores);
@@ -4998,8 +4942,6 @@ namespace PocketDb
             {
                 reconstructor.FeedRow(*stmt);
             }
-
-            stmt->Reset();
         });
 
         return reconstructor.GetResult();
@@ -5916,8 +5858,6 @@ namespace PocketDb
 
                     while (stmt->Step() == SQLITE_ROW)
                         reconstructor.FeedRow(*stmt);
-
-                    stmt->Reset();
                 });
             }
         }
@@ -6908,8 +6848,6 @@ namespace PocketDb
             {
                 reconstructor.FeedRow(*stmt);
             }
-
-            stmt->Reset();
         });
         return reconstructor.GetResult();
     }
@@ -7089,8 +7027,6 @@ namespace PocketDb
             {
                 reconstructor.FeedRow(*stmt);
             }
-
-            stmt->Reset();
         });
         return reconstructor.GetResult();
     }

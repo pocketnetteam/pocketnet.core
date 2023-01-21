@@ -16,7 +16,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select t.Height, t.Type, count(*)
                 from Transactions t indexed by Transactions_Height_Type
                 where   t.Height > ?
@@ -35,8 +35,6 @@ namespace PocketDb {
                 if (ok0 && ok1 && ok2)
                     result[sHeight][sType] = sCount;
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -48,7 +46,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select (t.Time / ?), t.Type, count()
                 from Transactions t
                 where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
@@ -73,8 +71,6 @@ namespace PocketDb {
 
                 result.At(part).pushKV(type, count);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -86,7 +82,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select (t.Height / 60)Hour, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByHour
                 where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
@@ -111,8 +107,6 @@ namespace PocketDb {
 
                 result.At(part).pushKV(type, count);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -124,7 +118,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select (t.Height / 1440)Day, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByDay
                 where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
@@ -149,8 +143,6 @@ namespace PocketDb {
 
                 result.At(to_string(part)).pushKV(to_string(type), count);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -162,7 +154,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select (u.Height / 60)
                   ,(
                     select
@@ -193,8 +185,6 @@ namespace PocketDb {
 
                 result.pushKV(part, count);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -206,7 +196,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select (u.Height / 1440)
                   ,(
                     select
@@ -239,8 +229,6 @@ namespace PocketDb {
 
                 result.pushKV(part, count);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -252,7 +240,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select t.Type, count()
                 from Transactions t indexed by Transactions_Type_Last_Height_Id
                 where t.Type in (100,200,201,202,208,209,210)
@@ -269,8 +257,6 @@ namespace PocketDb {
                 if (okType && okCount)
                     result.pushKV(type, count);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -285,7 +271,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select AddressHash, Height, Value
                 from Balances indexed by Balances_AddressHash_Last
                 where AddressHash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )
@@ -303,8 +289,6 @@ namespace PocketDb {
                 if (ok0 && ok1 && ok2)
                     infos.emplace(address, make_tuple(height, value));
             }
-
-            stmt->Reset();
         });
 
         return infos;
@@ -316,7 +300,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select distinct o.TxHash
                 from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
                 join Transactions t on t.Hash = o.TxHash
@@ -334,8 +318,6 @@ namespace PocketDb {
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     txHashes.emplace(value, i++);
             }
-
-            stmt->Reset();
         });
 
         return txHashes;
@@ -347,7 +329,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select t.Hash
                 from Transactions t indexed by Transactions_BlockHash
                 where t.BlockHash = ?
@@ -363,8 +345,6 @@ namespace PocketDb {
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     txHashes.emplace(value, i++);
             }
-
-            stmt->Reset();
         });
 
         return txHashes;
@@ -376,7 +356,7 @@ namespace PocketDb {
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select b.Height, sum(b.Value)Amount
                 from Balances b indexed by Balances_Height
                 where b.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
@@ -402,8 +382,6 @@ namespace PocketDb {
                     }
                 }
             }
-
-            stmt->Reset();
         });
 
         return result;

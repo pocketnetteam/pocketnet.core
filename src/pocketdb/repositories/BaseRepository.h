@@ -7,12 +7,13 @@
 
 #include <utility>
 #include <util/system.h>
+#include <unordered_map>
+#include <boost/algorithm/string/replace.hpp>
+
 #include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/stmt.h"
-
-#include <boost/algorithm/string/replace.hpp>
 
 namespace PocketDb
 {
@@ -22,6 +23,8 @@ namespace PocketDb
     class BaseRepository
     {
     private:
+        unordered_map<size_t, shared_ptr<Stmt>> _statements;
+
     protected:
         SQLiteDatabase& m_database;
 
@@ -44,7 +47,7 @@ namespace PocketDb
                 int64_t nTime1 = GetTimeMicros();
 
                 if (!m_database.BeginTransaction())
-                    throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
+                    throw runtime_error(strprintf("%s: can't begin transaction\n", func));
 
                 // We are running SQL logic with timeout only for read-only connections
                 if (m_database.IsReadOnly())
@@ -69,45 +72,55 @@ namespace PocketDb
                 }
                 
                 if (!m_database.CommitTransaction())
-                    throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
+                    throw runtime_error(strprintf("%s: can't commit transaction\n", func));
 
                 int64_t nTime2 = GetTimeMicros();
 
                 LogPrint(BCLog::SQLBENCH, "SQL Bench `%s`: %.2fms\n", func, 0.001 * (nTime2 - nTime1));
             }
-            catch (const std::exception& ex)
+            catch (const exception& ex)
             {
                 m_database.AbortTransaction();
-                throw std::runtime_error(func + ": " + ex.what());
+                throw runtime_error(func + ": " + ex.what());
             }
         }
 
         void TryStepStatement(const shared_ptr<Stmt>& stmt)
         {
             int res = stmt->Step();
-            stmt->Reset();
-
             if (res != SQLITE_ROW && res != SQLITE_DONE)
-                throw std::runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
+                throw runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
         }
 
         void TryTransactionBulk(const string& func, const vector<shared_ptr<Stmt>>& stmts)
         {
             if (!m_database.BeginTransaction())
-                throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
+                throw runtime_error(strprintf("%s: can't begin transaction\n", func));
                 
             for (auto stmt : stmts)
                 TryStepStatement(stmt);
 
             if (!m_database.CommitTransaction())
-                throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
+                throw runtime_error(strprintf("%s: can't commit transaction\n", func));
         }
 
-        shared_ptr<Stmt> SetupSqlStatement(const std::string& sql) const
+        shared_ptr<Stmt> SetupSqlStatement(const string& sql)
         {
-            auto stmt = std::make_shared<Stmt>();
-            stmt->Init(m_database, sql);
-            return stmt;
+            size_t key = hash<string>{}(sql);
+
+            auto _stmt = _statements.find(key);
+            if (_stmt != _statements.end())
+            {
+                _stmt->second->Reset();
+                return _stmt->second;
+            }
+            else
+            {
+                auto stmt = make_shared<Stmt>();
+                stmt->Init(m_database, sql);
+                _statements[key] = stmt;
+                return stmt;
+            }
         }
 
         void SetLastInsertRowId(int64_t value)

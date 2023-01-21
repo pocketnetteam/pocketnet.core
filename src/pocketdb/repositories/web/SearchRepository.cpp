@@ -25,7 +25,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             stmt->Bind(keyword, request.PageSize, request.PageStart);
 
             while (stmt->Step() == SQLITE_ROW)
@@ -33,8 +33,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     result.push_back(value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -196,7 +194,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(
                 (int)ContentFieldType::ContentFieldType_AccountUserName,
@@ -213,8 +211,6 @@ namespace PocketDb
                     if (find(result.begin(), result.end(), value) == result.end())
                         result.push_back(value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -490,7 +486,6 @@ namespace PocketDb
 
     vector<int64_t> SearchRepository::GetRandomContentByAddress(const string& contentAddress, const vector<int>& contentTypes, const string& lang, int cntOut)
     {
-        auto func = __func__;
         vector<int64_t> ids;
 
         if (contentAddress.empty())
@@ -523,7 +518,7 @@ namespace PocketDb
 
             stmt->Bind(contentTypes, contentAddress, cntOut);
 
-            while (stmt->Reset() == SQLITE_ROW)
+            while (stmt->Step() == SQLITE_ROW)
             {
                 if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
                     ids.push_back(value);

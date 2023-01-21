@@ -29,7 +29,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address);
 
@@ -39,8 +39,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("name", value);
                 if (auto[ok, value] = stmt->TryGetColumnString(2); ok) result.pushKV("avatar", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -60,7 +58,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             
             stmt->Bind(postHash);
 
@@ -68,8 +66,6 @@ namespace PocketDb
             {
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("lang", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -90,7 +86,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(postHash);
 
@@ -99,8 +95,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("hash", value);
                 if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("rootHash", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -131,7 +125,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(boostHash);
 
@@ -145,8 +139,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(5); ok) result.pushKV("contentAddress", value);
                 if (auto[ok, value] = stmt->TryGetColumnString(6); ok) result.pushKV("contentHash", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -175,7 +167,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(repostHash);
 
@@ -187,8 +179,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(3); ok) result.pushKV("nameRepost", value);
                 if (auto[ok, value] = stmt->TryGetColumnString(4); ok) result.pushKV("avatarRepost", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -216,7 +206,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(addressTo);
 
@@ -228,8 +218,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("avatarFrom", value);
                 result.push_back(record);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -298,7 +286,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(postScoreHash);
 
@@ -310,8 +298,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(3); ok) result.pushKV("scoreName", value);
                 if (auto[ok, value] = stmt->TryGetColumnString(4); ok) result.pushKV("scoreAvatar", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -339,7 +325,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(subscribeHash);
 
@@ -349,8 +335,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result.pushKV("nameFrom", value);
                 if (auto[ok, value] = stmt->TryGetColumnString(2); ok) result.pushKV("avatarFrom", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -379,7 +363,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(commentScoreHash);
 
@@ -391,8 +375,6 @@ namespace PocketDb
                 if (auto[ok, value] = stmt->TryGetColumnString(3); ok) result.pushKV("scoreCommentName", value);
                 if (auto[ok, value] = stmt->TryGetColumnString(4); ok) result.pushKV("scoreCommentAvatar", value);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -433,7 +415,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(commentHash);
 
@@ -453,8 +435,6 @@ namespace PocketDb
                     result.pushKV("amount", value);
                 }
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -482,7 +462,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(height, address);
 
@@ -495,8 +475,6 @@ namespace PocketDb
                 if (auto[ok, value] =stmt->TryGetColumnInt(4); ok) result.pushKV("cntStream", value);
                 if (auto[ok, value] =stmt->TryGetColumnInt(5); ok) result.pushKV("cntAudio", value);
             }
-
-            stmt->Reset();
         });
 
         return result;

@@ -137,7 +137,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address, depth, _name, _name);
 
@@ -151,8 +151,6 @@ namespace PocketDb
                     result.DuplicatesMempoolCount
                 );
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -187,7 +185,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Payload ap indexed by Payload_String2_nocase_TxHash
                 cross join Transactions t indexed by Transactions_Hash_Height
@@ -201,8 +199,6 @@ namespace PocketDb
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = (value > 0);
-
-            stmt->Reset();
         });
 
         return result;
@@ -243,14 +239,12 @@ namespace PocketDb
                   and t.Height is not null
             )sql";
 
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             stmt->Bind(rootHash, rootHash);
 
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(*stmt, true); ok)
                     tx = transaction;
-
-            stmt->Reset();
         });
 
         return {tx != nullptr, tx};
@@ -291,15 +285,13 @@ namespace PocketDb
                   and t.Height is not null
             )sql";
 
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(types, rootHash);
 
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(*stmt, true); ok)
                     tx = transaction;
-
-            stmt->Reset();
         });
 
         return {tx != nullptr, tx};
@@ -325,15 +317,13 @@ namespace PocketDb
         // Execute
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(addresses);
 
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = (value == (int) addresses.size());
-
-            stmt->Reset();
         });
 
         return result;
@@ -346,7 +336,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 SELECT Type
                 FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
                 WHERE Type in (305, 306)
@@ -366,8 +356,6 @@ namespace PocketDb
                     blockingType = (TxType) value;
                 }
             }
-
-            stmt->Reset();
         });
 
         return {blockingExists, blockingType};
@@ -379,7 +367,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 SELECT 1
                 FROM BlockingLists b
                 JOIN Transactions us indexed by Transactions_Type_Last_String1_Height_Id
@@ -400,8 +388,6 @@ namespace PocketDb
                     blockingExists = true;
                 }
             }
-
-            stmt->Reset();
         });
 
         return blockingExists;
@@ -415,7 +401,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 SELECT Type
                 FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
                 WHERE Type in (302, 303, 304)
@@ -435,8 +421,6 @@ namespace PocketDb
                     subscribeType = (TxType) value;
                 }
             }
-
-            stmt->Reset();
         });
 
         return {subscribeExists, subscribeType};
@@ -448,7 +432,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 SELECT String1
                 FROM Transactions
                 WHERE Hash = ?
@@ -460,8 +444,6 @@ namespace PocketDb
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
                     result = make_shared<string>(value);
-
-            stmt->Reset();
         });
 
         return result;
@@ -484,15 +466,13 @@ namespace PocketDb
             if (!mempool)
                 sql += " and Height > 0";
 
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address, postHash);
 
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = (value > 0);
-
-            stmt->Reset();
         });
 
         return result;
@@ -515,15 +495,13 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address, contentHash, (int) type);
 
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = (value > 0);
-
-            stmt->Reset();
         });
 
         return result;
@@ -545,14 +523,12 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             
             stmt->Bind(txHash, types);
 
             if (stmt->Step() == SQLITE_ROW)
                 result = true;
-
-            stmt->Reset();
         });
 
         return result;
@@ -574,14 +550,12 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(types, string1);
             
             if (stmt->Step() == SQLITE_ROW)
                 result = true;
-
-            stmt->Reset();
         });
 
         return result;
@@ -604,14 +578,12 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(types, string1, string2);
             
             if (stmt->Step() == SQLITE_ROW)
                 result = true;
-
-            stmt->Reset();
         });
 
         return result;
@@ -633,14 +605,12 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(txHash, types, address);
 
             if (stmt->Step() == SQLITE_ROW)
                 result = true;
-
-            stmt->Reset();
         });
 
         return result;
@@ -660,13 +630,11 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             stmt->Bind(address);
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -694,14 +662,12 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(address);
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -721,14 +687,12 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(addressId);
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -751,14 +715,12 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(addressId);
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -770,7 +732,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select
 
                     (u.Id)AddressId,
@@ -824,8 +786,6 @@ namespace PocketDb
                     result.LikersComment,
                     result.LikersCommentAnswer);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -873,7 +833,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             stmt->Bind(txHash);
 
             if (stmt->Step() == SQLITE_ROW)
@@ -897,8 +857,6 @@ namespace PocketDb
 
                 result = make_shared<ScoreDataDto>(data);
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -969,7 +927,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
             stmt->Bind(address);
 
             if (stmt->Step() == SQLITE_ROW)
@@ -980,8 +938,6 @@ namespace PocketDb
                     referrer = value;
                 }
             }
-
-            stmt->Reset();
         });
 
         return {result, referrer};
@@ -1020,7 +976,7 @@ namespace PocketDb
         // Execute
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(
                 height,
@@ -1033,8 +989,6 @@ namespace PocketDb
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = value;
-
-            stmt->Reset();
         });
 
         return result;
@@ -1074,7 +1028,7 @@ namespace PocketDb
         // Execute
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(sql);
+            auto stmt = SetupSqlStatement(sql);
 
             stmt->Bind(
                 height,
@@ -1087,8 +1041,6 @@ namespace PocketDb
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = value;
-
-            stmt->Reset();
         });
 
         return result;
@@ -1100,7 +1052,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select
                   Type
                 from Transactions indexed by Transactions_Type_Last_String1_Height_Id
@@ -1117,8 +1069,6 @@ namespace PocketDb
                 if (auto[ok, type] = stmt->TryGetColumnInt64(0); ok)
                     result = {true, (TxType)type};
             }
-
-            stmt->Reset();
         });
 
         return result;
@@ -1130,7 +1080,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select t.Height
                 from Transactions t
                 where t.Hash = ?
@@ -1141,8 +1091,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1157,7 +1105,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count()
                 from Transactions
                 where Type in (305, 306)
@@ -1170,8 +1118,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1182,7 +1128,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (302, 303, 304)
@@ -1195,8 +1141,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1208,7 +1152,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
@@ -1221,8 +1165,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1233,7 +1175,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
@@ -1247,8 +1189,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1259,7 +1199,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_Last_String1_Height_Id
                 where Type in (204,205,206)
@@ -1273,8 +1213,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1286,7 +1224,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (307)
@@ -1299,8 +1237,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1311,7 +1247,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (307)
@@ -1325,8 +1261,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1337,7 +1271,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (307)
@@ -1351,8 +1285,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1364,7 +1296,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (200)
@@ -1377,8 +1309,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1389,7 +1319,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (200)
@@ -1403,8 +1333,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1415,7 +1343,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200)
@@ -1428,8 +1356,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1441,7 +1367,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (201)
@@ -1454,8 +1380,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1466,7 +1390,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (201)
@@ -1479,8 +1403,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1492,7 +1414,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (202)
@@ -1505,8 +1427,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1517,7 +1437,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (202)
@@ -1530,8 +1450,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1543,7 +1461,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (209)
@@ -1556,8 +1474,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1568,7 +1484,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (209)
@@ -1581,8 +1497,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1594,7 +1508,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (210)
@@ -1607,8 +1521,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1619,7 +1531,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (210)
@@ -1632,8 +1544,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1645,7 +1555,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
@@ -1657,8 +1567,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1669,7 +1577,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
@@ -1682,8 +1590,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1694,7 +1600,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
@@ -1707,8 +1613,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1720,7 +1624,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
@@ -1732,8 +1636,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1744,7 +1646,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
@@ -1757,8 +1659,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1769,7 +1669,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
@@ -1782,8 +1682,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1795,7 +1693,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (103)
@@ -1807,8 +1705,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1819,7 +1715,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (103)
@@ -1832,8 +1728,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1845,7 +1739,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (?)
@@ -1858,8 +1752,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1873,7 +1765,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (204,205,206)
@@ -1887,8 +1779,6 @@ namespace PocketDb
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = value;
-
-            stmt->Reset();
         });
 
         return result;
@@ -1899,7 +1789,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (204,205,206)
@@ -1913,8 +1803,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1926,7 +1814,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200,207)
@@ -1939,8 +1827,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1951,7 +1837,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200)
@@ -1965,8 +1851,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -1978,7 +1862,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (201,207)
@@ -1991,8 +1875,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2003,7 +1885,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (201)
@@ -2017,8 +1899,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2030,7 +1910,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (202,207)
@@ -2043,8 +1923,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2055,7 +1933,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (202)
@@ -2069,8 +1947,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2082,7 +1958,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (209,207)
@@ -2095,8 +1971,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2107,7 +1981,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (209)
@@ -2121,8 +1995,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2134,7 +2006,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (210,207)
@@ -2147,8 +2019,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2159,7 +2029,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (210)
@@ -2173,8 +2043,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2186,7 +2054,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200,201,202,209,210,207)
@@ -2199,8 +2067,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2215,7 +2081,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type = 410
@@ -2227,8 +2093,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
@@ -2241,7 +2105,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            static auto stmt = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String3_Height
                 where Type = 410
@@ -2254,8 +2118,6 @@ namespace PocketDb
 
             if (stmt->Step() == SQLITE_ROW)
                 stmt->Collect(result);
-
-            stmt->Reset();
         });
 
         return result;
