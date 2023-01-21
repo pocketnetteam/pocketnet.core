@@ -436,7 +436,7 @@ namespace PocketDb
                 txhash
                 cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
                     on i.SpentTxId = txhash.RowId
-                cross join TxOutputs o indexed by TxOutputs_TxId_Number
+                cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                     on o.TxId = i.TxId and o.Number = i.Number
         )sql") : "") +
         
@@ -729,55 +729,106 @@ namespace PocketDb
 
     void TransactionRepository::InsertTransactionInputs(const vector<TransactionInput>& inputs, const string& txHash)
     {
+        static auto stmt = SetupSqlStatement(R"sql(
+            with
+                data as (
+                    select
+                        (select RowId from vTxRowId where String = ?) as spentTx,
+                        (select RowId from vTxRowId where String = ?) as tx,
+                        ? as number
+                )
+
+            insert or fail into TxInputs
+            (
+                SpentTxId,
+                TxId,
+                Number
+            )
+            select
+                data.spentTx,
+                data.tx,
+                data.number
+            from
+                data
+            where
+                not exists (
+                    select 1
+                    from TxInputs i
+                    where
+                        i.SpentTxId = data.spentTx and
+                        i.TxId = data.tx and
+                        i.Number = data.number
+                )
+        )sql");
+
         for (const auto& input: inputs)
         {
-            // Build transaction output
-            static auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR IGNORE INTO TxInputs
-                (
-                    SpentTxId,
-                    TxId,
-                    Number
-                )
-                VALUES
-                (
-                    (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)),
-                    (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)),
-                    ?
-                )
-            )sql");
-
-            stmt->Bind(input.GetSpentTxHash(), txHash, input.GetNumber());
+            stmt->Bind(
+                input.GetSpentTxHash(),
+                txHash,
+                input.GetNumber()
+            );
             TryStepStatement(stmt);
         }
     }
     
     void TransactionRepository::InsertTransactionOutputs(const vector<TransactionOutput>& outputs, const string& txHash)
     {
-        for (const auto& output: outputs)
-        {
-            // Build transaction output
-            static auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO TxOutputs (
-                    TxId,
-                    Number,
-                    AddressId,
-                    Value,
-                    ScriptPubKeyId
-                )
-                select 
-                    (select RowId from Transactions where HashId = (select RowId from Registry where String = ?)),
+        static auto stmt = SetupSqlStatement(R"sql(
+                with
+                    tx as (
+                        select
+                            RowId
+                        from
+                            vTxRowId
+                        where
+                            String = ?
+                    )
+                insert or fail into
+                    TxOutputs (
+                        TxId,
+                        Number,
+                        AddressId,
+                        Value,
+                        ScriptPubKeyId
+                    )
+                select
+                    tx.RowId,
                     ?,
-                    (select RowId from Registry where String = ?),
+                    (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    ),
                     ?,
-                    (select RowId from Registry where String = ?)
-                -- TODO (optimization): better way to do this?
-                WHERE not exists (select 1 from TxOutputs where
-                    Number = ?
-                    and TxId = (select t.RowId from Transactions t where t.HashId = (select r.RowId as HashId from Registry r where r.String = ?)))
+                    (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
+                from tx
+                where
+                    not exists(
+                        select
+                        1
+                    from
+                        TxOutputs indexed by TxOutputs_TxId_Number_AddressId
+                    where
+                        TxId = tx.RowId and
+                        Number = ?           
+                    )
             )sql");
 
-            stmt->Bind(txHash, output.GetNumber(), output.GetAddressHash(), output.GetValue(), output.GetScriptPubKey(), output.GetNumber(), txHash);
+        for (const auto& output: outputs)
+        {
+            stmt->Bind(
+                txHash,
+                output.GetNumber(),
+                output.GetAddressHash(),
+                output.GetValue(),
+                output.GetScriptPubKey(),
+                output.GetNumber()
+            );
             TryStepStatement(stmt);
         }
     }
@@ -785,25 +836,62 @@ namespace PocketDb
     void TransactionRepository::InsertTransactionPayload(const Payload& payload)
     {
         static auto stmt = SetupSqlStatement(R"sql(
-            with t as (
-                select RowId from Transactions where HashId =
-                        (select RowId from Registry where String = ?)
-            )
-            INSERT OR FAIL INTO Payload (
-                TxId,
-                String1,
-                String2,
-                String3,
-                String4,
-                String5,
-                String6,
-                String7
-            ) SELECT
-                (select t.RowId from t),?,?,?,?,?,?,?
-            WHERE not exists (select 1 from Payload p,t  where p.TxId = t.RowId)
+            with
+                tx as (
+                    select
+                        RowId
+                    from
+                        vTxRowId
+                    where
+                        String = ?
+                )
+
+            insert or fail into
+                Payload (
+                    TxId,
+                    String1,
+                    String2,
+                    String3,
+                    String4,
+                    String5,
+                    String6,
+                    String7,
+                    Int1
+                )
+            select
+                tx.RowId,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?
+            from tx
+            where
+                not exists(
+                    select
+                        1
+                    from
+                        Payload p
+                    where
+                        p.TxId = tx.RowId
+                )
         )sql");
 
-        stmt->Bind(payload.GetTxHash(), payload.GetString1(), payload.GetString2(), payload.GetString3(), payload.GetString4(), payload.GetString5(), payload.GetString6(), payload.GetString7());
+        stmt->Bind(
+            payload.GetTxHash(),
+            payload.GetString1(),
+            payload.GetString2(),
+            payload.GetString3(),
+            payload.GetString4(),
+            payload.GetString5(),
+            payload.GetString6(),
+            payload.GetString7(),
+            payload.GetInt1()
+        );
+
         TryStepStatement(stmt);
     }
 

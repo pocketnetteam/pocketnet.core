@@ -238,7 +238,7 @@ namespace PocketDb
                     from
                         height,
                         Chain c indexed by Chain_Height_BlockId
-                        cross join TxOutputs o indexed by sqlite_autoindex_TxOutputs_1
+                        cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                             on o.TxId = c.TxId
                     where
                         c.Height = height.value
@@ -256,7 +256,7 @@ namespace PocketDb
                         Chain ci indexed by Chain_Height_BlockId
                         cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
                             on i.SpentTxId = ci.TxId
-                        cross join TxOutputs o indexed by sqlite_autoindex_TxOutputs_1
+                        cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                             on o.TxId = i.TxId and o.Number = i.Number
                     where
                         ci.Height = height.value

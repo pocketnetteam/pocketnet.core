@@ -170,8 +170,7 @@ namespace PocketDb
                 Number          int    not null, -- Number in tx.vout
                 AddressId       int    null, -- Address
                 Value           int    not null, -- Amount
-                ScriptPubKeyId  int    not null, -- Original script
-                primary key (TxId, Number, AddressId)
+                ScriptPubKeyId  int    not null -- Original script
             );
         )sql");
 
@@ -256,7 +255,7 @@ namespace PocketDb
 
             create index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
 
-            create index if not exists TxOutputs_TxId_Number on TxOutputs (TxId, Number);
+            create index if not exists TxOutputs_TxId_Number_AddressId on TxOutputs (TxId, Number, AddressId);
 
             create index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
 
