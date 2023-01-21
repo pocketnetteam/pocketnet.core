@@ -645,7 +645,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear Payload tablew
-            static auto stmt1 = SetupSqlStatement(R"sql(
+            auto stmt1 = SetupSqlStatement(R"sql(
                 delete from Payload
                 where TxHash = ?
                   and exists(
@@ -659,7 +659,7 @@ namespace PocketDb
             TryStepStatement(stmt1);
 
             // Clear TxOutputs table
-            static auto stmt2 = SetupSqlStatement(R"sql(
+            auto stmt2 = SetupSqlStatement(R"sql(
                 delete from TxOutputs
                 where TxHash = ?
                   and exists(
@@ -673,7 +673,7 @@ namespace PocketDb
             TryStepStatement(stmt2);
 
             // Clear Transactions table
-            static auto stmt3 = SetupSqlStatement(R"sql(
+            auto stmt3 = SetupSqlStatement(R"sql(
                 delete from Transactions
                 where Hash = ?
                   and Height isnull
@@ -688,7 +688,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear Payload table
-            static auto stmt1 = SetupSqlStatement(R"sql(
+            auto stmt1 = SetupSqlStatement(R"sql(
                 delete from Payload
                 where TxHash in (
                   select t.Hash
@@ -699,7 +699,7 @@ namespace PocketDb
             TryStepStatement(stmt1);
 
             // Clear TxOutputs table
-            static auto stmt2 = SetupSqlStatement(R"sql(
+            auto stmt2 = SetupSqlStatement(R"sql(
                 delete from TxOutputs
                 where TxHash in (
                   select t.Hash
@@ -710,7 +710,7 @@ namespace PocketDb
             TryStepStatement(stmt2);
 
             // Clear Transactions table
-            static auto stmt3 = SetupSqlStatement(R"sql(
+            auto stmt3 = SetupSqlStatement(R"sql(
                 delete from Transactions
                 where Height isnull
             )sql");

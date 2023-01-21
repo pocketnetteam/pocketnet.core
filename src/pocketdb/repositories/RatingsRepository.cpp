@@ -88,7 +88,7 @@ namespace PocketDb
             TryStepStatement(stmt);
 
             // Clear old Last record
-            static auto stmtUpdate = SetupSqlStatement(R"sql(
+            auto stmtUpdate = SetupSqlStatement(R"sql(
                 update Ratings indexed by Ratings_Type_Id_Last_Height
                   set Last = 0
                 where Type = ?

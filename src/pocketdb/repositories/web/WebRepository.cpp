@@ -238,7 +238,7 @@ namespace PocketDb
             {
                 SetLastInsertRowId(0);
 
-                static auto stmtMap = SetupSqlStatement(R"sql(
+                auto stmtMap = SetupSqlStatement(R"sql(
                     insert or ignore into ContentMap (ContentId, FieldType) values (?,?)
                 )sql");
                 stmtMap->Bind(contentItm.ContentId, (int)contentItm.FieldType);
@@ -249,7 +249,7 @@ namespace PocketDb
                 auto lastRowId = GetLastInsertRowId();
                 if (lastRowId > 0)
                 {
-                    static auto stmtContent = SetupSqlStatement(R"sql(
+                    auto stmtContent = SetupSqlStatement(R"sql(
                         replace into web.Content (ROWID, Value) values (?,?)
                     )sql");
                     stmtContent->Bind(lastRowId, contentItm.Value);
@@ -280,13 +280,13 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear badges table before insert new values
-            static auto stmtClear = SetupSqlStatement(R"sql(
+            auto stmtClear = SetupSqlStatement(R"sql(
                 delete from web.Badges
             )sql");
             TryStepStatement(stmtClear);
 
             // Clear old Last record
-            static auto stmtInsert = SetupSqlStatement(R"sql(
+            auto stmtInsert = SetupSqlStatement(R"sql(
                 insert into web.Badges (AccountId, Badge)
                 select uc.Uid, 1
                 from Transactions u
@@ -312,13 +312,13 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear badges table before insert new values
-            static auto stmtClear = SetupSqlStatement(R"sql(
+            auto stmtClear = SetupSqlStatement(R"sql(
                 delete from web.Authors
             )sql");
             TryStepStatement(stmtClear);
 
             // Clear old Last record
-            static auto stmtInsert = SetupSqlStatement(R"sql(
+            auto stmtInsert = SetupSqlStatement(R"sql(
                 insert into web.Authors (AccountId, SharkCommented)
           
                 select

@@ -200,7 +200,7 @@ namespace PocketDb
 
         if (fIsCreateLast)
         {
-            static auto stmtInsertLast = SetupSqlStatement(R"sql(
+            auto stmtInsertLast = SetupSqlStatement(R"sql(
                 insert into Last
                     (TxId)
                 select
@@ -285,7 +285,7 @@ namespace PocketDb
         TryStepStatement(stmt);
 
         // Remove old Last records
-        static auto stmtOld = SetupSqlStatement(R"sql(
+        auto stmtOld = SetupSqlStatement(R"sql(
             update Balances indexed by Balances_AddressId_Last_Height
             set
                 Last = 0
