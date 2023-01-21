@@ -32,7 +32,9 @@ int PocketDb::Stmt::Reset()
 {
     if (!m_stmt) return SQLITE_ERROR;
     ResetInternalIndicies();
-    return sqlite3_reset(m_stmt);
+    if (auto rc = sqlite3_reset(m_stmt); rc != SQLITE_OK)
+        return rc;
+    return sqlite3_clear_bindings(m_stmt);
 }
 
 int PocketDb::Stmt::Step()
