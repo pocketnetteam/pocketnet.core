@@ -150,7 +150,7 @@ namespace PocketDb
     {
         auto stmt = SetupSqlStatement(R"sql(
             with
-                blockReg as (
+                block as (
                     select
                         RowId
                     from
@@ -158,36 +158,27 @@ namespace PocketDb
                     where
                         String = ?
                 ),
-                txReg as (
-                    select
-                        RowId
-                    from
-                        Registry
-                    where String = ?
-                ),
                 tx as (
                     select
                         t.RowId
                     from
-                        Transactions t indexed by Transactions_HashId,
-                        txReg
+                        vTxRowId t
                     where
-                        t.HashId = txReg.RowId
+                        t.String = ?
                 )
             insert or fail into Chain
                 (TxId, BlockId, BlockNum, Height, Uid)
             select
-                tx.RowId, blockReg.RowId, ?, ?, ?
+                tx.RowId, block.RowId, ?, ?, ?
             from
                 tx,
-                blockReg
+                block
             where
                 not exists (
                     select
                         1
                     from
-                        Chain,
-                        tx
+                        Chain
                     where
                         TxId = tx.RowId
                 )
@@ -204,16 +195,9 @@ namespace PocketDb
                 select
                     t.RowId
                 from
-                    Transactions t
+                    vTxRowId t
                 where
-                    t.HashId = (
-                        select
-                            r.RowId
-                        from
-                            Registry r
-                        where
-                            r.String = ?
-                    )
+                    t.String = ?
             )sql");
             stmtInsertLast->Bind(txHash);
             stmtInsertLast->Step();
