@@ -836,20 +836,26 @@ namespace PocketDb
             {
                 ScoreDataDto data;
 
+                int contentType, scoreType = -1;
+
                 stmt->Collect(
                     data.ScoreTxHash,
-                    data.ScoreType,
+                    scoreType, // Dirty hack
                     data.ScoreTime,
                     data.ScoreValue,
                     data.ScoreAddressId,
                     data.ScoreAddressHash,
                     data.ContentTxHash,
-                    data.ContentType,
+                    contentType, // Dirty hack
                     data.ContentTime,
                     data.ContentId,
                     data.ContentAddressId,
                     data.ContentAddressHash,
-                    data.String5);
+                    data.String5
+                );
+
+                data.ContentType = (TxType)contentType;
+                data.ScoreType = (TxType)scoreType;
 
                 result = make_shared<ScoreDataDto>(data);
             }
@@ -1086,7 +1092,8 @@ namespace PocketDb
             stmt->Bind(hash);
 
             if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok)
+                    result = { true, val };
         });
 
         return result;

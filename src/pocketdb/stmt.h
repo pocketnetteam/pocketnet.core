@@ -114,8 +114,16 @@ namespace PocketDb
                     if (auto [ok, val] = stmt.TryGetColumnInt64(i++); ok) t = val;
                 } else if constexpr (std::is_convertible_v<std::string, T> || std::is_convertible_v<std::optional<std::string>, T>) {
                     if (auto [ok, val] = stmt.TryGetColumnString(i++); ok) t = val;
+                } else {
+                    static_assert(always_false<T>::value, "Stmt collecting with unsupported type");                
                 }
             }
+        private:
+            // Hack to allow static asserting based on generated template code
+            template<typename A>
+            struct always_false { 
+                enum { value = false };  
+            };
         };
     };
 }
