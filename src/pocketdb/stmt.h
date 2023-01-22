@@ -71,15 +71,15 @@ namespace PocketDb
         }
 
         // Collect data to UniValue array
-        template <class ...Collects>
-        bool Collect(UniValue& arr, Collects&... collects)
-        {
-            if (Step(false) != SQLITE_ROW)
-                return false;
+        // template <class ...Collects>
+        // bool Collect(UniValue& arr, Collects&... collects)
+        // {
+        //     if (Step(false) != SQLITE_ROW)
+        //         return false;
 
-            (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
-            return true;
-        }
+        //     (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
+        //     return true;
+        // }
 
         tuple<bool, std::string> TryGetColumnString(int index);
         tuple<bool, int64_t> TryGetColumnInt64(int index);

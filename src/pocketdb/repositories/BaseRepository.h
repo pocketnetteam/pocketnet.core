@@ -40,7 +40,7 @@ namespace PocketDb
         // Locked with shutdownMutex
         // Timeouted for ReadOnly connections
         template<typename T>
-        void TryTransactionStep(const string& func, T sql)
+        void SqlTransaction(const string& func, T sql)
         {
             try
             {
@@ -83,18 +83,6 @@ namespace PocketDb
                 m_database.AbortTransaction();
                 throw runtime_error(func + ": " + ex.what());
             }
-        }
-
-        void TryTransactionBulk(const string& func, const vector<Stmt&>& stmts)
-        {
-            if (!m_database.BeginTransaction())
-                throw runtime_error(strprintf("%s: can't begin transaction\n", func));
-                
-            for (auto stmt : stmts)
-                stmt->Step();
-
-            if (!m_database.CommitTransaction())
-                throw runtime_error(strprintf("%s: can't commit transaction\n", func));
         }
 
         Stmt& Sql(const string& sql)

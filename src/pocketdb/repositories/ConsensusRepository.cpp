@@ -131,15 +131,15 @@ namespace PocketDb
 
         #pragma endregion
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address, depth, _name, _name);
+            stmt.Bind(address, depth, _name, _name);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                stmt->Collect(
+                stmt.Collect(
                     result.LastTxType,
                     result.EditsCount,
                     result.MempoolCount,
@@ -179,7 +179,7 @@ namespace PocketDb
 
         auto _name = EscapeValue(name);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -190,10 +190,10 @@ namespace PocketDb
                   and t.String1 != ?
             )sql");
 
-            stmt->Bind(_name, address);
+            stmt.Bind(_name, address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = (value > 0);
         });
 
@@ -204,7 +204,7 @@ namespace PocketDb
     {
         PTransactionRef tx = nullptr;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
                 select
@@ -236,10 +236,10 @@ namespace PocketDb
             )sql";
 
             auto& stmt = Sql(sql);
-            stmt->Bind(rootHash, rootHash);
+            stmt.Bind(rootHash, rootHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, transaction] = CreateTransactionFromListRow(*stmt, true); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
                     tx = transaction;
         });
 
@@ -250,7 +250,7 @@ namespace PocketDb
     {
         PTransactionRef tx = nullptr;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
                 select
@@ -283,10 +283,10 @@ namespace PocketDb
 
             auto& stmt = Sql(sql);
 
-            stmt->Bind(types, rootHash);
+            stmt.Bind(types, rootHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, transaction] = CreateTransactionFromListRow(*stmt, true); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
                     tx = transaction;
         });
 
@@ -311,14 +311,14 @@ namespace PocketDb
         )sql";
 
         // Execute
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(addresses);
+            stmt.Bind(addresses);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = (value == (int) addresses.size());
         });
 
@@ -330,7 +330,7 @@ namespace PocketDb
         bool blockingExists = false;
         TxType blockingType = TxType::NOT_SUPPORTED;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 SELECT Type
@@ -342,11 +342,11 @@ namespace PocketDb
                     and Last = 1
             )sql");
 
-            stmt->Bind(address, addressTo);
+            stmt.Bind(address, addressTo);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                 {
                     blockingExists = true;
                     blockingType = (TxType) value;
@@ -361,7 +361,7 @@ namespace PocketDb
     {
         bool blockingExists = false;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 SELECT 1
@@ -375,11 +375,11 @@ namespace PocketDb
                 LIMIT 1
             )sql");
 
-            stmt->Bind(address, addressTo, addressesTo);
+            stmt.Bind(address, addressTo, addressesTo);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok && value > 0)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok && value > 0)
                 {
                     blockingExists = true;
                 }
@@ -395,7 +395,7 @@ namespace PocketDb
         bool subscribeExists = false;
         TxType subscribeType = TxType::NOT_SUPPORTED;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 SELECT Type
@@ -407,11 +407,11 @@ namespace PocketDb
                     and Last = 1
             )sql");
 
-            stmt->Bind(address, addressTo);
+            stmt.Bind(address, addressTo);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                 {
                     subscribeExists = true;
                     subscribeType = (TxType) value;
@@ -426,7 +426,7 @@ namespace PocketDb
     {
         shared_ptr<string> result = nullptr;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 SELECT String1
@@ -435,10 +435,10 @@ namespace PocketDb
                   and Height is not null
             )sql");
 
-            stmt->Bind(postHash);
+            stmt.Bind(postHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     result = make_shared<string>(value);
         });
 
@@ -449,7 +449,7 @@ namespace PocketDb
     {
         bool result = false;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
                 SELECT count(*)
@@ -464,10 +464,10 @@ namespace PocketDb
 
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address, postHash);
+            stmt.Bind(address, postHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = (value > 0);
         });
 
@@ -489,14 +489,14 @@ namespace PocketDb
         if (!mempool)
             sql += " and Height is not null";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address, contentHash, (int) type);
+            stmt.Bind(address, contentHash, (int) type);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = (value > 0);
         });
 
@@ -517,13 +517,13 @@ namespace PocketDb
         if (inChain)
             sql += " and Height is not null";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
             
-            stmt->Bind(txHash, types);
+            stmt.Bind(txHash, types);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
                 result = true;
         });
 
@@ -544,13 +544,13 @@ namespace PocketDb
             limit 1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(types, string1);
+            stmt.Bind(types, string1);
             
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
                 result = true;
         });
 
@@ -572,13 +572,13 @@ namespace PocketDb
               and Height is null
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(types, string1, string2);
+            stmt.Bind(types, string1, string2);
             
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
                 result = true;
         });
 
@@ -599,13 +599,13 @@ namespace PocketDb
               and not exists (select 1 from Transactions d indexed by Transactions_Id_Last where d.Id = t.Id and d.Last = 1 and d.Type in (207,206))
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(txHash, types, address);
+            stmt.Bind(txHash, types, address);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
                 result = true;
         });
 
@@ -624,13 +624,13 @@ namespace PocketDb
               and Last = 1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -656,14 +656,14 @@ namespace PocketDb
               and r.Last = 1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -681,14 +681,14 @@ namespace PocketDb
               and r.Last = 1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(addressId);
+            stmt.Bind(addressId);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -709,14 +709,14 @@ namespace PocketDb
             limit 1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(addressId);
+            stmt.Bind(addressId);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -726,7 +726,7 @@ namespace PocketDb
     {
         AccountData result = {address,-1,0,0,0,0,0,0};
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select
@@ -768,11 +768,11 @@ namespace PocketDb
                   
                 limit 1
             )sql");
-            stmt->Bind(address);
+            stmt.Bind(address);
             
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                stmt->Collect(
+                stmt.Collect(
                     result.AddressId,
                     result.RegistrationTime,
                     result.RegistrationHeight,
@@ -827,18 +827,18 @@ namespace PocketDb
             where s.Hash = ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
-            stmt->Bind(txHash);
+            stmt.Bind(txHash);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
                 ScoreDataDto data;
 
                 int contentType, scoreType = -1;
 
-                stmt->Collect(
+                stmt.Collect(
                     data.ScoreTxHash,
                     scoreType, // Dirty hack
                     data.ScoreTime,
@@ -894,16 +894,16 @@ namespace PocketDb
         sql += " ) ";
 
         // Execute
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(minHeight, addresses);
+            stmt.Bind(minHeight, addresses);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok1, value1] = stmt->TryGetColumnString(1); ok1 && !value1.empty())
-                    if (auto[ok2, value2] = stmt->TryGetColumnString(2); ok2 && !value2.empty())
+                if (auto[ok1, value1] = stmt.TryGetColumnString(1); ok1 && !value1.empty())
+                    if (auto[ok2, value2] = stmt.TryGetColumnString(2); ok2 && !value2.empty())
                         result->emplace(value1, value2);
             }
         });
@@ -927,14 +927,14 @@ namespace PocketDb
             limit 1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok && !value.empty())
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok && !value.empty())
                 {
                     result = true;
                     referrer = value;
@@ -976,11 +976,11 @@ namespace PocketDb
         )sql";
 
         // Execute
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(
+            stmt.Bind(
                 height,
                 scoreData->ScoreAddressHash,
                 scoreData->ScoreTime,
@@ -988,8 +988,8 @@ namespace PocketDb
                 scoreData->ScoreTxHash,
                 scoreData->ContentAddressHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = value;
         });
 
@@ -1028,11 +1028,11 @@ namespace PocketDb
         )sql";
 
         // Execute
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(
+            stmt.Bind(
                 height,
                 scoreData->ScoreAddressHash,
                 scoreData->ScoreTime,
@@ -1040,8 +1040,8 @@ namespace PocketDb
                 scoreData->ScoreTxHash,
                 scoreData->ContentAddressHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = value;
         });
 
@@ -1052,7 +1052,7 @@ namespace PocketDb
     {
         tuple<bool, TxType> result = {false, TxType::ACCOUNT_DELETE};
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select
@@ -1064,11 +1064,11 @@ namespace PocketDb
                   and Height is not null
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, type] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, type] = stmt.TryGetColumnInt64(0); ok)
                     result = {true, (TxType)type};
             }
         });
@@ -1080,7 +1080,7 @@ namespace PocketDb
     {
         tuple<bool, int64_t> result = {false, 0};
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select t.Height
@@ -1089,10 +1089,10 @@ namespace PocketDb
                   and t.Height is not null
             )sql");
 
-            stmt->Bind(hash);
+            stmt.Bind(hash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
                     result = { true, val };
         });
 
@@ -1106,7 +1106,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count()
@@ -1117,10 +1117,10 @@ namespace PocketDb
                   and (String2 = ? or String3 is not null)
             )sql");
 
-            stmt->Bind(address, addressTo);
+            stmt.Bind(address, addressTo);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1129,7 +1129,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1140,10 +1140,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, addressTo);
+            stmt.Bind(address, addressTo);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1153,7 +1153,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1164,10 +1164,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1176,7 +1176,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1188,10 +1188,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(time, address);
+            stmt.Bind(time, address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1200,7 +1200,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1212,10 +1212,10 @@ namespace PocketDb
                   and String1 = ?
             )sql");
 
-            stmt->Bind(height, address);
+            stmt.Bind(height, address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1225,7 +1225,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1236,10 +1236,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1248,7 +1248,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1260,10 +1260,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(time, address);
+            stmt.Bind(time, address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1272,7 +1272,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1284,10 +1284,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(height, address);
+            stmt.Bind(height, address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1297,7 +1297,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1308,10 +1308,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1320,7 +1320,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1332,10 +1332,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address, time);
+            stmt.Bind(address, time);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1344,7 +1344,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count()
@@ -1355,10 +1355,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address, height);
+            stmt.Bind(address, height);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1368,7 +1368,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1379,10 +1379,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1391,7 +1391,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1402,10 +1402,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address, height);
+            stmt.Bind(address, height);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1415,7 +1415,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1426,10 +1426,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1438,7 +1438,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1449,10 +1449,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address, height);
+            stmt.Bind(address, height);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1462,7 +1462,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1473,10 +1473,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1485,7 +1485,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1496,10 +1496,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address, height);
+            stmt.Bind(address, height);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1509,7 +1509,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1520,10 +1520,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1532,7 +1532,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1543,10 +1543,10 @@ namespace PocketDb
                   and Hash = String2
             )sql");
 
-            stmt->Bind(address, height);
+            stmt.Bind(address, height);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1556,7 +1556,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1566,10 +1566,10 @@ namespace PocketDb
                   and String1 = ?
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1578,7 +1578,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1589,10 +1589,10 @@ namespace PocketDb
                   and Time >= ?
             )sql");
 
-            stmt->Bind(address, time);
+            stmt.Bind(address, time);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1601,7 +1601,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1612,10 +1612,10 @@ namespace PocketDb
                   and String1 = ?
             )sql");
 
-            stmt->Bind(height, address);
+            stmt.Bind(height, address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1625,7 +1625,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1635,10 +1635,10 @@ namespace PocketDb
                   and String1 = ?
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1647,7 +1647,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1658,10 +1658,10 @@ namespace PocketDb
                   and Time >= ?
             )sql");
 
-            stmt->Bind(address, time);
+            stmt.Bind(address, time);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1670,7 +1670,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1681,10 +1681,10 @@ namespace PocketDb
                   and String1 = ?
             )sql");
 
-            stmt->Bind(height, address);
+            stmt.Bind(height, address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1694,7 +1694,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1704,10 +1704,10 @@ namespace PocketDb
                   and String1 = ?
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1716,7 +1716,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1727,10 +1727,10 @@ namespace PocketDb
                   and String1 = ?
             )sql");
 
-            stmt->Bind(address, height);
+            stmt.Bind(address, height);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1740,7 +1740,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1751,10 +1751,10 @@ namespace PocketDb
                   and String1 = ?
             )sql");
 
-            stmt->Bind((int)txType, height, address);
+            stmt.Bind((int)txType, height, address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1766,7 +1766,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1777,10 +1777,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = value;
         });
 
@@ -1790,7 +1790,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1802,10 +1802,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1815,7 +1815,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1826,10 +1826,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1838,7 +1838,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1850,10 +1850,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1863,7 +1863,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1874,10 +1874,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1886,7 +1886,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1898,10 +1898,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1911,7 +1911,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1922,10 +1922,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1934,7 +1934,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1946,10 +1946,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1959,7 +1959,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1970,10 +1970,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -1982,7 +1982,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -1994,10 +1994,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -2007,7 +2007,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -2018,10 +2018,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -2030,7 +2030,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count(*)
@@ -2042,10 +2042,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -2055,7 +2055,7 @@ namespace PocketDb
     {
         int result = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count()
@@ -2066,10 +2066,10 @@ namespace PocketDb
                   and String2 = ?
             )sql");
 
-            stmt->Bind(address, rootTxHash);
+            stmt.Bind(address, rootTxHash);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -2082,7 +2082,7 @@ namespace PocketDb
         int result = 0;
         string whereMempool = includeMempool ? " or Height is null " : "";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count()
@@ -2092,10 +2092,10 @@ namespace PocketDb
                   and ( Height >= ? )sql" + whereMempool + R"sql( )
             )sql");
 
-            stmt->Bind(address, height);
+            stmt.Bind(address, height);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;
@@ -2106,7 +2106,7 @@ namespace PocketDb
         int result = 0;
         string whereMempool = includeMempool ? " or Height is null " : "";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select count()
@@ -2117,10 +2117,10 @@ namespace PocketDb
                   and ( Height > 0 )sql" + whereMempool + R"sql( )
             )sql");
 
-            stmt->Bind(address, addressTo);
+            stmt.Bind(address, addressTo);
 
-            if (stmt->Step() == SQLITE_ROW)
-                stmt->Collect(result);
+            if (stmt.Step() == SQLITE_ROW)
+                stmt.Collect(result);
         });
 
         return result;

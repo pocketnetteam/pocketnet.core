@@ -10,7 +10,7 @@ namespace PocketDb
     {
         int result = -1;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select Version
@@ -18,10 +18,10 @@ namespace PocketDb
                 where Db = ?
             )sql");
 
-            stmt->Bind(db);
+            stmt.Bind(db);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = value;
         });
 
@@ -30,7 +30,7 @@ namespace PocketDb
 
     void SystemRepository::SetDbVersion(const string& db, int version)
     {
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 update System
@@ -38,8 +38,8 @@ namespace PocketDb
                 where Db = ?
             )sql");
 
-            stmt->Bind(version, db);
-            stmt->Step();
+            stmt.Bind(version, db);
+            stmt.Step();
         });
     }
 

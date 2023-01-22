@@ -59,10 +59,11 @@ namespace PocketDb
         void CleanMempool();
         void Clean();
 
-        optional<string> TxIdToHash(const int64_t& id);
-        optional<int64_t> TxHashToId(const string& hash);
-        optional<string> AddressIdToHash(const int64_t& id);
-        optional<int64_t> AddressHashToId(const string& hash);
+        // TODO (lostystyg): need?
+        // optional<string> TxIdToHash(const int64_t& id);
+        // optional<int64_t> TxHashToId(const string& hash);
+        // optional<string> AddressIdToHash(const int64_t& id);
+        // optional<int64_t> AddressHashToId(const string& hash);
 
     private:
         void InsertRegistry(const vector<string>& strings);

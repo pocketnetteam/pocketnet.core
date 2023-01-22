@@ -20,20 +20,20 @@ namespace PocketDb
               and p.BlockHash = ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
-            stmt->Bind(blockHash);
+            stmt.Bind(blockHash);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto[okId, id] = stmt->TryGetColumnInt64(0);
+                auto[okId, id] = stmt.TryGetColumnInt64(0);
                 if (!okId) continue;
 
-                auto[okLang, lang] = stmt->TryGetColumnString(1);
+                auto[okLang, lang] = stmt.TryGetColumnString(1);
                 if (!okLang) continue;
 
-                auto[okValue, value] = stmt->TryGetColumnString(2);
+                auto[okValue, value] = stmt.TryGetColumnString(2);
                 if (!okValue) continue;
 
                 result.emplace_back(WebTag(id, lang, value));
@@ -54,7 +54,7 @@ namespace PocketDb
         }
 
         // Next work in transaction
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             // Insert new tags and ignore exists with unique index Lang+Value
             auto& stmt = Sql(R"sql(
@@ -82,7 +82,7 @@ namespace PocketDb
                         (select t.Id from web.Tags t where t.Value = ? and t.Lang = ?)
                     )
                 )sql")
-                .Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang);
+                .Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang)
                 .Step();
             }
         });
@@ -109,7 +109,7 @@ namespace PocketDb
               and t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
        )sql";
        
-       TryTransactionStep(__func__, [&]()
+       SqlTransaction(__func__, [&]()
        {
            auto& stmt = Sql(sql).Bind(blockHash);
 
@@ -192,7 +192,7 @@ namespace PocketDb
 
         // ---------------------------------------------------------
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             // ---------------------------------------------------------
             int64_t nTime1 = GetTimeMicros();
@@ -230,7 +230,7 @@ namespace PocketDb
                 Sql(R"sql(
                     insert or ignore into ContentMap (ContentId, FieldType) values (?,?)
                 )sql")
-                .Bind(contentItm.ContentId, (int)contentItm.FieldType);
+                .Bind(contentItm.ContentId, (int)contentItm.FieldType)
                 .Step();
 
                 // ---------------------------------------------------------
@@ -241,7 +241,7 @@ namespace PocketDb
                     Sql(R"sql(
                         replace into web.Content (ROWID, Value) values (?,?)
                     )sql")
-                    .Bind(lastRowId, contentItm.Value);
+                    .Bind(lastRowId, contentItm.Value)
                     .Step();
                 }
                 else
@@ -254,7 +254,7 @@ namespace PocketDb
             // ---------------------------------------------------------
             int64_t nTime4 = GetTimeMicros();
 
-            LogPrint(BCLog::BENCH, "        - TryTransactionStep (%s): %.2fms + %.2fms + %.2fms = %.2fms\n",
+            LogPrint(BCLog::BENCH, "        - SqlTransaction (%s): %.2fms + %.2fms + %.2fms = %.2fms\n",
                 func,
                 0.001 * (nTime2 - nTime1),
                 0.001 * (nTime3 - nTime2),
@@ -266,7 +266,7 @@ namespace PocketDb
 
     void WebRepository::CalculateSharkAccounts(BadgeSharkConditions& cond)
     {
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             // Clear badges table before insert new values
             Sql(R"sql(
@@ -290,14 +290,14 @@ namespace PocketDb
                   and ifnull((select r.Value from Ratings r where r.Type = 113 and r.Last = 1 and r.Uid = uc.Uid),0) >= ?
                   and ? - (select min(reg1.Height) from Chain reg1 where reg1.Uid = uc.Uid) > ?
             )sql")
-            .Bind(cond.LikersAll, cond.LikersContent, cond.LikersComment, cond.LikersAnswer, cond.Height, cond.RegistrationDepth);
+            .Bind(cond.LikersAll, cond.LikersContent, cond.LikersComment, cond.LikersAnswer, cond.Height, cond.RegistrationDepth)
             .Step();
         });
     }
 
     void WebRepository::CalculateValidAuthors(int blockHeight)
     {
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             // Clear badges table before insert new values
             Sql(R"sql(

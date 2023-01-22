@@ -23,16 +23,16 @@ namespace PocketDb
               and String1 = ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) result.pushKV("id", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
             }
         });
 
@@ -52,16 +52,16 @@ namespace PocketDb
               and Id = ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(id);
+            stmt.Bind(id);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) result.pushKV("id", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
             }
         });
 
@@ -85,18 +85,18 @@ namespace PocketDb
             limit 1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(_name);
+            stmt.Bind(_name);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, valueStr] = stmt->TryGetColumnString(0); ok) record.pushKV("name", valueStr);
-                if (auto[ok, valueStr] = stmt->TryGetColumnString(1); ok) record.pushKV("address", valueStr);
+                if (auto[ok, valueStr] = stmt.TryGetColumnString(0); ok) record.pushKV("name", valueStr);
+                if (auto[ok, valueStr] = stmt.TryGetColumnString(1); ok) record.pushKV("address", valueStr);
 
                 result.push_back(record);
             }
@@ -125,19 +125,19 @@ namespace PocketDb
             )
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(addresses);
+            stmt.Bind(addresses);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, valueStr] = stmt->TryGetColumnString(0); ok) record.pushKV("address", valueStr);
-                if (auto[ok, valueStr] = stmt->TryGetColumnString(1); ok) record.pushKV("time", valueStr);
-                if (auto[ok, valueStr] = stmt->TryGetColumnString(2); ok) record.pushKV("txid", valueStr);
+                if (auto[ok, valueStr] = stmt.TryGetColumnString(0); ok) record.pushKV("address", valueStr);
+                if (auto[ok, valueStr] = stmt.TryGetColumnString(1); ok) record.pushKV("time", valueStr);
+                if (auto[ok, valueStr] = stmt.TryGetColumnString(2); ok) record.pushKV("txid", valueStr);
 
                 result.push_back(record);
             }
@@ -158,16 +158,16 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
-            stmt->Bind(count);
+            stmt.Bind(count);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue addr(UniValue::VOBJ);
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) addr.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) addr.pushKV("balance", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) addr.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) addr.pushKV("balance", value);
                 result.push_back(addr);
             }
         });
@@ -223,38 +223,38 @@ namespace PocketDb
             and u.Last = 1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, address);
+            stmt.Bind(heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, address);
 
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
                 int i = 0;
-                if (auto[ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("address_id", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) result.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("address_id", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) result.pushKV("address", value);
 
                 bool isDeleted = false;
-                if (auto[ok, Type] = stmt->TryGetColumnInt(i++); ok)
+                if (auto[ok, Type] = stmt.TryGetColumnInt(i++); ok)
                 {
                     isDeleted = (Type==TxType::ACCOUNT_DELETE);
                     if (isDeleted) result.pushKV("deleted", true);
                 }
 
                 if (!isDeleted) {
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("post_spent", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("video_spent", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("article_spent", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("stream_spent", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("audio_spent", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("comment_spent", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("score_spent", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok)
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("post_spent", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("video_spent", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("article_spent", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("stream_spent", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("audio_spent", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("comment_spent", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("score_spent", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok)
                         result.pushKV("comment_score_spent", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("complain_spent", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("complain_spent", value);
 
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) result.pushKV("mod_flag_spent", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("mod_flag_spent", value);
                 }
             }
         });
@@ -277,15 +277,15 @@ namespace PocketDb
             limit 1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     result = value;
             }
         });
@@ -350,18 +350,18 @@ namespace PocketDb
               and u.Height is not null
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC, addresses);
+            stmt.Bind(nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC, addresses);
             
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                auto[ok0, address] = stmt->TryGetColumnString(0);
-                auto[ok1, ReferralsCountHist] = stmt->TryGetColumnInt(1);
-                auto[ok2, CommentatorsCountHist] = stmt->TryGetColumnInt(2);
+                auto[ok0, address] = stmt.TryGetColumnString(0);
+                auto[ok1, ReferralsCountHist] = stmt.TryGetColumnInt(1);
+                auto[ok2, CommentatorsCountHist] = stmt.TryGetColumnInt(2);
 
                 record.pushKV("address", address);
                 record.pushKV("histreferals", ReferralsCountHist);
@@ -551,21 +551,21 @@ namespace PocketDb
               )sql" + where + R"sql(
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(firstFlagsDepth * 1440, addresses, ids);
+            stmt.Bind(firstFlagsDepth * 1440, addresses, ids);
             // Fetch data
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 int i = 0;
-                auto[ok0, hash] = stmt->TryGetColumnString(i++);
-                auto[ok1, address] = stmt->TryGetColumnString(i++);
-                auto[ok2, id] = stmt->TryGetColumnInt64(i++);
-                auto[ok3, Type] = stmt->TryGetColumnInt(i++);
+                auto[ok0, hash] = stmt.TryGetColumnString(i++);
+                auto[ok1, address] = stmt.TryGetColumnString(i++);
+                auto[ok2, id] = stmt.TryGetColumnInt64(i++);
+                auto[ok3, Type] = stmt.TryGetColumnInt(i++);
                 bool isDeleted = (Type==TxType::ACCOUNT_DELETE);
 
                 record.pushKV("hash", hash);
@@ -575,31 +575,31 @@ namespace PocketDb
                 if (isDeleted) record.pushKV("deleted", true);
 
                 if(!isDeleted) {
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("name", value);
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("i", value);
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("b", value);
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("r", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("postcnt", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("dltdcnt", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("reputation", value / 10.0);
-                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("k", value);
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("a", value);
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("l", value);
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("s", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) record.pushKV("update", value);
-                    if (auto [ok, value] = stmt->TryGetColumnInt64(i++); ok) record.pushKV("regdate", value);
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("name", value);
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("i", value);
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("b", value);
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("r", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("postcnt", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("dltdcnt", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("reputation", value / 10.0);
+                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("k", value);
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("a", value);
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("l", value);
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("s", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) record.pushKV("update", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) record.pushKV("regdate", value);
 
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
                         UniValue flags(UniValue::VOBJ);
                         flags.read(value);
                         record.pushKV("flags", flags);
                     }
 
-                    if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
+                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
                         UniValue flags(UniValue::VOBJ);
                         flags.read(value);
                         record.pushKV("firstFlags", flags);
@@ -607,25 +607,25 @@ namespace PocketDb
 
                     if (!shortForm) {
 
-                        if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("subscribes", subscribes);
                         }
 
-                        if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("subscribers", subscribes);
                         }
 
-                        if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
                             UniValue subscribes(UniValue::VARR);
                             subscribes.read(value);
                             record.pushKV("blocking", subscribes);
                         }
 
-                        if (auto [ok, value] = stmt->TryGetColumnString(i++); ok) {
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
                             UniValue content(UniValue::VOBJ);
                             content.read(value);
                             record.pushKV("content", content);
@@ -741,38 +741,38 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             int i = 1;
             auto& stmt = Sql(sql);
 
-            stmt->Bind(lang, height, count);
+            stmt.Bind(lang, height, count);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 int i = 0;
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("id", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("id", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok)
                 {
                     record.pushKV("time", value);
                     record.pushKV("timeUpd", value);
                 }
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("block", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
-                if (auto[ok, value] = stmt->TryGetColumnString(i++); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("block", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
+                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
@@ -879,41 +879,41 @@ namespace PocketDb
                 on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.Id = cmnt.commentId
         )sql";
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address, (int64_t)(0.5 * COIN), ids);
+            stmt.Bind(address, (int64_t)(0.5 * COIN), ids);
 
             // ---------------------------
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                auto[okContentId, contentId] = stmt->TryGetColumnInt(0);
-                auto[okCommentId, commentId] = stmt->TryGetColumnInt(1);
-                auto[okType, txType] = stmt->TryGetColumnInt(2);
-                auto[okRoot, rootTxHash] = stmt->TryGetColumnString(3);
+                auto[okContentId, contentId] = stmt.TryGetColumnInt(0);
+                auto[okCommentId, commentId] = stmt.TryGetColumnInt(1);
+                auto[okType, txType] = stmt.TryGetColumnInt(2);
+                auto[okRoot, rootTxHash] = stmt.TryGetColumnString(3);
 
                 record.pushKV("id", rootTxHash);
                 record.pushKV("cid", commentId);
                 record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
                 record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(7); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(8); ok) record.pushKV("block", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(9); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(10); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(11); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(12); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(13); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(14); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(15); ok) record.pushKV("children", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(16); ok) record.pushKV("myScore", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(17); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("block", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(16); ok) record.pushKV("myScore", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(17); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
@@ -1017,44 +1017,44 @@ namespace PocketDb
                 )sql" + parentWhere + R"sql(
         )sql";
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
-            stmt->Bind(addressHash,postHash);
+            stmt.Bind(addressHash,postHash);
             if (!parentHash.empty())
-                stmt->Bind(parentHash);
+                stmt.Bind(parentHash);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                //auto[ok0, txHash] = stmt->TryGetColumnString(stmt, 1);
-                auto[ok1, rootTxHash] = stmt->TryGetColumnString(2);
+                //auto[ok0, txHash] = stmt.TryGetColumnString(stmt, 1);
+                auto[ok1, rootTxHash] = stmt.TryGetColumnString(2);
                 record.pushKV("id", rootTxHash);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok)
                     record.pushKV("postid", value);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(7); ok) record.pushKV("block", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(8); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(9); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(14); ok) record.pushKV("myScore", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("block", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(16); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(16); ok)
                 {
                     record.pushKV("amount", value);
                     record.pushKV("donation", "true");
                 }
 
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                 {
                     switch (static_cast<TxType>(value))
                     {
@@ -1165,45 +1165,45 @@ namespace PocketDb
 
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(addressHash, cmntHashes);
+            stmt.Bind(addressHash, cmntHashes);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                //auto[ok0, txHash] = stmt->TryGetColumnString(stmt, 1);
-                auto[ok1, rootTxHash] = stmt->TryGetColumnString(2);
+                //auto[ok0, txHash] = stmt.TryGetColumnString(stmt, 1);
+                auto[ok1, rootTxHash] = stmt.TryGetColumnString(2);
                 record.pushKV("id", rootTxHash);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok)
                     record.pushKV("postid", value);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(7); ok) record.pushKV("block", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(8); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(9); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(14); ok) record.pushKV("myScore", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("block", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(16); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(16); ok)
                 {
                     record.pushKV("amount", value);
                     record.pushKV("donation", "true");
                 }
 
-                if (auto[ok, value] = stmt->TryGetColumnInt(17); ok && value > 0) record.pushKV("blck", 1);
+                if (auto[ok, value] = stmt.TryGetColumnInt(17); ok && value > 0) record.pushKV("blck", 1);
 
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                 {
                     switch (static_cast<TxType>(value))
                     {
@@ -1252,18 +1252,18 @@ namespace PocketDb
                   and sc.String2 in ( )sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql( )
             )sql";
 
-            TryTransactionStep(func, [&]()
+            SqlTransaction(func, [&]()
             {
                 auto& stmt = Sql(sql);
 
-                stmt->Bind(addressHash, postHashes);
+                stmt.Bind(addressHash, postHashes);
 
-                while (stmt->Step() == SQLITE_ROW)
+                while (stmt.Step() == SQLITE_ROW)
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("value", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("value", value);
 
                     result.push_back(record);
                 }
@@ -1297,21 +1297,21 @@ namespace PocketDb
                     and c.String2 in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
             )sql";
 
-            TryTransactionStep(func, [&]()
+            SqlTransaction(func, [&]()
             {
                 auto& stmt = Sql(sql);
 
-                stmt->Bind(addressHash, commentHashes);
+                stmt.Bind(addressHash, commentHashes);
 
-                while (stmt->Step() == SQLITE_ROW)
+                while (stmt.Step() == SQLITE_ROW)
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("cmntid", value);
-                    if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("myScore", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("cmntid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("myScore", value);
 
                     result.push_back(record);
                 }
@@ -1351,24 +1351,24 @@ namespace PocketDb
               and s.String2 = ?
         )sql";
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(postTxHash);
+            stmt.Bind(postTxHash);
 
             // ---------------------------------------------
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("value", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("value", value);
 
                 result.push_back(record);
             }
@@ -1408,22 +1408,22 @@ namespace PocketDb
             order by s.Time desc
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address, postHashes);
+            stmt.Bind(address, postHashes);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(5); ok) record.pushKV("value", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("value", value);
 
                 result.push_back(record);
             }
@@ -1496,24 +1496,24 @@ namespace PocketDb
             order by raters.ratingsCount desc
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address, address);
+            stmt.Bind(address, address);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok) record.pushKV("id", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("about", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(5); ok) record.pushKV("regdate", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(6); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(7); ok) record.pushKV("ratingscnt", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok) record.pushKV("id", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("about", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("regdate", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(6); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(7); ok) record.pushKV("ratingscnt", value);
 
                 result.push_back(record);
             }
@@ -1544,19 +1544,19 @@ namespace PocketDb
         //       and String1 = ?
         // )sql";
         //
-        // TryTransactionStep(__func__, [&]()
+        // SqlTransaction(__func__, [&]()
         // {
         //     auto& stmt = Sql(sql);
         //     
-        //     stmt->Bind(address);
+        //     stmt.Bind(address);
         //
-        //     while (stmt->Step() == SQLITE_ROW)
+        //     while (stmt.Step() == SQLITE_ROW)
         //     {
         //         UniValue record(UniValue::VOBJ);
-        //         auto[ok, address] = stmt->TryGetColumnString(0);
+        //         auto[ok, address] = stmt.TryGetColumnString(0);
         //
-        //         if (auto[ok1, value] = stmt->TryGetColumnString(1); ok1) record.pushKV("adddress", value);
-        //         if (auto[ok2, value] = stmt->TryGetColumnString(2); ok2) record.pushKV("private", value);
+        //         if (auto[ok1, value] = stmt.TryGetColumnString(1); ok1) record.pushKV("adddress", value);
+        //         if (auto[ok2, value] = stmt.TryGetColumnString(2); ok2) record.pushKV("private", value);
         //
         //         result[address].push_back(record);
         //     }
@@ -1576,7 +1576,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select
@@ -1587,10 +1587,10 @@ namespace PocketDb
                 where us.String1 = ?
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            while (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+            while (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     result.push_back(value);
         });
 
@@ -1601,7 +1601,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select
@@ -1612,10 +1612,10 @@ namespace PocketDb
                 where ut.String1 = ?
             )sql");
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            while (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+            while (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     result.push_back(value);
         });
 
@@ -1700,38 +1700,38 @@ namespace PocketDb
 
         // ---------------------------------------------
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt->Bind(lang);
+            if (!lang.empty()) stmt.Bind(lang);
 
-            stmt->Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
+            stmt.Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
 
             if (!tags.empty())
             {
-                stmt->Bind(tags);
+                stmt.Bind(tags);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(adrsExcluded);
+            stmt.Bind(adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                stmt->Bind(tagsExcluded);
+                stmt.Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(countOut);
+            stmt.Bind(countOut);
 
             // ---------------------------------------------
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) result.push_back(value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.push_back(value);
             }
         });
 
@@ -1755,17 +1755,17 @@ namespace PocketDb
             offset ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(lang, pageSize, pageStart);
+            stmt.Bind(lang, pageSize, pageStart);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto[ok0, vLang] = stmt->TryGetColumnString(0);
-                auto[ok1, vValue] = stmt->TryGetColumnString(1);
-                auto[ok2, vCount] = stmt->TryGetColumnInt(2);
+                auto[ok0, vLang] = stmt.TryGetColumnString(0);
+                auto[ok1, vValue] = stmt.TryGetColumnString(1);
+                auto[ok2, vCount] = stmt.TryGetColumnInt(2);
 
                 UniValue record(UniValue::VOBJ);
                 record.pushKV("tag", vValue);
@@ -1792,15 +1792,15 @@ namespace PocketDb
               and Height is not null
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(txHashes);
+            stmt.Bind(txHashes);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     result.push_back(value);
             }
         });
@@ -1822,16 +1822,16 @@ namespace PocketDb
               and Height is not null
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(txHashes);
+            stmt.Bind(txHashes);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto[ok0, contenthash] = stmt->TryGetColumnString(0);
-                auto[ok1, contentaddress] = stmt->TryGetColumnString(1);
+                auto[ok0, contenthash] = stmt.TryGetColumnString(0);
+                auto[ok1, contentaddress] = stmt.TryGetColumnString(1);
                 if(ok0 && ok1)
                     result.emplace(contenthash,contentaddress);
             }
@@ -1862,18 +1862,18 @@ namespace PocketDb
             order by o.TxHeight asc
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(addresses);
+            stmt.Bind(addresses);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                auto[ok0, txHash] = stmt->TryGetColumnString(0);
-                auto[ok1, txOut] = stmt->TryGetColumnInt(1);
+                auto[ok0, txHash] = stmt.TryGetColumnString(0);
+                auto[ok1, txOut] = stmt.TryGetColumnInt(1);
 
                 string _txHash = txHash;
                 int _txOut = txOut;
@@ -1890,19 +1890,19 @@ namespace PocketDb
                 record.pushKV("txid", txHash);
                 record.pushKV("vout", txOut);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(3); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok)
                 {
                     record.pushKV("amount", ValueFromAmount(value));
                     record.pushKV("amountSat", value);
                 }
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("scriptPubKey", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(5); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("scriptPubKey", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(5); ok)
                 {
                     record.pushKV("coinbase", value == 2 || value == 3);
                     record.pushKV("pockettx", value > 3);
                 }
-                if (auto[ok, value] = stmt->TryGetColumnInt(6); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt(6); ok)
                 {
                     record.pushKV("confirmations", height - value);
                     record.pushKV("height", value);
@@ -1933,17 +1933,17 @@ namespace PocketDb
             group by c.Type, p.String1
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(height);
+            stmt.Bind(height);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto[okType, typeInt] = stmt->TryGetColumnInt(0);
-                auto[okLang, lang] = stmt->TryGetColumnString(1);
-                auto[okCount, count] = stmt->TryGetColumnInt(2);
+                auto[okType, typeInt] = stmt.TryGetColumnInt(0);
+                auto[okLang, lang] = stmt.TryGetColumnString(1);
+                auto[okCount, count] = stmt.TryGetColumnInt(2);
                 if (!okType || !okLang || !okCount)
                     continue;
 
@@ -1976,14 +1976,14 @@ namespace PocketDb
               and String1 = ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sqlCount);
 
-            stmt->Bind(height, address);
+            stmt.Bind(height, address);
 
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+            if (stmt.Step() == SQLITE_ROW)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     resultCount = value;
         });
 
@@ -2010,17 +2010,17 @@ namespace PocketDb
                 limit ?
             )sql";
 
-            TryTransactionStep(__func__, [&]()
+            SqlTransaction(__func__, [&]()
             {
                 auto& stmt = Sql(sql);
 
-                stmt->Bind(height, address, count);
+                stmt.Bind(height, address, count);
 
-                while (stmt->Step() == SQLITE_ROW)
+                while (stmt.Step() == SQLITE_ROW)
                 {
-                    auto[okHash, hash] = stmt->TryGetColumnString(0);
-                    auto[okTime, time] = stmt->TryGetColumnInt64(1);
-                    auto[okHeight, block] = stmt->TryGetColumnInt(2);
+                    auto[okHash, hash] = stmt.TryGetColumnString(0);
+                    auto[okTime, time] = stmt.TryGetColumnInt64(1);
+                    auto[okHeight, block] = stmt.TryGetColumnInt(2);
                     if (!okHash || !okTime || !okHeight)
                         continue;
 
@@ -2028,9 +2028,9 @@ namespace PocketDb
                     record.pushKV("txid", hash);
                     record.pushKV("time", time);
                     record.pushKV("nblock", block);
-                    if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("nameFrom", value);
-                    if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("nameFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
                     resultData.push_back(record);
                 }
             });
@@ -2076,25 +2076,25 @@ namespace PocketDb
             limit 50
         )sql";
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address);
+            stmt.Bind(address);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                auto[ok0, id] = stmt->TryGetColumnInt64(0);
-                auto[ok1, hash] = stmt->TryGetColumnString(1);
-                auto[ok2, time] = stmt->TryGetColumnString(2);
-                auto[ok3, caption] = stmt->TryGetColumnString(3);
-                auto[ok4, message] = stmt->TryGetColumnString(4);
-                auto[ok5, settings] = stmt->TryGetColumnString(5);
-                auto[ok6, reputation] = stmt->TryGetColumnString(6);
-                auto[ok7, scoreCnt] = stmt->TryGetColumnString(7);
-                auto[ok8, scoreSum] = stmt->TryGetColumnString(8);
+                auto[ok0, id] = stmt.TryGetColumnInt64(0);
+                auto[ok1, hash] = stmt.TryGetColumnString(1);
+                auto[ok2, time] = stmt.TryGetColumnString(2);
+                auto[ok3, caption] = stmt.TryGetColumnString(3);
+                auto[ok4, message] = stmt.TryGetColumnString(4);
+                auto[ok5, settings] = stmt.TryGetColumnString(5);
+                auto[ok6, reputation] = stmt.TryGetColumnString(6);
+                auto[ok7, scoreCnt] = stmt.TryGetColumnString(7);
+                auto[ok8, scoreSum] = stmt.TryGetColumnString(8);
                 
                 if (ok3) record.pushKV("content", HtmlUtils::UrlDecode(caption));
                 else record.pushKV("content", HtmlUtils::UrlDecode(message).substr(0, 100));
@@ -2133,22 +2133,22 @@ namespace PocketDb
               and r.String3 is not null
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(height, address);
+            stmt.Bind(height, address);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("msg", "reshare");
-                if (auto[ok, val] = stmt->TryGetColumnString(0); ok) record.pushKV("txid", val);
-                if (auto[ok, val] = stmt->TryGetColumnString(1); ok) record.pushKV("txidRepost", val);
-                if (auto[ok, val] = stmt->TryGetColumnString(2); ok) record.pushKV("addrFrom", val);
-                if (auto[ok, val] = stmt->TryGetColumnInt64(3); ok) record.pushKV("time", val);
-                if (auto[ok, val] = stmt->TryGetColumnInt(4); ok) record.pushKV("nblock", val);
+                if (auto[ok, val] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", val);
+                if (auto[ok, val] = stmt.TryGetColumnString(1); ok) record.pushKV("txidRepost", val);
+                if (auto[ok, val] = stmt.TryGetColumnString(2); ok) record.pushKV("addrFrom", val);
+                if (auto[ok, val] = stmt.TryGetColumnInt64(3); ok) record.pushKV("time", val);
+                if (auto[ok, val] = stmt.TryGetColumnInt(4); ok) record.pushKV("nblock", val);
 
                 result.push_back(record);
             }
@@ -2180,25 +2180,25 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(height, address, limit);
+            stmt.Bind(height, address, limit);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("addr", address);
                 record.pushKV("msg", "event");
                 record.pushKV("mesType", "upvoteShare");
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(5); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
 
                 result.push_back(record);
             }
@@ -2230,25 +2230,25 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address, height, limit);
+            stmt.Bind(address, height, limit);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("addr", address);
                 record.pushKV("msg", "event");
                 record.pushKV("mesType", "cScore");
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("commentid", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(5); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("commentid", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
 
                 result.push_back(record);
             }
@@ -2276,26 +2276,26 @@ namespace PocketDb
             limit ?
          )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address, height, count);
+            stmt.Bind(address, height, count);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto[okTxHash, txHash] = stmt->TryGetColumnString(0);
+                auto[okTxHash, txHash] = stmt.TryGetColumnString(0);
                 if (!okTxHash) continue;
 
                 UniValue record(UniValue::VOBJ);
                 record.pushKV("txid", txHash);
                 record.pushKV("addr", address);
                 record.pushKV("msg", "transaction");
-                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("amount", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("amount", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
 
-                if (auto[ok, value] = stmt->TryGetColumnInt(4); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt(4); ok)
                 {
                     auto stringType = TransactionHelper::TxStringType((TxType) value);
                     if (!stringType.empty())
@@ -2333,13 +2333,13 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(height, address, count);
+            stmt.Bind(height, address, count);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
@@ -2347,13 +2347,13 @@ namespace PocketDb
                 record.pushKV("msg", "comment");
                 record.pushKV("mesType", "answer");
                 record.pushKV("reason", "answer");
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(2); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("answerid", value);
 
                 result.push_back(record);
             }
@@ -2393,13 +2393,13 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(height, address, excludePosts, count);
+            stmt.Bind(height, address, excludePosts, count);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
@@ -2407,14 +2407,14 @@ namespace PocketDb
                 record.pushKV("msg", "comment");
                 record.pushKV("mesType", "post");
                 record.pushKV("reason", "post");
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(2); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(7); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(7); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
@@ -2454,19 +2454,19 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(height, address, count);
+            stmt.Bind(height, address, count);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("addr", address);
                 record.pushKV("msg", "event");
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                 {
                     switch (value)
                     {
@@ -2476,12 +2476,12 @@ namespace PocketDb
                         default: record.pushKV("mesType", "unknown"); break;
                     }
                 }
-                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("nameFrom", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("avatarFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("nameFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("avatarFrom", value);
 
                 result.push_back(record);
             }
@@ -2519,27 +2519,27 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(height, address, count);
+            stmt.Bind(height, address, count);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("addr", address);
                 record.pushKV("msg", "event");
                 record.pushKV("mesType", "contentBoost");
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(5); ok) record.pushKV("boostAmount", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("nameFrom", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(7); ok) record.pushKV("avatarFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("boostAmount", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("nameFrom", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("avatarFrom", value);
 
                 result.push_back(record);
             }
@@ -2571,15 +2571,15 @@ namespace PocketDb
         )sql";
 
         vector<int64_t> ids;
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(contentTypes, nHeight, links, countOut);
+            stmt.Bind(contentTypes, nHeight, links, countOut);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
         });
@@ -2618,20 +2618,20 @@ namespace PocketDb
               and v.String1 = ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(contentTypes, addresses[0]);
+            stmt.Bind(contentTypes, addresses[0]);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("address", addresses[0]);
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok) record.pushKV("scoreSum", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(1); ok) record.pushKV("scoreCnt", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(2); ok) record.pushKV("countLikers", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok) record.pushKV("scoreSum", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(1); ok) record.pushKV("scoreCnt", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("countLikers", value);
 
                 result.push_back(record);
             }
@@ -2681,15 +2681,15 @@ namespace PocketDb
         )sql";
 
         vector<int64_t> ids;
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(lang, contentTypes, nHeight, nHeight - depth, badReputationLimit, countOut);
+            stmt.Bind(lang, contentTypes, nHeight, nHeight - depth, badReputationLimit, countOut);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     ids.push_back(value);
             }
         });
@@ -2769,71 +2769,71 @@ namespace PocketDb
         // Get posts
         unordered_map<int64_t, UniValue> tmpResult{};
         vector<string> authors;
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(address, ids);
+            stmt.Bind(address, ids);
 
             // ---------------------------
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                auto[okHash, txHash] = stmt->TryGetColumnString(0);
-                auto[okId, txId] = stmt->TryGetColumnInt64(1);
+                auto[okHash, txHash] = stmt.TryGetColumnString(0);
+                auto[okId, txId] = stmt.TryGetColumnInt64(1);
                 record.pushKV("txid", txHash);
                 record.pushKV("id", txId);
 
-                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("edit", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("repost", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("edit", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("repost", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok)
                 {
                     authors.emplace_back(value);
                     record.pushKV("address", value);
                 }
-                if (auto[ok, value] = stmt->TryGetColumnString(5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(6); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = stmt->TryGetColumnString(8); ok) record.pushKV("c", value); // caption
-                if (auto[ok, value] = stmt->TryGetColumnString(9); ok) record.pushKV("m", value); // message
-                if (auto[ok, value] = stmt->TryGetColumnString(10); ok) record.pushKV("u", value); // url
+                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("l", value); // lang
+                if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("c", value); // caption
+                if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("m", value); // message
+                if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("u", value); // url
                 
-                if (auto[ok, value] = stmt->TryGetColumnInt(7); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt(7); ok)
                 {
                     record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
                     if ((TxType)value == CONTENT_DELETE)
                         record.pushKV("deleted", "true");
                 }
 
-                if (auto[ok, value] = stmt->TryGetColumnString(11); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(11); ok)
                 {
                     UniValue t(UniValue::VARR);
                     t.read(value);
                     record.pushKV("t", t);
                 }
 
-                if (auto[ok, value] = stmt->TryGetColumnString(12); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(12); ok)
                 {
                     UniValue ii(UniValue::VARR);
                     ii.read(value);
                     record.pushKV("i", ii);
                 }
 
-                if (auto[ok, value] = stmt->TryGetColumnString(13); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(13); ok)
                 {
                     UniValue s(UniValue::VOBJ);
                     s.read(value);
                     record.pushKV("s", s);
                 }
 
-                if (auto [ok, value] = stmt->TryGetColumnString(14); ok) record.pushKV("scoreCnt", value);
-                if (auto [ok, value] = stmt->TryGetColumnString(15); ok) record.pushKV("scoreSum", value);
-                if (auto [ok, value] = stmt->TryGetColumnInt(16); ok && value > 0) record.pushKV("reposted", value);
-                if (auto [ok, value] = stmt->TryGetColumnInt(17); ok) record.pushKV("comments", value);
+                if (auto [ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("scoreCnt", value);
+                if (auto [ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("scoreSum", value);
+                if (auto [ok, value] = stmt.TryGetColumnInt(16); ok && value > 0) record.pushKV("reposted", value);
+                if (auto [ok, value] = stmt.TryGetColumnInt(17); ok) record.pushKV("comments", value);
 
                 if (!address.empty())
                 {
-                    if (auto [ok, value] = stmt->TryGetColumnString(18); ok)
+                    if (auto [ok, value] = stmt.TryGetColumnString(18); ok)
                         record.pushKV("myVal", value);
                 }
 
@@ -2947,42 +2947,42 @@ namespace PocketDb
 
         vector<int64_t> ids;
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt->Bind(lang);
+            if (!lang.empty()) stmt.Bind(lang);
 
-            stmt->Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
+            stmt.Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
 
             if (topContentId > 0)
-                stmt->Bind(topContentId);
+                stmt.Bind(topContentId);
 
             if (!tags.empty())
             {
-                stmt->Bind(tags);
+                stmt.Bind(tags);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                stmt->Bind(tagsExcluded);
+                stmt.Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(countOut);
+            stmt.Bind(countOut);
 
             // ---------------------------------------------
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
+                auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
                 ids.push_back(contentId);
             }
         });
@@ -3097,42 +3097,42 @@ namespace PocketDb
 
         vector<int64_t> ids;
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt->Bind(lang);
+            if (!lang.empty()) stmt.Bind(lang);
 
-            stmt->Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
+            stmt.Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
 
             // if (topContentId > 0)
-            //     stmt->TryBindStatementInt64(i++, topContentId);
+            //     stmt.TryBindStatementInt64(i++, topContentId);
 
             if (!tags.empty())
             {
-                stmt->Bind(tags);
+                stmt.Bind(tags);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                stmt->Bind(tagsExcluded);
+                stmt.Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(countOut);
+            stmt.Bind(countOut);
 
             // ---------------------------------------------
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
+                auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
                 ids.push_back(contentId);
             }
         });
@@ -3277,45 +3277,45 @@ namespace PocketDb
         // ---------------------------------------------
 
         vector<int64_t> ids;
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt->Bind(lang);
+            if (!lang.empty()) stmt.Bind(lang);
 
-            stmt->Bind(contentTypes, topHeight, addressFeed);
+            stmt.Bind(contentTypes, topHeight, addressFeed);
 
             if (topContentId > 0)
-                stmt->Bind(topContentId);
+                stmt.Bind(topContentId);
 
             if (!tags.empty())
             {
-                stmt->Bind(tags);
+                stmt.Bind(tags);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                stmt->Bind(tagsExcluded);
+                stmt.Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
             if (!_keyword.empty())
-                stmt->Bind(_keyword);
+                stmt.Bind(_keyword);
 
-            stmt->Bind(countOut, pageNumber * countOut);
+            stmt.Bind(countOut, pageNumber * countOut);
 
             // ---------------------------------------------
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
         });
@@ -3416,39 +3416,39 @@ namespace PocketDb
         // ---------------------------------------------------
 
         vector<int64_t> ids;
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt->Bind(lang);
+            if (!lang.empty()) stmt.Bind(lang);
 
-            stmt->Bind(contentTypes, addressFeed, addresses_extended, topHeight);
+            stmt.Bind(contentTypes, addressFeed, addresses_extended, topHeight);
 
             if (!tags.empty())
             {
-                stmt->Bind(tags);
+                stmt.Bind(tags);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                stmt->Bind(tagsExcluded);
+                stmt.Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(countOut);
+            stmt.Bind(countOut);
 
             // ---------------------------------------------
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
         });
@@ -3547,43 +3547,43 @@ namespace PocketDb
 
         vector<int64_t> ids;
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             int i = 1;
             auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt->Bind(lang);
+            if (!lang.empty()) stmt.Bind(lang);
 
-            stmt->Bind(contentTypes, topHeight, badReputationLimit);
+            stmt.Bind(contentTypes, topHeight, badReputationLimit);
 
             if (topContentId > 0)
-                stmt->Bind(topContentId);
+                stmt.Bind(topContentId);
 
             if (!tags.empty())
             {
-                stmt->Bind(tags);
+                stmt.Bind(tags);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, adrsExcluded);
             
             if (!tagsExcluded.empty())
             {
-                stmt->Bind(tagsExcluded);
+                stmt.Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
                     
-            stmt->Bind(countOut);
+            stmt.Bind(countOut);
 
             // ---------------------------------------------
             
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto[ok0, contentId] = stmt->TryGetColumnInt64(0);
+                auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
                 ids.push_back(contentId);
             }
         });
@@ -3694,44 +3694,44 @@ namespace PocketDb
         vector<HierarchicalRecord> postsRanks;
         double dekay = (contentTypes.size() == 1 && contentTypes[0] == CONTENT_VIDEO) ? dekayVideo : dekayContent;
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(contentTypes, durationBlocksForPrevPosts, cntPrevPosts);
+            stmt.Bind(contentTypes, durationBlocksForPrevPosts, cntPrevPosts);
             
-            if (!lang.empty()) stmt->Bind(lang);
+            if (!lang.empty()) stmt.Bind(lang);
 
-            stmt->Bind(contentTypes, topHeight, topHeight - cntBlocksForResult, badReputationLimit);
+            stmt.Bind(contentTypes, topHeight, topHeight - cntBlocksForResult, badReputationLimit);
 
             if (!tags.empty())
             {
-                stmt->Bind(tags);
+                stmt.Bind(tags);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, adrsExcluded);
             
             if (!tagsExcluded.empty())
             {
-                stmt->Bind(tagsExcluded);
+                stmt.Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
             // ---------------------------------------------
             
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 HierarchicalRecord record{};
 
                 int64_t contentId;
                 int contentRating, accountRating, contentOrigHeight, contentScores;
 
-                stmt->Collect(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
+                stmt.Collect(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
 
                 record.Id = contentId;
                 record.LAST5 = 1.0 * contentScores;
@@ -3907,42 +3907,42 @@ namespace PocketDb
 
         vector<int64_t> ids;
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             int i = 1;
             auto& stmt = Sql(sql);
 
-            stmt->Bind(contentTypes);
+            stmt.Bind(contentTypes);
 
-            if (!lang.empty()) stmt->Bind(lang);
+            if (!lang.empty()) stmt.Bind(lang);
 
-            stmt->Bind(topHeight, topHeight - cntBlocksForResult, badReputationLimit);
+            stmt.Bind(topHeight, topHeight - cntBlocksForResult, badReputationLimit);
 
             if (!tags.empty())
             {
-                stmt->Bind(tags);
+                stmt.Bind(tags);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
-            stmt->Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, adrsExcluded);
 
             if (!tagsExcluded.empty())
             {
-                stmt->Bind(tagsExcluded);
+                stmt.Bind(tagsExcluded);
 
                 if (!lang.empty())
-                    stmt->Bind(lang);
+                    stmt.Bind(lang);
             }
 
             // ---------------------------------------------
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 int64_t contentId, sumBoost;
                 std::string contentHash;
-                stmt->Collect(contentId, contentHash, sumBoost);
+                stmt.Collect(contentId, contentHash, sumBoost);
 
                 UniValue boost(UniValue::VOBJ);
                 boost.pushKV("id", contentId);
@@ -3992,15 +3992,15 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(lang, height, count * 100, count);
+            stmt.Bind(lang, height, count * 100, count);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok) result.push_back(value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) result.push_back(value);
             }
         });
 
@@ -4114,31 +4114,31 @@ namespace PocketDb
             cross join Payload p on p.TxHash = u.Hash
         )sql";
 
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(postTxHash, postTxHash, postTxHash);
+            stmt.Bind(postTxHash, postTxHash, postTxHash);
 
             // ---------------------------------------------
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = stmt->TryGetColumnString(4); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt->TryGetColumnInt(5); ok && value > 0) {
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = stmt.TryGetColumnInt(5); ok && value > 0) {
                     record.pushKV("value", value);
                     resultScores.push_back(record);
                 }
-                if (auto[ok, value] = stmt->TryGetColumnInt(6); ok && value > 0) {
+                if (auto[ok, value] = stmt.TryGetColumnInt(6); ok && value > 0) {
                     record.pushKV("value", value);
                     resultBoosts.push_back(record);
                 }
-                if (auto[ok, value] = stmt->TryGetColumnInt(7); ok && value > 0) {
+                if (auto[ok, value] = stmt.TryGetColumnInt(7); ok && value > 0) {
                     record.pushKV("value", value);
                     resultDonations.push_back(record);
                 }
@@ -4167,13 +4167,13 @@ namespace PocketDb
     template <class QueryParams>
     static inline auto _constructSelectsBasedOnFilters(
                 const std::set<ShortTxType>& filters,
-                const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>>& selects,
+                const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>>& selects,
                 const std::string& footer, const std::string& separator = "union")
     {
         auto predicate = _choosePredicate(filters);
 
         // Binds that should be performed to constructed query
-        std::vector<std::function<void(std::shared_ptr<Stmt>&, QueryParams const&)>> binds;
+        std::vector<std::function<void(Stmt&, QueryParams const&)>> binds;
         // Query elemets that will be used to construct full query
         std::vector<std::string> queryElems;
         for (const auto& select: selects) {
@@ -4210,107 +4210,107 @@ namespace PocketDb
             const int64_t& blockNumMax;
         } queryParams{address, heightMax, heightMin, blockNumMax};
 
-        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>> selects = {
+        static const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
         {
             ShortTxType::Answer, { R"sql(
-            -- My answers to other's comments
-            select
-                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                a.Hash,
-                a.Type,
-                null,
-                a.Height as Height,
-                a.BlockNum as BlockNum,
-                a.Time,
-                a.String2,
-                a.String3,
-                null,
-                null,
-                null,
-                pa.String1,
-                a.String4,
-                a.String5,
-                null,
-                null,
-                null,
-                null,
-                null,
-                c.Hash,
-                c.Type,
-                c.String1,
-                c.Height,
-                c.BlockNum,
-                c.Time,
-                c.String2,
-                null,
-                null,
-                (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'Number', Number,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs i
-                    where i.SpentTxHash = c.Hash
-                ),
-                (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs o
-                    where o.TxHash = c.Hash
-                        and o.TxHeight = c.Height
-                    order by o.Number
-                ),
-                pc.String1,
-                c.String4,
-                c.String5,
-                null, -- Badge
-                pca.String2,
-                pca.String3,
-                ifnull(rca.Value,0),
-                null
+                -- My answers to other's comments
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
+                    a.Hash,
+                    a.Type,
+                    null,
+                    a.Height as Height,
+                    a.BlockNum as BlockNum,
+                    a.Time,
+                    a.String2,
+                    a.String3,
+                    null,
+                    null,
+                    null,
+                    pa.String1,
+                    a.String4,
+                    a.String5,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    c.Hash,
+                    c.Type,
+                    c.String1,
+                    c.Height,
+                    c.BlockNum,
+                    c.Time,
+                    c.String2,
+                    null,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = c.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs o
+                        where o.TxHash = c.Hash
+                            and o.TxHeight = c.Height
+                        order by o.Number
+                    ),
+                    pc.String1,
+                    c.String4,
+                    c.String5,
+                    null, -- Badge
+                    pca.String2,
+                    pca.String3,
+                    ifnull(rca.Value,0),
+                    null
 
-            from Transactions c indexed by Transactions_Type_Last_String2_Height -- My comments
+                from Transactions c indexed by Transactions_Type_Last_String2_Height -- My comments
 
-            left join Payload pc
-                on pc.TxHash = c.Hash
+                left join Payload pc
+                    on pc.TxHash = c.Hash
 
-            join Transactions a indexed by Transactions_Type_String1_Height_Time_Int1 -- Other answers
-                on a.Type in (204, 205, 206)
-                and a.Height > ?
-                and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
-                and a.String5 = c.String2
-                and a.String1 != c.String1
-                and a.String1 = ?
+                join Transactions a indexed by Transactions_Type_String1_Height_Time_Int1 -- Other answers
+                    on a.Type in (204, 205, 206)
+                    and a.Height > ?
+                    and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
+                    and a.String5 = c.String2
+                    and a.String1 != c.String1
+                    and a.String1 = ?
 
-            left join Payload pa
-                on pa.TxHash = a.Hash
+                left join Payload pa
+                    on pa.TxHash = a.Hash
 
-            left join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
-                on ca.Type = 100
-                and ca.Last = 1
-                and ca.String1 = c.String1
-                and ca.Height > 0
+                left join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
+                    on ca.Type = 100
+                    and ca.Last = 1
+                    and ca.String1 = c.String1
+                    and ca.Height > 0
 
-            left join Payload pca
-                on pca.TxHash = ca.Hash
+                left join Payload pca
+                    on pca.TxHash = ca.Hash
 
-            left join Ratings rca indexed by Ratings_Type_Id_Last_Height
-                on rca.Type = 0
-                and rca.Id = ca.Id
-                and rca.Last = 1
+                left join Ratings rca indexed by Ratings_Type_Id_Last_Height
+                    on rca.Type = 0
+                    and rca.Id = ca.Id
+                    and rca.Last = 1
 
-            where c.Type in (204, 205)
-              and c.Last = 1
-              and c.Height > 0
+                where c.Type in (204, 205)
+                and c.Last = 1
+                and c.Height > 0
 
-        )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            )sql",
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -4322,109 +4322,109 @@ namespace PocketDb
 
         {
             ShortTxType::Comment, { R"sql(
-            -- Comments for my content
-            select
-                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
-                c.Hash,
-                c.Type,
-                null,
-                c.Height as Height,
-                c.BlockNum as BlockNum,
-                c.Time,
-                c.String2,
-                c.String3,
-                null,
-                (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'Number', Number,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs i
-                    where i.SpentTxHash = c.Hash
-                ),
-                (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs o
-                    where o.TxHash = c.Hash
-                        and o.TxHeight = c.Height
-                    order by o.Number
-                ),
-                pc.String1,
-                c.String4,
-                c.String5,
-                null,
-                null,
-                null,
-                null,
-                null,
-                p.Hash,
-                p.Type,
-                p.String1,
-                p.Height,
-                p.BlockNum,
-                p.Time,
-                p.String2,
-                null,
-                null,
-                null,
-                null,
-                pp.String2,
-                null,
-                null,
-                null,
-                pap.String2,
-                pap.String3,
-                ifnull(rap.Value, 0),
-                null
+                -- Comments for my content
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
+                    c.Hash,
+                    c.Type,
+                    null,
+                    c.Height as Height,
+                    c.BlockNum as BlockNum,
+                    c.Time,
+                    c.String2,
+                    c.String3,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = c.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs o
+                        where o.TxHash = c.Hash
+                            and o.TxHeight = c.Height
+                        order by o.Number
+                    ),
+                    pc.String1,
+                    c.String4,
+                    c.String5,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    p.Hash,
+                    p.Type,
+                    p.String1,
+                    p.Height,
+                    p.BlockNum,
+                    p.Time,
+                    p.String2,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pp.String2,
+                    null,
+                    null,
+                    null,
+                    pap.String2,
+                    pap.String3,
+                    ifnull(rap.Value, 0),
+                    null
 
-            from Transactions p indexed by Transactions_Type_Last_String2_Height
+                from Transactions p indexed by Transactions_Type_Last_String2_Height
 
-            join Transactions c indexed by Transactions_Type_String1_Height_Time_Int1
-                on c.Type in (204, 205, 206)
-                and c.String3 = p.String2
-                and c.String1 != p.String1
-                and c.String4 is null
-                and c.String5 is null
-                and c.Height > ?
-                and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
-                and c.String1 = ?
+                join Transactions c indexed by Transactions_Type_String1_Height_Time_Int1
+                    on c.Type in (204, 205, 206)
+                    and c.String3 = p.String2
+                    and c.String1 != p.String1
+                    and c.String4 is null
+                    and c.String5 is null
+                    and c.Height > ?
+                    and (c.Height < ? or (c.Height = ? and c.BlockNum < ?))
+                    and c.String1 = ?
 
-            left join TxOutputs oc indexed by TxOutputs_TxHash_AddressHash_Value
-                on oc.TxHash = c.Hash and oc.AddressHash = p.String1 and oc.AddressHash != c.String1 -- TODO: c.Hash or c.String2 or clast.Hash???
+                left join TxOutputs oc indexed by TxOutputs_TxHash_AddressHash_Value
+                    on oc.TxHash = c.Hash and oc.AddressHash = p.String1 and oc.AddressHash != c.String1 -- TODO: c.Hash or c.String2 or clast.Hash???
 
-            left join Payload pc
-                on pc.TxHash = c.Hash
+                left join Payload pc
+                    on pc.TxHash = c.Hash
 
-            left join Payload pp
-                on pp.TxHash = p.Hash
+                left join Payload pp
+                    on pp.TxHash = p.Hash
 
-            left join Transactions ap indexed by Transactions_Type_Last_String1_Height_Id -- accounts of commentators
-                on ap.String1 = p.String1
-                and ap.Last = 1
-                and ap.Type = 100
-                and ap.Height > 0
+                left join Transactions ap indexed by Transactions_Type_Last_String1_Height_Id -- accounts of commentators
+                    on ap.String1 = p.String1
+                    and ap.Last = 1
+                    and ap.Type = 100
+                    and ap.Height > 0
 
-            left join Payload pap
-                on pap.TxHash = ap.Hash
+                left join Payload pap
+                    on pap.TxHash = ap.Hash
 
-            left join Ratings rap indexed by Ratings_Type_Id_Last_Height
-                on rap.Type = 0
-                and rap.Id = ap.Id
-                and rap.Last = 1
+                left join Ratings rap indexed by Ratings_Type_Id_Last_Height
+                    on rap.Type = 0
+                    and rap.Id = ap.Id
+                    and rap.Last = 1
 
-            where p.Type in (200,201,202,209,210)
-                and p.Last = 1
-                and p.Height > 0
+                where p.Type in (200,201,202,209,210)
+                    and p.Last = 1
+                    and p.Height > 0
 
-        )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            )sql",
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -4436,72 +4436,72 @@ namespace PocketDb
 
         {
             ShortTxType::Subscriber, { R"sql(
-            -- Subscribers
-            select
-                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
-                subs.Hash,
-                subs.Type,
-                null,
-                subs.Height as Height,
-                subs.BlockNum as BlockNum,
-                subs.Time,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                u.Hash,
-                u.Type,
-                u.String1,
-                u.Height,
-                u.BlockNum,
-                u.Time,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                pu.String2,
-                pu.String3,
-                ifnull(ru.Value,0),
-                null
+                -- Subscribers
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
+                    subs.Hash,
+                    subs.Type,
+                    null,
+                    subs.Height as Height,
+                    subs.BlockNum as BlockNum,
+                    subs.Time,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    u.Hash,
+                    u.Type,
+                    u.String1,
+                    u.Height,
+                    u.BlockNum,
+                    u.Time,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pu.String2,
+                    pu.String3,
+                    ifnull(ru.Value,0),
+                    null
 
-            from Transactions subs indexed by Transactions_Type_String1_Height_Time_Int1
+                from Transactions subs indexed by Transactions_Type_String1_Height_Time_Int1
 
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type in (100)
-                and u.Last = 1
-                and u.String1 = subs.String2
-                and u.Height > 0
+                join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    on u.Type in (100)
+                    and u.Last = 1
+                    and u.String1 = subs.String2
+                    and u.Height > 0
 
-            left join Payload pu
-                on pu.TxHash = u.Hash
+                left join Payload pu
+                    on pu.TxHash = u.Hash
 
-            left join Ratings ru indexed by Ratings_Type_Id_Last_Height
-                on ru.Type = 0
-                and ru.Id = u.Id
-                and ru.Last = 1
+                left join Ratings ru indexed by Ratings_Type_Id_Last_Height
+                    on ru.Type = 0
+                    and ru.Id = u.Id
+                    and ru.Last = 1
 
-            where subs.Type in (302, 303, 304)
-                and subs.String1 = ?
-                and subs.Height > ?
-                and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
+                where subs.Type in (302, 303, 304)
+                    and subs.String1 = ?
+                    and subs.Height > ?
+                    and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
 
-        )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            )sql",
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.address,
                     queryParams.heightMin,
                     queryParams.heightMax,
@@ -4513,101 +4513,101 @@ namespace PocketDb
 
         {
             ShortTxType::CommentScore, { R"sql(
-            -- Comment scores
-            select
-                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
-                s.Hash,
-                s.Type,
-                null,
-                s.Height as Height,
-                s.BlockNum as BlockNum,
-                s.Time,
-                null,
-                null,
-                s.Int1,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                c.Hash,
-                c.Type,
-                c.String1,
-                c.Height,
-                c.BlockNum,
-                c.Time,
-                c.String2,
-                c.String3,
-                null,
-                (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'Number', Number,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs i
-                    where i.SpentTxHash = c.Hash
-                ),
-                (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs o
-                    where o.TxHash = c.Hash
-                        and o.TxHeight = c.Height
-                    order by o.Number
-                ),
-                pc.String1,
-                c.String4,
-                c.String5,
-                null,
-                pac.String2,
-                pac.String3,
-                ifnull(rac.Value,0),
-                null
+                -- Comment scores
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
+                    s.Hash,
+                    s.Type,
+                    null,
+                    s.Height as Height,
+                    s.BlockNum as BlockNum,
+                    s.Time,
+                    null,
+                    null,
+                    s.Int1,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    c.Hash,
+                    c.Type,
+                    c.String1,
+                    c.Height,
+                    c.BlockNum,
+                    c.Time,
+                    c.String2,
+                    c.String3,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = c.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs o
+                        where o.TxHash = c.Hash
+                            and o.TxHeight = c.Height
+                        order by o.Number
+                    ),
+                    pc.String1,
+                    c.String4,
+                    c.String5,
+                    null,
+                    pac.String2,
+                    pac.String3,
+                    ifnull(rac.Value,0),
+                    null
 
-            from Transactions c indexed by Transactions_Type_Last_String2_Height
+                from Transactions c indexed by Transactions_Type_Last_String2_Height
 
-            left join Payload pc
-                on pc.TxHash = c.Hash
+                left join Payload pc
+                    on pc.TxHash = c.Hash
 
-            join Transactions s indexed by Transactions_Type_Last_String1_Height_Id
-                on s.Type = 301
-                and s.Last = 0
-                and s.String2 = c.String2
-                and s.Height > ?
-                and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
-                and s.String1 = ?
+                join Transactions s indexed by Transactions_Type_Last_String1_Height_Id
+                    on s.Type = 301
+                    and s.Last = 0
+                    and s.String2 = c.String2
+                    and s.Height > ?
+                    and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
+                    and s.String1 = ?
 
-            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                on ac.Type = 100
-                and ac.Last = 1
-                and ac.String1 = c.String1
-                and ac.Height > 0
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                    on ac.Type = 100
+                    and ac.Last = 1
+                    and ac.String1 = c.String1
+                    and ac.Height > 0
 
-            left join Payload pac
-                on pac.TxHash = ac.Hash
+                left join Payload pac
+                    on pac.TxHash = ac.Hash
 
-            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                on rac.Type = 0
-                and rac.Id = ac.Id
-                and rac.Last = 1
+                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                    on rac.Type = 0
+                    and rac.Id = ac.Id
+                    and rac.Last = 1
 
-            where c.Type in (204,205)
-                and c.Last = 1
-                and c.Height > 0
+                where c.Type in (204,205)
+                    and c.Last = 1
+                    and c.Height > 0
 
-        )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            )sql",
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -4619,82 +4619,82 @@ namespace PocketDb
 
         {
             ShortTxType::ContentScore, { R"sql(
-            -- Content scores
-            select
-                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
-                s.Hash,
-                s.Type,
-                null,
-                s.Height as Height,
-                s.BlockNum as BlockNum,
-                s.Time,
-                null,
-                null,
-                s.Int1,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                c.Hash,
-                c.Type,
-                c.String1,
-                c.Height,
-                c.BlockNum,
-                c.Time,
-                c.String2,
-                null,
-                null,
-                null,
-                null,
-                pc.String2,
-                null,
-                null,
-                null,
-                pac.String2,
-                pac.String3,
-                ifnull(rac.Value,0),
-                null
+                -- Content scores
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
+                    s.Hash,
+                    s.Type,
+                    null,
+                    s.Height as Height,
+                    s.BlockNum as BlockNum,
+                    s.Time,
+                    null,
+                    null,
+                    s.Int1,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    c.Hash,
+                    c.Type,
+                    c.String1,
+                    c.Height,
+                    c.BlockNum,
+                    c.Time,
+                    c.String2,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pc.String2,
+                    null,
+                    null,
+                    null,
+                    pac.String2,
+                    pac.String3,
+                    ifnull(rac.Value,0),
+                    null
 
-            from Transactions c indexed by Transactions_Type_Last_String2_Height
+                from Transactions c indexed by Transactions_Type_Last_String2_Height
 
-            left join Payload pc
-                on pc.TxHash = c.Hash
+                left join Payload pc
+                    on pc.TxHash = c.Hash
 
-            join Transactions s indexed by Transactions_Type_Last_String1_Height_Id
-                on s.Type = 300
-                and s.Last = 0
-                and s.String2 = c.String2
-                and s.Height > ?
-                and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
-                and s.String1 = ?
+                join Transactions s indexed by Transactions_Type_Last_String1_Height_Id
+                    on s.Type = 300
+                    and s.Last = 0
+                    and s.String2 = c.String2
+                    and s.Height > ?
+                    and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
+                    and s.String1 = ?
 
-            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                on ac.Type = 100
-                and ac.Last = 1
-                and ac.String1 = c.String1
-                and ac.Height > 0
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                    on ac.Type = 100
+                    and ac.Last = 1
+                    and ac.String1 = c.String1
+                    and ac.Height > 0
 
-            left join Payload pac
-                on pac.TxHash = ac.Hash
+                left join Payload pac
+                    on pac.TxHash = ac.Hash
 
-            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                on rac.Type = 0
-                and rac.Id = ac.Id
-                and rac.Last = 1
+                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                    on rac.Type = 0
+                    and rac.Id = ac.Id
+                    and rac.Last = 1
 
-            where c.Type in (200,201,202,209,210)
-                and c.Last = 1
-                and c.Height > 0
+                where c.Type in (200,201,202,209,210)
+                    and c.Last = 1
+                    and c.Height > 0
 
-        )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            )sql",
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -4706,101 +4706,101 @@ namespace PocketDb
 
         {
             ShortTxType::Boost, { R"sql(
-            -- Boosts for my content
-            select
-                (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
-                tBoost.Hash,
-                tboost.Type,
-                null,
-                tBoost.Height as Height,
-                tBoost.BlockNum as BlockNum,
-                tBoost.Time,
-                null,
-                null,
-                null,
-                (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'Number', Number,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs i
-                    where i.SpentTxHash = tBoost.Hash
-                ),
-                (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs o
-                    where o.TxHash = tBoost.Hash
-                        and o.TxHeight = tBoost.Height
-                    order by o.Number
-                ),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                tContent.Hash,
-                tContent.Type,
-                tContent.String1,
-                tContent.Height,
-                tContent.BlockNum,
-                tContent.Time,
-                tContent.String2,
-                null,
-                null,
-                null,
-                null,
-                pContent.String2,
-                null,
-                null,
-                null,
-                pac.String2,
-                pac.String3,
-                ifnull(rac.Value,0),
-                null
+                -- Boosts for my content
+                select
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
+                    tBoost.Hash,
+                    tboost.Type,
+                    null,
+                    tBoost.Height as Height,
+                    tBoost.BlockNum as BlockNum,
+                    tBoost.Time,
+                    null,
+                    null,
+                    null,
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'Number', Number,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs i
+                        where i.SpentTxHash = tBoost.Hash
+                    ),
+                    (
+                        select json_group_array(json_object(
+                                'Value', Value,
+                                'AddressHash', AddressHash,
+                                'ScriptPubKey', ScriptPubKey
+                                ))
+                        from TxOutputs o
+                        where o.TxHash = tBoost.Hash
+                            and o.TxHeight = tBoost.Height
+                        order by o.Number
+                    ),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    tContent.Hash,
+                    tContent.Type,
+                    tContent.String1,
+                    tContent.Height,
+                    tContent.BlockNum,
+                    tContent.Time,
+                    tContent.String2,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pContent.String2,
+                    null,
+                    null,
+                    null,
+                    pac.String2,
+                    pac.String3,
+                    ifnull(rac.Value,0),
+                    null
 
-            from Transactions tBoost indexed by Transactions_Type_Last_String1_Height_Id
+                from Transactions tBoost indexed by Transactions_Type_Last_String1_Height_Id
 
-            join Transactions tContent indexed by Transactions_Type_Last_String2_Height
-                on tContent.Type in (200,201,202,209,210)
-                and tContent.Last in (0,1)
-                and tContent.Height > 0
-                and tContent.String2 = tBoost.String2
+                join Transactions tContent indexed by Transactions_Type_Last_String2_Height
+                    on tContent.Type in (200,201,202,209,210)
+                    and tContent.Last in (0,1)
+                    and tContent.Height > 0
+                    and tContent.String2 = tBoost.String2
 
-            left join Payload pContent
-                on pContent.TxHash = tContent.Hash
-            
-            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                on ac.String1 = tContent.String1
-                and ac.Type = 100
-                and ac.Last = 1
-                and ac.Height > 0
+                left join Payload pContent
+                    on pContent.TxHash = tContent.Hash
+                
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                    on ac.String1 = tContent.String1
+                    and ac.Type = 100
+                    and ac.Last = 1
+                    and ac.Height > 0
 
-            left join Payload pac
-                on pac.TxHash = ac.Hash
+                left join Payload pac
+                    on pac.TxHash = ac.Hash
 
-            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                on rac.Type = 0
-                and rac.Id = ac.Id
-                and rac.Last = 1
+                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                    on rac.Type = 0
+                    and rac.Id = ac.Id
+                    and rac.Last = 1
 
-            where tBoost.Type in (208)
-                and tBoost.Last in (0,1)
-                and tBoost.String1 = ?
-                and tBoost.Height > ?
-                and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
+                where tBoost.Type in (208)
+                    and tBoost.Last in (0,1)
+                    and tBoost.String1 = ?
+                    and tBoost.Height > ?
+                    and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
 
-        )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            )sql",
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.address,
                     queryParams.heightMin,
                     queryParams.heightMax,
@@ -4812,97 +4812,97 @@ namespace PocketDb
 
         {
             ShortTxType::Blocking, { R"sql(
-            -- My blockings and unblockings
-            select
-                ('blocking')TP,
-                b.Hash,
-                b.Type,
-                ac.String1,
-                b.Height as Height,
-                b.BlockNum as BlockNum,
-                b.Time,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                pac.String2,
-                pac.String3,
-                ifnull(rac.Value,0),
-                (
-                    select json_group_array(
-                        json_object(
-                            'address', mac.String1,
-                            'account', json_object(
-                                'name', pmac.String2,
-                                'avatar', pmac.String3,
-                                'reputation', ifnull(rmac.Value,0)
+                -- My blockings and unblockings
+                select
+                    ('blocking')TP,
+                    b.Hash,
+                    b.Type,
+                    ac.String1,
+                    b.Height as Height,
+                    b.BlockNum as BlockNum,
+                    b.Time,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pac.String2,
+                    pac.String3,
+                    ifnull(rac.Value,0),
+                    (
+                        select json_group_array(
+                            json_object(
+                                'address', mac.String1,
+                                'account', json_object(
+                                    'name', pmac.String2,
+                                    'avatar', pmac.String3,
+                                    'reputation', ifnull(rmac.Value,0)
+                                )
                             )
                         )
-                    )
-                    from Transactions mac indexed by Transactions_Type_Last_String1_Height_Id
+                        from Transactions mac indexed by Transactions_Type_Last_String1_Height_Id
 
-                    left join Payload pmac
-                        on pmac.TxHash = mac.Hash
+                        left join Payload pmac
+                            on pmac.TxHash = mac.Hash
 
-                    left join Ratings rmac indexed by Ratings_Type_Id_Last_Height
-                        on rmac.Type = 0
-                        and rmac.Id = mac.Id
-                        and rmac.Last = 1
+                        left join Ratings rmac indexed by Ratings_Type_Id_Last_Height
+                            on rmac.Type = 0
+                            and rmac.Id = mac.Id
+                            and rmac.Last = 1
 
-                    where mac.String1 in (select value from json_each(b.String3))
-                        and mac.Type = 100
-                        and mac.Last = 1
-                        and mac.Height > 0
-                ),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
+                        where mac.String1 in (select value from json_each(b.String3))
+                            and mac.Type = 100
+                            and mac.Last = 1
+                            and mac.Height > 0
+                    ),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
 
-            from Transactions b indexed by Transactions_Type_String1_Height_Time_Int1
+                from Transactions b indexed by Transactions_Type_String1_Height_Time_Int1
 
-            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                on ac.String1 = b.String2
-                and ac.Type = 100
-                and ac.Last = 1
-                and ac.Height > 0
+                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
+                    on ac.String1 = b.String2
+                    and ac.Type = 100
+                    and ac.Last = 1
+                    and ac.Height > 0
 
-            left join Payload pac
-                on pac.TxHash = ac.Hash
+                left join Payload pac
+                    on pac.TxHash = ac.Hash
 
-            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                on rac.Type = 0
-                and rac.Id = ac.Id
-                and rac.Last = 1
+                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
+                    on rac.Type = 0
+                    and rac.Id = ac.Id
+                    and rac.Last = 1
 
-            where b.Type in (305,306)
-                and b.String1 = ?
-                and b.Height > ?
-                and (b.Height < ? or (b.Height = ? and b.BlockNum < ?))
+                where b.Type in (305,306)
+                    and b.String1 = ?
+                    and b.Height > ?
+                    and (b.Height < ? or (b.Height = ? and b.BlockNum < ?))
 
-        )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            )sql",
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.address,
                     queryParams.heightMin,
                     queryParams.heightMax,
@@ -4926,7 +4926,7 @@ namespace PocketDb
         auto& binds = elem2;
 
         EventsReconstructor reconstructor;
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
@@ -4934,9 +4934,9 @@ namespace PocketDb
                 bind(stmt, queryParams);
             }
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                reconstructor.FeedRow(*stmt);
+                reconstructor.FeedRow(stmt);
             }
         });
 
@@ -4953,11 +4953,11 @@ namespace PocketDb
         // Static because it will not be changed for entire node run
 
         static const auto heightBinder =
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams){
-                stmt->Bind(queryParams.height);
+            [](Stmt& stmt, QueryParams const& queryParams){
+                stmt.Bind(queryParams.height);
             };
 
-        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>> selects = {
+        static const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
         {
             ShortTxType::Money, { R"sql(
                 -- Incoming money
@@ -5846,14 +5846,14 @@ namespace PocketDb
         for(const auto& select: selects) {
             if (predicate(select.first)) {
                 const auto& selectData = select.second;
-                TryTransactionStep(__func__, [&]()
+                SqlTransaction(__func__, [&]()
                 {
                     auto& stmt = Sql(selectData.query);
 
                     selectData.binding(stmt, queryParams);
 
-                    while (stmt->Step() == SQLITE_ROW)
-                        reconstructor.FeedRow(*stmt);
+                    while (stmt.Step() == SQLITE_ROW)
+                        reconstructor.FeedRow(stmt);
                 });
             }
         }
@@ -5872,7 +5872,7 @@ namespace PocketDb
             const int64_t& blockNumMax;
         } queryParams {address, heightMax, heightMin, blockNumMax};
 
-        static const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>> selects = {
+        static const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
         {
             ShortTxType::Money, { R"sql(
                 -- Incoming money
@@ -5964,8 +5964,8 @@ namespace PocketDb
                     and o.TxHeight > ?
                     and o.TxHeight <= ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -6043,8 +6043,8 @@ namespace PocketDb
                     and (t.Height < ? or (t.Height = ? and t.BlockNum < ?))
                     and t.ROWID = (select min(tt.ROWID) from Transactions tt where tt.Id = t.Id)
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.address,
                     queryParams.heightMin,
                     queryParams.heightMax,
@@ -6139,8 +6139,8 @@ namespace PocketDb
                     and c.String1 = ?
                     and c.Height > 0
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -6256,8 +6256,8 @@ namespace PocketDb
                     and p.Height > 0
                     and p.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -6333,8 +6333,8 @@ namespace PocketDb
                     and subs.Height > ?
                     and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.address,
                     queryParams.heightMin,
                     queryParams.heightMax,
@@ -6424,8 +6424,8 @@ namespace PocketDb
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -6515,8 +6515,8 @@ namespace PocketDb
                     and c.Height > 0
                     and c.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -6607,8 +6607,8 @@ namespace PocketDb
                     and subs.Height > 0
                     and subs.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -6712,8 +6712,8 @@ namespace PocketDb
                     and tBoost.Height > ?
                     and (tBoost.Height < ? or (tBoost.Height = ? and tBoost.BlockNum < ?))
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.address,
                     queryParams.heightMin,
                     queryParams.heightMax,
@@ -6807,8 +6807,8 @@ namespace PocketDb
                     and p.Height > 0
                     and p.String1 = ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -6832,7 +6832,7 @@ namespace PocketDb
         auto& binds = elem2;
 
         EventsReconstructor reconstructor;
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
@@ -6840,9 +6840,9 @@ namespace PocketDb
                 bind(stmt, queryParams);
             }
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                reconstructor.FeedRow(*stmt);
+                reconstructor.FeedRow(stmt);
             }
         });
         return reconstructor.GetResult();
@@ -6858,7 +6858,7 @@ namespace PocketDb
             const std::set<std::string>& addresses;
         } queryParams {heightMax, heightMin, addresses};
 
-        const std::map<ShortTxType, ShortFormSqlEntry<std::shared_ptr<Stmt>&, QueryParams>> selects = {
+        const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
         {
             ShortTxType::Referal, { R"sql(
                 -- referals
@@ -6874,8 +6874,8 @@ namespace PocketDb
                     and t.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                     and t.ROWID = (select min(tt.ROWID) from Transactions tt indexed by Transactions_Id where tt.Id = t.Id)
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(queryParams.heightMin, queryParams.heightMax, queryParams.addresses);
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(queryParams.heightMin, queryParams.heightMax, queryParams.addresses);
             }
         }},
 
@@ -6902,8 +6902,8 @@ namespace PocketDb
                     and c.String5 is null
                     and c.Height between ? and ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
             }
         }},
 
@@ -6922,8 +6922,8 @@ namespace PocketDb
                     and subs.String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(queryParams.heightMin, queryParams.heightMax, queryParams.addresses);
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(queryParams.heightMin, queryParams.heightMax, queryParams.addresses);
             }
         }},
 
@@ -6947,8 +6947,8 @@ namespace PocketDb
                     and s.Last = 0
                     and s.Height between ? and ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
             }
         }},
 
@@ -6972,8 +6972,8 @@ namespace PocketDb
                     and s.Last = 0
                     and s.Height between ? and ?
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
             }
         }},
 
@@ -7000,8 +7000,8 @@ namespace PocketDb
                     and r.String3 is not null
 
         )sql",
-            [](std::shared_ptr<Stmt>& stmt, QueryParams const& queryParams) {
-                stmt->Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
+            [](Stmt& stmt, QueryParams const& queryParams) {
+                stmt.Bind(queryParams.addresses, queryParams.heightMin, queryParams.heightMax);
             }
         }}
         };
@@ -7011,19 +7011,21 @@ namespace PocketDb
         auto& binds = elem2;
 
         NotificationSummaryReconstructor reconstructor;
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            for (const auto& bind: binds) {
+            for (const auto& bind: binds)
+            {
                 bind(stmt, queryParams);
             }
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                reconstructor.FeedRow(*stmt);
+                reconstructor.FeedRow(stmt);
             }
         });
+
         return reconstructor.GetResult();
     }
 }

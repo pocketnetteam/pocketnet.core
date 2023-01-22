@@ -16,7 +16,7 @@ namespace PocketDb
         };
 
         vector<ChainData> chainData;
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             for (const auto& txInfo: txs)
             {
@@ -42,12 +42,12 @@ namespace PocketDb
                 if (txInfo.IsSubscribe())
                     tie(id, lastTxId) = IndexSubscribe(txInfo.Hash);
 
-                ChainData data {txInfo, lastTxId, id};
+                ChainData data{txInfo, lastTxId, id};
                 chainData.emplace_back(data);
             }
         });
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             int64_t nTime1 = GetTimeMicros();
 
@@ -90,7 +90,7 @@ namespace PocketDb
         int exists = 0;
         int last = 0;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
                 select
@@ -573,7 +573,7 @@ namespace PocketDb
         txHash);
 
         // TODO (optimization): bad bad bad!!!
-        // TryTransactionStep(__func__, [&]()
+        // SqlTransaction(__func__, [&]()
         // {
         //     auto insListStmt = Sql(R"sql(
         //         insert into BlockingLists (IdSource, IdTarget)
@@ -703,7 +703,7 @@ namespace PocketDb
         try
         {
             // Update transactions
-            TryTransactionStep(__func__, [&]()
+            SqlTransaction(__func__, [&]()
             {
                 RestoreOldLast(height);
                 // TODO (aok) : bad
@@ -952,7 +952,7 @@ namespace PocketDb
     //     auto& stmt = Sql(R"sql(
     //         delete from BlockingLists
     //     )sql");
-    //     stmt->Step();
+    //     stmt.Step();
         
     //     int64_t nTime1 = GetTimeMicros();
     //     LogPrint(BCLog::BENCH, "        - ClearBlockingList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));

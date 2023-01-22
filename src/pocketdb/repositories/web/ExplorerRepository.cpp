@@ -10,7 +10,7 @@ namespace PocketDb
     {
         map<int, map<int, int>> result;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select t.Height, t.Type, count(*)
@@ -20,13 +20,13 @@ namespace PocketDb
                 group by t.Height, t.Type
             )sql");
 
-            stmt->Bind(bottomHeight, topHeight);
+            stmt.Bind(bottomHeight, topHeight);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto [ok0, sHeight] = stmt->TryGetColumnInt(0);
-                auto [ok1, sType] = stmt->TryGetColumnInt(1);
-                auto [ok2, sCount] = stmt->TryGetColumnInt(2);
+                auto [ok0, sHeight] = stmt.TryGetColumnInt(0);
+                auto [ok1, sType] = stmt.TryGetColumnInt(1);
+                auto [ok2, sCount] = stmt.TryGetColumnInt(2);
 
                 if (ok0 && ok1 && ok2)
                     result[sHeight][sType] = sCount;
@@ -40,7 +40,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select (t.Time / ?), t.Type, count()
@@ -51,13 +51,13 @@ namespace PocketDb
                 group by t.time / ?, t.Type
             )sql");
 
-            stmt->Bind(period, top - (depth * period), top, period);
+            stmt.Bind(period, top - (depth * period), top, period);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = stmt->TryGetColumnString(0);
-                auto [okType, type] = stmt->TryGetColumnString(1);
-                auto [okCount, count] = stmt->TryGetColumnInt(2);
+                auto [okPart, part] = stmt.TryGetColumnString(0);
+                auto [okType, type] = stmt.TryGetColumnString(1);
+                auto [okCount, count] = stmt.TryGetColumnInt(2);
 
                 if (!okPart || !okType || !okCount)
                     continue;
@@ -76,7 +76,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select (t.Height / 60)Hour, t.Type, count()Count
@@ -87,13 +87,13 @@ namespace PocketDb
                 group by (t.Height / 60), t.Type
             )sql");
 
-            stmt->Bind(topHeight, topHeight - depth);
+            stmt.Bind(topHeight, topHeight - depth);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = stmt->TryGetColumnString(0);
-                auto [okType, type] = stmt->TryGetColumnString(1);
-                auto [okCount, count] = stmt->TryGetColumnInt(2);
+                auto [okPart, part] = stmt.TryGetColumnString(0);
+                auto [okType, type] = stmt.TryGetColumnString(1);
+                auto [okCount, count] = stmt.TryGetColumnInt(2);
 
                 if (!okPart || !okType || !okCount)
                     continue;
@@ -112,7 +112,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select (t.Height / 1440)Day, t.Type, count()Count
@@ -123,13 +123,13 @@ namespace PocketDb
                 group by (t.Height / 1440), t.Type
             )sql");
 
-            stmt->Bind(topHeight, topHeight - depth);
+            stmt.Bind(topHeight, topHeight - depth);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = stmt->TryGetColumnInt(0);
-                auto [okType, type] = stmt->TryGetColumnInt(1);
-                auto [okCount, count] = stmt->TryGetColumnInt(2);
+                auto [okPart, part] = stmt.TryGetColumnInt(0);
+                auto [okType, type] = stmt.TryGetColumnInt(1);
+                auto [okCount, count] = stmt.TryGetColumnInt(2);
 
                 if (!okPart || !okType || !okCount)
                     continue;
@@ -148,7 +148,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select (u.Height / 60)
@@ -169,12 +169,12 @@ namespace PocketDb
                 order by (u.Height / 60) desc
             )sql");
 
-            stmt->Bind(topHeight, topHeight - depth);
+            stmt.Bind(topHeight, topHeight - depth);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = stmt->TryGetColumnString(0);
-                auto [okCount, count] = stmt->TryGetColumnInt(1);
+                auto [okPart, part] = stmt.TryGetColumnString(0);
+                auto [okCount, count] = stmt.TryGetColumnInt(1);
 
                 if (!okPart || !okCount)
                     continue;
@@ -190,7 +190,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select (u.Height / 1440)
@@ -213,12 +213,12 @@ namespace PocketDb
                 order by (u.Height / 1440) desc
             )sql");
 
-            stmt->Bind(topHeight, topHeight - depth);
+            stmt.Bind(topHeight, topHeight - depth);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto [okPart, part] = stmt->TryGetColumnString(0);
-                auto [okCount, count] = stmt->TryGetColumnInt(1);
+                auto [okPart, part] = stmt.TryGetColumnString(0);
+                auto [okCount, count] = stmt.TryGetColumnInt(1);
 
                 if (!okPart || !okCount)
                     continue;
@@ -234,7 +234,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select t.Type, count()
@@ -245,10 +245,10 @@ namespace PocketDb
                 group by t.Type
             )sql");
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto [okType, type] = stmt->TryGetColumnString(0);
-                auto [okCount, count] = stmt->TryGetColumnInt(1);
+                auto [okType, type] = stmt.TryGetColumnString(0);
+                auto [okCount, count] = stmt.TryGetColumnInt(1);
 
                 if (okType && okCount)
                     result.pushKV(type, count);
@@ -265,7 +265,7 @@ namespace PocketDb
         if (hashes.empty())
             return infos;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select AddressHash, Height, Value
@@ -274,13 +274,13 @@ namespace PocketDb
                   and Last = 1
             )sql");
 
-            stmt->Bind(hashes);
+            stmt.Bind(hashes);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                auto [ok0, address] = stmt->TryGetColumnString(0);
-                auto [ok1, height] = stmt->TryGetColumnInt(1);
-                auto [ok2, value] = stmt->TryGetColumnInt64(2);
+                auto [ok0, address] = stmt.TryGetColumnString(0);
+                auto [ok1, height] = stmt.TryGetColumnInt(1);
+                auto [ok2, value] = stmt.TryGetColumnInt64(2);
 
                 if (ok0 && ok1 && ok2)
                     infos.emplace(address, make_tuple(height, value));
@@ -294,7 +294,7 @@ namespace PocketDb
     {
         map<string, int> txHashes;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select distinct o.TxHash
@@ -306,12 +306,12 @@ namespace PocketDb
                 limit ?, ?
             )sql");
 
-            stmt->Bind(address, pageInitBlock, pageSize, pageSize);
+            stmt.Bind(address, pageInitBlock, pageSize, pageSize);
 
             int i = 0;
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     txHashes.emplace(value, i++);
             }
         });
@@ -323,7 +323,7 @@ namespace PocketDb
     {
         map<string, int> txHashes;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select t.Hash
@@ -333,12 +333,12 @@ namespace PocketDb
                 limit ?, ?
             )sql");
 
-            stmt->Bind(blockHash, pageStart, pageSize);
+            stmt.Bind(blockHash, pageStart, pageSize);
 
             int i = 0;
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     txHashes.emplace(value, i++);
             }
         });
@@ -350,7 +350,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select b.Height, sum(b.Value)Amount
@@ -362,13 +362,13 @@ namespace PocketDb
                 limit ?
             )sql");
 
-            stmt->Bind(addresses, topHeight, count);
+            stmt.Bind(addresses, topHeight, count);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[okHeight, height] = stmt->TryGetColumnInt(0); okHeight)
+                if (auto[okHeight, height] = stmt.TryGetColumnInt(0); okHeight)
                 {
-                    if (auto[okValue, value] = stmt->TryGetColumnInt64(1); okValue)
+                    if (auto[okValue, value] = stmt.TryGetColumnInt64(1); okValue)
                     {
                         UniValue record(UniValue::VARR);
                         record.push_back(height);

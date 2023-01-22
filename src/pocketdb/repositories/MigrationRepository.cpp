@@ -17,12 +17,14 @@ namespace PocketDb
 
         uiInterface.InitMessage(_("SQLDB Migration: CreateBlockingList...").translated);
 
-        TryTransactionBulk(__func__, {
+        SqlTransaction(__func__, [&]()
+        {
 
             // Clear old data - this first init simple migration
             Sql(R"sql(
                 delete from BlockingLists
-            )sql"),
+            )sql")
+            .Step();
 
             // Insert new last values
             Sql(R"sql(
@@ -62,7 +64,7 @@ namespace PocketDb
                                     and bcc.Height >= bc.Height)
                   and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid)
             )sql")
-
+            .Step();
         });
 
         return !CheckNeedCreateBlockingList();
@@ -74,7 +76,7 @@ namespace PocketDb
 
         uiInterface.InitMessage(_("Checking SQLDB Migration: CreateBlockingList...").translated);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
                 select 1

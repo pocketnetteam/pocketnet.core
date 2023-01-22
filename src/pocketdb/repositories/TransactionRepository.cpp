@@ -20,7 +20,7 @@ namespace PocketDb
             }
 
             CollectData collectData(*ptx->GetHash());
-            collectData.txContextData = std::move(txData);
+            collectData.txContextData = move(txData);
             collectData.inputs = ptx->Inputs();
             collectData.outputs = ptx->OutputsConst();
             collectData.payload = ptx->GetPayload();
@@ -37,11 +37,11 @@ namespace PocketDb
                 return nullptr;
 
             auto outputs = collectData.outputs;
-            std::sort(outputs.begin(), outputs.end(), [](const TransactionOutput& elem1, const TransactionOutput& elem2) { return *elem1.GetNumber() < *elem2.GetNumber(); });
+            sort(outputs.begin(), outputs.end(), [](const TransactionOutput& elem1, const TransactionOutput& elem2) { return *elem1.GetNumber() < *elem2.GetNumber(); });
             auto inputs = collectData.inputs;
-            std::sort(inputs.begin(), inputs.end(), [](const TransactionInput& elem1, const TransactionInput& elem2) { return *elem1.GetNumber() < *elem2.GetNumber(); });
-            ptx->Inputs() = std::move(inputs);
-            ptx->Outputs() = std::move(outputs);
+            sort(inputs.begin(), inputs.end(), [](const TransactionInput& elem1, const TransactionInput& elem2) { return *elem1.GetNumber() < *elem2.GetNumber(); });
+            ptx->Inputs() = move(inputs);
+            ptx->Outputs() = move(outputs);
             if (collectData.payload) ptx->SetPayload(*collectData.payload);
             return ptx;
         }
@@ -50,8 +50,8 @@ namespace PocketDb
     class TransactionReconstructor
     {
     public:
-        TransactionReconstructor(std::map<std::string, CollectData> initData) {
-            m_collectData = std::move(initData);
+        TransactionReconstructor(map<string, CollectData> initData) {
+            m_collectData = move(initData);
         };
 
         /**
@@ -95,9 +95,9 @@ namespace PocketDb
         /**
          * Return contructed block.
          */
-        std::vector<CollectData> GetResult()
+        vector<CollectData> GetResult()
         {
-            std::vector<CollectData> res;
+            vector<CollectData> res;
 
             transform(
                 m_collectData.begin(),
@@ -110,7 +110,7 @@ namespace PocketDb
 
     private:
 
-        map<std::string, CollectData> m_collectData;
+        map<string, CollectData> m_collectData;
 
         /**
          * This method parses transaction data, constructs if needed and return construct entry to fill
@@ -147,8 +147,8 @@ namespace PocketDb
             if (auto[ok, value] = stmt.TryGetColumnString(14); ok) txContextData.list = value;
 
             ptx->SetHash(collectData.txHash);
-            collectData.ptx = std::move(ptx);            
-            collectData.txContextData = std::move(txContextData);
+            collectData.ptx = move(ptx);            
+            collectData.txContextData = move(txContextData);
 
             return true;
         }
@@ -170,7 +170,7 @@ namespace PocketDb
             if (auto[ok, value] = stmt.TryGetColumnString(13); ok) { payload.SetString6(value); }
             if (auto[ok, value] = stmt.TryGetColumnString(14); ok) { payload.SetString7(value); }
 
-            collectData.payload = std::move(payload);
+            collectData.payload = move(payload);
 
             return true;
         }
@@ -229,7 +229,7 @@ namespace PocketDb
         }
     };
 
-    static auto _findStringsAndListsToBeInserted(const std::vector<CollectData>& collectDataVec)
+    static auto _findStringsAndListsToBeInserted(const vector<CollectData>& collectDataVec)
     {
         vector<string> stringsToBeInserted;
         vector<string> listsToBeInserted;
@@ -261,14 +261,14 @@ namespace PocketDb
             auto collectData = CollectDataToModelConverter::ModelToCollectData(ptx);
             assert(collectData);
             
-            collectDataVec.emplace_back(std::move(*collectData));
+            collectDataVec.emplace_back(move(*collectData));
         }
 
         vector<string> registyStrings;
         vector<string> lists;
         tie(registyStrings, lists) = _findStringsAndListsToBeInserted(collectDataVec);
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             InsertRegistry(registyStrings);
             InsertRegistryLists(lists);
@@ -473,28 +473,23 @@ namespace PocketDb
             order by tp asc
         )sql");
 
-        std::map<std::string, CollectData> initData;
+        map<string, CollectData> initData;
         for (const auto& hash: txHashes) {
             initData.emplace(hash, CollectData{hash});
         }
 
         TransactionReconstructor reconstructor(initData);
-
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt->Bind(txHashes);
-
-            while (stmt->Step() == SQLITE_ROW)
+            auto& stmt = Sql(sql).Bind(txHashes);
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (!reconstructor.FeedRow(*stmt))
+                if (!reconstructor.FeedRow(stmt))
                     throw runtime_error("Transaction::List feedRow failed - no return data");
             }
         });
 
-        auto pBlock = std::make_shared<PocketBlock>();
-
+        auto pBlock = make_shared<PocketBlock>();
         for (auto& collectData: reconstructor.GetResult())
         {
             if (auto ptx = CollectDataToModelConverter::CollectDataToModel(collectData); ptx)
@@ -519,62 +514,64 @@ namespace PocketDb
     {
         auto txIdMap = GetTxIds({txHash});
         auto txIdItr = txIdMap.find(txHash);
-
-        if (txIdItr == txIdMap.end()) {
+        if (txIdItr == txIdMap.end())
             return nullptr;
-        }
 
         auto& txId = txIdItr->second;
+        PTransactionOutputRef txOutput = nullptr;
 
-        auto sql = R"sql(
-            SELECT
-                Number,
-                (select String from Registry where RowId = AddressId),
-                Value,
-                (select String from Registry where RowId = ScriptPubKeyId)
-            FROM TxOutputs
-            WHERE TxId = ?
-              and Number = ?
-        )sql";
-
-        shared_ptr<TransactionOutput> result = nullptr;
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto& stmt = Sql(R"sql(
+                select
+                    o.Number,
+                    (
+                        select r.String
+                        from Registry r -- primary key
+                        where r.RowId = o.AddressId
+                    ),
+                    o.Value,
+                    (
+                        select r.String
+                        from Registry r -- primary key
+                        where r.RowId = o.ScriptPubKeyId
+                    )
+                from
+                    TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                where
+                    o.TxId = ? and
+                    o.Number = ?
+            )sql")
+            .Bind(txId, number);
 
-            stmt->Bind(txId, number);
-
-            if (stmt->Step() == SQLITE_ROW)
+            if (stmt.Step() == SQLITE_ROW)
             {
-                result = make_shared<TransactionOutput>();
-                result->SetTxHash(txHash);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok) result->SetNumber(value);
-                if (auto[ok, value] = stmt->TryGetColumnString(1); ok) result->SetAddressHash(value);
-                if (auto[ok, value] = stmt->TryGetColumnInt64(2); ok) result->SetValue(value);
-                if (auto[ok, value] = stmt->TryGetColumnString(3); ok) result->SetScriptPubKey(value);
+                txOutput = make_shared<TransactionOutput>();
+                txOutput->SetTxHash(txHash);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) txOutput->SetNumber(value);
+                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) txOutput->SetAddressHash(value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) txOutput->SetValue(value);
+                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) txOutput->SetScriptPubKey(value);
             }
         });
 
-        return result;
+        return txOutput;
     }
 
     bool TransactionRepository::Exists(const string& hash)
     {
         bool result = false;
-
-        string sql = R"sql(
-            select 1
-            from Transactions
-            where Hash = ?
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt->Bind(hash);
-
-            result = (stmt->Step() == SQLITE_ROW);
+            result = (
+                Sql(R"sql(
+                    select 1
+                    from Transactions
+                    where Hash = ?
+                )sql")
+                .Bind(hash)
+                .Step() == SQLITE_ROW
+            );
         });
 
         return result;
@@ -583,22 +580,18 @@ namespace PocketDb
     bool TransactionRepository::ExistsInChain(const string& hash)
     {
         bool result = false;
-
-        string sql = R"sql(
-            select 1
-            from Transactions
-            where Hash = ?
-              and Height is not null
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt->Bind(hash);
-
-            if (stmt->Step() == SQLITE_ROW)
-                result = true;
+            result = (
+                Sql(R"sql(
+                    select 1
+                    from Transactions
+                    where Hash = ?
+                    and Height is not null
+                )sql")
+                .Bind(hash)
+                .Step() == SQLITE_ROW
+            );
         });
 
         return result;
@@ -607,30 +600,15 @@ namespace PocketDb
     int TransactionRepository::MempoolCount()
     {
         int result = 0;
-
-        string sql = R"sql(
-            select count()
-            from Transactions
-            where Height isnull
-              and Type != 3
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
-                    result = value;
-
-            UniValue r(UniValue::VARR);
-            stmt->Collect(
-                r,
-                { "0", UniValue::VNUM },
-                { "1", UniValue::VNUM }
-            );
-
-            stmt->Collect(r, ....)
+            Sql(R"sql(
+                select count()
+                from Transactions
+                where Height isnull
+                and Type != 3
+            )sql")
+            .Collect(result);
         });
 
         return result;
@@ -638,21 +616,22 @@ namespace PocketDb
 
     void TransactionRepository::Clean()
     {
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
                 delete from Transactions
                 where Height is null
-            )sql")->Step();
+            )sql")
+            .Step();
         });
     }
 
     void TransactionRepository::CleanTransaction(const string& hash)
     {
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             // Clear Payload tablew
-            auto stmt1 = Sql(R"sql(
+            Sql(R"sql(
                 delete from Payload
                 where TxHash = ?
                   and exists(
@@ -661,12 +640,12 @@ namespace PocketDb
                     where t.Hash = Payload.TxHash
                       and t.Height isnull
                   )
-            )sql");
-            stmt1->Bind(hash);
-            stmt1->Step();
+            )sql")
+            .Bind(hash)
+            .Step();
 
             // Clear TxOutputs table
-            auto stmt2 = Sql(R"sql(
+            Sql(R"sql(
                 delete from TxOutputs
                 where TxHash = ?
                   and exists(
@@ -675,53 +654,53 @@ namespace PocketDb
                     where t.Hash = TxOutputs.TxHash
                       and t.Height isnull
                   )
-            )sql");
-            stmt2->Bind(hash);
-            stmt2->Step();
+            )sql")
+            .Bind(hash)
+            .Step();
 
             // Clear Transactions table
-            auto stmt3 = Sql(R"sql(
+            Sql(R"sql(
                 delete from Transactions
                 where Hash = ?
                   and Height isnull
-            )sql");
-            stmt3->Bind(hash);
-            stmt3->Step();
+            )sql")
+            .Bind(hash)
+            .Step();
         });
     }
 
     void TransactionRepository::CleanMempool()
     {
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             // Clear Payload table
-            auto stmt1 = Sql(R"sql(
+            Sql(R"sql(
                 delete from Payload
                 where TxHash in (
                   select t.Hash
                   from Transactions t
                   where t.Height is null
                 )
-            )sql");
-            stmt1->Step();
+            )sql")
+            .Step();
 
             // Clear TxOutputs table
-            auto stmt2 = Sql(R"sql(
+            Sql(R"sql(
                 delete from TxOutputs
                 where TxHash in (
                   select t.Hash
                   from Transactions t
                   where t.Height is null
                 )
-            )sql");
-            stmt2->Step();
+            )sql")
+            .Step();
 
             // Clear Transactions table
-            auto stmt3 = Sql(R"sql(
+            Sql(R"sql(
                 delete from Transactions
                 where Height isnull
-            )sql");
-            stmt3->Step();
+            )sql")
+            .Step();
         });
     }
 
@@ -889,30 +868,68 @@ namespace PocketDb
 
     void TransactionRepository::InsertTransactionModel(const CollectData& collectData)
     {
-        // TODO (optimization): WITH not working?
         Sql(R"sql(
-            with h as (
-                select RowId as HashId from Registry where String = ?
-            )
-            INSERT OR FAIL INTO Transactions (
-                Type,
-                Time,
-                Int1,
-                HashId,
-                RegId1,
-                RegId2,
-                RegId3,
-                RegId4,
-                RegId5
-            )
-            SELECT ?,?,?, (select h.HashId from h),
-                (select RowId from Registry where String = ?),
-                (select RowId from Registry where String = ?),
-                (select RowId from Registry where String = ?),
-                (select RowId from Registry where String = ?),
-                (select RowId from Registry where String = ?)
-            WHERE not exists (select 1 from Transactions a,h where a.HashId = h.HashId)
-        )sql").Bind(
+            with
+                h as (
+                    select RowId as HashId
+                    from Registry
+                    where String = ?
+                )
+            insert or fail into 
+                Transactions (
+                    Type,
+                    Time,
+                    Int1,
+                    HashId,
+                    RegId1,
+                    RegId2,
+                    RegId3,
+                    RegId4,
+                    RegId5
+                )
+            select
+                ?,
+                ?,
+                ?,
+                h.HashId,
+                (
+                    select RowId
+                    from Registry
+                    where String = ?
+                ),
+                (
+                    select RowId
+                    from Registry
+                    where String = ?
+                ),
+                (
+                    select RowId
+                    from Registry
+                    where String = ?
+                ),
+                (
+                    select RowId
+                    from Registry
+                    where String = ?
+                ),
+                (
+                    select RowId
+                    from Registry
+                    where String = ?
+                )
+            from
+                h
+            where
+                not exists(
+                    select
+                        1
+                    from
+                        Transactions a
+                    where
+                        a.HashId = h.HashId
+                )
+        )sql")
+        .Bind(
             collectData.txHash,
             (int)*collectData.ptx->GetType(),
             collectData.ptx->GetTime(),
@@ -921,14 +938,14 @@ namespace PocketDb
             collectData.txContextData.string2,
             collectData.txContextData.string3,
             collectData.txContextData.string4,
-            collectData.txContextData.string5
-        ).Step();
+            collectData.txContextData.string5)
+        .Step();
     }
 
-    tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(
-        Stmt& stmt, bool includedPayload)
+    tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(Stmt& stmt, bool includedPayload)
     {
-        // TODO (aok): move deserialization logic to models ?
+        // TODO (lostystyg): move deserialization logic to models ?
+        // aok: думаю нет - пусть пока тут будет
 
         auto[ok0, _txType] = stmt.TryGetColumnInt(0);
         auto[ok1, txHash] = stmt.TryGetColumnString(1);
@@ -978,25 +995,23 @@ namespace PocketDb
     map<string,int64_t> TransactionRepository::GetTxIds(const vector<string>& txHashes)
     {
         string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
-
-        auto sql = R"sql(
-            select r.String, t.RowId
-            from Transactions t
-            join Registry r
-                on t.HashId = r.RowId
-                and r.String in  ( )sql" + txReplacers + R"sql( )
-        )sql";
-
         map<string,int64_t> res;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto& stmt = Sql(sql);
-            stmt->Bind(txHashes);
 
-            while (stmt->Step() == SQLITE_ROW) {
+        SqlTransaction(__func__, [&]()
+        {
+            auto& stmt = Sql(R"sql(
+                select r.String, t.RowId
+                from Transactions t
+                join Registry r
+                    on t.HashId = r.RowId
+                    and r.String in  ( )sql" + txReplacers + R"sql( )
+            )sql")
+            .Bind(txHashes);
+
+            while (stmt.Step() == SQLITE_ROW) {
                 // TODO (optimization): error
-                auto[ok1, hash] = stmt->TryGetColumnString(0);
-                auto[ok2, txId] = stmt->TryGetColumnInt64(1);
+                auto[ok1, hash] = stmt.TryGetColumnString(0);
+                auto[ok2, txId] = stmt.TryGetColumnInt64(1);
                 if (ok1 && ok2) res.emplace(hash, txId);
             }
         });
@@ -1004,103 +1019,95 @@ namespace PocketDb
         return res;
     }
 
-    optional<string> TransactionRepository::TxIdToHash(const int64_t& id)
-    {
-        auto sql = R"sql(
-            select Hash
-            from Transactions
-            where Id = ?
-        )sql";
+    // TODO (lostystyg): need?
+    // optional<string> TransactionRepository::TxIdToHash(const int64_t& id)
+    // {
+    //     optional<string> hash;
+    //     SqlTransaction(__func__, [&]()
+    //     {
+    //         Sql(R"sql(
+    //             select Hash
+    //             from Transactions
+    //             where Id = ?
+    //         )sql")
+    //         .Bind(id)
+    //         .Collect(hash);
+    //     });
 
-        optional<string> hash;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto& stmt = Sql(sql);
-            stmt->Bind(id);
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto [ok, val] = stmt->TryGetColumnString(0); ok)
-                    hash = val;
-        });
+    //     return hash;
+    // }
 
-        return hash;
-    }
+    // optional<int64_t> TransactionRepository::TxHashToId(const string& hash)
+    // {
+    //     auto sql = ;
 
-    optional<int64_t> TransactionRepository::TxHashToId(const string& hash)
-    {
-        auto sql = R"sql(
-            select t.Id
-            from Transactions t
-            join Registry r
-                on r.String = ?
-                and r.Id = t.HashId
-        )sql";
+    //     optional<int64_t> id;
+    //     SqlTransaction(__func__, [&]()
+    //     {
+    //         Sql(R"sql(
+                
+    //         )sql")
+    //         .Bind(hash)
+    //         .Collect(id);
+    //     });
 
-        optional<int64_t> id;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto& stmt = Sql(sql);
-            stmt->Bind(hash);
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok)
-                    id = val;
-        });
+    //     return id;
+    // }
 
-        return id;
-    }
+    // optional<string> TransactionRepository::AddressIdToHash(const int64_t& id)
+    // {
+    //     auto sql = R"sql(
+    //         select Hash
+    //         from Addresses
+    //         where Id = ?
+    //     )sql";
 
-    optional<string> TransactionRepository::AddressIdToHash(const int64_t& id)
-    {
-        auto sql = R"sql(
-            select Hash
-            from Addresses
-            where Id = ?
-        )sql";
+    //     optional<string> hash;
+    //     SqlTransaction(__func__, [&]()
+    //     {
+    //         auto& stmt = Sql(sql);
+    //         stmt.Bind(id);
+    //         if (stmt.Step() == SQLITE_ROW)
+    //             if (auto [ok, val] = stmt.TryGetColumnString(0); ok)
+    //                 hash = val;
+    //     });
 
-        optional<string> hash;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto& stmt = Sql(sql);
-            stmt->Bind(id);
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto [ok, val] = stmt->TryGetColumnString(0); ok)
-                    hash = val;
-        });
+    //     return hash;
+    // }
 
-        return hash;
-    }
+    // optional<int64_t> TransactionRepository::AddressHashToId(const string& hash)
+    // {
+    //     auto sql = R"sql(
+    //         select Id
+    //         from Addresses
+    //         where Hash = ?
+    //     )sql";
 
-    optional<int64_t> TransactionRepository::AddressHashToId(const string& hash)
-    {
-        auto sql = R"sql(
-            select Id
-            from Addresses
-            where Hash = ?
-        )sql";
+    //     optional<int64_t> id;
+    //     SqlTransaction(__func__, [&]()
+    //     {
+    //         auto& stmt = Sql(sql);
+    //         stmt.Bind(hash);
+    //         if (stmt.Step() == SQLITE_ROW)
+    //             if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
+    //                 id = val;
+    //     });
 
-        optional<int64_t> id;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto& stmt = Sql(sql);
-            stmt->Bind(hash);
-            if (stmt->Step() == SQLITE_ROW)
-                if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok)
-                    id = val;
-        });
-
-        return id;
-    }
+    //     return id;
+    // }
 
     void TransactionRepository::InsertRegistry(const vector<string> &strings)
     {
-        if (strings.empty()) return;
+        if (strings.empty())
+            return;
 
-        auto& stmt = Sql(R"sql(
+        // TODO (optimization): create many stmt's for this keys...
+        Sql(R"sql(
             insert or ignore into Registry (String) values
             )sql" + join(vector<string>(strings.size(), "(?)"), ",") + R"sql( ;
-        )sql");
-
-        stmt->Bind(strings);
-        stmt->Step();
+        )sql")
+        .Bind(strings)
+        .Step();
     }
 
     void TransactionRepository::InsertRegistryLists(const vector<string> &lists)
@@ -1114,14 +1121,13 @@ namespace PocketDb
         )sql");
 
         for (const auto& list: lists) {
-            stmt->Bind(list);
-            stmt->Step(true);
+            stmt.Bind(list).Step(true);
         }
     }
 
     void TransactionRepository::InsertList(const string &list, const string& txHash)
     {
-        auto& stmt = Sql(R"sql(
+        Sql(R"sql(
             with t as (
                 select a.RowId from Transactions a where a.HashId = (select r.RowId from Registry r where r.String = ?)
             )
@@ -1133,9 +1139,9 @@ namespace PocketDb
                     (select RowId from Registry where String = value) 
                     from json_each(?)
                 )
-        )sql");
-        stmt->Bind(txHash, list);
-        stmt->Step();
+        )sql")
+        .Bind(txHash, list)
+        .Step();
     }
 
 } // namespace PocketDb

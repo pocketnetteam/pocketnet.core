@@ -19,14 +19,14 @@ namespace PocketDb
             offset ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
-            stmt->Bind(keyword, request.PageSize, request.PageStart);
+            stmt.Bind(keyword, request.PageSize, request.PageStart);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     result.push_back(value);
             }
         });
@@ -72,21 +72,21 @@ namespace PocketDb
             offset ?
         )sql";
         
-        TryTransactionStep(func, [&]()
+        SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
 
             if (request.TopBlock > 0)
-                stmt->Bind(request.TopBlock);
+                stmt.Bind(request.TopBlock);
             if (!request.Address.empty())
-                stmt->Bind(request.Address);
-            stmt->Bind(keyword);
-            stmt->Bind(request.PageSize);
-            stmt->Bind(request.PageStart);
+                stmt.Bind(request.Address);
+            stmt.Bind(keyword);
+            stmt.Bind(request.PageSize);
+            stmt.Bind(request.PageStart);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
         });
@@ -128,20 +128,20 @@ namespace PocketDb
         sql += " limit ? ";
         sql += " offset ? ";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
             if (request.TopBlock > 0)
-                stmt->Bind(request.TopBlock);
-            stmt->Bind(request.FieldTypes);
-            stmt->Bind(keyword);
-            stmt->Bind(request.PageSize);
-            stmt->Bind(request.PageStart);
+                stmt.Bind(request.TopBlock);
+            stmt.Bind(request.FieldTypes);
+            stmt.Bind(keyword);
+            stmt.Bind(request.PageSize);
+            stmt.Bind(request.PageStart);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok) result.push_back(value);
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) result.push_back(value);
             }
         });
 
@@ -188,11 +188,11 @@ namespace PocketDb
             order by ROWNUMBER, RNK, Rating desc
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(
+            stmt.Bind(
                 (int)ContentFieldType::ContentFieldType_AccountUserName,
                 keyword,
                 10,
@@ -201,9 +201,9 @@ namespace PocketDb
                 10
             );
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     if (find(result.begin(), result.end(), value) == result.end())
                         result.push_back(value);
             }
@@ -307,38 +307,38 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(contentTypes);
+            stmt.Bind(contentTypes);
 
-            stmt->Bind(address);
+            stmt.Bind(address);
             if (!addressExclude.empty())
-                stmt->Bind(addressExclude);
+                stmt.Bind(addressExclude);
 
             if (!lang.empty())
-                stmt->Bind(lang);
+                stmt.Bind(lang);
 
-            stmt->Bind(nHeight-depth);
+            stmt.Bind(nHeight-depth);
 
-            stmt->Bind(minReputation);
-            stmt->Bind(address);
-            stmt->Bind(limitSubscriptions);
+            stmt.Bind(minReputation);
+            stmt.Bind(address);
+            stmt.Bind(limitSubscriptions);
 
-            stmt->Bind(minReputation);
-            stmt->Bind(address);
-            stmt->Bind(limitSubscriptions);
+            stmt.Bind(minReputation);
+            stmt.Bind(address);
+            stmt.Bind(limitSubscriptions);
 
-            stmt->Bind(limitSubscriptionsTotal);
+            stmt.Bind(limitSubscriptionsTotal);
 
-            stmt->Bind(cntRates);
+            stmt.Bind(cntRates);
 
-            stmt->Bind(cntOut);
+            stmt.Bind(cntOut);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnString(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     ids.push_back(value);
             }
         });
@@ -445,19 +445,19 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
-            stmt->Bind(contentTypes, contentAddress);
+            stmt.Bind(contentTypes, contentAddress);
 
             if (!address.empty())
-                stmt->Bind(address);
+                stmt.Bind(address);
 
             if (!lang.empty())
-                stmt->Bind(lang);
+                stmt.Bind(lang);
 
-            stmt->Bind(
+            stmt.Bind(
                     nHeight-depth,
                     minReputation,
                     contentAddress,
@@ -470,9 +470,9 @@ namespace PocketDb
                     cntOut
             );
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
         });
@@ -505,18 +505,18 @@ namespace PocketDb
             limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
             if (!lang.empty())
-                stmt->Bind(lang);
+                stmt.Bind(lang);
 
-            stmt->Bind(contentTypes, contentAddress, cntOut);
+            stmt.Bind(contentTypes, contentAddress, cntOut);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
         });
@@ -569,21 +569,21 @@ namespace PocketDb
             where result.rowNumber
         )sql" + limitFilter;
 
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
 
             if (!lang.empty())
-                stmt->Bind(lang);
+                stmt.Bind(lang);
 
-            stmt->Bind(contentTypes, address, cntOut, address);
+            stmt.Bind(contentTypes, address, cntOut, address);
 
             if (rest)
-                stmt->Bind(cntOut);
+                stmt.Bind(cntOut);
 
-            while (stmt->Step() == SQLITE_ROW)
+            while (stmt.Step() == SQLITE_ROW)
             {
-                if (auto[ok, value] = stmt->TryGetColumnInt64(0); ok)
+                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
             }
         });

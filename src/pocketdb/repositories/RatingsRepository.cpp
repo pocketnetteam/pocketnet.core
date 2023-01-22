@@ -30,7 +30,7 @@ namespace PocketDb
     {
         bool result = false;
         
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             result = Sql(
                 R"sql(
@@ -49,7 +49,7 @@ namespace PocketDb
 
     void RatingsRepository::InsertRating(const Rating& rating)
     {
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             // Insert new Last record
             Sql(R"sql(
@@ -96,7 +96,7 @@ namespace PocketDb
 
     void RatingsRepository::InsertLiker(const Rating& rating)
     {
-        TryTransactionStep(__func__, [&]()
+        SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
                 insert or fail into Ratings (
