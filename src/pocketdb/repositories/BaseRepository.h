@@ -85,17 +85,7 @@ namespace PocketDb
             }
         }
 
-        [[deprecated("Replaced stmt->Step(reset)")]]
-        void TryStepStatement(const shared_ptr<Stmt>& stmt)
-        {
-            int res = stmt->Step();
-            stmt->Reset();
-
-            if (res != SQLITE_ROW && res != SQLITE_DONE)
-                throw runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
-        }
-
-        void TryTransactionBulk(const string& func, const vector<shared_ptr<Stmt>>& stmts)
+        void TryTransactionBulk(const string& func, const vector<Stmt&>& stmts)
         {
             if (!m_database.BeginTransaction())
                 throw runtime_error(strprintf("%s: can't begin transaction\n", func));
@@ -107,7 +97,7 @@ namespace PocketDb
                 throw runtime_error(strprintf("%s: can't commit transaction\n", func));
         }
 
-        shared_ptr<Stmt> SetupSqlStatement(const string& sql)
+        Stmt& Sql(const string& sql)
         {
             size_t key = hash<string>{}(sql);
 
@@ -121,7 +111,7 @@ namespace PocketDb
 
             const auto& stmt = itr->second;
             stmt->Reset();
-            return stmt;
+            return *stmt;
         }
 
         void SetLastInsertRowId(int64_t value)

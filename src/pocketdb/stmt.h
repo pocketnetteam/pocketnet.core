@@ -42,9 +42,10 @@ namespace PocketDb
         // --------------------------------
         // Thanks to Itaros (https://github.com/Itaros) for help in implementing this
         template <class ...Binds>
-        void Bind(const Binds&... binds)
+        Stmt& Bind(const Binds&... binds)
         {
             (Binder<Binds>::bind(*this, m_currentBindIndex, binds), ...);
+            return *this;
         }
         // Forces user to handle memory more correct because of SQLITE_STATIC requires it
         void TryBindStatementText(int index, const std::string&& value) = delete;
@@ -60,10 +61,26 @@ namespace PocketDb
 
         // Collect data
         template <class ...Collects>
-        void Collect(Collects&... collects)
+        bool Collect(Collects&... collects)
         {
+            if (Step(false) != SQLITE_ROW)
+                return false;
+
             (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
+            return true;
         }
+
+        // Collect data to UniValue array
+        template <class ...Collects>
+        bool Collect(UniValue& arr, Collects&... collects)
+        {
+            if (Step(false) != SQLITE_ROW)
+                return false;
+
+            (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
+            return true;
+        }
+
         tuple<bool, std::string> TryGetColumnString(int index);
         tuple<bool, int64_t> TryGetColumnInt64(int index);
         tuple<bool, int> TryGetColumnInt(int index);

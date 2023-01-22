@@ -21,7 +21,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
             stmt->Bind(keyword, request.PageSize, request.PageStart);
 
             while (stmt->Step() == SQLITE_ROW)
@@ -74,7 +74,7 @@ namespace PocketDb
         
         TryTransactionStep(func, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             if (request.TopBlock > 0)
                 stmt->Bind(request.TopBlock);
@@ -130,7 +130,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             if (request.TopBlock > 0)
                 stmt->Bind(request.TopBlock);
@@ -190,7 +190,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(
                 (int)ContentFieldType::ContentFieldType_AccountUserName,
@@ -309,7 +309,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(contentTypes);
 
@@ -447,7 +447,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(contentTypes, contentAddress);
 
@@ -507,7 +507,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty())
                 stmt->Bind(lang);
@@ -571,7 +571,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty())
                 stmt->Bind(lang);

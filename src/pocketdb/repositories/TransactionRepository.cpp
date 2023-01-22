@@ -482,7 +482,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(txHashes);
 
@@ -540,7 +540,7 @@ namespace PocketDb
         shared_ptr<TransactionOutput> result = nullptr;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(txId, number);
 
@@ -570,7 +570,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(hash);
 
@@ -593,7 +593,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(hash);
 
@@ -609,7 +609,7 @@ namespace PocketDb
         int result = 0;
 
         string sql = R"sql(
-            select count(*)
+            select count()
             from Transactions
             where Height isnull
               and Type != 3
@@ -617,11 +617,20 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             if (stmt->Step() == SQLITE_ROW)
                 if (auto[ok, value] = stmt->TryGetColumnInt(0); ok)
                     result = value;
+
+            UniValue r(UniValue::VARR);
+            stmt->Collect(
+                r,
+                { "0", UniValue::VNUM },
+                { "1", UniValue::VNUM }
+            );
+
+            stmt->Collect(r, ....)
         });
 
         return result;
@@ -631,7 +640,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 delete from Transactions
                 where Height is null
             )sql")->Step();
@@ -643,7 +652,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear Payload tablew
-            auto stmt1 = SetupSqlStatement(R"sql(
+            auto stmt1 = Sql(R"sql(
                 delete from Payload
                 where TxHash = ?
                   and exists(
@@ -657,7 +666,7 @@ namespace PocketDb
             stmt1->Step();
 
             // Clear TxOutputs table
-            auto stmt2 = SetupSqlStatement(R"sql(
+            auto stmt2 = Sql(R"sql(
                 delete from TxOutputs
                 where TxHash = ?
                   and exists(
@@ -671,7 +680,7 @@ namespace PocketDb
             stmt2->Step();
 
             // Clear Transactions table
-            auto stmt3 = SetupSqlStatement(R"sql(
+            auto stmt3 = Sql(R"sql(
                 delete from Transactions
                 where Hash = ?
                   and Height isnull
@@ -686,7 +695,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear Payload table
-            auto stmt1 = SetupSqlStatement(R"sql(
+            auto stmt1 = Sql(R"sql(
                 delete from Payload
                 where TxHash in (
                   select t.Hash
@@ -697,7 +706,7 @@ namespace PocketDb
             stmt1->Step();
 
             // Clear TxOutputs table
-            auto stmt2 = SetupSqlStatement(R"sql(
+            auto stmt2 = Sql(R"sql(
                 delete from TxOutputs
                 where TxHash in (
                   select t.Hash
@@ -708,7 +717,7 @@ namespace PocketDb
             stmt2->Step();
 
             // Clear Transactions table
-            auto stmt3 = SetupSqlStatement(R"sql(
+            auto stmt3 = Sql(R"sql(
                 delete from Transactions
                 where Height isnull
             )sql");
@@ -718,7 +727,7 @@ namespace PocketDb
 
     void TransactionRepository::InsertTransactionInputs(const vector<TransactionInput>& inputs, const string& txHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
+        auto& stmt = Sql(R"sql(
             with
                 data as (
                     select
@@ -752,18 +761,17 @@ namespace PocketDb
 
         for (const auto& input: inputs)
         {
-            stmt->Bind(
+            stmt.Bind(
                 input.GetSpentTxHash(),
                 txHash,
                 input.GetNumber()
-            );
-            stmt->Step(true);
+            ).Step(true);
         }
     }
     
     void TransactionRepository::InsertTransactionOutputs(const vector<TransactionOutput>& outputs, const string& txHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
+        auto& stmt = Sql(R"sql(
             with
                 tx as (
                     select
@@ -810,22 +818,20 @@ namespace PocketDb
 
         for (const auto& output: outputs)
         {
-            stmt->Bind(
+            stmt.Bind(
                 txHash,
                 output.GetNumber(),
                 output.GetAddressHash(),
                 output.GetValue(),
                 output.GetScriptPubKey(),
                 output.GetNumber()
-            );
-
-            stmt->Step(true);
+            ).Step(true);
         }
     }
 
     void TransactionRepository::InsertTransactionPayload(const Payload& payload)
     {
-        auto stmt = SetupSqlStatement(R"sql(
+        Sql(R"sql(
             with
                 tx as (
                     select
@@ -868,9 +874,7 @@ namespace PocketDb
                     where
                         p.TxId = tx.RowId
                 )
-        )sql");
-
-        stmt->Bind(
+        )sql").Bind(
             payload.GetTxHash(),
             payload.GetString1(),
             payload.GetString2(),
@@ -880,14 +884,13 @@ namespace PocketDb
             payload.GetString6(),
             payload.GetString7(),
             payload.GetInt1()
-        );
-        stmt->Step(true);
+        ).Step();
     }
 
     void TransactionRepository::InsertTransactionModel(const CollectData& collectData)
     {
         // TODO (optimization): WITH not working?
-        auto stmt = SetupSqlStatement(R"sql(
+        Sql(R"sql(
             with h as (
                 select RowId as HashId from Registry where String = ?
             )
@@ -909,9 +912,7 @@ namespace PocketDb
                 (select RowId from Registry where String = ?),
                 (select RowId from Registry where String = ?)
             WHERE not exists (select 1 from Transactions a,h where a.HashId = h.HashId)
-        )sql");
-
-        stmt->Bind(
+        )sql").Bind(
             collectData.txHash,
             (int)*collectData.ptx->GetType(),
             collectData.ptx->GetTime(),
@@ -921,8 +922,7 @@ namespace PocketDb
             collectData.txContextData.string3,
             collectData.txContextData.string4,
             collectData.txContextData.string5
-        );
-        stmt->Step();
+        ).Step();
     }
 
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(
@@ -990,7 +990,7 @@ namespace PocketDb
         map<string,int64_t> res;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
             stmt->Bind(txHashes);
 
             while (stmt->Step() == SQLITE_ROW) {
@@ -1015,7 +1015,7 @@ namespace PocketDb
         optional<string> hash;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
             stmt->Bind(id);
             if (stmt->Step() == SQLITE_ROW)
                 if (auto [ok, val] = stmt->TryGetColumnString(0); ok)
@@ -1038,7 +1038,7 @@ namespace PocketDb
         optional<int64_t> id;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
             stmt->Bind(hash);
             if (stmt->Step() == SQLITE_ROW)
                 if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok)
@@ -1059,7 +1059,7 @@ namespace PocketDb
         optional<string> hash;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
             stmt->Bind(id);
             if (stmt->Step() == SQLITE_ROW)
                 if (auto [ok, val] = stmt->TryGetColumnString(0); ok)
@@ -1080,7 +1080,7 @@ namespace PocketDb
         optional<int64_t> id;
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
             stmt->Bind(hash);
             if (stmt->Step() == SQLITE_ROW)
                 if (auto [ok, val] = stmt->TryGetColumnInt64(0); ok)
@@ -1094,7 +1094,7 @@ namespace PocketDb
     {
         if (strings.empty()) return;
 
-        auto stmt = SetupSqlStatement(R"sql(
+        auto& stmt = Sql(R"sql(
             insert or ignore into Registry (String) values
             )sql" + join(vector<string>(strings.size(), "(?)"), ",") + R"sql( ;
         )sql");
@@ -1108,7 +1108,7 @@ namespace PocketDb
         if (lists.empty())
             return;
 
-        auto stmt = SetupSqlStatement(R"sql(
+        auto& stmt = Sql(R"sql(
             insert or ignore into Registry (string)
             select json_each(?)
         )sql");
@@ -1121,7 +1121,7 @@ namespace PocketDb
 
     void TransactionRepository::InsertList(const string &list, const string& txHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
+        auto& stmt = Sql(R"sql(
             with t as (
                 select a.RowId from Transactions a where a.HashId = (select r.RowId from Registry r where r.String = ?)
             )

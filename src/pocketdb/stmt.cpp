@@ -5,7 +5,6 @@
 #include "pocketdb/stmt.h"
 
 
-
 PocketDb::Stmt::~Stmt()
 {
     Finalize();

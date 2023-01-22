@@ -30,22 +30,18 @@ namespace PocketDb
     {
         bool result = false;
         
-        string sql = R"sql(
-            select 1
-            from Ratings indexed by Ratings_Type_Id_Value
-            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-                and Id = ?
-                and Value = ?
-        )sql";
-
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-
-            stmt->Bind(types, addressId, likerId);
-
-            if (stmt->Step() == SQLITE_ROW)
-                result = true;
+            result = Sql(
+                R"sql(
+                select 1
+                from Ratings indexed by Ratings_Type_Id_Value
+                where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                    and Id = ?
+                    and Value = ?
+            )sql")
+            .Bind(types, addressId, likerId)
+            .Step() == SQLITE_ROW;
         });
 
         return result;
@@ -56,7 +52,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Insert new Last record
-            auto stmt = SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 INSERT OR FAIL INTO Ratings (
                     Type,
                     Last,
@@ -73,31 +69,28 @@ namespace PocketDb
                             and r.Height < ?
                         limit 1
                     ), 0) + ?
-            )sql");
-
-            stmt->Bind(
+            )sql")
+            .Bind(
                 *rating.GetType(),
                 rating.GetHeight(),
                 rating.GetId(),
                 *rating.GetType(),
                 rating.GetId(),
                 rating.GetHeight(),
-                rating.GetValue()
-                );
-            stmt->Step();
+                rating.GetValue())
+            .Step();
 
             // Clear old Last record
-            auto stmtUpdate = SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 update Ratings indexed by Ratings_Type_Id_Last_Height
                   set Last = 0
                 where Type = ?
                   and Last = 1
                   and Id = ?
                   and Height < ?
-            )sql");
-
-            stmtUpdate->Bind(*rating.GetType(), rating.GetId(), rating.GetHeight());
-            stmtUpdate->Step();
+            )sql")
+            .Bind(*rating.GetType(), rating.GetId(), rating.GetHeight())
+            .Step();
         });
     }
 
@@ -105,7 +98,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 insert or fail into Ratings (
                     Type,
                     Last,
@@ -113,10 +106,9 @@ namespace PocketDb
                     Id,
                     Value
                 ) values ( ?,1,?,?,? )
-            )sql");
-
-            stmt->Bind(*rating.GetType(), rating.GetHeight(), rating.GetId(), rating.GetValue());
-            stmt->Step();
+            )sql")
+            .Bind(*rating.GetType(), rating.GetHeight(), rating.GetId(), rating.GetValue())
+            .Step();
         });
     }
 }

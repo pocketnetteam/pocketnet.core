@@ -12,7 +12,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            auto& stmt = Sql(R"sql(
                 select Version
                 from System
                 where Db = ?
@@ -32,7 +32,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            auto& stmt = Sql(R"sql(
                 update System
                     set Version = ?
                 where Db = ?

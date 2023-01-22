@@ -47,8 +47,9 @@ namespace PocketDb
 
     private:
 
-        void RollbackBlockingList(int height);
-        void ClearBlockingList();
+        // void RollbackBlockingList(int height);
+        // void ClearBlockingList();
+        
         void RollbackHeight(int height);
         void RestoreOldLast(int height);
 
@@ -56,7 +57,7 @@ namespace PocketDb
         void IndexBlockData(const std::string& blockHash);
         void InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast);
 
-        pair<optional<int64_t>, optional<int64_t>> IndexSocial(shared_ptr<Stmt> stmt, const string& txHash);
+        pair<optional<int64_t>, optional<int64_t>> IndexSocial(const string& sql, const string& txHash);
         pair<optional<int64_t>, optional<int64_t>> IndexAccount(const string& txHash);
         pair<optional<int64_t>, optional<int64_t>> IndexAccountSetting(const string& txHash);
         pair<optional<int64_t>, optional<int64_t>> IndexContent(const string& txHash);

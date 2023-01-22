@@ -25,7 +25,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(address);
 
@@ -54,7 +54,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
             
             stmt->Bind(postHash);
 
@@ -82,7 +82,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(postHash);
 
@@ -121,7 +121,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(boostHash);
 
@@ -163,7 +163,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(repostHash);
 
@@ -202,7 +202,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(addressTo);
 
@@ -242,7 +242,7 @@ namespace PocketDb
 //
 //        TryTransactionStep(__func__, [&]()
 //        {
-//            auto stmt = SetupSqlStatement(sql);
+//            auto& stmt = Sql(sql);
 //
 //            TryBindStatementText(stmt, 1, userHash);
 //
@@ -282,7 +282,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(postScoreHash);
 
@@ -321,7 +321,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(subscribeHash);
 
@@ -359,7 +359,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(commentScoreHash);
 
@@ -411,7 +411,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(commentHash);
 
@@ -458,7 +458,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
 
             stmt->Bind(height, address);
 

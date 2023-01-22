@@ -20,12 +20,12 @@ namespace PocketDb
         TryTransactionBulk(__func__, {
 
             // Clear old data - this first init simple migration
-            SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 delete from BlockingLists
             )sql"),
 
             // Insert new last values
-            SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 insert into BlockingLists
                 (
                     IdSource,
@@ -76,7 +76,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
+            auto& stmt = Sql(R"sql(
                 select 1
                 from Transactions b
                 join Chain bc
@@ -108,7 +108,7 @@ namespace PocketDb
                 limit 1
             )sql");
 
-            result = (stmt->Step() == SQLITE_ROW);
+            result = (stmt.Step() == SQLITE_ROW);
         });
 
         return result;

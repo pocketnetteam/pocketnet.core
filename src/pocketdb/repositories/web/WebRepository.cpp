@@ -22,7 +22,7 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
+            auto& stmt = Sql(sql);
             stmt->Bind(blockHash);
 
             while (stmt->Step() == SQLITE_ROW)
@@ -57,37 +57,33 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Insert new tags and ignore exists with unique index Lang+Value
-            auto tagsStmt = SetupSqlStatement(R"sql(
+            auto& stmt = Sql(R"sql(
                 insert or ignore
                 into web.Tags (Lang, Value)
                 values )sql" + join(vector<string>(contentTags.size(), "(?,?)"), ",") + R"sql(
             )sql");
             for (const auto& tag: contentTags)
-            {
-                tagsStmt->Bind(tag.Lang, tag.Value);
-            }
-            tagsStmt->Step();
+                stmt.Bind(tag.Lang, tag.Value);
+            stmt.Step();
 
             // Delete exists mappings ContentId <-> TagId
-            auto idsStmt = SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 delete from web.TagsMap
                 where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-            )sql");
-            idsStmt->Bind(ids);
-            idsStmt->Step();
+            )sql").Bind(ids).Step();
 
             // Insert new mappings ContentId <-> TagId
             for (const auto& contentTag : contentTags)
             {
-                auto stmt = SetupSqlStatement(R"sql(
+                Sql(R"sql(
                     insert or ignore
                     into web.TagsMap (ContentId, TagId) values (
                         ?,
                         (select t.Id from web.Tags t where t.Value = ? and t.Lang = ?)
                     )
-                )sql");
-                stmt->Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang);
-                stmt->Step();
+                )sql")
+                .Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang);
+                .Step();
             }
         });
     }
@@ -115,13 +111,12 @@ namespace PocketDb
        
        TryTransactionStep(__func__, [&]()
        {
-           auto stmt = SetupSqlStatement(sql);
-           stmt->Bind(blockHash);
+           auto& stmt = Sql(sql).Bind(blockHash);
 
-           while (stmt->Step() == SQLITE_ROW)
+           while (stmt.Step() == SQLITE_ROW)
            {
-                auto[okType, type] = stmt->TryGetColumnInt(0);
-                auto[okId, id] = stmt->TryGetColumnInt64(1);
+                auto[okType, type] = stmt.TryGetColumnInt(0);
+                auto[okId, id] = stmt.TryGetColumnInt64(1);
                 if (!okType || !okId)
                     continue;
 
@@ -129,37 +124,37 @@ namespace PocketDb
                 {
                 case ACCOUNT_USER:
 
-                    if (auto[ok, string2] = stmt->TryGetColumnString(3); ok)
+                    if (auto[ok, string2] = stmt.TryGetColumnString(3); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
 
-                    if (auto[ok, string4] = stmt->TryGetColumnString(5); ok)    
+                    if (auto[ok, string4] = stmt.TryGetColumnString(5); ok)    
                         result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
 
-                    // if (auto[ok, string5] = stmt->TryGetColumnString(6); ok)
+                    // if (auto[ok, string5] = stmt.TryGetColumnString(6); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
 
                     break;
                 case CONTENT_POST:
 
-                    if (auto[ok, string2] = stmt->TryGetColumnString(3); ok)
+                    if (auto[ok, string2] = stmt.TryGetColumnString(3); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
                     
-                    if (auto[ok, string3] = stmt->TryGetColumnString(4); ok)
+                    if (auto[ok, string3] = stmt.TryGetColumnString(4); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
 
-                    // if (auto[ok, string7] = stmt->TryGetColumnString(8); ok)
+                    // if (auto[ok, string7] = stmt.TryGetColumnString(8); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
 
                     break;
                 case CONTENT_VIDEO:
 
-                    if (auto[ok, string2] = stmt->TryGetColumnString(3); ok)
+                    if (auto[ok, string2] = stmt.TryGetColumnString(3); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
 
-                    if (auto[ok, string3] = stmt->TryGetColumnString(4); ok)
+                    if (auto[ok, string3] = stmt.TryGetColumnString(4); ok)
                         result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
 
-                    // if (auto[ok, string7] = stmt->TryGetColumnString(8); ok)
+                    // if (auto[ok, string7] = stmt.TryGetColumnString(8); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
 
                     break;
@@ -171,7 +166,7 @@ namespace PocketDb
                 // case CONTENT_COMMENT_EDIT:
 
                     // TODO (aok): implement extract message from JSON
-                    // if (auto[ok, string1] = stmt->TryGetColumnString(2); ok)
+                    // if (auto[ok, string1] = stmt.TryGetColumnString(2); ok)
                     //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 
                     // break;
@@ -202,30 +197,28 @@ namespace PocketDb
             // ---------------------------------------------------------
             int64_t nTime1 = GetTimeMicros();
 
-            auto delContentStmt = SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 delete from web.Content
                 where ROWID in (
                     select cm.ROWID from ContentMap cm where cm.ContentId in (
                         )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql(
                     )
                 )
-            )sql");
-
-            delContentStmt->Bind(ids);
-            delContentStmt->Step();
+            )sql")
+            .Bind(ids)
+            .Step();
 
             // ---------------------------------------------------------
             int64_t nTime2 = GetTimeMicros();
 
-            auto delContentMapStmt = SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 delete from web.ContentMap
                 where ContentId in (
                     )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql(
                 )
-            )sql");
-
-            delContentMapStmt->Bind(ids);
-            delContentMapStmt->Step();
+            )sql")
+            .Bind(ids)
+            .Step();
 
             // ---------------------------------------------------------
             int64_t nTime3 = GetTimeMicros();
@@ -234,22 +227,22 @@ namespace PocketDb
             {
                 SetLastInsertRowId(0);
 
-                auto stmtMap = SetupSqlStatement(R"sql(
+                Sql(R"sql(
                     insert or ignore into ContentMap (ContentId, FieldType) values (?,?)
-                )sql");
-                stmtMap->Bind(contentItm.ContentId, (int)contentItm.FieldType);
-                stmtMap->Step();
+                )sql")
+                .Bind(contentItm.ContentId, (int)contentItm.FieldType);
+                .Step();
 
                 // ---------------------------------------------------------
 
                 auto lastRowId = GetLastInsertRowId();
                 if (lastRowId > 0)
                 {
-                    auto stmtContent = SetupSqlStatement(R"sql(
+                    Sql(R"sql(
                         replace into web.Content (ROWID, Value) values (?,?)
-                    )sql");
-                    stmtContent->Bind(lastRowId, contentItm.Value);
-                    stmtContent->Step();
+                    )sql")
+                    .Bind(lastRowId, contentItm.Value);
+                    .Step();
                 }
                 else
                 {
@@ -276,13 +269,12 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear badges table before insert new values
-            auto stmtClear = SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 delete from web.Badges
-            )sql");
-            stmtClear->Step();
+            )sql").Step();
 
             // Clear old Last record
-            auto stmtInsert = SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 insert into web.Badges (AccountId, Badge)
                 select uc.Uid, 1
                 from Transactions u
@@ -297,9 +289,9 @@ namespace PocketDb
                   and ifnull((select r.Value from Ratings r where r.Type = 112 and r.Last = 1 and r.Uid = uc.Uid),0) >= ?
                   and ifnull((select r.Value from Ratings r where r.Type = 113 and r.Last = 1 and r.Uid = uc.Uid),0) >= ?
                   and ? - (select min(reg1.Height) from Chain reg1 where reg1.Uid = uc.Uid) > ?
-            )sql");
-            stmtInsert->Bind(cond.LikersAll, cond.LikersContent, cond.LikersComment, cond.LikersAnswer, cond.Height, cond.RegistrationDepth);
-            stmtInsert->Step();
+            )sql")
+            .Bind(cond.LikersAll, cond.LikersContent, cond.LikersComment, cond.LikersAnswer, cond.Height, cond.RegistrationDepth);
+            .Step();
         });
     }
 
@@ -308,18 +300,18 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             // Clear badges table before insert new values
-            SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 delete from web.Authors
-            )sql")->Step();
+            )sql").Step();
 
             // Clear old Last record
-            SetupSqlStatement(R"sql(
+            Sql(R"sql(
                 insert into web.Authors (AccountId, SharkCommented)
           
                 select
           
-                  pu.Id
-                  ,count( distinct u.Id )
+                  pu.Id,
+                  count( distinct u.Id )
           
                 from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
           
@@ -348,7 +340,7 @@ namespace PocketDb
                   and p.Height is not null
           
                 group by pu.Id
-            )sql")->Step();
+            )sql").Step();
         });
     }
 }
