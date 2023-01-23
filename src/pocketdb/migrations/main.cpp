@@ -245,7 +245,8 @@ namespace PocketDb
 
 
         _indexes = R"sql(
-            create index if not exists Chain_Uid on Chain (Uid desc);
+            create index if not exists Chain_Uid_Height on Chain (Uid, Height);
+            create index if not exists Chain_Height_Uid on Chain (Height, Uid);
             create index if not exists Chain_Height_BlockId on Chain (Height, BlockId);
 
             create unique index if not exists Registry_String on Registry (String);

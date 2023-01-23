@@ -55,15 +55,15 @@ namespace PocketDb
 
         // Returns blockId
         void IndexBlockData(const std::string& blockHash);
-        void InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast);
+        void InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id);
 
-        pair<optional<int64_t>, optional<int64_t>> IndexSocial(const string& sql, const string& txHash);
-        pair<optional<int64_t>, optional<int64_t>> IndexAccount(const string& txHash);
-        pair<optional<int64_t>, optional<int64_t>> IndexAccountSetting(const string& txHash);
-        pair<optional<int64_t>, optional<int64_t>> IndexContent(const string& txHash);
-        pair<optional<int64_t>, optional<int64_t>> IndexComment(const string& txHash);
-        pair<optional<int64_t>, optional<int64_t>> IndexBlocking(const string& txHash);
-        pair<optional<int64_t>, optional<int64_t>> IndexSubscribe(const string& txHash);
+        pair<optional<int64_t>, optional<int64_t>> IndexSocial(const TransactionIndexingInfo& txInfo);
+        string IndexAccount();
+        string IndexAccountSetting();
+        string IndexContent();
+        string IndexComment();
+        string IndexBlocking();
+        string IndexSubscribe();
 
         void ClearOldLast(const int64_t& txId);
 

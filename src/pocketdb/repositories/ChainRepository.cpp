@@ -8,45 +8,6 @@ namespace PocketDb
 {
     void ChainRepository::IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
-        struct ChainData
-        {
-            const TransactionIndexingInfo indexingInfo;
-            const optional<int64_t> lastTxId; 
-            const optional<int64_t> id;
-        };
-
-        vector<ChainData> chainData;
-        SqlTransaction(__func__, [&]()
-        {
-            for (const auto& txInfo: txs)
-            {
-                // Account and Content must have unique ID
-                // Also all edited transactions must have Last=(0/1) field
-                optional<int64_t> id;
-                optional<int64_t> lastTxId;
-                if (txInfo.IsAccount())
-                    tie(id, lastTxId) = IndexAccount(txInfo.Hash);
-
-                if (txInfo.IsAccountSetting())
-                    tie(id, lastTxId) = IndexAccountSetting(txInfo.Hash);
-
-                if (txInfo.IsContent())
-                    tie(id, lastTxId) = IndexContent(txInfo.Hash);
-
-                if (txInfo.IsComment())
-                    tie(id, lastTxId) = IndexComment(txInfo.Hash);
-
-                if (txInfo.IsBlocking())
-                    tie(id, lastTxId) = IndexBlocking(txInfo.Hash);
-
-                if (txInfo.IsSubscribe())
-                    tie(id, lastTxId) = IndexSubscribe(txInfo.Hash);
-
-                ChainData data{txInfo, lastTxId, id};
-                chainData.emplace_back(data);
-            }
-        });
-
         SqlTransaction(__func__, [&]()
         {
             int64_t nTime1 = GetTimeMicros();
@@ -54,19 +15,20 @@ namespace PocketDb
             IndexBlockData(blockHash);
 
             // Each transaction is processed individually
-            for (const auto& txInfo : chainData)
+            for (const auto& txInfo : txs)
             {
-                if (txInfo.lastTxId)
-                    ClearOldLast(*txInfo.lastTxId);
+                auto[id, lastTxId] = IndexSocial(txInfo);
+
+                if (lastTxId)
+                    ClearOldLast(*lastTxId);
 
                 // All transactions must have a blockHash & height relation
                 InsertTransactionChainData(
                     blockHash,
-                    txInfo.indexingInfo.BlockNumber,
+                    txInfo.BlockNumber,
                     height,
-                    txInfo.indexingInfo.Hash,
-                    txInfo.id,
-                    txInfo.id.has_value() /* each tx with id should have last */
+                    txInfo.Hash,
+                    id
                 );
             }
 
@@ -88,7 +50,7 @@ namespace PocketDb
     tuple<bool, bool> ChainRepository::ExistsBlock(const string& blockHash, int height)
     {
         int exists = 0;
-        int last = 0;
+        int last = 1;
 
         SqlTransaction(__func__, [&]()
         {
@@ -98,6 +60,7 @@ namespace PocketDb
                         select
                             1
                         from
+                            block,
                             Chain c indexed by Chain_Height_BlockId
                         where
                             c.Height = ? and
@@ -121,11 +84,11 @@ namespace PocketDb
                         limit 1
                     ), 0)
             )sql")
-            .Bind(blockHash, height, height + 1)
+            .Bind(height, blockHash, height + 1)
             .Collect(exists, last);
         });
 
-        return { exists == 1, last == 1 };
+        return { exists == 1, last == 0 };
     }
 
     void ChainRepository::IndexBlockData(const string& blockHash)
@@ -138,7 +101,7 @@ namespace PocketDb
         .Step();
     }
 
-    void ChainRepository::InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id, bool fIsCreateLast)
+    void ChainRepository::InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id)
     {
         Sql(R"sql(
             with
@@ -178,7 +141,7 @@ namespace PocketDb
         .Bind(blockHash, txHash, blockNumber, height, id)
         .Step();
 
-        if (fIsCreateLast)
+        if (id.has_value())
         {
             Sql(R"sql(
                 insert into Last
@@ -278,20 +241,38 @@ namespace PocketDb
         .Step();
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const string& sql, const string& txHash)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const TransactionIndexingInfo& txInfo)
     {
         optional<int64_t> id;
         optional<int64_t> lastTxId;
+        string sql;
 
-        if (!Sql(sql).Bind(txHash).Collect(id, lastTxId))
+        // Account and Content must have unique ID
+        // Also all edited transactions must have Last=(0/1) field
+        if (txInfo.IsAccount())
+            sql = IndexAccount();
+        else if (txInfo.IsAccountSetting())
+            sql = IndexAccountSetting();
+        else if (txInfo.IsContent())
+            sql = IndexContent();
+        else if (txInfo.IsComment())
+            sql = IndexComment();
+        else if (txInfo.IsBlocking())
+            sql = IndexBlocking();
+        else if (txInfo.IsSubscribe())
+            sql = IndexSubscribe();
+        else
+            return {id, lastTxId};
+
+        if (!Sql(sql).Bind(txInfo.Hash).Collect(id, lastTxId))
             throw runtime_error("IndexSocial failed - no return data");
         
         return {id, lastTxId};
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccount(const string& txHash)
+    string ChainRepository::IndexAccount()
     {
-        return IndexSocial(R"sql(
+        return R"sql(
             with
                 l as (
                     select
@@ -329,7 +310,7 @@ namespace PocketDb
                             select
                                 max(c.Uid) + 1
                             from
-                                Chain c indexed by Chain_Uid
+                                Chain c indexed by Chain_Uid_Height
                         ),
                         -- for first record
                         (
@@ -341,13 +322,12 @@ namespace PocketDb
                     select l.RowId
                     from l
                 )
-        )sql",
-        txHash);
+        )sql";
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexAccountSetting(const string& txHash)
+    string ChainRepository::IndexAccountSetting()
     {
-        return IndexSocial(R"sql(
+        return R"sql(
             with
                 l as (
                     select
@@ -385,7 +365,7 @@ namespace PocketDb
                             select
                                 max(c.Uid) + 1
                             from
-                                Chain c indexed by Chain_Uid
+                                Chain c indexed by Chain_Uid_Height
                         ),
                         -- for first record
                         (
@@ -397,13 +377,12 @@ namespace PocketDb
                     select l.RowId
                     from l
                 )
-        )sql",
-        txHash);
+        )sql";
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexContent(const string& txHash)
+    string ChainRepository::IndexContent()
     {
-        return IndexSocial(R"sql(
+        return R"sql(
             with
                 l as (
                     select
@@ -442,7 +421,7 @@ namespace PocketDb
                             select
                                 max(c.Uid) + 1
                             from
-                                Chain c indexed by Chain_Uid
+                                Chain c indexed by Chain_Uid_Height
                         ),
                         -- for first record
                         (
@@ -454,13 +433,12 @@ namespace PocketDb
                     select l.RowId
                     from l
                 )
-        )sql",
-        txHash);
+        )sql";
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexComment(const string& txHash)
+    string ChainRepository::IndexComment()
     {
-        return IndexSocial(R"sql(
+        return R"sql(
             with
                 l as (
                     select
@@ -499,7 +477,7 @@ namespace PocketDb
                             select
                                 max(c.Uid) + 1
                             from
-                                Chain c indexed by Chain_Uid
+                                Chain c indexed by Chain_Uid_Height
                         ),
                         -- for first record
                         (
@@ -511,13 +489,12 @@ namespace PocketDb
                     select l.RowId
                     from l
                 )
-        )sql",
-        txHash);
+        )sql";
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexBlocking(const string& txHash)
+    string ChainRepository::IndexBlocking()
     {
-        return IndexSocial(R"sql(
+        return R"sql(
             with
                 l as (
                     select
@@ -557,7 +534,7 @@ namespace PocketDb
                             select
                                 max(c.Uid) + 1
                             from
-                                Chain c indexed by Chain_Uid
+                                Chain c indexed by Chain_Uid_Height
                         ),
                         -- for first record
                         (
@@ -569,8 +546,7 @@ namespace PocketDb
                     select l.RowId
                     from l
                 )
-        )sql",
-        txHash);
+        )sql";
 
         // TODO (optimization): bad bad bad!!!
         // SqlTransaction(__func__, [&]()
@@ -624,9 +600,9 @@ namespace PocketDb
         // });
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSubscribe(const string& txHash)
+    string ChainRepository::IndexSubscribe()
     {
-        return IndexSocial(R"sql(
+        return R"sql(
             with
                 l as (
                     select
@@ -665,7 +641,7 @@ namespace PocketDb
                             select
                                 max(c.Uid) + 1
                             from
-                                Chain c indexed by Chain_Uid
+                                Chain c indexed by Chain_Uid_Height
                         ),
                         -- for first record
                         (
@@ -677,8 +653,7 @@ namespace PocketDb
                     select l.RowId
                     from l
                 )
-        )sql",
-        txHash);
+        )sql";
     }
 
 
@@ -734,18 +709,53 @@ namespace PocketDb
     {
         int64_t nTime0 = GetTimeMicros();
 
-        // ----------------------------------------
-        // Restore old Last transactions
-        // TODO (losty-critical): validate!!!
+        // Delete current last records
         Sql(R"sql(
-            insert into Last (TxId) -- TODO (optimization): index
-            select TxId from (
-                select c.TxId, max(c.Height)Height
-                from Chain c
-                where c.Uid > 0 and not exists (select 1 from Last l where l.TxId = c.TxId)
-                group by c.Uid
-            )
+            delete from Last
+            where
+                TxId in (
+                    select
+                        c.TxId
+                    from
+                        Chain c indexed by Chain_Height_Uid
+                    where
+                        c.Height >= ?
+                )
         )sql")
+        .Bind(height)
+        .Step();
+
+        // Restore old Last transactions
+        Sql(R"sql(
+            with
+                height as (
+                    select ? as value
+                ),
+                prev as (
+                    select
+                        c.Uid, max(cc.Height)maxHeight
+                    from
+                        height,
+                        Chain c indexed by Chain_Height_Uid
+                        cross join Last l -- primary key
+                            on l.TxId = c.TxId
+                        cross join Chain cc indexed by Chain_Uid_Height
+                            on cc.Uid = c.Uid and cc.Height < height.value
+                    where
+                        c.Height >= height.value
+                    group by c.Uid
+                )
+            insert into
+                Last (TxId)
+            select
+                cp.TxId
+            from
+                prev
+                cross join Chain cp indexed by Chain_Uid_Height
+                    on cp.Uid = prev.Uid and
+                    cp.Height = prev.maxHeight
+        )sql")
+        .Bind(height)
         .Step();
 
         int64_t nTime1 = GetTimeMicros();
@@ -778,9 +788,7 @@ namespace PocketDb
         // Restore Last for deleting balances
         Sql(R"sql(
             update Balances set
-
                 Last = 1
-
             from (
                 select
 
@@ -819,7 +827,12 @@ namespace PocketDb
 
         Sql(R"sql(
             delete from Last
-            where TxId in (select c.TxId from Chain c where c.Height > ?)
+            where
+                TxId in (
+                    select c.TxId
+                    from Chain c indexed by Chain_Height_BlockId
+                    where c.Height >= ?
+                )
         )sql")
         .Bind(height)
         .Step();
@@ -827,8 +840,8 @@ namespace PocketDb
         // ----------------------------------------
         // Rollback general transaction information
         Sql(R"sql(
-            delete from Chain
-            WHERE Height >= ?
+            delete from Chain indexed by Chain_Height_BlockId
+            where Height >= ?
         )sql")
         .Bind(height)
         .Step();
@@ -836,40 +849,29 @@ namespace PocketDb
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Chain:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
 
-        // TODO (optimization): delete blocks from db?
-        // Sql(R"sql(
-        //     delete from Blocks
-        //     where Height >= ?
-        // )sql")
-        // TryBindStatementInt(stmt1, 1, height);
-        // TryStepStatement(stmt1);
-
-        int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Blocks:Height = null): %.2fms\n", 0.001 * (nTime2 - nTime1));
-
         // ----------------------------------------
         // Remove ratings
         Sql(R"sql(
-            delete from Ratings
+            delete from Ratings indexed by Ratings_Height_Last
+            where Height >= ?
+        )sql")
+        .Bind(height)
+        .Step();
+
+        int64_t nTime2 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime2 - nTime1));
+
+        // ----------------------------------------
+        // Remove balances
+        Sql(R"sql(
+            delete from Balances indexed by Balances_Height
             where Height >= ?
         )sql")
         .Bind(height)
         .Step();
 
         int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime3 - nTime2));
-
-        // ----------------------------------------
-        // Remove balances
-        Sql(R"sql(
-            delete from Balances
-            where Height >= ?
-        )sql")
-        .Bind(height)
-        .Step();
-
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime4 - nTime3));
+        LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime3 - nTime2));
     }
 
     // void ChainRepository::RollbackBlockingList(int height)
