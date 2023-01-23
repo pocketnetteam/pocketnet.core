@@ -57,7 +57,6 @@ namespace PocketDb
 
         void CleanTransaction(const string& hash);
         void CleanMempool();
-        void Clean();
 
         // TODO (lostystyg): need?
         // optional<string> TxIdToHash(const int64_t& id);

@@ -60,7 +60,6 @@ namespace PocketDb
                         select
                             1
                         from
-                            block,
                             Chain c indexed by Chain_Height_BlockId
                         where
                             c.Height = ? and

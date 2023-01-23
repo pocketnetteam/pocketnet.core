@@ -565,9 +565,12 @@ namespace PocketDb
         {
             result = (
                 Sql(R"sql(
-                    select 1
-                    from Transactions
-                    where Hash = ?
+                    select
+                        1
+                    from
+                        vTxRowId
+                    where
+                        String = ?
                 )sql")
                 .Bind(hash)
                 .Step() == SQLITE_ROW
@@ -584,10 +587,14 @@ namespace PocketDb
         {
             result = (
                 Sql(R"sql(
-                    select 1
-                    from Transactions
-                    where Hash = ?
-                    and Height is not null
+                    select
+                        1
+                    from 
+                        vTxRowId t
+                        cross join Chain c -- primary key
+                            on c.TxId = t.RowId
+                    where
+                        t.String = ''
                 )sql")
                 .Bind(hash)
                 .Step() == SQLITE_ROW
@@ -603,27 +610,15 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select count()
-                from Transactions
-                where Height isnull
-                and Type != 3
+                select
+                    (select count() from Transactions)
+                    -
+                    (select count() from Chain)
             )sql")
             .Collect(result);
         });
 
         return result;
-    }
-
-    void TransactionRepository::Clean()
-    {
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                delete from Transactions
-                where Height is null
-            )sql")
-            .Step();
-        });
     }
 
     void TransactionRepository::CleanTransaction(const string& hash)
@@ -632,37 +627,81 @@ namespace PocketDb
         {
             // Clear Payload tablew
             Sql(R"sql(
+                with
+                    tx as (
+                        select
+                            t.ROWID
+                        from
+                            vTxRowId t
+                        where
+                            t.String = ?
+                    )
                 delete from Payload
-                where TxHash = ?
-                  and exists(
-                    select 1
-                    from Transactions t
-                    where t.Hash = Payload.TxHash
-                      and t.Height isnull
-                  )
+                where
+                    TxId = (select RowId from tx) and
+                    not exists (
+                        select
+                            1
+                        from
+                            tx,
+                            Chain c -- primary key
+                        where
+                            c.TxId = tx.RowId
+                    )
             )sql")
             .Bind(hash)
             .Step();
 
             // Clear TxOutputs table
             Sql(R"sql(
+                with
+                    tx as (
+                        select
+                            t.ROWID
+                        from
+                            vTxRowId t
+                        where
+                            t.String = ?
+                    )
                 delete from TxOutputs
-                where TxHash = ?
-                  and exists(
-                    select 1
-                    from Transactions t
-                    where t.Hash = TxOutputs.TxHash
-                      and t.Height isnull
-                  )
+                where
+                    TxId = (select RowId from tx) and
+                    not exists (
+                        select
+                            1
+                        from
+                            tx,
+                            Chain c -- primary key
+                        where
+                            c.TxId = tx.RowId
+                    )
             )sql")
             .Bind(hash)
             .Step();
 
             // Clear Transactions table
             Sql(R"sql(
+                with
+                    tx as (
+                        select
+                            t.ROWID
+                        from
+                            vTxRowId t
+                        where
+                            t.String = ?
+                    )
                 delete from Transactions
-                where Hash = ?
-                  and Height isnull
+                where
+                    RowId = (select RowId from tx) and
+                    not exists (
+                        select
+                            1
+                        from
+                            tx,
+                            Chain c -- primary key
+                        where
+                            c.TxId = tx.RowId
+                    )
             )sql")
             .Bind(hash)
             .Step();
@@ -676,29 +715,45 @@ namespace PocketDb
             // Clear Payload table
             Sql(R"sql(
                 delete from Payload
-                where TxHash in (
-                  select t.Hash
-                  from Transactions t
-                  where t.Height is null
-                )
+                where
+                    not exists (
+                        select
+                            1
+                        from
+                            Chain c
+                        where
+                            c.TxId = Payload.TxId
+                    )
             )sql")
             .Step();
 
             // Clear TxOutputs table
             Sql(R"sql(
                 delete from TxOutputs
-                where TxHash in (
-                  select t.Hash
-                  from Transactions t
-                  where t.Height is null
-                )
+                where
+                    not exists (
+                        select
+                            1
+                        from
+                            Chain c
+                        where
+                            c.TxId = TxOutputs.TxId
+                    )
             )sql")
             .Step();
 
             // Clear Transactions table
             Sql(R"sql(
                 delete from Transactions
-                where Height isnull
+                where
+                    not exists (
+                        select
+                            1
+                        from
+                            Chain c
+                        where
+                            c.TxId = Transactions.RowId
+                    )
             )sql")
             .Step();
         });
@@ -1000,11 +1055,13 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(R"sql(
-                select r.String, t.RowId
-                from Transactions t
-                join Registry r
-                    on t.HashId = r.RowId
-                    and r.String in  ( )sql" + txReplacers + R"sql( )
+                select
+                    String,
+                    RowId
+                from
+                    vTxRowId
+                where
+                    String in ( )sql" + txReplacers + R"sql( )
             )sql")
             .Bind(txHashes);
 
