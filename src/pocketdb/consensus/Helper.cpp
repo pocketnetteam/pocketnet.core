@@ -11,6 +11,7 @@ namespace PocketConsensus
     ArticleConsensusFactory SocialConsensusHelper::m_articleFactory;
     StreamConsensusFactory SocialConsensusHelper::m_streamFactory;
     AudioConsensusFactory SocialConsensusHelper::m_audioFactory;
+    CollectionConsensusFactory SocialConsensusHelper::m_collectionFactory;
     AccountSettingConsensusFactory SocialConsensusHelper::m_accountSettingFactory;
     AccountDeleteConsensusFactory SocialConsensusHelper::m_accountDeleteFactory;
     AccountUserConsensusFactory SocialConsensusHelper::m_accountUserFactory;
@@ -184,6 +185,8 @@ namespace PocketConsensus
                 return m_streamFactory.Instance(height)->Check(tx, static_pointer_cast<Stream>(ptx));
             case CONTENT_AUDIO:
                 return m_audioFactory.Instance(height)->Check(tx, static_pointer_cast<Audio>(ptx));
+            case CONTENT_COLLECTION:
+                return m_collectionFactory.Instance(height)->Check(tx, static_pointer_cast<Collection>(ptx));
             case CONTENT_COMMENT:
                 return m_commentFactory.Instance(height)->Check(tx, static_pointer_cast<Comment>(ptx));
             case CONTENT_COMMENT_EDIT:
@@ -258,6 +261,8 @@ namespace PocketConsensus
                 return m_streamFactory.Instance(height)->Validate(tx, static_pointer_cast<Stream>(ptx), pBlock);
             case CONTENT_AUDIO:
                 return m_audioFactory.Instance(height)->Validate(tx, static_pointer_cast<Audio>(ptx), pBlock);
+            case CONTENT_COLLECTION:
+                return m_collectionFactory.Instance(height)->Validate(tx, static_pointer_cast<Collection>(ptx), pBlock);
             case CONTENT_COMMENT:
                 return m_commentFactory.Instance(height)->Validate(tx, static_pointer_cast<Comment>(ptx), pBlock);
             case CONTENT_COMMENT_EDIT:

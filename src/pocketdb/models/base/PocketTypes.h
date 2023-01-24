@@ -38,6 +38,8 @@ namespace PocketTx
     #define OR_STREAM "73747265616d" // Post for stream hosting
     #define OR_AUDIO "617564696f" // Post for audio hosting
 
+    #define OR_COLLECTION "636f6c6c656374696f6e" // Collection of contents
+
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
     #define OR_TRANSLATE "7472616e736c617465"                 // Post for translating words
@@ -76,13 +78,15 @@ namespace PocketTx
         ACCOUNT_SETTING = 103,
         ACCOUNT_DELETE = 170,
 
+        CONTENT_DELETE = 207,
+
         CONTENT_POST = 200,
         CONTENT_VIDEO = 201,
         CONTENT_ARTICLE = 202,
         // CONTENT_SERVERPING = 203,
         CONTENT_STREAM = 209,
         CONTENT_AUDIO = 210,
-        CONTENT_DELETE = 207,
+        CONTENT_COLLECTION = 220,
 
         CONTENT_COMMENT = 204,
         CONTENT_COMMENT_EDIT = 205,
@@ -174,6 +178,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_ARTICLE ||
                    Type == TxType::CONTENT_STREAM ||
                    Type == TxType::CONTENT_AUDIO ||
+                   Type == TxType::CONTENT_COLLECTION ||
                    Type == TxType::CONTENT_DELETE;
         }
 
