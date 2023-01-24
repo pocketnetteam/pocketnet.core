@@ -97,6 +97,17 @@ namespace PocketTx
     void Collection::SetContentTypes(const int64_t& value) { m_int1 = value; }
 
     const optional<string>& Collection::GetContentIds() const { return m_string3; }
+    const tuple<bool, vector<string>>& Collection::GetContentIdsVector() const
+    {
+        vector<string> contentIds;
+
+        UniValue ids(UniValue::VARR);
+        ids.read(*GetContentIds());
+        for (size_t i = 0; i < ids.size(); ++i)
+            contentIds.emplace_back(ids[i].get_str());
+
+        return {contentIds.size() != 0, contentIds};
+    }
     void Collection::SetContentIds(const string &value) { m_string3 = value; }
 
     optional<string> Collection::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullopt; }

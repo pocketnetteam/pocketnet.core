@@ -38,8 +38,27 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress()))
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentTypes())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentIds())) return {false, SocialConsensusResult_Failed};
+//            if (!IsEmpty(ptx->GetContentIds()) )
+//            {
+//                UniValue ids(UniValue::VARR);
+//                if (!ids.read(*ptx->GetContentIds()))
+//                    return {false, SocialConsensusResult_Failed};
+//                if (ids.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
+//                    return {false, SocialConsensusResult_Failed};
+//            }
+            if(auto[contentIdsOk, contentIds] = ptx->GetContentIdsVector(); !contentIdsOk)
                 return {false, SocialConsensusResult_Failed};
+            else
+            {
+                // Contents should be exists in chain
+                if(auto[lastContentsOk, lastContents] =
+                        PocketDb::ConsensusRepoInst.GetLastContents(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
+                !lastContentsOk && lastContents.size() != contentIds.size())
+                    return {false, SocialConsensusResult_Failed};
+            }
 
             return Success;
         }
