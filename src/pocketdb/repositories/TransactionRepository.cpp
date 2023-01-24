@@ -479,15 +479,25 @@ namespace PocketDb
         }
 
         TransactionReconstructor reconstructor(initData);
+        bool recRes = true;
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql).Bind(txHashes);
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (!reconstructor.FeedRow(stmt))
-                    throw runtime_error("Transaction::List feedRow failed - no return data");
-            }
+            Sql(sql)
+            .Bind(txHashes)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step())
+                {
+                    if (!reconstructor.FeedRow(stmt)) {
+                        recRes = false;
+                        break;
+                    }
+                }
+            });
         });
+
+        if (!recRes) {
+            throw runtime_error("Transaction::List feedRow failed - no return data");
+        }
 
         auto pBlock = make_shared<PocketBlock>();
         for (auto& collectData: reconstructor.GetResult())
@@ -598,7 +608,7 @@ namespace PocketDb
                         t.String = ''
                 )sql")
                 .Bind(hash)
-                .Step() == SQLITE_ROW
+                .Run() == SQLITE_ROW
             );
         });
 
@@ -653,7 +663,7 @@ namespace PocketDb
                     )
             )sql")
             .Bind(hash)
-            .Step();
+            .Run();
 
             // Clear TxOutputs table
             Sql(R"sql(
@@ -680,7 +690,7 @@ namespace PocketDb
                     )
             )sql")
             .Bind(hash)
-            .Step();
+            .Run();
 
             // Clear Transactions table
             Sql(R"sql(
@@ -707,7 +717,7 @@ namespace PocketDb
                     )
             )sql")
             .Bind(hash)
-            .Step();
+            .Run();
         });
     }
 
@@ -728,7 +738,7 @@ namespace PocketDb
                             c.TxId = Payload.TxId
                     )
             )sql")
-            .Step();
+            .Run();
 
             // Clear TxOutputs table
             Sql(R"sql(
@@ -743,7 +753,7 @@ namespace PocketDb
                             c.TxId = TxOutputs.TxId
                     )
             )sql")
-            .Step();
+            .Run();
 
             // Clear Transactions table
             Sql(R"sql(
@@ -758,7 +768,7 @@ namespace PocketDb
                             c.TxId = Transactions.RowId
                     )
             )sql")
-            .Step();
+            .Run();
         });
     }
 
@@ -802,7 +812,7 @@ namespace PocketDb
                 input.GetSpentTxHash(),
                 txHash,
                 input.GetNumber()
-            ).Step(true);
+            ).Run();
         }
     }
     
@@ -862,7 +872,7 @@ namespace PocketDb
                 output.GetValue(),
                 output.GetScriptPubKey(),
                 output.GetNumber()
-            ).Step(true);
+            ).Run();
         }
     }
 
@@ -921,7 +931,7 @@ namespace PocketDb
             payload.GetString6(),
             payload.GetString7(),
             payload.GetInt1()
-        ).Step();
+        ).Run();
     }
 
     void TransactionRepository::InsertTransactionModel(const CollectData& collectData)
@@ -997,7 +1007,7 @@ namespace PocketDb
             collectData.txContextData.string3,
             collectData.txContextData.string4,
             collectData.txContextData.string5)
-        .Step();
+        .Run();
     }
 
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(Stmt& stmt, bool includedPayload)
@@ -1167,7 +1177,7 @@ namespace PocketDb
             )sql" + join(vector<string>(strings.size(), "(?)"), ",") + R"sql( ;
         )sql")
         .Bind(strings)
-        .Step();
+        .Run();
     }
 
     void TransactionRepository::InsertRegistryLists(const vector<string> &lists)
@@ -1181,7 +1191,7 @@ namespace PocketDb
         )sql");
 
         for (const auto& list: lists) {
-            stmt.Bind(list).Step(true);
+            stmt.Bind(list).Run();
         }
     }
 
@@ -1201,7 +1211,7 @@ namespace PocketDb
                 )
         )sql")
         .Bind(txHash, list)
-        .Step();
+        .Run();
     }
 
 } // namespace PocketDb
