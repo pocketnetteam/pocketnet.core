@@ -25,7 +25,7 @@ namespace PocketConsensus
             // Actual content not deleted
             auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COLLECTION, CONTENT_DELETE }
             );
 
             if (!ok)

@@ -175,6 +175,7 @@ POCKETDB_H = \
     pocketdb/consensus/social/Article.hpp \
     pocketdb/consensus/social/Stream.hpp \
     pocketdb/consensus/social/Audio.hpp \
+    pocketdb/consensus/social/Collection.hpp \
     pocketdb/consensus/social/BoostContent.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
     pocketdb/consensus/social/ScoreContent.hpp \
@@ -224,6 +225,7 @@ POCKETDB_H = \
     pocketdb/models/dto/content/Article.h \
     pocketdb/models/dto/content/Stream.h \
     pocketdb/models/dto/content/Audio.h \
+    pocketdb/models/dto/content/Collection.h \
     pocketdb/models/dto/moderation/Flag.h \
     \
     pocketdb/models/web/WebTag.h \
@@ -320,6 +322,7 @@ POCKETDB_CPP = \
     pocketdb/models/dto/content/Article.cpp \
     pocketdb/models/dto/content/Stream.cpp \
     pocketdb/models/dto/content/Audio.cpp \
+    pocketdb/models/dto/content/Collection.cpp \
     pocketdb/models/dto/moderation/Flag.cpp \
     pocketdb/models/shortform/ShortForm.cpp \
     pocketdb/models/shortform/ShortAccount.cpp \

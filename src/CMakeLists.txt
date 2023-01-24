@@ -609,6 +609,8 @@ add_library(${POCKETDB}
         pocketdb/models/dto/content/Stream.cpp
         pocketdb/models/dto/content/Audio.h
         pocketdb/models/dto/content/Audio.cpp
+        pocketdb/models/dto/content/Collection.h
+        pocketdb/models/dto/content/Collection.cpp
         pocketdb/models/dto/content/Comment.h
         pocketdb/models/dto/content/Comment.cpp
         pocketdb/models/dto/content/CommentEdit.h
@@ -1141,6 +1143,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/Video.hpp
         pocketdb/consensus/social/Stream.hpp
         pocketdb/consensus/social/Audio.hpp
+        pocketdb/consensus/social/Collection.hpp
+        pocketdb/consensus/social/Collection.hpp
         pocketdb/consensus/social/ScoreComment.hpp
         pocketdb/consensus/social/ScoreContent.hpp
         pocketdb/consensus/social/Subscribe.hpp

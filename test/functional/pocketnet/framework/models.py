@@ -212,6 +212,35 @@ class ContentDeletePayload:
 
 # -----------------------------------------------------------------------------------------------------------------
 
+class ContentCollectionsPayload:
+    TxType = '636f6c6c656374696f6e'
+    TxEdit = ''
+    Language = ''
+    Caption = ''
+    Image = ''
+    ContentTypes = 0
+    ContentIds = ''
+
+    def __init__(self, language='en', caption='captions', image='image', contenttypes=0, contentids=['123', '456'], txEdit=''):
+        self.TxEdit = txEdit
+        self.Language = language
+        self.Caption = caption
+        self.Image = image
+        self.ContentTypes = contenttypes
+        self.ContentIds = contentids
+
+    def Serialize(self):
+        return {
+            "txidEdit": self.TxEdit,
+            "l": self.Language,
+            "c": self.Caption,
+            "i": self.Image,
+            "contentTypes": self.ContentTypes,
+            "contentIds": self.ContentIds
+        }
+
+# -----------------------------------------------------------------------------------------------------------------
+
 class CommentDeletePayload:
     TxType = '636f6d6d656e7444656c657465'
     PostId = ''

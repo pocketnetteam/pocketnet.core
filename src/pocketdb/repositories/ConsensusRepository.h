@@ -83,6 +83,7 @@ namespace PocketDb
 
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);
+        tuple<bool, vector<PTransactionRef>>GetLastContents(const vector<string>& rootHashes, const vector<TxType>& types);
         tuple<bool, TxType> GetLastAccountType(const string& address);
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
         tuple<bool, TxType> GetLastBlockingType(const string& address, const string& addressTo);
@@ -151,6 +152,9 @@ namespace PocketDb
         int CountMempoolAudio(const string& address);
         int CountChainAudio(const string& address, int height);
 
+        int CountMempoolCollection(const string& address);
+        int CountChainCollection(const string& address, int height);
+
         int CountMempoolScoreComment(const string& address);
         int CountChainScoreCommentTime(const string& address, int64_t time);
         int CountChainScoreCommentHeight(const string& address, int height);
@@ -181,6 +185,9 @@ namespace PocketDb
 
         int CountMempoolAudioEdit(const string& address, const string& rootTxHash);
         int CountChainAudioEdit(const string& address, const string& rootTxHash);
+
+        int CountMempoolCollectionEdit(const string& address, const string& rootTxHash);
+        int CountChainCollectionEdit(const string& address, const string& rootTxHash);
 
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
 
