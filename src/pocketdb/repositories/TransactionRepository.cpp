@@ -810,7 +810,7 @@ namespace PocketDb
         {
             stmt.Bind(
                 input.GetSpentTxHash(),
-                txHash,
+                input.GetTxHash(),
                 input.GetNumber()
             ).Run();
         }
@@ -1012,9 +1012,6 @@ namespace PocketDb
 
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(Stmt& stmt, bool includedPayload)
     {
-        // TODO (lostystyg): move deserialization logic to models ?
-        // aok: думаю нет - пусть пока тут будет
-
         auto[ok0, _txType] = stmt.TryGetColumnInt(0);
         auto[ok1, txHash] = stmt.TryGetColumnString(1);
         auto[ok2, nTime] = stmt.TryGetColumnInt64(2);
