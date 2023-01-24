@@ -47,6 +47,7 @@ int PocketDb::Stmt::_step()
 
 bool PocketDb::Stmt::Step()
 {
+    m_currentCollectIndex = 0;
     return (_step() == SQLITE_ROW);
 }
 
