@@ -251,7 +251,8 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < StreamConsensus>> m_rules = {
-                { 9999999, 1531000, 0, [](int height) { return make_shared<StreamConsensus>(height); }}, //TODO (o1q): change checkpoint height
+            //TODO (release): set height
+            { 9999999, 1531000, 0, [](int height) { return make_shared<StreamConsensus>(height); }},
         };
     public:
         shared_ptr<StreamConsensus> Instance(int height)

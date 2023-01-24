@@ -268,6 +268,7 @@ namespace PocketConsensus
         ConsensusLimit_bad_reputation,
 
         moderation_flag_count,
+        moderation_flag_max_value,
         moderation_jury_flag_count,
         moderation_jury_flag_depth,
         moderation_jury_moders_count,
@@ -674,6 +675,11 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 100} }},
             { NetworkRegTest, { {0, 100} } }
         }},
+        { moderation_flag_max_value, {
+            { NetworkMain,    { {0, 4}, {9999999, 5} }}, // TODO (release): set actual height
+            { NetworkTest,    { {0, 4}, {1531000, 5} }},
+            { NetworkRegTest, { {0, 5} } }
+        }},
 
         // JURY
         { moderation_jury_flag_count, {
@@ -682,7 +688,7 @@ namespace PocketConsensus
             { NetworkRegTest, { {0, 2} } }
         }},
         { moderation_jury_flag_depth, {
-            { NetworkMain,    { {0, 43200} }}, // TODO (moderation): set actual depth
+            { NetworkMain,    { {0, 43200} }},
             { NetworkTest,    { {0, 4320} }},
             { NetworkRegTest, { {0, 10} } }
         }},
