@@ -125,7 +125,7 @@ namespace PocketConsensus
         const vector<ConsensusCheckpoint<ModerationVoteConsensus>> m_rules = {
             {       0,      -1, -1, [](int height) { return make_shared<ModerationVoteConsensus>(height); }},
             // TODO (moderation): set height
-            { 9999999, 9999999,  0, [](int height) { return make_shared<ModerationVoteConsensus_checkpoint_enable>(height); }},
+            { 9999999, 1531000,  0, [](int height) { return make_shared<ModerationVoteConsensus_checkpoint_enable>(height); }},
         };
     public:
         shared_ptr<ModerationVoteConsensus> Instance(int height)
