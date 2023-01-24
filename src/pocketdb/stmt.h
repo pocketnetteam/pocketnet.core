@@ -72,8 +72,7 @@ namespace PocketDb
             return st;
         }
 
-        template<typename T>
-        int Select(T func)
+        int Select(const std::function<void(Stmt&)>& func)
         {
             func(*this);
             return Reset();
