@@ -29,7 +29,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
                 if (auto[ok, value] = stmt.TryGetColumnString(1); ok) result.pushKV("name", value);
@@ -58,7 +58,7 @@ namespace PocketDb
             
             stmt.Bind(postHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("lang", value);
             }
@@ -86,7 +86,7 @@ namespace PocketDb
 
             stmt.Bind(postHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("hash", value);
                 if (auto[ok, value] = stmt.TryGetColumnString(1); ok) result.pushKV("rootHash", value);
@@ -125,7 +125,7 @@ namespace PocketDb
 
             stmt.Bind(boostHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("hash", value);
                 if (auto[ok, value] = stmt.TryGetColumnString(1); ok) result.pushKV("boostAddress", value);
@@ -167,7 +167,7 @@ namespace PocketDb
 
             stmt.Bind(repostHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("hash", value);
                 if (auto[ok, value] = stmt.TryGetColumnString(1); ok) result.pushKV("address", value);
@@ -206,7 +206,7 @@ namespace PocketDb
 
             stmt.Bind(addressTo);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 UniValue record(UniValue::VOBJ);
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addressTo", value);
@@ -286,7 +286,7 @@ namespace PocketDb
 
             stmt.Bind(postScoreHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("postTxHash", value);
                 if (auto[ok, value] = stmt.TryGetColumnString(1); ok) result.pushKV("value", value);
@@ -325,7 +325,7 @@ namespace PocketDb
 
             stmt.Bind(subscribeHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("addressTo", value);
                 if (auto[ok, value] = stmt.TryGetColumnString(1); ok) result.pushKV("nameFrom", value);
@@ -363,7 +363,7 @@ namespace PocketDb
 
             stmt.Bind(commentScoreHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("commentHash", value);
                 if (auto[ok, value] = stmt.TryGetColumnString(1); ok) result.pushKV("value", value);
@@ -415,7 +415,7 @@ namespace PocketDb
 
             stmt.Bind(commentHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] =stmt.TryGetColumnString(0); ok) result.pushKV("postHash", value);
                 if (auto[ok, value] =stmt.TryGetColumnString(1); ok) result.pushKV("parentHash", value); else result.pushKV("parentHash", "");
@@ -462,7 +462,7 @@ namespace PocketDb
 
             stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] =stmt.TryGetColumnInt(0); ok) result.pushKV("cntTotal", value);
                 if (auto[ok, value] =stmt.TryGetColumnInt(1); ok) result.pushKV("cntPost", value);

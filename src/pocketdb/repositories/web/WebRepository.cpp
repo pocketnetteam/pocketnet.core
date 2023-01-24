@@ -25,7 +25,7 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(blockHash);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 auto[okId, id] = stmt.TryGetColumnInt64(0);
                 if (!okId) continue;
@@ -113,7 +113,7 @@ namespace PocketDb
        {
            auto& stmt = Sql(sql).Bind(blockHash);
 
-           while (stmt.Step() == SQLITE_ROW)
+           while (stmt.Step())
            {
                 auto[okType, type] = stmt.TryGetColumnInt(0);
                 auto[okId, id] = stmt.TryGetColumnInt64(1);

@@ -1078,7 +1078,7 @@ namespace PocketDb
             )sql")
             .Bind(txHashes)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW) {
+                while (stmt.Step()) {
                     auto[ok1, hash] = stmt.TryGetColumnString(0);
                     auto[ok2, txId] = stmt.TryGetColumnInt64(1);
                     if (ok1 && ok2) res.emplace(hash, txId);
@@ -1137,7 +1137,7 @@ namespace PocketDb
     //     {
     //         auto& stmt = Sql(sql);
     //         stmt.Bind(id);
-    //         if (stmt.Step() == SQLITE_ROW)
+    //         if (stmt.Step())
     //             if (auto [ok, val] = stmt.TryGetColumnString(0); ok)
     //                 hash = val;
     //     });
@@ -1158,7 +1158,7 @@ namespace PocketDb
     //     {
     //         auto& stmt = Sql(sql);
     //         stmt.Bind(hash);
-    //         if (stmt.Step() == SQLITE_ROW)
+    //         if (stmt.Step())
     //             if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
     //                 id = val;
     //     });

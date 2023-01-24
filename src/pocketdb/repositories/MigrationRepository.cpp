@@ -110,7 +110,7 @@ namespace PocketDb
                 limit 1
             )sql");
 
-            result = (stmt.Step() == SQLITE_ROW);
+            result = (stmt.Step());
         });
 
         return result;

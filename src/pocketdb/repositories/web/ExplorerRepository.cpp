@@ -22,7 +22,7 @@ namespace PocketDb
 
             stmt.Bind(bottomHeight, topHeight);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 auto [ok0, sHeight] = stmt.TryGetColumnInt(0);
                 auto [ok1, sType] = stmt.TryGetColumnInt(1);
@@ -53,7 +53,7 @@ namespace PocketDb
 
             stmt.Bind(period, top - (depth * period), top, period);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 auto [okPart, part] = stmt.TryGetColumnString(0);
                 auto [okType, type] = stmt.TryGetColumnString(1);
@@ -89,7 +89,7 @@ namespace PocketDb
 
             stmt.Bind(topHeight, topHeight - depth);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 auto [okPart, part] = stmt.TryGetColumnString(0);
                 auto [okType, type] = stmt.TryGetColumnString(1);
@@ -125,7 +125,7 @@ namespace PocketDb
 
             stmt.Bind(topHeight, topHeight - depth);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 auto [okPart, part] = stmt.TryGetColumnInt(0);
                 auto [okType, type] = stmt.TryGetColumnInt(1);
@@ -171,7 +171,7 @@ namespace PocketDb
 
             stmt.Bind(topHeight, topHeight - depth);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 auto [okPart, part] = stmt.TryGetColumnString(0);
                 auto [okCount, count] = stmt.TryGetColumnInt(1);
@@ -215,7 +215,7 @@ namespace PocketDb
 
             stmt.Bind(topHeight, topHeight - depth);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 auto [okPart, part] = stmt.TryGetColumnString(0);
                 auto [okCount, count] = stmt.TryGetColumnInt(1);
@@ -245,7 +245,7 @@ namespace PocketDb
                 group by t.Type
             )sql");
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 auto [okType, type] = stmt.TryGetColumnString(0);
                 auto [okCount, count] = stmt.TryGetColumnInt(1);
@@ -276,7 +276,7 @@ namespace PocketDb
 
             stmt.Bind(hashes);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 auto [ok0, address] = stmt.TryGetColumnString(0);
                 auto [ok1, height] = stmt.TryGetColumnInt(1);
@@ -309,7 +309,7 @@ namespace PocketDb
             stmt.Bind(address, pageInitBlock, pageSize, pageSize);
 
             int i = 0;
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     txHashes.emplace(value, i++);
@@ -336,7 +336,7 @@ namespace PocketDb
             stmt.Bind(blockHash, pageStart, pageSize);
 
             int i = 0;
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     txHashes.emplace(value, i++);
@@ -364,7 +364,7 @@ namespace PocketDb
 
             stmt.Bind(addresses, topHeight, count);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[okHeight, height] = stmt.TryGetColumnInt(0); okHeight)
                 {

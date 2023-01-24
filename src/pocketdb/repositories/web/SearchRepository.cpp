@@ -24,7 +24,7 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(keyword, request.PageSize, request.PageStart);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     result.push_back(value);
@@ -84,7 +84,7 @@ namespace PocketDb
             stmt.Bind(request.PageSize);
             stmt.Bind(request.PageStart);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
@@ -139,7 +139,7 @@ namespace PocketDb
             stmt.Bind(request.PageSize);
             stmt.Bind(request.PageStart);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) result.push_back(value);
             }
@@ -201,7 +201,7 @@ namespace PocketDb
                 10
             );
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     if (find(result.begin(), result.end(), value) == result.end())
@@ -336,7 +336,7 @@ namespace PocketDb
 
             stmt.Bind(cntOut);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     ids.push_back(value);
@@ -470,7 +470,7 @@ namespace PocketDb
                     cntOut
             );
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
@@ -514,7 +514,7 @@ namespace PocketDb
 
             stmt.Bind(contentTypes, contentAddress, cntOut);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);
@@ -581,7 +581,7 @@ namespace PocketDb
             if (rest)
                 stmt.Bind(cntOut);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                     ids.push_back(value);

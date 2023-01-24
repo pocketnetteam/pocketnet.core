@@ -26,7 +26,7 @@ namespace PocketDb
             )sql")
             .Bind(address)
             .Select([&](Stmt& stmt) {
-                if (stmt.Step() == SQLITE_ROW)
+                if (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
                     if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
@@ -53,7 +53,7 @@ namespace PocketDb
             )sql")
             .Bind(id)
             .Select([&](Stmt& stmt) {
-                if (stmt.Step() == SQLITE_ROW)
+                if (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
                     if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
@@ -84,7 +84,7 @@ namespace PocketDb
             )sql")
             .Bind(_name)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -124,7 +124,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(addresses)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -157,7 +157,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(count)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue addr(UniValue::VOBJ);
                     if (auto[ok, value] = stmt.TryGetColumnString(0); ok) addr.pushKV("address", value);
@@ -223,7 +223,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, address)
             .Select([&](Stmt& stmt) {
-                if (stmt.Step() == SQLITE_ROW)
+                if (stmt.Step())
                 {
                     int i = 0;
                     if (auto[ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("address_id", value);
@@ -277,7 +277,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(address)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                         result = value;
@@ -350,7 +350,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC, addresses)
             .Select([&](Stmt& stmt) {
-                if (stmt.Step() == SQLITE_ROW)
+                if (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
                     auto[ok0, address] = stmt.TryGetColumnString(0);
@@ -552,7 +552,7 @@ namespace PocketDb
             .Bind(firstFlagsDepth * 1440, addresses, ids)
             .Select([&](Stmt& stmt) {
                 // Fetch data
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -742,7 +742,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(lang, height, count)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -880,7 +880,7 @@ namespace PocketDb
             .Bind(address, (int64_t)(0.5 * COIN), ids)
             .Select([&](Stmt& stmt) {
                 // ---------------------------
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -1020,7 +1020,7 @@ namespace PocketDb
                 stmt.Bind(parentHash);
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -1167,7 +1167,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(addressHash, cmntHashes)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -1254,7 +1254,7 @@ namespace PocketDb
                 Sql(sql)
                 .Bind(addressHash, postHashes)
                 .Select([&](Stmt& stmt) {
-                    while (stmt.Step() == SQLITE_ROW)
+                    while (stmt.Step())
                     {
                         UniValue record(UniValue::VOBJ);
 
@@ -1299,7 +1299,7 @@ namespace PocketDb
                 Sql(sql)
                 .Bind(addressHash, commentHashes)
                 .Select([&](Stmt& stmt) {
-                    while (stmt.Step() == SQLITE_ROW)
+                    while (stmt.Step())
                     {
                         UniValue record(UniValue::VOBJ);
 
@@ -1353,7 +1353,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(postTxHash)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -1408,7 +1408,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(address, postHashes)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -1496,7 +1496,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(address, address)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -1545,7 +1545,7 @@ namespace PocketDb
         //     
         //     stmt.Bind(address);
         //
-        //     while (stmt.Step() == SQLITE_ROW)
+        //     while (stmt.Step())
         //     {
         //         UniValue record(UniValue::VOBJ);
         //         auto[ok, address] = stmt.TryGetColumnString(0);
@@ -1583,7 +1583,7 @@ namespace PocketDb
             )sql")
             .Bind(address)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                     if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                         result.push_back(value);
             });
@@ -1610,7 +1610,7 @@ namespace PocketDb
             )sql")
             .Bind(address)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                     if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                         result.push_back(value);
             });
@@ -1726,7 +1726,7 @@ namespace PocketDb
             stmt.Bind(countOut);
             stmt.Select([&](Stmt& stmt) {
                 // ---------------------------------------------
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.push_back(value);
                 }
@@ -1758,7 +1758,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(lang, pageSize, pageStart)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     auto[ok0, vLang] = stmt.TryGetColumnString(0);
                     auto[ok1, vValue] = stmt.TryGetColumnString(1);
@@ -1795,7 +1795,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(txHashes)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                         result.push_back(value);
@@ -1825,7 +1825,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(txHashes)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     auto[ok0, contenthash] = stmt.TryGetColumnString(0);
                     auto[ok1, contentaddress] = stmt.TryGetColumnString(1);
@@ -1865,7 +1865,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(addresses)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -1936,7 +1936,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(height)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     auto[okType, typeInt] = stmt.TryGetColumnInt(0);
                     auto[okLang, lang] = stmt.TryGetColumnString(1);
@@ -1979,7 +1979,7 @@ namespace PocketDb
             Sql(sqlCount)
             .Bind(height, address)
             .Select([&](Stmt& stmt) {
-                if (stmt.Step() == SQLITE_ROW)
+                if (stmt.Step())
                     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                         resultCount = value;
             });
@@ -2015,7 +2015,7 @@ namespace PocketDb
                 Sql(sql)
                 .Bind(height, address, count)
                 .Select([&](Stmt& stmt) {
-                    while (stmt.Step() == SQLITE_ROW)
+                    while (stmt.Step())
                     {
                         auto[okHash, hash] = stmt.TryGetColumnString(0);
                         auto[okTime, time] = stmt.TryGetColumnInt64(1);
@@ -2081,7 +2081,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(address)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2138,7 +2138,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(height, address)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2185,7 +2185,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(height, address, limit)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2235,7 +2235,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(address, height, limit)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2281,7 +2281,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(address, height, count)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     auto[okTxHash, txHash] = stmt.TryGetColumnString(0);
                     if (!okTxHash) continue;
@@ -2338,7 +2338,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(height, address, count)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2398,7 +2398,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(height, address, excludePosts, count)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2459,7 +2459,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(height, address, count)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2524,7 +2524,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(height, address, count)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2576,7 +2576,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(contentTypes, nHeight, links, countOut)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                         ids.push_back(value);
@@ -2623,7 +2623,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(contentTypes, addresses[0])
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2686,7 +2686,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(lang, contentTypes, nHeight, nHeight - depth, badReputationLimit, countOut)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                         ids.push_back(value);
@@ -2774,7 +2774,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(address, ids)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2980,7 +2980,7 @@ namespace PocketDb
             // ---------------------------------------------
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
                     ids.push_back(contentId);
@@ -3132,7 +3132,7 @@ namespace PocketDb
             // ---------------------------------------------
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
                     ids.push_back(contentId);
@@ -3317,7 +3317,7 @@ namespace PocketDb
             // ---------------------------------------------
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                         ids.push_back(value);
@@ -3452,7 +3452,7 @@ namespace PocketDb
             // ---------------------------------------------
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
                         ids.push_back(value);
@@ -3588,7 +3588,7 @@ namespace PocketDb
             // ---------------------------------------------
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
                     ids.push_back(contentId);
@@ -3733,7 +3733,7 @@ namespace PocketDb
             // ---------------------------------------------
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     HierarchicalRecord record{};
 
@@ -3948,7 +3948,7 @@ namespace PocketDb
             // ---------------------------------------------
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     int64_t contentId, sumBoost;
                     std::string contentHash;
@@ -4008,7 +4008,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(lang, height, count * 100, count)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) result.push_back(value);
                 }
@@ -4130,7 +4130,7 @@ namespace PocketDb
             Sql(sql)
             .Bind(postTxHash, postTxHash, postTxHash)
             .Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     UniValue record(UniValue::VOBJ);
                     if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
@@ -4944,7 +4944,7 @@ namespace PocketDb
             }
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     reconstructor.FeedRow(stmt);
                 }
@@ -5864,7 +5864,7 @@ namespace PocketDb
                     selectData.binding(stmt, queryParams);
 
                     stmt.Select([&](Stmt& stmt) {
-                        while (stmt.Step() == SQLITE_ROW)
+                        while (stmt.Step())
                             reconstructor.FeedRow(stmt);
                     });
                 });
@@ -6854,7 +6854,7 @@ namespace PocketDb
             }
 
             stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     reconstructor.FeedRow(stmt);
                 }
@@ -7036,7 +7036,7 @@ namespace PocketDb
             }
 
             stmt.Bind([&](Stmt& stmt) {
-                while (stmt.Step() == SQLITE_ROW)
+                while (stmt.Step())
                 {
                     reconstructor.FeedRow(stmt);
                 }

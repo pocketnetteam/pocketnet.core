@@ -137,7 +137,7 @@ namespace PocketDb
 
             stmt.Bind(address, depth, _name, _name);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 stmt.Collect(
                     result.LastTxType,
@@ -192,7 +192,7 @@ namespace PocketDb
 
             stmt.Bind(_name, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = (value > 0);
         });
@@ -238,7 +238,7 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(rootHash, rootHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
                     tx = transaction;
         });
@@ -285,7 +285,7 @@ namespace PocketDb
 
             stmt.Bind(types, rootHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
                     tx = transaction;
         });
@@ -317,7 +317,7 @@ namespace PocketDb
 
             stmt.Bind(addresses);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = (value == (int) addresses.size());
         });
@@ -344,7 +344,7 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                 {
@@ -377,7 +377,7 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo, addressesTo);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok && value > 0)
                 {
@@ -409,7 +409,7 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                 {
@@ -437,7 +437,7 @@ namespace PocketDb
 
             stmt.Bind(postHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
                     result = make_shared<string>(value);
         });
@@ -466,7 +466,7 @@ namespace PocketDb
 
             stmt.Bind(address, postHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = (value > 0);
         });
@@ -495,7 +495,7 @@ namespace PocketDb
 
             stmt.Bind(address, contentHash, (int) type);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = (value > 0);
         });
@@ -523,7 +523,7 @@ namespace PocketDb
             
             stmt.Bind(txHash, types);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 result = true;
         });
 
@@ -550,7 +550,7 @@ namespace PocketDb
 
             stmt.Bind(types, string1);
             
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 result = true;
         });
 
@@ -578,7 +578,7 @@ namespace PocketDb
 
             stmt.Bind(types, string1, string2);
             
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 result = true;
         });
 
@@ -605,7 +605,7 @@ namespace PocketDb
 
             stmt.Bind(txHash, types, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 result = true;
         });
 
@@ -629,7 +629,7 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -662,7 +662,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -687,7 +687,7 @@ namespace PocketDb
 
             stmt.Bind(addressId);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -715,7 +715,7 @@ namespace PocketDb
 
             stmt.Bind(addressId);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -770,7 +770,7 @@ namespace PocketDb
             )sql");
             stmt.Bind(address);
             
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 stmt.Collect(
                     result.AddressId,
@@ -832,7 +832,7 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(txHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 ScoreDataDto data;
 
@@ -900,7 +900,7 @@ namespace PocketDb
 
             stmt.Bind(minHeight, addresses);
 
-            while (stmt.Step() == SQLITE_ROW)
+            while (stmt.Step())
             {
                 if (auto[ok1, value1] = stmt.TryGetColumnString(1); ok1 && !value1.empty())
                     if (auto[ok2, value2] = stmt.TryGetColumnString(2); ok2 && !value2.empty())
@@ -932,7 +932,7 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, value] = stmt.TryGetColumnString(0); ok && !value.empty())
                 {
@@ -988,7 +988,7 @@ namespace PocketDb
                 scoreData->ScoreTxHash,
                 scoreData->ContentAddressHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = value;
         });
@@ -1040,7 +1040,7 @@ namespace PocketDb
                 scoreData->ScoreTxHash,
                 scoreData->ContentAddressHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = value;
         });
@@ -1066,7 +1066,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
             {
                 if (auto[ok, type] = stmt.TryGetColumnInt64(0); ok)
                     result = {true, (TxType)type};
@@ -1091,7 +1091,7 @@ namespace PocketDb
 
             stmt.Bind(hash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
                     result = { true, val };
         });
@@ -1119,7 +1119,7 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1142,7 +1142,7 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1166,7 +1166,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1190,7 +1190,7 @@ namespace PocketDb
 
             stmt.Bind(time, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1214,7 +1214,7 @@ namespace PocketDb
 
             stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1238,7 +1238,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1262,7 +1262,7 @@ namespace PocketDb
 
             stmt.Bind(time, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1286,7 +1286,7 @@ namespace PocketDb
 
             stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1310,7 +1310,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1334,7 +1334,7 @@ namespace PocketDb
 
             stmt.Bind(address, time);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1357,7 +1357,7 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1381,7 +1381,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1404,7 +1404,7 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1428,7 +1428,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1451,7 +1451,7 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1475,7 +1475,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1498,7 +1498,7 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1522,7 +1522,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1545,7 +1545,7 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1568,7 +1568,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1591,7 +1591,7 @@ namespace PocketDb
 
             stmt.Bind(address, time);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1614,7 +1614,7 @@ namespace PocketDb
 
             stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1637,7 +1637,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1660,7 +1660,7 @@ namespace PocketDb
 
             stmt.Bind(address, time);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1683,7 +1683,7 @@ namespace PocketDb
 
             stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1706,7 +1706,7 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1729,7 +1729,7 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1753,7 +1753,7 @@ namespace PocketDb
 
             stmt.Bind((int)txType, height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1779,7 +1779,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = value;
         });
@@ -1804,7 +1804,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1828,7 +1828,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1852,7 +1852,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1876,7 +1876,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1900,7 +1900,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1924,7 +1924,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1948,7 +1948,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1972,7 +1972,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -1996,7 +1996,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -2020,7 +2020,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -2044,7 +2044,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -2068,7 +2068,7 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -2094,7 +2094,7 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 
@@ -2119,7 +2119,7 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 stmt.Collect(result);
         });
 

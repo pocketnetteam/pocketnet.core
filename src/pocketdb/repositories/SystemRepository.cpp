@@ -20,7 +20,7 @@ namespace PocketDb
 
             stmt.Bind(db);
 
-            if (stmt.Step() == SQLITE_ROW)
+            if (stmt.Step())
                 if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
                     result = value;
         });
