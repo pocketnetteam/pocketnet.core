@@ -7035,7 +7035,7 @@ namespace PocketDb
                 bind(stmt, queryParams);
             }
 
-            stmt.Bind([&](Stmt& stmt) {
+            stmt.Select([&](Stmt& stmt) {
                 while (stmt.Step())
                 {
                     reconstructor.FeedRow(stmt);
