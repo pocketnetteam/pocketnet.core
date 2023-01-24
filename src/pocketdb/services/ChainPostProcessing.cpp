@@ -14,20 +14,44 @@ namespace PocketServices
         int64_t nTime1 = GetTimeMicros();
 
         IndexChain(block.GetHash().GetHex(), height, txs);
-
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
 
         IndexRatings(height, txs);
-
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
+
+        IndexModeration(height, txs);
+        int64_t nTime4 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "    - IndexModeration: %.2fms _ %d\n", 0.001 * (double)(nTime4 - nTime3), height);
+
+        IndexBadges(height);
+        int64_t nTime5 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "    - IndexBadges: %.2fms _ %d\n", 0.001 * (double)(nTime5 - nTime4), height);
     }
 
     bool ChainPostProcessing::Rollback(int height)
     {
-        LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", height - 1);
-        return PocketDb::ChainRepoInst.Rollback(height);
+        try
+        {
+            LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", height - 1);
+            
+            ChainRepoInst.RestoreOldLast(height);
+            ChainRepoInst.RollbackBlockingList(height);
+            ChainRepoInst.RollbackModerationJury(height);
+            ChainRepoInst.RollbackModerationBan(height);
+            ChainRepoInst.RollbackBadges(height);
+
+            // Rollback transactions must be lasted
+            ChainRepoInst.RollbackHeight(height);
+
+            return true;
+        }
+        catch (std::exception& ex)
+        {
+            LogPrintf("Error: Rollback to height %d failed with message: %s\n", height, ex.what());
+            return false;
+        }
     }
 
     void ChainPostProcessing::PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs)
@@ -56,7 +80,7 @@ namespace PocketServices
     // Set block height for all transactions in block
     void ChainPostProcessing::IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
-        PocketDb::ChainRepoInst.IndexBlock(blockHash, height, txs);
+        ChainRepoInst.IndexBlock(blockHash, height, txs);
     }
 
     void ChainPostProcessing::IndexRatings(int height, vector<TransactionIndexingInfo>& txs)
@@ -64,10 +88,9 @@ namespace PocketServices
         map<RatingType, map<int, int>> ratingValues;
         vector<ScoreDataDtoRef> distinctScores;
         map<RatingType, map<int, vector<int>>> likersValues;
-        // map<int, vector<int>> accountLikersSrc;
 
         // Actual consensus checker instance by current height
-        auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
 
         // Loop all transactions for find scores and increase ratings for accounts and contents
         for (const auto& txInfo : txs)
@@ -77,7 +100,7 @@ namespace PocketServices
                 continue;
 
             // Need select content id for saving rating
-            auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(txInfo.Hash);
+            auto scoreData = ConsensusRepoInst.GetScoreData(txInfo.Hash);
             if (!scoreData)
                 throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n", __func__, txInfo.Hash));
 
@@ -189,7 +212,62 @@ namespace PocketServices
             return;
 
         // Save all ratings in one transaction
-        PocketDb::RatingsRepoInst.InsertRatings(ratings);
+        RatingsRepoInst.InsertRatings(ratings);
+    }
+
+    // Indexing of the moderation subsystem includes the creation of "Jury" entries in case of collecting a sufficient number of flags.
+    // The verdicts of the moderators within the jury are also taken into account.
+    void ChainPostProcessing::IndexModeration(int height, vector<TransactionIndexingInfo>& txs)
+    {
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+
+        for (const auto& txInfo : txs)
+        {
+            if (txInfo.IsModerationFlag())
+            {
+                ChainRepoInst.IndexModerationJury(
+                    txInfo.Hash,
+                    reputationConsensus->GetHeight() - reputationConsensus->GetConsensusLimit(moderation_jury_flag_depth),
+                    reputationConsensus->GetConsensusLimit(moderation_jury_flag_count),
+                    reputationConsensus->GetConsensusLimit(moderation_jury_moders_count)
+                );
+            }
+
+            if (txInfo.IsModerationVote())
+            {
+                ChainRepoInst.IndexModerationBan(
+                    txInfo.Hash,
+                    reputationConsensus->GetConsensusLimit(moderation_jury_vote_count)
+                );
+            }
+        }
+    }
+
+    void ChainPostProcessing::IndexBadges(int height)
+    {
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+        if (reputationConsensus->UseBadges() && height % BadgePeriod() == 0)
+        {
+            const BadgeSharkConditions sharkConditions = {
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
+            };
+            ChainRepoInst.IndexBadges(height, sharkConditions);
+
+            const BadgeModeratorConditions moderatorConditions = {
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
+                (int)reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
+            };
+            ChainRepoInst.IndexBadges(height, moderatorConditions);
+
+            // TODO (moderation): get BadgeWhaleConditions
+        }
     }
 
 } // namespace PocketServices

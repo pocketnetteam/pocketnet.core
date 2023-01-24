@@ -99,7 +99,14 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_Duplicate};
 
             // Check limit
-            return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
+            return SocialConsensus::ValidateLimit(
+                moderation_flag_count,
+                ConsensusRepoInst.CountModerationFlag(
+                    *ptx->GetAddress(),
+                    Height - (int)GetConsensusLimit(ConsensusLimit_depth),
+                    true
+                )
+            );
         }
 
         vector<string> GetAddressesForCheckRegistration(const ModerationFlagRef& ptx) override
@@ -109,7 +116,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateLimit(const ModerationFlagRef& ptx, int count)
         {
-            if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
+            if (count >= GetConsensusLimit(moderation_flag_count))
                 return {false, SocialConsensusResult_ExceededLimit};
 
             return Success;

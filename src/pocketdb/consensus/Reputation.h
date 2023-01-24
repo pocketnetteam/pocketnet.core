@@ -149,6 +149,10 @@ namespace PocketConsensus
             auto accountData = ConsensusRepoInst.GetAccountData(address);
             return GetBadges(accountData, limit);
         }
+        virtual bool UseBadges()
+        {
+            return false;
+        }
 
         virtual AccountMode GetAccountMode(int reputation, int64_t balance)
         {
@@ -270,20 +274,6 @@ namespace PocketConsensus
                 ratingValues[scoreData->LikerType(true)][scoreData->ContentAddressId] += 1;
             }
         }
-    
-        virtual BadgeSharkConditions GetBadgeSharkConditions()
-        {
-            BadgeSharkConditions cond = {
-                Height,
-                GetConsensusLimit(threshold_shark_likers_all),
-                GetConsensusLimit(threshold_shark_likers_content),
-                GetConsensusLimit(threshold_shark_likers_comment),
-                GetConsensusLimit(threshold_shark_likers_comment_answer),
-                GetConsensusLimit(threshold_shark_reg_depth)
-            };
-
-            return cond;
-        }
     };
 
     // Consensus checkpoint at 151600 block
@@ -388,9 +378,13 @@ namespace PocketConsensus
                           && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
                           && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
 
-            // badgeSet.Moderator = TODO (aok): implement for future
+            badgeSet.Moderator = data.ModeratorBadge;
             
             return badgeSet;
+        }
+        virtual bool UseBadges()
+        {
+            return true;
         }
     };
 
@@ -419,7 +413,8 @@ namespace PocketConsensus
             ))->m_func(m_height);
         }
     };
-
+    
+    typedef shared_ptr<PocketConsensus::ReputationConsensus> ReputationConsensusRef;
     static ReputationConsensusFactory ReputationConsensusFactoryInst;
 }
 

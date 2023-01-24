@@ -10,6 +10,7 @@
 #include "pocketdb/repositories/web/WebRpcRepository.h"
 #include "pocketdb/repositories/web/ExplorerRepository.h"
 #include "pocketdb/repositories/web/SearchRepository.h"
+#include "pocketdb/repositories/web/ModerationRepository.h"
 #include "pocketdb/repositories/ConsensusRepository.h"
 #include "pocketdb/repositories/TransactionRepository.h"
 
@@ -34,6 +35,8 @@ namespace PocketDb
         WebRpcRepositoryRef WebRpcRepoInst;
         ExplorerRepositoryRef ExplorerRepoInst;
         SearchRepositoryRef SearchRepoInst;
+        ModerationRepositoryRef ModerationRepoInst;
+
         TransactionRepositoryRef TransactionRepoInst;
         ConsensusRepositoryRef ConsensusRepoInst;
 

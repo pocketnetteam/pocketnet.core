@@ -89,6 +89,9 @@ namespace PocketHelpers
         else if (op == OR_MODERATION_FLAG)
             return TxType::MODERATION_FLAG;
 
+        else if (op == OR_MODERATION_VOTE)
+            return TxType::MODERATION_VOTE;
+
         return TxType::TX_DEFAULT;
     }
 
@@ -175,6 +178,8 @@ namespace PocketHelpers
                 return "Boosts";
             case TxType::MODERATION_FLAG:
                 return "ModFlag";
+            case TxType::MODERATION_VOTE:
+                return "ModVote";
             default:
                 return "";
         }
@@ -370,6 +375,9 @@ namespace PocketHelpers
             case MODERATION_FLAG:
                 ptx = make_shared<ModerationFlag>(tx);
                 break;
+            case MODERATION_VOTE:
+                ptx = make_shared<ModerationVote>(tx);
+                break;
             default:
                 return nullptr;
         }
@@ -460,6 +468,9 @@ namespace PocketHelpers
             case MODERATION_FLAG:
                 ptx = make_shared<ModerationFlag>();
                 break;
+            case MODERATION_VOTE:
+                ptx = make_shared<ModerationVote>();
+                break;
             default:
                 return nullptr;
         }
@@ -520,6 +531,8 @@ namespace PocketHelpers
                 return "contentBoost";
             case MODERATION_FLAG:
                 return "modFlag";
+            case MODERATION_VOTE:
+                return "modVote";
             default:
                 return "";
         }
@@ -547,6 +560,7 @@ namespace PocketHelpers
         else if (type == "cScore" || type == OR_COMMENT_SCORE) return TxType::ACTION_SCORE_COMMENT;
         else if (type == "contentBoost" || type == OR_CONTENT_BOOST) return TxType::BOOST_CONTENT;
         else if (type == "modFlag") return TxType::MODERATION_FLAG;
+        else if (type == "modVote") return TxType::MODERATION_VOTE;
         else return TxType::NOT_SUPPORTED;
     }
 }

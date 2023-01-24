@@ -43,22 +43,8 @@ namespace PocketDb
         )sql");
 
         _tables.emplace_back(R"sql(
-            create table if not exists Badges
-            (
-                AccountId int not null,
-                Badge int not null,
-                primary key (AccountId, Badge)
-            );
+            drop table if exists Badges;
         )sql");
-
-        // _tables.emplace_back(R"sql(
-        //     create table if not exists Authors
-        //     (
-        //         AccountId int not null,
-        //         SharkCommented int not null,
-        //         primary key (AccountId)
-        //     );
-        // )sql");
 
         _indexes = R"sql(
             create unique index if not exists Tags_Lang_Value on Tags (Lang, Value);

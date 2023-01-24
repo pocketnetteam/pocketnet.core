@@ -31,7 +31,6 @@ namespace PocketTx
 
         optional<string> GetPayloadLang() const;
         optional<string> GetPayloadCaption() const;
-//        optional<string> GetPayloadMessage() const;
         optional<string> GetPayloadImage() const;
         optional<string> GetPayloadSettings() const;
 

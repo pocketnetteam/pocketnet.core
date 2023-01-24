@@ -2521,9 +2521,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     if (!gArgs.GetBoolArg("-withoutweb", false) && enablePocketConnect)
     {
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
-
-        if (pindex->nHeight % 100 == 0 && !IsInitialBlockDownload())
-            PocketServices::WebPostProcessorInst.Enqueue(pindex->nHeight);
+        PocketServices::WebPostProcessorInst.Enqueue(pindex->nHeight);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -5820,8 +5818,6 @@ bool LoadMempool(CTxMemPool& pool)
             pool.PrioritiseTransaction(i.first, i.second);
         }
 
-        pool.CleanSQLite(expiredHashes, MemPoolRemovalReason::EXPIRY);
-
         // TODO: remove this try except in v0.22
         LOCK(pool.cs);
         std::set<uint256> unbroadcast_txids;
@@ -5837,6 +5833,8 @@ bool LoadMempool(CTxMemPool& pool)
             // unbroadcast set.
             if (pool.get(txid) != nullptr) pool.AddUnbroadcastTx(txid);
         }
+
+        pool.CleanSQLite(expiredHashes, MemPoolRemovalReason::EXPIRY);
     }
     catch (const std::exception& e)
     {

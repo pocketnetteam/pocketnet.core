@@ -42,7 +42,6 @@ namespace PocketTx
 
         result->pushKV("lang", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "en");
         result->pushKV("caption", (m_payload && m_payload->GetString2()) ? *m_payload->GetString2() : "");
-//        result->pushKV("message", (m_payload && m_payload->GetString3()) ? *m_payload->GetString3() : "");
         result->pushKV("image", (m_payload && m_payload->GetString3()) ? *m_payload->GetString3() : "");
         result->pushKV("settings", (m_payload && m_payload->GetString4()) ? *m_payload->GetString4() : "");
 
@@ -75,7 +74,6 @@ namespace PocketTx
         else m_payload->SetString1("en");
 
         if (auto[ok, val] = TryGetStr(src, "c"); ok) m_payload->SetString2(val);
-//        if (auto[ok, val] = TryGetStr(src, "m"); ok) m_payload->SetString3(val);
         if (auto[ok, val] = TryGetStr(src, "i"); ok) m_payload->SetString3(val);
         if (auto[ok, val] = TryGetStr(src, "s"); ok) m_payload->SetString4(val);
     }
@@ -88,7 +86,6 @@ namespace PocketTx
         else m_payload->SetString1("en");
 
         if (auto[ok, val] = TryGetStr(src, "caption"); ok) m_payload->SetString2(val);
-//        if (auto[ok, val] = TryGetStr(src, "message"); ok) m_payload->SetString3(val);
         if (auto[ok, val] = TryGetStr(src, "image"); ok) m_payload->SetString3(val);
         if (auto[ok, val] = TryGetStr(src, "settings"); ok) m_payload->SetString4(val);
     }
@@ -112,7 +109,6 @@ namespace PocketTx
 
     optional<string> Collection::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullopt; }
     optional<string> Collection::GetPayloadCaption() const { return GetPayload() ? GetPayload()->GetString2() : nullopt; }
-//    optional<string> Collection::GetPayloadMessage() const { return GetPayload() ? GetPayload()->GetString3() : nullopt; }
     optional<string> Collection::GetPayloadImage() const { return GetPayload() ? GetPayload()->GetString3() : nullopt; }
     optional<string> Collection::GetPayloadSettings() const { return GetPayload() ? GetPayload()->GetString4() : nullopt; }
 

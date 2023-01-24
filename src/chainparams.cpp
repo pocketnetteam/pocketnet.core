@@ -409,7 +409,7 @@ public:
         networkId = NetworkRegTest;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 5000;
+        consensus.nSubsidyHalvingInterval = 15000;
         consensus.BIP16Exception = uint256();
         consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256();
