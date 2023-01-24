@@ -544,15 +544,15 @@ namespace PocketDb
             )sql")
             .Bind(txId, number)
             .Select([&](Stmt& stmt) {
-                if (stmt.Step() != SQLITE_ROW)
-                    return;
-
-                txOutput = make_shared<TransactionOutput>();
-                txOutput->SetTxHash(txHash);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) txOutput->SetNumber(value);
-                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) txOutput->SetAddressHash(value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) txOutput->SetValue(value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) txOutput->SetScriptPubKey(value);
+                if (stmt.Step())
+                {
+                    txOutput = make_shared<TransactionOutput>();
+                    txOutput->SetTxHash(txHash);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) txOutput->SetNumber(value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) txOutput->SetAddressHash(value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) txOutput->SetValue(value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) txOutput->SetScriptPubKey(value);
+                }
             });
         });
 

@@ -27,7 +27,7 @@ namespace PocketDb
         ~Stmt();
 
         void Init(SQLiteDatabase& db, const std::string& sql);
-        int Step();
+        bool Step();
         int Run();
         int Finalize();
         int Reset();
@@ -64,7 +64,7 @@ namespace PocketDb
         template <class ...Collects>
         int Collect(Collects&... collects)
         {
-            int st = Step();
+            int st = _step();
             if (st != SQLITE_ROW)
                 return st;
 
@@ -84,6 +84,7 @@ namespace PocketDb
         tuple<bool, int> TryGetColumnInt(int index);
 
     protected:
+        int _step();
         void ResetInternalIndicies();
 
     private:
