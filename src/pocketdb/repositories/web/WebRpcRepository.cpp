@@ -14,26 +14,24 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            SELECT String1, Id
-            FROM Transactions
-            WHERE Type in (100,170)
-              and Height is not null
-              and Last = 1
-              and String1 = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(address);
-
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
-            }
+            Sql(R"sql(
+                SELECT String1, Id
+                FROM Transactions
+                WHERE Type in (100,170)
+                and Height is not null
+                and Last = 1
+                and String1 = ?
+            )sql")
+            .Bind(address)
+            .Select([&](Stmt& stmt) {
+                if (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
+                }
+            });
         });
 
         return result;
@@ -43,26 +41,24 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            SELECT String1, Id
-            FROM Transactions
-            WHERE Type in (100,170)
-              and Height is not null
-              and Last = 1
-              and Id = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(id);
-
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
-            }
+            Sql(R"sql(
+                SELECT String1, Id
+                FROM Transactions
+                WHERE Type in (100,170)
+                and Height is not null
+                and Last = 1
+                and Id = ?
+            )sql")
+            .Bind(id)
+            .Select([&](Stmt& stmt) {
+                if (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
+                }
+            });
         });
 
         return result;
@@ -76,30 +72,28 @@ namespace PocketDb
 
         auto _name = EscapeValue(name);
 
-        string sql = R"sql(
-            select p.String2, u.String1
-            from Payload p indexed by Payload_String2_nocase_TxHash
-            cross join Transactions u indexed by Transactions_Hash_Height
-                on u.Type in (100) and u.Height > 0 and u.Hash = p.TxHash and u.Last = 1
-            where p.String2 like ? escape '\'
-            limit 1
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(R"sql(
+                select p.String2, u.String1
+                from Payload p indexed by Payload_String2_nocase_TxHash
+                cross join Transactions u indexed by Transactions_Hash_Height
+                    on u.Type in (100) and u.Height > 0 and u.Hash = p.TxHash and u.Last = 1
+                where p.String2 like ? escape '\'
+                limit 1
+            )sql")
+            .Bind(_name)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(_name);
+                    if (auto[ok, valueStr] = stmt.TryGetColumnString(0); ok) record.pushKV("name", valueStr);
+                    if (auto[ok, valueStr] = stmt.TryGetColumnString(1); ok) record.pushKV("address", valueStr);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                if (auto[ok, valueStr] = stmt.TryGetColumnString(0); ok) record.pushKV("name", valueStr);
-                if (auto[ok, valueStr] = stmt.TryGetColumnString(1); ok) record.pushKV("address", valueStr);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -127,20 +121,20 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(addresses)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(addresses);
+                    if (auto[ok, valueStr] = stmt.TryGetColumnString(0); ok) record.pushKV("address", valueStr);
+                    if (auto[ok, valueStr] = stmt.TryGetColumnString(1); ok) record.pushKV("time", valueStr);
+                    if (auto[ok, valueStr] = stmt.TryGetColumnString(2); ok) record.pushKV("txid", valueStr);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                if (auto[ok, valueStr] = stmt.TryGetColumnString(0); ok) record.pushKV("address", valueStr);
-                if (auto[ok, valueStr] = stmt.TryGetColumnString(1); ok) record.pushKV("time", valueStr);
-                if (auto[ok, valueStr] = stmt.TryGetColumnString(2); ok) record.pushKV("txid", valueStr);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -160,16 +154,17 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-            stmt.Bind(count);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue addr(UniValue::VOBJ);
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) addr.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) addr.pushKV("balance", value);
-                result.push_back(addr);
-            }
+            Sql(sql)
+            .Bind(count)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue addr(UniValue::VOBJ);
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) addr.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) addr.pushKV("balance", value);
+                    result.push_back(addr);
+                }
+            });
         });
 
         return result;
@@ -225,38 +220,38 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, address);
-
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                int i = 0;
-                if (auto[ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("address_id", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) result.pushKV("address", value);
-
-                bool isDeleted = false;
-                if (auto[ok, Type] = stmt.TryGetColumnInt(i++); ok)
+            Sql(sql)
+            .Bind(heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, address)
+            .Select([&](Stmt& stmt) {
+                if (stmt.Step() == SQLITE_ROW)
                 {
-                    isDeleted = (Type==TxType::ACCOUNT_DELETE);
-                    if (isDeleted) result.pushKV("deleted", true);
-                }
+                    int i = 0;
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("address_id", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) result.pushKV("address", value);
 
-                if (!isDeleted) {
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("post_spent", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("video_spent", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("article_spent", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("stream_spent", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("audio_spent", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("comment_spent", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("score_spent", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok)
-                        result.pushKV("comment_score_spent", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("complain_spent", value);
+                    bool isDeleted = false;
+                    if (auto[ok, Type] = stmt.TryGetColumnInt(i++); ok)
+                    {
+                        isDeleted = (Type==TxType::ACCOUNT_DELETE);
+                        if (isDeleted) result.pushKV("deleted", true);
+                    }
 
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("mod_flag_spent", value);
+                    if (!isDeleted) {
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("post_spent", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("video_spent", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("article_spent", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("stream_spent", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("audio_spent", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("comment_spent", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("score_spent", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok)
+                            result.pushKV("comment_score_spent", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("complain_spent", value);
+
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("mod_flag_spent", value);
+                    }
                 }
-            }
+            });
         });
 
         return result;
@@ -279,15 +274,15 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(address);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
-                    result = value;
-            }
+            Sql(sql)
+            .Bind(address)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
+                        result = value;
+                }
+            });
         });
 
         return result;
@@ -352,22 +347,22 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC, addresses)
+            .Select([&](Stmt& stmt) {
+                if (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
+                    auto[ok0, address] = stmt.TryGetColumnString(0);
+                    auto[ok1, ReferralsCountHist] = stmt.TryGetColumnInt(1);
+                    auto[ok2, CommentatorsCountHist] = stmt.TryGetColumnInt(2);
 
-            stmt.Bind(nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC, addresses);
-            
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-                auto[ok0, address] = stmt.TryGetColumnString(0);
-                auto[ok1, ReferralsCountHist] = stmt.TryGetColumnInt(1);
-                auto[ok2, CommentatorsCountHist] = stmt.TryGetColumnInt(2);
-
-                record.pushKV("address", address);
-                record.pushKV("histreferals", ReferralsCountHist);
-                record.pushKV("commentators", CommentatorsCountHist);
-                result.push_back(record);
-            }
+                    record.pushKV("address", address);
+                    record.pushKV("histreferals", ReferralsCountHist);
+                    record.pushKV("commentators", CommentatorsCountHist);
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -553,88 +548,89 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(firstFlagsDepth * 1440, addresses, ids)
+            .Select([&](Stmt& stmt) {
+                // Fetch data
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(firstFlagsDepth * 1440, addresses, ids);
-            // Fetch data
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
+                    int i = 0;
+                    auto[ok0, hash] = stmt.TryGetColumnString(i++);
+                    auto[ok1, address] = stmt.TryGetColumnString(i++);
+                    auto[ok2, id] = stmt.TryGetColumnInt64(i++);
+                    auto[ok3, Type] = stmt.TryGetColumnInt(i++);
+                    bool isDeleted = (Type==TxType::ACCOUNT_DELETE);
 
-                int i = 0;
-                auto[ok0, hash] = stmt.TryGetColumnString(i++);
-                auto[ok1, address] = stmt.TryGetColumnString(i++);
-                auto[ok2, id] = stmt.TryGetColumnInt64(i++);
-                auto[ok3, Type] = stmt.TryGetColumnInt(i++);
-                bool isDeleted = (Type==TxType::ACCOUNT_DELETE);
+                    record.pushKV("hash", hash);
+                    record.pushKV("address", address);
+                    record.pushKV("id", id);
+                    if (IsDeveloper(address)) record.pushKV("dev", true);
+                    if (isDeleted) record.pushKV("deleted", true);
 
-                record.pushKV("hash", hash);
-                record.pushKV("address", address);
-                record.pushKV("id", id);
-                if (IsDeveloper(address)) record.pushKV("dev", true);
-                if (isDeleted) record.pushKV("deleted", true);
+                    if(!isDeleted) {
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("name", value);
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("i", value);
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("b", value);
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("r", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("postcnt", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("dltdcnt", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("reputation", value / 10.0);
+                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("k", value);
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("a", value);
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("l", value);
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("s", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) record.pushKV("update", value);
+                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) record.pushKV("regdate", value);
 
-                if(!isDeleted) {
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("name", value);
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("i", value);
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("b", value);
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("r", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("postcnt", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("dltdcnt", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("reputation", value / 10.0);
-                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("k", value);
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("a", value);
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("l", value);
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("s", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) record.pushKV("update", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) record.pushKV("regdate", value);
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                            UniValue flags(UniValue::VOBJ);
+                            flags.read(value);
+                            record.pushKV("flags", flags);
+                        }
 
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
-                        UniValue flags(UniValue::VOBJ);
-                        flags.read(value);
-                        record.pushKV("flags", flags);
+                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                            UniValue flags(UniValue::VOBJ);
+                            flags.read(value);
+                            record.pushKV("firstFlags", flags);
+                        }
+
+                        if (!shortForm) {
+
+                            if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                                UniValue subscribes(UniValue::VARR);
+                                subscribes.read(value);
+                                record.pushKV("subscribes", subscribes);
+                            }
+
+                            if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                                UniValue subscribes(UniValue::VARR);
+                                subscribes.read(value);
+                                record.pushKV("subscribers", subscribes);
+                            }
+
+                            if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                                UniValue subscribes(UniValue::VARR);
+                                subscribes.read(value);
+                                record.pushKV("blocking", subscribes);
+                            }
+
+                            if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                                UniValue content(UniValue::VOBJ);
+                                content.read(value);
+                                record.pushKV("content", content);
+                            }
+                        }
                     }
 
-                    if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
-                        UniValue flags(UniValue::VOBJ);
-                        flags.read(value);
-                        record.pushKV("firstFlags", flags);
-                    }
-
-                    if (!shortForm) {
-
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
-                            UniValue subscribes(UniValue::VARR);
-                            subscribes.read(value);
-                            record.pushKV("subscribes", subscribes);
-                        }
-
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
-                            UniValue subscribes(UniValue::VARR);
-                            subscribes.read(value);
-                            record.pushKV("subscribers", subscribes);
-                        }
-
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
-                            UniValue subscribes(UniValue::VARR);
-                            subscribes.read(value);
-                            record.pushKV("blocking", subscribes);
-                        }
-
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
-                            UniValue content(UniValue::VOBJ);
-                            content.read(value);
-                            record.pushKV("content", content);
-                        }
-                    }
+                    result.emplace_back(address, id, record);
                 }
-
-                result.emplace_back(address, id, record);
-            }
+            });
         });
 
         return result;
@@ -743,43 +739,42 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            int i = 1;
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(lang, height, count);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                int i = 0;
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("id", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok)
+            Sql(sql)
+            .Bind(lang, height, count)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
                 {
-                    record.pushKV("time", value);
-                    record.pushKV("timeUpd", value);
-                }
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("block", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
-                if (auto[ok, value] = stmt.TryGetColumnString(i++); ok)
-                {
-                    record.pushKV("donation", "true");
-                    record.pushKV("amount", value);
-                }
+                    UniValue record(UniValue::VOBJ);
 
-                result.push_back(record);
-            }
+                    int i = 0;
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("id", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("postid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok)
+                    {
+                        record.pushKV("time", value);
+                        record.pushKV("timeUpd", value);
+                    }
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("block", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("msg", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
+                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok)
+                    {
+                        record.pushKV("donation", "true");
+                        record.pushKV("amount", value);
+                    }
+
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -881,46 +876,46 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(address, (int64_t)(0.5 * COIN), ids);
-
-            // ---------------------------
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                auto[okContentId, contentId] = stmt.TryGetColumnInt(0);
-                auto[okCommentId, commentId] = stmt.TryGetColumnInt(1);
-                auto[okType, txType] = stmt.TryGetColumnInt(2);
-                auto[okRoot, rootTxHash] = stmt.TryGetColumnString(3);
-
-                record.pushKV("id", rootTxHash);
-                record.pushKV("cid", commentId);
-                record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
-                record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("block", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(16); ok) record.pushKV("myScore", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(17); ok)
+            Sql(sql)
+            .Bind(address, (int64_t)(0.5 * COIN), ids)
+            .Select([&](Stmt& stmt) {
+                // ---------------------------
+                while (stmt.Step() == SQLITE_ROW)
                 {
-                    record.pushKV("donation", "true");
-                    record.pushKV("amount", value);
+                    UniValue record(UniValue::VOBJ);
+
+                    auto[okContentId, contentId] = stmt.TryGetColumnInt(0);
+                    auto[okCommentId, commentId] = stmt.TryGetColumnInt(1);
+                    auto[okType, txType] = stmt.TryGetColumnInt(2);
+                    auto[okRoot, rootTxHash] = stmt.TryGetColumnString(3);
+
+                    record.pushKV("id", rootTxHash);
+                    record.pushKV("cid", commentId);
+                    record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
+                    record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("postid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("timeUpd", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("block", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("msg", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(16); ok) record.pushKV("myScore", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(17); ok)
+                    {
+                        record.pushKV("donation", "true");
+                        record.pushKV("amount", value);
+                    }
+                                    
+                    result.emplace(contentId, record);
                 }
-                                
-                result.emplace(contentId, record);
-            }
+            });
         });
 
         return result;
@@ -1024,59 +1019,61 @@ namespace PocketDb
             if (!parentHash.empty())
                 stmt.Bind(parentHash);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                //auto[ok0, txHash] = stmt.TryGetColumnString(stmt, 1);
-                auto[ok1, rootTxHash] = stmt.TryGetColumnString(2);
-                record.pushKV("id", rootTxHash);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok)
-                    record.pushKV("postid", value);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("block", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("myScore", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(16); ok)
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
                 {
-                    record.pushKV("amount", value);
-                    record.pushKV("donation", "true");
-                }
+                    UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                {
-                    switch (static_cast<TxType>(value))
+                    //auto[ok0, txHash] = stmt.TryGetColumnString(stmt, 1);
+                    auto[ok1, rootTxHash] = stmt.TryGetColumnString(2);
+                    record.pushKV("id", rootTxHash);
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok)
+                        record.pushKV("postid", value);
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("block", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("msg", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(16); ok)
                     {
-                        case PocketTx::CONTENT_COMMENT:
-                            record.pushKV("deleted", false);
-                            record.pushKV("edit", false);
-                            break;
-                        case PocketTx::CONTENT_COMMENT_EDIT:
-                            record.pushKV("deleted", false);
-                            record.pushKV("edit", true);
-                            break;
-                        case PocketTx::CONTENT_COMMENT_DELETE:
-                            record.pushKV("deleted", true);
-                            record.pushKV("edit", true);
-                            break;
-                        default:
-                            break;
+                        record.pushKV("amount", value);
+                        record.pushKV("donation", "true");
                     }
-                }
 
-                result.push_back(record);
-            }
+                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+                    {
+                        switch (static_cast<TxType>(value))
+                        {
+                            case PocketTx::CONTENT_COMMENT:
+                                record.pushKV("deleted", false);
+                                record.pushKV("edit", false);
+                                break;
+                            case PocketTx::CONTENT_COMMENT_EDIT:
+                                record.pushKV("deleted", false);
+                                record.pushKV("edit", true);
+                                break;
+                            case PocketTx::CONTENT_COMMENT_DELETE:
+                                record.pushKV("deleted", true);
+                                record.pushKV("edit", true);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -1167,65 +1164,65 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(addressHash, cmntHashes);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                //auto[ok0, txHash] = stmt.TryGetColumnString(stmt, 1);
-                auto[ok1, rootTxHash] = stmt.TryGetColumnString(2);
-                record.pushKV("id", rootTxHash);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok)
-                    record.pushKV("postid", value);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("block", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("myScore", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(16); ok)
+            Sql(sql)
+            .Bind(addressHash, cmntHashes)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
                 {
-                    record.pushKV("amount", value);
-                    record.pushKV("donation", "true");
-                }
+                    UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = stmt.TryGetColumnInt(17); ok && value > 0) record.pushKV("blck", 1);
+                    //auto[ok0, txHash] = stmt.TryGetColumnString(stmt, 1);
+                    auto[ok1, rootTxHash] = stmt.TryGetColumnString(2);
+                    record.pushKV("id", rootTxHash);
 
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                {
-                    switch (static_cast<TxType>(value))
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok)
+                        record.pushKV("postid", value);
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("block", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("msg", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(16); ok)
                     {
-                        case PocketTx::CONTENT_COMMENT:
-                            record.pushKV("deleted", false);
-                            record.pushKV("edit", false);
-                            break;
-                        case PocketTx::CONTENT_COMMENT_EDIT:
-                            record.pushKV("deleted", false);
-                            record.pushKV("edit", true);
-                            break;
-                        case PocketTx::CONTENT_COMMENT_DELETE:
-                            record.pushKV("deleted", true);
-                            record.pushKV("edit", true);
-                            break;
-                        default:
-                            break;
+                        record.pushKV("amount", value);
+                        record.pushKV("donation", "true");
                     }
-                }
 
-                result.push_back(record);
-            }
+                    if (auto[ok, value] = stmt.TryGetColumnInt(17); ok && value > 0) record.pushKV("blck", 1);
+
+                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+                    {
+                        switch (static_cast<TxType>(value))
+                        {
+                            case PocketTx::CONTENT_COMMENT:
+                                record.pushKV("deleted", false);
+                                record.pushKV("edit", false);
+                                break;
+                            case PocketTx::CONTENT_COMMENT_EDIT:
+                                record.pushKV("deleted", false);
+                                record.pushKV("edit", true);
+                                break;
+                            case PocketTx::CONTENT_COMMENT_DELETE:
+                                record.pushKV("deleted", true);
+                                record.pushKV("edit", true);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -1254,19 +1251,19 @@ namespace PocketDb
 
             SqlTransaction(func, [&]()
             {
-                auto& stmt = Sql(sql);
+                Sql(sql)
+                .Bind(addressHash, postHashes)
+                .Select([&](Stmt& stmt) {
+                    while (stmt.Step() == SQLITE_ROW)
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                stmt.Bind(addressHash, postHashes);
+                        if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                        if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("value", value);
 
-                while (stmt.Step() == SQLITE_ROW)
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("value", value);
-
-                    result.push_back(record);
-                }
+                        result.push_back(record);
+                    }
+                });
             });
         }
 
@@ -1299,22 +1296,22 @@ namespace PocketDb
 
             SqlTransaction(func, [&]()
             {
-                auto& stmt = Sql(sql);
+                Sql(sql)
+                .Bind(addressHash, commentHashes)
+                .Select([&](Stmt& stmt) {
+                    while (stmt.Step() == SQLITE_ROW)
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                stmt.Bind(addressHash, commentHashes);
+                        if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("cmntid", value);
+                        if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
+                        if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
+                        if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("myScore", value);
 
-                while (stmt.Step() == SQLITE_ROW)
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("cmntid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("myScore", value);
-
-                    result.push_back(record);
-                }
+                        result.push_back(record);
+                    }
+                });
             });
         }
 
@@ -1353,25 +1350,23 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(postTxHash)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(postTxHash);
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("value", value);
 
-            // ---------------------------------------------
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("value", value);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -1410,23 +1405,23 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(address, postHashes)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(address, postHashes);
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("value", value);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("value", value);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -1498,25 +1493,25 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(address, address)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(address, address);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok) record.pushKV("id", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("about", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("regdate", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(6); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(7); ok) record.pushKV("ratingscnt", value);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok) record.pushKV("id", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("about", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("regdate", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(6); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(7); ok) record.pushKV("ratingscnt", value);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -1578,20 +1573,22 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select
                   bl.IdTarget
                 from BlockingLists bl
                 cross join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
                 cross join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
                 where us.String1 = ?
-            )sql");
+            )sql")
+            .Bind(address)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                        result.push_back(value);
+            });
 
-            stmt.Bind(address);
 
-            while (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    result.push_back(value);
         });
 
         return result;
@@ -1603,20 +1600,20 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select
                   bl.IdSource
                 from BlockingLists bl
                 cross join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
                 cross join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
                 where ut.String1 = ?
-            )sql");
-
-            stmt.Bind(address);
-
-            while (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    result.push_back(value);
+            )sql")
+            .Bind(address)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                        result.push_back(value);
+            });
         });
 
         return result;
@@ -1727,12 +1724,13 @@ namespace PocketDb
             }
 
             stmt.Bind(countOut);
-
-            // ---------------------------------------------
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.push_back(value);
-            }
+            stmt.Select([&](Stmt& stmt) {
+                // ---------------------------------------------
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.push_back(value);
+                }
+            });
         });
 
         // Complete!
@@ -1757,22 +1755,22 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(lang, pageSize, pageStart)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    auto[ok0, vLang] = stmt.TryGetColumnString(0);
+                    auto[ok1, vValue] = stmt.TryGetColumnString(1);
+                    auto[ok2, vCount] = stmt.TryGetColumnInt(2);
 
-            stmt.Bind(lang, pageSize, pageStart);
+                    UniValue record(UniValue::VOBJ);
+                    record.pushKV("tag", vValue);
+                    record.pushKV("count", vCount);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                auto[ok0, vLang] = stmt.TryGetColumnString(0);
-                auto[ok1, vValue] = stmt.TryGetColumnString(1);
-                auto[ok2, vCount] = stmt.TryGetColumnInt(2);
-
-                UniValue record(UniValue::VOBJ);
-                record.pushKV("tag", vValue);
-                record.pushKV("count", vCount);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -1794,15 +1792,15 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(txHashes);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    result.push_back(value);
-            }
+            Sql(sql)
+            .Bind(txHashes)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                        result.push_back(value);
+                }
+            });
         });
 
         return result;
@@ -1824,17 +1822,17 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(txHashes);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                auto[ok0, contenthash] = stmt.TryGetColumnString(0);
-                auto[ok1, contentaddress] = stmt.TryGetColumnString(1);
-                if(ok0 && ok1)
-                    result.emplace(contenthash,contentaddress);
-            }
+            Sql(sql)
+            .Bind(txHashes)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    auto[ok0, contenthash] = stmt.TryGetColumnString(0);
+                    auto[ok1, contentaddress] = stmt.TryGetColumnString(1);
+                    if(ok0 && ok1)
+                        result.emplace(contenthash,contentaddress);
+                }
+            });
         });
 
         return result;
@@ -1864,52 +1862,52 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(addresses)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(addresses);
+                    auto[ok0, txHash] = stmt.TryGetColumnString(0);
+                    auto[ok1, txOut] = stmt.TryGetColumnInt(1);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
+                    string _txHash = txHash;
+                    int _txOut = txOut;
+                    // Exclude outputs already used as inputs in mempool
+                    if (!ok0 || !ok1 || find_if(
+                        mempoolInputs.begin(),
+                        mempoolInputs.end(),
+                        [&](const pair<string, uint32_t>& itm)
+                        {
+                            return itm.first == _txHash && itm.second == _txOut;
+                        })  != mempoolInputs.end())
+                        continue;
 
-                auto[ok0, txHash] = stmt.TryGetColumnString(0);
-                auto[ok1, txOut] = stmt.TryGetColumnInt(1);
+                    record.pushKV("txid", txHash);
+                    record.pushKV("vout", txOut);
 
-                string _txHash = txHash;
-                int _txOut = txOut;
-                // Exclude outputs already used as inputs in mempool
-                if (!ok0 || !ok1 || find_if(
-                    mempoolInputs.begin(),
-                    mempoolInputs.end(),
-                    [&](const pair<string, uint32_t>& itm)
+                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok)
                     {
-                        return itm.first == _txHash && itm.second == _txOut;
-                    })  != mempoolInputs.end())
-                    continue;
+                        record.pushKV("amount", ValueFromAmount(value));
+                        record.pushKV("amountSat", value);
+                    }
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("scriptPubKey", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(5); ok)
+                    {
+                        record.pushKV("coinbase", value == 2 || value == 3);
+                        record.pushKV("pockettx", value > 3);
+                    }
+                    if (auto[ok, value] = stmt.TryGetColumnInt(6); ok)
+                    {
+                        record.pushKV("confirmations", height - value);
+                        record.pushKV("height", value);
+                    }
 
-                record.pushKV("txid", txHash);
-                record.pushKV("vout", txOut);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok)
-                {
-                    record.pushKV("amount", ValueFromAmount(value));
-                    record.pushKV("amountSat", value);
+                    result.push_back(record);
                 }
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("scriptPubKey", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(5); ok)
-                {
-                    record.pushKV("coinbase", value == 2 || value == 3);
-                    record.pushKV("pockettx", value > 3);
-                }
-                if (auto[ok, value] = stmt.TryGetColumnInt(6); ok)
-                {
-                    record.pushKV("confirmations", height - value);
-                    record.pushKV("height", value);
-                }
-
-                result.push_back(record);
-            }
+            });
         });
 
         return result;
@@ -1935,26 +1933,26 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(height)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    auto[okType, typeInt] = stmt.TryGetColumnInt(0);
+                    auto[okLang, lang] = stmt.TryGetColumnString(1);
+                    auto[okCount, count] = stmt.TryGetColumnInt(2);
+                    if (!okType || !okLang || !okCount)
+                        continue;
 
-            stmt.Bind(height);
+                    auto type = TransactionHelper::TxStringType((TxType) typeInt);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                auto[okType, typeInt] = stmt.TryGetColumnInt(0);
-                auto[okLang, lang] = stmt.TryGetColumnString(1);
-                auto[okCount, count] = stmt.TryGetColumnInt(2);
-                if (!okType || !okLang || !okCount)
-                    continue;
+                    if (resultData.At(type).isNull())
+                        resultData.pushKV(type, UniValue(UniValue::VOBJ));
 
-                auto type = TransactionHelper::TxStringType((TxType) typeInt);
-
-                if (resultData.At(type).isNull())
-                    resultData.pushKV(type, UniValue(UniValue::VOBJ));
-
-                resultData.At(type).pushKV(lang, count);
-                resultCount += count;
-            }
+                    resultData.At(type).pushKV(lang, count);
+                    resultCount += count;
+                }
+            });
         });
 
         return {resultCount, resultData};
@@ -1978,13 +1976,15 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sqlCount);
+            Sql(sqlCount)
+            .Bind(height, address)
+            .Select([&](Stmt& stmt) {
+                if (stmt.Step() == SQLITE_ROW)
+                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+                        resultCount = value;
+            });
 
-            stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    resultCount = value;
         });
 
         // Try get last N records
@@ -2012,27 +2012,27 @@ namespace PocketDb
 
             SqlTransaction(__func__, [&]()
             {
-                auto& stmt = Sql(sql);
+                Sql(sql)
+                .Bind(height, address, count)
+                .Select([&](Stmt& stmt) {
+                    while (stmt.Step() == SQLITE_ROW)
+                    {
+                        auto[okHash, hash] = stmt.TryGetColumnString(0);
+                        auto[okTime, time] = stmt.TryGetColumnInt64(1);
+                        auto[okHeight, block] = stmt.TryGetColumnInt(2);
+                        if (!okHash || !okTime || !okHeight)
+                            continue;
 
-                stmt.Bind(height, address, count);
-
-                while (stmt.Step() == SQLITE_ROW)
-                {
-                    auto[okHash, hash] = stmt.TryGetColumnString(0);
-                    auto[okTime, time] = stmt.TryGetColumnInt64(1);
-                    auto[okHeight, block] = stmt.TryGetColumnInt(2);
-                    if (!okHash || !okTime || !okHeight)
-                        continue;
-
-                    UniValue record(UniValue::VOBJ);
-                    record.pushKV("txid", hash);
-                    record.pushKV("time", time);
-                    record.pushKV("nblock", block);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("nameFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
-                    resultData.push_back(record);
-                }
+                        UniValue record(UniValue::VOBJ);
+                        record.pushKV("txid", hash);
+                        record.pushKV("time", time);
+                        record.pushKV("nblock", block);
+                        if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                        if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("nameFrom", value);
+                        if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
+                        resultData.push_back(record);
+                    }
+                });
             });
         }
 
@@ -2078,36 +2078,36 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(address)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(address);
+                    auto[ok0, id] = stmt.TryGetColumnInt64(0);
+                    auto[ok1, hash] = stmt.TryGetColumnString(1);
+                    auto[ok2, time] = stmt.TryGetColumnString(2);
+                    auto[ok3, caption] = stmt.TryGetColumnString(3);
+                    auto[ok4, message] = stmt.TryGetColumnString(4);
+                    auto[ok5, settings] = stmt.TryGetColumnString(5);
+                    auto[ok6, reputation] = stmt.TryGetColumnString(6);
+                    auto[ok7, scoreCnt] = stmt.TryGetColumnString(7);
+                    auto[ok8, scoreSum] = stmt.TryGetColumnString(8);
+                    
+                    if (ok3) record.pushKV("content", HtmlUtils::UrlDecode(caption));
+                    else record.pushKV("content", HtmlUtils::UrlDecode(message).substr(0, 100));
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
+                    record.pushKV("txid", hash);
+                    record.pushKV("time", time);
+                    record.pushKV("reputation", reputation);
+                    record.pushKV("settings", settings);
+                    record.pushKV("scoreSum", scoreSum);
+                    record.pushKV("scoreCnt", scoreCnt);
 
-                auto[ok0, id] = stmt.TryGetColumnInt64(0);
-                auto[ok1, hash] = stmt.TryGetColumnString(1);
-                auto[ok2, time] = stmt.TryGetColumnString(2);
-                auto[ok3, caption] = stmt.TryGetColumnString(3);
-                auto[ok4, message] = stmt.TryGetColumnString(4);
-                auto[ok5, settings] = stmt.TryGetColumnString(5);
-                auto[ok6, reputation] = stmt.TryGetColumnString(6);
-                auto[ok7, scoreCnt] = stmt.TryGetColumnString(7);
-                auto[ok8, scoreSum] = stmt.TryGetColumnString(8);
-                
-                if (ok3) record.pushKV("content", HtmlUtils::UrlDecode(caption));
-                else record.pushKV("content", HtmlUtils::UrlDecode(message).substr(0, 100));
-
-                record.pushKV("txid", hash);
-                record.pushKV("time", time);
-                record.pushKV("reputation", reputation);
-                record.pushKV("settings", settings);
-                record.pushKV("scoreSum", scoreSum);
-                record.pushKV("scoreCnt", scoreCnt);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -2135,23 +2135,23 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(height, address)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(height, address);
+                    record.pushKV("msg", "reshare");
+                    if (auto[ok, val] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", val);
+                    if (auto[ok, val] = stmt.TryGetColumnString(1); ok) record.pushKV("txidRepost", val);
+                    if (auto[ok, val] = stmt.TryGetColumnString(2); ok) record.pushKV("addrFrom", val);
+                    if (auto[ok, val] = stmt.TryGetColumnInt64(3); ok) record.pushKV("time", val);
+                    if (auto[ok, val] = stmt.TryGetColumnInt(4); ok) record.pushKV("nblock", val);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("msg", "reshare");
-                if (auto[ok, val] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", val);
-                if (auto[ok, val] = stmt.TryGetColumnString(1); ok) record.pushKV("txidRepost", val);
-                if (auto[ok, val] = stmt.TryGetColumnString(2); ok) record.pushKV("addrFrom", val);
-                if (auto[ok, val] = stmt.TryGetColumnInt64(3); ok) record.pushKV("time", val);
-                if (auto[ok, val] = stmt.TryGetColumnInt(4); ok) record.pushKV("nblock", val);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -2182,26 +2182,26 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(height, address, limit)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(height, address, limit);
+                    record.pushKV("addr", address);
+                    record.pushKV("msg", "event");
+                    record.pushKV("mesType", "upvoteShare");
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("addr", address);
-                record.pushKV("msg", "event");
-                record.pushKV("mesType", "upvoteShare");
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -2232,26 +2232,26 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(address, height, limit)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(address, height, limit);
+                    record.pushKV("addr", address);
+                    record.pushKV("msg", "event");
+                    record.pushKV("mesType", "cScore");
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("commentid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("addr", address);
-                record.pushKV("msg", "event");
-                record.pushKV("mesType", "cScore");
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("commentid", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -2278,32 +2278,32 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(address, height, count);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                auto[okTxHash, txHash] = stmt.TryGetColumnString(0);
-                if (!okTxHash) continue;
-
-                UniValue record(UniValue::VOBJ);
-                record.pushKV("txid", txHash);
-                record.pushKV("addr", address);
-                record.pushKV("msg", "transaction");
-                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("amount", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-
-                if (auto[ok, value] = stmt.TryGetColumnInt(4); ok)
+            Sql(sql)
+            .Bind(address, height, count)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
                 {
-                    auto stringType = TransactionHelper::TxStringType((TxType) value);
-                    if (!stringType.empty())
-                        record.pushKV("type", stringType);
-                }
+                    auto[okTxHash, txHash] = stmt.TryGetColumnString(0);
+                    if (!okTxHash) continue;
 
-                result.emplace(txHash, record);
-            }
+                    UniValue record(UniValue::VOBJ);
+                    record.pushKV("txid", txHash);
+                    record.pushKV("addr", address);
+                    record.pushKV("msg", "transaction");
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("amount", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+
+                    if (auto[ok, value] = stmt.TryGetColumnInt(4); ok)
+                    {
+                        auto stringType = TransactionHelper::TxStringType((TxType) value);
+                        if (!stringType.empty())
+                            record.pushKV("type", stringType);
+                    }
+
+                    result.emplace(txHash, record);
+                }
+            });
         });
 
         return result;
@@ -2335,28 +2335,28 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(height, address, count)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(height, address, count);
+                    record.pushKV("addr", address);
+                    record.pushKV("msg", "comment");
+                    record.pushKV("mesType", "answer");
+                    record.pushKV("reason", "answer");
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("answerid", value);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("addr", address);
-                record.pushKV("msg", "comment");
-                record.pushKV("mesType", "answer");
-                record.pushKV("reason", "answer");
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("answerid", value);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -2395,33 +2395,33 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(height, address, excludePosts, count);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("addr", address);
-                record.pushKV("msg", "comment");
-                record.pushKV("mesType", "post");
-                record.pushKV("reason", "post");
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(7); ok)
+            Sql(sql)
+            .Bind(height, address, excludePosts, count)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
                 {
-                    record.pushKV("donation", "true");
-                    record.pushKV("amount", value);
-                }
+                    UniValue record(UniValue::VOBJ);
 
-                result.push_back(record);
-            }
+                    record.pushKV("addr", address);
+                    record.pushKV("msg", "comment");
+                    record.pushKV("mesType", "post");
+                    record.pushKV("reason", "post");
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok)
+                    {
+                        record.pushKV("donation", "true");
+                        record.pushKV("amount", value);
+                    }
+
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -2456,35 +2456,35 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(height, address, count);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("addr", address);
-                record.pushKV("msg", "event");
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            Sql(sql)
+            .Bind(height, address, count)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
                 {
-                    switch (value)
-                    {
-                        case 302: record.pushKV("mesType", "subscribe"); break;
-                        case 303: record.pushKV("mesType", "subscribePrivate"); break;
-                        case 304: record.pushKV("mesType", "unsubscribe"); break;
-                        default: record.pushKV("mesType", "unknown"); break;
-                    }
-                }
-                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("nameFrom", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("avatarFrom", value);
+                    UniValue record(UniValue::VOBJ);
 
-                result.push_back(record);
-            }
+                    record.pushKV("addr", address);
+                    record.pushKV("msg", "event");
+                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+                    {
+                        switch (value)
+                        {
+                            case 302: record.pushKV("mesType", "subscribe"); break;
+                            case 303: record.pushKV("mesType", "subscribePrivate"); break;
+                            case 304: record.pushKV("mesType", "unsubscribe"); break;
+                            default: record.pushKV("mesType", "unknown"); break;
+                        }
+                    }
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("nameFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("avatarFrom", value);
+
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -2521,28 +2521,28 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(height, address, count)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(height, address, count);
+                    record.pushKV("addr", address);
+                    record.pushKV("msg", "event");
+                    record.pushKV("mesType", "contentBoost");
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("boostAmount", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("nameFrom", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("avatarFrom", value);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("addr", address);
-                record.pushKV("msg", "event");
-                record.pushKV("mesType", "contentBoost");
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("boostAmount", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("nameFrom", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("avatarFrom", value);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -2573,15 +2573,15 @@ namespace PocketDb
         vector<int64_t> ids;
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(contentTypes, nHeight, links, countOut);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    ids.push_back(value);
-            }
+            Sql(sql)
+            .Bind(contentTypes, nHeight, links, countOut)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                        ids.push_back(value);
+                }
+            });
         });
 
         if (ids.empty())
@@ -2620,21 +2620,21 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(sql)
+            .Bind(contentTypes, addresses[0])
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            stmt.Bind(contentTypes, addresses[0]);
+                    record.pushKV("address", addresses[0]);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok) record.pushKV("scoreSum", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(1); ok) record.pushKV("scoreCnt", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("countLikers", value);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("address", addresses[0]);
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok) record.pushKV("scoreSum", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(1); ok) record.pushKV("scoreCnt", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("countLikers", value);
-
-                result.push_back(record);
-            }
+                    result.push_back(record);
+                }
+            });
         });
 
         return result;
@@ -2683,15 +2683,15 @@ namespace PocketDb
         vector<int64_t> ids;
         SqlTransaction(func, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(lang, contentTypes, nHeight, nHeight - depth, badReputationLimit, countOut);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    ids.push_back(value);
-            }
+            Sql(sql)
+            .Bind(lang, contentTypes, nHeight, nHeight - depth, badReputationLimit, countOut)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+                        ids.push_back(value);
+                }
+            });
         });
 
         if (ids.empty())
@@ -2771,74 +2771,73 @@ namespace PocketDb
         vector<string> authors;
         SqlTransaction(func, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(address, ids);
-
-            // ---------------------------
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                auto[okHash, txHash] = stmt.TryGetColumnString(0);
-                auto[okId, txId] = stmt.TryGetColumnInt64(1);
-                record.pushKV("txid", txHash);
-                record.pushKV("id", txId);
-
-                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("edit", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("repost", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok)
+            Sql(sql)
+            .Bind(address, ids)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
                 {
-                    authors.emplace_back(value);
-                    record.pushKV("address", value);
-                }
-                if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("c", value); // caption
-                if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("m", value); // message
-                if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("u", value); // url
-                
-                if (auto[ok, value] = stmt.TryGetColumnInt(7); ok)
-                {
-                    record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
-                    if ((TxType)value == CONTENT_DELETE)
-                        record.pushKV("deleted", "true");
-                }
+                    UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = stmt.TryGetColumnString(11); ok)
-                {
-                    UniValue t(UniValue::VARR);
-                    t.read(value);
-                    record.pushKV("t", t);
+                    auto[okHash, txHash] = stmt.TryGetColumnString(0);
+                    auto[okId, txId] = stmt.TryGetColumnInt64(1);
+                    record.pushKV("txid", txHash);
+                    record.pushKV("id", txId);
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("edit", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("repost", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok)
+                    {
+                        authors.emplace_back(value);
+                        record.pushKV("address", value);
+                    }
+                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("l", value); // lang
+                    if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("c", value); // caption
+                    if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("m", value); // message
+                    if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("u", value); // url
+                    
+                    if (auto[ok, value] = stmt.TryGetColumnInt(7); ok)
+                    {
+                        record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
+                        if ((TxType)value == CONTENT_DELETE)
+                            record.pushKV("deleted", "true");
+                    }
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(11); ok)
+                    {
+                        UniValue t(UniValue::VARR);
+                        t.read(value);
+                        record.pushKV("t", t);
+                    }
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(12); ok)
+                    {
+                        UniValue ii(UniValue::VARR);
+                        ii.read(value);
+                        record.pushKV("i", ii);
+                    }
+
+                    if (auto[ok, value] = stmt.TryGetColumnString(13); ok)
+                    {
+                        UniValue s(UniValue::VOBJ);
+                        s.read(value);
+                        record.pushKV("s", s);
+                    }
+
+                    if (auto [ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("scoreCnt", value);
+                    if (auto [ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("scoreSum", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt(16); ok && value > 0) record.pushKV("reposted", value);
+                    if (auto [ok, value] = stmt.TryGetColumnInt(17); ok) record.pushKV("comments", value);
+
+                    if (!address.empty())
+                    {
+                        if (auto [ok, value] = stmt.TryGetColumnString(18); ok)
+                            record.pushKV("myVal", value);
+                    }
+
+                    tmpResult[txId] = record;                
                 }
-
-                if (auto[ok, value] = stmt.TryGetColumnString(12); ok)
-                {
-                    UniValue ii(UniValue::VARR);
-                    ii.read(value);
-                    record.pushKV("i", ii);
-                }
-
-                if (auto[ok, value] = stmt.TryGetColumnString(13); ok)
-                {
-                    UniValue s(UniValue::VOBJ);
-                    s.read(value);
-                    record.pushKV("s", s);
-                }
-
-                if (auto [ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("scoreCnt", value);
-                if (auto [ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("scoreSum", value);
-                if (auto [ok, value] = stmt.TryGetColumnInt(16); ok && value > 0) record.pushKV("reposted", value);
-                if (auto [ok, value] = stmt.TryGetColumnInt(17); ok) record.pushKV("comments", value);
-
-                if (!address.empty())
-                {
-                    if (auto [ok, value] = stmt.TryGetColumnString(18); ok)
-                        record.pushKV("myVal", value);
-                }
-
-                tmpResult[txId] = record;                
-            }
+            });
         });
 
         // ---------------------------------------------
@@ -2980,11 +2979,13 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
-                ids.push_back(contentId);
-            }
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
+                    ids.push_back(contentId);
+                }
+            });
         });
 
         // Get content data
@@ -3130,11 +3131,13 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
-                ids.push_back(contentId);
-            }
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
+                    ids.push_back(contentId);
+                }
+            });
         });
 
         // Get content data
@@ -3313,11 +3316,13 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    ids.push_back(value);
-            }
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                        ids.push_back(value);
+                }
+            });
         });
 
         // Get content data
@@ -3446,11 +3451,13 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    ids.push_back(value);
-            }
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                        ids.push_back(value);
+                }
+            });
         });
 
         // Get content data
@@ -3549,7 +3556,6 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            int i = 1;
             auto& stmt = Sql(sql);
 
             if (!lang.empty()) stmt.Bind(lang);
@@ -3580,12 +3586,14 @@ namespace PocketDb
             stmt.Bind(countOut);
 
             // ---------------------------------------------
-            
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
-                ids.push_back(contentId);
-            }
+
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
+                    ids.push_back(contentId);
+                }
+            });
         });
 
         // Get content data
@@ -3723,25 +3731,27 @@ namespace PocketDb
             }
 
             // ---------------------------------------------
-            
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                HierarchicalRecord record{};
 
-                int64_t contentId;
-                int contentRating, accountRating, contentOrigHeight, contentScores;
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    HierarchicalRecord record{};
 
-                stmt.Collect(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
+                    int64_t contentId;
+                    int contentRating, accountRating, contentOrigHeight, contentScores;
 
-                record.Id = contentId;
-                record.LAST5 = 1.0 * contentScores;
-                record.UREP = accountRating;
-                record.PREP = contentRating;
-                record.DREP = pow(dekayRep, (topHeight - contentOrigHeight));
-                record.DPOST = pow(dekay, (topHeight - contentOrigHeight));
+                    stmt.Collect(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
 
-                postsRanks.push_back(record);
-            }
+                    record.Id = contentId;
+                    record.LAST5 = 1.0 * contentScores;
+                    record.UREP = accountRating;
+                    record.PREP = contentRating;
+                    record.DREP = pow(dekayRep, (topHeight - contentOrigHeight));
+                    record.DPOST = pow(dekay, (topHeight - contentOrigHeight));
+
+                    postsRanks.push_back(record);
+                }
+            });
         });
 
         // ---------------------------------------------
@@ -3909,7 +3919,6 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            int i = 1;
             auto& stmt = Sql(sql);
 
             stmt.Bind(contentTypes);
@@ -3938,18 +3947,20 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                int64_t contentId, sumBoost;
-                std::string contentHash;
-                stmt.Collect(contentId, contentHash, sumBoost);
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    int64_t contentId, sumBoost;
+                    std::string contentHash;
+                    stmt.Collect(contentId, contentHash, sumBoost);
 
-                UniValue boost(UniValue::VOBJ);
-                boost.pushKV("id", contentId);
-                boost.pushKV("txid", contentHash);
-                boost.pushKV("boost", sumBoost);
-                result.push_back(boost);
-            }
+                    UniValue boost(UniValue::VOBJ);
+                    boost.pushKV("id", contentId);
+                    boost.pushKV("txid", contentHash);
+                    boost.pushKV("boost", sumBoost);
+                    result.push_back(boost);
+                }
+            });
         });
 
         // Complete!
@@ -3994,14 +4005,14 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(lang, height, count * 100, count);
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) result.push_back(value);
-            }
+            Sql(sql)
+            .Bind(lang, height, count * 100, count)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) result.push_back(value);
+                }
+            });
         });
 
         return result;
@@ -4116,33 +4127,31 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(postTxHash, postTxHash, postTxHash);
-
-            // ---------------------------------------------
-
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = stmt.TryGetColumnInt(5); ok && value > 0) {
-                    record.pushKV("value", value);
-                    resultScores.push_back(record);
+            Sql(sql)
+            .Bind(postTxHash, postTxHash, postTxHash)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
+                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = stmt.TryGetColumnInt(5); ok && value > 0) {
+                        record.pushKV("value", value);
+                        resultScores.push_back(record);
+                    }
+                    if (auto[ok, value] = stmt.TryGetColumnInt(6); ok && value > 0) {
+                        record.pushKV("value", value);
+                        resultBoosts.push_back(record);
+                    }
+                    if (auto[ok, value] = stmt.TryGetColumnInt(7); ok && value > 0) {
+                        record.pushKV("value", value);
+                        resultDonations.push_back(record);
+                    }
                 }
-                if (auto[ok, value] = stmt.TryGetColumnInt(6); ok && value > 0) {
-                    record.pushKV("value", value);
-                    resultBoosts.push_back(record);
-                }
-                if (auto[ok, value] = stmt.TryGetColumnInt(7); ok && value > 0) {
-                    record.pushKV("value", value);
-                    resultDonations.push_back(record);
-                }
-            }
+            });
         });
 
         result.pushKV("scores",resultScores);
@@ -4934,10 +4943,12 @@ namespace PocketDb
                 bind(stmt, queryParams);
             }
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                reconstructor.FeedRow(stmt);
-            }
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    reconstructor.FeedRow(stmt);
+                }
+            });
         });
 
         return reconstructor.GetResult();
@@ -5852,8 +5863,10 @@ namespace PocketDb
 
                     selectData.binding(stmt, queryParams);
 
-                    while (stmt.Step() == SQLITE_ROW)
-                        reconstructor.FeedRow(stmt);
+                    stmt.Select([&](Stmt& stmt) {
+                        while (stmt.Step() == SQLITE_ROW)
+                            reconstructor.FeedRow(stmt);
+                    });
                 });
             }
         }
@@ -6840,10 +6853,12 @@ namespace PocketDb
                 bind(stmt, queryParams);
             }
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                reconstructor.FeedRow(stmt);
-            }
+            stmt.Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    reconstructor.FeedRow(stmt);
+                }
+            });
         });
         return reconstructor.GetResult();
     }
@@ -7020,10 +7035,12 @@ namespace PocketDb
                 bind(stmt, queryParams);
             }
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                reconstructor.FeedRow(stmt);
-            }
+            stmt.Bind([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW)
+                {
+                    reconstructor.FeedRow(stmt);
+                }
+            });
         });
 
         return reconstructor.GetResult();
