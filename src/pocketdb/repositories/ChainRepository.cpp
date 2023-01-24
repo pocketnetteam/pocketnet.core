@@ -84,7 +84,9 @@ namespace PocketDb
                     ), 0)
             )sql")
             .Bind(height, blockHash, height + 1)
-            .Collect(exists, last);
+            .Select([&](Stmt& stmt) {
+                stmt.Collect(exists, last);
+            });
         });
 
         return { exists == 1, last == 0 };
@@ -97,7 +99,7 @@ namespace PocketDb
             values (?)
         )sql")
         .Bind(blockHash)
-        .Step();
+        .Run();
     }
 
     void ChainRepository::InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id)
@@ -138,7 +140,7 @@ namespace PocketDb
                 )
         )sql")
         .Bind(blockHash, txHash, blockNumber, height, id)
-        .Step();
+        .Run();
 
         if (id.has_value())
         {
@@ -153,7 +155,7 @@ namespace PocketDb
                     t.String = ?
             )sql")
             .Bind(txHash)
-            .Step();
+            .Run();
         }
     }
 
@@ -217,7 +219,7 @@ namespace PocketDb
                 saldo.AddressId
         )sql")
         .Bind(height)
-        .Step();
+        .Run();
 
         // Remove old Last records
         Sql(R"sql(
@@ -237,7 +239,7 @@ namespace PocketDb
                 Balances.Height < ?
         )sql")
         .Bind(height, height)
-        .Step();
+        .Run();
     }
 
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const TransactionIndexingInfo& txInfo)
@@ -263,7 +265,9 @@ namespace PocketDb
         else
             return {id, lastTxId};
 
-        if (!Sql(sql).Bind(txInfo.Hash).Collect(id, lastTxId))
+        bool res = false;
+        Sql(sql).Bind(txInfo.Hash).Select([&](Stmt& stmt) { res = stmt.Collect(id, lastTxId); });
+        if (!res)
             throw runtime_error("IndexSocial failed - no return data");
         
         return {id, lastTxId};
@@ -701,7 +705,7 @@ namespace PocketDb
             where TxId = ?
         )sql")
         .Bind(lastTxId)
-        .Step();
+        .Run();
     }
 
     void ChainRepository::RestoreOldLast(int height)
@@ -722,7 +726,7 @@ namespace PocketDb
                 )
         )sql")
         .Bind(height)
-        .Step();
+        .Run();
 
         // Restore old Last transactions
         Sql(R"sql(
@@ -755,7 +759,7 @@ namespace PocketDb
                     cp.Height = prev.maxHeight
         )sql")
         .Bind(height)
-        .Step();
+        .Run();
 
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Transactions): %.2fms\n", 0.001 * (nTime1 - nTime0));
@@ -778,7 +782,7 @@ namespace PocketDb
               and Ratings.Height = r.Height
         )sql")
         .Bind(height, height)
-        .Step();
+        .Run();
 
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Ratings): %.2fms\n", 0.001 * (nTime2 - nTime1));
@@ -814,7 +818,7 @@ namespace PocketDb
               and Balances.Height = b.Height
         )sql")
         .Bind(height, height)
-        .Step();
+        .Run();
 
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
@@ -834,7 +838,7 @@ namespace PocketDb
                 )
         )sql")
         .Bind(height)
-        .Step();
+        .Run();
 
         // ----------------------------------------
         // Rollback general transaction information
@@ -843,7 +847,7 @@ namespace PocketDb
             where Height >= ?
         )sql")
         .Bind(height)
-        .Step();
+        .Run();
 
         int64_t nTime1 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Chain:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
@@ -855,7 +859,7 @@ namespace PocketDb
             where Height >= ?
         )sql")
         .Bind(height)
-        .Step();
+        .Run();
 
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime2 - nTime1));
@@ -867,7 +871,7 @@ namespace PocketDb
             where Height >= ?
         )sql")
         .Bind(height)
-        .Step();
+        .Run();
 
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime3 - nTime2));
