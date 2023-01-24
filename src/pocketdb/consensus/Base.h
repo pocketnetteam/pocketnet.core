@@ -453,7 +453,6 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_trial_stream, {
             { NetworkMain, { {0, 5} } },
             { NetworkTest, { {0, 15} } },
@@ -464,7 +463,6 @@ namespace PocketConsensus
             { NetworkTest, { {0, 15} } },
             { NetworkRegTest, { {0, 15} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_trial_collection, {
             { NetworkMain, { {0, 5} } },
             { NetworkTest, { {0, 15} } }
@@ -505,7 +503,6 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 30} } },
             { NetworkRegTest, { {0, 30} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_full_stream, {
             { NetworkMain, { {0, 30} } },
             { NetworkTest, { {0, 30} } },
@@ -516,7 +513,6 @@ namespace PocketConsensus
             { NetworkTest, { {0, 30} } },
             { NetworkRegTest, { {0, 30} } }
         } },
-         // TODO (o1q): is it correct?
         { ConsensusLimit_full_collection, {
             { NetworkMain, { {0, 30} } },
             { NetworkTest, { {0, 30} } }
@@ -547,7 +543,6 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 100} } },
             { NetworkRegTest, { {0, 10} } }
         } },
-       // TODO (o1q): is it correct?
 //        { ConsensusLimit_pro_stream, {
 //            { NetworkMain, { {0, 100} } },
 //            { NetworkTest, { {0, 100} } },
@@ -580,7 +575,6 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_stream_edit_count, {
             { NetworkMain, { {0, 5} } },
             { NetworkTest, { {0, 5} } },
@@ -591,7 +585,6 @@ namespace PocketConsensus
             { NetworkTest, { {0, 5} } },
             { NetworkRegTest, { {0, 5} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_collection_edit_count, {
             { NetworkMain, { {0, 5} } },
             { NetworkTest, { {0, 5} } }
@@ -641,7 +634,6 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 60000} } },
             { NetworkRegTest, { {0, 60000} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_max_stream_size, {
             { NetworkMain, { {0, 60000} } },
             { NetworkTest, { {0, 60000} } },
@@ -652,7 +644,6 @@ namespace PocketConsensus
             { NetworkTest, { {0, 60000} } },
             { NetworkRegTest, { {0, 60000} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_max_collection_size, {
             { NetworkMain, { {0, 2000} } },
             { NetworkTest, { {0, 2000} } }
