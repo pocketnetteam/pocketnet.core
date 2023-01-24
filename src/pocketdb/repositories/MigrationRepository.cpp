@@ -101,7 +101,10 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             if (ExistsRows(SetupSqlStatement("select 1 from pragma_table_info('Transactions') where name='First'")))
+            {
+                TryStepStatement(SetupSqlStatement("create index if not exists Transactions_Id_First on Transactions (Id, First)"));
                 return;
+            }
                 
             // Add new field "First"
             TryStepStatement(SetupSqlStatement("alter table Transactions add column First int not null default 0"));
