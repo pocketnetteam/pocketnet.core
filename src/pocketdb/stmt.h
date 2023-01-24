@@ -27,7 +27,8 @@ namespace PocketDb
         ~Stmt();
 
         void Init(SQLiteDatabase& db, const std::string& sql);
-        int Step(bool reset = false);
+        int Step();
+        int Run();
         int Finalize();
         int Reset();
         bool CheckValidResult(int result);
@@ -61,25 +62,22 @@ namespace PocketDb
 
         // Collect data
         template <class ...Collects>
-        bool Collect(Collects&... collects)
+        int Collect(Collects&... collects)
         {
-            if (Step(false) != SQLITE_ROW)
-                return false;
+            int st = Step();
+            if (st != SQLITE_ROW)
+                return st;
 
             (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
-            return true;
+            return st;
         }
 
-        // Collect data to UniValue array
-        // template <class ...Collects>
-        // bool Collect(UniValue& arr, Collects&... collects)
-        // {
-        //     if (Step(false) != SQLITE_ROW)
-        //         return false;
-
-        //     (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
-        //     return true;
-        // }
+        template<typename T>
+        int Select(T func)
+        {
+            func(*this);
+            return Reset();
+        }
 
         tuple<bool, std::string> TryGetColumnString(int index);
         tuple<bool, int64_t> TryGetColumnInt64(int index);

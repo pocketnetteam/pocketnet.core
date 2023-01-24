@@ -522,7 +522,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select
                     o.Number,
                     (
@@ -542,17 +542,18 @@ namespace PocketDb
                     o.TxId = ? and
                     o.Number = ?
             )sql")
-            .Bind(txId, number);
+            .Bind(txId, number)
+            .Select([&](Stmt& stmt) {
+                if (stmt.Step() != SQLITE_ROW)
+                    return;
 
-            if (stmt.Step() == SQLITE_ROW)
-            {
                 txOutput = make_shared<TransactionOutput>();
                 txOutput->SetTxHash(txHash);
                 if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) txOutput->SetNumber(value);
                 if (auto[ok, value] = stmt.TryGetColumnString(1); ok) txOutput->SetAddressHash(value);
                 if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) txOutput->SetValue(value);
                 if (auto[ok, value] = stmt.TryGetColumnString(3); ok) txOutput->SetScriptPubKey(value);
-            }
+            });
         });
 
         return txOutput;
@@ -573,7 +574,7 @@ namespace PocketDb
                         String = ?
                 )sql")
                 .Bind(hash)
-                .Step() == SQLITE_ROW
+                .Run() == SQLITE_ROW
             );
         });
 
@@ -615,7 +616,9 @@ namespace PocketDb
                     -
                     (select count() from Chain)
             )sql")
-            .Collect(result);
+            .Select([&](Stmt& stmt) {
+                stmt.Collect(result);
+            });
         });
 
         return result;
@@ -1054,7 +1057,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select
                     String,
                     RowId
@@ -1063,14 +1066,14 @@ namespace PocketDb
                 where
                     String in ( )sql" + txReplacers + R"sql( )
             )sql")
-            .Bind(txHashes);
-
-            while (stmt.Step() == SQLITE_ROW) {
-                // TODO (optimization): error
-                auto[ok1, hash] = stmt.TryGetColumnString(0);
-                auto[ok2, txId] = stmt.TryGetColumnInt64(1);
-                if (ok1 && ok2) res.emplace(hash, txId);
-            }
+            .Bind(txHashes)
+            .Select([&](Stmt& stmt) {
+                while (stmt.Step() == SQLITE_ROW) {
+                    auto[ok1, hash] = stmt.TryGetColumnString(0);
+                    auto[ok2, txId] = stmt.TryGetColumnInt64(1);
+                    if (ok1 && ok2) res.emplace(hash, txId);
+                }
+            });
         });
 
         return res;

@@ -97,9 +97,7 @@ namespace PocketDb
                 itr = _statements.insert({key, stmt}).first;
             }
 
-            const auto& stmt = itr->second;
-            stmt->Reset();
-            return *stmt;
+            return *itr->second;
         }
 
         void SetLastInsertRowId(int64_t value)
