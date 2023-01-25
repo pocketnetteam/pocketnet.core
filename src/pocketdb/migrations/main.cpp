@@ -189,7 +189,7 @@ namespace PocketDb
                 Type   int not null,
                 Last   int not null,
                 Height int not null,
-                Uid     int not null,
+                Uid    int not null,
                 Value  int not null,
                 primary key (Type, Height, Uid, Value)
             );
@@ -198,20 +198,8 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Balances
             (
-                AddressId       int     not null,
-                Last            int     not null,
-                Height          int     not null,
-                Value           int     not null,
-                primary key (AddressId, Height)
-            );
-        )sql");
-
-        _tables.emplace_back(R"sql(
-            create table if not exists System
-            (
-                Db text not null,
-                Version int not null,
-                primary key (Db)
+                AddressId   integer primary key,
+                Value       int     not null
             );
         )sql");
 
@@ -239,8 +227,7 @@ namespace PocketDb
 
         
         _preProcessing = R"sql(
-            insert or ignore into System (Db, Version) values ('main', 1);
-            delete from Balances where AddressId = (select RowId from Registry where String = '');
+            
         )sql";
 
 
@@ -273,9 +260,6 @@ namespace PocketDb
             create index if not exists Payload_String7 on Payload (String7);
             create index if not exists Payload_String1_TxId on Payload (String1, TxId);
 
-            create index if not exists Balances_Height on Balances (Height);
-            create index if not exists Balances_AddressId_Last_Height on Balances (AddressId, Last, Height);
-            create index if not exists Balances_Last_Value on Balances (Last, Value);
         )sql";
 
         _postProcessing = R"sql(

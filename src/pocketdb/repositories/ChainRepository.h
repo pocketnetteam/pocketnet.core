@@ -50,8 +50,10 @@ namespace PocketDb
         // void RollbackBlockingList(int height);
         // void ClearBlockingList();
         
-        void RollbackHeight(int height);
-        void RestoreOldLast(int height);
+        void RestoreLast(int height);
+        void RestoreRatings(int height);
+        void RestoreBalances(int height);
+        void RestoreChain(int height);
 
         // Returns blockId
         void IndexBlockData(const std::string& blockHash);
@@ -65,7 +67,6 @@ namespace PocketDb
         string IndexBlocking();
         string IndexSubscribe();
 
-        void ClearOldLast(const int64_t& txId);
 
     };
 

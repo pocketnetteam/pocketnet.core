@@ -19,8 +19,16 @@ namespace PocketDb
             {
                 auto[id, lastTxId] = IndexSocial(txInfo);
 
+                // Remove current last record for tx
                 if (lastTxId)
-                    ClearOldLast(*lastTxId);
+                {
+                    Sql(R"sql(
+                        delete from Last
+                        where TxId = ?
+                    )sql")
+                    .Bind(*lastTxId)
+                    .Run();
+                }
 
                 // All transactions must have a blockHash & height relation
                 InsertTransactionChainData(
@@ -167,11 +175,10 @@ namespace PocketDb
                 height as (
                     select ? as value
                 ),
-                saldo as (
+                outs as (
                     select
-                        'unspent',
                         o.AddressId,
-                        +sum(o.Value)Amount
+                        (+o.Value)val
                     from
                         height,
                         Chain c indexed by Chain_Height_BlockId
@@ -179,15 +186,12 @@ namespace PocketDb
                             on o.TxId = c.TxId
                     where
                         c.Height = height.value
-                    group by
-                        o.AddressId
 
                     union
 
                     select
-                        'spent',
                         o.AddressId,
-                        -sum(o.Value)Amount
+                        (-o.Value)val
                     from
                         height,
                         Chain ci indexed by Chain_Height_BlockId
@@ -197,48 +201,29 @@ namespace PocketDb
                             on o.TxId = i.TxId and o.Number = i.Number
                     where
                         ci.Height = height.value
+                ),
+                saldo as (
+                    select
+                        outs.AddressId,
+                        sum(outs.val)Amount
+                    from
+                        outs
                     group by
-                        o.AddressId
+                        outs.AddressId
                 )
 
-            insert into Balances
-                (AddressId, Last, Height, Value)
+            replace into Balances (AddressId, Value)
             select
                 saldo.AddressId,
-                1,
-                height.value,
-                sum(ifnull(saldo.Amount,0)) + ifnull(b.Value,0)
+                ifnull(b.Value, 0) + saldo.Amount
             from
-                height,
                 saldo
-            left join Balances b indexed by Balances_AddressId_Last_Height
-                on b.AddressId = saldo.AddressId and b.Last = 1
+                left join Balances b
+                    on b.AddressId = saldo.AddressId
             where
-                saldo.AddressId is not null
-            group by
-                saldo.AddressId
+                saldo.Amount != 0
         )sql")
         .Bind(height)
-        .Run();
-
-        // Remove old Last records
-        Sql(R"sql(
-            update Balances indexed by Balances_AddressId_Last_Height
-            set
-                Last = 0
-            where
-                Balances.AddressId in (
-                    select
-                        b.AddressId
-                    from
-                        Balances b indexed by Balances_Height
-                    where
-                        b.Height = ?
-                ) and
-                Balances.Last = 1 and
-                Balances.Height < ?
-        )sql")
-        .Bind(height, height)
         .Run();
     }
 
@@ -265,11 +250,12 @@ namespace PocketDb
         else
             return {id, lastTxId};
 
-        bool res = false;
-        Sql(sql).Bind(txInfo.Hash).Select([&](Stmt& stmt) { res = stmt.Collect(id, lastTxId); });
-        if (!res)
-            throw runtime_error("IndexSocial failed - no return data");
-        
+        Sql(sql)
+        .Bind(txInfo.Hash)
+        .Select([&](Stmt& stmt) {
+            stmt.Collect(id, lastTxId);
+        });
+
         return {id, lastTxId};
     }
 
@@ -663,17 +649,32 @@ namespace PocketDb
     bool ChainRepository::ClearDatabase()
     {
         LogPrintf("Deleting database indexes..\n");
-        m_database.DropIndexes();
 
-        LogPrintf("Rollback to first block..\n");
-        RollbackHeight(0);
+        try
+        {
+            // Update transactions
+            SqlTransaction(__func__, [&]()
+            {
+                m_database.DropIndexes();
 
-        // TODO (aok) : bad
-        // ClearBlockingList();
+                Sql(R"sql( delete from Last )sql").Run();
+                Sql(R"sql( delete from Ratings )sql").Run();
+                Sql(R"sql( delete from Balances )sql").Run();
+                Sql(R"sql( delete from Chain )sql").Run();
 
-        m_database.CreateStructure();
+                // TODO (aok) : bad
+                // ClearBlockingList();
 
-        return true;
+                m_database.CreateStructure();
+            });
+
+            return true;
+        }
+        catch (exception& ex)
+        {
+            LogPrintf("Error: Clear database failed with message: %s\n", ex.what());
+            return false;
+        }
     }
 
     bool ChainRepository::Rollback(int height)
@@ -683,10 +684,13 @@ namespace PocketDb
             // Update transactions
             SqlTransaction(__func__, [&]()
             {
-                RestoreOldLast(height);
+                RestoreLast(height);
+                RestoreRatings(height);
+                RestoreBalances(height);
+                RestoreChain(height);
+
                 // TODO (aok) : bad
                 // RollbackBlockingList(height);
-                RollbackHeight(height);
             });
 
             return true;
@@ -698,20 +702,8 @@ namespace PocketDb
         }
     }
     
-    void ChainRepository::ClearOldLast(const int64_t& lastTxId)
+    void ChainRepository::RestoreLast(int height)
     {
-        Sql(R"sql(
-            delete from Last
-            where TxId = ?
-        )sql")
-        .Bind(lastTxId)
-        .Run();
-    }
-
-    void ChainRepository::RestoreOldLast(int height)
-    {
-        int64_t nTime0 = GetTimeMicros();
-
         // Delete current last records
         Sql(R"sql(
             delete from Last
@@ -760,11 +752,10 @@ namespace PocketDb
         )sql")
         .Bind(height)
         .Run();
+    }
 
-        int64_t nTime1 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Transactions): %.2fms\n", 0.001 * (nTime1 - nTime0));
-
-        // ----------------------------------------
+    void ChainRepository::RestoreRatings(int height)
+    {
         // Restore Last for deleting ratings
         Sql(R"sql(
             update Ratings indexed by Ratings_Type_Uid_Height_Value
@@ -784,75 +775,6 @@ namespace PocketDb
         .Bind(height, height)
         .Run();
 
-        int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Ratings): %.2fms\n", 0.001 * (nTime2 - nTime1));
-
-        // ----------------------------------------
-        // Restore Last for deleting balances
-        Sql(R"sql(
-            update Balances set
-                Last = 1
-            from (
-                select
-
-                    b1.AddressId
-                    ,(
-                        select max(b2.Height)
-                        from Balances b2 indexed by Balances_AddressId_Last_Height
-                        where b2.AddressId = b1.AddressId
-                          and b2.Last = 0
-                          and b2.Height < ?
-                        limit 1
-                    )Height
-
-                from Balances b1 indexed by Balances_Height
-
-                where b1.Height >= ?
-                  and b1.Last = 1
-                  and b1.AddressId > 0
-
-                group by b1.AddressId
-            )b
-            where b.Height is not null
-              and Balances.AddressId = b.AddressId
-              and Balances.Height = b.Height
-        )sql")
-        .Bind(height, height)
-        .Run();
-
-        int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RestoreOldLast (Balances): %.2fms\n", 0.001 * (nTime3 - nTime2));
-    }
-
-    void ChainRepository::RollbackHeight(int height)
-    {
-        int64_t nTime0 = GetTimeMicros();
-
-        Sql(R"sql(
-            delete from Last
-            where
-                TxId in (
-                    select c.TxId
-                    from Chain c indexed by Chain_Height_BlockId
-                    where c.Height >= ?
-                )
-        )sql")
-        .Bind(height)
-        .Run();
-
-        // ----------------------------------------
-        // Rollback general transaction information
-        Sql(R"sql(
-            delete from Chain indexed by Chain_Height_BlockId
-            where Height >= ?
-        )sql")
-        .Bind(height)
-        .Run();
-
-        int64_t nTime1 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Chain:Height = null): %.2fms\n", 0.001 * (nTime1 - nTime0));
-
-        // ----------------------------------------
         // Remove ratings
         Sql(R"sql(
             delete from Ratings indexed by Ratings_Height_Last
@@ -860,21 +782,76 @@ namespace PocketDb
         )sql")
         .Bind(height)
         .Run();
+    }
 
-        int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Ratings delete): %.2fms\n", 0.001 * (nTime2 - nTime1));
-
-        // ----------------------------------------
-        // Remove balances
+    void ChainRepository::RestoreBalances(int height)
+    {
+        // Rollback balances
         Sql(R"sql(
-            delete from Balances indexed by Balances_Height
+            with
+                height as (
+                    select ? as value
+                ),
+                outs as (
+                    select
+                        o.AddressId,
+                        (+o.Value)val
+                    from
+                        height,
+                        Chain c indexed by Chain_Height_BlockId
+                        cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                            on o.TxId = c.TxId
+                    where
+                        c.Height >= height.value
+
+                    union
+
+                    select
+                        o.AddressId,
+                        (-o.Value)val
+                    from
+                        height,
+                        Chain ci indexed by Chain_Height_BlockId
+                        cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                            on i.SpentTxId = ci.TxId
+                        cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                            on o.TxId = i.TxId and o.Number = i.Number
+                    where
+                        ci.Height >= height.value
+                ),
+                saldo as (
+                    select
+                        outs.AddressId,
+                        sum(outs.val)Amount
+                    from
+                        outs
+                    group by
+                        outs.AddressId
+                )
+
+            replace into Balances (AddressId, Value)
+            select
+                saldo.AddressId,
+                ifnull(b.Value, 0) - saldo.Amount
+            from
+                saldo
+                left join Balances b
+                    on b.AddressId = saldo.AddressId
+            where
+                saldo.Amount != 0
+        )sql")
+        .Bind(height)
+        .Run();
+    }
+
+    void ChainRepository::RestoreChain(int height)
+    {
+        Sql(R"sql(
+            delete from Chain indexed by Chain_Height_BlockId
             where Height >= ?
         )sql")
         .Bind(height)
         .Run();
-
-        int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "        - RollbackHeight (Balances delete): %.2fms\n", 0.001 * (nTime3 - nTime2));
     }
 
     // void ChainRepository::RollbackBlockingList(int height)

@@ -27,7 +27,7 @@ namespace PocketDb
     static void InitializeSqlite()
     {
         LogPrintf("SQLite usage version: %d\n", (int)sqlite3_libversion_number());
-
+        
         int ret = sqlite3_config(SQLITE_CONFIG_LOG, ErrorLogCallback, nullptr);
         if (ret != SQLITE_OK)
             throw std::runtime_error(
@@ -57,13 +57,15 @@ namespace PocketDb
         PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDbMainMigration>();
         PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
         SQLiteDbInst.CreateStructure();
-
+        
         TransRepoInst.Init();
         ChainRepoInst.Init();
         RatingsRepoInst.Init();
         ConsensusRepoInst.Init();
         SystemRepoInst.Init();
         MigrationRepoInst.Init();
+
+        LogPrintf("SQLite database version: %d\n", SystemRepoInst.GetDbVersion());
 
         // Execute migration scripts
         if (gArgs.GetArg("-reindex", 0) == 0)

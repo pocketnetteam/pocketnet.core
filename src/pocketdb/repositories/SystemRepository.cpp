@@ -6,40 +6,32 @@
 
 namespace PocketDb
 {
-    int SystemRepository::GetDbVersion(const string& db)
+    int SystemRepository::GetDbVersion()
     {
         int result = -1;
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
-                select Version
-                from System
-                where Db = ?
-            )sql");
-
-            stmt.Bind(db);
-
-            if (stmt.Step())
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    result = value;
+            Sql(R"sql(
+                PRAGMA user_version
+            )sql")
+            .Select([&](Stmt& stmt) {
+                stmt.Collect(result);
+            });
         });
 
         return result;
     }
 
-    void SystemRepository::SetDbVersion(const string& db, int version)
+    void SystemRepository::SetDbVersion(int version)
     {
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
-                update System
-                    set Version = ?
-                where Db = ?
-            )sql");
-
-            stmt.Bind(version, db);
-            stmt.Step();
+            Sql(R"sql(
+                PRAGMA user_version = ?
+            )sql")
+            .Bind(version)
+            .Run();
         });
     }
 

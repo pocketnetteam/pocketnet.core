@@ -229,24 +229,34 @@ namespace PocketDb
         }
     };
 
+    static void _saveAppendToList(vector<string>& list, const string& value)
+    {
+        if (find(list.begin(), list.end(), value) == list.end())
+            list.emplace_back(value);
+    };
+
     static auto _findStringsAndListsToBeInserted(const vector<CollectData>& collectDataVec)
     {
+        
+
         vector<string> stringsToBeInserted;
         vector<string> listsToBeInserted;
         for (const auto& collectData: collectDataVec)
         {
+            _saveAppendToList(stringsToBeInserted, collectData.txHash);
+
             const auto& txData = collectData.txContextData;
-            if (txData.string1) stringsToBeInserted.emplace_back(*txData.string1);
-            if (txData.string2) stringsToBeInserted.emplace_back(*txData.string2);
-            if (txData.string3) stringsToBeInserted.emplace_back(*txData.string3);
-            if (txData.string4) stringsToBeInserted.emplace_back(*txData.string4);
-            if (txData.string5) stringsToBeInserted.emplace_back(*txData.string5);
-            stringsToBeInserted.emplace_back(collectData.txHash);
-            if (txData.list) listsToBeInserted.emplace_back(*txData.list);
+            if (txData.string1) _saveAppendToList(stringsToBeInserted, *txData.string1);
+            if (txData.string2) _saveAppendToList(stringsToBeInserted, *txData.string2);
+            if (txData.string3) _saveAppendToList(stringsToBeInserted, *txData.string3);
+            if (txData.string4) _saveAppendToList(stringsToBeInserted, *txData.string4);
+            if (txData.string5) _saveAppendToList(stringsToBeInserted, *txData.string5);
+
+            if (txData.list) _saveAppendToList(listsToBeInserted, *txData.list);
             
             for (const auto& output: collectData.outputs) {
-                if (output.GetAddressHash()) stringsToBeInserted.emplace_back(*output.GetAddressHash());
-                if (output.GetScriptPubKey()) stringsToBeInserted.emplace_back(*output.GetScriptPubKey());
+                if (output.GetAddressHash()) _saveAppendToList(stringsToBeInserted, *output.GetAddressHash());
+                if (output.GetScriptPubKey()) _saveAppendToList(stringsToBeInserted, *output.GetScriptPubKey());
             }
         }
 
@@ -796,6 +806,8 @@ namespace PocketDb
             from
                 data
             where
+                data.spentTx is not null and
+                data.tx is not null and
                 not exists (
                     select 1
                     from TxInputs i
