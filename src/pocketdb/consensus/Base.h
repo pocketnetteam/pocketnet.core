@@ -694,12 +694,12 @@ namespace PocketConsensus
         }},
         { moderation_jury_moders_count, {
             { NetworkMain,    { {0, 80} }},
-            { NetworkTest,    { {0, 5} }},
+            { NetworkTest,    { {0, 6} }},
             { NetworkRegTest, { {0, 4} } }
         }},
         { moderation_jury_vote_count, {
             { NetworkMain,    { {0, 8} }},
-            { NetworkTest,    { {0, 5} }},
+            { NetworkTest,    { {0, 3} }},
             { NetworkRegTest, { {0, 2} } }
         }},
 
