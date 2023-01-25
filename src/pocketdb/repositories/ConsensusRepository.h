@@ -78,11 +78,11 @@ namespace PocketDb
     // ----------------------------------------------------------------------
 
     struct ConsensusData_AccountUser {
-        uint16_t LastTxType = -1;
-        uint16_t EditsCount = 0;
-        uint16_t MempoolCount = 0;
-        uint16_t DuplicatesChainCount = 0;
-        uint16_t DuplicatesMempoolCount = 0;
+        int LastTxType = -1;
+        int EditsCount = 0;
+        int MempoolCount = 0;
+        int DuplicatesChainCount = 0;
+        int DuplicatesMempoolCount = 0;
     };
 
     // ----------------------------------------------------------------------

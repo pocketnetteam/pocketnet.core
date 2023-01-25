@@ -185,6 +185,7 @@ void ShutdownPocketServices()
     PocketDb::ChainRepoInst.Destroy();
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
+    PocketDb::SystemRepoInst.Destroy();
     PocketDb::MigrationRepoInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");

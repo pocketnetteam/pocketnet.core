@@ -56,19 +56,19 @@ namespace PocketDb
 
         /**
          * Pass a new row for reconstructor to collect all necessary data from it.
-         * @param stmt - sqlite stmt. Null is not allowed and will potentially cause a segfault
+         * @param cursor - sqlite cursor(stmt). Null is not allowed and will potentially cause a segfault
          * Returns boolean result of collecting data. If false is returned - all data inside reconstructor is possibly corrupted due to bad input (missing columns, etc)
          * and it should not be used anymore
          * 
          * Columns: PartType (0), TxHash (1), ...
          * PartTypes: 0 Tx, 1 Payload, 2 Input, 3 Output
          */
-        bool FeedRow(Stmt& stmt)
+        bool FeedRow(Cursor& cursor)
         {
-            auto[okPartType, partType] = stmt.TryGetColumnInt(0);
+            auto[okPartType, partType] = cursor.TryGetColumnInt(0);
             if (!okPartType) return false;
 
-            auto[okTxHash, txHash] = stmt.TryGetColumnString(1);
+            auto[okTxHash, txHash] = cursor.TryGetColumnString(1);
             if (!okTxHash) return false;
 
             auto dataItr = m_collectData.find(txHash);
@@ -79,14 +79,14 @@ namespace PocketDb
             switch (partType)
             {
                 case 0: {
-                    return ParseTransaction(stmt, data);
+                    return ParseTransaction(cursor, data);
                 }
                 case 1:
-                    return ParsePayload(stmt, data);
+                    return ParsePayload(cursor, data);
                 case 2:
-                    return ParseInput(stmt, data);
+                    return ParseInput(cursor, data);
                 case 3:
-                    return ParseOutput(stmt, data);
+                    return ParseOutput(cursor, data);
                 default:
                     return false;
             }
@@ -117,10 +117,10 @@ namespace PocketDb
          * Index:   0  1     2     3     4          5       6     7   8        9        10       11       12       13    14    15
          * Columns: 0, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
          */
-        bool ParseTransaction(Stmt& stmt, CollectData& collectData)
+        bool ParseTransaction(Cursor& cursor, CollectData& collectData)
         {
             // Try get Type and create pocket transaction instance
-            auto[okType, txType] = stmt.TryGetColumnInt(2);
+            auto[okType, txType] = cursor.TryGetColumnInt(2);
             if (!okType) return false;
             
             PTransactionRef ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<TxType>(txType));
@@ -128,23 +128,23 @@ namespace PocketDb
 
             PocketHelpers::TxContextualData txContextData;
 
-            if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok) ptx->SetTime(value);
-            if (auto[ok, value] = stmt.TryGetColumnInt64(4); ok) ptx->SetHeight(value);
+            if (auto[ok, value] = cursor.TryGetColumnInt64(3); ok) ptx->SetTime(value);
+            if (auto[ok, value] = cursor.TryGetColumnInt64(4); ok) ptx->SetHeight(value);
             // TODO (optimization): implement "first" field
-            // if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) ptx->SetFirst(value);
-            if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) ptx->SetLast(value);
-            if (auto[ok, value] = stmt.TryGetColumnInt64(6); ok) ptx->SetId(value);
-            if (auto[ok, value] = stmt.TryGetColumnInt64(7); ok) txContextData.int1 = value;
+            // if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) ptx->SetFirst(value);
+            if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) ptx->SetLast(value);
+            if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) ptx->SetId(value);
+            if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) txContextData.int1 = value;
 
-            if (auto[ok, value] = stmt.TryGetColumnString(8); ok) txContextData.string1 = value;
-            if (auto[ok, value] = stmt.TryGetColumnString(9); ok) txContextData.string2 = value;
-            if (auto[ok, value] = stmt.TryGetColumnString(10); ok) txContextData.string3 = value;
-            if (auto[ok, value] = stmt.TryGetColumnString(11); ok) txContextData.string4 = value;
-            if (auto[ok, value] = stmt.TryGetColumnString(12); ok) txContextData.string5 = value;
+            if (auto[ok, value] = cursor.TryGetColumnString(8); ok) txContextData.string1 = value;
+            if (auto[ok, value] = cursor.TryGetColumnString(9); ok) txContextData.string2 = value;
+            if (auto[ok, value] = cursor.TryGetColumnString(10); ok) txContextData.string3 = value;
+            if (auto[ok, value] = cursor.TryGetColumnString(11); ok) txContextData.string4 = value;
+            if (auto[ok, value] = cursor.TryGetColumnString(12); ok) txContextData.string5 = value;
 
-            if (auto[ok, value] = stmt.TryGetColumnString(13); ok) ptx->SetBlockHash(value);
+            if (auto[ok, value] = cursor.TryGetColumnString(13); ok) ptx->SetBlockHash(value);
 
-            if (auto[ok, value] = stmt.TryGetColumnString(14); ok) txContextData.list = value;
+            if (auto[ok, value] = cursor.TryGetColumnString(14); ok) txContextData.list = value;
 
             ptx->SetHash(collectData.txHash);
             collectData.ptx = move(ptx);            
@@ -158,17 +158,17 @@ namespace PocketDb
          * Index:   0  1       2     3     4     5     6     7     8        9        10       11       12       13       14       15
          * Columns: 1, TxHash, null, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
          */
-        bool ParsePayload(Stmt& stmt, CollectData& collectData)
+        bool ParsePayload(Cursor& cursor, CollectData& collectData)
         {
             Payload payload;
-            if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) { payload.SetInt1(value); }
-            if (auto[ok, value] = stmt.TryGetColumnString(8); ok) { payload.SetString1(value); }
-            if (auto[ok, value] = stmt.TryGetColumnString(9); ok) { payload.SetString2(value); }
-            if (auto[ok, value] = stmt.TryGetColumnString(10); ok) { payload.SetString3(value); }
-            if (auto[ok, value] = stmt.TryGetColumnString(11); ok) { payload.SetString4(value); }
-            if (auto[ok, value] = stmt.TryGetColumnString(12); ok) { payload.SetString5(value); }
-            if (auto[ok, value] = stmt.TryGetColumnString(13); ok) { payload.SetString6(value); }
-            if (auto[ok, value] = stmt.TryGetColumnString(14); ok) { payload.SetString7(value); }
+            if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) { payload.SetInt1(value); }
+            if (auto[ok, value] = cursor.TryGetColumnString(8); ok) { payload.SetString1(value); }
+            if (auto[ok, value] = cursor.TryGetColumnString(9); ok) { payload.SetString2(value); }
+            if (auto[ok, value] = cursor.TryGetColumnString(10); ok) { payload.SetString3(value); }
+            if (auto[ok, value] = cursor.TryGetColumnString(11); ok) { payload.SetString4(value); }
+            if (auto[ok, value] = cursor.TryGetColumnString(12); ok) { payload.SetString5(value); }
+            if (auto[ok, value] = cursor.TryGetColumnString(13); ok) { payload.SetString6(value); }
+            if (auto[ok, value] = cursor.TryGetColumnString(14); ok) { payload.SetString7(value); }
 
             collectData.payload = move(payload);
 
@@ -180,21 +180,21 @@ namespace PocketDb
          * Index:   0  1              2     3     4         5         6        7     8              9     10    11    12    13    14    15
          * Columns: 2, i.SpentTxHash, null, null, i.TxHash, i.Number, o.Value, null, o.AddressHash, null, null, null, null, null, null, null
          */
-        bool ParseInput(Stmt& stmt, CollectData& collectData)
+        bool ParseInput(Cursor& cursor, CollectData& collectData)
         {
             bool incomplete = false;
 
             TransactionInput input;
             input.SetSpentTxHash(collectData.txHash);
-            if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) input.SetNumber(value);
+            if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) input.SetNumber(value);
             else incomplete = true;
 
-            if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok) input.SetValue(value);
+            if (auto[ok, value] = cursor.TryGetColumnInt64(3); ok) input.SetValue(value);
 
-            if (auto[ok, value] = stmt.TryGetColumnString(8); ok) input.SetTxHash(value);
+            if (auto[ok, value] = cursor.TryGetColumnString(8); ok) input.SetTxHash(value);
             else incomplete = true;
 
-            if (auto[ok, value] = stmt.TryGetColumnString(9); ok) input.SetAddressHash(value);
+            if (auto[ok, value] = cursor.TryGetColumnString(9); ok) input.SetAddressHash(value);
 
             collectData.inputs.emplace_back(input);
             return !incomplete;
@@ -205,23 +205,23 @@ namespace PocketDb
          * Index:   0  1       2     3       4            5      6     7     8     9     10            11    12    13    14           15
          * Columns: 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, SpentTxHash, SpentHeight
          */
-        bool ParseOutput(Stmt& stmt, CollectData& collectData)
+        bool ParseOutput(Cursor& cursor, CollectData& collectData)
         {
             bool incomplete = false;
 
             TransactionOutput output;
             output.SetTxHash(collectData.txHash);
 
-            if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) output.SetValue(value);
+            if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) output.SetValue(value);
             else incomplete = true;
 
-            if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok) output.SetNumber(value);
+            if (auto[ok, value] = cursor.TryGetColumnInt64(3); ok) output.SetNumber(value);
             else incomplete = true;
 
-            if (auto[ok, value] = stmt.TryGetColumnString(8); ok) output.SetAddressHash(value);
+            if (auto[ok, value] = cursor.TryGetColumnString(8); ok) output.SetAddressHash(value);
             else incomplete = true;
 
-            if (auto[ok, value] = stmt.TryGetColumnString(9); ok) output.SetScriptPubKey(value);
+            if (auto[ok, value] = cursor.TryGetColumnString(9); ok) output.SetScriptPubKey(value);
             else incomplete = true;
 
             collectData.outputs.emplace_back(output);
@@ -494,10 +494,10 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(txHashes)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    if (!reconstructor.FeedRow(stmt)) {
+                    if (!reconstructor.FeedRow(cursor)) {
                         recRes = false;
                         break;
                     }
@@ -563,15 +563,15 @@ namespace PocketDb
                     o.Number = ?
             )sql")
             .Bind(txId, number)
-            .Select([&](Stmt& stmt) {
-                if (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
                 {
                     txOutput = make_shared<TransactionOutput>();
                     txOutput->SetTxHash(txHash);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) txOutput->SetNumber(value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) txOutput->SetAddressHash(value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) txOutput->SetValue(value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) txOutput->SetScriptPubKey(value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) txOutput->SetNumber(value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) txOutput->SetAddressHash(value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) txOutput->SetValue(value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) txOutput->SetScriptPubKey(value);
                 }
             });
         });
@@ -636,8 +636,8 @@ namespace PocketDb
                     -
                     (select count() from Chain)
             )sql")
-            .Select([&](Stmt& stmt) {
-                stmt.Collect(result);
+            .Select([&](Cursor& cursor) {
+                cursor.Collect(result);
             });
         });
 
@@ -1022,11 +1022,11 @@ namespace PocketDb
         .Run();
     }
 
-    tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(Stmt& stmt, bool includedPayload)
+    tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(Cursor& cursor, bool includedPayload)
     {
-        auto[ok0, _txType] = stmt.TryGetColumnInt(0);
-        auto[ok1, txHash] = stmt.TryGetColumnString(1);
-        auto[ok2, nTime] = stmt.TryGetColumnInt64(2);
+        auto[ok0, _txType] = cursor.TryGetColumnInt(0);
+        auto[ok1, txHash] = cursor.TryGetColumnString(1);
+        auto[ok2, nTime] = cursor.TryGetColumnInt64(2);
 
         if (!ok0 || !ok1 || !ok2)
             return make_tuple(false, nullptr);
@@ -1039,30 +1039,30 @@ namespace PocketDb
         if (ptx == nullptr)
             return make_tuple(false, nullptr);
 
-        if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) ptx->SetLast(value == 1);
-        if (auto[ok, value] = stmt.TryGetColumnInt64(4); ok) ptx->SetId(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(5); ok) ptx->SetString1(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(6); ok) ptx->SetString2(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(7); ok) ptx->SetString3(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(8); ok) ptx->SetString4(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(9); ok) ptx->SetString5(value);
-        if (auto[ok, value] = stmt.TryGetColumnInt64(10); ok) ptx->SetInt1(value);
+        if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) ptx->SetLast(value == 1);
+        if (auto[ok, value] = cursor.TryGetColumnInt64(4); ok) ptx->SetId(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) ptx->SetString1(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) ptx->SetString2(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(7); ok) ptx->SetString3(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(8); ok) ptx->SetString4(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(9); ok) ptx->SetString5(value);
+        if (auto[ok, value] = cursor.TryGetColumnInt64(10); ok) ptx->SetInt1(value);
 
         if (!includedPayload)
             return make_tuple(true, ptx);
 
-        if (auto[ok, value] = stmt.TryGetColumnString(11); !ok)
+        if (auto[ok, value] = cursor.TryGetColumnString(11); !ok)
             return make_tuple(true, ptx);
 
         auto payload = Payload();
-        if (auto[ok, value] = stmt.TryGetColumnString(11); ok) payload.SetTxHash(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(12); ok) payload.SetString1(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(13); ok) payload.SetString2(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(14); ok) payload.SetString3(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(15); ok) payload.SetString4(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(16); ok) payload.SetString5(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(17); ok) payload.SetString6(value);
-        if (auto[ok, value] = stmt.TryGetColumnString(18); ok) payload.SetString7(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(11); ok) payload.SetTxHash(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(12); ok) payload.SetString1(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(13); ok) payload.SetString2(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(14); ok) payload.SetString3(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(15); ok) payload.SetString4(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(16); ok) payload.SetString5(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(17); ok) payload.SetString6(value);
+        if (auto[ok, value] = cursor.TryGetColumnString(18); ok) payload.SetString7(value);
 
         ptx->SetPayload(payload);
 
@@ -1086,10 +1086,10 @@ namespace PocketDb
                     String in ( )sql" + txReplacers + R"sql( )
             )sql")
             .Bind(txHashes)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step()) {
-                    auto[ok1, hash] = stmt.TryGetColumnString(0);
-                    auto[ok2, txId] = stmt.TryGetColumnInt64(1);
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    auto[ok1, hash] = cursor.TryGetColumnString(0);
+                    auto[ok2, txId] = cursor.TryGetColumnInt64(1);
                     if (ok1 && ok2) res.emplace(hash, txId);
                 }
             });

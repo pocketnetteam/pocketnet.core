@@ -60,20 +60,20 @@ namespace PocketHelpers
     public:
         void Reset(const int& startIndex);
 
-        ShortForm ParseFull(Stmt& stmt);
+        ShortForm ParseFull(Cursor& cursor);
 
-        int64_t ParseBlockNum(Stmt& stmt);
+        int64_t ParseBlockNum(Cursor& cursor);
 
-        ShortTxType ParseType(Stmt& stmt);
+        ShortTxType ParseType(Cursor& cursor);
 
-        std::string ParseHash(Stmt& stmt);
+        std::string ParseHash(Cursor& cursor);
 
-        std::optional<std::vector<ShortTxOutput>> ParseOutputs(Stmt& stmt);
+        std::optional<std::vector<ShortTxOutput>> ParseOutputs(Cursor& cursor);
 
-        std::optional<ShortAccount> ParseAccount(Stmt& stmt, const int& index);
+        std::optional<ShortAccount> ParseAccount(Cursor& cursor, const int& index);
 
     protected:
-        std::optional<ShortTxData> ProcessTxData(Stmt& stmt, int& index);
+        std::optional<ShortTxData> ProcessTxData(Cursor& cursor, int& index);
 
     private:
         int m_startIndex = 0;
@@ -84,7 +84,7 @@ namespace PocketHelpers
     public:
         EventsReconstructor();
 
-        void FeedRow(Stmt& stmt);
+        void FeedRow(Cursor& cursor);
 
         std::vector<ShortForm> GetResult() const;
     private:
@@ -97,7 +97,7 @@ namespace PocketHelpers
     public:
         NotificationsReconstructor();
 
-        void FeedRow(Stmt& stmt);
+        void FeedRow(Cursor& cursor);
 
         NotificationsResult GetResult() const;
     private:
@@ -108,7 +108,7 @@ namespace PocketHelpers
     class NotificationSummaryReconstructor
     {
     public:
-        void FeedRow(Stmt& stmt);
+        void FeedRow(Cursor& cursor);
 
         auto GetResult() const
         {

@@ -12,6 +12,8 @@
 
 namespace PocketDb
 {
+    class Cursor;
+    
     /**
     * Wrapper around sqlite3_stmt pointer.
     * Implemets RAII and calls sqlite3_finalize on object destruction.
@@ -24,14 +26,12 @@ namespace PocketDb
         Stmt(const Stmt&) = delete;
         Stmt(Stmt&&) = default;
         Stmt() = default;
-        ~Stmt();
+        virtual ~Stmt();
 
         void Init(SQLiteDatabase& db, const std::string& sql);
-        bool Step();
         int Run();
-        int Finalize();
-        int Reset();
         bool CheckValidResult(int result);
+        int Select(const std::function<void(Cursor&)>& func);
 
         auto Log()
         {
@@ -60,38 +60,15 @@ namespace PocketDb
         void TryBindStatementInt64(int index, int64_t value);
         bool TryBindStatementNull(int index);
 
-        // Collect data
-        template <class ...Collects>
-        int Collect(Collects&... collects)
-        {
-            int st = _step();
-            if (st != SQLITE_ROW)
-                return st;
-
-            (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
-            return st;
-        }
-
-        int Select(const std::function<void(Stmt&)>& func)
-        {
-            func(*this);
-            return Reset();
-        }
-
-        tuple<bool, std::string> TryGetColumnString(int index);
-        tuple<bool, int64_t> TryGetColumnInt64(int index);
-        tuple<bool, int> TryGetColumnInt(int index);
-
     protected:
-        int _step();
-        void ResetInternalIndicies();
-
-    private:
         sqlite3_stmt* m_stmt = nullptr;
-        int m_currentBindIndex = 1;
-        int m_currentCollectIndex = 0;
+        void ResetInternalIndicies();
+        int Finalize();
+        int Reset();
 
     private:
+        int m_currentBindIndex = 1;
+
         template<class T>
         class Binder
         {
@@ -117,11 +94,40 @@ namespace PocketDb
             }
         };
 
+    };
+
+    class Cursor : public Stmt
+    {
+    public:
+        Cursor() : Stmt() {}
+        ~Cursor();
+
+        bool Step();
+
+        // Collect data
+        template <class ...Collects>
+        int Collect(Collects&... collects)
+        {
+            int st = sqlite3_step(m_stmt);
+            if (st != SQLITE_ROW)
+                return st;
+
+            (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
+            return st;
+        }
+
+        tuple<bool, std::string> TryGetColumnString(int index);
+        tuple<bool, int64_t> TryGetColumnInt64(int index);
+        tuple<bool, int> TryGetColumnInt(int index);
+    
+    private:
+        int m_currentCollectIndex = 0;
+
         template<class T>
         class Collector
         {
         public:
-            static void collect(Stmt& stmt, int& i, T& t)
+            static void collect(Cursor& stmt, int& i, T& t)
             {
                 if constexpr (std::is_same_v<int, T> || std::is_same_v<std::optional<int>, T>) {
                     if (auto [ok, val] = stmt.TryGetColumnInt(i++); ok) t = val;
@@ -130,7 +136,7 @@ namespace PocketDb
                 } else if constexpr (std::is_convertible_v<std::string, T> || std::is_convertible_v<std::optional<std::string>, T>) {
                     if (auto [ok, val] = stmt.TryGetColumnString(i++); ok) t = val;
                 } else {
-                    static_assert(always_false<T>::value, "Stmt collecting with unsupported type");                
+                    static_assert(always_false<T>::value, "Cursor collecting with unsupported type");                
                 }
             }
         private:
@@ -140,6 +146,8 @@ namespace PocketDb
                 enum { value = false };  
             };
         };
+
+
     };
 }
 

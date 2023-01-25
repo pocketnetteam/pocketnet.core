@@ -32,7 +32,7 @@ namespace PocketDb
         
         SqlTransaction(__func__, [&]()
         {
-            result = Sql(
+            Sql(
                 R"sql(
                 select 1
                 from Ratings indexed by Ratings_Type_Id_Value
@@ -41,7 +41,7 @@ namespace PocketDb
                     and Value = ?
             )sql")
             .Bind(types, addressId, likerId)
-            .Step() == SQLITE_ROW;
+            .Run() == SQLITE_ROW;
         });
 
         return result;
@@ -78,7 +78,7 @@ namespace PocketDb
                 rating.GetId(),
                 rating.GetHeight(),
                 rating.GetValue())
-            .Step();
+            .Run();
 
             // Clear old Last record
             Sql(R"sql(
@@ -90,7 +90,7 @@ namespace PocketDb
                   and Height < ?
             )sql")
             .Bind(*rating.GetType(), rating.GetId(), rating.GetHeight())
-            .Step();
+            .Run();
         });
     }
 
@@ -108,7 +108,7 @@ namespace PocketDb
                 ) values ( ?,1,?,?,? )
             )sql")
             .Bind(*rating.GetType(), rating.GetHeight(), rating.GetId(), rating.GetValue())
-            .Step();
+            .Run();
         });
     }
 }

@@ -25,11 +25,11 @@ namespace PocketDb
                 and String1 = ?
             )sql")
             .Bind(address)
-            .Select([&](Stmt& stmt) {
-                if (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) result.pushKV("id", value);
                 }
             });
         });
@@ -52,11 +52,11 @@ namespace PocketDb
                 and Id = ?
             )sql")
             .Bind(id)
-            .Select([&](Stmt& stmt) {
-                if (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) result.pushKV("id", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) result.pushKV("id", value);
                 }
             });
         });
@@ -83,13 +83,13 @@ namespace PocketDb
                 limit 1
             )sql")
             .Bind(_name)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, valueStr] = stmt.TryGetColumnString(0); ok) record.pushKV("name", valueStr);
-                    if (auto[ok, valueStr] = stmt.TryGetColumnString(1); ok) record.pushKV("address", valueStr);
+                    if (auto[ok, valueStr] = cursor.TryGetColumnString(0); ok) record.pushKV("name", valueStr);
+                    if (auto[ok, valueStr] = cursor.TryGetColumnString(1); ok) record.pushKV("address", valueStr);
 
                     result.push_back(record);
                 }
@@ -123,14 +123,14 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(addresses)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, valueStr] = stmt.TryGetColumnString(0); ok) record.pushKV("address", valueStr);
-                    if (auto[ok, valueStr] = stmt.TryGetColumnString(1); ok) record.pushKV("time", valueStr);
-                    if (auto[ok, valueStr] = stmt.TryGetColumnString(2); ok) record.pushKV("txid", valueStr);
+                    if (auto[ok, valueStr] = cursor.TryGetColumnString(0); ok) record.pushKV("address", valueStr);
+                    if (auto[ok, valueStr] = cursor.TryGetColumnString(1); ok) record.pushKV("time", valueStr);
+                    if (auto[ok, valueStr] = cursor.TryGetColumnString(2); ok) record.pushKV("txid", valueStr);
 
                     result.push_back(record);
                 }
@@ -156,12 +156,12 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(count)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue addr(UniValue::VOBJ);
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) addr.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) addr.pushKV("balance", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) addr.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) addr.pushKV("balance", value);
                     result.push_back(addr);
                 }
             });
@@ -222,33 +222,33 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, address)
-            .Select([&](Stmt& stmt) {
-                if (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
                 {
                     int i = 0;
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("address_id", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) result.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("address_id", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) result.pushKV("address", value);
 
                     bool isDeleted = false;
-                    if (auto[ok, Type] = stmt.TryGetColumnInt(i++); ok)
+                    if (auto[ok, Type] = cursor.TryGetColumnInt(i++); ok)
                     {
                         isDeleted = (Type==TxType::ACCOUNT_DELETE);
                         if (isDeleted) result.pushKV("deleted", true);
                     }
 
                     if (!isDeleted) {
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("post_spent", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("video_spent", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("article_spent", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("stream_spent", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("audio_spent", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("comment_spent", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("score_spent", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok)
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("post_spent", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("video_spent", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("article_spent", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("stream_spent", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("audio_spent", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("comment_spent", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("score_spent", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok)
                             result.pushKV("comment_score_spent", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("complain_spent", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("complain_spent", value);
 
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) result.pushKV("mod_flag_spent", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("mod_flag_spent", value);
                     }
                 }
             });
@@ -276,10 +276,10 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(address)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
                         result = value;
                 }
             });
@@ -349,13 +349,13 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC, addresses)
-            .Select([&](Stmt& stmt) {
-                if (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
-                    auto[ok0, address] = stmt.TryGetColumnString(0);
-                    auto[ok1, ReferralsCountHist] = stmt.TryGetColumnInt(1);
-                    auto[ok2, CommentatorsCountHist] = stmt.TryGetColumnInt(2);
+                    auto[ok0, address] = cursor.TryGetColumnString(0);
+                    auto[ok1, ReferralsCountHist] = cursor.TryGetColumnInt(1);
+                    auto[ok2, CommentatorsCountHist] = cursor.TryGetColumnInt(2);
 
                     record.pushKV("address", address);
                     record.pushKV("histreferals", ReferralsCountHist);
@@ -550,17 +550,17 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(firstFlagsDepth * 1440, addresses, ids)
-            .Select([&](Stmt& stmt) {
+            .Select([&](Cursor& cursor) {
                 // Fetch data
-                while (stmt.Step())
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
                     int i = 0;
-                    auto[ok0, hash] = stmt.TryGetColumnString(i++);
-                    auto[ok1, address] = stmt.TryGetColumnString(i++);
-                    auto[ok2, id] = stmt.TryGetColumnInt64(i++);
-                    auto[ok3, Type] = stmt.TryGetColumnInt(i++);
+                    auto[ok0, hash] = cursor.TryGetColumnString(i++);
+                    auto[ok1, address] = cursor.TryGetColumnString(i++);
+                    auto[ok2, id] = cursor.TryGetColumnInt64(i++);
+                    auto[ok3, Type] = cursor.TryGetColumnInt(i++);
                     bool isDeleted = (Type==TxType::ACCOUNT_DELETE);
 
                     record.pushKV("hash", hash);
@@ -570,31 +570,31 @@ namespace PocketDb
                     if (isDeleted) record.pushKV("deleted", true);
 
                     if(!isDeleted) {
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("name", value);
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("i", value);
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("b", value);
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("r", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("postcnt", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("dltdcnt", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("reputation", value / 10.0);
-                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("k", value);
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("a", value);
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("l", value);
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("s", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) record.pushKV("update", value);
-                        if (auto [ok, value] = stmt.TryGetColumnInt64(i++); ok) record.pushKV("regdate", value);
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("name", value);
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("i", value);
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("b", value);
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("r", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("postcnt", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("dltdcnt", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("reputation", value / 10.0);
+                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("k", value);
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("a", value);
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("l", value);
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("s", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) record.pushKV("update", value);
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) record.pushKV("regdate", value);
 
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
                             UniValue flags(UniValue::VOBJ);
                             flags.read(value);
                             record.pushKV("flags", flags);
                         }
 
-                        if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
                             UniValue flags(UniValue::VOBJ);
                             flags.read(value);
                             record.pushKV("firstFlags", flags);
@@ -602,25 +602,25 @@ namespace PocketDb
 
                         if (!shortForm) {
 
-                            if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
                                 UniValue subscribes(UniValue::VARR);
                                 subscribes.read(value);
                                 record.pushKV("subscribes", subscribes);
                             }
 
-                            if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
                                 UniValue subscribes(UniValue::VARR);
                                 subscribes.read(value);
                                 record.pushKV("subscribers", subscribes);
                             }
 
-                            if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
                                 UniValue subscribes(UniValue::VARR);
                                 subscribes.read(value);
                                 record.pushKV("blocking", subscribes);
                             }
 
-                            if (auto [ok, value] = stmt.TryGetColumnString(i++); ok) {
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
                                 UniValue content(UniValue::VOBJ);
                                 content.read(value);
                                 record.pushKV("content", content);
@@ -741,32 +741,32 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(lang, height, count)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
                     int i = 0;
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("id", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("postid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("id", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("postid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok)
                     {
                         record.pushKV("time", value);
                         record.pushKV("timeUpd", value);
                     }
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("block", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("msg", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
-                    if (auto[ok, value] = stmt.TryGetColumnString(i++); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("block", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("msg", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
+                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok)
                     {
                         record.pushKV("donation", "true");
                         record.pushKV("amount", value);
@@ -878,36 +878,36 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(address, (int64_t)(0.5 * COIN), ids)
-            .Select([&](Stmt& stmt) {
+            .Select([&](Cursor& cursor) {
                 // ---------------------------
-                while (stmt.Step())
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    auto[okContentId, contentId] = stmt.TryGetColumnInt(0);
-                    auto[okCommentId, commentId] = stmt.TryGetColumnInt(1);
-                    auto[okType, txType] = stmt.TryGetColumnInt(2);
-                    auto[okRoot, rootTxHash] = stmt.TryGetColumnString(3);
+                    auto[okContentId, contentId] = cursor.TryGetColumnInt(0);
+                    auto[okCommentId, commentId] = cursor.TryGetColumnInt(1);
+                    auto[okType, txType] = cursor.TryGetColumnInt(2);
+                    auto[okRoot, rootTxHash] = cursor.TryGetColumnString(3);
 
                     record.pushKV("id", rootTxHash);
                     record.pushKV("cid", commentId);
                     record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
                     record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("postid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("timeUpd", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("block", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("msg", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(16); ok) record.pushKV("myScore", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(17); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("postid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("timeUpd", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("block", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("msg", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(16); ok) record.pushKV("myScore", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(17); ok)
                     {
                         record.pushKV("donation", "true");
                         record.pushKV("amount", value);
@@ -1019,38 +1019,38 @@ namespace PocketDb
             if (!parentHash.empty())
                 stmt.Bind(parentHash);
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    //auto[ok0, txHash] = stmt.TryGetColumnString(stmt, 1);
-                    auto[ok1, rootTxHash] = stmt.TryGetColumnString(2);
+                    //auto[ok0, txHash] = cursor.TryGetColumnString(cursor, 1);
+                    auto[ok1, rootTxHash] = cursor.TryGetColumnString(2);
                     record.pushKV("id", rootTxHash);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
                         record.pushKV("postid", value);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("block", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("msg", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("myScore", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("block", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("msg", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(16); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(16); ok)
                     {
                         record.pushKV("amount", value);
                         record.pushKV("donation", "true");
                     }
 
-                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                     {
                         switch (static_cast<TxType>(value))
                         {
@@ -1166,40 +1166,40 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(addressHash, cmntHashes)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    //auto[ok0, txHash] = stmt.TryGetColumnString(stmt, 1);
-                    auto[ok1, rootTxHash] = stmt.TryGetColumnString(2);
+                    //auto[ok0, txHash] = cursor.TryGetColumnString(cursor, 1);
+                    auto[ok1, rootTxHash] = cursor.TryGetColumnString(2);
                     record.pushKV("id", rootTxHash);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
                         record.pushKV("postid", value);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("block", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("msg", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("myScore", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("children", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("block", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("msg", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(16); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(16); ok)
                     {
                         record.pushKV("amount", value);
                         record.pushKV("donation", "true");
                     }
 
-                    if (auto[ok, value] = stmt.TryGetColumnInt(17); ok && value > 0) record.pushKV("blck", 1);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0) record.pushKV("blck", 1);
 
-                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                     {
                         switch (static_cast<TxType>(value))
                         {
@@ -1253,13 +1253,13 @@ namespace PocketDb
             {
                 Sql(sql)
                 .Bind(addressHash, postHashes)
-                .Select([&](Stmt& stmt) {
-                    while (stmt.Step())
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
                         UniValue record(UniValue::VOBJ);
 
-                        if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                        if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("value", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("value", value);
 
                         result.push_back(record);
                     }
@@ -1298,16 +1298,16 @@ namespace PocketDb
             {
                 Sql(sql)
                 .Bind(addressHash, commentHashes)
-                .Select([&](Stmt& stmt) {
-                    while (stmt.Step())
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
                         UniValue record(UniValue::VOBJ);
 
-                        if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("cmntid", value);
-                        if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
-                        if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
-                        if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("reputation", value);
-                        if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("myScore", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("cmntid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("myScore", value);
 
                         result.push_back(record);
                     }
@@ -1352,17 +1352,17 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(postTxHash)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("value", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("value", value);
 
                     result.push_back(record);
                 }
@@ -1407,17 +1407,17 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(address, postHashes)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("value", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("value", value);
 
                     result.push_back(record);
                 }
@@ -1495,19 +1495,19 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(address, address)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok) record.pushKV("id", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("about", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("regdate", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(6); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(7); ok) record.pushKV("ratingscnt", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok) record.pushKV("id", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("about", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("regdate", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("ratingscnt", value);
 
                     result.push_back(record);
                 }
@@ -1582,9 +1582,9 @@ namespace PocketDb
                 where us.String1 = ?
             )sql")
             .Bind(address)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
                         result.push_back(value);
             });
 
@@ -1609,9 +1609,9 @@ namespace PocketDb
                 where ut.String1 = ?
             )sql")
             .Bind(address)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
                         result.push_back(value);
             });
         });
@@ -1724,11 +1724,11 @@ namespace PocketDb
             }
 
             stmt.Bind(countOut);
-            stmt.Select([&](Stmt& stmt) {
+            stmt.Select([&](Cursor& cursor) {
                 // ---------------------------------------------
-                while (stmt.Step())
+                while (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) result.push_back(value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.push_back(value);
                 }
             });
         });
@@ -1757,12 +1757,12 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(lang, pageSize, pageStart)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    auto[ok0, vLang] = stmt.TryGetColumnString(0);
-                    auto[ok1, vValue] = stmt.TryGetColumnString(1);
-                    auto[ok2, vCount] = stmt.TryGetColumnInt(2);
+                    auto[ok0, vLang] = cursor.TryGetColumnString(0);
+                    auto[ok1, vValue] = cursor.TryGetColumnString(1);
+                    auto[ok2, vCount] = cursor.TryGetColumnInt(2);
 
                     UniValue record(UniValue::VOBJ);
                     record.pushKV("tag", vValue);
@@ -1794,10 +1794,10 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(txHashes)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
                         result.push_back(value);
                 }
             });
@@ -1824,11 +1824,11 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(txHashes)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    auto[ok0, contenthash] = stmt.TryGetColumnString(0);
-                    auto[ok1, contentaddress] = stmt.TryGetColumnString(1);
+                    auto[ok0, contenthash] = cursor.TryGetColumnString(0);
+                    auto[ok1, contentaddress] = cursor.TryGetColumnString(1);
                     if(ok0 && ok1)
                         result.emplace(contenthash,contentaddress);
                 }
@@ -1864,13 +1864,13 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(addresses)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    auto[ok0, txHash] = stmt.TryGetColumnString(0);
-                    auto[ok1, txOut] = stmt.TryGetColumnInt(1);
+                    auto[ok0, txHash] = cursor.TryGetColumnString(0);
+                    auto[ok1, txOut] = cursor.TryGetColumnInt(1);
 
                     string _txHash = txHash;
                     int _txOut = txOut;
@@ -1887,19 +1887,19 @@ namespace PocketDb
                     record.pushKV("txid", txHash);
                     record.pushKV("vout", txOut);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(3); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(3); ok)
                     {
                         record.pushKV("amount", ValueFromAmount(value));
                         record.pushKV("amountSat", value);
                     }
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("scriptPubKey", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(5); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("scriptPubKey", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(5); ok)
                     {
                         record.pushKV("coinbase", value == 2 || value == 3);
                         record.pushKV("pockettx", value > 3);
                     }
-                    if (auto[ok, value] = stmt.TryGetColumnInt(6); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt(6); ok)
                     {
                         record.pushKV("confirmations", height - value);
                         record.pushKV("height", value);
@@ -1935,12 +1935,12 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(height)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    auto[okType, typeInt] = stmt.TryGetColumnInt(0);
-                    auto[okLang, lang] = stmt.TryGetColumnString(1);
-                    auto[okCount, count] = stmt.TryGetColumnInt(2);
+                    auto[okType, typeInt] = cursor.TryGetColumnInt(0);
+                    auto[okLang, lang] = cursor.TryGetColumnString(1);
+                    auto[okCount, count] = cursor.TryGetColumnInt(2);
                     if (!okType || !okLang || !okCount)
                         continue;
 
@@ -1978,9 +1978,9 @@ namespace PocketDb
         {
             Sql(sqlCount)
             .Bind(height, address)
-            .Select([&](Stmt& stmt) {
-                if (stmt.Step())
-                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                         resultCount = value;
             });
 
@@ -2014,12 +2014,12 @@ namespace PocketDb
             {
                 Sql(sql)
                 .Bind(height, address, count)
-                .Select([&](Stmt& stmt) {
-                    while (stmt.Step())
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
-                        auto[okHash, hash] = stmt.TryGetColumnString(0);
-                        auto[okTime, time] = stmt.TryGetColumnInt64(1);
-                        auto[okHeight, block] = stmt.TryGetColumnInt(2);
+                        auto[okHash, hash] = cursor.TryGetColumnString(0);
+                        auto[okTime, time] = cursor.TryGetColumnInt64(1);
+                        auto[okHeight, block] = cursor.TryGetColumnInt(2);
                         if (!okHash || !okTime || !okHeight)
                             continue;
 
@@ -2027,9 +2027,9 @@ namespace PocketDb
                         record.pushKV("txid", hash);
                         record.pushKV("time", time);
                         record.pushKV("nblock", block);
-                        if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                        if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("nameFrom", value);
-                        if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("nameFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
                         resultData.push_back(record);
                     }
                 });
@@ -2080,20 +2080,20 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(address)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    auto[ok0, id] = stmt.TryGetColumnInt64(0);
-                    auto[ok1, hash] = stmt.TryGetColumnString(1);
-                    auto[ok2, time] = stmt.TryGetColumnString(2);
-                    auto[ok3, caption] = stmt.TryGetColumnString(3);
-                    auto[ok4, message] = stmt.TryGetColumnString(4);
-                    auto[ok5, settings] = stmt.TryGetColumnString(5);
-                    auto[ok6, reputation] = stmt.TryGetColumnString(6);
-                    auto[ok7, scoreCnt] = stmt.TryGetColumnString(7);
-                    auto[ok8, scoreSum] = stmt.TryGetColumnString(8);
+                    auto[ok0, id] = cursor.TryGetColumnInt64(0);
+                    auto[ok1, hash] = cursor.TryGetColumnString(1);
+                    auto[ok2, time] = cursor.TryGetColumnString(2);
+                    auto[ok3, caption] = cursor.TryGetColumnString(3);
+                    auto[ok4, message] = cursor.TryGetColumnString(4);
+                    auto[ok5, settings] = cursor.TryGetColumnString(5);
+                    auto[ok6, reputation] = cursor.TryGetColumnString(6);
+                    auto[ok7, scoreCnt] = cursor.TryGetColumnString(7);
+                    auto[ok8, scoreSum] = cursor.TryGetColumnString(8);
                     
                     if (ok3) record.pushKV("content", HtmlUtils::UrlDecode(caption));
                     else record.pushKV("content", HtmlUtils::UrlDecode(message).substr(0, 100));
@@ -2137,17 +2137,17 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(height, address)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
                     record.pushKV("msg", "reshare");
-                    if (auto[ok, val] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", val);
-                    if (auto[ok, val] = stmt.TryGetColumnString(1); ok) record.pushKV("txidRepost", val);
-                    if (auto[ok, val] = stmt.TryGetColumnString(2); ok) record.pushKV("addrFrom", val);
-                    if (auto[ok, val] = stmt.TryGetColumnInt64(3); ok) record.pushKV("time", val);
-                    if (auto[ok, val] = stmt.TryGetColumnInt(4); ok) record.pushKV("nblock", val);
+                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) record.pushKV("txid", val);
+                    if (auto[ok, val] = cursor.TryGetColumnString(1); ok) record.pushKV("txidRepost", val);
+                    if (auto[ok, val] = cursor.TryGetColumnString(2); ok) record.pushKV("addrFrom", val);
+                    if (auto[ok, val] = cursor.TryGetColumnInt64(3); ok) record.pushKV("time", val);
+                    if (auto[ok, val] = cursor.TryGetColumnInt(4); ok) record.pushKV("nblock", val);
 
                     result.push_back(record);
                 }
@@ -2184,20 +2184,20 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(height, address, limit)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
                     record.pushKV("addr", address);
                     record.pushKV("msg", "event");
                     record.pushKV("mesType", "upvoteShare");
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
 
                     result.push_back(record);
                 }
@@ -2234,20 +2234,20 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(address, height, limit)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
                     record.pushKV("addr", address);
                     record.pushKV("msg", "event");
                     record.pushKV("mesType", "cScore");
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("commentid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("commentid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
 
                     result.push_back(record);
                 }
@@ -2280,21 +2280,21 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(address, height, count)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    auto[okTxHash, txHash] = stmt.TryGetColumnString(0);
+                    auto[okTxHash, txHash] = cursor.TryGetColumnString(0);
                     if (!okTxHash) continue;
 
                     UniValue record(UniValue::VOBJ);
                     record.pushKV("txid", txHash);
                     record.pushKV("addr", address);
                     record.pushKV("msg", "transaction");
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("amount", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("amount", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
 
-                    if (auto[ok, value] = stmt.TryGetColumnInt(4); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt(4); ok)
                     {
                         auto stringType = TransactionHelper::TxStringType((TxType) value);
                         if (!stringType.empty())
@@ -2337,8 +2337,8 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(height, address, count)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2346,13 +2346,13 @@ namespace PocketDb
                     record.pushKV("msg", "comment");
                     record.pushKV("mesType", "answer");
                     record.pushKV("reason", "answer");
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("answerid", value);
 
                     result.push_back(record);
                 }
@@ -2397,8 +2397,8 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(height, address, excludePosts, count)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
@@ -2406,14 +2406,14 @@ namespace PocketDb
                     record.pushKV("msg", "comment");
                     record.pushKV("mesType", "post");
                     record.pushKV("reason", "post");
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("answerid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok)
                     {
                         record.pushKV("donation", "true");
                         record.pushKV("amount", value);
@@ -2458,14 +2458,14 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(height, address, count)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
                     record.pushKV("addr", address);
                     record.pushKV("msg", "event");
-                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                     {
                         switch (value)
                         {
@@ -2475,12 +2475,12 @@ namespace PocketDb
                             default: record.pushKV("mesType", "unknown"); break;
                         }
                     }
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("nameFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("avatarFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("nameFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("avatarFrom", value);
 
                     result.push_back(record);
                 }
@@ -2523,22 +2523,22 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(height, address, count)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
                     record.pushKV("addr", address);
                     record.pushKV("msg", "event");
                     record.pushKV("mesType", "contentBoost");
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(5); ok) record.pushKV("boostAmount", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("nameFrom", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(7); ok) record.pushKV("avatarFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("boostAmount", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("nameFrom", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("avatarFrom", value);
 
                     result.push_back(record);
                 }
@@ -2575,10 +2575,10 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(contentTypes, nHeight, links, countOut)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
                         ids.push_back(value);
                 }
             });
@@ -2622,15 +2622,15 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(contentTypes, addresses[0])
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
                     record.pushKV("address", addresses[0]);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok) record.pushKV("scoreSum", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(1); ok) record.pushKV("scoreCnt", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(2); ok) record.pushKV("countLikers", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok) record.pushKV("scoreSum", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(1); ok) record.pushKV("scoreCnt", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("countLikers", value);
 
                     result.push_back(record);
                 }
@@ -2685,10 +2685,10 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(lang, contentTypes, nHeight, nHeight - depth, badReputationLimit, countOut)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                         ids.push_back(value);
                 }
             });
@@ -2773,65 +2773,65 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(address, ids)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    auto[okHash, txHash] = stmt.TryGetColumnString(0);
-                    auto[okId, txId] = stmt.TryGetColumnInt64(1);
+                    auto[okHash, txHash] = cursor.TryGetColumnString(0);
+                    auto[okId, txId] = cursor.TryGetColumnInt64(1);
                     record.pushKV("txid", txHash);
                     record.pushKV("id", txId);
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("edit", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("repost", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("edit", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("repost", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
                     {
                         authors.emplace_back(value);
                         record.pushKV("address", value);
                     }
-                    if (auto[ok, value] = stmt.TryGetColumnString(5); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(6); ok) record.pushKV("l", value); // lang
-                    if (auto[ok, value] = stmt.TryGetColumnString(8); ok) record.pushKV("c", value); // caption
-                    if (auto[ok, value] = stmt.TryGetColumnString(9); ok) record.pushKV("m", value); // message
-                    if (auto[ok, value] = stmt.TryGetColumnString(10); ok) record.pushKV("u", value); // url
+                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("l", value); // lang
+                    if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("c", value); // caption
+                    if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("m", value); // message
+                    if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("u", value); // url
                     
-                    if (auto[ok, value] = stmt.TryGetColumnInt(7); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt(7); ok)
                     {
                         record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
                         if ((TxType)value == CONTENT_DELETE)
                             record.pushKV("deleted", "true");
                     }
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(11); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(11); ok)
                     {
                         UniValue t(UniValue::VARR);
                         t.read(value);
                         record.pushKV("t", t);
                     }
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(12); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(12); ok)
                     {
                         UniValue ii(UniValue::VARR);
                         ii.read(value);
                         record.pushKV("i", ii);
                     }
 
-                    if (auto[ok, value] = stmt.TryGetColumnString(13); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnString(13); ok)
                     {
                         UniValue s(UniValue::VOBJ);
                         s.read(value);
                         record.pushKV("s", s);
                     }
 
-                    if (auto [ok, value] = stmt.TryGetColumnString(14); ok) record.pushKV("scoreCnt", value);
-                    if (auto [ok, value] = stmt.TryGetColumnString(15); ok) record.pushKV("scoreSum", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt(16); ok && value > 0) record.pushKV("reposted", value);
-                    if (auto [ok, value] = stmt.TryGetColumnInt(17); ok) record.pushKV("comments", value);
+                    if (auto [ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("scoreCnt", value);
+                    if (auto [ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("scoreSum", value);
+                    if (auto [ok, value] = cursor.TryGetColumnInt(16); ok && value > 0) record.pushKV("reposted", value);
+                    if (auto [ok, value] = cursor.TryGetColumnInt(17); ok) record.pushKV("comments", value);
 
                     if (!address.empty())
                     {
-                        if (auto [ok, value] = stmt.TryGetColumnString(18); ok)
+                        if (auto [ok, value] = cursor.TryGetColumnString(18); ok)
                             record.pushKV("myVal", value);
                     }
 
@@ -2979,10 +2979,10 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
+                    auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
                     ids.push_back(contentId);
                 }
             });
@@ -3131,10 +3131,10 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
+                    auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
                     ids.push_back(contentId);
                 }
             });
@@ -3316,10 +3316,10 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
                         ids.push_back(value);
                 }
             });
@@ -3451,10 +3451,10 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
                         ids.push_back(value);
                 }
             });
@@ -3587,10 +3587,10 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    auto[ok0, contentId] = stmt.TryGetColumnInt64(0);
+                    auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
                     ids.push_back(contentId);
                 }
             });
@@ -3732,15 +3732,15 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     HierarchicalRecord record{};
 
                     int64_t contentId;
                     int contentRating, accountRating, contentOrigHeight, contentScores;
 
-                    stmt.Collect(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
+                    cursor.Collect(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
 
                     record.Id = contentId;
                     record.LAST5 = 1.0 * contentScores;
@@ -3947,12 +3947,12 @@ namespace PocketDb
 
             // ---------------------------------------------
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     int64_t contentId, sumBoost;
                     std::string contentHash;
-                    stmt.Collect(contentId, contentHash, sumBoost);
+                    cursor.Collect(contentId, contentHash, sumBoost);
 
                     UniValue boost(UniValue::VOBJ);
                     boost.pushKV("id", contentId);
@@ -4007,10 +4007,10 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(lang, height, count * 100, count)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) result.push_back(value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) result.push_back(value);
                 }
             });
         });
@@ -4129,24 +4129,24 @@ namespace PocketDb
         {
             Sql(sql)
             .Bind(postTxHash, postTxHash, postTxHash)
-            .Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
-                    if (auto[ok, value] = stmt.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(1); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(2); ok) record.pushKV("name", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                    if (auto[ok, value] = stmt.TryGetColumnString(4); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = stmt.TryGetColumnInt(5); ok && value > 0) {
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(5); ok && value > 0) {
                         record.pushKV("value", value);
                         resultScores.push_back(record);
                     }
-                    if (auto[ok, value] = stmt.TryGetColumnInt(6); ok && value > 0) {
+                    if (auto[ok, value] = cursor.TryGetColumnInt(6); ok && value > 0) {
                         record.pushKV("value", value);
                         resultBoosts.push_back(record);
                     }
-                    if (auto[ok, value] = stmt.TryGetColumnInt(7); ok && value > 0) {
+                    if (auto[ok, value] = cursor.TryGetColumnInt(7); ok && value > 0) {
                         record.pushKV("value", value);
                         resultDonations.push_back(record);
                     }
@@ -4943,10 +4943,10 @@ namespace PocketDb
                 bind(stmt, queryParams);
             }
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    reconstructor.FeedRow(stmt);
+                    reconstructor.FeedRow(cursor);
                 }
             });
         });
@@ -5863,9 +5863,9 @@ namespace PocketDb
 
                     selectData.binding(stmt, queryParams);
 
-                    stmt.Select([&](Stmt& stmt) {
-                        while (stmt.Step())
-                            reconstructor.FeedRow(stmt);
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                            reconstructor.FeedRow(cursor);
                     });
                 });
             }
@@ -6853,10 +6853,10 @@ namespace PocketDb
                 bind(stmt, queryParams);
             }
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    reconstructor.FeedRow(stmt);
+                    reconstructor.FeedRow(cursor);
                 }
             });
         });
@@ -7035,10 +7035,10 @@ namespace PocketDb
                 bind(stmt, queryParams);
             }
 
-            stmt.Select([&](Stmt& stmt) {
-                while (stmt.Step())
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    reconstructor.FeedRow(stmt);
+                    reconstructor.FeedRow(cursor);
                 }
             });
         });

@@ -77,7 +77,7 @@ namespace PocketDb
 
     protected:
         tuple<bool, PTransactionRef> CreateTransactionFromListRow(
-            Stmt& stmt, bool includedPayload);
+            Cursor& cursor, bool includedPayload);
 
     };
 

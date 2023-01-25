@@ -15,8 +15,8 @@ namespace PocketDb
             Sql(R"sql(
                 PRAGMA user_version
             )sql")
-            .Select([&](Stmt& stmt) {
-                stmt.Collect(result);
+            .Select([&](Cursor& cursor) {
+                cursor.Collect(result);
             });
         });
 

@@ -12,25 +12,25 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select t.Height, t.Type, count(*)
                 from Transactions t indexed by Transactions_Height_Type
                 where   t.Height > ?
                     and t.Height <= ?
                 group by t.Height, t.Type
-            )sql");
+            )sql")
+            .Bind(bottomHeight, topHeight)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto [ok0, sHeight] = cursor.TryGetColumnInt(0);
+                    auto [ok1, sType] = cursor.TryGetColumnInt(1);
+                    auto [ok2, sCount] = cursor.TryGetColumnInt(2);
 
-            stmt.Bind(bottomHeight, topHeight);
-
-            while (stmt.Step())
-            {
-                auto [ok0, sHeight] = stmt.TryGetColumnInt(0);
-                auto [ok1, sType] = stmt.TryGetColumnInt(1);
-                auto [ok2, sCount] = stmt.TryGetColumnInt(2);
-
-                if (ok0 && ok1 && ok2)
-                    result[sHeight][sType] = sCount;
-            }
+                    if (ok0 && ok1 && ok2)
+                        result[sHeight][sType] = sCount;
+                }
+            });
         });
 
         return result;
@@ -42,31 +42,31 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select (t.Time / ?), t.Type, count()
                 from Transactions t
                 where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
                   and t.Time >= ?
                   and t.time < ?
                 group by t.time / ?, t.Type
-            )sql");
+            )sql")
+            .Bind(period, top - (depth * period), top, period)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto [okPart, part] = cursor.TryGetColumnString(0);
+                    auto [okType, type] = cursor.TryGetColumnString(1);
+                    auto [okCount, count] = cursor.TryGetColumnInt(2);
 
-            stmt.Bind(period, top - (depth * period), top, period);
+                    if (!okPart || !okType || !okCount)
+                        continue;
 
-            while (stmt.Step())
-            {
-                auto [okPart, part] = stmt.TryGetColumnString(0);
-                auto [okType, type] = stmt.TryGetColumnString(1);
-                auto [okCount, count] = stmt.TryGetColumnInt(2);
+                    if (result.At(part).isNull())
+                        result.pushKV(part, UniValue(UniValue::VOBJ));
 
-                if (!okPart || !okType || !okCount)
-                    continue;
-
-                if (result.At(part).isNull())
-                    result.pushKV(part, UniValue(UniValue::VOBJ));
-
-                result.At(part).pushKV(type, count);
-            }
+                    result.At(part).pushKV(type, count);
+                }
+            });
         });
 
         return result;
@@ -78,31 +78,31 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select (t.Height / 60)Hour, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByHour
                 where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
                   and (t.Height / 60) < (? / 60)
                   and (t.Height / 60) >= (? / 60)
                 group by (t.Height / 60), t.Type
-            )sql");
+            )sql")
+            .Bind(topHeight, topHeight - depth)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto [okPart, part] = cursor.TryGetColumnString(0);
+                    auto [okType, type] = cursor.TryGetColumnString(1);
+                    auto [okCount, count] = cursor.TryGetColumnInt(2);
 
-            stmt.Bind(topHeight, topHeight - depth);
+                    if (!okPart || !okType || !okCount)
+                        continue;
 
-            while (stmt.Step())
-            {
-                auto [okPart, part] = stmt.TryGetColumnString(0);
-                auto [okType, type] = stmt.TryGetColumnString(1);
-                auto [okCount, count] = stmt.TryGetColumnInt(2);
+                    if (result.At(part).isNull())
+                        result.pushKV(part, UniValue(UniValue::VOBJ));
 
-                if (!okPart || !okType || !okCount)
-                    continue;
-
-                if (result.At(part).isNull())
-                    result.pushKV(part, UniValue(UniValue::VOBJ));
-
-                result.At(part).pushKV(type, count);
-            }
+                    result.At(part).pushKV(type, count);
+                }
+            });
         });
 
         return result;
@@ -114,31 +114,31 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select (t.Height / 1440)Day, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByDay
                 where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
                   and (t.Height / 1440) < (? / 1440)
                   and (t.Height / 1440) >= (? / 1440)
                 group by (t.Height / 1440), t.Type
-            )sql");
+            )sql")
+            .Bind(topHeight, topHeight - depth)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto [okPart, part] = cursor.TryGetColumnInt(0);
+                    auto [okType, type] = cursor.TryGetColumnInt(1);
+                    auto [okCount, count] = cursor.TryGetColumnInt(2);
 
-            stmt.Bind(topHeight, topHeight - depth);
+                    if (!okPart || !okType || !okCount)
+                        continue;
 
-            while (stmt.Step())
-            {
-                auto [okPart, part] = stmt.TryGetColumnInt(0);
-                auto [okType, type] = stmt.TryGetColumnInt(1);
-                auto [okCount, count] = stmt.TryGetColumnInt(2);
+                    if (result.At(to_string(part)).isNull())
+                        result.pushKV(to_string(part), UniValue(UniValue::VOBJ));
 
-                if (!okPart || !okType || !okCount)
-                    continue;
-
-                if (result.At(to_string(part)).isNull())
-                    result.pushKV(to_string(part), UniValue(UniValue::VOBJ));
-
-                result.At(to_string(part)).pushKV(to_string(type), count);
-            }
+                    result.At(to_string(part)).pushKV(to_string(type), count);
+                }
+            });
         });
 
         return result;
@@ -150,7 +150,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select (u.Height / 60)
                   ,(
                     select
@@ -167,20 +167,20 @@ namespace PocketDb
 
                 group by (u.Height / 60)
                 order by (u.Height / 60) desc
-            )sql");
+            )sql")
+            .Bind(topHeight, topHeight - depth)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto [okPart, part] = cursor.TryGetColumnString(0);
+                    auto [okCount, count] = cursor.TryGetColumnInt(1);
 
-            stmt.Bind(topHeight, topHeight - depth);
+                    if (!okPart || !okCount)
+                        continue;
 
-            while (stmt.Step())
-            {
-                auto [okPart, part] = stmt.TryGetColumnString(0);
-                auto [okCount, count] = stmt.TryGetColumnInt(1);
-
-                if (!okPart || !okCount)
-                    continue;
-
-                result.pushKV(part, count);
-            }
+                    result.pushKV(part, count);
+                }
+            });
         });
 
         return result;
@@ -192,7 +192,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select (u.Height / 1440)
                   ,(
                     select
@@ -211,20 +211,21 @@ namespace PocketDb
                 
                 group by (u.Height / 1440)
                 order by (u.Height / 1440) desc
-            )sql");
-
-            stmt.Bind(topHeight, topHeight - depth);
-
-            while (stmt.Step())
+            )sql")
+            .Bind(topHeight, topHeight - depth)
+            .Select([&](Cursor& cursor)
             {
-                auto [okPart, part] = stmt.TryGetColumnString(0);
-                auto [okCount, count] = stmt.TryGetColumnInt(1);
+                while (cursor.Step())
+                {
+                    auto [okPart, part] = cursor.TryGetColumnString(0);
+                    auto [okCount, count] = cursor.TryGetColumnInt(1);
 
-                if (!okPart || !okCount)
-                    continue;
+                    if (!okPart || !okCount)
+                        continue;
 
-                result.pushKV(part, count);
-            }
+                    result.pushKV(part, count);
+                }
+            });
         });
 
         return result;
@@ -236,23 +237,24 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select t.Type, count()
                 from Transactions t indexed by Transactions_Type_Last_Height_Id
                 where t.Type in (100,200,201,202,208,209,210)
                   and t.Last = 1
                   and t.Height > 0
                 group by t.Type
-            )sql");
+            )sql")
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto [okType, type] = cursor.TryGetColumnString(0);
+                    auto [okCount, count] = cursor.TryGetColumnInt(1);
 
-            while (stmt.Step())
-            {
-                auto [okType, type] = stmt.TryGetColumnString(0);
-                auto [okCount, count] = stmt.TryGetColumnInt(1);
-
-                if (okType && okCount)
-                    result.pushKV(type, count);
-            }
+                    if (okType && okCount)
+                        result.pushKV(type, count);
+                }
+            });
         });
 
         return result;
@@ -267,24 +269,24 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select AddressHash, Height, Value
                 from Balances indexed by Balances_AddressHash_Last
                 where AddressHash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )
                   and Last = 1
-            )sql");
+            )sql")
+            .Bind(hashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto [ok0, address] = cursor.TryGetColumnString(0);
+                    auto [ok1, height] = cursor.TryGetColumnInt(1);
+                    auto [ok2, value] = cursor.TryGetColumnInt64(2);
 
-            stmt.Bind(hashes);
-
-            while (stmt.Step())
-            {
-                auto [ok0, address] = stmt.TryGetColumnString(0);
-                auto [ok1, height] = stmt.TryGetColumnInt(1);
-                auto [ok2, value] = stmt.TryGetColumnInt64(2);
-
-                if (ok0 && ok1 && ok2)
-                    infos.emplace(address, make_tuple(height, value));
-            }
+                    if (ok0 && ok1 && ok2)
+                        infos.emplace(address, make_tuple(height, value));
+                }
+            });
         });
 
         return infos;
@@ -296,7 +298,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select distinct o.TxHash
                 from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
                 join Transactions t on t.Hash = o.TxHash
@@ -304,16 +306,16 @@ namespace PocketDb
                   and o.TxHeight <= ?
                 order by o.TxHeight desc, t.BlockNum desc
                 limit ?, ?
-            )sql");
-
-            stmt.Bind(address, pageInitBlock, pageSize, pageSize);
-
-            int i = 0;
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
-                    txHashes.emplace(value, i++);
-            }
+            )sql")
+            .Bind(address, pageInitBlock, pageSize, pageSize)
+            .Select([&](Cursor& cursor) {
+                int i = 0;
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                        txHashes.emplace(value, i++);
+                }
+            });
         });
 
         return txHashes;
@@ -325,22 +327,22 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select t.Hash
                 from Transactions t indexed by Transactions_BlockHash
                 where t.BlockHash = ?
                 order by t.BlockNum asc
                 limit ?, ?
-            )sql");
-
-            stmt.Bind(blockHash, pageStart, pageSize);
-
-            int i = 0;
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
-                    txHashes.emplace(value, i++);
-            }
+            )sql")
+            .Bind(blockHash, pageStart, pageSize)
+            .Select([&](Cursor& cursor) {
+                int i = 0;
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                        txHashes.emplace(value, i++);
+                }
+            });
         });
 
         return txHashes;
@@ -352,7 +354,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 select b.Height, sum(b.Value)Amount
                 from Balances b indexed by Balances_Height
                 where b.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
@@ -360,24 +362,24 @@ namespace PocketDb
                 group by b.Height
                 order by b.Height desc
                 limit ?
-            )sql");
-
-            stmt.Bind(addresses, topHeight, count);
-
-            while (stmt.Step())
-            {
-                if (auto[okHeight, height] = stmt.TryGetColumnInt(0); okHeight)
+            )sql")
+            .Bind(addresses, topHeight, count)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                    if (auto[okValue, value] = stmt.TryGetColumnInt64(1); okValue)
+                    if (auto[okHeight, height] = cursor.TryGetColumnInt(0); okHeight)
                     {
-                        UniValue record(UniValue::VARR);
-                        record.push_back(height);
-                        record.push_back(value);
-                        
-                        result.push_back(record);
+                        if (auto[okValue, value] = cursor.TryGetColumnInt64(1); okValue)
+                        {
+                            UniValue record(UniValue::VARR);
+                            record.push_back(height);
+                            record.push_back(value);
+                            
+                            result.push_back(record);
+                        }
                     }
                 }
-            }
+            });
         });
 
         return result;

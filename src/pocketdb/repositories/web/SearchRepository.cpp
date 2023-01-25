@@ -21,14 +21,15 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-            stmt.Bind(keyword, request.PageSize, request.PageStart);
-
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
-                    result.push_back(value);
-            }
+            Sql(sql)
+            .Bind(keyword, request.PageSize, request.PageStart)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                        result.push_back(value);
+                }
+            });
         });
 
         return result;
@@ -84,11 +85,13 @@ namespace PocketDb
             stmt.Bind(request.PageSize);
             stmt.Bind(request.PageStart);
 
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    ids.push_back(value);
-            }
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                        ids.push_back(value);
+                }
+            });
         });
 
         return ids;
@@ -139,10 +142,12 @@ namespace PocketDb
             stmt.Bind(request.PageSize);
             stmt.Bind(request.PageStart);
 
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok) result.push_back(value);
-            }
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) result.push_back(value);
+                }
+            });
         });
 
         return result;
@@ -201,12 +206,14 @@ namespace PocketDb
                 10
             );
 
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    if (find(result.begin(), result.end(), value) == result.end())
-                        result.push_back(value);
-            }
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                        if (find(result.begin(), result.end(), value) == result.end())
+                            result.push_back(value);
+                }
+            });
         });
 
         return result;
@@ -336,11 +343,13 @@ namespace PocketDb
 
             stmt.Bind(cntOut);
 
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
-                    ids.push_back(value);
-            }
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                        ids.push_back(value);
+                }
+            });
         });
 
         return ids;
@@ -470,11 +479,13 @@ namespace PocketDb
                     cntOut
             );
 
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    ids.push_back(value);
-            }
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                        ids.push_back(value);
+                }
+            });
         });
 
         return ids;
@@ -514,11 +525,13 @@ namespace PocketDb
 
             stmt.Bind(contentTypes, contentAddress, cntOut);
 
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    ids.push_back(value);
-            }
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                        ids.push_back(value);
+                }
+            });
         });
 
         return ids;
@@ -581,11 +594,13 @@ namespace PocketDb
             if (rest)
                 stmt.Bind(cntOut);
 
-            while (stmt.Step())
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt64(0); ok)
-                    ids.push_back(value);
-            }
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                        ids.push_back(value);
+                }
+            });
         });
 
         return ids;

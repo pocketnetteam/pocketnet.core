@@ -24,7 +24,7 @@ namespace PocketDb
             Sql(R"sql(
                 delete from BlockingLists
             )sql")
-            .Step();
+            .Run();
 
             // Insert new last values
             Sql(R"sql(
@@ -64,7 +64,7 @@ namespace PocketDb
                                     and bcc.Height >= bc.Height)
                   and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid)
             )sql")
-            .Step();
+            .Run();
         });
 
         return !CheckNeedCreateBlockingList();
@@ -110,7 +110,7 @@ namespace PocketDb
                 limit 1
             )sql");
 
-            result = (stmt.Step());
+            result = (stmt.Run() == SQLITE_ROW);
         });
 
         return result;

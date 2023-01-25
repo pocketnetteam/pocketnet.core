@@ -92,8 +92,8 @@ namespace PocketDb
                     ), 0)
             )sql")
             .Bind(height, blockHash, height + 1)
-            .Select([&](Stmt& stmt) {
-                stmt.Collect(exists, last);
+            .Select([&](Cursor& cursor) {
+                cursor.Collect(exists, last);
             });
         });
 
@@ -252,8 +252,8 @@ namespace PocketDb
 
         Sql(sql)
         .Bind(txInfo.Hash)
-        .Select([&](Stmt& stmt) {
-            stmt.Collect(id, lastTxId);
+        .Select([&](Cursor& cursor) {
+            cursor.Collect(id, lastTxId);
         });
 
         return {id, lastTxId};

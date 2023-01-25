@@ -22,22 +22,23 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-            stmt.Bind(blockHash);
+            Sql(sql)
+            .Bind(blockHash)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto[okId, id] = cursor.TryGetColumnInt64(0);
+                    if (!okId) continue;
 
-            while (stmt.Step())
-            {
-                auto[okId, id] = stmt.TryGetColumnInt64(0);
-                if (!okId) continue;
+                    auto[okLang, lang] = cursor.TryGetColumnString(1);
+                    if (!okLang) continue;
 
-                auto[okLang, lang] = stmt.TryGetColumnString(1);
-                if (!okLang) continue;
+                    auto[okValue, value] = cursor.TryGetColumnString(2);
+                    if (!okValue) continue;
 
-                auto[okValue, value] = stmt.TryGetColumnString(2);
-                if (!okValue) continue;
-
-                result.emplace_back(WebTag(id, lang, value));
-            }
+                    result.emplace_back(WebTag(id, lang, value));
+                }
+            });
         });
 
         return result;
@@ -64,13 +65,13 @@ namespace PocketDb
             )sql");
             for (const auto& tag: contentTags)
                 stmt.Bind(tag.Lang, tag.Value);
-            stmt.Step();
+            stmt.Run();
 
             // Delete exists mappings ContentId <-> TagId
             Sql(R"sql(
                 delete from web.TagsMap
                 where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-            )sql").Bind(ids).Step();
+            )sql").Bind(ids).Run();
 
             // Insert new mappings ContentId <-> TagId
             for (const auto& contentTag : contentTags)
@@ -83,7 +84,7 @@ namespace PocketDb
                     )
                 )sql")
                 .Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang)
-                .Step();
+                .Run();
             }
         });
     }
@@ -111,69 +112,71 @@ namespace PocketDb
        
        SqlTransaction(__func__, [&]()
        {
-           auto& stmt = Sql(sql).Bind(blockHash);
-
-           while (stmt.Step())
-           {
-                auto[okType, type] = stmt.TryGetColumnInt(0);
-                auto[okId, id] = stmt.TryGetColumnInt64(1);
-                if (!okType || !okId)
-                    continue;
-
-                switch ((TxType)type)
+           Sql(sql)
+           .Bind(blockHash)
+           .Select([&](Cursor& cursor) {
+                while (cursor.Step())
                 {
-                case ACCOUNT_USER:
+                    auto[okType, type] = cursor.TryGetColumnInt(0);
+                    auto[okId, id] = cursor.TryGetColumnInt64(1);
+                    if (!okType || !okId)
+                        continue;
 
-                    if (auto[ok, string2] = stmt.TryGetColumnString(3); ok)
-                        result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
+                    switch ((TxType)type)
+                    {
+                    case ACCOUNT_USER:
 
-                    if (auto[ok, string4] = stmt.TryGetColumnString(5); ok)    
-                        result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
+                        if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
 
-                    // if (auto[ok, string5] = stmt.TryGetColumnString(6); ok)
-                    //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
+                        if (auto[ok, string4] = cursor.TryGetColumnString(5); ok)    
+                            result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
 
-                    break;
-                case CONTENT_POST:
+                        // if (auto[ok, string5] = cursor.TryGetColumnString(6); ok)
+                        //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
 
-                    if (auto[ok, string2] = stmt.TryGetColumnString(3); ok)
-                        result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
+                        break;
+                    case CONTENT_POST:
+
+                        if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
+                        
+                        if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
+
+                        // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
+                        //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
+
+                        break;
+                    case CONTENT_VIDEO:
+
+                        if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
+
+                        if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
+
+                        // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
+                        //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
+
+                        break;
                     
-                    if (auto[ok, string3] = stmt.TryGetColumnString(4); ok)
-                        result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
+                    // TODO (aok): parse JSON for indexing
+                    // case CONTENT_ARTICLE:
 
-                    // if (auto[ok, string7] = stmt.TryGetColumnString(8); ok)
-                    //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
+                    // case CONTENT_COMMENT:
+                    // case CONTENT_COMMENT_EDIT:
 
-                    break;
-                case CONTENT_VIDEO:
+                        // TODO (aok): implement extract message from JSON
+                        // if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
+                        //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 
-                    if (auto[ok, string2] = stmt.TryGetColumnString(3); ok)
-                        result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
-
-                    if (auto[ok, string3] = stmt.TryGetColumnString(4); ok)
-                        result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
-
-                    // if (auto[ok, string7] = stmt.TryGetColumnString(8); ok)
-                    //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
-
-                    break;
-                
-                // TODO (aok): parse JSON for indexing
-                // case CONTENT_ARTICLE:
-
-                // case CONTENT_COMMENT:
-                // case CONTENT_COMMENT_EDIT:
-
-                    // TODO (aok): implement extract message from JSON
-                    // if (auto[ok, string1] = stmt.TryGetColumnString(2); ok)
-                    //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
-
-                    // break;
-                default:
-                    break;
+                        // break;
+                    default:
+                        break;
+                    }
                 }
-           }
+           });
        });
 
         return result;
@@ -206,7 +209,7 @@ namespace PocketDb
                 )
             )sql")
             .Bind(ids)
-            .Step();
+            .Run();
 
             // ---------------------------------------------------------
             int64_t nTime2 = GetTimeMicros();
@@ -218,7 +221,7 @@ namespace PocketDb
                 )
             )sql")
             .Bind(ids)
-            .Step();
+            .Run();
 
             // ---------------------------------------------------------
             int64_t nTime3 = GetTimeMicros();
@@ -231,7 +234,7 @@ namespace PocketDb
                     insert or ignore into ContentMap (ContentId, FieldType) values (?,?)
                 )sql")
                 .Bind(contentItm.ContentId, (int)contentItm.FieldType)
-                .Step();
+                .Run();
 
                 // ---------------------------------------------------------
 
@@ -242,7 +245,7 @@ namespace PocketDb
                         replace into web.Content (ROWID, Value) values (?,?)
                     )sql")
                     .Bind(lastRowId, contentItm.Value)
-                    .Step();
+                    .Run();
                 }
                 else
                 {
@@ -271,7 +274,7 @@ namespace PocketDb
             // Clear badges table before insert new values
             Sql(R"sql(
                 delete from web.Badges
-            )sql").Step();
+            )sql").Run();
 
             // Clear old Last record
             Sql(R"sql(
@@ -291,7 +294,7 @@ namespace PocketDb
                   and ? - (select min(reg1.Height) from Chain reg1 where reg1.Uid = uc.Uid) > ?
             )sql")
             .Bind(cond.LikersAll, cond.LikersContent, cond.LikersComment, cond.LikersAnswer, cond.Height, cond.RegistrationDepth)
-            .Step();
+            .Run();
         });
     }
 
@@ -302,7 +305,7 @@ namespace PocketDb
             // Clear badges table before insert new values
             Sql(R"sql(
                 delete from web.Authors
-            )sql").Step();
+            )sql").Run();
 
             // Clear old Last record
             Sql(R"sql(
@@ -340,7 +343,7 @@ namespace PocketDb
                   and p.Height is not null
           
                 group by pu.Id
-            )sql").Step();
+            )sql").Run();
         });
     }
 }
