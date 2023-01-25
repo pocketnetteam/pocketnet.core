@@ -122,7 +122,7 @@ namespace PocketDb
 
         vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
         vector<UniValue> GetCollectionsData(const vector<int64_t>& ids);
-        
+
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
 
         UniValue GetTopFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2022 The Bitcoin Core developers
-# Copyright (c) 2018-2023 The Pocketnet Core developers
-# Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# Copyright (c) 2023 The Pocketnet developers
+# Distributed under the Apache 2.0 software license, see the accompanying
+# https://www.apache.org/licenses/LICENSE-2.0
 """
-An AccountDelete functional test
+An account deletion functional test
 Launch this with command from 'test/functional/pocketnet' directory
 """
 
@@ -59,7 +58,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
         accounts = []
         for i in range(10):
             acc = node.public().generateaddress()
-            accounts.append(Account(acc['address'], acc['privkey']))
+            accounts.append(Account(acc['address'], acc['privkey'], f'name{i}'))
             node.sendtoaddress(address=accounts[i].Address, amount=10, destaddress=nodeAddress)
 
         node.stakeblock(15)
@@ -78,7 +77,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
         self.log.info("Register accounts")
         hashes = []
         for i in range(10):
-            hashes.append(pubGenTx(accounts[i], AccountPayload(f'name{i}','image','en','about','s','b','pubkey'), 50))
+            hashes.append(pubGenTx(accounts[i], AccountPayload(accounts[i].Name,'image','en','about','s','b','pubkey'), 50))
 
         node.stakeblock(15)
 
@@ -119,7 +118,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
 
         # Test general account transactions
         pubGenTx(accounts[0], AccountSettingPayload())
-        assert_raises_rpc_error(ConsensusResult.ChangeInfoDoubleInMempool, None, pubGenTx, accounts[0], AccountPayload(f'name{0}'))
+        assert_raises_rpc_error(ConsensusResult.ChangeInfoDoubleInMempool, None, pubGenTx, accounts[0], AccountPayload(accounts[0].Name))
         assert_raises_rpc_error(ConsensusResult.ManyTransactions, None, pubGenTx, accounts[0], AccountDeletePayload())
 
         # Account0 subscribe and blockings another
@@ -157,7 +156,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Test 2 - all txs from deleted account")
 
-        assert_raises_rpc_error(ConsensusResult.AccountDeleted, None, pubGenTx, accounts[0], AccountPayload(f'name{0}'))
+        assert_raises_rpc_error(ConsensusResult.AccountDeleted, None, pubGenTx, accounts[0], AccountPayload(accounts[0].Name))
         assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], AccountDeletePayload())
         assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], AccountSettingPayload())
 
@@ -183,8 +182,8 @@ class AccountDeleteTest(PocketcoinTestFramework):
         # assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], BlockingPayload(accounts[1].Address))
         assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], UnblockingPayload(accounts[3].Address))
 
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ScoreContentPayload(accounts[1].content[0], 5), contentAddress=accounts[1].Address)
-        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ScoreCommentPayload(accounts[1].comment[0], 1), contentAddress=accounts[1].Address)
+        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ScoreContentPayload(accounts[1].content[0], 5, accounts[1].Address))
+        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], ScoreCommentPayload(accounts[1].comment[0], 1, accounts[1].Address))
 
         node.stakeblock(15)
 
@@ -207,8 +206,8 @@ class AccountDeleteTest(PocketcoinTestFramework):
         assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[1], BlockingPayload(accounts[0].Address))
         assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[3], UnblockingPayload(accounts[0].Address))
 
-        pubGenTx(accounts[1], ScoreContentPayload(accounts[0].content[0], 5), contentAddress=accounts[0].Address)
-        pubGenTx(accounts[1], ScoreCommentPayload(accounts[0].comment[0], 1), contentAddress=accounts[0].Address)
+        pubGenTx(accounts[1], ScoreContentPayload(accounts[0].content[0], 5, accounts[0].Address))
+        pubGenTx(accounts[1], ScoreCommentPayload(accounts[0].comment[0], 1, accounts[0].Address))
 
         node.stakeblock(1)
 

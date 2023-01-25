@@ -55,7 +55,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateMempool(const AccountDeleteRef& ptx) override
         {
-            if (ConsensusRepoInst.ExistsInMempool(*ptx->GetAddress(), { ACCOUNT_USER, ACCOUNT_DELETE }))
+            if (ConsensusRepoInst.Exists_MS1T(*ptx->GetAddress(), { ACCOUNT_USER, ACCOUNT_DELETE }))
                 return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;

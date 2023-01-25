@@ -56,7 +56,8 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentAddressHash())) return {false, SocialConsensusResult_Failed};
             if (*ptx->GetAddress() == *ptx->GetContentAddressHash()) return {false, SocialConsensusResult_SelfFlag};
-            if (IsEmpty(ptx->GetReason()) || *ptx->GetReason() < 1 || *ptx->GetReason() > 4) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetReason())) return {false, SocialConsensusResult_Failed};
+            if (*ptx->GetReason() < 1 || *ptx->GetReason() > GetConsensusLimit(moderation_flag_max_value)) return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
@@ -99,7 +100,14 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_Duplicate};
 
             // Check limit
-            return ValidateLimit(ptx, ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), true));
+            return SocialConsensus::ValidateLimit(
+                moderation_flag_count,
+                ConsensusRepoInst.CountModerationFlag(
+                    *ptx->GetAddress(),
+                    Height - (int)GetConsensusLimit(ConsensusLimit_depth),
+                    true
+                )
+            );
         }
 
         vector<string> GetAddressesForCheckRegistration(const ModerationFlagRef& ptx) override
@@ -109,7 +117,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateLimit(const ModerationFlagRef& ptx, int count)
         {
-            if (count >= GetConsensusLimit(ConsensusLimit_moderation_flag_count))
+            if (count >= GetConsensusLimit(moderation_flag_count))
                 return {false, SocialConsensusResult_ExceededLimit};
 
             return Success;

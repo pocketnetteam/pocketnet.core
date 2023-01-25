@@ -41,22 +41,20 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentTypes())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentIds())) return {false, SocialConsensusResult_Failed};
-//            if (!IsEmpty(ptx->GetContentIds()) )
-//            {
-//                UniValue ids(UniValue::VARR);
-//                if (!ids.read(*ptx->GetContentIds()))
-//                    return {false, SocialConsensusResult_Failed};
-//                if (ids.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
-//                    return {false, SocialConsensusResult_Failed};
-//            }
+
             if(auto[contentIdsOk, contentIds] = ptx->GetContentIdsVector(); !contentIdsOk)
+            {
                 return {false, SocialConsensusResult_Failed};
+            }
             else
             {
+                // Check count of content ids
+                if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
+                   return {false, SocialConsensusResult_Failed};
+
                 // Contents should be exists in chain
-                if(auto[lastContentsOk, lastContents] =
-                        PocketDb::ConsensusRepoInst.GetLastContents(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
-                !lastContentsOk && lastContents.size() != contentIds.size())
+                auto[ok, lastContents] = PocketDb::ConsensusRepoInst.GetLastContents(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
+                if(!ok || lastContents.size() != contentIds.size())
                     return {false, SocialConsensusResult_Failed};
             }
 
@@ -150,10 +148,6 @@ namespace PocketConsensus
             if (*ptx->GetAddress() != *originalPtx->GetAddress())
                 return {false, SocialConsensusResult_ContentEditUnauthorized};
 
-            // Original collection edit only 24 hours
-//            if (!AllowEditWindow(ptx, originalPtx))
-//                return {false, SocialConsensusResult_ContentEditLimit};
-
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
@@ -174,10 +168,6 @@ namespace PocketConsensus
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
-//        virtual bool AllowEditWindow(const CollectionRef& ptx, const ContentRef& originalTx)
-//        {
-//            return (*ptx->GetTime() - *originalTx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_collection_depth);
-//        }
         virtual int GetChainCount(const CollectionRef& ptx)
         {
             return ConsensusRepoInst.CountChainCollection(
@@ -225,7 +215,6 @@ namespace PocketConsensus
         {
             size_t dataSize =
                     (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
-//                    (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
                     (ptx->GetPayloadImage() ? ptx->GetPayloadImage()->size() : 0) +
                     (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
                     (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
@@ -251,7 +240,8 @@ namespace PocketConsensus
     {
     protected:
         const vector<ConsensusCheckpoint<CollectionConsensus>> m_rules = {
-                { 9999999, -1, -1, [](int height) { return make_shared<CollectionConsensus>(height); }}, //TODO (o1q): change checkpoint height
+            // TODO (release) : set height
+            { 9999999, 1531000, 0, [](int height) { return make_shared<CollectionConsensus>(height); }},
         };
     public:
         shared_ptr<CollectionConsensus> Instance(int height)

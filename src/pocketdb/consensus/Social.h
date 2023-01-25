@@ -51,6 +51,10 @@ namespace PocketConsensus
 
                             if (*blockTx->GetString1() == address)
                             {
+                                // TODO (brangr): delete - в один блок пусть с удалением пролазят - проверитЬ!
+                                // if (*blockTx->GetType() == ACCOUNT_DELETE)
+                                //     return {false, SocialConsensusResult_AccountDeleted};
+
                                 inBlock = true;
                                 break;
                             }
@@ -65,11 +69,17 @@ namespace PocketConsensus
                     addressesForCheck = addresses;
                 }
 
+                // TODO (moderation): !! extend ExistsUserRegistrations for detect BAN
+
                 // Check registrations in DB
                 if (!addressesForCheck.empty() &&
                     !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck))
                     return {false, SocialConsensusResult_NotRegistered};
             }
+
+            // Check active account ban
+            if (PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height))
+                return {false, SocialConsensusResult_AccountBanned};
 
             // Check limits
             return ValidateLimits(ptx, block);
@@ -78,6 +88,10 @@ namespace PocketConsensus
         // Generic transactions validating
         virtual ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx)
         {
+            // All social transactions must have an address
+            if (IsEmpty(ptx->GetAddress()))
+                return {false, SocialConsensusResult_Failed};
+
             if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
                 return {false, result};
 
@@ -99,6 +113,14 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) = 0;
 
+        virtual ConsensusValidateResult ValidateLimit(ConsensusLimit limit, int count)
+        {
+            if (count >= GetConsensusLimit(limit))
+                return {false, SocialConsensusResult_ExceededLimit};
+
+            return Success;
+        }
+        
         // Generic check consistence Transaction and Payload
         virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const shared_ptr<T>& ptx)
         {
@@ -115,9 +137,9 @@ namespace PocketConsensus
         }
 
         // Get addresses from transaction for check registration
-        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& tx)
+        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& ptx)
         {
-            return { *tx->GetAddress() };
+            return { *ptx->GetAddress() };
         }
 
         // Check empty pointer

@@ -4,6 +4,19 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 export LC_ALL=C
+if [ $# -gt 1 ]; then
+    cd "$2" || exit 1
+fi
+if [ $# -gt 0 ]; then
+    FILE="$1"
+    shift
+    if [ -f "$FILE" ]; then
+        INFO="$(head -n 1 "$FILE")"
+    fi
+else
+    echo "Usage: $0 <filename> <srcroot>"
+    exit 1
+fi
 
 GIT_TAG=""
 GIT_COMMIT=""
@@ -27,7 +40,7 @@ if [ -n "$GIT_TAG" ]; then
 elif [ -n "$GIT_COMMIT" ]; then
     NEWINFO=$GIT_COMMIT
 else
-    NEWINFO="---"
+    NEWINFO="// No build information available"
 fi
 
 echo $NEWINFO

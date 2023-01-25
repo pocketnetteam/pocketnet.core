@@ -135,6 +135,7 @@ POCKETDB_H = \
     pocketdb/web/SearchRpc.h \
     pocketdb/web/PocketTagsRpc.h \
     pocketdb/web/PocketRpc.h \
+    pocketdb/web/ModerationRpc.h \
     pocketdb/web/WebRpcUtils.h \
     \
     pocketdb/repositories/RowAccessor.hpp \
@@ -151,6 +152,7 @@ POCKETDB_H = \
     pocketdb/repositories/web/NotifierRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
     pocketdb/repositories/web/SearchRepository.h \
+    pocketdb/repositories/web/ModerationRepository.h \
     \
     pocketdb/services/WsNotifier.h \
     pocketdb/services/b/services/Serializer.h \
@@ -188,6 +190,7 @@ POCKETDB_H = \
     pocketdb/consensus/social/ContentDelete.hpp \
     \
     pocketdb/consensus/moderation/Flag.hpp \
+    pocketdb/consensus/moderation/Vote.hpp \
     \
     pocketdb/models/base/PocketTypes.h \
     pocketdb/models/base/Base.h \
@@ -227,6 +230,7 @@ POCKETDB_H = \
     pocketdb/models/dto/content/Audio.h \
     pocketdb/models/dto/content/Collection.h \
     pocketdb/models/dto/moderation/Flag.h \
+    pocketdb/models/dto/moderation/Vote.h \
     \
     pocketdb/models/web/WebTag.h \
     pocketdb/models/web/WebContent.h \
@@ -268,6 +272,7 @@ POCKETDB_CPP = \
     pocketdb/repositories/web/NotifierRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
     pocketdb/repositories/web/SearchRepository.cpp \
+    pocketdb/repositories/web/ModerationRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
     pocketdb/consensus/Base.cpp \
@@ -294,6 +299,7 @@ POCKETDB_CPP = \
     pocketdb/web/SearchRpc.cpp \
     pocketdb/web/PocketTagsRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
+    pocketdb/web/ModerationRpc.cpp \
     pocketdb/web/WebRpcUtils.cpp \
     \
     pocketdb/models/dto/money/Default.cpp \
@@ -324,6 +330,8 @@ POCKETDB_CPP = \
     pocketdb/models/dto/content/Audio.cpp \
     pocketdb/models/dto/content/Collection.cpp \
     pocketdb/models/dto/moderation/Flag.cpp \
+    pocketdb/models/dto/moderation/Vote.cpp \
+    \
     pocketdb/models/shortform/ShortForm.cpp \
     pocketdb/models/shortform/ShortAccount.cpp \
     pocketdb/models/shortform/ShortTxData.cpp \

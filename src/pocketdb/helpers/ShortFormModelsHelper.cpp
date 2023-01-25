@@ -21,7 +21,10 @@ static const std::map<PocketDb::ShortTxType, std::string>& GetTypesMap() {
         { PocketDb::ShortTxType::PrivateContent, "privatecontent" },
         { PocketDb::ShortTxType::Boost, "boost" },
         { PocketDb::ShortTxType::Repost, "repost" },
-        { PocketDb::ShortTxType::Blocking, "blocking" }
+        { PocketDb::ShortTxType::Blocking, "blocking" },
+        { PocketDb::ShortTxType::JuryAssigned, "juryassigned" },
+        { PocketDb::ShortTxType::JuryVerdict, "juryverdict" },
+        { PocketDb::ShortTxType::JuryModerate, "jurymoderate" }
     };
     return typesMap;
 }
@@ -48,7 +51,10 @@ bool PocketHelpers::ShortTxFilterValidator::Notifications::IsFilterAllowed(Pocke
         PocketDb::ShortTxType::Subscriber,
         PocketDb::ShortTxType::CommentScore,
         PocketDb::ShortTxType::ContentScore,
-        PocketDb::ShortTxType::Repost
+        PocketDb::ShortTxType::Repost,
+        PocketDb::ShortTxType::JuryAssigned,
+        PocketDb::ShortTxType::JuryVerdict,
+        PocketDb::ShortTxType::JuryModerate,
     };
 
     return allowed.find(type) != allowed.end();
@@ -96,6 +102,9 @@ bool PocketHelpers::ShortTxFilterValidator::Events::IsFilterAllowed(PocketDb::Sh
         PocketDb::ShortTxType::PrivateContent,
         PocketDb::ShortTxType::Boost,
         PocketDb::ShortTxType::Repost,
+        PocketDb::ShortTxType::JuryAssigned,
+        PocketDb::ShortTxType::JuryVerdict,
+        PocketDb::ShortTxType::JuryModerate,
     };
 
     return allowed.find(type) != allowed.end();
