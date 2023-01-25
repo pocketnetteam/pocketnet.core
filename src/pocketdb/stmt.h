@@ -20,13 +20,45 @@ namespace PocketDb
     * If stmt object is not dynamically generated, it can be created as static and
     * reused by calling Stmt::Reset() method at the end of processing queue.
     */
+
+    class StmtWrapper
+    {
+    public:
+        StmtWrapper() = default;
+        StmtWrapper(const StmtWrapper&) = delete;
+        StmtWrapper(StmtWrapper&&) = default;
+        ~StmtWrapper();
+
+        int PrepareV2(SQLiteDatabase& db, const std::string& sql);
+        int Step();
+
+        int BindText(int index, const std::string& val);
+        int BindInt(int index, int val);
+        int BindInt64(int index, int64_t val);
+        int BindNull(int index);
+
+        int GetColumnType(int index);
+
+        optional<string> GetColumnText(int index);
+        optional<int> GetColumnInt(int index);
+        optional<int64_t> GetColumnInt64(int index);
+
+        int Reset();
+        int Finalize();
+        int ClearBindings();
+
+        const char* ExpandedSql();
+
+    private:
+        sqlite3_stmt* m_stmt = nullptr;
+    };
+
     class Stmt
     {
     public:
         Stmt(const Stmt&) = delete;
         Stmt(Stmt&&) = default;
         Stmt() = default;
-        virtual ~Stmt();
 
         void Init(SQLiteDatabase& db, const std::string& sql);
         int Run();
@@ -35,7 +67,7 @@ namespace PocketDb
 
         auto Log()
         {
-            return sqlite3_expanded_sql(m_stmt);
+            return m_stmt->ExpandedSql();
         }
 
         // --------------------------------
@@ -61,10 +93,9 @@ namespace PocketDb
         bool TryBindStatementNull(int index);
 
     protected:
-        sqlite3_stmt* m_stmt = nullptr;
-        void ResetInternalIndicies();
-        int Finalize();
-        int Reset();
+        std::shared_ptr<StmtWrapper> m_stmt = nullptr;
+        void ResetCurrentBindIndex();
+        // int Finalize(); // Removed because unused.
 
     private:
         int m_currentBindIndex = 1;
@@ -93,22 +124,30 @@ namespace PocketDb
                 }
             }
         };
-
     };
 
-    class Cursor : public Stmt
+    class Cursor
     {
     public:
-        Cursor() : Stmt() {}
+        Cursor(std::shared_ptr<StmtWrapper> stmt)
+            : m_stmt(std::move(stmt)) {}
         ~Cursor();
 
+        Cursor(const Cursor&) = delete;
+        Cursor() = delete;
+        Cursor(Cursor&&) = default;
+
         bool Step();
+        // Step verbose (with result code)
+        int StepV();
+
+        int Reset();
 
         // Collect data
         template <class ...Collects>
         int Collect(Collects&... collects)
         {
-            int st = sqlite3_step(m_stmt);
+            auto st = m_stmt->Step();
             if (st != SQLITE_ROW)
                 return st;
 
@@ -121,6 +160,11 @@ namespace PocketDb
         tuple<bool, int> TryGetColumnInt(int index);
     
     private:
+        void ResetCurrentCollectIndex()
+        {
+            m_currentCollectIndex = 0;
+        }
+        std::shared_ptr<StmtWrapper> m_stmt;
         int m_currentCollectIndex = 0;
 
         template<class T>

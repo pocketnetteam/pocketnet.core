@@ -11,35 +11,25 @@ namespace PocketDb
     // STMT
     // ----------------------------------------------
 
-    Stmt::~Stmt()
-    {
-        Finalize();
-    }
+    // Stmt::~Stmt()
+    // {
+    //     Finalize();
+    // }
+
+    // int Stmt::Finalize()
+    // {
+    //     auto res = m_stmt->Finalize();
+    //     m_stmt.reset();
+    //     return res;
+    // }
 
     void Stmt::Init(SQLiteDatabase& db, const string& sql)
     {
-        int res = sqlite3_prepare_v2(db.m_db, sql.c_str(), (int) sql.size(), &m_stmt, nullptr);
+        m_stmt = std::make_unique<StmtWrapper>();
+        auto res = m_stmt->PrepareV2(db, sql);
         if (res != SQLITE_OK)
             throw runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\nSql: %s",
                 sqlite3_errstr(res), sql));
-    }
-
-    int Stmt::Finalize()
-    {
-        if (!m_stmt) return SQLITE_ERROR;
-        m_currentBindIndex = 1;
-        auto res = sqlite3_finalize(m_stmt);
-        m_stmt = nullptr;
-        return res;
-    }
-
-    int Stmt::Reset()
-    {
-        if (!m_stmt) return SQLITE_ERROR;
-        m_currentBindIndex = 1;
-        if (auto rc = sqlite3_reset(m_stmt); rc != SQLITE_OK)
-            return rc;
-        return sqlite3_clear_bindings(m_stmt);
     }
 
     int Stmt::Run()
@@ -47,11 +37,11 @@ namespace PocketDb
         if (!m_stmt)
             throw runtime_error(strprintf("%s: Stmt::Step() Statement not ready\n", __func__));
 
-        // Step
-        int res = sqlite3_step(m_stmt);
+        ResetCurrentBindIndex();
 
-        // Allways reset
-        Reset();
+        // Cursor is required to preform reset logic.
+        Cursor cursor(m_stmt);
+        auto res = cursor.StepV();
         
         if (res != SQLITE_ROW && res != SQLITE_DONE)
             throw runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
@@ -61,7 +51,7 @@ namespace PocketDb
 
     void Stmt::TryBindStatementText(int index, const string& value)
     {
-        int res = sqlite3_bind_text(m_stmt, index, value.c_str(), (int)value.size(), SQLITE_STATIC);
+        auto res = m_stmt->BindText(index, value);
         if (!CheckValidResult(res))
             throw runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%s\n",
                 __func__, index, value));
@@ -71,10 +61,7 @@ namespace PocketDb
     {
         if (!value) return true;
 
-        int res = sqlite3_bind_text(m_stmt, index, value->c_str(), (int)value->size(), SQLITE_STATIC);
-        if (!CheckValidResult(res))
-            return false;
-
+        TryBindStatementText(index, *value);
         return true;
     }
 
@@ -88,7 +75,7 @@ namespace PocketDb
 
     void Stmt::TryBindStatementInt(int index, int value)
     {
-        int res = sqlite3_bind_int(m_stmt, index, value);
+        int res = m_stmt->BindInt(index, value);
         if (!CheckValidResult(res))
             throw runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
                 __func__, index, value));
@@ -104,7 +91,7 @@ namespace PocketDb
 
     void Stmt::TryBindStatementInt64(int index, int64_t value)
     {
-        int res = sqlite3_bind_int64(m_stmt, index, value);
+        int res = m_stmt->BindInt64(index, value);
         if (!CheckValidResult(res))
             throw runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
                 __func__, index, value));
@@ -112,7 +99,7 @@ namespace PocketDb
 
     bool Stmt::TryBindStatementNull(int index)
     {
-        int res = sqlite3_bind_null(m_stmt, index);
+        int res = m_stmt->BindNull(index);
         if (!CheckValidResult(res))
             return false;
 
@@ -122,43 +109,166 @@ namespace PocketDb
     bool Stmt::CheckValidResult(int result)
     {
         if (result != SQLITE_OK) {
-            Finalize();
             return false;
         }
 
         return true;
     }
 
+    void Stmt::ResetCurrentBindIndex()
+    {
+        m_currentBindIndex = 1;
+    }
+
     int Stmt::Select(const function<void(Cursor&)>& func)
     {
-        auto cursor = static_cast<Cursor*>(this);
-        func(*cursor);
-        return Reset();
+        ResetCurrentBindIndex(); // At this point there will be no more binds
+        Cursor cursor(m_stmt);
+        func(cursor);
+        // Cursor can do this in destructor but we mannually perform it here
+        // to obtain the result code.
+        return cursor.Reset();
     }
 
     // ----------------------------------------------
     // CURSOR
     // ----------------------------------------------
 
-    bool Cursor::Step()
+    Cursor::~Cursor()
     {
-        int res = sqlite3_step(m_stmt);
-        m_currentCollectIndex = 0;
-
-        return (res == SQLITE_ROW);
+        Reset();
     }
 
-    tuple<bool, string> Cursor::TryGetColumnString( int index)
+    bool Cursor::Step()
     {
-        return sqlite3_column_type(m_stmt, index) == SQLITE_NULL ? make_tuple(false, "") : make_tuple(true, string(reinterpret_cast<const char*>(sqlite3_column_text(m_stmt, index))));
+        return (StepV() == SQLITE_ROW);
+    }
+
+    int Cursor::StepV()
+    {
+        ResetCurrentCollectIndex();
+        if (!m_stmt) throw runtime_error(strprintf("%s: Cursor::TryGetColumnString() Statement is null\n", __func__));
+        return m_stmt->Step();
+    }
+
+    tuple<bool, string> Cursor::TryGetColumnString(int index)
+    {
+        if (!m_stmt) throw runtime_error(strprintf("%s: Cursor::TryGetColumnString() Statement is null\n", __func__));
+        auto res = m_stmt->GetColumnText(index);
+        if (res) {
+            return {true, res.value()};
+        }
+        return {false, ""};
     }
     tuple<bool, int64_t> Cursor::TryGetColumnInt64(int index)
     {
-        return sqlite3_column_type(m_stmt, index) == SQLITE_NULL ? make_tuple(false, (int64_t)0) : make_tuple(true, (int64_t)sqlite3_column_int64(m_stmt, index));
+        if (!m_stmt) throw runtime_error(strprintf("%s: Cursor::TryGetColumnString() Statement is null\n", __func__));
+        auto res = m_stmt->GetColumnInt64(index);
+        if (res) {
+            return {true, res.value()};
+        }
+        return {false, 0};
     }
     tuple<bool, int> Cursor::TryGetColumnInt(int index)
     {
-        return sqlite3_column_type(m_stmt, index) == SQLITE_NULL ? make_tuple(false, 0) : make_tuple(true, sqlite3_column_int(m_stmt, index));
+        if (!m_stmt) throw runtime_error(strprintf("%s: Cursor::TryGetColumnString() Statement is null\n", __func__));
+        auto res = m_stmt->GetColumnInt(index);
+        if (res) {
+            return {true, res.value()};
+        }
+        return {false, 0};
     }
 
-}
+    int Cursor::Reset()
+    {
+        if (!m_stmt) return SQLITE_ERROR;
+        auto res = m_stmt->Reset();
+        if (res == SQLITE_OK) m_stmt->ClearBindings();
+        m_stmt.reset();
+        return res;
+    }
+
+    StmtWrapper::~StmtWrapper()
+    {
+        Finalize();
+    }
+
+    int StmtWrapper::PrepareV2(SQLiteDatabase& db, const std::string& sql)
+    {
+        return sqlite3_prepare_v2(db.m_db, sql.c_str(), (int) sql.size(), &m_stmt, nullptr);
+    }
+
+    int StmtWrapper::Step()
+    {
+        return sqlite3_step(m_stmt);
+    }
+
+    int StmtWrapper::BindText(int index, const std::string& val)
+    {
+        return sqlite3_bind_text(m_stmt, index, val.c_str(), (int)val.size(), SQLITE_STATIC);
+    }
+
+    int StmtWrapper::BindInt(int index, int val)
+    {
+        return sqlite3_bind_int(m_stmt, index, val);
+    }
+
+    int StmtWrapper::BindInt64(int index, int64_t val)
+    {
+        return sqlite3_bind_int64(m_stmt, index, val);
+    }
+
+    int StmtWrapper::BindNull(int index)
+    {
+        return sqlite3_bind_null(m_stmt, index);
+    }
+
+    int StmtWrapper::GetColumnType(int index)
+    {
+        return sqlite3_column_type(m_stmt, index);
+    }
+
+    optional<string> StmtWrapper::GetColumnText(int index)
+    {
+        if (GetColumnType(index) != SQLITE_TEXT) {
+            return nullopt;
+        }
+        return string(reinterpret_cast<const char*>(sqlite3_column_text(m_stmt, index)));
+    }
+
+    std::optional<int> StmtWrapper::GetColumnInt(int index)
+    {
+        if (GetColumnType(index) != SQLITE_INTEGER) {
+            return nullopt;
+        }
+        return (int)sqlite3_column_int(m_stmt, index);
+    }
+
+    std::optional<int64_t> StmtWrapper::GetColumnInt64(int index)
+    {
+        if (GetColumnType(index) != SQLITE_INTEGER) {
+            return nullopt;
+        }
+        return (int64_t)sqlite3_column_int64(m_stmt, index);
+    }
+
+    int StmtWrapper::Reset()
+    {
+        return sqlite3_reset(m_stmt);
+    }
+
+    int StmtWrapper::Finalize()
+    {
+        return sqlite3_finalize(m_stmt);
+    }
+    
+    int StmtWrapper::ClearBindings()
+    {
+        return sqlite3_clear_bindings(m_stmt);
+    }
+
+    const char* StmtWrapper::ExpandedSql()
+    {
+        return sqlite3_expanded_sql(m_stmt);
+    }
+} // namespace PocketDb
