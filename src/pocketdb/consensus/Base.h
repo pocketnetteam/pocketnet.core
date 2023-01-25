@@ -273,6 +273,9 @@ namespace PocketConsensus
         moderation_jury_flag_depth,
         moderation_jury_moders_count,
         moderation_jury_vote_count,
+        moderation_jury_ban_1_time,
+        moderation_jury_ban_2_time,
+        moderation_jury_ban_3_time,
     };
 
     /*********************************************************************************************/
@@ -701,6 +704,22 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 8} }},
             { NetworkTest,    { {0, 3} }},
             { NetworkRegTest, { {0, 2} } }
+        }},
+        
+        { moderation_jury_ban_1_time, {
+            { NetworkMain,    { {0, 43200} }},
+            { NetworkTest,    { {0, 5000} }},
+            { NetworkRegTest, { {0, 100} } }
+        }},
+        { moderation_jury_ban_2_time, {
+            { NetworkMain,    { {0, 129600} }},
+            { NetworkTest,    { {0, 10000} }},
+            { NetworkRegTest, { {0, 200} } }
+        }},
+        { moderation_jury_ban_3_time, {
+            { NetworkMain,    { {0, 51840000} }},
+            { NetworkTest,    { {0, 15000} }},
+            { NetworkRegTest, { {0, 1000} } }
         }},
 
         // { threshold_moderator_request, {

@@ -670,7 +670,7 @@ namespace PocketDb
         });
     }
 
-    void ChainRepository::IndexModerationBan(const string& voteTxHash, int votesCount)
+    void ChainRepository::IndexModerationBan(const string& voteTxHash, int votesCount, int ban1Time, int ban2Time, int ban3Time)
     {
         TryTransactionStep(__func__, [&]()
         {
@@ -737,11 +737,10 @@ namespace PocketDb
                     v.ROWID, /* Unique id of Vote record */
                     j.AccountId, /* Address of the content author */
                     (
-                        -- // TODO (moderation) : !! consensus variable with height
                         case ( select count() from JuryBan b indexed by JuryBan_AccountId_Ending where b.AccountId = j.AccountId )
-                            when 0 then 43200 -- 1 month
-                            when 1 then 129600 -- 3 month
-                            else 51840000 -- 100 years
+                            when 0 then ?
+                            when 1 then ?
+                            else ?
                         end
                     ) /* Ban period */
                 from
@@ -767,6 +766,9 @@ namespace PocketDb
                     )
             )sql");
             TryBindStatementText(stmt_ban, 1, voteTxHash);
+            TryBindStatementInt(stmt_ban, 2, ban1Time);
+            TryBindStatementInt(stmt_ban, 3, ban2Time);
+            TryBindStatementInt(stmt_ban, 4, ban3Time);
             TryStepStatement(stmt_ban);
         });
     }
