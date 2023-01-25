@@ -331,8 +331,6 @@ namespace Statistic
                         return sample.TimestampEnd < time;
                     }),
                 _samples.end());
-
-            LogPrint(BCLog::STAT, "Clear statistic cache: %d -> %d items after.\n", sizeBefore, _samples.size());
         }
 
         std::vector<RequestSample> GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since)
