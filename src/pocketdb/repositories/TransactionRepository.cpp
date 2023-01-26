@@ -477,10 +477,6 @@ namespace PocketDb
                     on o.TxId = tx.RowId
         )sql") : "");
 
-        string(R"sql(
-            order by tp asc
-        )sql");
-
         map<string, CollectData> initData;
         for (const auto& hash: txHashes) {
             initData.emplace(hash, CollectData{hash});
