@@ -309,22 +309,20 @@ namespace PocketDb
 
     PocketBlockRef TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs, bool includeOutputs)
     {
-        string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
-
         auto sql = R"sql(
             with
-                txhash as (
+                tx as (
                     select
                         t.RowId,
-                        t.String
+                        t.Hash
                     from
-                        vTxRowId t
+                        vTx t
                     where
-                        t.String in ( )sql" + txReplacers + R"sql( )
+                        t.Hash  = ?
                 )
             select
                 (0)tp,
-                txhash.String,
+                tx.Hash,
                 t.Type,
                 t.Time,
                 c.Height,
@@ -379,9 +377,9 @@ namespace PocketDb
                     order by l.OrderIndex asc
                 )
             from
-                txhash
+                tx
                 cross join Transactions t -- primary key
-                    on t.RowId = txhash.RowId
+                    on t.RowId = tx.RowId
                 left join Chain c -- primary key
                     on c.TxId = t.RowId
         )sql" +
@@ -391,7 +389,7 @@ namespace PocketDb
             union
             select
                 (1) tp,
-                txhash.String,
+                tx.Hash,
                 Int1,
                 null,
                 null,
@@ -406,9 +404,9 @@ namespace PocketDb
                 String6,
                 String7
             from
-                txhash
+                tx
                 cross join Payload p -- primary key
-                    on p.TxId = txhash.RowId
+                    on p.TxId = tx.RowId
         )sql") : "") +
 
         // Inputs part
@@ -416,7 +414,7 @@ namespace PocketDb
             union
             select
                 (2)tp,
-                txhash.String,
+                tx.Hash,
                 i.Number,
                 o.Value,
                 null,
@@ -439,9 +437,9 @@ namespace PocketDb
                 null,
                 null
             from
-                txhash
+                tx
                 cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
-                    on i.SpentTxId = txhash.RowId
+                    on i.SpentTxId = tx.RowId
                 cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                     on o.TxId = i.TxId and o.Number = i.Number
         )sql") : "") +
@@ -451,7 +449,7 @@ namespace PocketDb
             union
             select
                 (3)tp,
-                txhash.String,
+                tx.Hash,
                 o.Value,
                 o.Number,
                 null,
@@ -474,10 +472,10 @@ namespace PocketDb
                 null,
                 null
             from
-                txhash
-                cross join TxOutputs o
-                    on o.TxId = txhash.RowId
-        )sql") : "") +
+                tx
+                cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                    on o.TxId = tx.RowId
+        )sql") : "");
 
         string(R"sql(
             order by tp asc
@@ -492,17 +490,20 @@ namespace PocketDb
         bool recRes = true;
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(txHashes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    if (!reconstructor.FeedRow(cursor)) {
-                        recRes = false;
-                        break;
+            for (const auto& txHash : txHashes)
+            {
+                Sql(sql)
+                .Bind(txHash)
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (!reconstructor.FeedRow(cursor)) {
+                            recRes = false;
+                            break;
+                        }
                     }
-                }
-            });
+                });
+            }
         });
 
         if (!recRes) {
@@ -579,6 +580,39 @@ namespace PocketDb
         return txOutput;
     }
 
+    shared_ptr<StakeKernelHashTx> TransactionRepository::GetStakeKernelHashTx(const string& txHash, int number)
+    {
+        StakeKernelHashTx result{"", 0, 0};
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select
+                    t.Time,
+                    o.Value,
+                    (select r.String from Registry r where r.RowId = c.BlockId)Block
+                from
+                    vTx t
+                    cross join Chain c
+                        on c.TxId = t.RowId
+                    cross join TxOutputs o
+                        on o.TxId = t.RowId and o.Number = ?
+                where
+                    t.Hash = ?
+            )sql")
+            .Bind(number, txHash)
+            .Select([&](Cursor& cursor) {
+                cursor.Collect(
+                    result.TxTime,
+                    result.OutValue,
+                    result.BlockHash
+                );
+            });
+        });
+
+        return make_shared<StakeKernelHashTx>(result);
+    }
+
     bool TransactionRepository::Exists(const string& hash)
     {
         bool result = false;
@@ -589,9 +623,9 @@ namespace PocketDb
                     select
                         1
                     from
-                        vTxRowId
+                        vTx
                     where
-                        String = ?
+                        Hash = ?
                 )sql")
                 .Bind(hash)
                 .Run() == SQLITE_ROW
@@ -611,11 +645,11 @@ namespace PocketDb
                     select
                         1
                     from 
-                        vTxRowId t
+                        vTx t
                         cross join Chain c -- primary key
                             on c.TxId = t.RowId
                     where
-                        t.String = ''
+                        t.Hash = ''
                 )sql")
                 .Bind(hash)
                 .Run() == SQLITE_ROW
@@ -653,11 +687,11 @@ namespace PocketDb
                 with
                     tx as (
                         select
-                            t.ROWID
+                            t.RowId
                         from
-                            vTxRowId t
+                            vTx t
                         where
-                            t.String = ?
+                            t.Hash = ?
                     )
                 delete from Payload
                 where
@@ -680,11 +714,11 @@ namespace PocketDb
                 with
                     tx as (
                         select
-                            t.ROWID
+                            t.RowId
                         from
-                            vTxRowId t
+                            vTx t
                         where
-                            t.String = ?
+                            t.Hash = ?
                     )
                 delete from TxOutputs
                 where
@@ -707,11 +741,11 @@ namespace PocketDb
                 with
                     tx as (
                         select
-                            t.ROWID
+                            t.RowId
                         from
-                            vTxRowId t
+                            vTx t
                         where
-                            t.String = ?
+                            t.Hash = ?
                     )
                 delete from Transactions
                 where
@@ -788,8 +822,8 @@ namespace PocketDb
             with
                 data as (
                     select
-                        (select RowId from vTxRowId where String = ?) as spentTx,
-                        (select RowId from vTxRowId where String = ?) as tx,
+                        (select RowId from vTx where Hash = ?) as spentTx,
+                        (select RowId from vTx where Hash = ?) as tx,
                         ? as number
                 )
 
@@ -836,9 +870,9 @@ namespace PocketDb
                     select
                         RowId
                     from
-                        vTxRowId
+                        vTx
                     where
-                        String = ?
+                        Hash = ?
                 )
             insert or fail into
                 TxOutputs (
@@ -896,9 +930,9 @@ namespace PocketDb
                     select
                         RowId
                     from
-                        vTxRowId
+                        vTx
                     where
-                        String = ?
+                        Hash = ?
                 )
 
             insert or fail into
@@ -1078,12 +1112,12 @@ namespace PocketDb
         {
             Sql(R"sql(
                 select
-                    String,
+                    Hash,
                     RowId
                 from
-                    vTxRowId
+                    vTx
                 where
-                    String in ( )sql" + txReplacers + R"sql( )
+                    Hash in ( )sql" + txReplacers + R"sql( )
             )sql")
             .Bind(txHashes)
             .Select([&](Cursor& cursor) {

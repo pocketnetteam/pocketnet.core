@@ -213,11 +213,11 @@ namespace PocketDb
         )sql");
 
         _views.emplace_back(R"sql(
-            drop view if exists vTxRowId;
-            create view if not exists vTxRowId as
+            drop view if exists vTx;
+            create view if not exists vTx as
             select
-                t.RowId,
-                r.String
+                t.RowId, t.Type, t.HashId, t.Time, t.RegId1, t.RegId2, t.RegId3, t.RegId4, t.RegId5, t.Int1,
+                r.String as Hash
             from
                 Registry r indexed by Registry_String,
                 Transactions t indexed by Transactions_HashId

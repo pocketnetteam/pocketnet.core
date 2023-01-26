@@ -40,6 +40,13 @@ namespace PocketDb
         std::optional<Payload> payload;
     };
 
+    struct StakeKernelHashTx
+    {
+        string BlockHash;
+        int64_t TxTime;
+        int64_t OutValue;
+    };
+
     class TransactionRepository : public BaseRepository
     {
     public:
@@ -50,6 +57,7 @@ namespace PocketDb
         PocketBlockRef List(const vector<string>& txHashes, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
         PTransactionRef Get(const string& hash, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
         PTransactionOutputRef GetTxOutput(const string& txHash, int number);
+        shared_ptr<StakeKernelHashTx> GetStakeKernelHashTx(const string& txHash, int number);
 
         bool Exists(const string& hash);
         bool ExistsInChain(const string& hash);

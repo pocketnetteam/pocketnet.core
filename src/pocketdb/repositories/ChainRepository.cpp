@@ -126,9 +126,9 @@ namespace PocketDb
                     select
                         t.RowId
                     from
-                        vTxRowId t
+                        vTx t
                     where
-                        t.String = ?
+                        t.Hash = ?
                 )
             insert or fail into Chain
                 (TxId, BlockId, BlockNum, Height, Uid)
@@ -158,9 +158,9 @@ namespace PocketDb
                 select
                     t.RowId
                 from
-                    vTxRowId t
+                    vTx t
                 where
-                    t.String = ?
+                    t.Hash = ?
             )sql")
             .Bind(txHash)
             .Run();
@@ -276,9 +276,9 @@ namespace PocketDb
                     where
                         a.Type in (100, 170) and
                         a.RowId = (
-                            select txHash.RowId
-                            from vTxRowId txHash
-                            where txHash.String = ?
+                            select t.RowId
+                            from vTx t
+                            where t.Hash = ?
                         )
                     limit 1
                 )
@@ -331,9 +331,9 @@ namespace PocketDb
                     where
                         a.Type in (103) and
                         a.RowId = (
-                            select txHash.RowId
-                            from vTxRowId txHash
-                            where txHash.String = ?
+                            select t.RowId
+                            from vTx t
+                            where t.Hash = ?
                         )
                     limit 1
                 )
@@ -387,9 +387,9 @@ namespace PocketDb
                     where
                         a.Type in (200, 201, 202, 209, 210, 207) and
                         a.RowId = (
-                            select txHash.RowId
-                            from vTxRowId txHash
-                            where txHash.String = ?
+                            select t.RowId
+                            from vTx t
+                            where t.Hash = ?
                         )
                     limit 1
                 )
@@ -443,9 +443,9 @@ namespace PocketDb
                     where
                         a.Type in (204, 205, 206) and
                         a.RowId = (
-                            select txHash.RowId
-                            from vTxRowId txHash
-                            where txHash.String = ?
+                            select t.RowId
+                            from vTx t
+                            where t.Hash = ?
                         )
                     limit 1
                 )
@@ -500,9 +500,9 @@ namespace PocketDb
                     where
                         a.Type in (305, 306) and
                         a.RowId = (
-                            select txHash.RowId
-                            from vTxRowId txHash
-                            where txHash.String = ?
+                            select t.RowId
+                            from vTx t
+                            where t.Hash = ?
                         )
                     limit 1
                 )
@@ -607,9 +607,9 @@ namespace PocketDb
                     where
                         a.Type in (302, 303, 304) and
                         a.RowId = (
-                            select txHash.RowId
-                            from vTxRowId txHash
-                            where txHash.String = ?
+                            select t.RowId
+                            from vTx t
+                            where t.Hash = ?
                         )
                     limit 1
                 )
