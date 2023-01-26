@@ -1180,13 +1180,14 @@ namespace PocketDb
         if (strings.empty())
             return;
 
-        // TODO (optimization): create many stmt's for this keys...
-        Sql(R"sql(
-            insert or ignore into Registry (String) values
-            )sql" + join(vector<string>(strings.size(), "(?)"), ",") + R"sql( ;
-        )sql")
-        .Bind(strings)
-        .Run();
+        auto& stmt = Sql(R"sql(
+            insert or ignore into Registry (String)
+            values (?)
+        )sql");
+
+        for (const auto& str: strings) {
+            stmt.Bind(str).Run();
+        }
     }
 
     void TransactionRepository::InsertRegistryLists(const vector<string> &lists)
