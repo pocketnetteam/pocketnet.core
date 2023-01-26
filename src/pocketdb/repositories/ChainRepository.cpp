@@ -654,15 +654,16 @@ namespace PocketDb
 
     bool ChainRepository::ClearDatabase()
     {
-        LogPrintf("Deleting database indexes..\n");
+        LogPrintf("Start clean database..\n");
 
         try
         {
-            // Update transactions
+            LogPrintf("Deleting all indexes\n");
+            m_database.DropIndexes();
+
+            LogPrintf("Deleting all calculated tables\n");
             SqlTransaction(__func__, [&]()
             {
-                m_database.DropIndexes();
-
                 Sql(R"sql( delete from Last )sql").Run();
                 Sql(R"sql( delete from Ratings )sql").Run();
                 Sql(R"sql( delete from Balances )sql").Run();
@@ -670,9 +671,9 @@ namespace PocketDb
 
                 // TODO (aok) : bad
                 // ClearBlockingList();
-
-                m_database.CreateStructure();
             });
+
+            m_database.CreateStructure();
 
             return true;
         }
