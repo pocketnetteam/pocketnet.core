@@ -177,6 +177,8 @@ namespace PocketDb
                 ),
                 outs as (
                     select
+                        o.TxId,
+                        o.Number,
                         o.AddressId,
                         (+o.Value)val
                     from
@@ -190,6 +192,8 @@ namespace PocketDb
                     union
 
                     select
+                        o.TxId,
+                        o.Number,
                         o.AddressId,
                         (-o.Value)val
                     from
