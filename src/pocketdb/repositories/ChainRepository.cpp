@@ -212,11 +212,13 @@ namespace PocketDb
                         outs.AddressId
                 )
 
-            replace into Balances (AddressId, Value)
+            replace into Balances (AddressId, Height, Value)
             select
                 saldo.AddressId,
+                height.value,
                 ifnull(b.Value, 0) + saldo.Amount
             from
+                height,
                 saldo
                 left join Balances b
                     on b.AddressId = saldo.AddressId
