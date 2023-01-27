@@ -11,20 +11,8 @@ import sys
 import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-# Imports should be in PEP8 ordering (std library first, then third party
-# libraries then local imports).
-from collections import defaultdict
-
 # Avoid wildcard * imports
-from test_framework.blocktools import (create_block, create_coinbase)
-from test_framework.messages import CInv, MSG_BLOCK
 from test_framework.test_framework import PocketcoinTestFramework
-from test_framework.util import (
-    assert_equal,
-    get_rpc_proxy,
-    rpc_url,
-    assert_raises_rpc_error
-)
 
 # Pocketnet framework
 from framework.helpers import generate_accounts, rollback_node
