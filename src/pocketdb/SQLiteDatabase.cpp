@@ -313,8 +313,8 @@ namespace PocketDb
 
             if (!isReadOnlyConnect)
             {
-                if (sqlite3_exec(m_db, "PRAGMA journal_mode = wal;", nullptr, nullptr, nullptr) != 0)
-                    throw std::runtime_error("Failed apply journal_mode = wal");
+                if (sqlite3_exec(m_db, "PRAGMA journal_mode = persist;", nullptr, nullptr, nullptr) != 0)
+                    throw std::runtime_error("Failed apply journal_mode = persist");
 
                 if (sqlite3_exec(m_db, "PRAGMA synchronous = full;", nullptr, nullptr, nullptr) != 0)
                     throw std::runtime_error("Failed apply synchronous = full");
@@ -324,11 +324,11 @@ namespace PocketDb
             }
 
             // TODO (tawmaz): Not working for existed database
-            // int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
-            // int pageCount = cacheSize * 1024 * 1024 / 4096;
-            // string cmd = "PRAGMA cache_size = " + to_string(pageCount) + ";";
-            // if (sqlite3_exec(m_db, cmd.c_str(), nullptr, nullptr, nullptr) != 0)
-            //     throw std::runtime_error("Failed to apply cache size");
+            int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
+            int pageCount = cacheSize * 1024 * 1024 / 4096;
+            string cmd = "PRAGMA cache_size = " + to_string(pageCount) + ";";
+            if (sqlite3_exec(m_db, cmd.c_str(), nullptr, nullptr, nullptr) != 0)
+                throw std::runtime_error("Failed to apply cache size");
         }
         catch (const std::runtime_error&)
         {

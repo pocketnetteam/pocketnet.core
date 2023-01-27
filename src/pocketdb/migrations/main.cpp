@@ -168,7 +168,7 @@ namespace PocketDb
             (
                 TxId            int    not null, -- Transactions.TxId
                 Number          int    not null, -- Number in tx.vout
-                AddressId       int    null, -- Address
+                AddressId       int    not null, -- Address
                 Value           int    not null, -- Amount
                 ScriptPubKeyId  int    not null -- Original script
             );
@@ -190,8 +190,7 @@ namespace PocketDb
                 Last   int not null,
                 Height int not null,
                 Uid    int not null,
-                Value  int not null,
-                primary key (Type, Height, Uid, Value)
+                Value  int not null
             );
         )sql");
 
@@ -208,8 +207,7 @@ namespace PocketDb
             create table if not exists BlockingLists
             (
                 IdSource int not null,
-                IdTarget int not null,
-                primary key (IdSource, IdTarget)
+                IdTarget int not null
             );
         )sql");
 
