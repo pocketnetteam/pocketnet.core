@@ -73,8 +73,8 @@ namespace PocketDb
         // optional<int64_t> AddressHashToId(const string& hash);
 
     private:
-        void InsertRegistry(const vector<string>& strings);
-        void InsertRegistryLists(const vector<string>& lists);
+        void InsertRegistry(const set<string>& strings);
+        void InsertRegistryLists(const set<string>& lists);
         void InsertList(const std::string& list, const std::string& txHash);
         void InsertTransactionInputs(const vector<TransactionInput>& intputs, const string& txHash);
         void InsertTransactionOutputs(const vector<TransactionOutput>& outputs, const string& txHash);

@@ -231,34 +231,26 @@ namespace PocketDb
         }
     };
 
-    static void _saveAppendToList(vector<string>& list, const string& value)
-    {
-        if (find(list.begin(), list.end(), value) == list.end())
-            list.emplace_back(value);
-    };
-
     static auto _findStringsAndListsToBeInserted(const vector<CollectData>& collectDataVec)
     {
-        
-
-        vector<string> stringsToBeInserted;
-        vector<string> listsToBeInserted;
+        set<string> stringsToBeInserted;
+        set<string> listsToBeInserted;
         for (const auto& collectData: collectDataVec)
         {
-            _saveAppendToList(stringsToBeInserted, collectData.txHash);
+            stringsToBeInserted.insert(collectData.txHash);
 
             const auto& txData = collectData.txContextData;
-            if (txData.string1) _saveAppendToList(stringsToBeInserted, *txData.string1);
-            if (txData.string2) _saveAppendToList(stringsToBeInserted, *txData.string2);
-            if (txData.string3) _saveAppendToList(stringsToBeInserted, *txData.string3);
-            if (txData.string4) _saveAppendToList(stringsToBeInserted, *txData.string4);
-            if (txData.string5) _saveAppendToList(stringsToBeInserted, *txData.string5);
+            if (txData.string1) stringsToBeInserted.insert(*txData.string1);
+            if (txData.string2) stringsToBeInserted.insert(*txData.string2);
+            if (txData.string3) stringsToBeInserted.insert(*txData.string3);
+            if (txData.string4) stringsToBeInserted.insert(*txData.string4);
+            if (txData.string5) stringsToBeInserted.insert(*txData.string5);
 
-            if (txData.list) _saveAppendToList(listsToBeInserted, *txData.list);
+            if (txData.list) listsToBeInserted.insert(*txData.list);
             
             for (const auto& output: collectData.outputs) {
-                if (output.GetAddressHash()) _saveAppendToList(stringsToBeInserted, *output.GetAddressHash());
-                if (output.GetScriptPubKey()) _saveAppendToList(stringsToBeInserted, *output.GetScriptPubKey());
+                if (output.GetAddressHash()) stringsToBeInserted.insert(*output.GetAddressHash());
+                if (output.GetScriptPubKey()) stringsToBeInserted.insert(*output.GetScriptPubKey());
             }
         }
 
@@ -276,8 +268,8 @@ namespace PocketDb
             collectDataVec.emplace_back(move(*collectData));
         }
 
-        vector<string> registyStrings;
-        vector<string> lists;
+        set<string> registyStrings;
+        set<string> lists;
         tie(registyStrings, lists) = _findStringsAndListsToBeInserted(collectDataVec);
 
         SqlTransaction(__func__, [&]()
@@ -305,7 +297,7 @@ namespace PocketDb
                 // If last id equal 0 - insert ignored - or already exists or error -> paylod not inserted
                 if (collectData.payload)
                     InsertTransactionPayload(*collectData.payload);
-            }
+                }
         });
     }
 
@@ -1207,7 +1199,7 @@ namespace PocketDb
     //     return id;
     // }
 
-    void TransactionRepository::InsertRegistry(const vector<string> &strings)
+    void TransactionRepository::InsertRegistry(const set<string> &strings)
     {
         if (strings.empty())
             return;
@@ -1222,7 +1214,7 @@ namespace PocketDb
         }
     }
 
-    void TransactionRepository::InsertRegistryLists(const vector<string> &lists)
+    void TransactionRepository::InsertRegistryLists(const set<string> &lists)
     {
         if (lists.empty())
             return;
