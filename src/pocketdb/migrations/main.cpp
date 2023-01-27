@@ -198,7 +198,6 @@ namespace PocketDb
             create table if not exists Balances
             (
                 AddressId   integer primary key,
-                Height      int not null,
                 Value       int not null
             );
         )sql");

@@ -216,13 +216,11 @@ namespace PocketDb
                         outs.AddressId
                 )
 
-            replace into Balances (AddressId, Height, Value)
+            replace into Balances (AddressId, Value)
             select
                 saldo.AddressId,
-                height.value,
                 ifnull(b.Value, 0) + saldo.Amount
             from
-                height,
                 saldo
                 left join Balances b
                     on b.AddressId = saldo.AddressId
@@ -801,6 +799,8 @@ namespace PocketDb
                 ),
                 outs as (
                     select
+                        o.TxId,
+                        o.Number,
                         o.AddressId,
                         (+o.Value)val
                     from
@@ -814,6 +814,8 @@ namespace PocketDb
                     union
 
                     select
+                        o.TxId,
+                        o.Number,
                         o.AddressId,
                         (-o.Value)val
                     from
