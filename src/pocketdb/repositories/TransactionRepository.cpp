@@ -33,6 +33,8 @@ namespace PocketDb
         {
             auto ptx = collectData.ptx;
 
+            if (!ptx) return nullptr;
+
             if (!DbViewHelper::Inject(ptx, collectData.txContextData))
                 return nullptr;
 
