@@ -514,7 +514,7 @@ namespace PocketDb
             if (auto ptx = CollectDataToModelConverter::CollectDataToModel(collectData); ptx)
                 pBlock->emplace_back(ptx);
             else
-                throw runtime_error("Transaction::List reconstruct failed - no return data");
+                throw runtime_error(strprintf("Transaction::List reconstruct failed - no return data for %s tx", collectData.txHash));
         }
 
         return pBlock;
