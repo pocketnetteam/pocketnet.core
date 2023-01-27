@@ -313,10 +313,12 @@ namespace PocketDb
 
             if (!isReadOnlyConnect)
             {
-                if (sqlite3_exec(m_db, "PRAGMA journal_mode = persist;", nullptr, nullptr, nullptr) != 0)
-                    throw std::runtime_error("Failed apply journal_mode = persist");
+                string mode = gArgs.GetArg("-sqlmode", "wal");
+                if (sqlite3_exec(m_db, ("PRAGMA journal_mode = " + mode + ";").c_str(), nullptr, nullptr, nullptr) != 0)
+                    throw std::runtime_error("Failed apply journal_mode = " + mode);
 
-                if (sqlite3_exec(m_db, "PRAGMA synchronous = full;", nullptr, nullptr, nullptr) != 0)
+                string sync = gArgs.GetArg("-sqlsync", "full");
+                if (sqlite3_exec(m_db, ("PRAGMA synchronous = " + sync + ";").c_str(), nullptr, nullptr, nullptr) != 0)
                     throw std::runtime_error("Failed apply synchronous = full");
 
                 if (sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)

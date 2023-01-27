@@ -664,10 +664,11 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-server", "Accept command line and JSON-RPC commands", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
 
     // SQLite
+    argsman.AddArg("-sqlmode", "Experimental: Set journal mode (wal|persist|etc, default: wal)", ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
+    argsman.AddArg("-sqlsync", "Experimental: Set journal mode (full|normal|etc, default: full)", ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlsharedcache", strprintf("Experimental: enable shared cache for sqlite connections (default: disabled)"), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
-
 
 #if HAVE_DECL_DAEMON
     argsman.AddArg("-daemon", "Run in the background as a daemon and accept commands", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
