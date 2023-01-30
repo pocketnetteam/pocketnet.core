@@ -39,6 +39,9 @@ namespace PocketTx
     #define OR_AUDIO "617564696f" // Post for audio hosting
 
     #define OR_COLLECTION "636f6c6c656374696f6e" // Collection of contents
+    
+    #define OR_BARTERON_OFFER "6261727465726f6e5f6f66666572"
+    #define OR_BARTERON_REQUEST "6261727465726f6e5f72657175657374"
 
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
@@ -76,6 +79,7 @@ namespace PocketTx
         // ACCOUNT_VIDEO_SERVER = 101,
         // ACCOUNT_MESSAGE_SERVER = 102,
         ACCOUNT_SETTING = 103,
+        ACCOUNT_BARTERON_REQUEST = 104,
         ACCOUNT_DELETE = 170,
 
         CONTENT_DELETE = 207,
@@ -93,6 +97,8 @@ namespace PocketTx
         CONTENT_COMMENT_DELETE = 206,
 
         BOOST_CONTENT = 208,
+
+        CONTENT_BARTERON_OFFER = 211,
 
         ACTION_SCORE_CONTENT = 300,
         ACTION_SCORE_COMMENT = 301,
@@ -169,7 +175,8 @@ namespace PocketTx
 
         bool IsAccountSetting() const
         {
-            return Type == TxType::ACCOUNT_SETTING;
+            return Type == TxType::ACCOUNT_SETTING ||
+                   Type == TxType::ACCOUNT_BARTERON_REQUEST; // TODO (barteron): validate
         }
 
         bool IsContent() const {
@@ -179,6 +186,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_STREAM ||
                    Type == TxType::CONTENT_AUDIO ||
                    Type == TxType::CONTENT_COLLECTION ||
+                   Type == TxType::CONTENT_BARTERON_OFFER ||
                    Type == TxType::CONTENT_DELETE;
         }
 

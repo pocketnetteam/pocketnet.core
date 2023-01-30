@@ -154,6 +154,12 @@ namespace PocketDb
 
         int CountMempoolCollection(const string& address);
         int CountChainCollection(const string& address, int height);
+        
+        int CountMempoolBarteronOffer(const std::string& address);
+        int CountChainBarteronOffer(const std::string& address, int height);
+
+        int CountMempoolBarteronRequest(const std::string& address);
+        int CountChainBarteronRequest(const std::string& address, int height);
 
         int CountMempoolScoreComment(const string& address);
         int CountChainScoreCommentTime(const string& address, int64_t time);
@@ -188,6 +194,9 @@ namespace PocketDb
 
         int CountMempoolCollectionEdit(const string& address, const string& rootTxHash);
         int CountChainCollectionEdit(const string& address, const string& rootTxHash);
+        
+        int CountMempoolBarteronOfferEdit(const string& address, const string& rootTxHash);
+        int CountChainBarteronOfferEdit(const string& address, const string& rootTxHash);
 
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
 

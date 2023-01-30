@@ -22,6 +22,8 @@
 #include "pocketdb/consensus/social/Stream.hpp"
 #include "pocketdb/consensus/social/Audio.hpp"
 #include "pocketdb/consensus/social/Collection.hpp"
+#include "pocketdb/consensus/social/BarteronOffer.hpp"
+#include "pocketdb/consensus/social/BarteronRequest.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
 #include "pocketdb/consensus/social/ScoreContent.hpp"
 #include "pocketdb/consensus/social/Subscribe.hpp"
@@ -70,6 +72,8 @@ namespace PocketConsensus
         static StreamConsensusFactory m_streamFactory;
         static AudioConsensusFactory m_audioFactory;
         static CollectionConsensusFactory m_collectionFactory;
+        static BarteronOfferConsensusFactory m_barteronOfferFactory;
+        static BarteronRequestConsensusFactory m_barteronRequestFactory;
         static CommentConsensusFactory m_commentFactory;
         static CommentEditConsensusFactory m_commentEditFactory;
         static CommentDeleteConsensusFactory m_commentDeleteFactory;
