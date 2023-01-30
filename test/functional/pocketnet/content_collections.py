@@ -10,6 +10,7 @@ Launch this with command from 'test/functional/pocketnet' directory
 
 import sys
 import pathlib
+
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 # Avoid wildcard * imports
@@ -17,6 +18,7 @@ from test_framework.test_framework import PocketcoinTestFramework
 
 # Pocketnet framework
 from framework.models import *
+
 
 class ContentCollectionsTest(PocketcoinTestFramework):
     def set_test_params(self):
@@ -44,5 +46,6 @@ class ContentCollectionsTest(PocketcoinTestFramework):
 
         node.stakeblock(1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     ContentCollectionsTest().main()

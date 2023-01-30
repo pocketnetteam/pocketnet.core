@@ -9,11 +9,20 @@ def generate_accounts(node, node_address, account_num, amount=10, is_moderator=F
     accounts = []
     for i in range(account_num):
         acc = node.public().generateaddress()
-        name = f'moderator{i}' if is_moderator else f'user{i}' 
-        accounts.append(Account(acc['address'], acc['privkey'], name))
-        node.sendtoaddress(address=accounts[i].Address, amount=amount, destaddress=node_address)
+        name = f"moderator{i}" if is_moderator else f"user{i}"
+        accounts.append(Account(acc["address"], acc["privkey"], name))
+        node.sendtoaddress(
+            address=accounts[i].Address, amount=amount, destaddress=node_address
+        )
 
     node.stakeblock(1)
+
+    for i in range(account_num):
+        assert (
+            node.public().getaddressinfo(address=accounts[i].Address)["balance"]
+            == amount
+        )
+
     return accounts
 
 
@@ -23,4 +32,3 @@ def rollback_node(node, blocks, logger=None):
 
     for _ in range(blocks):
         node.invalidateblock(node.getbestblockhash())
-
