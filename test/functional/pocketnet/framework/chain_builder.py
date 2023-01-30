@@ -35,7 +35,7 @@ class ChainBuilder:
         )
 
     def transaction(self, *args, **kwargs):
-        return self._node().generatetransaction(*args, **kwargs)
+        return self._node.public().generatetransaction(*args, **kwargs)
 
     @property
     def accounts(self):
