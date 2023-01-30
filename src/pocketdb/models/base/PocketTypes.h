@@ -173,8 +173,7 @@ namespace PocketTx
 
         bool IsAccountSetting() const
         {
-            return Type == TxType::ACCOUNT_SETTING ||
-                   Type == TxType::BARTERON_ACCOUNT;
+            return Type == TxType::ACCOUNT_SETTING;
         }
 
         bool IsAccountBarteron() const

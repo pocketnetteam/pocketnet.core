@@ -69,6 +69,7 @@ namespace PocketDb
 
         void IndexAccount(const string& txHash);
         void IndexAccountSetting(const string& txHash);
+        void IndexAccountBarteron(const string& txHash);
         void IndexContent(const string& txHash);
         void IndexComment(const string& txHash);
         void IndexBlocking(const string& txHash);

@@ -46,6 +46,17 @@ namespace PocketDb
             drop table if exists Badges;
         )sql");
 
+        //
+        // BARTERON
+        //
+        // TODO (barteron): implement
+        _tables.emplace_back(R"sql(
+            
+        )sql");
+
+        //
+        // INDEXES
+        //
         _indexes = R"sql(
             create unique index if not exists Tags_Lang_Value on Tags (Lang, Value);
             create index if not exists Tags_Lang_Id on Tags (Lang, Id);

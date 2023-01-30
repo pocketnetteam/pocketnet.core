@@ -31,6 +31,9 @@ namespace PocketDb
                 if (txInfo.IsAccountSetting())
                     IndexAccountSetting(txInfo.Hash);
 
+                if (txInfo.IsAccountBarteron())
+                    IndexAccountBarteron(txInfo.Hash);
+
                 if (txInfo.IsContent())
                     IndexContent(txInfo.Hash);
 
@@ -308,6 +311,44 @@ namespace PocketDb
         ClearOldLast(txHash);
     }
 
+    void ChainRepository::IndexAccountBarteron(const string& txHash)
+    {
+        // Get new ID or copy previous
+        auto setIdStmt = SetupSqlStatement(R"sql(
+            UPDATE Transactions SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select a.Id
+                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
+                        where a.Type in (104)
+                            and a.Last = 1
+                            and a.String1 = Transactions.String1
+                            and a.Height is not null
+                        limit 1
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select max( a.Id ) + 1
+                            from Transactions a indexed by Transactions_Id
+                        ),
+                        0 -- for first record
+                    )
+                ),
+                Last = 1
+            WHERE Hash = ?
+        )sql");
+        TryBindStatementText(setIdStmt, 1, txHash);
+        TryStepStatement(setIdStmt);
+
+        // Set first field
+        SetFirst(txHash);
+
+        // Clear old last records for set new last
+        ClearOldLast(txHash);
+    }
+
     void ChainRepository::IndexContent(const string& txHash)
     {
         // Get new ID or copy previous
@@ -318,7 +359,7 @@ namespace PocketDb
                     (
                         select c.Id
                         from Transactions c indexed by Transactions_Type_Last_String2_Height
-                        where c.Type in (200,201,202,209,210,220,207)
+                        where c.Type in (200,201,202,209,210,220,207,211)
                             and c.Last = 1
                             -- String2 = RootTxHash
                             and c.String2 = Transactions.String2
