@@ -16,6 +16,8 @@ namespace PocketTx
     public:
         BarteronAccount();
         BarteronAccount(const CTransactionRef& tx);
+
+        optional<string> GetTags() const;
     };
 
 } // namespace PocketTx

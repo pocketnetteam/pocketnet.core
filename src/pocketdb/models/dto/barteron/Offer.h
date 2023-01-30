@@ -16,6 +16,13 @@ namespace PocketTx
     public:
         BarteronOffer();
         BarteronOffer(const CTransactionRef& tx);
+
+        optional<string> GetPayloadLang() const;
+        optional<string> GetPayloadCaption() const;
+        optional<string> GetPayloadMessage() const;
+        optional<string> GetPayloadTags() const;
+        optional<string> GetPayloadImages() const;
+        optional<string> GetPayloadSettings() const;
     };
 
 } // namespace PocketTx

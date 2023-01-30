@@ -17,4 +17,11 @@ namespace PocketTx
         SetType(TxType::BARTERON_OFFER);
     }
 
+    optional<string> BarteronOffer::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullopt; }
+    optional<string> BarteronOffer::GetPayloadCaption() const { return GetPayload() ? GetPayload()->GetString2() : nullopt; }
+    optional<string> BarteronOffer::GetPayloadMessage() const { return GetPayload() ? GetPayload()->GetString3() : nullopt; }
+    optional<string> BarteronOffer::GetPayloadTags() const { return GetPayload() ? GetPayload()->GetString4() : nullopt; }
+    optional<string> BarteronOffer::GetPayloadImages() const { return GetPayload() ? GetPayload()->GetString5() : nullopt; }
+    optional<string> BarteronOffer::GetPayloadSettings() const { return GetPayload() ? GetPayload()->GetString6() : nullopt; }
+
 } // namespace PocketTx

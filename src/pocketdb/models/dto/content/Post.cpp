@@ -108,9 +108,9 @@ namespace PocketTx
     optional<string> Post::GetPayloadCaption() const { return GetPayload() ? GetPayload()->GetString2() : nullopt; }
     optional<string> Post::GetPayloadMessage() const { return GetPayload() ? GetPayload()->GetString3() : nullopt; }
     optional<string> Post::GetPayloadTags() const { return GetPayload() ? GetPayload()->GetString4() : nullopt; }
-    optional<string> Post::GetPayloadUrl() const { return GetPayload() ? GetPayload()->GetString7() : nullopt; }
     optional<string> Post::GetPayloadImages() const { return GetPayload() ? GetPayload()->GetString5() : nullopt; }
     optional<string> Post::GetPayloadSettings() const { return GetPayload() ? GetPayload()->GetString6() : nullopt; }
+    optional<string> Post::GetPayloadUrl() const { return GetPayload() ? GetPayload()->GetString7() : nullopt; }
 
     string Post::BuildHash()
     {

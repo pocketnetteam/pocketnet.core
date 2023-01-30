@@ -17,4 +17,6 @@ namespace PocketTx
         SetType(TxType::BARTERON_ACCOUNT);
     }
 
+    optional<string> BarteronAccount::GetTags() const { return GetPayload() ? GetPayload()->GetString4() : nullopt; }
+
 } // namespace PocketTx
