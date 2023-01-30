@@ -4,7 +4,7 @@
 
 import logging
 
-from framework.helpers import generate_accounts
+from framework.helpers import generate_accounts, register_accounts
 
 
 class ChainBuilder:
@@ -17,6 +17,16 @@ class ChainBuilder:
         self.log.setLevel(logging.DEBUG)
 
     def build(self):
+        self.build()
+        self.register_accounts()
+        self.generate_transfers()
+        self.generate_posts()
+        self.generate_comments()
+        self.generate_likes()
+        self.generate_subscriptions()
+        self.generate_blacklists()
+
+    def build_init(self):
         self.log.info("Generate general node address")
         node_address = self._node.getnewaddress()
 
@@ -33,6 +43,29 @@ class ChainBuilder:
         self._moders = generate_accounts(
             self._node, node_address, self.ACCOUNTS, is_moderator=True
         )
+
+    def register_accounts(self):
+        self.log.info("Register accounts")
+        register_accounts(self._node, self.accounts)
+        register_accounts(self._node, self.moderators)
+
+    def generate_transfers(self):
+        self.log.info("Generate payments between accounts")
+
+    def generate_posts(self):
+        self.log.info("Generate accounts posts")
+
+    def generate_comments(self):
+        self.log.info("Generate posts comments")
+
+    def generate_likes(self):
+        self.log.info("Generate posts and comments likes")
+
+    def generate_subscriptions(self):
+        self.log.info("Generate account subscriptions")
+
+    def generate_blacklists(self):
+        self.log.info("Generate accounts blacklists")
 
     def pub_gen_tx(self, *args, **kwargs):
         return self._node.public().generatetransaction(*args, **kwargs)

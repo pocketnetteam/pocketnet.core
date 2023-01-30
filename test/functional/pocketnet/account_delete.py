@@ -32,7 +32,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
     def run_test(self):
         node = self.nodes[0]
         builder = ChainBuilder(node, self.log)
-        builder.build()
+        builder.build_init()
 
         pubGenTx = node.public().generatetransaction
         accounts = builder.accounts
@@ -44,9 +44,8 @@ class AccountDeleteTest(PocketcoinTestFramework):
         assert_raises_rpc_error(1, None, pubGenTx, accounts[0], AccountDeletePayload())
 
         # ---------------------------------------------------------------------------------
-
-        self.log.info("Register accounts")
-        register_accounts(node, accounts)
+        
+        builder.register_accounts()
 
         # ---------------------------------------------------------------------------------
         self.log.info("Prepare content")
