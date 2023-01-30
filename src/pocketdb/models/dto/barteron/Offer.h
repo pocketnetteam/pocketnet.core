@@ -5,13 +5,13 @@
 #ifndef POCKETTX_BARTERON_OFFER_H
 #define POCKETTX_BARTERON_OFFER_H
 
-#include "pocketdb/models/dto/content/Post.h"
+#include "pocketdb/models/base/Transaction.h"
 
 namespace PocketTx
 {
     using namespace std;
 
-    class BarteronOffer : public Post
+    class BarteronOffer : public Transaction
     {
     public:
         BarteronOffer();

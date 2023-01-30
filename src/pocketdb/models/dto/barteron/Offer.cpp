@@ -3,18 +3,18 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include <primitives/transaction.h>
-#include "pocketdb/models/dto/content/BarteronOffer.h"
+#include "pocketdb/models/dto/barteron/Offer.h"
 
 namespace PocketTx
 {
-    BarteronOffer::BarteronOffer() : Post()
+    BarteronOffer::BarteronOffer() : Transaction()
     {
-        SetType(TxType::CONTENT_BARTERON_OFFER);
+        SetType(TxType::BARTERON_OFFER);
     }
 
-    BarteronOffer::BarteronOffer(const CTransactionRef& tx) : Post(tx)
+    BarteronOffer::BarteronOffer(const CTransactionRef& tx) : Transaction(tx)
     {
-        SetType(TxType::CONTENT_BARTERON_OFFER);
+        SetType(TxType::BARTERON_OFFER);
     }
 
 } // namespace PocketTx

@@ -8,7 +8,7 @@
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/content/BarteronOffer.h"
+#include "pocketdb/models/dto/barteron/Offer.h"
 
 namespace PocketConsensus
 {
@@ -69,7 +69,7 @@ namespace PocketConsensus
             // Get count from block
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_BARTERON_OFFER}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {BARTERON_OFFER}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<BarteronOffer>(blockTx);
@@ -115,9 +115,9 @@ namespace PocketConsensus
         {
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                     *ptx->GetRootTxHash(),
-                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE, CONTENT_STREAM, CONTENT_BARTERON_OFFER }
+                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE, CONTENT_STREAM, BARTERON_OFFER }
             );
-            if (lastContentOk && *lastContent->GetType() != CONTENT_BARTERON_OFFER)
+            if (lastContentOk && *lastContent->GetType() != BARTERON_OFFER)
                 return {false, SocialConsensusResult_NotAllowed};
 
             // First get original post transaction
@@ -168,7 +168,7 @@ namespace PocketConsensus
             // Double edit in block not allowed
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_BARTERON_OFFER, CONTENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {BARTERON_OFFER, CONTENT_DELETE}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<BarteronOffer>(blockTx);

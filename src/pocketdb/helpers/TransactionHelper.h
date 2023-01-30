@@ -48,6 +48,9 @@
 #include "pocketdb/models/dto/moderation/Flag.h"
 #include "pocketdb/models/dto/moderation/Vote.h"
 
+#include "pocketdb/models/dto/barteron/Account.h"
+#include "pocketdb/models/dto/barteron/Offer.h"
+
 namespace PocketHelpers
 {
     using namespace std;

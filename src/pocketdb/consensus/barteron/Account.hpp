@@ -8,21 +8,21 @@
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/account/BarteronRequest.h"
+#include "pocketdb/models/dto/barteron/Account.h"
 
 namespace PocketConsensus
 {
     using namespace std;
-    typedef shared_ptr<BarteronRequest> BarteronRequestRef;
+    typedef shared_ptr<BarteronAccount> BarteronAccountRef;
 
     /*******************************************************************************************************************
-    *  BarteronRequest consensus base class
+    *  BarteronAccount consensus base class
     *******************************************************************************************************************/
-    class BarteronRequestConsensus : public SocialConsensus<BarteronRequest>
+    class BarteronAccountConsensus : public SocialConsensus<BarteronAccount>
     {
     public:
-        BarteronRequestConsensus(int height) : SocialConsensus<BarteronRequest>(height) {}
-        ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronRequestRef& ptx, const PocketBlockRef& block) override
+        BarteronAccountConsensus(int height) : SocialConsensus<BarteronAccount>(height) {}
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
@@ -33,7 +33,7 @@ namespace PocketConsensus
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
-        ConsensusValidateResult Check(const CTransactionRef& tx, const BarteronRequestRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const BarteronAccountRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
@@ -54,7 +54,7 @@ namespace PocketConsensus
                      : GetConsensusLimit(ConsensusLimit_trial_barteron_request);
         }
 
-        ConsensusValidateResult ValidateBlock(const BarteronRequestRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
             // Edit
             // if (ptx->IsEdit())
@@ -69,10 +69,10 @@ namespace PocketConsensus
             // Get count from block
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_BARTERON_REQUEST}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {BARTERON_ACCOUNT}))
                     continue;
 
-                auto blockPtx = static_pointer_cast<BarteronRequest>(blockTx);
+                auto blockPtx = static_pointer_cast<BarteronAccount>(blockTx);
 
                 if (*ptx->GetAddress() != *blockPtx->GetAddress())
                     continue;
@@ -88,7 +88,7 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
-        ConsensusValidateResult ValidateMempool(const BarteronRequestRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
         {
 
             // Edit
@@ -102,17 +102,17 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
 
             // and from mempool
-            count += ConsensusRepoInst.CountMempoolBarteronRequest(*ptx->GetAddress());
+            count += ConsensusRepoInst.CountMempoolBarteronAccount(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
         }
-        vector<string> GetAddressesForCheckRegistration(const BarteronRequestRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const BarteronAccountRef& ptx) override
         {
             return {*ptx->GetAddress()};
         }
 
         // TODO (aok): move to base Social class
-        virtual ConsensusValidateResult ValidateLimit(const BarteronRequestRef& ptx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const BarteronAccountRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
             auto address = ptx->GetAddress();
@@ -124,16 +124,16 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual int GetChainCount(const BarteronRequestRef& ptx)
+        virtual int GetChainCount(const BarteronAccountRef& ptx)
         {
 
-            return ConsensusRepoInst.CountChainBarteronRequest(
+            return ConsensusRepoInst.CountChainBarteronAccount(
                     *ptx->GetAddress(),
                     Height - (int)GetConsensusLimit(ConsensusLimit_depth)
             );
         }
 
-        virtual ConsensusValidateResult ValidatePayloadSize(const BarteronRequestRef& ptx)
+        virtual ConsensusValidateResult ValidatePayloadSize(const BarteronAccountRef& ptx)
         {
             // size_t dataSize =
             //         (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
@@ -172,18 +172,18 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class BarteronRequestConsensusFactory
+    class BarteronAccountConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint < BarteronRequestConsensus>> m_rules = {
-                { 99999999, 99999999, 0, [](int height) { return make_shared<BarteronRequestConsensus>(height); }},
+        const vector<ConsensusCheckpoint < BarteronAccountConsensus>> m_rules = {
+                { 99999999, 99999999, 0, [](int height) { return make_shared<BarteronAccountConsensus>(height); }},
         };
     public:
-        shared_ptr<BarteronRequestConsensus> Instance(int height)
+        shared_ptr<BarteronAccountConsensus> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                                  [&](int target, const ConsensusCheckpoint<BarteronRequestConsensus>& itm)
+                                  [&](int target, const ConsensusCheckpoint<BarteronAccountConsensus>& itm)
                                   {
                                       return target < itm.Height(Params().NetworkID());
                                   }

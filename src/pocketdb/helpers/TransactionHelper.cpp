@@ -47,12 +47,6 @@ namespace PocketHelpers
         else if (op == OR_COLLECTION)
             return TxType::CONTENT_COLLECTION;
             
-        else if (op == OR_BARTERON_OFFER)
-            return TxType::CONTENT_BARTERON_OFFER;
-        else if (op == OR_BARTERON_REQUEST)
-            return TxType::ACCOUNT_BARTERON_REQUEST;
-
-            
         else if (op == OR_CONTENT_BOOST)
             return TxType::BOOST_CONTENT;
         else if (op == OR_CONTENT_DELETE)
@@ -92,12 +86,16 @@ namespace PocketHelpers
         // MODERATION
         else if (op == OR_COMPLAIN)
             return TxType::ACTION_COMPLAIN;
-
         else if (op == OR_MODERATION_FLAG)
             return TxType::MODERATION_FLAG;
-
         else if (op == OR_MODERATION_VOTE)
             return TxType::MODERATION_VOTE;
+
+        // BARTERON
+        else if (op == OR_BARTERON_ACCOUNT)
+            return TxType::BARTERON_ACCOUNT;
+        else if (op == OR_BARTERON_OFFER)
+            return TxType::BARTERON_OFFER;
 
         return TxType::TX_DEFAULT;
     }
@@ -187,6 +185,10 @@ namespace PocketHelpers
                 return "ModFlag";
             case TxType::MODERATION_VOTE:
                 return "ModVote";
+            case TxType::BARTERON_ACCOUNT:
+                return "BrtAccount";
+            case TxType::BARTERON_OFFER:
+                return "BrtOffer";
             default:
                 return "";
         }
@@ -385,6 +387,12 @@ namespace PocketHelpers
             case MODERATION_VOTE:
                 ptx = make_shared<ModerationVote>(tx);
                 break;
+            case BARTERON_ACCOUNT:
+                ptx = make_shared<BarteronAccount>(tx);
+                break;
+            case BARTERON_OFFER:
+                ptx = make_shared<BarteronOffer>(tx);
+                break;
             default:
                 return nullptr;
         }
@@ -478,6 +486,12 @@ namespace PocketHelpers
             case MODERATION_VOTE:
                 ptx = make_shared<ModerationVote>();
                 break;
+            case BARTERON_ACCOUNT:
+                ptx = make_shared<BarteronAccount>();
+                break;
+            case BARTERON_OFFER:
+                ptx = make_shared<BarteronOffer>();
+                break;
             default:
                 return nullptr;
         }
@@ -540,6 +554,10 @@ namespace PocketHelpers
                 return "modFlag";
             case MODERATION_VOTE:
                 return "modVote";
+            case BARTERON_ACCOUNT:
+                return "brtaccount";
+            case BARTERON_OFFER:
+                return "brtoffer";
             default:
                 return "";
         }
@@ -568,6 +586,8 @@ namespace PocketHelpers
         else if (type == "contentBoost" || type == OR_CONTENT_BOOST) return TxType::BOOST_CONTENT;
         else if (type == "modFlag") return TxType::MODERATION_FLAG;
         else if (type == "modVote") return TxType::MODERATION_VOTE;
+        else if (type == "brtaccount") return TxType::BARTERON_ACCOUNT;
+        else if (type == "brtoffer") return TxType::BARTERON_OFFER;
         else return TxType::NOT_SUPPORTED;
     }
 }

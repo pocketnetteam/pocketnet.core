@@ -594,8 +594,6 @@ add_library(${POCKETDB}
         pocketdb/models/dto/account/Setting.cpp
         pocketdb/models/dto/account/Delete.h
         pocketdb/models/dto/account/Delete.cpp
-        pocketdb/models/dto/account/BarteronRequest.h
-        pocketdb/models/dto/account/BarteronRequest.cpp
 
         pocketdb/models/dto/content/Content.h
         pocketdb/models/dto/content/Content.cpp
@@ -613,14 +611,17 @@ add_library(${POCKETDB}
         pocketdb/models/dto/content/Audio.cpp
         pocketdb/models/dto/content/Collection.h
         pocketdb/models/dto/content/Collection.cpp
-        pocketdb/models/dto/content/BarteronOffer.h
-        pocketdb/models/dto/content/BarteronOffer.cpp
         pocketdb/models/dto/content/Comment.h
         pocketdb/models/dto/content/Comment.cpp
         pocketdb/models/dto/content/CommentEdit.h
         pocketdb/models/dto/content/CommentEdit.cpp
         pocketdb/models/dto/content/CommentDelete.h
         pocketdb/models/dto/content/CommentDelete.cpp
+
+        pocketdb/models/dto/barteron/Account.h
+        pocketdb/models/dto/barteron/Account.cpp
+        pocketdb/models/dto/barteron/Offer.h
+        pocketdb/models/dto/barteron/Offer.cpp
 
         pocketdb/models/dto/action/ScoreContent.h
         pocketdb/models/dto/action/ScoreContent.cpp
@@ -1169,8 +1170,6 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/Audio.hpp
         pocketdb/consensus/social/Collection.hpp
         pocketdb/consensus/social/Collection.hpp
-        pocketdb/consensus/social/BarteronOffer.hpp
-        pocketdb/consensus/social/BarteronRequest.hpp
         pocketdb/consensus/social/ScoreComment.hpp
         pocketdb/consensus/social/ScoreContent.hpp
         pocketdb/consensus/social/Subscribe.hpp
@@ -1183,14 +1182,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/BoostContent.hpp
         pocketdb/consensus/moderation/Flag.hpp
         pocketdb/consensus/moderation/Vote.hpp
-        # pocketdb/consensus/moderation/Register.hpp
-        # pocketdb/consensus/moderation/RegisterSelf.hpp
-        # pocketdb/consensus/moderation/RegisterRequest.hpp
-        # pocketdb/consensus/moderation/RegisterCancel.hpp
-        # pocketdb/consensus/moderation/Request.hpp
-        # pocketdb/consensus/moderation/RequestCoin.hpp
-        # pocketdb/consensus/moderation/RequestSubs.hpp
-        # pocketdb/consensus/moderation/RequestCancel.hpp
+        pocketdb/consensus/barteron/BarteronOffer.hpp
+        pocketdb/consensus/barteron/BarteronAccount.hpp
         pocketdb/consensus/Helper.cpp
         pocketdb/consensus/Base.cpp
         pocketdb/consensus/Lottery.cpp

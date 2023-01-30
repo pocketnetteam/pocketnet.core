@@ -22,8 +22,6 @@
 #include "pocketdb/consensus/social/Stream.hpp"
 #include "pocketdb/consensus/social/Audio.hpp"
 #include "pocketdb/consensus/social/Collection.hpp"
-#include "pocketdb/consensus/social/BarteronOffer.hpp"
-#include "pocketdb/consensus/social/BarteronRequest.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
 #include "pocketdb/consensus/social/ScoreContent.hpp"
 #include "pocketdb/consensus/social/Subscribe.hpp"
@@ -36,12 +34,9 @@
 
 #include "pocketdb/consensus/moderation/Flag.hpp"
 #include "pocketdb/consensus/moderation/Vote.hpp"
-// #include "pocketdb/consensus/moderation/RequestCoin.hpp"
-// #include "pocketdb/consensus/moderation/RequestSubs.hpp"
-// #include "pocketdb/consensus/moderation/RequestCancel.hpp"
-// #include "pocketdb/consensus/moderation/RegisterSelf.hpp"
-// #include "pocketdb/consensus/moderation/RegisterRequest.hpp"
-// #include "pocketdb/consensus/moderation/RegisterCancel.hpp"
+
+#include "pocketdb/consensus/barteron/Offer.hpp"
+#include "pocketdb/consensus/barteron/Account.hpp"
 
 namespace PocketConsensus
 {
@@ -72,8 +67,6 @@ namespace PocketConsensus
         static StreamConsensusFactory m_streamFactory;
         static AudioConsensusFactory m_audioFactory;
         static CollectionConsensusFactory m_collectionFactory;
-        static BarteronOfferConsensusFactory m_barteronOfferFactory;
-        static BarteronRequestConsensusFactory m_barteronRequestFactory;
         static CommentConsensusFactory m_commentFactory;
         static CommentEditConsensusFactory m_commentEditFactory;
         static CommentDeleteConsensusFactory m_commentDeleteFactory;
@@ -90,12 +83,9 @@ namespace PocketConsensus
         
         static ModerationFlagConsensusFactory m_moderationFlagFactory;
         static ModerationVoteConsensusFactory m_moderationVoteFactory;
-        // static ModeratorRequestCoinConsensusFactory m_moderatorRequestCoinFactory;
-        // static ModeratorRequestSubsConsensusFactory m_moderatorRequestSubsFactory;
-        // static ModeratorRequestCancelConsensusFactory m_moderatorRequestCancelFactory;
-        // static ModeratorRegisterSelfConsensusFactory m_moderatRegisterSelfFactory;
-        // static ModeratorRegisterRequestConsensusFactory m_moderatRegisterRequestFactory;
-        // static ModeratorRegisterCancelConsensusFactory m_moderatRegisterCancelFactory;
+
+        static BarteronOfferConsensusFactory m_barteronOfferFactory;
+        static BarteronAccountConsensusFactory m_barteronAccountFactory;
     };
 }
 

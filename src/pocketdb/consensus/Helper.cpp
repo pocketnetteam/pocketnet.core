@@ -12,8 +12,6 @@ namespace PocketConsensus
     StreamConsensusFactory SocialConsensusHelper::m_streamFactory;
     AudioConsensusFactory SocialConsensusHelper::m_audioFactory;
     CollectionConsensusFactory SocialConsensusHelper::m_collectionFactory;
-    BarteronOfferConsensusFactory SocialConsensusHelper::m_barteronOfferFactory;
-    BarteronRequestConsensusFactory SocialConsensusHelper::m_barteronRequestFactory;
     AccountSettingConsensusFactory SocialConsensusHelper::m_accountSettingFactory;
     AccountDeleteConsensusFactory SocialConsensusHelper::m_accountDeleteFactory;
     AccountUserConsensusFactory SocialConsensusHelper::m_accountUserFactory;
@@ -33,12 +31,9 @@ namespace PocketConsensus
     
     ModerationFlagConsensusFactory SocialConsensusHelper::m_moderationFlagFactory;
     ModerationVoteConsensusFactory SocialConsensusHelper::m_moderationVoteFactory;
-    // ModeratorRequestCoinConsensusFactory SocialConsensusHelper::m_moderatorRequestCoinFactory;
-    // ModeratorRequestSubsConsensusFactory SocialConsensusHelper::m_moderatorRequestSubsFactory;
-    // ModeratorRequestCancelConsensusFactory SocialConsensusHelper::m_moderatorRequestCancelFactory;
-    // ModeratorRegisterSelfConsensusFactory SocialConsensusHelper::m_moderatRegisterSelfFactory;
-    // ModeratorRegisterRequestConsensusFactory SocialConsensusHelper::m_moderatRegisterRequestFactory;
-    // ModeratorRegisterCancelConsensusFactory SocialConsensusHelper::m_moderatRegisterCancelFactory;
+    
+    BarteronOfferConsensusFactory SocialConsensusHelper::m_barteronOfferFactory;
+    BarteronAccountConsensusFactory SocialConsensusHelper::m_barteronAccountFactory;
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CBlock& block, const PocketBlockRef& pBlock, int height)
     {
@@ -189,10 +184,6 @@ namespace PocketConsensus
                 return m_audioFactory.Instance(height)->Check(tx, static_pointer_cast<Audio>(ptx));
             case CONTENT_COLLECTION:
                 return m_collectionFactory.Instance(height)->Check(tx, static_pointer_cast<Collection>(ptx));
-            case CONTENT_BARTERON_OFFER:
-                return m_barteronOfferFactory.Instance(height)->Check(tx, static_pointer_cast<BarteronOffer>(ptx));
-            case ACCOUNT_BARTERON_REQUEST:
-                return m_barteronRequestFactory.Instance(height)->Check(tx, static_pointer_cast<BarteronRequest>(ptx));
             case CONTENT_COMMENT:
                 return m_commentFactory.Instance(height)->Check(tx, static_pointer_cast<Comment>(ptx));
             case CONTENT_COMMENT_EDIT:
@@ -238,6 +229,12 @@ namespace PocketConsensus
             // case MODERATOR_REGISTER_CANCEL:
             //     return m_moderatRegisterCancelFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRegisterCancel>(ptx));
 
+            // Barteron
+            case BARTERON_OFFER:
+                return m_barteronOfferFactory.Instance(height)->Check(tx, static_pointer_cast<BarteronOffer>(ptx));
+            case BARTERON_ACCOUNT:
+                return m_barteronAccountFactory.Instance(height)->Check(tx, static_pointer_cast<BarteronAccount>(ptx));
+
             default:
                 return {false, SocialConsensusResult_NotImplemeted};
         }
@@ -269,10 +266,6 @@ namespace PocketConsensus
                 return m_audioFactory.Instance(height)->Validate(tx, static_pointer_cast<Audio>(ptx), pBlock);
             case CONTENT_COLLECTION:
                 return m_collectionFactory.Instance(height)->Validate(tx, static_pointer_cast<Collection>(ptx), pBlock);
-            case CONTENT_BARTERON_OFFER:
-                return m_barteronOfferFactory.Instance(height)->Validate(tx, static_pointer_cast<BarteronOffer>(ptx), pBlock);
-            case ACCOUNT_BARTERON_REQUEST:
-                return m_barteronRequestFactory.Instance(height)->Validate(tx, static_pointer_cast<BarteronRequest>(ptx), pBlock);
             case CONTENT_COMMENT:
                 return m_commentFactory.Instance(height)->Validate(tx, static_pointer_cast<Comment>(ptx), pBlock);
             case CONTENT_COMMENT_EDIT:
@@ -317,6 +310,12 @@ namespace PocketConsensus
             //     return m_moderatRegisterRequestFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRegisterRequest>(ptx), pBlock);
             // case MODERATOR_REGISTER_CANCEL:
             //     return m_moderatRegisterCancelFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRegisterCancel>(ptx), pBlock);
+
+            // Barteron
+            case BARTERON_OFFER:
+                return m_barteronOfferFactory.Instance(height)->Validate(tx, static_pointer_cast<BarteronOffer>(ptx), pBlock);
+            case BARTERON_ACCOUNT:
+                return m_barteronAccountFactory.Instance(height)->Validate(tx, static_pointer_cast<BarteronAccount>(ptx), pBlock);
 
             default:
                 return {false, SocialConsensusResult_NotImplemeted};
