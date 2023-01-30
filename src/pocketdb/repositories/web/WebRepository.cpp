@@ -288,5 +288,57 @@ namespace PocketDb
         });
     }
 
+    void WebRepository::UpsertBarteronAccounts(const string& blockHash)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            // Add
+            auto stmt = SetupSqlStatement(R"sql(
+                insert into BarteronAccounts (AccountId, Tag)
+                select
+                    t.Id,
+                    pj.value
+                from
+                    Transactions t indexed by Transactions_BlockHash
+                    join Payload p -- primary key
+                        on p.TxHash = t.Hash
+                    join json_each(p.String4) as pj
+                where
+                    t.BlockHash = ? and
+                    t.Type = 104 and
+                    not exists (
+                        select 1
+                        from BarteronAccounts ba indexed by BarteronAccounts_Tag_AccountId
+                        where ba.Tag = pj.value and ba.AccountId = t.Id
+                    )
+            )sql");
+            TryBindStatementText(stmt, 1, blockHash);
+            TryStepStatement(stmt);
+
+            // Delete
+            stmt = SetupSqlStatement(R"sql(
+                delete from BarteronAccounts
+                where
+                    BarteronAccounts.ROWID in (
+                        select
+                            ba.ROWID
+                        from
+                            Transactions t indexed by Transactions_BlockHash
+                            join Payload p -- primary key
+                                on p.TxHash = t.Hash
+                            join json_each(p.String4) as pj
+                            join BarteronAccounts ba indexed by BarteronAccounts_Tag_AccountId
+                                on ba.Tag = pj.value and
+                                ba.AccountId = t.Id
+                        where
+                            t.BlockHash = ? and
+                            t.Type = 104
+                    )
+            )sql");
+            TryBindStatementText(stmt, 1, blockHash);
+            TryStepStatement(stmt);
+        });
+    }
+
 
 }

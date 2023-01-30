@@ -14,6 +14,7 @@
 #include "pocketdb/repositories/ConsensusRepository.h"
 #include "pocketdb/models/web/WebTag.h"
 #include "pocketdb/models/web/WebContent.h"
+#include "pocketdb/models/web/BarteronAccount.h"
 
 namespace PocketDb
 {
@@ -35,6 +36,8 @@ namespace PocketDb
 
         vector<WebContent> GetContent(const string& blockHash);
         void UpsertContent(const vector<WebContent>& contentList);
+
+        void UpsertBarteronAccounts(const string& blockHash);
     };
 
     typedef shared_ptr<WebRepository> WebRepositoryRef;
