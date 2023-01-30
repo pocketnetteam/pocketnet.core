@@ -21,6 +21,8 @@ namespace PocketTx
 
         const optional<string>& GetAddress() const;
         void SetAddress(const string& value);
+
+        string BuildHash() override;
         
     }; // class SocialTransaction
 

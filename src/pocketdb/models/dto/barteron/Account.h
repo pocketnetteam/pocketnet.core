@@ -5,13 +5,13 @@
 #ifndef POCKETTX_BARTERON_ACCOUNT_H
 #define POCKETTX_BARTERON_ACCOUNT_H
 
-#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/base/SocialTransaction.h"
 
 namespace PocketTx
 {
     using namespace std;
 
-    class BarteronAccount : public Transaction
+    class BarteronAccount : public SocialTransaction
     {
     public:
         BarteronAccount();

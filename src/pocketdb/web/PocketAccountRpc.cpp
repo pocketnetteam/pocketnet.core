@@ -247,7 +247,6 @@ namespace PocketWeb::PocketWebRpc
         int64_t articleLimit;
         int64_t streamLimit;
         int64_t audioLimit;
-        int64_t barteronOfferLimit;
         int64_t complainLimit;
         int64_t commentLimit;
         int64_t scoreCommentLimit;
@@ -260,7 +259,6 @@ namespace PocketWeb::PocketWebRpc
                 articleLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_article);
                 streamLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_stream);
                 audioLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_audio);
-                barteronOfferLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_barteron_offer);
                 complainLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_complain);
                 commentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_comment);
                 scoreCommentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_comment_score);
@@ -272,7 +270,6 @@ namespace PocketWeb::PocketWebRpc
                 articleLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_article);
                 streamLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_stream);
                 audioLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_audio);
-                barteronOfferLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_barteron_offer);
                 complainLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_complain);
                 commentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment);
                 scoreCommentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment_score);
@@ -284,7 +281,6 @@ namespace PocketWeb::PocketWebRpc
                 articleLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_article);
                 streamLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_stream);
                 audioLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_audio);
-                barteronOfferLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_barteron_offer);
                 complainLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_complain);
                 commentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment);
                 scoreCommentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment_score);
@@ -303,9 +299,6 @@ namespace PocketWeb::PocketWebRpc
 
         if (!result["stream_spent"].isNull())
             result.pushKV("stream_unspent", streamLimit - result["stream_spent"].get_int());
-
-        if (!result["barteronoffer_spent"].isNull())
-            result.pushKV("barteronoffer_spent", barteronOfferLimit - result["barteronoffer_spent"].get_int());
 
         if (!result["audio_spent"].isNull())
             result.pushKV("audio_unspent", audioLimit - result["audio_spent"].get_int());

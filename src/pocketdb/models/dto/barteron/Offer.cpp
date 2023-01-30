@@ -7,12 +7,12 @@
 
 namespace PocketTx
 {
-    BarteronOffer::BarteronOffer() : Transaction()
+    BarteronOffer::BarteronOffer() : Content()
     {
         SetType(TxType::BARTERON_OFFER);
     }
 
-    BarteronOffer::BarteronOffer(const CTransactionRef& tx) : Transaction(tx)
+    BarteronOffer::BarteronOffer(const CTransactionRef& tx) : Content(tx)
     {
         SetType(TxType::BARTERON_OFFER);
     }

@@ -1182,8 +1182,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/BoostContent.hpp
         pocketdb/consensus/moderation/Flag.hpp
         pocketdb/consensus/moderation/Vote.hpp
-        pocketdb/consensus/barteron/BarteronOffer.hpp
-        pocketdb/consensus/barteron/BarteronAccount.hpp
+        pocketdb/consensus/barteron/Offer.hpp
+        pocketdb/consensus/barteron/Account.hpp
         pocketdb/consensus/Helper.cpp
         pocketdb/consensus/Base.cpp
         pocketdb/consensus/Lottery.cpp

@@ -82,5 +82,31 @@ namespace PocketTx
     const optional<string>& SocialTransaction::GetAddress() const { return m_string1; }
     void SocialTransaction::SetAddress(const string& value) { m_string1 = value; }
 
+    string SocialTransaction::BuildHash()
+    {
+        string data;
+
+        data += GetString1() ? *GetString1() : "";
+        data += GetString2() ? *GetString2() : "";
+        data += GetString3() ? *GetString3() : "";
+        data += GetString4() ? *GetString4() : "";
+        data += GetString5() ? *GetString5() : "";
+        data += GetInt1() ? to_string(*GetInt1()) : "";
+
+        if (GetPayload())
+        {
+            data += GetPayload()->GetString1() ? *GetPayload()->GetString1() : "";
+            data += GetPayload()->GetString2() ? *GetPayload()->GetString2() : "";
+            data += GetPayload()->GetString3() ? *GetPayload()->GetString3() : "";
+            data += GetPayload()->GetString4() ? *GetPayload()->GetString4() : "";
+            data += GetPayload()->GetString5() ? *GetPayload()->GetString5() : "";
+            data += GetPayload()->GetString6() ? *GetPayload()->GetString6() : "";
+            data += GetPayload()->GetString7() ? *GetPayload()->GetString7() : "";
+            data += GetPayload()->GetInt1() ? to_string(*GetPayload()->GetInt1()) : "";
+        }
+
+        return SocialTransaction::GenerateHash(data);
+    }
+
 } // namespace PocketTx
 

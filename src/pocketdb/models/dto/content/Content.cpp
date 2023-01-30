@@ -7,11 +7,11 @@
 
 namespace PocketTx
 {
-    Content::Content() : Transaction()
+    Content::Content() : SocialTransaction()
     {
     }
 
-    Content::Content(const CTransactionRef& tx) : Transaction(tx)
+    Content::Content(const CTransactionRef& tx) : SocialTransaction(tx)
     {
     }
 

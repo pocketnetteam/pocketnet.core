@@ -192,8 +192,8 @@ POCKETDB_H = \
     pocketdb/consensus/moderation/Flag.hpp \
     pocketdb/consensus/moderation/Vote.hpp \
     \
-    pocketdb/consensus/barteron/BarteronOffer.hpp \
-    pocketdb/consensus/barteron/BarteronAccount.hpp \
+    pocketdb/consensus/barteron/Offer.hpp \
+    pocketdb/consensus/barteron/Account.hpp \
     \
     pocketdb/models/base/PocketTypes.h \
     pocketdb/models/base/Base.h \

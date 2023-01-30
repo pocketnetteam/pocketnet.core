@@ -7,12 +7,12 @@
 
 namespace PocketTx
 {
-    BarteronAccount::BarteronAccount() : Transaction()
+    BarteronAccount::BarteronAccount() : SocialTransaction()
     {
         SetType(TxType::BARTERON_ACCOUNT);
     }
 
-    BarteronAccount::BarteronAccount(const CTransactionRef& tx) : Transaction(tx)
+    BarteronAccount::BarteronAccount(const CTransactionRef& tx) : SocialTransaction(tx)
     {
         SetType(TxType::BARTERON_ACCOUNT);
     }

@@ -1,10 +1,9 @@
-
 // Copyright (c) 2023 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_BARTERON_REQUEST_HPP
-#define POCKETCONSENSUS_BARTERON_REQUEST_HPP
+#ifndef POCKETCONSENSUS_BARTERON_ACCOUNT_HPP
+#define POCKETCONSENSUS_BARTERON_ACCOUNT_HPP
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
@@ -24,117 +23,79 @@ namespace PocketConsensus
         BarteronAccountConsensus(int height) : SocialConsensus<BarteronAccount>(height) {}
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
+            if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
+                return {false, code};
+
             // Check payload size
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
+            
+            // TODO (barteron): implement
 
-            // if (ptx->IsEdit())
-            //     return ValidateEdit(ptx);
-
-            return SocialConsensus::Validate(tx, ptx, block);
+            return Success;
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const BarteronAccountRef& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
-                return {false, baseCheckCode};
+            if (auto[ok, code] = SocialConsensus::Check(tx, ptx); !ok)
+                return {false, code};
 
-            // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-
-            // Repost not allowed
-            // if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
+            // TODO (barteron): implement
 
             return Success;
         }
 
     protected:
-        virtual int64_t GetLimit(AccountMode mode) {
-            return mode == AccountMode_Full
-                     ? GetConsensusLimit(ConsensusLimit_full_barteron_request)
-                     : GetConsensusLimit(ConsensusLimit_trial_barteron_request);
-        }
-
+    
         ConsensusValidateResult ValidateBlock(const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
-            // Edit
-            // if (ptx->IsEdit())
-            //     return ValidateEditBlock(ptx, block);
-
-            // ---------------------------------------------------------
-            // New
+            // TODO (barteron): implement
 
             // Get count from chain
-            int count = GetChainCount(ptx);
+            // int count = GetChainCount(ptx);
 
-            // Get count from block
-            for (auto& blockTx : *block)
-            {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {BARTERON_ACCOUNT}))
-                    continue;
+            // // Get count from block
+            // for (auto& blockTx : *block)
+            // {
+            //     if (!TransactionHelper::IsIn(*blockTx->GetType(), {BARTERON_ACCOUNT}))
+            //         continue;
 
-                auto blockPtx = static_pointer_cast<BarteronAccount>(blockTx);
+            //     auto blockPtx = static_pointer_cast<BarteronAccount>(blockTx);
 
-                if (*ptx->GetAddress() != *blockPtx->GetAddress())
-                    continue;
+            //     if (*ptx->GetAddress() != *blockPtx->GetAddress())
+            //         continue;
 
-                if (*blockPtx->GetHash() == *ptx->GetHash())
-                    continue;
+            //     if (*blockPtx->GetHash() == *ptx->GetHash())
+            //         continue;
 
-                // if (blockPtx->IsEdit())
-                //     continue;
+            //     // if (blockPtx->IsEdit())
+            //     //     continue;
 
-                count += 1;
-            }
+            //     count += 1;
+            // }
 
-            return ValidateLimit(ptx, count);
-        }
-        ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
-        {
-
-            // Edit
-            // if (ptx->IsEdit())
-            //     return ValidateEditMempool(ptx);
-
-            // ---------------------------------------------------------
-            // New
-
-            // Get count from chain
-            int count = GetChainCount(ptx);
-
-            // and from mempool
-            count += ConsensusRepoInst.CountMempoolBarteronAccount(*ptx->GetAddress());
-
-            return ValidateLimit(ptx, count);
-        }
-        vector<string> GetAddressesForCheckRegistration(const BarteronAccountRef& ptx) override
-        {
-            return {*ptx->GetAddress()};
-        }
-
-        // TODO (aok): move to base Social class
-        virtual ConsensusValidateResult ValidateLimit(const BarteronAccountRef& ptx, int count)
-        {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto address = ptx->GetAddress();
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
-            auto limit = GetLimit(mode);
-
-            if (count >= limit)
-                return {false, SocialConsensusResult_ContentLimit};
+            // return ValidateLimit(ptx, count);
 
             return Success;
         }
-        virtual int GetChainCount(const BarteronAccountRef& ptx)
+        ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
         {
+            // TODO (barteron): implement
+            
+            // Get count from chain
+            // int count = GetChainCount(ptx);
 
-            return ConsensusRepoInst.CountChainBarteronAccount(
-                    *ptx->GetAddress(),
-                    Height - (int)GetConsensusLimit(ConsensusLimit_depth)
-            );
+            // // and from mempool
+            // count += ConsensusRepoInst.CountMempoolBarteronAccount(*ptx->GetAddress());
+
+            // return ValidateLimit(ptx, count);
+
+            return Success;
         }
-
+        
         virtual ConsensusValidateResult ValidatePayloadSize(const BarteronAccountRef& ptx)
         {
+            // TODO (barteron): implement
+
             // size_t dataSize =
             //         (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
             //         (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
@@ -175,7 +136,7 @@ namespace PocketConsensus
     class BarteronAccountConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint < BarteronAccountConsensus>> m_rules = {
+        const vector<ConsensusCheckpoint<BarteronAccountConsensus>> m_rules = {
                 { 99999999, 99999999, 0, [](int height) { return make_shared<BarteronAccountConsensus>(height); }},
         };
     public:
@@ -192,4 +153,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_BARTERON_REQUEST_HPP
+#endif // POCKETCONSENSUS_BARTERON_ACCOUNT_HPP

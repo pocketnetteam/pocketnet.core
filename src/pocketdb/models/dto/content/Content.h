@@ -5,13 +5,13 @@
 #ifndef POCKETTX_CONTENT_H
 #define POCKETTX_CONTENT_H
 
-#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/base/SocialTransaction.h"
 
 namespace PocketTx
 {
     using namespace std;
 
-    class Content : public Transaction
+    class Content : public SocialTransaction
     {
     public:
         Content();
