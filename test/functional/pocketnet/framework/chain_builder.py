@@ -34,7 +34,7 @@ class ChainBuilder:
             self._node, node_address, self.ACCOUNTS, is_moderator=True
         )
 
-    def transaction(self, *args, **kwargs):
+    def pub_gen_tx(self, *args, **kwargs):
         return self._node.public().generatetransaction(*args, **kwargs)
 
     @property

@@ -18,6 +18,7 @@ from test_framework.util import assert_raises_rpc_error
 
 # Pocketnet framework
 from framework.chain_builder import ChainBuilder
+from framework.helpers import register_accounts
 from framework.models import *
 
 
@@ -45,25 +46,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
 
         self.log.info("Register accounts")
-        hashes = []
-        for i in range(10):
-            hashes.append(
-                pubGenTx(
-                    accounts[i],
-                    AccountPayload(
-                        accounts[i].Name, "image", "en", "about", "s", "b", "pubkey"
-                    ),
-                    50,
-                )
-            )
-
-        node.stakeblock(15)
-
-        for i in range(10):
-            assert (
-                node.public().getuserprofile(accounts[i].Address)[0]["hash"]
-                == hashes[i]
-            )
+        register_accounts(node, accounts)
 
         # ---------------------------------------------------------------------------------
         self.log.info("Prepare content")
