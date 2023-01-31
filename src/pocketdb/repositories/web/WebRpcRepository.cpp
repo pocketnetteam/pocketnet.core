@@ -5406,17 +5406,17 @@ namespace PocketDb
             ShortTxType::Subscriber, { R"sql(
                 -- Subscribers
                 select
-                    subs.String2,
+                    s.String2,
                     pna.String1,
                     pna.String2,
                     pna.String3,
                     ifnull(rna.Value,0),
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
-                    subs.Hash,
+                    s.Hash,
                     subs.Type,
-                    subs.String1,
-                    subs.Height as Height,
-                    subs.BlockNum as BlockNum,
+                    s.String1,
+                    c.Height as Height,
+                    c.BlockNum as BlockNum,
                     subs.Time,
                     null,
                     null,
@@ -5431,37 +5431,50 @@ namespace PocketDb
                     pu.String3,
                     ifnull(ru.Value,0)
 
-                from Transactions subs indexed by Transactions_Height_Type
+                from Transactions subs
 
-                left join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    on u.Type in (100)
-                    and u.Last = 1
-                    and u.String1 = subs.String1
-                    and u.Height > 0
+                cross join vTxStr s on
+                    s.RowId = subs.RowId
 
-                left join Payload pu
-                    on pu.TxHash = u.Hash
+                join Chain c indexed by Chain_Height_BlockId on
+                    c.TxId = subs.RowId and
+                    c.Height = ?
 
-                left join Ratings ru indexed by Ratings_Type_Id_Last_Height
-                    on ru.Type = 0
-                    and ru.Id = u.Id
-                    and ru.Last = 1
+                left join Transactions u on
+                    u.Type in (100) and
+                    u.RegId1 = subs.RegId1 and
+                    exists (select 1 from Last lu where lu.TxId = u.RowId)
 
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = subs.String2
+                left join Chain cu on
+                    cu.TxId = u.RowId
 
-                left join Payload pna
-                    on pna.TxHash = na.Hash
+                left join Payload pu on
+                    pu.TxId = u.RowId
 
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
+                left join Ratings ru indexed by Ratings_Type_Uid_Last_Height on
+                    ru.Type = 0 and
+                    ru.Uid = cu.Uid and
+                    ru.Last = 1
 
-                where subs.Type in (302, 303) -- Ignoring unsubscribers?
-                    and subs.Height = ?
+                left join Transactions na on
+                    na.Type = 100 and
+                    na.RegId1 = subs.RegId2 and
+                    exists (select 1 from Last lna where lna.TxId = na.RowId)
+
+                left join Chain cna on
+                    cna.TxId = na.RowId
+
+                left join Payload pna on
+                    pna.TxId = na.RowId
+
+                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
+                    rna.Type = 0 and
+                    rna.Uid = cna.Uid and
+                    rna.Last = 1
+
+                where
+                    subs.Type in (302, 303) -- Ignoring unsubscribers?
+
         )sql",
             heightBinder
         }},
