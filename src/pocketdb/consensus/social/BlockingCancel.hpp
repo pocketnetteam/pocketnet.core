@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<BlockingCancel> BlockingCancelRef;
 
     /*******************************************************************************************************************
@@ -19,7 +18,11 @@ namespace PocketConsensus
     class BlockingCancelConsensus : public SocialConsensus<BlockingCancel>
     {
     public:
-        BlockingCancelConsensus(int height) : SocialConsensus<BlockingCancel>(height) {}
+        BlockingCancelConsensus() : SocialConsensus<BlockingCancel>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BlockingCancelRef& ptx, const PocketBlockRef& block) override
         {
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
@@ -84,7 +87,8 @@ namespace PocketConsensus
     class BlockingCancelConsensus_checkpoint_multiple_blocking : public BlockingCancelConsensus
     {
     public:
-        BlockingCancelConsensus_checkpoint_multiple_blocking(int height) : BlockingCancelConsensus(height) {}
+        BlockingCancelConsensus_checkpoint_multiple_blocking() : BlockingCancelConsensus() {}
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BlockingCancelRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -144,28 +148,20 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class BlockingCancelConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class BlockingCancelConsensusFactory : public BaseConsensusFactory<BlockingCancelConsensus>
     {
-    protected:
-        const vector<ConsensusCheckpoint < BlockingCancelConsensus>> m_rules = {
-            {       0,       0, -1, [](int height) { return make_shared<BlockingCancelConsensus>(height); }},
-            { 1873500, 1114500,  0, [](int height) { return make_shared<BlockingCancelConsensus_checkpoint_multiple_blocking>(height); }},
-        };
     public:
-        shared_ptr<BlockingCancelConsensus> Instance(int height)
+        BlockingCancelConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<BlockingCancelConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,       0, -1, make_shared<BlockingCancelConsensus>() });
+            Checkpoint({ 1873500, 1114500,  0, make_shared<BlockingCancelConsensus_checkpoint_multiple_blocking>() });
         }
     };
+
+    static BlockingCancelConsensusFactory ConsensusFactoryInst_BlockingCancel;
 }
 
 #endif // POCKETCONSENSUS_BLOCKINGCANCEL_HPP

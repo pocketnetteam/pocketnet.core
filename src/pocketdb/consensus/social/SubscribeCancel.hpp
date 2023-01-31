@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<SubscribeCancel> SubscribeCancelRef;
 
     /*******************************************************************************************************************
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class SubscribeCancelConsensus : public SocialConsensus<SubscribeCancel>
     {
     public:
-        SubscribeCancelConsensus(int height) : SocialConsensus<SubscribeCancel>(height) {}
+        SubscribeCancelConsensus() : SocialConsensus<SubscribeCancel>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const SubscribeCancelRef& ptx, const PocketBlockRef& block) override
         {
             // Last record not valid subscribe
@@ -93,27 +96,19 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class SubscribeCancelConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class SubscribeCancelConsensusFactory : public BaseConsensusFactory<SubscribeCancelConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<SubscribeCancelConsensus>> m_rules = {
-            {0, 0, 0, [](int height) { return make_shared<SubscribeCancelConsensus>(height); }},
-        };
     public:
-        shared_ptr<SubscribeCancelConsensus> Instance(int height)
+        SubscribeCancelConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<SubscribeCancelConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0, 0, 0, make_shared<SubscribeCancelConsensus>() });
         }
     };
+
+    static SubscribeCancelConsensusFactory ConsensusFactoryInst_SubscribeCancel;
 }
 
 #endif // POCKETCONSENSUS_SUBSCRIBECANCEL_HPP

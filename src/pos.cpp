@@ -625,7 +625,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut> &results, CAmount &to
 
     // Get all winners from block
     // LotteryFactory get actual version of consensus service by current height
-    auto lotteryConsensus = lotteryConsensusFactory.Instance(pindexPrev->nHeight);
+    auto lotteryConsensus = ConsensusFactoryInst_Lottery.Instance(pindexPrev->nHeight);
 
     auto winners = lotteryConsensus->Winners(blockPrev, hashProofOfStakeSource);
 

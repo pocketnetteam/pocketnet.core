@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<AccountSetting> AccountSettingRef;
 
     /*******************************************************************************************************************
@@ -19,7 +18,11 @@ namespace PocketConsensus
     class AccountSettingConsensus : public SocialConsensus<AccountSetting>
     {
     public:
-        AccountSettingConsensus(int height) : SocialConsensus<AccountSetting>(height) {}
+        AccountSettingConsensus() : SocialConsensus<AccountSetting>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const AccountSettingRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
@@ -101,28 +104,19 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class AccountSettingConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class AccountSettingConsensusFactory : public BaseConsensusFactory<AccountSettingConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<AccountSettingConsensus>> m_rules = {
-            { 0, 0, 0, [](int height) { return make_shared<AccountSettingConsensus>(height); }},
-        };
     public:
-        shared_ptr<AccountSettingConsensus> Instance(int height)
+        AccountSettingConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<AccountSettingConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0, 0, 0, make_shared<AccountSettingConsensus>() });
         }
     };
 
-} // namespace PocketConsensus
+    static AccountSettingConsensusFactory ConsensusFactoryInst_AccountSetting;
+}
 
 #endif // POCKETCONSENSUS_ACCOUNT_SETTING_HPP

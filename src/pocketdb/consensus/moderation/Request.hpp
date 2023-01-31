@@ -27,7 +27,7 @@ namespace PocketConsensus
     public:
         ModeratorRequestConsensus(int height) : SocialConsensus<T>(height)
         {
-            reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+            reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override

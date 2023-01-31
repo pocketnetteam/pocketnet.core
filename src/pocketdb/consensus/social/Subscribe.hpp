@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Subscribe> SubscribeRef;
 
     /*******************************************************************************************************************
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class SubscribeConsensus : public SocialConsensus<Subscribe>
     {
     public:
-        SubscribeConsensus(int height) : SocialConsensus<Subscribe>(height) {}
+        SubscribeConsensus() : SocialConsensus<Subscribe>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const SubscribeRef& ptx, const PocketBlockRef& block) override
         {
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
@@ -104,7 +107,7 @@ namespace PocketConsensus
     class SubscribeConsensus_checkpoint_disable_for_blocked : public SubscribeConsensus
     {
     public:
-        SubscribeConsensus_checkpoint_disable_for_blocked(int height) : SubscribeConsensus(height) {}
+        SubscribeConsensus_checkpoint_disable_for_blocked() : SubscribeConsensus() {}
     protected:
         ConsensusValidateResult ValidateBlocking(const SubscribeRef& ptx) override
         {
@@ -116,28 +119,20 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class SubscribeConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class SubscribeConsensusFactory : public BaseConsensusFactory<SubscribeConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < SubscribeConsensus>> m_rules = {
-            {       0,      0, -1, [](int height) { return make_shared<SubscribeConsensus>(height); }},
-            { 1757000, 953000,  0, [](int height) { return make_shared<SubscribeConsensus_checkpoint_disable_for_blocked>(height); }},
-        };
     public:
-        shared_ptr<SubscribeConsensus> Instance(int height)
+        SubscribeConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<SubscribeConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,      0, -1, make_shared<SubscribeConsensus>() });
+            Checkpoint({ 1757000, 953000,  0, make_shared<SubscribeConsensus_checkpoint_disable_for_blocked>() });
         }
     };
+
+    static SubscribeConsensusFactory ConsensusFactoryInst_Subscribe;
 }
 
 #endif // POCKETCONSENSUS_SUBSCRIBE_HPP

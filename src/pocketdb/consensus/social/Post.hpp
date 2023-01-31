@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Post> PostRef;
     typedef shared_ptr<Content> ContentRef;
 
@@ -23,7 +22,11 @@ namespace PocketConsensus
     class PostConsensus : public SocialConsensus<Post>
     {
     public:
-        PostConsensus(int height) : SocialConsensus<Post>(height) {}
+        PostConsensus() : SocialConsensus<Post>()
+        {
+            // TODO (limits): set limits
+        }
+
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PostRef& ptx, const PocketBlockRef& block) override
         {
             // Check if this post relay another
@@ -166,7 +169,7 @@ namespace PocketConsensus
         }
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const PostRef& ptx, int count)
         {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             if (count >= GetLimit(mode))
@@ -274,7 +277,7 @@ namespace PocketConsensus
     class PostConsensus_checkpoint_1124000 : public PostConsensus
     {
     public:
-        PostConsensus_checkpoint_1124000(int height) : PostConsensus(height) {}
+        PostConsensus_checkpoint_1124000() : PostConsensus() {}
     protected:
         bool AllowBlockLimitTime(const PostRef& ptx, const PostRef& blockPtx) override
         {
@@ -288,7 +291,8 @@ namespace PocketConsensus
     class PostConsensus_checkpoint_1180000 : public PostConsensus_checkpoint_1124000
     {
     public:
-        PostConsensus_checkpoint_1180000(int height) : PostConsensus_checkpoint_1124000(height) {}
+        PostConsensus_checkpoint_1180000() : PostConsensus_checkpoint_1124000() {}
+        
     protected:
         int GetChainCount(const PostRef& ptx) override
         {
@@ -311,7 +315,8 @@ namespace PocketConsensus
     class PostConsensus_checkpoint_disable_for_blocked : public PostConsensus_checkpoint_1180000
     {
     public:
-        PostConsensus_checkpoint_disable_for_blocked(int height) : PostConsensus_checkpoint_1180000(height) {}
+        PostConsensus_checkpoint_disable_for_blocked() : PostConsensus_checkpoint_1180000() {}
+
     protected:
         ConsensusValidateResult ValidateBlocking(const string& contentAddress, const PostRef& ptx) override
         {
@@ -327,30 +332,22 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class PostConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class PostConsensusFactory : public BaseConsensusFactory<PostConsensus>
     {
-    protected:
-        const vector<ConsensusCheckpoint<PostConsensus>> m_rules = {
-            {       0,     -1, -1, [](int height) { return make_shared<PostConsensus>(height); }},
-            { 1124000,     -1, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1124000>(height); }},
-            { 1180000,     -1, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1180000>(height); }},
-            { 1757000, 953000,  0, [](int height) { return make_shared<PostConsensus_checkpoint_disable_for_blocked>(height); }},
-        };
     public:
-        shared_ptr<PostConsensus> Instance(int height)
+        PostConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<PostConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,     -1, -1, make_shared<PostConsensus>() });
+            Checkpoint({ 1124000,     -1, -1, make_shared<PostConsensus_checkpoint_1124000>() });
+            Checkpoint({ 1180000,     -1, -1, make_shared<PostConsensus_checkpoint_1180000>() });
+            Checkpoint({ 1757000, 953000,  0, make_shared<PostConsensus_checkpoint_disable_for_blocked>() });
         }
     };
-} // namespace PocketConsensus
+
+    static PostConsensusFactory ConsensusFactoryInst_Post;
+}
 
 #endif // POCKETCONSENSUS_POST_H

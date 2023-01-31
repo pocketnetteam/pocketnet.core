@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<BarteronAccount> BarteronAccountRef;
 
     /*******************************************************************************************************************
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class BarteronAccountConsensus : public SocialConsensus<BarteronAccount>
     {
     public:
-        BarteronAccountConsensus(int height) : SocialConsensus<BarteronAccount>(height) {}
+        BarteronAccountConsensus() : SocialConsensus<BarteronAccount>()
+        {
+            Limits.Set("payload_size", 2048, 2048, 2048);
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
             if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
@@ -30,7 +33,7 @@ namespace PocketConsensus
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
             
-            // TODO (barteron): implement
+            // TODO (barteron): implement validate lists size
 
             return Success;
         }
@@ -39,7 +42,9 @@ namespace PocketConsensus
             if (auto[ok, code] = SocialConsensus::Check(tx, ptx); !ok)
                 return {false, code};
 
-            // TODO (barteron): implement
+            // Add or Del tags list must be exists
+            if (IsEmpty(ptx->GetPayloadTagsAdd()) && IsEmpty(ptx->GetPayloadTagsDel()))
+                return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
@@ -77,6 +82,7 @@ namespace PocketConsensus
 
             return Success;
         }
+        
         ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
         {
             // TODO (barteron): implement
@@ -92,65 +98,28 @@ namespace PocketConsensus
             return Success;
         }
         
-        virtual ConsensusValidateResult ValidatePayloadSize(const BarteronAccountRef& ptx)
+        size_t CollectStringsSize(const BarteronAccountRef& ptx) override
         {
-            // TODO (barteron): implement
-
-            // size_t dataSize =
-            //         (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
-            //         (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
-            //         (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
-            //         (ptx->GetRelayTxHash() ? ptx->GetRelayTxHash()->size() : 0) +
-            //         (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
-            //         (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
-
-            // if (ptx->GetRootTxHash() && *ptx->GetRootTxHash() != *ptx->GetHash())
-            //     dataSize += ptx->GetRootTxHash()->size();
-
-            // if (!IsEmpty(ptx->GetPayloadTags()))
-            // {
-            //     UniValue tags(UniValue::VARR);
-            //     tags.read(*ptx->GetPayloadTags());
-            //     for (size_t i = 0; i < tags.size(); ++i)
-            //         dataSize += tags[i].get_str().size();
-            // }
-
-            // if (!IsEmpty(ptx->GetPayloadImages()))
-            // {
-            //     UniValue images(UniValue::VARR);
-            //     images.read(*ptx->GetPayloadImages());
-            //     for (size_t i = 0; i < images.size(); ++i)
-            //         dataSize += images[i].get_str().size();
-            // }
-
-            // if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_barteron_request_size))
-            //     return {false, SocialConsensusResult_ContentSizeLimit};
-
-            return Success;
+            return SocialConsensus::CollectStringsSize(ptx) -
+                (ptx->GetPayloadTagsAdd() ? ptx->GetPayloadTagsAdd()->size() : 0) -
+                (ptx->GetPayloadTagsDel() ? ptx->GetPayloadTagsDel()->size() : 0);
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class BarteronAccountConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class BarteronAccountConsensusFactory : public BaseConsensusFactory<BarteronAccountConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<BarteronAccountConsensus>> m_rules = {
-                { 99999999, 99999999, 0, [](int height) { return make_shared<BarteronAccountConsensus>(height); }},
-        };
     public:
-        shared_ptr<BarteronAccountConsensus> Instance(int height)
+        BarteronAccountConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                                  [&](int target, const ConsensusCheckpoint<BarteronAccountConsensus>& itm)
-                                  {
-                                      return target < itm.Height(Params().NetworkID());
-                                  }
-            ))->m_func(m_height);
+            // TODO (release): set height
+            Checkpoint({ 99999999, 99999999, 0, make_shared<BarteronAccountConsensus>() });
         }
     };
+
+    static BarteronAccountConsensusFactory ConsensusFactoryInst_BarteronAccount;
 }
 
 #endif // POCKETCONSENSUS_BARTERON_ACCOUNT_HPP

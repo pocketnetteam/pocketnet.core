@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<BoostContent> BoostContentRef;
 
     /*******************************************************************************************************************
@@ -19,7 +18,10 @@ namespace PocketConsensus
     class BoostContentConsensus : public SocialConsensus<BoostContent>
     {
     public:
-        BoostContentConsensus(int height) : SocialConsensus<BoostContent>(height) {}
+        BoostContentConsensus() : SocialConsensus<BoostContent>()
+        {
+            // TODO (limits): set limits
+        }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BoostContentRef& ptx, const PocketBlockRef& block) override
         {
@@ -37,6 +39,7 @@ namespace PocketConsensus
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
+
         ConsensusValidateResult Check(const CTransactionRef& tx, const BoostContentRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -46,51 +49,36 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
 
-            return EnableAccept();
+            return Success;
         }
 
     protected:
-        virtual ConsensusValidateResult EnableAccept()
-        {
-            return {false, SocialConsensusResult_NotAllowed};
-        }
         ConsensusValidateResult ValidateBlock(const BoostContentRef& ptx, const PocketBlockRef& block) override
         {
             return Success;
         }
+
         ConsensusValidateResult ValidateMempool(const BoostContentRef& ptx) override
         {
             return Success;
         }
+
         vector<string> GetAddressesForCheckRegistration(const BoostContentRef& ptx) override
         {
             return {*ptx->GetAddress()};
         }
+
         virtual ConsensusValidateResult ValidateBlocking(const string& contentAddress, const BoostContentRef& ptx)
         {
             return Success;
         }
     };
 
-    /*******************************************************************************************************************
-    *  Enable accept transaction
-    *******************************************************************************************************************/
-    class BoostContentConsensus_checkpoint_accept : public BoostContentConsensus
-    {
-    public:
-        BoostContentConsensus_checkpoint_accept(int height) : BoostContentConsensus(height) {}
-    protected:
-        ConsensusValidateResult EnableAccept()
-        {
-            return Success;
-        }
-    };
-
     // Disable scores for blocked accounts
-    class BoostContentConsensus_checkpoint_disable_for_blocked : public BoostContentConsensus_checkpoint_accept
+    class BoostContentConsensus_checkpoint_disable_for_blocked : public BoostContentConsensus
     {
     public:
-        BoostContentConsensus_checkpoint_disable_for_blocked(int height) : BoostContentConsensus_checkpoint_accept(height) {}
+        BoostContentConsensus_checkpoint_disable_for_blocked() : BoostContentConsensus() {}
     protected:
         ConsensusValidateResult ValidateBlocking(const string& contentAddress, const BoostContentRef& ptx) override
         {
@@ -102,26 +90,20 @@ namespace PocketConsensus
         }
     };
 
-    class BoostContentConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class BoostContentConsensusFactory : public BaseConsensusFactory<BoostContentConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<BoostContentConsensus>> m_rules = {
-            {       0,      0, -1, [](int height) { return make_shared<BoostContentConsensus>(height); }},
-            { 1586000, 528100, -1, [](int height) { return make_shared<BoostContentConsensus_checkpoint_accept>(height); }},
-            { 1757000, 953000,  0, [](int height) { return make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>(height); }},
-        };
     public:
-        shared_ptr<BoostContentConsensus> Instance(int height)
+        BoostContentConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<BoostContentConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,      0, -1, make_shared<BoostContentConsensus>() });
+            Checkpoint({ 1757000, 953000,  0, make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>() });
         }
     };
+
+    static BoostContentConsensusFactory ConsensusFactoryInst_BoostContent;
 }
 
 #endif //POCKETCONSENSUS_BOOSTCONTENT_HPP

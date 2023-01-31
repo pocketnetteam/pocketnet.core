@@ -14,7 +14,6 @@
 #include "pocketdb/repositories/ConsensusRepository.h"
 #include "pocketdb/models/web/WebTag.h"
 #include "pocketdb/models/web/WebContent.h"
-#include "pocketdb/models/web/BarteronAccount.h"
 
 namespace PocketDb
 {

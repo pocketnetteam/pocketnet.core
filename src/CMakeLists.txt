@@ -1185,8 +1185,6 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/barteron/Offer.hpp
         pocketdb/consensus/barteron/Account.hpp
         pocketdb/consensus/Helper.cpp
-        pocketdb/consensus/Base.cpp
-        pocketdb/consensus/Lottery.cpp
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})

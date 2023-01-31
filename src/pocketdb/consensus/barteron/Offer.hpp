@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<BarteronOffer> BarteronOfferRef;
 
     /*******************************************************************************************************************
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class BarteronOfferConsensus : public SocialConsensus<BarteronOffer>
     {
     public:
-        BarteronOfferConsensus(int height) : SocialConsensus<BarteronOffer>(height) {}
+        BarteronOfferConsensus() : SocialConsensus<BarteronOffer>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronOfferRef& ptx, const PocketBlockRef& block) override
         {
             if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
@@ -131,27 +134,20 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class BarteronOfferConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class BarteronOfferConsensusFactory : public BaseConsensusFactory<BarteronOfferConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<BarteronOfferConsensus>> m_rules = {
-                { 99999999, 99999999, 0, [](int height) { return make_shared<BarteronOfferConsensus>(height); }},
-        };
     public:
-        shared_ptr<BarteronOfferConsensus> Instance(int height)
+        BarteronOfferConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                                  [&](int target, const ConsensusCheckpoint<BarteronOfferConsensus>& itm)
-                                  {
-                                      return target < itm.Height(Params().NetworkID());
-                                  }
-            ))->m_func(m_height);
+            // TODO (release): set height
+            Checkpoint({ 99999999, 99999999, 0, make_shared<BarteronOfferConsensus>() });
         }
     };
+
+    static BarteronOfferConsensusFactory ConsensusFactoryInst_BarteronOffer;
 }
 
 #endif // POCKETCONSENSUS_BARTERON_OFFER_HPP

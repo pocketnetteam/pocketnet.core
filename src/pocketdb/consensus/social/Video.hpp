@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Video> VideoRef;
 
     /*******************************************************************************************************************
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class VideoConsensus : public SocialConsensus<Video>
     {
     public:
-        VideoConsensus(int height) : SocialConsensus<Video>(height) {}
+        VideoConsensus() : SocialConsensus<Video>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const VideoRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
@@ -146,7 +149,7 @@ namespace PocketConsensus
         // TODO (aok): move to base Social class
         virtual ConsensusValidateResult ValidateLimit(const VideoRef& ptx, int count)
         {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             auto limit = GetLimit(mode);
@@ -247,27 +250,18 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class VideoConsensusFactory
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class VideoConsensusFactory : public BaseConsensusFactory<VideoConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < VideoConsensus>> m_rules = {
-            { 0, 0, 0, [](int height) { return make_shared<VideoConsensus>(height); }},
-        };
     public:
-        shared_ptr<VideoConsensus> Instance(int height)
+        VideoConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<VideoConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0, 0, 0, make_shared<VideoConsensus>() });
         }
     };
+
+    static VideoConsensusFactory ConsensusFactoryInst_Video;
 }
 
 #endif // POCKETCONSENSUS_VIDEO_HPP

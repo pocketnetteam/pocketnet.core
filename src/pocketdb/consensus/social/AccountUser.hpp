@@ -12,7 +12,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<User> UserRef;
 
     /*******************************************************************************************************************
@@ -21,7 +20,10 @@ namespace PocketConsensus
     class AccountUserConsensus : public SocialConsensus<User>
     {
     public:
-        AccountUserConsensus(int height) : SocialConsensus<User>(height) {}
+        AccountUserConsensus() : SocialConsensus<User>()
+        {
+            // TODO (limits): set limits
+        }
         
         ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
         {
@@ -166,7 +168,7 @@ namespace PocketConsensus
     class AccountUserConsensus_checkpoint_chain_count : public AccountUserConsensus
     {
     public:
-        AccountUserConsensus_checkpoint_chain_count(int height) : AccountUserConsensus(height) {}
+        AccountUserConsensus_checkpoint_chain_count() : AccountUserConsensus() {}
     protected:
         int GetChainCount(const UserRef& ptx) override
         {
@@ -181,7 +183,7 @@ namespace PocketConsensus
     class AccountUserConsensus_checkpoint_login_limitation : public AccountUserConsensus_checkpoint_chain_count
     {
     public:
-        AccountUserConsensus_checkpoint_login_limitation(int height) : AccountUserConsensus_checkpoint_chain_count(height) {}
+        AccountUserConsensus_checkpoint_login_limitation() : AccountUserConsensus_checkpoint_chain_count() {}
 
     protected:
         ConsensusValidateResult CheckLogin(const UserRef& ptx) override
@@ -233,27 +235,20 @@ namespace PocketConsensus
     };
 
 
-    class AccountUserConsensusFactory
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class AccountUserConsensusFactory : public BaseConsensusFactory<AccountUserConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<AccountUserConsensus>> m_rules = {
-            {       0,     -1, -1, [](int height) { return make_shared<AccountUserConsensus>(height); }},
-            { 1381841, 162000, -1, [](int height) { return make_shared<AccountUserConsensus_checkpoint_chain_count>(height); }},
-            { 1647000, 650000,  0, [](int height) { return make_shared<AccountUserConsensus_checkpoint_login_limitation>(height); }},
-        };
     public:
-        shared_ptr<AccountUserConsensus> Instance(int height)
+        AccountUserConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<AccountUserConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,     -1, -1, make_shared<AccountUserConsensus>() });
+            Checkpoint({ 1381841, 162000, -1, make_shared<AccountUserConsensus_checkpoint_chain_count>() });
+            Checkpoint({ 1647000, 650000,  0, make_shared<AccountUserConsensus_checkpoint_login_limitation>() });
         }
     };
 
-} // namespace PocketConsensus
+    static AccountUserConsensusFactory ConsensusFactoryInst_AccountUser;
+}
 
 #endif // POCKETCONSENSUS_USER_HPP

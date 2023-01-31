@@ -11,9 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
-    using namespace PocketDb;
-    using namespace PocketConsensus;
     typedef shared_ptr<ModerationFlag> ModerationFlagRef;
 
     /*******************************************************************************************************************
@@ -22,7 +19,10 @@ namespace PocketConsensus
     class ModerationFlagConsensus : public SocialConsensus<ModerationFlag>
     {
     public:
-        ModerationFlagConsensus(int height) : SocialConsensus<ModerationFlag>(height) {}
+        ModerationFlagConsensus() : SocialConsensus<ModerationFlag>()
+        {
+            // TODO (limits): set limits
+        }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModerationFlagRef& ptx, const PocketBlockRef& block) override
         {
@@ -31,7 +31,7 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Only `Shark` account can flag content
-            auto reputationConsensus = ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(Height);
             if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Shark)
                 return {false, SocialConsensusResult_LowReputation};
 
@@ -90,7 +90,7 @@ namespace PocketConsensus
             }
 
             // Check limit
-            return ValidateLimit(ptx, count);
+            return SocialConsensus::ValidateLimit(moderation_flag_count, count);
         }
 
         ConsensusValidateResult ValidateMempool(const ModerationFlagRef& ptx) override
@@ -114,35 +114,21 @@ namespace PocketConsensus
         {
             return { *ptx->GetAddress(), *ptx->GetContentAddressHash() };
         }
-
-        virtual ConsensusValidateResult ValidateLimit(const ModerationFlagRef& ptx, int count)
-        {
-            if (count >= GetConsensusLimit(moderation_flag_count))
-                return {false, SocialConsensusResult_ExceededLimit};
-
-            return Success;
-        }
     };
 
 
-    class ModerationFlagConsensusFactory
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class ModerationFlagConsensusFactory : public BaseConsensusFactory<ModerationFlagConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<ModerationFlagConsensus>> m_rules = {
-            { 0, 0, 0, [](int height) { return make_shared<ModerationFlagConsensus>(height); }},
-        };
     public:
-        shared_ptr<ModerationFlagConsensus> Instance(int height)
+        ModerationFlagConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ModerationFlagConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0, 0, 0, make_shared<ModerationFlagConsensus>() });
         }
     };
+
+    static ModerationFlagConsensusFactory ConsensusFactoryInst_ModerationFlag;
 }
 
 #endif // POCKETCONSENSUS_MODERATION_FLAG_HPP

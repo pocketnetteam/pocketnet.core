@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Audio> AudioRef;
 
     /*******************************************************************************************************************
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class AudioConsensus : public SocialConsensus<Audio>
     {
     public:
-        AudioConsensus(int height) : SocialConsensus<Audio>(height) {}
+        AudioConsensus() : SocialConsensus<Audio>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const AudioRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
@@ -32,6 +35,7 @@ namespace PocketConsensus
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
+
         ConsensusValidateResult Check(const CTransactionRef& tx, const AudioRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -143,7 +147,7 @@ namespace PocketConsensus
         // TODO (aok): move to base Social class
         virtual ConsensusValidateResult ValidateLimit(const AudioRef& ptx, int count)
         {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             auto limit = GetLimit(mode);
@@ -244,27 +248,19 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class AudioConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class AudioConsensusFactory : public BaseConsensusFactory<AudioConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < AudioConsensus>> m_rules = {
-                { 2068000, 1449600, 0, [](int height) { return make_shared<AudioConsensus>(height); }},
-        };
     public:
-        shared_ptr<AudioConsensus> Instance(int height)
+        AudioConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                                  [&](int target, const ConsensusCheckpoint<AudioConsensus>& itm)
-                                  {
-                                      return target < itm.Height(Params().NetworkID());
-                                  }
-            ))->m_func(m_height);
+            Checkpoint({ 2068000, 1449600, 0, make_shared<AudioConsensus>() });
         }
     };
+
+    static AudioConsensusFactory ConsensusFactoryInst_Audio;
 }
 
 #endif // POCKETCONSENSUS_AUDIO_HPP

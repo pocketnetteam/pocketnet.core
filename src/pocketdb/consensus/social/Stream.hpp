@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Stream> StreamRef;
 
     /*******************************************************************************************************************
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class StreamConsensus : public SocialConsensus<Stream>
     {
     public:
-        StreamConsensus(int height) : SocialConsensus<Stream>(height) {}
+        StreamConsensus() : SocialConsensus<Stream>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const StreamRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
@@ -143,7 +146,7 @@ namespace PocketConsensus
         // TODO (aok): move to base Social class
         virtual ConsensusValidateResult ValidateLimit(const StreamRef& ptx, int count)
         {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             auto limit = GetLimit(mode);
@@ -244,28 +247,20 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class StreamConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class StreamConsensusFactory : public BaseConsensusFactory<StreamConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < StreamConsensus>> m_rules = {
-            //TODO (release): set height
-            { 9999999, 1531000, 0, [](int height) { return make_shared<StreamConsensus>(height); }},
-        };
     public:
-        shared_ptr<StreamConsensus> Instance(int height)
+        StreamConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                                  [&](int target, const ConsensusCheckpoint<StreamConsensus>& itm)
-                                  {
-                                      return target < itm.Height(Params().NetworkID());
-                                  }
-            ))->m_func(m_height);
+            //TODO (release): set height for main network
+            Checkpoint({ 99999999, 1531000, 0, make_shared<StreamConsensus>() });
         }
     };
+
+    static StreamConsensusFactory ConsensusFactoryInst_Stream;
 }
 
 #endif // POCKETCONSENSUS_STREAM_HPP

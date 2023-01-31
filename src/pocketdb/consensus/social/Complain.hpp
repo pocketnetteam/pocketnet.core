@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Complain> ComplainRef;
 
     /*******************************************************************************************************************
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class ComplainConsensus : public SocialConsensus<Complain>
     {
     public:
-        ComplainConsensus(int height) : SocialConsensus<Complain>(height) {}
+        ComplainConsensus() : SocialConsensus<Complain>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ComplainRef& ptx, const PocketBlockRef& block) override
         {
             // Author or post must be exists
@@ -128,7 +131,7 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidateLimit(const ComplainRef& ptx, int count)
         {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             if (count >= GetComplainsLimit(mode))
@@ -159,7 +162,7 @@ namespace PocketConsensus
     class ComplainConsensus_checkpoint_1124000 : public ComplainConsensus
     {
     public:
-        ComplainConsensus_checkpoint_1124000(int height) : ComplainConsensus(height) {}
+        ComplainConsensus_checkpoint_1124000() : ComplainConsensus() {}
     protected:
         bool CheckBlockLimitTime(const ComplainRef& ptx, const ComplainRef& blockPtx) override
         {
@@ -173,7 +176,7 @@ namespace PocketConsensus
     class ComplainConsensus_checkpoint_1180000 : public ComplainConsensus_checkpoint_1124000
     {
     public:
-        ComplainConsensus_checkpoint_1180000(int height) : ComplainConsensus_checkpoint_1124000(height) {}
+        ComplainConsensus_checkpoint_1180000() : ComplainConsensus_checkpoint_1124000() {}
     protected:
         int GetChainCount(const ComplainRef& ptx) override
         {
@@ -182,29 +185,20 @@ namespace PocketConsensus
     };
 
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class ComplainConsensusFactory
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class ComplainConsensusFactory : public BaseConsensusFactory<ComplainConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < ComplainConsensus>> m_rules = {
-            {       0, -1, -1, [](int height) { return make_shared<ComplainConsensus>(height); }},
-            { 1124000, -1, -1, [](int height) { return make_shared<ComplainConsensus_checkpoint_1124000>(height); }},
-            { 1180000,  0,  0, [](int height) { return make_shared<ComplainConsensus_checkpoint_1180000>(height); }},
-        };
     public:
-        shared_ptr<ComplainConsensus> Instance(int height)
+        ComplainConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ComplainConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0, -1, -1, make_shared<ComplainConsensus>() });
+            Checkpoint({ 1124000, -1, -1, make_shared<ComplainConsensus_checkpoint_1124000>() });
+            Checkpoint({ 1180000,  0,  0, make_shared<ComplainConsensus_checkpoint_1180000>() });
         }
     };
+
+    static ComplainConsensusFactory ConsensusFactoryInst_Complain;
 }
 
 #endif // POCKETCONSENSUS_COMPLAIN_HPP

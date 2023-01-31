@@ -280,8 +280,6 @@ POCKETDB_CPP = \
     pocketdb/repositories/web/ModerationRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
-    pocketdb/consensus/Base.cpp \
-    pocketdb/consensus/Lottery.cpp \
     \
     pocketdb/models/base/Base.cpp \
     pocketdb/models/base/Payload.cpp \

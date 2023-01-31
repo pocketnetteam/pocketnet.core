@@ -12,7 +12,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<CommentEdit> CommentEditRef;
 
     /*******************************************************************************************************************
@@ -21,7 +20,11 @@ namespace PocketConsensus
     class CommentEditConsensus : public SocialConsensus<CommentEdit>
     {
     public:
-        CommentEditConsensus(int height) : SocialConsensus<CommentEdit>(height) {}
+        CommentEditConsensus() : SocialConsensus<CommentEdit>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentEditRef& ptx, const PocketBlockRef& block) override
         {
             // Actual comment not deleted
@@ -186,7 +189,7 @@ namespace PocketConsensus
     class CommentEditConsensus_checkpoint_1180000 : public CommentEditConsensus
     {
     public:
-        CommentEditConsensus_checkpoint_1180000(int height) : CommentEditConsensus(height) {}
+        CommentEditConsensus_checkpoint_1180000() : CommentEditConsensus() {}
     protected:
         bool AllowEditWindow(const CommentEditRef& ptx, const CommentRef& originalTx) override
         {
@@ -200,7 +203,7 @@ namespace PocketConsensus
     class CommentEditConsensus_checkpoint_check_author : public CommentEditConsensus_checkpoint_1180000
     {
     public:
-        CommentEditConsensus_checkpoint_check_author(int height) : CommentEditConsensus_checkpoint_1180000(height) {}
+        CommentEditConsensus_checkpoint_check_author() : CommentEditConsensus_checkpoint_1180000() {}
     protected:
         ConsensusValidateResult CheckAuthor(const CommentEditRef& ptx, const CommentRef& originalPtx) override
         {
@@ -211,29 +214,21 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class CommentEditConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class CommentEditConsensusFactory : public BaseConsensusFactory<CommentEditConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < CommentEditConsensus>> m_rules = {
-            {       0,      -1, -1, [](int height) { return make_shared<CommentEditConsensus>(height); }},
-            { 1180000,       0, -1, [](int height) { return make_shared<CommentEditConsensus_checkpoint_1180000>(height); }},
-            { 1873500, 1155000,  0, [](int height) { return make_shared<CommentEditConsensus_checkpoint_check_author>(height); }},
-        };
     public:
-        shared_ptr<CommentEditConsensus> Instance(int height)
+        CommentEditConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<CommentEditConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,      -1, -1, make_shared<CommentEditConsensus>() });
+            Checkpoint({ 1180000,       0, -1, make_shared<CommentEditConsensus_checkpoint_1180000>() });
+            Checkpoint({ 1873500, 1155000,  0, make_shared<CommentEditConsensus_checkpoint_check_author>() });
         }
     };
+
+    static CommentEditConsensusFactory ConsensusFactoryInst_CommentEdit;
 }
 
 #endif // POCKETCONSENSUS_COMMENT_EDIT_HPP

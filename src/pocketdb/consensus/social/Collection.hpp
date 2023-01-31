@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Collection> CollectionRef;
     typedef shared_ptr<Content> ContentRef;
 
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class CollectionConsensus : public SocialConsensus<Collection>
     {
     public:
-        CollectionConsensus(int height) : SocialConsensus<Collection>(height) {}
+        CollectionConsensus() : SocialConsensus<Collection>()
+        {
+            // TODO (limits): set limits
+        }
+
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const CollectionRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
@@ -32,6 +35,7 @@ namespace PocketConsensus
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
+        
         tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const CollectionRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -153,7 +157,7 @@ namespace PocketConsensus
         }
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const CollectionRef& ptx, int count)
         {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             if (count >= GetLimit(mode))
@@ -233,28 +237,20 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class CollectionConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class CollectionConsensusFactory : public BaseConsensusFactory<CollectionConsensus>
     {
-    protected:
-        const vector<ConsensusCheckpoint<CollectionConsensus>> m_rules = {
-            // TODO (release) : set height
-            { 9999999, 1531000, 0, [](int height) { return make_shared<CollectionConsensus>(height); }},
-        };
     public:
-        shared_ptr<CollectionConsensus> Instance(int height)
+        CollectionConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                                  [&](int target, const ConsensusCheckpoint<CollectionConsensus>& itm)
-                                  {
-                                      return target < itm.Height(Params().NetworkID());
-                                  }
-            ))->m_func(m_height);
+            // TODO (release) : set height main network
+            Checkpoint({ 99999999, 1531000, 0, make_shared<CollectionConsensus>() });
         }
     };
-} // namespace PocketConsensus
+
+    static CollectionConsensusFactory ConsensusFactoryInst_Collection;
+}
 
 #endif // POCKETCONSENSUS_COLLECTION_H

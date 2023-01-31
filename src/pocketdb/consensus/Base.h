@@ -284,9 +284,9 @@ namespace PocketConsensus
     // Reputation - double value in integer
     // i.e. 213 = 21.3
     // i.e. 45  = 4.5
-    typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimits;
+    typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimitsMap;
 
-    static inline ConsensusLimits m_consensus_limits = {
+    static inline ConsensusLimitsMap m_consensus_limits = {
         { ConsensusLimit_bad_reputation, {
             { NetworkMain,    { {0, -500} } },
             { NetworkTest,    { {0, -50} } },
@@ -735,15 +735,50 @@ namespace PocketConsensus
         
     };
 
+
+
+
+
+    /*********************************************************************************************/
+    typedef tuple<bool, SocialConsensusResult> ConsensusValidateResult;
+
+    /*********************************************************************************************/
+    class ConsensusLimits
+    {
+    public:
+        void Set(const string& type, int64_t mainValue, int64_t testValue, int64_t regValue)
+        {
+            _limits[type] = {
+                {NetworkMain, mainValue},
+                {NetworkTest, testValue},
+                {NetworkRegTest, regValue}
+            };
+        }
+        int64_t Get(const string& type)
+        {
+            return _limits.at(type).at(Params().NetworkID());
+        }
+    private:
+        map<string, map<NetworkId, int64_t>> _limits;
+    };
+
     /*********************************************************************************************/
     class BaseConsensus
     {
     public:
-        BaseConsensus();
-        explicit BaseConsensus(int height);
+        ConsensusLimits Limits;
+
+        BaseConsensus() = default;
         virtual ~BaseConsensus() = default;
-        int64_t GetConsensusLimit(ConsensusLimit type) const;
+
+        int64_t GetConsensusLimit(ConsensusLimit type) const
+        {
+            return (--m_consensus_limits[type][Params().NetworkID()].upper_bound(Height))->second;
+        }
+
+        void SetHeight(int height) { Height = height; }
         int GetHeight() const { return Height; }
+
     protected:
         int Height = 0;
     };
@@ -755,7 +790,7 @@ namespace PocketConsensus
         int m_main_height;
         int m_test_height;
         int m_regtest_height;
-        function<shared_ptr<T>(int height)> m_func;
+        shared_ptr<T> m_factory;
 
         [[nodiscard]] int Height(NetworkId networkId) const
         {
@@ -773,6 +808,36 @@ namespace PocketConsensus
     };
 
     /*********************************************************************************************/
+    template<class T>
+    class BaseConsensusFactory
+    {
+    private:
+        vector<ConsensusCheckpoint<T>> m_rules;
+
+    protected:
+        void Checkpoint(const ConsensusCheckpoint<T>& inst)
+        {
+            m_rules.push_back(inst);
+        }
+
+    public:
+        shared_ptr<T> Instance(int height)
+        {
+            int m_height = (height > 0 ? height : 0);
+            auto func = --upper_bound(m_rules.begin(), m_rules.end(), m_height,
+                                  [&](int target, const ConsensusCheckpoint<T>& itm)
+                                  {
+                                      return target < itm.Height(Params().NetworkID());
+                                  }
+            );
+            
+            if (func == m_rules.end())
+                return nullptr;
+            
+            func->m_factory->SetHeight(height);
+            return func->m_factory;
+        }
+    };
 }
 
 #endif // POCKETCONSENSUS_BASE_H

@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<CommentDelete> CommentDeleteRef;
 
     /*******************************************************************************************************************
@@ -19,7 +18,10 @@ namespace PocketConsensus
     class CommentDeleteConsensus : public SocialConsensus<CommentDelete>
     {
     public:
-        CommentDeleteConsensus(int height) : SocialConsensus<CommentDelete>(height) {}
+        CommentDeleteConsensus() : SocialConsensus<CommentDelete>()
+        {
+            // TODO (limits): set limits
+        }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentDeleteRef& ptx, const PocketBlockRef& block) override
         {
@@ -130,7 +132,7 @@ namespace PocketConsensus
     class CommentDeleteConsensus_checkpoint_check_author : public CommentDeleteConsensus
     {
     public:
-        CommentDeleteConsensus_checkpoint_check_author(int height) : CommentDeleteConsensus(height) {}
+        CommentDeleteConsensus_checkpoint_check_author() : CommentDeleteConsensus() {}
     protected:
         ConsensusValidateResult CheckAuthor(const CommentDeleteRef& ptx, const CommentRef& originalPtx, const PTransactionRef& contentTx) override
         {
@@ -141,28 +143,20 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class CommentDeleteConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class CommentDeleteConsensusFactory : public BaseConsensusFactory<CommentDeleteConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < CommentDeleteConsensus>> m_rules = {
-            {       0,       0, -1, [](int height) { return make_shared<CommentDeleteConsensus>(height); }},
-            { 1873500, 1155000,  0, [](int height) { return make_shared<CommentDeleteConsensus_checkpoint_check_author>(height); }},
-        };
     public:
-        shared_ptr<CommentDeleteConsensus> Instance(int height)
+        CommentDeleteConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<CommentDeleteConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,       0, -1, make_shared<CommentDeleteConsensus>() });
+            Checkpoint({ 1873500, 1155000,  0, make_shared<CommentDeleteConsensus_checkpoint_check_author>() });
         }
     };
+
+    static CommentDeleteConsensusFactory ConsensusFactoryInst_CommentDelete;
 }
 
 #endif // POCKETCONSENSUS_COMMENT_DELETE_HPP

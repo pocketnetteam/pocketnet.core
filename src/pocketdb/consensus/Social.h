@@ -21,13 +21,16 @@ namespace PocketConsensus
     using namespace PocketDb;
     using PocketTx::TxType;
 
-    typedef tuple<bool, SocialConsensusResult> ConsensusValidateResult;
+    
 
     template<class T>
     class SocialConsensus : public BaseConsensus
     {
     public:
-        SocialConsensus(int height) : BaseConsensus(height) {}
+        SocialConsensus() : BaseConsensus()
+        {
+            Limits.Set("payload_size", 2048, 2048, 2048);
+        }
 
         // Validate transaction in block for miner & network full block sync
         virtual ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block)
@@ -140,6 +143,40 @@ namespace PocketConsensus
         virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& ptx)
         {
             return { *ptx->GetAddress() };
+        }
+
+        // Collect all string fields size
+        virtual size_t CollectStringsSize(const shared_ptr<T>& ptx)
+        {
+            size_t dataSize =
+                (ptx->GetString1() ? ptx->GetString1()->size() : 0) +
+                (ptx->GetString2() ? ptx->GetString2()->size() : 0) +
+                (ptx->GetString3() ? ptx->GetString3()->size() : 0) +
+                (ptx->GetString4() ? ptx->GetString4()->size() : 0) +
+                (ptx->GetString5() ? ptx->GetString5()->size() : 0);
+            
+            if (ptx->GetPayload())
+            {
+                dataSize +=
+                    (ptx->GetPayload()->GetString1() ? ptx->GetPayload()->GetString1()->size() : 0) +
+                    (ptx->GetPayload()->GetString2() ? ptx->GetPayload()->GetString2()->size() : 0) +
+                    (ptx->GetPayload()->GetString3() ? ptx->GetPayload()->GetString3()->size() : 0) +
+                    (ptx->GetPayload()->GetString4() ? ptx->GetPayload()->GetString4()->size() : 0) +
+                    (ptx->GetPayload()->GetString5() ? ptx->GetPayload()->GetString5()->size() : 0) +
+                    (ptx->GetPayload()->GetString6() ? ptx->GetPayload()->GetString6()->size() : 0) +
+                    (ptx->GetPayload()->GetString7() ? ptx->GetPayload()->GetString7()->size() : 0);
+            }
+
+            return dataSize;
+        }
+
+        // Validate maximum transaction payload size
+        virtual ConsensusValidateResult ValidatePayloadSize(const shared_ptr<T>& ptx)
+        {
+            if (CollectStringsSize(ptx) > (size_t)Limits.Get("payload_size"))
+                return {false, SocialConsensusResult_ContentSizeLimit};
+
+            return Success;
         }
 
         // Check empty pointer

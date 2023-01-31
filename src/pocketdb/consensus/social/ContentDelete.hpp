@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<ContentDelete> ContentDeleteRef;
 
     /*******************************************************************************************************************
@@ -19,7 +18,11 @@ namespace PocketConsensus
     class ContentDeleteConsensus : public SocialConsensus<ContentDelete>
     {
     public:
-        ContentDeleteConsensus(int height) : SocialConsensus<ContentDelete>(height) {}
+        ContentDeleteConsensus() : SocialConsensus<ContentDelete>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ContentDeleteRef& ptx, const PocketBlockRef& block) override
         {
             // Actual content not deleted
@@ -84,27 +87,19 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class ContentDeleteConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class ContentDeleteConsensusFactory : public BaseConsensusFactory<ContentDeleteConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < ContentDeleteConsensus>> m_rules = {
-            { 0, 0, 0, [](int height) { return make_shared<ContentDeleteConsensus>(height); }},
-        };
     public:
-        shared_ptr<ContentDeleteConsensus> Instance(int height)
+        ContentDeleteConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ContentDeleteConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0, 0, 0, make_shared<ContentDeleteConsensus>() });
         }
     };
+
+    static ContentDeleteConsensusFactory ConsensusFactoryInst_ContentDelete;
 }
 
 #endif // POCKETCONSENSUS_CONTENT_DELETE_HPP
