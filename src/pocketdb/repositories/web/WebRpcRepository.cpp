@@ -4992,20 +4992,23 @@ namespace PocketDb
                         select json_group_array(json_object(
                                 'Value', o.Value,
                                 'Number', o.Number,
-                                'AddressHash', (select String from Registry where RowId = o.AddressId),
-                                'ScriptPubKey', (select String from Registry where RowId = o.ScriptPubKeyId)
+                                'AddressHash', so.AddressHash,
+                                'ScriptPubKey', so.ScriptPubKey
                                 ))
                         from TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
                         join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
                             o.TxId = i.TxId and
                             o.Number = i.Number
-                        where i.SpentTxId = t.RowId
+                        cross join vTxOutStr so on
+                            so.TxId = o.TxId
+                        where
+                            i.SpentTxId = t.RowId
                     ),
                     (
                         select json_group_array(json_object(
                                 'Value', o.Value,
-                                'AddressHash', (select String from Registry where RowId = o.AddressId),
-                                'ScriptPubKey', (select String from Registry where RowId = o.ScriptPubKeyId),
+                                'AddressHash', so.AddressHash,
+                                'ScriptPubKey', so.ScriptPubKey,
                                 'Account', json_object(
                                     'Lang', pna.String1,
                                     'Name', pna.String2,
@@ -5013,31 +5016,43 @@ namespace PocketDb
                                 )
                             ))
                         from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+
+                        cross join vTxOutStr so on
+                            so.TxId = o.TxId
+
                         left join Transactions na indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                             na.Type = 100 and
-                            na.RegId1 = o.AddressId
-                        cross join Chain cna on
+                            na.RegId1 = o.AddressId and
+                            exists (select 1 from Last lna where lna.TxId = na.RowId)
+
+                        left join Chain cna on
                             cna.TxId = na.RowId
-                        cross join Last l on
-                            l.TxId = na.RowId
-                        left join Payload pna
-                            on pna.TxId = na.RowId
-                        left join Ratings rna indexed by Ratings_Type_Uid_Last_Height
-                            on rna.Type = 0
-                            and rna.Uid = cna.Uid
-                            and rna.Last = 1
-                        where o.TxId = t.RowId
-                        order by o.Number
+
+                        left join Payload pna on
+                            pna.TxId = na.RowId
+                            
+                        left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
+                            rna.Type = 0 and
+                            rna.Uid = cna.Uid and
+                            rna.Last = 1
+
+                        where
+                            o.TxId = t.RowId
+                        order by
+                            o.Number
                     )
 
                 from Transactions t
+
                 join Chain c indexed by Chain_Height_BlockId on
                     c.TxId = t.RowId and
                     c.Height = ?
+
                 join Registry r on
                     r.RowId = t.HashId
 
-                where t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
+                where
+                    t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
         )sql",
             heightBinder
         }},
@@ -5046,15 +5061,15 @@ namespace PocketDb
             ShortTxType::Referal, { R"sql(
                 -- referals
                 select
-                    (select String from Registry where RowId = t.RegId2),
+                    st.String2,
                     pna.String1,
                     pna.String2,
                     pna.String3,
                     ifnull(rna.Value,0),
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
-                    (select String from Registry where RowId = t.HashId),
+                    st.Hash,
                     t.Type,
-                    (select String from Registry where RowId = t.RegId1),
+                    st.String1,
                     c.Height as Height,
                     c.BlockNum as BlockNum,
                     t.Time,
@@ -5073,12 +5088,12 @@ namespace PocketDb
 
                 from Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 -- TODO (losty): not covering index
 
+                cross join vTxStr st on
+                    st.RowId = t.RowId
+
                 join Chain c on
                     c.TxId = t.RowId and
                     c.Height = ?
-
-                join Registry rt on
-                    rt.RowId = t.HashId
 
                 left join Payload p on
                     p.TxId = t.RowId
@@ -5091,9 +5106,7 @@ namespace PocketDb
                 join Transactions na indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     na.Type = 100 and
                     na.RegId1 = t.RegId2
-
-                left join Last lna on
-                    lna.TxId = na.RowId
+                    and exists (select 1 from Last lna where lna.TxId = na.RowId)
 
                 join Chain cna on
                     cna.TxId = na.RowId
@@ -5118,38 +5131,38 @@ namespace PocketDb
             ShortTxType::Answer, { R"sql(
                 -- Comment answers
                 select
-                    (select String from Registry where RowId = c.RegId1),
+                    sc.String1,
                     pna.String1,
                     pna.String2,
                     pna.String3,
                     ifnull(rna.Value,0),
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                    (select String from Registry where RowId = a.HashId),
+                    sa.Hash,
                     a.Type,
-                    (select String from Registry where RowId = a.RegId1),
+                    sa.String1,
                     ca.Height as Height,
                     ca.BlockNum as BlockNum,
                     a.Time,
-                    (select String from Registry where RowId = a.RegId2),
-                    (select String from Registry where RowId = a.RegId3),
+                    sa.String2,
+                    sa.String3,
                     null,
                     null,
                     null,
                     pa.String1,
-                    (select String from Registry where RowId = a.RegId4),
-                    (select String from Registry where RowId = a.RegId5),
+                    sa.String4,
+                    sa.String5,
                     paa.String1,
                     paa.String2,
                     paa.String3,
                     ifnull(ra.Value,0),
                     null,
-                    (select String from Registry where RowId = post.HashId),
+                    spost.Hash,
                     post.Type,
-                    (select String from Registry where RowId = post.RegId1),
+                    spost.String1,
                     cpost.Height,
                     cpost.BlockNum,
                     post.Time,
-                    (select String from Registry where RowId = post.RegId2),
+                    spost.String2,
                     null,
                     null,
                     null,
@@ -5164,11 +5177,15 @@ namespace PocketDb
 
                 -- TODO (optimization): a lot missing indices
                 from Transactions a -- Other answers
+                cross join vTxStr sa on
+                    sa.RowId = a.RowId
 
-                join Transactions c -- My comments
-                    on c.Type in (204, 205)
-                    and c.RegId2 = a.RegId5
-                    and c.RegId1 != a.RegId1
+                join Transactions c on -- My comments
+                    c.Type in (204, 205) and
+                    c.RegId2 = a.RegId5 and
+                    c.RegId1 != a.RegId1
+                cross join vTxStr sc on
+                    sc.RowId = c.RowId
 
                 join Last lc on
                     lc.TxId = c.RowId
@@ -5176,74 +5193,70 @@ namespace PocketDb
                 join Chain ca on
                     ca.TxId = a.RowId and
                     ca.Height = ?
-                    
-                left join Transactions post
-                    on post.Type in (200,201,202,209,210)
-                    and post.RegId2 = a.RegId3
 
-                cross join Chain cpost on
+                left join Transactions post on
+                    post.Type in (200,201,202,209,210) and
+                    post.RegId2 = a.RegId3 and
+                    exists (select 1 from Last lpost where lpost.TxId = post.RowId)
+                left join vTxStr spost on
+                    spost.RowId = post.RowId
+
+                left join Chain cpost on
                     cpost.TxId = post.RowId
 
-                cross join Last lpost on
-                    lpost.TxId = post.RowId
+                left join Payload ppost on
+                    ppost.TxId = post.RowId
 
-                left join Payload ppost
-                    on ppost.TxId = post.RowId
+                left join Transactions apost on
+                    apost.Type = 100 and
+                    apost.RegId1 = post.RegId1 and
+                    exists (select 1 from Last lapost where lapost.TxId = apost.RowId)
 
-                left join Transactions apost
-                    on apost.Type = 100
-                    and apost.RegId1 = post.RegId1
-
-                cross join Chain capost on
+                left join Chain capost on
                     capost.TxId = apost.RowId
-                cross join Last lapost on
-                    lapost.TxId = apost.RowId
-                
-                left join Payload papost
-                    on papost.TxId = apost.RowId
-                
-                left join Ratings rapost indexed by Ratings_Type_Uid_Last_Height
-                    on rapost.Type = 0
-                    and rapost.Uid = capost.Uid
-                    and rapost.Last = 1
 
-                left join Payload pa
-                    on pa.TxId = a.RowId
+                left join Payload papost on
+                    papost.TxId = apost.RowId
 
-                left join Transactions aa
-                    on aa.Type = 100
-                    and aa.RegId1 = a.RegId1
+                left join Ratings rapost indexed by Ratings_Type_Uid_Last_Height on
+                    rapost.Type = 0 and
+                    rapost.Uid = capost.Uid and
+                    rapost.Last = 1
 
-                cross join Chain caa
-                    on caa.TxId = aa.RowId
+                left join Payload pa on
+                    pa.TxId = a.RowId
 
-                cross join Last laa on
-                    laa.TxId = aa.RowId
+                left join Transactions aa on
+                    aa.Type = 100 and
+                    aa.RegId1 = a.RegId1 and
+                    exists (select 1 from Last laa where laa.TxId = aa.RowId)
 
-                left join Payload paa
-                    on paa.TxId = aa.RowId
+                left join Chain caa on
+                    caa.TxId = aa.RowId
 
-                left join Ratings ra indexed by Ratings_Type_Uid_Last_Height
-                    on ra.Type = 0
-                    and ra.Uid = caa.Uid
-                    and ra.Last = 1
+                left join Payload paa on
+                    paa.TxId = aa.RowId
 
-                left join Transactions na
-                    on na.Type = 100
-                    and na.RegId1 = c.RegId1
+                left join Ratings ra indexed by Ratings_Type_Uid_Last_Height on
+                    ra.Type = 0 and
+                    ra.Uid = caa.Uid and
+                    ra.Last = 1
 
-                cross join Chain cna on
+                left join Transactions na on
+                    na.Type = 100 and
+                    na.RegId1 = c.RegId1 and
+                    exists (select 1 from Last lna where lna.TxId = na.RowId)
+
+                left join Chain cna on
                     cna.TxId = na.RowId
-                cross join Last lna on
-                    lna.TxId = na.RowId
 
-                left join Payload pna
-                    on pna.TxId = na.RowId
+                left join Payload pna on
+                    pna.TxId = na.RowId
 
-                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height
-                    on rna.Type = 0
-                    and rna.Uid = cna.Uid
-                    and rna.Last = 1
+                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
+                    rna.Type = 0 and
+                    rna.Uid = cna.Uid and
+                    rna.Last = 1
 
                 where a.Type = 204 -- only orig
         )sql",
