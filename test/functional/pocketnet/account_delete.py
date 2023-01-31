@@ -44,7 +44,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
         assert_raises_rpc_error(1, None, pubGenTx, accounts[0], AccountDeletePayload())
 
         # ---------------------------------------------------------------------------------
-        
+
         builder.register_accounts()
 
         # ---------------------------------------------------------------------------------
