@@ -5690,19 +5690,19 @@ namespace PocketDb
             ShortTxType::PrivateContent, { R"sql(
                 -- Content from private subscribers
                 select
-                    subs.String1,
+                    ssubs.String1,
                     pna.String1,
                     pna.String2,
                     pna.String3,
                     ifnull(rna.Value,0),
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
-                    c.Hash,
+                    sc.Hash,
                     c.Type,
-                    c.String1,
-                    c.Height as Height,
-                    c.BlockNum as BlockNum,
+                    sc.String1,
+                    cc.Height as Height,
+                    cc.BlockNum as BlockNum,
                     c.Time,
-                    c.String2,
+                    sc.String2,
                     null,
                     null,
                     null,
@@ -5715,68 +5715,88 @@ namespace PocketDb
                     pac.String3,
                     ifnull(rac.Value,0),
                     null,
-                    r.Hash,
+                    sr.Hash,
                     r.Type,
-                    r.String1,
-                    r.Height,
-                    r.BlockNum,
+                    sr.String1,
+                    cr.Height,
+                    cr.BlockNum,
                     r.Time,
-                    r.String2,
+                    sr.String2,
                     null,
                     null,
                     null,
                     null,
                     pr.String2
 
-                from Transactions c indexed by Transactions_Height_Type -- content for private subscribers
+                from Transactions c -- content for private subscribers
 
-                join Transactions subs indexed by Transactions_Type_Last_String2_Height -- Subscribers private
-                    on subs.Type = 303
-                    and subs.Last = 1
-                    and subs.String2 = c.String1
-                    and subs.Height > 0
+                cross join vTxStr sc on
+                    sc.RowId = c.RowId
 
-                left join Transactions r indexed by Transactions_Type_Last_String2_Height -- related content - possible reposts
-                    on r.String2 = c.String3
-                    and r.Type = 200
-                    and r.Last = 1
+                join Chain cc indexed by Chain_Height_BlockId on
+                    cc.TxId = c.RowId and
+                    cc.Height = ?
 
-                left join Payload pr
-                    on pr.TxHash = r.Hash
+                join Transactions subs on -- Subscribers private
+                    subs.Type = 303 and
+                    subs.RegId2 = c.RegId1 and
+                    exists (select 1 from Last ls where ls.TxId = subs.RowId)
 
-                cross join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                    on ac.Type = 100
-                    and ac.Last = 1
-                    and ac.String1 = c.String1
-                    and ac.Height > 0
+                cross join vTxStr ssubs on
+                    ssubs.RowId = subs.RowId
 
-                cross join Payload p
-                    on p.TxHash = c.Hash
+                left join Transactions r on -- related content - possible reposts
+                    r.Type = 200 and
+                    r.RegId2 = c.RegId3 and
+                    exists (select 1 from Last rl where rl.TxId = r.RowId)
 
-                cross join Payload pac
-                    on pac.TxHash = ac.Hash
+                left join vTxStr sr on
+                    sr.RowId = r.RowId
 
-                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                    on rac.Type = 0
-                    and rac.Id = ac.Id
-                    and rac.Last = 1
+                left join Chain cr on
+                    cr.TxId = r.RowId
 
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = subs.String1
+                left join Payload pr on
+                    pr.TxId = r.RowId
 
-                left join Payload pna
-                    on pna.TxHash = na.Hash
+                cross join Transactions ac on
+                    ac.Type = 100 and
+                    ac.RegId1 = c.RegId1 and
+                    exists (select 1 from Last lac where lac.TxId = ac.RowId)
 
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
+                join Chain cac on
+                    cac.TxId = ac.RowId
 
-                where c.Type in (200,201,202,209,210)
-                    and c.Hash = c.String2 -- only orig
-                    and c.Height = ?
+                cross join Payload p on
+                    p.TxId = c.RowId
+
+                cross join Payload pac on
+                    pac.TxId = ac.RowId
+
+                left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
+                    rac.Type = 0 and
+                    rac.Uid = cac.Uid and
+                    rac.Last = 1
+
+                left join Transactions na on
+                    na.Type = 100 and
+                    na.RegId1 = subs.RegId1 and
+                    exists (select 1 from Last lna where lna.TxId = na.RowId)
+
+                left join Chain cna on
+                    cna.TxId = na.RowId
+
+                left join Payload pna on
+                    pna.TxId = na.RowId
+
+                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
+                    rna.Type = 0 and
+                    rna.Uid = cna.Uid and
+                    rna.Last = 1
+
+                where
+                    c.Type in (200,201,202,209,210) and
+                    c.RowId = c.RegId2 -- only orig
         )sql",
             heightBinder
         }},
