@@ -5258,7 +5258,8 @@ namespace PocketDb
                     rna.Uid = cna.Uid and
                     rna.Last = 1
 
-                where a.Type = 204 -- only orig
+                where
+                    a.Type = 204 -- only orig
         )sql",
             heightBinder
         }},
