@@ -5805,41 +5805,52 @@ namespace PocketDb
             ShortTxType::Boost, { R"sql(
                 -- Boosts for my content
                 select
-                    tContent.String1,
+                    sc.String1,
                     pna.String1,
                     pna.String2,
                     pna.String3,
                     ifnull(rna.Value,0),
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
-                    tBoost.Hash,
+                    sb.Hash,
                     tboost.Type,
-                    tBoost.String1,
-                    tBoost.Height as Height,
-                    tBoost.BlockNum as BlockNum,
+                    sb.String1,
+                    c.Height as Height,
+                    c.BlockNum as BlockNum,
                     tBoost.Time,
-                    tBoost.String2,
+                    sb.String2,
                     null,
                     null,
                     (
                         select json_group_array(json_object(
-                                'Value', Value,
-                                'Number', Number,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs i
-                        where i.SpentTxHash = tBoost.Hash
+                            'Value', o.Value,
+                            'Number', o.Number,
+                            'AddressHash', so.AddressHash,
+                            'ScriptPubKey', so.ScriptPubKey
+                        ))
+                        from TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                        join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
+                            o.TxId = i.TxId and
+                            o.Number = i.Number
+                        cross join vTxOutStr so on
+                            so.TxId = o.TxId
+                        where
+                            i.SpentTxId = tBoost.RowId
                     ),
                     (
                         select json_group_array(json_object(
-                                'Value', Value,
-                                'AddressHash', AddressHash,
-                                'ScriptPubKey', ScriptPubKey
-                                ))
-                        from TxOutputs o
-                        where o.TxHash = tBoost.Hash
-                            and o.TxHeight = tBoost.Height
-                        order by o.Number
+                            'Value', o.Value,
+                            'AddressHash', so.AddressHash,
+                            'ScriptPubKey', so.ScriptPubKey
+                        ))
+                        from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+
+                        cross join vTxOutStr so on
+                            so.TxId = o.TxId
+
+                        where
+                            o.TxId = tBoost.RowId
+                        order by
+                            o.Number
                     ),
                     null,
                     null,
@@ -5849,60 +5860,77 @@ namespace PocketDb
                     pac.String3,
                     ifnull(rac.Value,0),
                     null,
-                    tContent.Hash,
+                    sc.Hash,
                     tContent.Type,
                     null,
-                    tContent.Height,
-                    tContent.BlockNum,
+                    cc.Height,
+                    cc.BlockNum,
                     tContent.Time,
-                    tContent.String2,
+                    sc.String2,
                     null,
                     null,
                     null,
                     null,
                     pContent.String2
 
-                from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
+                from Transactions tBoost
 
-                left join Transactions tContent indexed by Transactions_Type_Last_String2_Height
-                    on tContent.Type in (200,201,202,209,210)
-                    and tContent.Last in (0,1)
-                    and tContent.Height > 0
-                    and tContent.String2 = tBoost.String2
+                cross join vTxStr sb on
+                    sb.RowId = tBoost.RowId
 
-                left join Payload pContent
-                    on pContent.TxHash = tContent.Hash
+                join Chain c indexed by Chain_Height_BlockId on
+                    c.TxId = tBoost.RowId and
+                    c.Height = ?
 
-                left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                    on ac.String1 = tBoost.String1
-                    and ac.Type = 100
-                    and ac.Last = 1
-                    and ac.Height > 0
+                left join Transactions tContent on
+                    tContent.Type in (200,201,202,209,210) and
+                    tContent.RegId2 = tBoost.RegId2 and
+                    exists (select 1 from Last l where l.TxId = tContent.RowId)
 
-                left join Payload pac
-                    on pac.TxHash = ac.Hash
+                left join Chain cc on
+                    cc.TxId = tContent.RowId
 
-                left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                    on rac.Type = 0
-                    and rac.Id = ac.Id
-                    and rac.Last = 1
+                left join vTxStr sc on
+                    sc.RowId = tContent.RowId
 
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = tContent.String1
+                left join Payload pContent on
+                    pContent.TxId = tContent.RowId
 
-                left join Payload pna
-                    on pna.TxHash = na.Hash
+                left join Transactions ac on
+                    ac.RegId1 = tBoost.RegId1 and
+                    ac.Type = 100 and
+                    exists (select 1 from Last lac where lac.TxId = ac.RowId)
 
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
+                left join Chain cac on
+                    cac.TxId = ac.RowId
 
-                where tBoost.Type in (208)
-                    and tBoost.Last in (0,1)
-                    and tBoost.Height = ?
+                left join Payload pac on
+                    pac.TxId = ac.RowId
+
+                left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
+                    rac.Type = 0 and
+                    rac.Uid = cac.Uid and
+                    rac.Last = 1
+
+                left join Transactions na on
+                    na.Type = 100 and
+                    na.RegId1 = tContent.RegId1 and
+                    exists (select 1 from Last lna where lna.TxId = na.RowId)
+
+                left join Chain cna on
+                    cna.TxId = na.RowId
+
+                left join Payload pna on
+                    pna.TxId = na.RowId
+
+                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
+                    rna.Type = 0 and
+                    rna.Uid = cna.Uid and
+                    rna.Last = 1
+
+                where
+                    tBoost.Type in (208) and
+                    exists (select 1 from Last l where l.TxId = tBoost.RowId)
         )sql",
             heightBinder
         }},
