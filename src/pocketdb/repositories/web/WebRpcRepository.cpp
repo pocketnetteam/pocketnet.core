@@ -5190,7 +5190,7 @@ namespace PocketDb
                 join Last lc on
                     lc.TxId = c.RowId
 
-                join Chain ca on
+                join Chain ca indexed by Chain_Height_BlockId on
                     ca.TxId = a.RowId and
                     ca.Height = ?
 
