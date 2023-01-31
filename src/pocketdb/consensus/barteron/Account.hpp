@@ -21,22 +21,22 @@ namespace PocketConsensus
     public:
         BarteronAccountConsensus() : SocialConsensus<BarteronAccount>()
         {
-            Limits.Set("payload_size", 2048, 2048, 2048);
+            Limits.Set("list_max_size", 1000, 300, 15);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
-            if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
-                return {false, code};
-
             // Check payload size
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
             
             // TODO (barteron): implement validate lists size
 
-            return Success;
+            
+
+            return SocialConsensus::Validate(tx, ptx, block);
         }
+
         ConsensusValidateResult Check(const CTransactionRef& tx, const BarteronAccountRef& ptx) override
         {
             if (auto[ok, code] = SocialConsensus::Check(tx, ptx); !ok)
@@ -46,6 +46,8 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetPayloadTagsAdd()) && IsEmpty(ptx->GetPayloadTagsDel()))
                 return {false, SocialConsensusResult_Failed};
 
+            // TODO (barteron) : parse and check all elements is numbers
+
             return Success;
         }
 
@@ -53,49 +55,37 @@ namespace PocketConsensus
     
         ConsensusValidateResult ValidateBlock(const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
-            // TODO (barteron): implement
-
-            // Get count from chain
-            // int count = GetChainCount(ptx);
-
-            // // Get count from block
-            // for (auto& blockTx : *block)
-            // {
-            //     if (!TransactionHelper::IsIn(*blockTx->GetType(), {BARTERON_ACCOUNT}))
-            //         continue;
-
-            //     auto blockPtx = static_pointer_cast<BarteronAccount>(blockTx);
-
-            //     if (*ptx->GetAddress() != *blockPtx->GetAddress())
-            //         continue;
-
-            //     if (*blockPtx->GetHash() == *ptx->GetHash())
-            //         continue;
-
-            //     // if (blockPtx->IsEdit())
-            //     //     continue;
-
-            //     count += 1;
-            // }
-
-            // return ValidateLimit(ptx, count);
+            // Only one transaction change barteron account allowed in block
+            auto blockPtxs = SocialConsensus::ExtractBlockPtxs(block, ptx, { BARTERON_ACCOUNT });
+            if (blockPtxs.size() > 0)
+                return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;
         }
         
         ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
         {
-            // TODO (barteron): implement
-            
-            // Get count from chain
-            // int count = GetChainCount(ptx);
+            // Only one transaction change barteron account allowed in mempool
+            bool exists = false;
 
-            // // and from mempool
-            // count += ConsensusRepoInst.CountMempoolBarteronAccount(*ptx->GetAddress());
+            ExternalRepoInst.TryTransactionStep(__func__, [&]()
+            {
+                auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
+                    select
+                        1
+                    from
+                        Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
+                    where
+                        t.Type = 104 and
+                        t.String1 = ? and
+                        t.Height is null
+                )sql");
+                ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
+                exists = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
+                ExternalRepoInst.FinalizeSqlStatement(*stmt);
+            });
 
-            // return ValidateLimit(ptx, count);
-
-            return Success;
+            return { !exists, SocialConsensusResult_ManyTransactions };
         }
         
         size_t CollectStringsSize(const BarteronAccountRef& ptx) override

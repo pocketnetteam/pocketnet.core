@@ -179,6 +179,29 @@ namespace PocketConsensus
             return Success;
         }
 
+        // Find transactions in block
+        virtual vector<SocialTransactionRef> ExtractBlockPtxs(const PocketBlockRef& block, const shared_ptr<T>& ptx, const vector<TxType>& inclTypes)
+        {
+            vector<SocialTransactionRef> lst;
+
+            for (auto& blockTx : *block)
+            {
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), inclTypes))
+                    continue;
+
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                auto blockPtx = static_pointer_cast<SocialTransaction>(blockTx);
+                if (*ptx->GetAddress() != *blockPtx->GetAddress())
+                    continue;
+
+                lst.push_back(blockPtx);
+            }
+
+            return lst;
+        }
+
         // Check empty pointer
         bool IsEmpty(const optional<string>& ptr) const
         {

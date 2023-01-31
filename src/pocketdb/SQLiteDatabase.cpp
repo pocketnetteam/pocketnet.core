@@ -64,6 +64,7 @@ namespace PocketDb
         ConsensusRepoInst.Init();
         SystemRepoInst.Init();
         MigrationRepoInst.Init();
+        ExternalRepoInst.Init();
 
         // Execute migration scripts
         if (gArgs.GetArg("-reindex", 0) == 0)

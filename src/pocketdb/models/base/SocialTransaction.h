@@ -24,8 +24,9 @@ namespace PocketTx
 
         string BuildHash() override;
         
-    }; // class SocialTransaction
+    };
 
-} // namespace PocketTx
+    typedef shared_ptr<SocialTransaction> SocialTransactionRef;
+}
 
 #endif // POCKETTX_SOCIAL_TRANSACTION_H

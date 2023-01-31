@@ -7,6 +7,7 @@
 
 #include <utility>
 #include <util/system.h>
+
 #include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/helpers/TransactionHelper.h"
@@ -40,6 +41,48 @@ namespace PocketDb
 
             return value;
         }
+
+        bool ExistsRows(const shared_ptr<sqlite3_stmt*>& stmt)
+        {
+            int res = sqlite3_step(*stmt);
+            FinalizeSqlStatement(*stmt);
+            return res == SQLITE_ROW;
+        }
+
+        void TryTransactionBulk(const string& func, const vector<shared_ptr<sqlite3_stmt*>>& stmts)
+        {
+            if (!m_database.BeginTransaction())
+                throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
+                
+            for (auto stmt : stmts)
+                TryStepStatement(stmt);
+
+            if (!m_database.CommitTransaction())
+                throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
+        }
+
+        bool CheckValidResult(shared_ptr<sqlite3_stmt*> stmt, int result)
+        {
+            if (result != SQLITE_OK)
+            {
+                FinalizeSqlStatement(*stmt);
+                return false;
+            }
+
+            return true;
+        }
+
+        void SetLastInsertRowId(int64_t value)
+        {
+            sqlite3_set_last_insert_rowid(m_database.m_db, value);
+        }
+
+        int64_t GetLastInsertRowId()
+        {
+            return sqlite3_last_insert_rowid(m_database.m_db);
+        }
+
+    public:
 
         // General method for SQL operations
         // Locked with shutdownMutex
@@ -90,6 +133,23 @@ namespace PocketDb
             }
         }
 
+        shared_ptr<sqlite3_stmt*> SetupSqlStatement(const std::string& sql) const
+        {
+            sqlite3_stmt* stmt;
+
+            int res = sqlite3_prepare_v2(m_database.m_db, sql.c_str(), (int) sql.size(), &stmt, nullptr);
+            if (res != SQLITE_OK)
+                throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\nSql: %s",
+                    sqlite3_errstr(res), sql));
+
+            return std::make_shared<sqlite3_stmt*>(stmt);
+        }
+
+        int FinalizeSqlStatement(sqlite3_stmt* stmt)
+        {
+            return sqlite3_finalize(stmt);
+        }
+
         void TryStepStatement(shared_ptr<sqlite3_stmt*>& stmt)
         {
             int res = sqlite3_step(*stmt);
@@ -107,57 +167,6 @@ namespace PocketDb
             if (res != SQLITE_ROW && res != SQLITE_DONE)
                 throw std::runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
         }
-
-        bool ExistsRows(const shared_ptr<sqlite3_stmt*>& stmt)
-        {
-            int res = sqlite3_step(*stmt);
-            FinalizeSqlStatement(*stmt);
-            return res == SQLITE_ROW;
-        }
-
-        void TryTransactionBulk(const string& func, const vector<shared_ptr<sqlite3_stmt*>>& stmts)
-        {
-            if (!m_database.BeginTransaction())
-                throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
-                
-            for (auto stmt : stmts)
-                TryStepStatement(stmt);
-
-            if (!m_database.CommitTransaction())
-                throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
-        }
-
-        shared_ptr<sqlite3_stmt*> SetupSqlStatement(const std::string& sql) const
-        {
-            sqlite3_stmt* stmt;
-
-            int res = sqlite3_prepare_v2(m_database.m_db, sql.c_str(), (int) sql.size(), &stmt, nullptr);
-            if (res != SQLITE_OK)
-                throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\nSql: %s",
-                    sqlite3_errstr(res), sql));
-
-            return std::make_shared<sqlite3_stmt*>(stmt);
-        }
-
-        bool CheckValidResult(shared_ptr<sqlite3_stmt*> stmt, int result)
-        {
-            if (result != SQLITE_OK)
-            {
-                FinalizeSqlStatement(*stmt);
-                return false;
-            }
-
-            return true;
-        }
-
-        int FinalizeSqlStatement(sqlite3_stmt* stmt)
-        {
-            return sqlite3_finalize(stmt);
-        }
-
-        // --------------------------------
-        // BINDS
-        // --------------------------------
 
         // Forces user to handle memory more correct because of SQLITE_STATIC requires it
         void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string&& value) = delete;
@@ -214,27 +223,28 @@ namespace PocketDb
                     __func__, index, value));
         }
 
-        void SetLastInsertRowId(int64_t value)
-        {
-            sqlite3_set_last_insert_rowid(m_database.m_db, value);
-        }
-
-        int64_t GetLastInsertRowId()
-        {
-            return sqlite3_last_insert_rowid(m_database.m_db);
-        }
-
-    public:
-
-        explicit BaseRepository(SQLiteDatabase& db) : m_database(db)
-        {
-        }
+        explicit BaseRepository(SQLiteDatabase& db) : m_database(db) {}
 
         virtual ~BaseRepository() = default;
 
         virtual void Init() = 0;
         virtual void Destroy() = 0;
     };
+
+    class ExternalRepository : public BaseRepository
+    {
+    public:
+
+        explicit ExternalRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        void Init() override {}
+        void Destroy() override {}
+
+        int Step(shared_ptr<sqlite3_stmt*>& stmt)
+        {
+            return sqlite3_step(*stmt);
+        }
+    };
+
 }
 
 #endif //POCKETDB_BASEREPOSITORY_H

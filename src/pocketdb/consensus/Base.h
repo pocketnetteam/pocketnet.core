@@ -8,6 +8,7 @@
 #include "univalue/include/univalue.h"
 
 #include "pocketdb/pocketnet.h"
+#include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/models/base/Base.h"
 
 namespace PocketConsensus
