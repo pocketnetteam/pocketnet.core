@@ -4990,11 +4990,11 @@ namespace PocketDb
                     null,
                     (
                         select json_group_array(json_object(
-                                'Value', o.Value,
-                                'Number', o.Number,
-                                'AddressHash', so.AddressHash,
-                                'ScriptPubKey', so.ScriptPubKey
-                                ))
+                            'Value', o.Value,
+                            'Number', o.Number,
+                            'AddressHash', so.AddressHash,
+                            'ScriptPubKey', so.ScriptPubKey
+                        ))
                         from TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
                         join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
                             o.TxId = i.TxId and
@@ -5006,15 +5006,15 @@ namespace PocketDb
                     ),
                     (
                         select json_group_array(json_object(
-                                'Value', o.Value,
-                                'AddressHash', so.AddressHash,
-                                'ScriptPubKey', so.ScriptPubKey,
-                                'Account', json_object(
-                                    'Lang', pna.String1,
-                                    'Name', pna.String2,
-                                    'Avatar', pna.String3
-                                )
-                            ))
+                            'Value', o.Value,
+                            'AddressHash', so.AddressHash,
+                            'ScriptPubKey', so.ScriptPubKey,
+                            'Account', json_object(
+                                'Lang', pna.String1,
+                                'Name', pna.String2,
+                                'Avatar', pna.String3
+                            )
+                        ))
                         from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
 
                         cross join vTxOutStr so on
