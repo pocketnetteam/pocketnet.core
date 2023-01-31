@@ -5940,19 +5940,19 @@ namespace PocketDb
             ShortTxType::Repost, { R"sql(
                 -- Reposts
                 select
-                    p.String1,
+                    sp.String1,
                     pna.String1,
                     pna.String2,
                     pna.String3,
                     ifnull(rna.Value,0),
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
-                    r.Hash,
+                    sr.Hash,
                     r.Type,
-                    r.String1,
-                    r.Height as Height,
-                    r.BlockNum as BlockNum,
+                    sr.String1,
+                    cr.Height as Height,
+                    cr.BlockNum as BlockNum,
                     r.Time,
-                    r.String2,
+                    sr.String2,
                     null,
                     null,
                     null,
@@ -5965,13 +5965,13 @@ namespace PocketDb
                     par.String3,
                     ifnull(rar.Value,0),
                     null,
-                    p.Hash,
+                    sp.Hash,
                     p.Type,
                     null,
-                    p.Height,
-                    p.BlockNum,
+                    cp.Height,
+                    cp.BlockNum,
                     p.Time,
-                    p.String2,
+                    sp.String2,
                     null,
                     null,
                     null,
@@ -5980,49 +5980,66 @@ namespace PocketDb
 
                 from Transactions r
 
-                join Transactions p indexed by Transactions_Type_Last_String2_Height
-                    on p.Type = 200
-                    and p.Last = 1
-                    and p.String2 = r.String3
-                    and p.Height > 0
+                cross join vTxStr sr on
+                    sr.RowId = r.RowId
 
-                left join Payload pp
-                    on pp.TxHash = p.Hash
+                join Chain cr indexed by Chain_Height_BlockId on
+                    cr.TxId = r.RowId and
+                    cr.Height = ?
 
-                left join Payload pr
-                    on pr.TxHash = r.Hash
+                join Transactions p on
+                    p.Type = 200 and
+                    p.RegId2 = r.RegId3 and
+                    exists (select 1 from Last lp where lp.TxId = p.RowId)
 
-                join Transactions ar indexed by Transactions_Type_Last_String1_Height_Id
-                    on ar.Type = 100
-                    and ar.Last = 1
-                    and ar.String1 = r.String1
-                    and ar.Height > 0
+                cross join vTxStr sp on
+                    sp.RowId = p.RowId
 
-                left join Payload par
-                    on par.TxHash = ar.Hash
+                join Chain cp on
+                    cp.TxId = p.RowId
 
-                left join Ratings rar indexed by Ratings_Type_Id_Last_Height
-                    on rar.Type = 0
-                    and rar.Id = ar.Id
-                    and rar.Last = 1
+                left join Payload pp on
+                    pp.TxId = p.RowId
 
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = p.String1
+                left join Payload pr on
+                    pr.TxId = r.RowId
 
-                left join Payload pna
-                    on pna.TxHash = na.Hash
+                join Transactions ar on
+                    ar.Type = 100 and
+                    ar.RegId1 = r.RegId1 and
+                    exists (select 1 from Last lar where lar.TxId = ar.RowId)
 
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
+                join Chain car on
+                    car.TxId = ar.RowId
 
-                where r.Type = 200
-                    and r.Hash = r.String2 -- Only orig
-                    and r.Height = ?
-                    and r.String3 is not null
+                left join Payload par on
+                    par.TxId = ar.RowId
+
+                left join Ratings rar indexed by Ratings_Type_Uid_Last_Height on
+                    rar.Type = 0 and
+                    rar.Uid = car.Uid and
+                    rar.Last = 1
+
+                left join Transactions na on
+                    na.Type = 100 and
+                    na.RegId1 = p.RegId1 and
+                    exists (select 1 from Last lna where lna.TxId = na.RowId)
+
+                left join Chain cna on
+                    cna.TxId = na.RowId
+
+                left join Payload pna on
+                    pna.TxId = na.RowId
+
+                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
+                    rna.Type = 0 and
+                    rna.Uid = cna.Uid and
+                    rna.Last = 1
+
+                where
+                    r.Type = 200 and
+                    r.RowId = r.RegId2 and -- Only orig
+                    r.RegId3 > 0
             )sql",
             heightBinder
         }}
