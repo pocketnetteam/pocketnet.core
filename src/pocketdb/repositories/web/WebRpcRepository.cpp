@@ -5474,7 +5474,6 @@ namespace PocketDb
 
                 where
                     subs.Type in (302, 303) -- Ignoring unsubscribers?
-
         )sql",
             heightBinder
         }},
