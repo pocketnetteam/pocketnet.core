@@ -5483,17 +5483,17 @@ namespace PocketDb
             ShortTxType::CommentScore, { R"sql(
                 -- Comment scores
                 select
-                    c.String1,
+                    sc.String1,
                     pna.String1,
                     pna.String2,
                     pna.String3,
                     ifnull(rna.Value,0),
                     (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
-                    s.Hash,
+                    ss.Hash,
                     s.Type,
-                    s.String1,
-                    s.Height as Height,
-                    s.BlockNum as BlockNum,
+                    ss.String1,
+                    cs.Height as Height,
+                    cs.BlockNum as BlockNum,
                     s.Time,
                     null,
                     null,
@@ -5508,61 +5508,78 @@ namespace PocketDb
                     pacs.String3,
                     ifnull(racs.Value,0),
                     null,
-                    c.Hash,
+                    sc.Hash,
                     c.Type,
                     null,
-                    c.Height,
-                    c.BlockNum,
+                    cc.Height,
+                    cc.BlockNum,
                     null,
-                    c.String2,
-                    c.String3,
+                    sc.String2,
+                    sc.String3,
                     null,
                     null,
                     null,
                     ps.String1,
-                    c.String4,
-                    c.String5
+                    sc.String4,
+                    sc.String5
 
-                from Transactions s indexed by Transactions_Height_Type
+                from Transactions s
 
-                join Transactions c indexed by Transactions_Type_Last_String2_Height
-                    on c.Type in (204,205)
-                    and c.Last = 1
-                    and c.Height > 0
-                    and c.String2 = s.String2
+                cross join vTxStr ss on
+                    ss.RowId = s.RowId
 
-                left join Payload ps
-                    on ps.TxHash = c.Hash
+                join Chain cs indexed by Chain_Height_BlockId on
+                    cs.TxId = s.RowId
+                    and cs.Height = ?
 
-                join Transactions acs indexed by Transactions_Type_Last_String1_Height_Id
-                    on acs.Type = 100
-                    and acs.Last = 1
-                    and acs.String1 = s.String1
-                    and acs.Height > 0
+                join Transactions c on
+                    c.Type in (204,205) and
+                    c.RegId2 = s.RegId2 and
+                    exists (select 1 from Last lc where lc.TxId = c.RowId)
 
-                left join Payload pacs
-                    on pacs.TxHash = acs.Hash
+                cross join vTxStr sc on
+                    sc.RowId = c.RowId
 
-                left join Ratings racs indexed by Ratings_Type_Id_Last_Height
-                    on racs.Type = 0
-                    and racs.Id = acs.Id
-                    and racs.Last = 1
+                join Chain cc on
+                    cc.TxId = c.RowId
 
-                left join Transactions na indexed by Transactions_Type_Last_String1_String2_Height
-                    on na.Type = 100
-                    and na.Last = 1
-                    and na.String1 = c.String1
+                left join Payload ps on
+                    ps.TxId = c.RowId
 
-                left join Payload pna
-                    on pna.TxHash = na.Hash
+                join Transactions acs on
+                    acs.Type = 100 and
+                    acs.RegId1 = s.RegId1 and
+                    exists (select 1 from Last lacs where lacs.TxId = acs.RowId)
 
-                left join Ratings rna indexed by Ratings_Type_Id_Last_Height
-                    on rna.Type = 0
-                    and rna.Id = na.Id
-                    and rna.Last = 1
+                join Chain cacs on
+                    cacs.TxId = acs.RowId
 
-                where s.Type = 301
-                    and s.Height = ?
+                left join Payload pacs on
+                    pacs.TxId = acs.RowId
+
+                left join Ratings racs indexed by Ratings_Type_Uid_Last_Height on
+                    racs.Type = 0 and
+                    racs.Uid = cacs.Uid and
+                    racs.Last = 1
+
+                left join Transactions na on
+                    na.Type = 100 and
+                    na.RegId1 = c.RegId1 and
+                    exists (select 1 from Last lna where lna.TxId = na.RowId)
+
+                left join Chain cna on
+                    cna.TxId = na.RowId
+
+                left join Payload pna on
+                    pna.TxId = na.RowId
+
+                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
+                    rna.Type = 0 and
+                    rna.Uid = cna.Uid and
+                    rna.Last = 1
+
+                where
+                    s.Type = 301
         )sql",
             heightBinder
         }},
