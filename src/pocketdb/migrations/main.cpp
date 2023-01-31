@@ -221,6 +221,18 @@ namespace PocketDb
                 Transactions t indexed by Transactions_HashId
             where
                 t.HashId = r.RowId;
+
+            drop view if exists vTxStr;
+            create view if not exists vTxStr as
+            select
+                t.RowId as RowId,
+                (select r.String from Registry r where r.RowId = t.HashId) as Hash,
+                (select r.String from Registry r where r.RowId = t.RegId1) as String1,
+                (select r.String from Registry r where r.RowId = t.RegId2) as String2,
+                (select r.String from Registry r where r.RowId = t.RegId3) as String3,
+                (select r.String from Registry r where r.RowId = t.RegId4) as String4,
+                (select r.String from Registry r where r.RowId = t.RegId5) as String5
+            from Transactions t;
         )sql");
 
         
