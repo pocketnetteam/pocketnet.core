@@ -233,6 +233,14 @@ namespace PocketDb
                 (select r.String from Registry r where r.RowId = t.RegId4) as String4,
                 (select r.String from Registry r where r.RowId = t.RegId5) as String5
             from Transactions t;
+
+            drop view if exists vTxOutStr;
+            create view if not exists vTxOutStr as
+            select
+                o.TxId as TxId,
+                (select r.String from Registry r where r.RowId = o.AddressId) as AddressHash,
+                (select r.String from Registry r where r.RowId = o.ScriptPubKeyId) as ScriptPubKey
+            from TxOutputs o;
         )sql");
 
         
