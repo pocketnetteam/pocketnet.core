@@ -51,7 +51,7 @@ namespace PocketHelpers
 
     private:
         std::map<std::string /* address */, NotifierEntry> m_notifiers;
-        std::map<int64_t /* blocknum */, int64_t /* corresponding m_data's array index */> m_txArrIndicies;
+        std::map<int64_t /* blocknum */, int64_t /* corresponding m_data's array index */> m_txArrIndices;
         std::vector<UniValue> m_data;
     };
 

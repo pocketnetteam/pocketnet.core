@@ -70,13 +70,13 @@ std::optional<std::vector<std::pair<std::string, std::optional<PocketDb::ShortAc
 
 bool PocketHelpers::NotificationsResult::HasData(const int64_t& blocknum)
 {
-    return m_txArrIndicies.find(blocknum) != m_txArrIndicies.end();
+    return m_txArrIndices.find(blocknum) != m_txArrIndices.end();
 }
 
 void PocketHelpers::NotificationsResult::InsertData(const PocketDb::ShortForm& shortForm)
 {
     if (HasData(*shortForm.GetTxData().GetBlockNum())) return;
-    m_txArrIndicies.insert({*shortForm.GetTxData().GetBlockNum(), m_data.size()});
+    m_txArrIndices.insert({*shortForm.GetTxData().GetBlockNum(), m_data.size()});
     m_data.emplace_back(shortForm.Serialize(false));
 }
 
@@ -84,7 +84,7 @@ void PocketHelpers::NotificationsResult::InsertNotifiers(const int64_t& blocknum
 {
     for (const auto& address: addresses) {
         auto& notifierEntry = m_notifiers[address.first];
-        notifierEntry.notifications[contextType].emplace_back(m_txArrIndicies.at(blocknum));
+        notifierEntry.notifications[contextType].emplace_back(m_txArrIndices.at(blocknum));
         if (!notifierEntry.account)
             notifierEntry.account = address.second;
     }
@@ -101,10 +101,10 @@ UniValue PocketHelpers::NotificationsResult::Serialize() const
 
         UniValue notifierData (UniValue::VOBJ);
         notifierData.reserveKVSize(notifierEntry.notifications.size());
-        for (const auto& contextTypeIndicies: notifierEntry.notifications) {
-            UniValue indicies (UniValue::VARR);
-            indicies.push_backV(contextTypeIndicies.second);
-            notifierData.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(contextTypeIndicies.first), indicies, false);
+        for (const auto& contextTypeIndices: notifierEntry.notifications) {
+            UniValue indices (UniValue::VARR);
+            indices.push_backV(contextTypeIndices.second);
+            notifierData.pushKV(PocketHelpers::ShortTxTypeConvertor::toString(contextTypeIndices.first), indices, false);
         }
 
         UniValue notifierUniObj (UniValue::VOBJ);
