@@ -30,8 +30,8 @@ namespace PocketConsensus
                     *ptx->GetAddressTo()
                 ); !existsBlocking || blockingType != ACTION_BLOCKING)
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_InvalidBlocking))
-                    return {false, SocialConsensusResult_InvalidBlocking};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_InvalidBlocking))
+                    return {false, ConsensusResult_InvalidBlocking};
             }
 
             return SocialConsensus::Validate(tx, ptx, block);
@@ -42,12 +42,12 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, ConsensusResult_Failed};
 
             // Blocking self
             if (*ptx->GetAddress() == *ptx->GetAddressTo())
-                return {false, SocialConsensusResult_SelfBlocking};
+                return {false, ConsensusResult_SelfBlocking};
 
             return Success;
         }
@@ -66,7 +66,7 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<BlockingCancel>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
-                    return {false, SocialConsensusResult_ManyTransactions};
+                    return {false, ConsensusResult_ManyTransactions};
             }
 
             return Success;
@@ -74,7 +74,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const BlockingCancelRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolBlocking(*ptx->GetAddress(), *ptx->GetAddressTo()) > 0)
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Success;
         }
@@ -101,8 +101,8 @@ namespace PocketConsensus
                 "[]"
             ))
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_InvalidBlocking))
-                    return {false, SocialConsensusResult_InvalidBlocking};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_InvalidBlocking))
+                    return {false, ConsensusResult_InvalidBlocking};
             }
 
             return Success;
@@ -121,9 +121,9 @@ namespace PocketConsensus
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress()) {
                     if (!IsEmpty(blockPtx->GetAddressTo()) && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
-                        return {false, SocialConsensusResult_ManyTransactions};
+                        return {false, ConsensusResult_ManyTransactions};
                     if (!IsEmpty(blockPtx->GetAddressesTo()))
-                        return {false, SocialConsensusResult_ManyTransactions};
+                        return {false, ConsensusResult_ManyTransactions};
                 }
             }
 
@@ -135,14 +135,14 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, ConsensusResult_Failed};
             // Do not allow multiple addresses
-            if (!IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
+            if (!IsEmpty(ptx->GetAddressesTo())) return {false, ConsensusResult_Failed};
 
             // Blocking self
             if (*ptx->GetAddress() == *ptx->GetAddressTo())
-                return {false, SocialConsensusResult_SelfBlocking};
+                return {false, ConsensusResult_SelfBlocking};
 
             return Success;
         }

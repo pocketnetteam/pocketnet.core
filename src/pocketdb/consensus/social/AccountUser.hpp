@@ -34,14 +34,14 @@ namespace PocketConsensus
             // Duplicate name
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameDouble))
-                    return {false, SocialConsensusResult_NicknameDouble};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameDouble))
+                    return {false, ConsensusResult_NicknameDouble};
             }
 
             // The deleted account cannot be restored
             if (auto[ok, type] = ConsensusRepoInst.GetLastAccountType(*ptx->GetAddress()); ok)
                 if (type == TxType::ACCOUNT_DELETE)
-                    return {false, SocialConsensusResult_AccountDeleted};
+                    return {false, ConsensusResult_AccountDeleted};
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -52,14 +52,14 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
 
             // Check payload
-            if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+            if (!ptx->GetPayload()) return {false, ConsensusResult_Failed};
 
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
-                return make_tuple(false, SocialConsensusResult_ReferrerSelf);
+                return make_tuple(false, ConsensusResult_ReferrerSelf);
 
             // Name check
             if (auto[ok, result] = CheckLogin(ptx); !ok)
@@ -88,8 +88,8 @@ namespace PocketConsensus
 
                 if (*ptx->GetAddress() == *blockTx->GetString1())
                 {
-                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoDoubleInBlock))
-                        return {false, SocialConsensusResult_ChangeInfoDoubleInBlock};
+                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_ChangeInfoDoubleInBlock))
+                        return {false, ConsensusResult_ChangeInfoDoubleInBlock};
                 }
 
                 if (TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER }))
@@ -101,7 +101,7 @@ namespace PocketConsensus
             }
 
             if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
-                return {false, SocialConsensusResult_ChangeInfoLimit};
+                return {false, ConsensusResult_ChangeInfoLimit};
 
             return Success;
         }
@@ -109,10 +109,10 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const UserRef& ptx) override
         {
             if (ConsensusRepoInst.Exists_MS1T(*ptx->GetAddress(), { ACCOUNT_USER, ACCOUNT_DELETE }))
-                return {false, SocialConsensusResult_ChangeInfoDoubleInMempool};
+                return {false, ConsensusResult_ChangeInfoDoubleInMempool};
 
             if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
-                return {false, SocialConsensusResult_ChangeInfoLimit};
+                return {false, ConsensusResult_ChangeInfoLimit};
 
             return Success;
         }
@@ -139,7 +139,7 @@ namespace PocketConsensus
                 (ptx->GetPayloadPubkey() ? ptx->GetPayloadPubkey()->size() : 0);
 
             if (dataSize > (size_t) GetConsensusLimit(ConsensusLimit_max_user_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }
@@ -152,8 +152,8 @@ namespace PocketConsensus
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
             {
                 if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(),
-                    SocialConsensusResult_Failed))
-                    return {false, SocialConsensusResult_Failed};
+                    ConsensusResult_Failed))
+                    return {false, ConsensusResult_Failed};
             }
 
             return Success;
@@ -189,16 +189,16 @@ namespace PocketConsensus
         ConsensusValidateResult CheckLogin(const UserRef& ptx) override
         {
             if (IsEmpty(ptx->GetPayloadName()))
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             auto name = *ptx->GetPayloadName();
             boost::algorithm::to_lower(name);
 
             if (name.size() > 20)
-                return {false, SocialConsensusResult_NicknameLong};
+                return {false, ConsensusResult_NicknameLong};
             
             if (!all_of(name.begin(), name.end(), [](unsigned char ch) { return ::isalnum(ch) || ch == '_'; }))
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -213,8 +213,8 @@ namespace PocketConsensus
             boost::algorithm::to_lower(blockPtxName);
 
             if (ptxName == blockPtxName)
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameDouble))
-                    return {false, SocialConsensusResult_NicknameDouble};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameDouble))
+                    return {false, ConsensusResult_NicknameDouble};
 
             return Success;
         }
@@ -230,7 +230,7 @@ namespace PocketConsensus
             if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
                 return Success;
 
-            return {false, SocialConsensusResult_FailedOpReturn};
+            return {false, ConsensusResult_FailedOpReturn};
         }
     };
 

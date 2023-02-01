@@ -29,7 +29,7 @@ namespace PocketConsensus
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
                 *ptx->GetAddress(), *ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, false))
-                return {false, SocialConsensusResult_DoubleCommentScore};
+                return {false, ConsensusResult_DoubleCommentScore};
 
             // Comment should be exists
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
@@ -54,13 +54,13 @@ namespace PocketConsensus
                 }
             }
             if (!lastContent)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             // Scores to deleted comments not allowed
             if (*lastContent->GetType() == TxType::CONTENT_COMMENT_DELETE)
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NotFound))
-                    return {false, SocialConsensusResult_NotFound};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NotFound))
+                    return {false, ConsensusResult_NotFound};
             }
 
             // TODO (aok): convert to Comment base class
@@ -68,7 +68,7 @@ namespace PocketConsensus
 
             // Check score to self
             if (*ptx->GetAddress() == *lastContentPtx->GetAddress())
-                return {false, SocialConsensusResult_SelfCommentScore};
+                return {false, ConsensusResult_SelfCommentScore};
 
             // Check Blocking
             if (auto[ok, result] = ValidateBlocking(*lastContentPtx->GetAddress(), ptx); !ok)
@@ -81,7 +81,7 @@ namespace PocketConsensus
                 string opReturnPayloadHex = HexStr(opReturnPayloadData);
 
                 if (txOpReturnPayload != opReturnPayloadHex)
-                    return {false, SocialConsensusResult_FailedOpReturn};
+                    return {false, ConsensusResult_FailedOpReturn};
             }
 
             return SocialConsensus::Validate(tx, ptx, block);
@@ -93,13 +93,13 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetCommentTxHash())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetValue())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetCommentTxHash())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetValue())) return {false, ConsensusResult_Failed};
 
             auto value = *ptx->GetValue();
             if (value != 1 && value != -1)
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -126,7 +126,7 @@ namespace PocketConsensus
                         count += 1;
 
                     if (*blockPtx->GetCommentTxHash() == *ptx->GetCommentTxHash())
-                        return {false, SocialConsensusResult_DoubleCommentScore};
+                        return {false, ConsensusResult_DoubleCommentScore};
                 }
             }
 
@@ -138,7 +138,7 @@ namespace PocketConsensus
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
                 *ptx->GetAddress(), *ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, true))
-                return {false, SocialConsensusResult_DoubleCommentScore};
+                return {false, ConsensusResult_DoubleCommentScore};
 
             // Check count from chain
             int count = GetChainCount(ptx);
@@ -168,7 +168,7 @@ namespace PocketConsensus
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             if (count >= GetScoresLimit(mode))
-                return {false, SocialConsensusResult_CommentScoreLimit};
+                return {false, ConsensusResult_CommentScoreLimit};
 
             return Success;
         }
@@ -203,7 +203,7 @@ namespace PocketConsensus
             );
 
             if (existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, SocialConsensusResult_Blocking};
+                return {false, ConsensusResult_Blocking};
 
             return Success;
         }
@@ -266,7 +266,7 @@ namespace PocketConsensus
             );
 
             if (existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, SocialConsensusResult_Blocking};
+                return {false, ConsensusResult_Blocking};
 
             return Success;
         }

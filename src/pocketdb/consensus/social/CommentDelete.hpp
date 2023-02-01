@@ -31,12 +31,12 @@ namespace PocketConsensus
                 { CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE }
             );
             if (!actuallTxOk || *actuallTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             // Original comment exists
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
             if (!actuallTxOk || !originalTxOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<Comment>(originalTx);
         
@@ -46,11 +46,11 @@ namespace PocketConsensus
                 auto origParentTxHash = IsEmpty(originalPtx->GetParentTxHash()) ? "" : *originalPtx->GetParentTxHash();
 
                 if (currParentTxHash != origParentTxHash)
-                    return {false, SocialConsensusResult_InvalidParentComment};
+                    return {false, ConsensusResult_InvalidParentComment};
 
                 if (!IsEmpty(originalPtx->GetParentTxHash()))
                     if (!PocketDb::TransRepoInst.ExistsLast(origParentTxHash))
-                        return {false, SocialConsensusResult_InvalidParentComment};
+                        return {false, ConsensusResult_InvalidParentComment};
             }
 
             // Answer comment
@@ -60,11 +60,11 @@ namespace PocketConsensus
                 auto origAnswerTxHash = IsEmpty(originalPtx->GetString5()) ? "" : *originalPtx->GetAnswerTxHash();
 
                 if (currAnswerTxHash != origAnswerTxHash)
-                    return {false, SocialConsensusResult_InvalidAnswerComment};
+                    return {false, ConsensusResult_InvalidAnswerComment};
 
                 if (!IsEmpty(originalPtx->GetAnswerTxHash()))
                     if (!PocketDb::TransRepoInst.Exists(origAnswerTxHash))
-                        return {false, SocialConsensusResult_InvalidAnswerComment};
+                        return {false, ConsensusResult_InvalidAnswerComment};
             }
 
             // Check exists content transaction
@@ -72,7 +72,7 @@ namespace PocketConsensus
                 *ptx->GetPostTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE });
 
             if (!contentOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
             
             // Check author of comment
             if (auto[ok, result] = CheckAuthor(ptx, originalPtx, contentTx); !ok)
@@ -86,9 +86,9 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
-            if (ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, ConsensusResult_Failed};
+            if (ptx->GetPayload()) return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -106,7 +106,7 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<CommentDelete>(blockTx);
                 if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, SocialConsensusResult_DoubleCommentDelete};
+                    return {false, ConsensusResult_DoubleCommentDelete};
             }
 
             return Success;
@@ -114,7 +114,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const CommentDeleteRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_DoubleCommentDelete};
+                return {false, ConsensusResult_DoubleCommentDelete};
 
             return Success;
         }
@@ -137,7 +137,7 @@ namespace PocketConsensus
         ConsensusValidateResult CheckAuthor(const CommentDeleteRef& ptx, const CommentRef& originalPtx, const PTransactionRef& contentTx) override
         {
             if (*ptx->GetAddress() != *originalPtx->GetAddress() && *ptx->GetAddress() != *contentTx->GetString1())
-                return {false, SocialConsensusResult_ContentEditUnauthorized};
+                return {false, ConsensusResult_ContentEditUnauthorized};
             
             return Success;
         }

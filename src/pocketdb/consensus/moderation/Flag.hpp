@@ -33,7 +33,7 @@ namespace PocketConsensus
             // Only `Shark` account can flag content
             auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(Height);
             if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Shark)
-                return {false, SocialConsensusResult_LowReputation};
+                return {false, ConsensusResult_LowReputation};
 
             // Target transaction must be a exists and is a content and author should be equals ptx->GetContentAddressHash()
             if (!ConsensusRepoInst.ExistsNotDeleted(
@@ -41,7 +41,7 @@ namespace PocketConsensus
                 *ptx->GetContentAddressHash(),
                 { ACCOUNT_USER, CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
             ))
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             return Success;
         }
@@ -52,12 +52,12 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetContentAddressHash())) return {false, SocialConsensusResult_Failed};
-            if (*ptx->GetAddress() == *ptx->GetContentAddressHash()) return {false, SocialConsensusResult_SelfFlag};
-            if (IsEmpty(ptx->GetReason())) return {false, SocialConsensusResult_Failed};
-            if (*ptx->GetReason() < 1 || *ptx->GetReason() > GetConsensusLimit(moderation_flag_max_value)) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentTxHash())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentAddressHash())) return {false, ConsensusResult_Failed};
+            if (*ptx->GetAddress() == *ptx->GetContentAddressHash()) return {false, ConsensusResult_SelfFlag};
+            if (IsEmpty(ptx->GetReason())) return {false, ConsensusResult_Failed};
+            if (*ptx->GetReason() < 1 || *ptx->GetReason() > GetConsensusLimit(moderation_flag_max_value)) return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -68,7 +68,7 @@ namespace PocketConsensus
         {
             // Check flag from one to one
             if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0)
-                return {false, SocialConsensusResult_Duplicate};
+                return {false, ConsensusResult_Duplicate};
 
             // Count flags in chain
             int count = ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), Height - (int)GetConsensusLimit(ConsensusLimit_depth), false);
@@ -83,7 +83,7 @@ namespace PocketConsensus
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
                     if (*ptx->GetContentTxHash() == *blockPtx->GetContentTxHash())
-                        return {false, SocialConsensusResult_Duplicate};
+                        return {false, ConsensusResult_Duplicate};
                     else
                         count += 1;
                 }
@@ -97,7 +97,7 @@ namespace PocketConsensus
         {
             // Check flag from one to one
             if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), true) > 0)
-                return {false, SocialConsensusResult_Duplicate};
+                return {false, ConsensusResult_Duplicate};
 
             // Check limit
             return SocialConsensus::ValidateLimit(

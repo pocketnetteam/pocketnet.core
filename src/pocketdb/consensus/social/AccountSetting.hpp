@@ -37,11 +37,11 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
 
             // Check payload
-            if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPayloadData())) return {false, SocialConsensusResult_Failed};
+            if (!ptx->GetPayload()) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPayloadData())) return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -61,7 +61,7 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    return {false, SocialConsensusResult_AccountSettingsDouble};
+                    return {false, ConsensusResult_AccountSettingsDouble};
             }
 
             int count = GetChainCount(ptx);
@@ -70,7 +70,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const AccountSettingRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolAccountSetting(*ptx->GetAddress()) > 0)
-                return {false, SocialConsensusResult_AccountSettingsDouble};
+                return {false, ConsensusResult_AccountSettingsDouble};
 
             int count = GetChainCount(ptx);
             return ValidateLimit(ptx, count);
@@ -84,7 +84,7 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateLimit(const AccountSettingRef& ptx, int count)
         {
             if (count >= GetConsensusLimit(ConsensusLimit_account_settings_daily_count))
-                return {false, SocialConsensusResult_AccountSettingsLimit};
+                return {false, ConsensusResult_AccountSettingsLimit};
 
             return Success;
         }
@@ -98,7 +98,7 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidatePayloadSize(const AccountSettingRef& ptx)
         {
             if ((int64_t)ptx->GetPayloadData()->size() > GetConsensusLimit(ConsensusLimit_max_account_setting_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }

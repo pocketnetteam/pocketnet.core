@@ -27,24 +27,24 @@ namespace PocketConsensus
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
-            Result(SocialConsensusResult_Size, [&]() {
+            Result(ConsensusResult_Size, [&]() {
                 return CollectStringsSize(ptx) > (size_t)Limits.Get("payload_size");
             });
             
             // Lists must be <= max size
-            Result(SocialConsensusResult_Size, [&]() {
+            Result(ConsensusResult_Size, [&]() {
                 auto lst = ptx->GetPayloadTagsAddIds();
                 return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
             });
 
             // Lists must be <= max size
-            Result(SocialConsensusResult_Size, [&]() {
+            Result(ConsensusResult_Size, [&]() {
                 auto lst = ptx->GetPayloadTagsDelIds();
                 return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
             });
 
             // TODO (aok): remove when all consensus classes support Result
-            if (ResultCode != SocialConsensusResult_Success) return {false, ResultCode};
+            if (ResultCode != ConsensusResult_Success) return {false, ResultCode};
             
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -56,7 +56,7 @@ namespace PocketConsensus
 
             // Add or Del tags list must be exists and all elements must be numbers
             if (!ptx->GetPayloadTagsAddIds() && !ptx->GetPayloadTagsDelIds())
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -68,7 +68,7 @@ namespace PocketConsensus
             // Only one transaction change barteron account allowed in block
             auto blockPtxs = SocialConsensus::ExtractBlockPtxs(block, ptx, { BARTERON_ACCOUNT });
             if (blockPtxs.size() > 0)
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Success;
         }
@@ -95,7 +95,7 @@ namespace PocketConsensus
                 ExternalRepoInst.FinalizeSqlStatement(*stmt);
             });
 
-            return { !exists, SocialConsensusResult_ManyTransactions };
+            return { !exists, ConsensusResult_ManyTransactions };
         }
         
         size_t CollectStringsSize(const BarteronAccountRef& ptx) override

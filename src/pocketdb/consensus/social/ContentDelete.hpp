@@ -32,15 +32,15 @@ namespace PocketConsensus
             );
 
             if (!ok)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             if (*actuallTx->GetType() == TxType::CONTENT_DELETE)
-                return {false, SocialConsensusResult_ContentDeleteDouble};
+                return {false, ConsensusResult_ContentDeleteDouble};
 
             // TODO (aok): convert to Content base class
             // You are author? Really?
             if (*ptx->GetAddress() != *actuallTx->GetString1())
-                return {false, SocialConsensusResult_ContentDeleteUnauthorized};
+                return {false, ConsensusResult_ContentDeleteUnauthorized};
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -50,8 +50,8 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetRootTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetRootTxHash())) return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -69,7 +69,7 @@ namespace PocketConsensus
 
                 // TODO (aok): convert to content base class
                 if (*ptx->GetRootTxHash() == *blockTx->GetString2())
-                    return {false, SocialConsensusResult_ContentDeleteDouble};
+                    return {false, ConsensusResult_ContentDeleteDouble};
             }
 
             return Success;
@@ -77,7 +77,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const ContentDeleteRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolContentDelete(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_ContentDeleteDouble};
+                return {false, ConsensusResult_ContentDeleteDouble};
 
             return Success;
         }

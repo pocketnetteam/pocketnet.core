@@ -33,12 +33,12 @@ namespace PocketConsensus
                 { CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE }
             );
             if (!actuallTxOk || *actuallTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
-                return {false, SocialConsensusResult_CommentDeletedEdit};
+                return {false, ConsensusResult_CommentDeletedEdit};
 
             // Original comment exists
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
             if (!actuallTxOk || !originalTxOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<Comment>(originalTx);
 
@@ -52,13 +52,13 @@ namespace PocketConsensus
                 auto origParentTxHash = IsEmpty(originalPtx->GetParentTxHash()) ? "" : *originalPtx->GetParentTxHash();
 
                 if (currParentTxHash != origParentTxHash)
-                    return {false, SocialConsensusResult_InvalidParentComment};
+                    return {false, ConsensusResult_InvalidParentComment};
 
                 if (!origParentTxHash.empty())
                 {
                     if (auto[ok, origParentTx] = ConsensusRepoInst.GetLastContent(
                         origParentTxHash, { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }); !ok)
-                        return {false, SocialConsensusResult_InvalidParentComment};
+                        return {false, ConsensusResult_InvalidParentComment};
                 }
             }
 
@@ -68,35 +68,35 @@ namespace PocketConsensus
                 auto origAnswerTxHash = IsEmpty(originalPtx->GetAnswerTxHash()) ? "" : *originalPtx->GetAnswerTxHash();
 
                 if (currAnswerTxHash != origAnswerTxHash)
-                    return {false, SocialConsensusResult_InvalidAnswerComment};
+                    return {false, ConsensusResult_InvalidAnswerComment};
 
                 if (!origAnswerTxHash.empty())
                 {
                     if (auto[ok, origAnswerTx] = ConsensusRepoInst.GetLastContent(
                         origAnswerTxHash, { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }); !ok)
-                        return {false, SocialConsensusResult_InvalidAnswerComment};
+                        return {false, ConsensusResult_InvalidAnswerComment};
                 }
             }
 
             // Original comment edit only 24 hours
             if (!AllowEditWindow(ptx, originalPtx))
-                return {false, SocialConsensusResult_CommentEditLimit};
+                return {false, ConsensusResult_CommentEditLimit};
 
             // Check exists content transaction
             auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetPostTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE });
 
             if (!contentOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             if (*contentTx->GetType() == CONTENT_DELETE)
-                return {false, SocialConsensusResult_CommentDeletedContent};
+                return {false, ConsensusResult_CommentDeletedContent};
             
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                     *contentTx->GetString1(), *ptx->GetAddress()
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, SocialConsensusResult_Blocking};
+                return {false, ConsensusResult_Blocking};
 
             // Check payload size
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
@@ -114,15 +114,15 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetRootTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetRootTxHash())) return {false, ConsensusResult_Failed};
 
             // Maximum for message data
-            if (!ptx->GetPayload()) return {false, SocialConsensusResult_Size};
-            if (IsEmpty(ptx->GetPayloadMsg())) return {false, SocialConsensusResult_Size};
+            if (!ptx->GetPayload()) return {false, ConsensusResult_Size};
+            if (IsEmpty(ptx->GetPayloadMsg())) return {false, ConsensusResult_Size};
             if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > (size_t)GetConsensusLimit(ConsensusLimit_max_comment_size))
-                return {false, SocialConsensusResult_Size};
+                return {false, ConsensusResult_Size};
 
             return Success;
         }
@@ -141,7 +141,7 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<CommentEdit>(blockTx);
                 if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, SocialConsensusResult_DoubleCommentEdit};
+                    return {false, ConsensusResult_DoubleCommentEdit};
             }
 
             return Success;
@@ -149,7 +149,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const CommentEditRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_DoubleCommentEdit};
+                return {false, ConsensusResult_DoubleCommentEdit};
 
             return Success;
         }
@@ -166,7 +166,7 @@ namespace PocketConsensus
         {
             int count = ConsensusRepoInst.CountChainCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_comment_edit_count))
-                return {false, SocialConsensusResult_CommentEditLimit};
+                return {false, ConsensusResult_CommentEditLimit};
 
             return Success;
         }
@@ -175,7 +175,7 @@ namespace PocketConsensus
             int64_t dataSize = (ptx->GetPayloadMsg() ? HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).size() : 0);
 
             if (dataSize > GetConsensusLimit(ConsensusLimit_max_comment_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }
@@ -208,7 +208,7 @@ namespace PocketConsensus
         ConsensusValidateResult CheckAuthor(const CommentEditRef& ptx, const CommentRef& originalPtx) override
         {
             if (*ptx->GetAddress() != *originalPtx->GetAddress())
-                return {false, SocialConsensusResult_ContentEditUnauthorized};
+                return {false, ConsensusResult_ContentEditUnauthorized};
             
             return Success;
         }

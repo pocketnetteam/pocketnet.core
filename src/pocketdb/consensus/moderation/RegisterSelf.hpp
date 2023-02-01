@@ -28,7 +28,7 @@ namespace PocketConsensus
         {
             // Only `Whale` account can register moderator badge
             if (!badges.Whale)
-                return {false, SocialConsensusResult_LowReputation};
+                return {false, ConsensusResult_LowReputation};
 
             return ModeratorRegisterConsensus::Validate(tx, ptx, block);
         }
@@ -45,7 +45,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult EnableTransaction()
         {
-            return { false, SocialConsensusResult_NotAllowed };
+            return { false, ConsensusResult_NotAllowed };
         }
 
     };

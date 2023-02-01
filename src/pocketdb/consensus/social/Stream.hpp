@@ -41,10 +41,10 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
 
             // Repost not allowed
-            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
+            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, ConsensusResult_NotAllowed};
 
             return Success;
         }
@@ -120,26 +120,26 @@ namespace PocketConsensus
                     { CONTENT_POST, CONTENT_STREAM, CONTENT_DELETE }
             );
             if (lastContentOk && *lastContent->GetType() != CONTENT_STREAM)
-                return {false, SocialConsensusResult_NotAllowed};
+                return {false, ConsensusResult_NotAllowed};
 
             // First get original post transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
             if (!lastContentOk || !originalTxOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<Stream>(originalTx);
 
             // Change type not allowed
             if (*originalPtx->GetType() != *ptx->GetType())
-                return {false, SocialConsensusResult_NotAllowed};
+                return {false, ConsensusResult_NotAllowed};
 
             // You are author? Really?
             if (*ptx->GetAddress() != *originalPtx->GetAddress())
-                return {false, SocialConsensusResult_ContentEditUnauthorized};
+                return {false, ConsensusResult_ContentEditUnauthorized};
 
             // Original post edit only 24 hours
             if (!AllowEditWindow(ptx, originalPtx))
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, ConsensusResult_ContentEditLimit};
 
             return Success;
         }
@@ -152,7 +152,7 @@ namespace PocketConsensus
             auto limit = GetLimit(mode);
 
             if (count >= limit)
-                return {false, SocialConsensusResult_ContentLimit};
+                return {false, ConsensusResult_ContentLimit};
 
             return Success;
         }
@@ -179,7 +179,7 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, SocialConsensusResult_DoubleContentEdit};
+                    return {false, ConsensusResult_DoubleContentEdit};
             }
 
             // Check edit limit
@@ -189,7 +189,7 @@ namespace PocketConsensus
         {
 
             if (ConsensusRepoInst.CountMempoolStreamEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_DoubleContentEdit};
+                return {false, ConsensusResult_DoubleContentEdit};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
@@ -199,7 +199,7 @@ namespace PocketConsensus
 
             int count = ConsensusRepoInst.CountChainStreamEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_stream_edit_count))
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, ConsensusResult_ContentEditLimit};
 
             return Success;
         }
@@ -241,7 +241,7 @@ namespace PocketConsensus
             }
 
             if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_stream_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }

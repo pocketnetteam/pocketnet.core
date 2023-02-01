@@ -28,10 +28,10 @@ namespace PocketConsensus
         {
             // Only `Author` can invite moderators
             if (!reputationConsensus->GetBadges(*ptx->GetAddress()).Author)
-                return {false, SocialConsensusResult_LowReputation};
+                return {false, ConsensusResult_LowReputation};
 
             if (ConsensusRepoInst.Exists_LS1S2T(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }))
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             // TODO (moderation): implement check allowed requests count > 0
 
@@ -50,7 +50,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult EnableTransaction()
         {
-            return { false, SocialConsensusResult_NotAllowed };
+            return { false, ConsensusResult_NotAllowed };
         }
 
     };

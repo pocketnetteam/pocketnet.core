@@ -42,10 +42,10 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
 
             // Repost not allowed
-            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
+            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, ConsensusResult_NotAllowed};
 
             return Success;
         }
@@ -120,26 +120,26 @@ namespace PocketConsensus
                 { CONTENT_ARTICLE }
             );
             if (!lastContentOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             // First get original post transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
             if (!originalTxOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             const auto originalPtx = static_pointer_cast<Content>(originalTx);
 
             // Change type not allowed
             if (*originalPtx->GetType() != *ptx->GetType())
-                return {false, SocialConsensusResult_NotAllowed};
+                return {false, ConsensusResult_NotAllowed};
 
             // You are author? Really?
             if (*ptx->GetAddress() != *originalPtx->GetAddress())
-                return {false, SocialConsensusResult_ContentEditUnauthorized};
+                return {false, ConsensusResult_ContentEditUnauthorized};
 
             // Original post edit only 24 hours
             if (!AllowEditWindow(ptx, originalPtx))
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, ConsensusResult_ContentEditLimit};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
@@ -151,8 +151,8 @@ namespace PocketConsensus
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             if (count >= GetLimit(mode))
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ContentLimit))
-                    return {false, SocialConsensusResult_ContentLimit};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_ContentLimit))
+                    return {false, ConsensusResult_ContentLimit};
             }
 
             return Success;
@@ -187,7 +187,7 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, SocialConsensusResult_DoubleContentEdit};
+                    return {false, ConsensusResult_DoubleContentEdit};
             }
 
             // Check edit limit
@@ -196,7 +196,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateEditMempool(const ArticleRef& ptx)
         {
             if (ConsensusRepoInst.CountMempoolArticleEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_DoubleContentEdit};
+                return {false, ConsensusResult_DoubleContentEdit};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
@@ -205,7 +205,7 @@ namespace PocketConsensus
         {
             int count = ConsensusRepoInst.CountChainArticleEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_article_edit_count))
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, ConsensusResult_ContentEditLimit};
 
             return Success;
         }
@@ -239,7 +239,7 @@ namespace PocketConsensus
             }
 
             if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_article_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }

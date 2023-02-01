@@ -43,7 +43,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult EnableTransaction()
         {
-            return { false, SocialConsensusResult_NotAllowed };
+            return { false, ConsensusResult_NotAllowed };
         }
 
     };

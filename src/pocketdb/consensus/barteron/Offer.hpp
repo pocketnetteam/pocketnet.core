@@ -27,12 +27,12 @@ namespace PocketConsensus
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronOfferRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
-            Result(SocialConsensusResult_Size, [&]() {
+            Result(ConsensusResult_Size, [&]() {
                 return CollectStringsSize(ptx) > (size_t)Limits.Get("payload_size");
             });
 
             // Lists must be <= max size
-            Result(SocialConsensusResult_Size, [&]() {
+            Result(ConsensusResult_Size, [&]() {
                 auto lst = ptx->GetPayloadTagsIds();
                 return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
             });
@@ -50,7 +50,7 @@ namespace PocketConsensus
             // TODO (barteron): max count active offers
 
             // TODO (aok): remove when all consensus classes support Result
-            if (ResultCode != SocialConsensusResult_Success) return {false, ResultCode};
+            if (ResultCode != ConsensusResult_Success) return {false, ResultCode};
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -64,7 +64,7 @@ namespace PocketConsensus
 
             // Tags list must be exists and all elements must be numbers
             if (!ptx->GetPayloadTagsIds())
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -86,7 +86,7 @@ namespace PocketConsensus
             // Only one transaction change barteron offer allowed in block
             auto blockPtxs = SocialConsensus::ExtractBlockPtxs(block, ptx, { BARTERON_OFFER });
             if (blockPtxs.size() > 0)
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Success;
         }
@@ -113,7 +113,7 @@ namespace PocketConsensus
                 ExternalRepoInst.FinalizeSqlStatement(*stmt);
             });
 
-            return { !exists, SocialConsensusResult_ManyTransactions };
+            return { !exists, ConsensusResult_ManyTransactions };
         }
 
     };

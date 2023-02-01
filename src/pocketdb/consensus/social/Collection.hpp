@@ -42,24 +42,24 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetContentTypes())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetContentIds())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentTypes())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentIds())) return {false, ConsensusResult_Failed};
 
             if(auto[contentIdsOk, contentIds] = ptx->GetContentIdsVector(); !contentIdsOk)
             {
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
             }
             else
             {
                 // Check count of content ids
                 if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
-                   return {false, SocialConsensusResult_Failed};
+                   return {false, ConsensusResult_Failed};
 
                 // Contents should be exists in chain
                 auto[ok, lastContents] = PocketDb::ConsensusRepoInst.GetLastContents(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
                 if(!ok || lastContents.size() != contentIds.size())
-                    return {false, SocialConsensusResult_Failed};
+                    return {false, ConsensusResult_Failed};
             }
 
             return Success;
@@ -135,22 +135,22 @@ namespace PocketConsensus
                     { CONTENT_COLLECTION }
             );
             if (lastContentOk && *lastContent->GetType() != CONTENT_COLLECTION)
-                return {false, SocialConsensusResult_NotAllowed};
+                return {false, ConsensusResult_NotAllowed};
 
             // First get original collection transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
             if (!lastContentOk || !originalTxOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             const auto originalPtx = static_pointer_cast<Content>(originalTx);
 
             // Change type not allowed
             if (*originalTx->GetType() != *ptx->GetType())
-                return {false, SocialConsensusResult_NotAllowed};
+                return {false, ConsensusResult_NotAllowed};
 
             // You are author? Really?
             if (*ptx->GetAddress() != *originalPtx->GetAddress())
-                return {false, SocialConsensusResult_ContentEditUnauthorized};
+                return {false, ConsensusResult_ContentEditUnauthorized};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
@@ -162,8 +162,8 @@ namespace PocketConsensus
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             if (count >= GetLimit(mode))
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ContentLimit))
-                    return {false, SocialConsensusResult_ContentLimit};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_ContentLimit))
+                    return {false, ConsensusResult_ContentLimit};
             }
 
             return Success;
@@ -193,7 +193,7 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, SocialConsensusResult_DoubleContentEdit};
+                    return {false, ConsensusResult_DoubleContentEdit};
             }
 
             // Check edit limit
@@ -202,7 +202,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateEditMempool(const CollectionRef& ptx)
         {
             if (ConsensusRepoInst.CountMempoolCollectionEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_DoubleContentEdit};
+                return {false, ConsensusResult_DoubleContentEdit};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
@@ -211,7 +211,7 @@ namespace PocketConsensus
         {
             int count = ConsensusRepoInst.CountChainCollectionEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_collection_edit_count))
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, ConsensusResult_ContentEditLimit};
 
             return Success;
         }
@@ -227,7 +227,7 @@ namespace PocketConsensus
                 dataSize += ptx->GetRootTxHash()->size();
 
             if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_collection_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }

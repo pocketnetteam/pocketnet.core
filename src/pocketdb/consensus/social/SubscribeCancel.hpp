@@ -33,8 +33,8 @@ namespace PocketConsensus
 
             if (!subscribeExists || subscribeType == ACTION_SUBSCRIBE_CANCEL)
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_InvalideSubscribe))
-                    return {false, SocialConsensusResult_InvalideSubscribe};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_InvalideSubscribe))
+                    return {false, ConsensusResult_InvalideSubscribe};
             }
 
             return SocialConsensus::Validate(tx, ptx, block);
@@ -45,12 +45,12 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, ConsensusResult_Failed};
 
             // Blocking self
             if (*ptx->GetAddress() == *ptx->GetAddressTo())
-                return {false, SocialConsensusResult_SelfSubscribe};
+                return {false, ConsensusResult_SelfSubscribe};
 
             return Success;
         }
@@ -71,8 +71,8 @@ namespace PocketConsensus
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
                 {
-                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
-                        return {false, SocialConsensusResult_DoubleSubscribe};
+                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_DoubleSubscribe))
+                        return {false, ConsensusResult_DoubleSubscribe};
                 }
             }
 
@@ -86,7 +86,7 @@ namespace PocketConsensus
             );
 
             if (mempoolCount > 0)
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Success;
         }

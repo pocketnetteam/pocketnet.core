@@ -41,11 +41,11 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             if (!ptx->GetModeratorAddress() || (*ptx->GetModeratorAddress()).empty())
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             // TODO (moderation): or not?
             if (*ptx->GetAddress() != *ptx->GetModeratorAddress())
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Base::Success;
         }
@@ -67,7 +67,7 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<Moderator>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    return {false, SocialConsensusResult_ManyTransactions};
+                    return {false, ConsensusResult_ManyTransactions};
             }
 
             return Base::Success;
@@ -76,7 +76,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
             if (ConsensusRepoInst.Exists_MS1T(*ptx->GetAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN, MODERATOR_REQUEST_CANCEL }))
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Base::Success;
         }

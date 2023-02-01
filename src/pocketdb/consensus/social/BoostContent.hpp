@@ -28,10 +28,10 @@ namespace PocketConsensus
             // Check exists content transaction
             auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE });
             if (!contentOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             if (*contentTx->GetType() == CONTENT_DELETE)
-                return {false, SocialConsensusResult_CommentDeletedContent};
+                return {false, ConsensusResult_CommentDeletedContent};
 
             // Check Blocking
             if (auto[ok, result] = ValidateBlocking(*contentTx->GetString1(), ptx); !ok)
@@ -46,8 +46,8 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentTxHash())) return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -84,7 +84,7 @@ namespace PocketConsensus
         {
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                 contentAddress, *ptx->GetAddress()); existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, SocialConsensusResult_Blocking};
+                return {false, ConsensusResult_Blocking};
 
             return Success;
         }

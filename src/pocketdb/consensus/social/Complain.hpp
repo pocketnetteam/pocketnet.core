@@ -49,18 +49,18 @@ namespace PocketConsensus
                 }
             }
             if (!lastContent)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             // Complain to self
             if (*lastContent->GetString1() == *ptx->GetAddress())
-                return {false, SocialConsensusResult_SelfComplain};
+                return {false, ConsensusResult_SelfComplain};
 
             if (*lastContent->GetType() == CONTENT_DELETE)
-                return {false, SocialConsensusResult_ComplainDeletedContent};
+                return {false, ConsensusResult_ComplainDeletedContent};
 
             // Check double complain
             if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetPostTxHash(), *ptx->GetAddress(), false))
-                return {false, SocialConsensusResult_DoubleComplain};
+                return {false, ConsensusResult_DoubleComplain};
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -70,9 +70,9 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetReason())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetReason())) return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -99,8 +99,8 @@ namespace PocketConsensus
                     // Maybe in block
                     if (*ptx->GetPostTxHash() == *blockPtx->GetPostTxHash())
                     {
-                        if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleComplain))
-                            return {false, SocialConsensusResult_DoubleComplain};
+                        if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_DoubleComplain))
+                            return {false, ConsensusResult_DoubleComplain};
                     }
                 }
             }
@@ -111,7 +111,7 @@ namespace PocketConsensus
         {
             // Check double complain
             if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetPostTxHash(), *ptx->GetAddress(), true))
-                return {false, SocialConsensusResult_DoubleComplain};
+                return {false, ConsensusResult_DoubleComplain};
 
             int count = GetChainCount(ptx);
             count += ConsensusRepoInst.CountMempoolComplain(*ptx->GetAddress());
@@ -135,11 +135,11 @@ namespace PocketConsensus
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             if (count >= GetComplainsLimit(mode))
-                return {false, SocialConsensusResult_ComplainLimit};
+                return {false, ConsensusResult_ComplainLimit};
 
             auto minimumReputation = GetConsensusLimit(ConsensusLimit_threshold_reputation);
             if (reputation < minimumReputation)
-                return {false, SocialConsensusResult_ComplainLowReputation};
+                return {false, ConsensusResult_ComplainLowReputation};
 
             return Success;
         }

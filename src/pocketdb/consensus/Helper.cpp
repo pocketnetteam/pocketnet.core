@@ -29,14 +29,14 @@ namespace PocketConsensus
             }
         }
 
-        return {true, SocialConsensusResult_Success};
+        return {true, ConsensusResult_Success};
     }
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CTransactionRef& tx, const PTransactionRef& ptx, int height)
     {
         // Not double validate for already in DB
         if (TransRepoInst.Exists(*ptx->GetHash()))
-            return {true, SocialConsensusResult_Success};
+            return {true, ConsensusResult_Success};
 
         if (auto[ok, result] = validate(tx, ptx, nullptr, height); !ok)
         {
@@ -46,7 +46,7 @@ namespace PocketConsensus
             return {false, result};
         }
 
-        return {true, SocialConsensusResult_Success};
+        return {true, ConsensusResult_Success};
     }
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CTransactionRef& tx, const PTransactionRef& ptx, PocketBlockRef& pBlock, int height)
@@ -59,7 +59,7 @@ namespace PocketConsensus
             return {false, result};
         }
 
-        return {true, SocialConsensusResult_Success};
+        return {true, ConsensusResult_Success};
     }
 
     // Проверяет блок транзакций без привязки к цепи
@@ -68,9 +68,9 @@ namespace PocketConsensus
         if (!pBlock)
         {
             LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus check failed with result:%d for blk:%s at height:%d\n",
-                (int)SocialConsensusResult_PocketDataNotFound, block.GetHash().GetHex(), height);
+                (int)ConsensusResult_PocketDataNotFound, block.GetHash().GetHex(), height);
 
-            return {false, SocialConsensusResult_PocketDataNotFound};
+            return {false, ConsensusResult_PocketDataNotFound};
         }
 
         // Detect block type
@@ -95,9 +95,9 @@ namespace PocketConsensus
             if (it == pBlock->end())
             {
                 LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d check failed with result:%d for tx:%s in blk:%s at height:%d\n",
-                    (int)txType, (int)SocialConsensusResult_PocketDataNotFound, tx->GetHash().GetHex(), block.GetHash().GetHex(), height);
+                    (int)txType, (int)ConsensusResult_PocketDataNotFound, tx->GetHash().GetHex(), block.GetHash().GetHex(), height);
 
-                return {false, SocialConsensusResult_PocketDataNotFound};
+                return {false, ConsensusResult_PocketDataNotFound};
             }
 
             // Check founded payload
@@ -110,7 +110,7 @@ namespace PocketConsensus
             }
         }
 
-        return {true, SocialConsensusResult_Success};
+        return {true, ConsensusResult_Success};
     }
 
     // Проверяет транзакцию без привязки к цепи
@@ -124,7 +124,7 @@ namespace PocketConsensus
             return {false, result};
         }
 
-        return {true, SocialConsensusResult_Success};
+        return {true, ConsensusResult_Success};
     }
 
     // -----------------------------------------------------------------
@@ -132,7 +132,7 @@ namespace PocketConsensus
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::check(const CTransactionRef& tx, const PTransactionRef& ptx, int height)
     {
         if (!isConsensusable(*ptx->GetType()))
-            return {true, SocialConsensusResult_Success};
+            return {true, ConsensusResult_Success};
 
         // Check transactions with consensus logic
         switch (*ptx->GetType())
@@ -195,14 +195,14 @@ namespace PocketConsensus
                 return ConsensusFactoryInst_BarteronAccount.Instance(height)->Check(tx, static_pointer_cast<BarteronAccount>(ptx));
 
             default:
-                return {false, SocialConsensusResult_NotImplemeted};
+                return {false, ConsensusResult_NotImplemeted};
         }
     }
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::validate(const CTransactionRef& tx, const PTransactionRef& ptx, const PocketBlockRef& pBlock, int height)
     {
         if (!isConsensusable(*ptx->GetType()))
-            return {true, SocialConsensusResult_Success};
+            return {true, ConsensusResult_Success};
 
         // Validate transactions with consensus logic
         switch (*ptx->GetType())
@@ -265,7 +265,7 @@ namespace PocketConsensus
                 return ConsensusFactoryInst_BarteronAccount.Instance(height)->Validate(tx, static_pointer_cast<BarteronAccount>(ptx), pBlock);
 
             default:
-                return {false, SocialConsensusResult_NotImplemeted};
+                return {false, ConsensusResult_NotImplemeted};
         }
     }
 

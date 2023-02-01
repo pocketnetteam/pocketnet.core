@@ -33,7 +33,7 @@ namespace PocketConsensus
         // Validate transaction in block for miner & network full block sync
         virtual ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block)
         {
-            Result(SocialConsensusResult_NotRegistered, [&]()
+            Result(ConsensusResult_NotRegistered, [&]()
             {
                 // TODO (aok): optimize algorithm
                 // Account must be registered
@@ -56,7 +56,7 @@ namespace PocketConsensus
                                 {
                                     // TODO (brangr): delete - в один блок пусть с удалением пролазят - проверитЬ!
                                     // if (*blockTx->GetType() == ACCOUNT_DELETE)
-                                    //     return {false, SocialConsensusResult_AccountDeleted};
+                                    //     return {false, ConsensusResult_AccountDeleted};
 
                                     inBlock = true;
                                     break;
@@ -78,11 +78,11 @@ namespace PocketConsensus
             });
 
             // Check active account ban
-            Result(SocialConsensusResult_AccountBanned, [&]()
+            Result(ConsensusResult_AccountBanned, [&]()
             {
                 return PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height);
             });
-            if (ResultCode != SocialConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
+            if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
 
             // Check limits
             return ValidateLimits(ptx, block);
@@ -93,7 +93,7 @@ namespace PocketConsensus
         {
             // All social transactions must have an address
             if (IsEmpty(ptx->GetAddress()))
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
                 return {false, result};
@@ -118,7 +118,7 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateLimit(ConsensusLimit limit, int count)
         {
             if (count >= GetConsensusLimit(limit))
-                return {false, SocialConsensusResult_ExceededLimit};
+                return {false, ConsensusResult_ExceededLimit};
 
             return Success;
         }
@@ -132,7 +132,7 @@ namespace PocketConsensus
             if (ptxORHash != txORHash)
             {
                if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                   return {false, SocialConsensusResult_FailedOpReturn};
+                   return {false, ConsensusResult_FailedOpReturn};
             }
 
             return Success;

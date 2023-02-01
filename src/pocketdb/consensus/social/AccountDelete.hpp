@@ -29,7 +29,7 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             if (IsEmpty(ptx->GetAddress()))
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -49,7 +49,7 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<SocialTransaction>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    return {false, SocialConsensusResult_ManyTransactions};
+                    return {false, ConsensusResult_ManyTransactions};
             }
 
             return Success;
@@ -58,7 +58,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const AccountDeleteRef& ptx) override
         {
             if (ConsensusRepoInst.Exists_MS1T(*ptx->GetAddress(), { ACCOUNT_USER, ACCOUNT_DELETE }))
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Success;
         }
