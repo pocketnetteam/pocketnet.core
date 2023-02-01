@@ -5624,7 +5624,7 @@ namespace PocketDb
                     null,
                     null,
                     null,
-                    ps.String1,
+                    ps.String1
 
                 from Transactions s
 
