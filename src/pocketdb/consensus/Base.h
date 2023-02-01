@@ -782,6 +782,24 @@ namespace PocketConsensus
 
     protected:
         int Height = 0;
+        ConsensusValidateResult Success{ true, SocialConsensusResult_Success };
+        SocialConsensusResult ResultCode = SocialConsensusResult_Success;
+        
+        // Set result tuple if not already negative
+        // All checks if already negative skeeped
+        SocialConsensusResult Result(SocialConsensusResult result, const function<bool()>& func)
+        {
+            if (ResultCode != SocialConsensusResult_Success)
+                return ResultCode;
+
+            if (func())
+                ResultCode = result;
+
+            return ResultCode;
+        }
+    
+    private:
+        
     };
 
     /*********************************************************************************************/

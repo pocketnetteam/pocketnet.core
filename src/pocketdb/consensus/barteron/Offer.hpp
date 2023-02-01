@@ -21,27 +21,40 @@ namespace PocketConsensus
     public:
         BarteronOfferConsensus() : SocialConsensus<BarteronOffer>()
         {
-            // TODO (limits): set limits
+            Limits.Set("list_max_size", 10, 10, 5);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronOfferRef& ptx, const PocketBlockRef& block) override
         {
-            if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
-                return {false, code};
-
             // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
+            Result(SocialConsensusResult_Size, [&]() {
+                return CollectStringsSize(ptx) > (size_t)Limits.Get("payload_size");
+            });
+
+            // Lists must be <= max size
+            Result(SocialConsensusResult_Size, [&]() {
+                auto lst = ptx->GetPayloadTagsIds();
+                return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
+            });
 
             // TODO (barteron):
-            // if (ptx->IsEdit())
-            //     return ValidateEdit(ptx);
+            if (ptx->IsEdit())
+            {
+
+            }
+            else
+            {
+
+            }
 
             // TODO (barteron): max count active offers
 
-            return Success;
+            // TODO (aok): remove when all consensus classes support Result
+            if (ResultCode != SocialConsensusResult_Success) return {false, ResultCode};
+
+            return SocialConsensus::Validate(tx, ptx, block);
         }
-        
+
         ConsensusValidateResult Check(const CTransactionRef& tx, const BarteronOfferRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -49,55 +62,58 @@ namespace PocketConsensus
 
             // TODO (barteron): checks
 
+            // Tags list must be exists and all elements must be numbers
+            if (!ptx->GetPayloadTagsIds())
+                return {false, SocialConsensusResult_Failed};
+
             return Success;
         }
 
     protected:
+
+        ConsensusValidateResult ValidateNew(const BarteronOfferRef& ptx)
+        {
+
+        }
+
+        ConsensusValidateResult ValidateEdit(const BarteronOfferRef& ptx)
+        {
+
+        }
     
         ConsensusValidateResult ValidateBlock(const BarteronOfferRef& ptx, const PocketBlockRef& block) override
         {
-            // TODO (barteron): implement
-
-            // int count = GetChainCount(ptx);
-
-            // // Get count from block
-            // for (auto& blockTx : *block)
-            // {
-            //     if (!TransactionHelper::IsIn(*blockTx->GetType(), {BARTERON_OFFER}))
-            //         continue;
-
-            //     auto blockPtx = static_pointer_cast<BarteronOffer>(blockTx);
-
-            //     if (*ptx->GetAddress() != *blockPtx->GetAddress())
-            //         continue;
-
-            //     if (*blockPtx->GetHash() == *ptx->GetHash())
-            //         continue;
-
-            //     if (blockPtx->IsEdit())
-            //         continue;
-
-            //     count += 1;
-            // }
-
-            // return ValidateLimit(ptx, count);
+            // Only one transaction change barteron offer allowed in block
+            auto blockPtxs = SocialConsensus::ExtractBlockPtxs(block, ptx, { BARTERON_OFFER });
+            if (blockPtxs.size() > 0)
+                return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;
         }
 
         ConsensusValidateResult ValidateMempool(const BarteronOfferRef& ptx) override
         {
-            // TODO (barteron): implement
+            // Only one transaction change barteron offer allowed in mempool
+            bool exists = false;
 
-            // // Get count from chain
-            // int count = GetChainCount(ptx);
+            ExternalRepoInst.TryTransactionStep(__func__, [&]()
+            {
+                auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
+                    select
+                        1
+                    from
+                        Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
+                    where
+                        t.Type in (211) and
+                        t.String1 = ? and
+                        t.Height is null
+                )sql");
+                ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
+                exists = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
+                ExternalRepoInst.FinalizeSqlStatement(*stmt);
+            });
 
-            // // and from mempool
-            // count += ConsensusRepoInst.CountMempoolBarteronOffer(*ptx->GetAddress());
-
-            // return ValidateLimit(ptx, count);
-
-            return Success;
+            return { !exists, SocialConsensusResult_ManyTransactions };
         }
 
     };

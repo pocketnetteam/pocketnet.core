@@ -5,25 +5,23 @@
 #ifndef POCKETTX_BARTERON_ACCOUNT_H
 #define POCKETTX_BARTERON_ACCOUNT_H
 
-#include "pocketdb/models/base/SocialTransaction.h"
+#include "pocketdb/models/dto/barteron/List.h"
 
 namespace PocketTx
 {
     using namespace std;
 
-    class BarteronAccount : public SocialTransaction
+    class BarteronAccount : public BarteronList
     {
     public:
         BarteronAccount();
         BarteronAccount(const CTransactionRef& tx);
 
         optional<string> GetPayloadTagsAdd() const;
-        const optional<vector<int64_t>>& GetPayloadTagsAddIds() const;
+        const optional<vector<int64_t>> GetPayloadTagsAddIds() const;
 
         optional<string> GetPayloadTagsDel() const;
-        const optional<vector<int64_t>>& GetPayloadTagsDelIds() const;
-    private:
-        const optional<vector<int64_t>>& _parse_list(const optional<string>& list) const;
+        const optional<vector<int64_t>> GetPayloadTagsDelIds() const;
 
     };
 

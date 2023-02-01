@@ -5,22 +5,30 @@
 #ifndef POCKETTX_BARTERON_OFFER_H
 #define POCKETTX_BARTERON_OFFER_H
 
-#include "pocketdb/models/dto/content/Content.h"
+#include "pocketdb/models/dto/barteron/List.h"
 
 namespace PocketTx
 {
     using namespace std;
 
-    class BarteronOffer : public Content
+    class BarteronOffer : public BarteronList
     {
     public:
         BarteronOffer();
         BarteronOffer(const CTransactionRef& tx);
 
+        const optional<string>& GetRootTxHash() const;
+        void SetRootTxHash(const string& value);
+        
+        bool IsEdit() const;
+
         optional<string> GetPayloadLang() const;
         optional<string> GetPayloadCaption() const;
         optional<string> GetPayloadMessage() const;
+        
         optional<string> GetPayloadTags() const;
+        const optional<vector<int64_t>> GetPayloadTagsIds() const;
+
         optional<string> GetPayloadImages() const;
         optional<string> GetPayloadSettings() const;
     };

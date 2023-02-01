@@ -21,8 +21,6 @@ namespace PocketConsensus
     using namespace PocketDb;
     using PocketTx::TxType;
 
-    
-
     template<class T>
     class SocialConsensus : public BaseConsensus
     {
@@ -35,54 +33,56 @@ namespace PocketConsensus
         // Validate transaction in block for miner & network full block sync
         virtual ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block)
         {
-            // TODO (aok): optimize algorithm
-            // Account must be registered
-            vector<string> addressesForCheck;
-            vector<string> addresses = GetAddressesForCheckRegistration(ptx);
-            if (!addresses.empty())
+            Result(SocialConsensusResult_NotRegistered, [&]()
             {
-                // First check block - maybe user registration this?
-                if (block)
+                // TODO (aok): optimize algorithm
+                // Account must be registered
+                vector<string> addressesForCheck;
+                vector<string> addresses = GetAddressesForCheckRegistration(ptx);
+                if (!addresses.empty())
                 {
-                    for (const string& address : addresses)
+                    // First check block - maybe user registration this?
+                    if (block)
                     {
-                        bool inBlock = false;
-                        for (auto& blockTx: *block)
+                        for (const string& address : addresses)
                         {
-                            if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
-                                continue;
-
-                            if (*blockTx->GetString1() == address)
+                            bool inBlock = false;
+                            for (auto& blockTx: *block)
                             {
-                                // TODO (brangr): delete - в один блок пусть с удалением пролазят - проверитЬ!
-                                // if (*blockTx->GetType() == ACCOUNT_DELETE)
-                                //     return {false, SocialConsensusResult_AccountDeleted};
+                                if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
+                                    continue;
 
-                                inBlock = true;
-                                break;
+                                if (*blockTx->GetString1() == address)
+                                {
+                                    // TODO (brangr): delete - в один блок пусть с удалением пролазят - проверитЬ!
+                                    // if (*blockTx->GetType() == ACCOUNT_DELETE)
+                                    //     return {false, SocialConsensusResult_AccountDeleted};
+
+                                    inBlock = true;
+                                    break;
+                                }
                             }
-                        }
 
-                        if (!inBlock)
-                            addressesForCheck.push_back(address);
+                            if (!inBlock)
+                                addressesForCheck.push_back(address);
+                        }
+                    }
+                    else
+                    {
+                        addressesForCheck = addresses;
                     }
                 }
-                else
-                {
-                    addressesForCheck = addresses;
-                }
-
-                // TODO (moderation): !! extend ExistsUserRegistrations for detect BAN
 
                 // Check registrations in DB
-                if (!addressesForCheck.empty() &&
-                    !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck))
-                    return {false, SocialConsensusResult_NotRegistered};
-            }
+                return (!addressesForCheck.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck));
+            });
 
             // Check active account ban
-            if (PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height))
-                return {false, SocialConsensusResult_AccountBanned};
+            Result(SocialConsensusResult_AccountBanned, [&]()
+            {
+                return PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height);
+            });
+            if (ResultCode != SocialConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
 
             // Check limits
             return ValidateLimits(ptx, block);
@@ -102,7 +102,6 @@ namespace PocketConsensus
         }
 
     protected:
-        ConsensusValidateResult Success{true, SocialConsensusResult_Success};
 
         virtual ConsensusValidateResult ValidateLimits(const shared_ptr<T>& ptx, const PocketBlockRef& block)
         {
@@ -168,15 +167,6 @@ namespace PocketConsensus
             }
 
             return dataSize;
-        }
-
-        // Validate maximum transaction payload size
-        virtual ConsensusValidateResult ValidatePayloadSize(const shared_ptr<T>& ptx)
-        {
-            if (CollectStringsSize(ptx) > (size_t)Limits.Get("payload_size"))
-                return {false, SocialConsensusResult_ContentSizeLimit};
-
-            return Success;
         }
 
         // Find transactions in block

@@ -27,14 +27,24 @@ namespace PocketConsensus
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
+            Result(SocialConsensusResult_Size, [&]() {
+                return CollectStringsSize(ptx) > (size_t)Limits.Get("payload_size");
+            });
             
             // Lists must be <= max size
-            if (auto lst = ptx->GetPayloadTagsAddIds(); lst && lst.size() > (size_t)Limits.Get("list_max_size"))
-                return {false, SocialConsensusResult_Size};
-            if (auto lst = ptx->GetPayloadTagsDelIds(); lst && lst.size() > (size_t)Limits.Get("list_max_size"))
-                return {false, SocialConsensusResult_Size};
+            Result(SocialConsensusResult_Size, [&]() {
+                auto lst = ptx->GetPayloadTagsAddIds();
+                return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
+            });
+
+            // Lists must be <= max size
+            Result(SocialConsensusResult_Size, [&]() {
+                auto lst = ptx->GetPayloadTagsDelIds();
+                return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
+            });
+
+            // TODO (aok): remove when all consensus classes support Result
+            if (ResultCode != SocialConsensusResult_Success) return {false, ResultCode};
             
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -76,7 +86,7 @@ namespace PocketConsensus
                     from
                         Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
                     where
-                        t.Type = 104 and
+                        t.Type in (104) and
                         t.String1 = ? and
                         t.Height is null
                 )sql");

@@ -9,13 +9,12 @@
 
 namespace PocketTx
 {
-    using namespace std;
-
     class Content : public SocialTransaction
     {
     public:
         Content();
         Content(const CTransactionRef& tx);
+        virtual ~Content() = 0;
 
         const optional<string>& GetAddress() const;
         void SetAddress(const string& value);

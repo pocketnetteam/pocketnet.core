@@ -7,20 +7,28 @@
 
 namespace PocketTx
 {
-    BarteronOffer::BarteronOffer() : Content()
+    BarteronOffer::BarteronOffer() : BarteronList()
     {
         SetType(TxType::BARTERON_OFFER);
     }
 
-    BarteronOffer::BarteronOffer(const CTransactionRef& tx) : Content(tx)
+    BarteronOffer::BarteronOffer(const CTransactionRef& tx) : BarteronList(tx)
     {
         SetType(TxType::BARTERON_OFFER);
     }
+
+    const optional<string>& BarteronOffer::GetRootTxHash() const { return m_string2; }
+    void BarteronOffer::SetRootTxHash(const string& value) { m_string2 = value; }
+
+    bool BarteronOffer::IsEdit() const { return m_string2 != m_hash; }
 
     optional<string> BarteronOffer::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullopt; }
     optional<string> BarteronOffer::GetPayloadCaption() const { return GetPayload() ? GetPayload()->GetString2() : nullopt; }
     optional<string> BarteronOffer::GetPayloadMessage() const { return GetPayload() ? GetPayload()->GetString3() : nullopt; }
+
     optional<string> BarteronOffer::GetPayloadTags() const { return GetPayload() ? GetPayload()->GetString4() : nullopt; }
+    const optional<vector<int64_t>> BarteronOffer::GetPayloadTagsIds() const { return ParseList(GetPayloadTags()); }
+
     optional<string> BarteronOffer::GetPayloadImages() const { return GetPayload() ? GetPayload()->GetString5() : nullopt; }
     optional<string> BarteronOffer::GetPayloadSettings() const { return GetPayload() ? GetPayload()->GetString6() : nullopt; }
 
