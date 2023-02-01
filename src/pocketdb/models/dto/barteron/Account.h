@@ -18,7 +18,13 @@ namespace PocketTx
         BarteronAccount(const CTransactionRef& tx);
 
         optional<string> GetPayloadTagsAdd() const;
+        const optional<vector<int64_t>>& GetPayloadTagsAddIds() const;
+
         optional<string> GetPayloadTagsDel() const;
+        const optional<vector<int64_t>>& GetPayloadTagsDelIds() const;
+    private:
+        const optional<vector<int64_t>>& _parse_list(const optional<string>& list) const;
+
     };
 
 } // namespace PocketTx

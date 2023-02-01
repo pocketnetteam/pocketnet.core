@@ -30,10 +30,12 @@ namespace PocketConsensus
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
             
-            // TODO (barteron): implement validate lists size
-
+            // Lists must be <= max size
+            if (auto lst = ptx->GetPayloadTagsAddIds(); lst && lst.size() > (size_t)Limits.Get("list_max_size"))
+                return {false, SocialConsensusResult_Size};
+            if (auto lst = ptx->GetPayloadTagsDelIds(); lst && lst.size() > (size_t)Limits.Get("list_max_size"))
+                return {false, SocialConsensusResult_Size};
             
-
             return SocialConsensus::Validate(tx, ptx, block);
         }
 
@@ -42,11 +44,9 @@ namespace PocketConsensus
             if (auto[ok, code] = SocialConsensus::Check(tx, ptx); !ok)
                 return {false, code};
 
-            // Add or Del tags list must be exists
-            if (IsEmpty(ptx->GetPayloadTagsAdd()) && IsEmpty(ptx->GetPayloadTagsDel()))
+            // Add or Del tags list must be exists and all elements must be numbers
+            if (!ptx->GetPayloadTagsAddIds() && !ptx->GetPayloadTagsDelIds())
                 return {false, SocialConsensusResult_Failed};
-
-            // TODO (barteron) : parse and check all elements is numbers
 
             return Success;
         }
