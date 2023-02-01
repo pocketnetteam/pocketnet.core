@@ -5532,7 +5532,7 @@ namespace PocketDb
                     cs.TxId = s.RowId
                     and cs.Height = ?
 
-                join Transactions c on
+                join Transactions c indexed by Transactions_Type_RegId2 on
                     c.Type in (204,205) and
                     c.RegId2 = s.RegId2 and
                     exists (select 1 from Last lc where lc.TxId = c.RowId)
@@ -5635,7 +5635,7 @@ namespace PocketDb
                     cs.TxId = s.RowId
                     and cs.Height = ?
 
-                join Transactions c on
+                join Transactions c indexed by Transactions_Type_RegId2 on
                     c.Type in (200,201,202,209,210) and
                     c.RegId2 = s.RegId2 and
                     exists (select 1 from Last lc where lc.TxId = c.RowId)
