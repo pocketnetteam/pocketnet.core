@@ -403,49 +403,37 @@ class ModVotePayload:
 # -----------------------------------------------------------------------------------------------------------------
 
 @dataclass
-class BartAccountPayload:
-    TxType = '6272746163636f756e74'
+class Payload:
+    s1: str = None
+    s2: str = None
+    s3: str = None
+    s4: str = None
+    s5: str = None
+    s6: str = None
+    s7: str = None
+    i1: int = None
 
-    tags_add: List[int] = []
-    tags_del: List[int] = []
-
+@dataclass
+class Transaction:
+    s1: str = None
+    s2: str = None
+    s3: str = None
+    s4: str = None
+    s5: str = None
+    i1: int = None
+    p: Payload = None
     def Serialize(self):
-        return {
-            's4': self.tags_add,
-            's5': self.tags_del,
-        }
+        return asdict(self)
 
 # -----------------------------------------------------------------------------------------------------------------
 
 @dataclass
-class BartOfferPayload:
+class BartAccountPayload(Transaction):
+    TxType = '6272746163636f756e74'
+
+@dataclass
+class BartOfferPayload(Transaction):
     TxType = '6272746f66666572'
-
-    s2: str = ''
-    s3: str = ''
-    s4: str = ''
-    s5: str = ''
-    i1: int = 0
-
-    ps1: str = ''
-    ps2: str = ''
-    ps3: str = ''
-    ps4: str = ''
-    ps5: str = ''
-    ps6: str = ''
-
-    def Serialize(self):
-        return {
-            's2': self.s2,
-            'p': {
-                's1': self.ps1,
-                's2': self.ps2,
-                's3': self.ps3,
-                's4': self.ps4,
-                's5': self.ps5,
-                's6': self.ps6
-            },
-        }
 
 # -----------------------------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------
