@@ -11,13 +11,30 @@ namespace PocketDb
         vector<WebTag> result;
 
         string sql = R"sql(
-            select distinct p.Id, pp.String1, json_each.value
-            from Transactions p indexed by Transactions_BlockHash
-            join Payload pp on pp.TxHash = p.Hash
+            select distinct
+                c.Uid,
+                pp.String1,
+                json_each.value
+
+            from Transactions p
+
+            join Payload pp on
+                pp.TxId = p.RowId
+
             join json_each(pp.String4)
-            where p.Type in (200, 201, 202, 209, 210)
-              and p.Last = 1
-              and p.BlockHash = ?
+
+            join Chain c on
+                c.TxId = p.RowId
+
+            join Last l on
+                l.TxId = p.RowId
+
+            join Registry r on
+                r.RowId = c.BlockId and
+                r.String = ?
+
+            where
+                p.Type in (200, 201, 202, 209, 210)
         )sql";
 
         SqlTransaction(__func__, [&]()
@@ -96,7 +113,7 @@ namespace PocketDb
         string sql = R"sql(
             select
                 t.Type,
-                t.Id,
+                c.Uid,
                 p.String1,
                 p.String2,
                 p.String3,
@@ -104,10 +121,20 @@ namespace PocketDb
                 p.String5,
                 p.String6,
                 p.String7
-            from Transactions t indexed by Transactions_BlockHash
-            join Payload p on p.TxHash = t.Hash
-            where t.BlockHash = ?
-              and t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
+
+            from Transactions t
+
+            join Payload p on
+                p.TxId = t.RowId
+
+            join Chain c on
+                c.TxId = p.RowId
+
+            join Registry r on
+                r.RowId = c.BlockId and
+                r.String = ?
+            where
+                t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
        )sql";
        
        SqlTransaction(__func__, [&]()
@@ -279,19 +306,25 @@ namespace PocketDb
             // Clear old Last record
             Sql(R"sql(
                 insert into web.Badges (AccountId, Badge)
-                select uc.Uid, 1
-                from Transactions u
-                join Chain uc
-                    on uc.TxId = u.RowId
-                    and uc.BlockId > 0 -- tx is in block (analog Height>0)
-                join Last ul
-                    on ul.TxId = u.RowId
-                where u.Type in (100)
-                  and ifnull((select sum(r.Value) from Ratings r where r.Type in (111,112,113) and r.Last = 1 and r.Uid = uc.Uid),0) >= ?
-                  and ifnull((select r.Value from Ratings r where r.Type = 111 and r.Last = 1 and r.Uid = uc.Uid),0) >= ?
-                  and ifnull((select r.Value from Ratings r where r.Type = 112 and r.Last = 1 and r.Uid = uc.Uid),0) >= ?
-                  and ifnull((select r.Value from Ratings r where r.Type = 113 and r.Last = 1 and r.Uid = uc.Uid),0) >= ?
-                  and ? - (select min(reg1.Height) from Chain reg1 where reg1.Uid = uc.Uid) > ?
+
+                select
+                    cu.Uid, 1
+
+                from Transactions u indexed by Transactions_Type_Last_Height_Id
+
+                join Chain cu on
+                    cu.TxId = u.RowId
+
+                join Last l on
+                    l.TxId = u.RowId
+
+                where
+                    u.Type in (100) and
+                    ifnull((select sum(r.Value) from Ratings r where r.Type in (111,112,113) and r.Last = 1 and r.Uid = cu.Uid),0) >= ? and
+                    ifnull((select r.Value from Ratings r where r.Type = 111 and r.Last = 1 and r.Uid = cu.Uid),0) >= ? and
+                    ifnull((select r.Value from Ratings r where r.Type = 112 and r.Last = 1 and r.Uid = cu.Uid),0) >= ? and
+                    ifnull((select r.Value from Ratings r where r.Type = 113 and r.Last = 1 and r.Uid = cu.Uid),0) >= ? and
+                    ? - (select min(reg1.Height) from Chain reg1 where reg1.Uid = cu.Uid) > ?
             )sql")
             .Bind(cond.LikersAll, cond.LikersContent, cond.LikersComment, cond.LikersAnswer, cond.Height, cond.RegistrationDepth)
             .Run();
@@ -310,39 +343,45 @@ namespace PocketDb
             // Clear old Last record
             Sql(R"sql(
                 insert into web.Authors (AccountId, SharkCommented)
-          
+
                 select
-          
-                  pu.Id,
-                  count( distinct u.Id )
-          
-                from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
-          
-                cross join Transactions c indexed by Transactions_Type_Last_String3_Height
-                  on  c.Type in (204, 205)
-                  and c.Last = 1
-                  and c.String3 = p.String2
-                  and c.Height is not null
-          
-                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                  on u.Type in (100)
-                  and u.Last = 1
-                  and u.String1 = c.String1
-                  and u.Height is not null
-          
-                cross join web.Badges b on b.AccountId = u.Id and b.Badge = 1
-          
-                cross join Transactions pu indexed by Transactions_Type_Last_String1_Height_Id
-                  on  pu.Type in (100)
-                  and pu.Last = 1
-                  and pu.String1 = p.String1
-                  and pu.Height is not null
-          
-                where p.Type in (200,201,202,209,210)
-                  and p.Last = 1
-                  and p.Height is not null
-          
-                group by pu.Id
+
+                  cpu.Uid,
+                  count( distinct cu.Uid )
+
+                from Transactions p
+
+                join Last l on
+                    l.TxId = p.RowId
+
+                cross join Transactions c on
+                    c.Type in (204, 205) and
+                    c.RegId3 = p.RegId2 and
+                    exists (select 1 from Last lc where lc.TxId = c.RowId)
+
+                cross join Transactions u on
+                    u.Type in (100) and
+                    u.RegId1 = c.RegId1 and
+                    exists (select 1 from Last lu where lu.TxId = u.RowId)
+
+                join Chain cu on
+                    cu.TxId = u.RowId
+
+                cross join web.Badges b on b.AccountId = cu.Uid and b.Badge = 1
+
+                cross join Transactions pu on
+                    pu.Type in (100) and
+                    pu.RegId1 = p.RegId1 and
+                    exists (select 1 from Last lpu where lpu.TxId = pu.RowId)
+
+                join Chain cpu on
+                    cpu.TxId = pu.RowId
+
+                where
+                    p.Type in (200,201,202,209,210)
+
+                group by
+                    cpu.Uid
             )sql").Run();
         });
     }
