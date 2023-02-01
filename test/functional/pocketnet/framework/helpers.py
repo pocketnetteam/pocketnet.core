@@ -2,9 +2,12 @@
 # Distributed under the Apache 2.0 software license, see the accompanying
 # https://www.apache.org/licenses/LICENSE-2.0
 
+import random
+
 from framework.models import (
     Account,
     AccountPayload,
+    BlockingPayload,
     BoostPayload,
     CommentPayload,
     ContentPostPayload,
@@ -12,6 +15,9 @@ from framework.models import (
     ContentArticlePayload,
     ContentStreamPayload,
     ContentAudioPayload,
+    ScoreCommentPayload,
+    ScoreContentPayload,
+    SubscribePayload,
 )
 
 
@@ -47,6 +53,7 @@ def generate_posts(node, account):
 def boost_post(node, account, post_id):
     pub_gen_tx = node.public().generatetransaction
     pub_gen_tx(account, BoostPayload(post_id))
+    node.stakeblock(1)
 
 
 def generate_comments(node, account1, account2):
@@ -56,6 +63,34 @@ def generate_comments(node, account1, account2):
         account2.comment.append(comment_id)
         answer_id = pub_gen_tx(account1, CommentPayload(post_id, comment_id))
         account1.comment.append(answer_id)
+    node.stakeblock(1)
+
+
+def generate_likes(node, account1, account2):
+    pub_gen_tx = node.public().generatetransaction
+    for post_id in account1.content:
+        score = random.randint(3, 5)
+        pub_gen_tx(account2, ScoreContentPayload(post_id, score, account1.Address))
+
+    for comment_id in account1.comment:
+        score = random.randint(0, 1)
+        pub_gen_tx(account2, ScoreCommentPayload(comment_id, score, account1.Address))
+
+    node.stakeblock(1)
+
+
+def generate_subscription(node, account1, account2):
+    pub_gen_tx = node.public().generatetransaction
+    account1.subscribes.append(account2.Address)
+    pub_gen_tx(account1, SubscribePayload(account2.Address))
+    node.stakeblock(1)
+
+
+def generate_account_blockings(node, account1, account2):
+    pub_gen_tx = node.public().generatetransaction
+    account1.blockings.append(account2.Address)
+    pub_gen_tx(account1, BlockingPayload(account2.Address))
+    node.stakeblock(1)
 
 
 def register_accounts(node, accounts, out_count=50, confirmations=0):

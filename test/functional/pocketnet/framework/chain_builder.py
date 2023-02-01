@@ -7,9 +7,12 @@ import random
 
 from framework.helpers import (
     boost_post,
+    generate_account_blockings,
     generate_accounts,
     generate_comments,
+    generate_likes,
     generate_posts,
+    generate_subscription,
     register_accounts,
 )
 
@@ -23,8 +26,8 @@ class ChainBuilder:
         self.log = logger or logging.getLogger("ChainBuilder")
         self.log.setLevel(logging.DEBUG)
 
-    def build(self):
-        self.build()
+    def build_full(self):
+        self.build_init()
         self.register_accounts()
         # self.generate_transfers()
         self.generate_posts()
@@ -32,24 +35,24 @@ class ChainBuilder:
         self.generate_comments()
         self.generate_likes()
         self.generate_subscriptions()
-        self.generate_blacklists()
+        self.generate_accounts_blockings()
 
     def build_init(self):
         self.log.info("Generate general node address")
-        node_address = self._node.getnewaddress()
+        self._node_address = self._node.getnewaddress()
 
         self.log.info(f"Generate first coinbase {self.FIRST_COINBASE_BLOCKS} blocks")
-        self._node.generatetoaddress(self.FIRST_COINBASE_BLOCKS, node_address)
+        self._node.generatetoaddress(self.FIRST_COINBASE_BLOCKS, self.node_address)
 
-        info = self._node.public().getaddressinfo(node_address)
+        info = self._node.public().getaddressinfo(self.node_address)
         self.log.info(f"Node balance: {info}")
 
         self.log.info(f"Generate {self.ACCOUNT_NUM} account addresses")
-        self._accounts = generate_accounts(self._node, node_address, self.ACCOUNT_NUM)
+        self._accounts = generate_accounts(self._node, self.node_address, self.ACCOUNT_NUM)
 
         self.log.info(f"Generate {self.ACCOUNT_NUM} moderator addresses")
         self._moders = generate_accounts(
-            self._node, node_address, self.ACCOUNT_NUM, is_moderator=True
+            self._node, self.node_address, self.ACCOUNT_NUM, is_moderator=True
         )
 
     def register_accounts(self):
@@ -82,15 +85,22 @@ class ChainBuilder:
 
     def generate_likes(self):
         self.log.info("Generate posts and comments likes")
+        for _ in range(len(self.accounts)):
+            acc1 = random.choice(self.accounts)
+            acc2 = random.choice([acc for acc in self.accounts if acc != acc1])
+            generate_likes(self._node, acc1, acc2)
 
     def generate_subscriptions(self):
         self.log.info("Generate account subscriptions")
+        for _ in range(len(self.accounts)):
+            acc1, acc2 = random.sample(self.accounts, 2)
+            generate_subscription(self._node, acc1, acc2)
 
-    def generate_blacklists(self):
+    def generate_accounts_blockings(self):
         self.log.info("Generate accounts blacklists")
-
-    def pub_gen_tx(self, *args, **kwargs):
-        return self._node.public().generatetransaction(*args, **kwargs)
+        for _ in range(len(self.accounts)):
+            acc1, acc2 = random.sample(self.accounts, 2)
+            generate_account_blockings(self._node, acc1, acc2)
 
     @property
     def accounts(self):
@@ -99,3 +109,7 @@ class ChainBuilder:
     @property
     def moderators(self):
         return self._moders
+
+    @property
+    def node_address(self):
+        return self._node_address
