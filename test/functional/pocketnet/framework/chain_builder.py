@@ -49,7 +49,9 @@ class ChainBuilder:
         self.log.info(f"Node balance: {info}")
 
         self.log.info(f"Generate {self.ACCOUNT_NUM} account addresses")
-        self._accounts = generate_accounts(self._node, self.node_address, self.ACCOUNT_NUM)
+        self._accounts = generate_accounts(
+            self._node, self.node_address, self.ACCOUNT_NUM
+        )
 
         self.log.info(f"Generate {self.ACCOUNT_NUM} moderator addresses")
         self._moders = generate_accounts(
