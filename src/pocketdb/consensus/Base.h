@@ -571,12 +571,6 @@ namespace PocketConsensus
 //            { NetworkTest, { {0, 100} } },
 //            { NetworkRegTest, { {0, 100} } }
 //        } },
-        
-        { ConsensusLimit_moderation_flag_count, {
-            { NetworkMain, { {0, 30} }},
-            { NetworkTest, { {0, 100} }},
-            { NetworkRegTest, { {0, 100} }}
-        }},
 
         { ConsensusLimit_post_edit_count, {
             { NetworkMain,    { {0, 5} } },
