@@ -22,6 +22,7 @@ namespace PocketConsensus
         BarteronOfferConsensus() : SocialConsensus<BarteronOffer>()
         {
             Limits.Set("list_max_size", 10, 10, 5);
+            Limits.Set("max_active_count", 30, 10, 5);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronOfferRef& ptx, const PocketBlockRef& block) override
@@ -37,17 +38,11 @@ namespace PocketConsensus
                 return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
             });
 
-            // TODO (barteron):
+            // Validate new or edited transaction
             if (ptx->IsEdit())
-            {
-
-            }
+                ValidateEdit(ptx);
             else
-            {
-
-            }
-
-            // TODO (barteron): max count active offers
+                ValidateNew(ptx);
 
             // TODO (aok): remove when all consensus classes support Result
             if (ResultCode != ConsensusResult_Success) return {false, ResultCode};
@@ -60,60 +55,118 @@ namespace PocketConsensus
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
-            // TODO (barteron): checks
-
             // Tags list must be exists and all elements must be numbers
-            if (!ptx->GetPayloadTagsIds())
-                return {false, ConsensusResult_Failed};
+            Result(ConsensusResult_Failed, [&]() {
+                return !ptx->GetPayloadTagsIds();
+            });
 
-            return Success;
+            return {ResultCode == ConsensusResult_Success, ResultCode};
         }
 
     protected:
 
-        ConsensusValidateResult ValidateNew(const BarteronOfferRef& ptx)
+        void ValidateNew(const BarteronOfferRef& ptx)
         {
+            // Allowed only N active offers per account
+            Result(ConsensusResult_ExceededLimit, [&]() {
+                int count = 0;
 
+                ExternalRepoInst.TryTransactionStep(__func__, [&]()
+                {
+                    auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
+                        select
+                            count()
+                        from
+                            Transactions t indexed by Transactions_Type_Last_String1_Height_Id
+                        where
+                            t.Type in (211) and
+                            t.Last = 1 and
+                            t.String1 = ? and
+                            t.Height is not null
+                    )sql");
+                    ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
+
+                    if (ExternalRepoInst.Step(stmt) == SQLITE_ROW)
+                        if (auto[ok, value] = ExternalRepoInst.TryGetColumnInt(*stmt, 0); ok)
+                            count = value;
+
+                    ExternalRepoInst.FinalizeSqlStatement(*stmt);
+                });
+
+                return (count >= Limits.Get("max_active_count"));
+            });
         }
 
-        ConsensusValidateResult ValidateEdit(const BarteronOfferRef& ptx)
+        void ValidateEdit(const BarteronOfferRef& ptx)
         {
+            // Edited transaction must be same type and not deleted
+            Result(ConsensusResult_ExceededLimit, [&]() {
+                bool allow = true;
 
+                ExternalRepoInst.TryTransactionStep(__func__, [&]()
+                {
+                    auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
+                        select
+                            1
+                        from
+                            Transactions t indexed by Transactions_Type_Last_String1_String2_Height
+                        where
+                            t.Type in (211) and
+                            t.Last = 1 and
+                            t.String1 = ? and
+                            t.String2 = ? and
+                            t.Height is not null
+                    )sql");
+                    ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
+                    ExternalRepoInst.TryBindStatementText(stmt, 2, *ptx->GetRootTxHash());
+
+                    allow = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
+
+                    ExternalRepoInst.FinalizeSqlStatement(*stmt);
+                });
+
+                return allow;
+            });
         }
     
         ConsensusValidateResult ValidateBlock(const BarteronOfferRef& ptx, const PocketBlockRef& block) override
         {
             // Only one transaction change barteron offer allowed in block
-            auto blockPtxs = SocialConsensus::ExtractBlockPtxs(block, ptx, { BARTERON_OFFER });
-            if (blockPtxs.size() > 0)
-                return {false, ConsensusResult_ManyTransactions};
+            Result(ConsensusResult_ManyTransactions, [&]() {
+                auto blockPtxs = SocialConsensus::ExtractBlockPtxs(block, ptx, { BARTERON_OFFER });
+                return blockPtxs.size() > 0;
+            });
 
-            return Success;
+            return {ResultCode == ConsensusResult_Success, ResultCode};
         }
 
         ConsensusValidateResult ValidateMempool(const BarteronOfferRef& ptx) override
         {
             // Only one transaction change barteron offer allowed in mempool
-            bool exists = false;
+            Result(ConsensusResult_ManyTransactions, [&]() {
+                bool exists = false;
 
-            ExternalRepoInst.TryTransactionStep(__func__, [&]()
-            {
-                auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
-                    select
-                        1
-                    from
-                        Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
-                    where
-                        t.Type in (211) and
-                        t.String1 = ? and
-                        t.Height is null
-                )sql");
-                ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
-                exists = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
-                ExternalRepoInst.FinalizeSqlStatement(*stmt);
+                ExternalRepoInst.TryTransactionStep(__func__, [&]()
+                {
+                    auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
+                        select
+                            1
+                        from
+                            Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
+                        where
+                            t.Type in (211) and
+                            t.String1 = ? and
+                            t.Height is null
+                    )sql");
+                    ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
+                    exists = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
+                    ExternalRepoInst.FinalizeSqlStatement(*stmt);
+                });
+
+                return exists;
             });
 
-            return { !exists, ConsensusResult_ManyTransactions };
+            return {ResultCode == ConsensusResult_Success, ResultCode};
         }
 
     };

@@ -28,7 +28,7 @@ namespace PocketDb
         bool Desc;
     };
 
-    class BaseRepository : protected RowAccessor
+    class BaseRepository : public RowAccessor
     {
     private:
     protected:

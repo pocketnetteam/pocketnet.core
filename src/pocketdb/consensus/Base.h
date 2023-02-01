@@ -787,15 +787,13 @@ namespace PocketConsensus
         
         // Set result tuple if not already negative
         // All checks if already negative skeeped
-        SocialConsensusResult Result(SocialConsensusResult result, const function<bool()>& func)
+        void Result(SocialConsensusResult result, const function<bool()>& func)
         {
             if (ResultCode != ConsensusResult_Success)
-                return ResultCode;
+                return;
 
             if (func())
                 ResultCode = result;
-
-            return ResultCode;
         }
     
     private:
