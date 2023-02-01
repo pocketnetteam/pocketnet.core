@@ -36,6 +36,7 @@ class ChainBuilder:
         self.generate_likes()
         self.generate_subscriptions()
         self.generate_accounts_blockings()
+        self.log.info("Done generating blockchain activities.")
 
     def build_init(self):
         self.log.info("Generate general node address")
@@ -85,22 +86,27 @@ class ChainBuilder:
 
     def generate_likes(self):
         self.log.info("Generate posts and comments likes")
-        for _ in range(len(self.accounts)):
-            acc1 = random.choice(self.accounts)
-            acc2 = random.choice([acc for acc in self.accounts if acc != acc1])
-            generate_likes(self._node, acc1, acc2)
+        mixed = random.sample(self.accounts, len(self.accounts))
+        # 3 accounts likes and dislikes another 7
+        for acc1 in mixed[:3]:
+            for acc2 in mixed[3:]:
+                generate_likes(self._node, acc1, acc2)
 
     def generate_subscriptions(self):
         self.log.info("Generate account subscriptions")
-        for _ in range(len(self.accounts)):
-            acc1, acc2 = random.sample(self.accounts, 2)
-            generate_subscription(self._node, acc1, acc2)
+        mixed = random.sample(self.accounts, 5)
+        # 2 accounts subscribe to other 3
+        for acc1 in mixed[:2]:
+            for acc2 in mixed[2:]:
+                generate_subscription(self._node, acc1, acc2)
 
     def generate_accounts_blockings(self):
         self.log.info("Generate accounts blacklists")
-        for _ in range(len(self.accounts)):
-            acc1, acc2 = random.sample(self.accounts, 2)
-            generate_account_blockings(self._node, acc1, acc2)
+        mixed = random.sample(self.accounts, 5)
+        # 2 accounts block other 3
+        for acc1 in mixed[:2]:
+            for acc2 in mixed[2:]:
+                generate_account_blockings(self._node, acc1, acc2)
 
     @property
     def accounts(self):

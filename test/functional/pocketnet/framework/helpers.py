@@ -61,9 +61,10 @@ def generate_comments(node, account1, account2):
     for post_id in account1.content:
         comment_id = pub_gen_tx(account2, CommentPayload(post_id))
         account2.comment.append(comment_id)
+        node.stakeblock(1)
         answer_id = pub_gen_tx(account1, CommentPayload(post_id, comment_id))
         account1.comment.append(answer_id)
-    node.stakeblock(1)
+        node.stakeblock(1)
 
 
 def generate_likes(node, account1, account2):
@@ -71,12 +72,14 @@ def generate_likes(node, account1, account2):
     for post_id in account1.content:
         score = random.randint(3, 5)
         pub_gen_tx(account2, ScoreContentPayload(post_id, score, account1.Address))
+        node.stakeblock(1)
 
-    for comment_id in account1.comment:
-        score = random.randint(0, 1)
-        pub_gen_tx(account2, ScoreCommentPayload(comment_id, score, account1.Address))
-
-    node.stakeblock(1)
+    for comment_id in account2.comment:
+        # TODO: enable dislikes (need high reputation for that)
+        # score = random.randint(0, 1)
+        score = 1
+        pub_gen_tx(account1, ScoreCommentPayload(comment_id, score, account2.Address))
+        node.stakeblock(1)
 
 
 def generate_subscription(node, account1, account2):
