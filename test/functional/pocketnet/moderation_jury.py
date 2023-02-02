@@ -198,7 +198,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
             == jury1["data"]["id"]
         )
         assert node.public().getbans(jury1["account"].Address)[0]["reason"] == 1
-        assert node.public().getbans(jury1["account"].Address)[0]["ending"] == 43200
+        assert node.public().getbans(jury1["account"].Address)[0]["ending"] == 1176
 
         # ---------------------------------------------------------------------------------
         self.log.info("Test 5 - banned account can not create pocketnet transactions")
