@@ -27,6 +27,7 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronOfferRef& ptx, const PocketBlockRef& block) override
         {
+            // TODO (aok): move to base class
             // Check payload size
             Result(ConsensusResult_Size, [&]() {
                 return PayloadSize(ptx) > (size_t)Limits.Get("payload_size");

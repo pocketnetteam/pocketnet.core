@@ -618,8 +618,6 @@ add_library(${POCKETDB}
         pocketdb/models/dto/content/CommentDelete.h
         pocketdb/models/dto/content/CommentDelete.cpp
 
-        pocketdb/models/dto/barteron/List.h
-        pocketdb/models/dto/barteron/List.cpp
         pocketdb/models/dto/barteron/Account.h
         pocketdb/models/dto/barteron/Account.cpp
         pocketdb/models/dto/barteron/Offer.h

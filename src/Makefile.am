@@ -234,7 +234,6 @@ POCKETDB_H = \
     pocketdb/models/dto/content/Collection.h \
     pocketdb/models/dto/moderation/Flag.h \
     pocketdb/models/dto/moderation/Vote.h \
-    pocketdb/models/dto/barteron/List.h \
     pocketdb/models/dto/barteron/Account.h \
     pocketdb/models/dto/barteron/Offer.h \
     \
@@ -335,7 +334,6 @@ POCKETDB_CPP = \
     pocketdb/models/dto/content/Collection.cpp \
     pocketdb/models/dto/moderation/Flag.cpp \
     pocketdb/models/dto/moderation/Vote.cpp \
-    pocketdb/models/dto/barteron/List.cpp \
     pocketdb/models/dto/barteron/Account.cpp \
     pocketdb/models/dto/barteron/Offer.cpp \
     \
