@@ -21,26 +21,15 @@ namespace PocketConsensus
     public:
         BarteronAccountConsensus() : SocialConsensus<BarteronAccount>()
         {
-            Limits.Set("list_max_size", 1000, 300, 15);
+
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
+            // TODO (aok): move to base class
             // Check payload size
             Result(ConsensusResult_Size, [&]() {
-                return CollectStringsSize(ptx) > (size_t)Limits.Get("payload_size");
-            });
-            
-            // Lists must be <= max size
-            Result(ConsensusResult_Size, [&]() {
-                auto lst = ptx->GetPayloadTagsAddIds();
-                return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
-            });
-
-            // Lists must be <= max size
-            Result(ConsensusResult_Size, [&]() {
-                auto lst = ptx->GetPayloadTagsDelIds();
-                return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
+                return PayloadSize(ptx) > (size_t)Limits.Get("payload_size");
             });
 
             // TODO (aok): remove when all consensus classes support Result
@@ -49,23 +38,10 @@ namespace PocketConsensus
             return SocialConsensus::Validate(tx, ptx, block);
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const BarteronAccountRef& ptx) override
-        {
-            if (auto[ok, code] = SocialConsensus::Check(tx, ptx); !ok)
-                return {false, code};
-
-            // Add or Del tags list must be exists and all elements must be numbers
-            if (!ptx->GetPayloadTagsAddIds() && !ptx->GetPayloadTagsDelIds())
-                return {false, ConsensusResult_Failed};
-
-            return Success;
-        }
-
     protected:
     
         ConsensusValidateResult ValidateBlock(const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
-            // Only one transaction change barteron account allowed in block
             auto blockPtxs = SocialConsensus::ExtractBlockPtxs(block, ptx, { BARTERON_ACCOUNT });
             if (blockPtxs.size() > 0)
                 return {false, ConsensusResult_ManyTransactions};
@@ -75,7 +51,6 @@ namespace PocketConsensus
         
         ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
         {
-            // Only one transaction change barteron account allowed in mempool
             bool exists = false;
 
             ExternalRepoInst.TryTransactionStep(__func__, [&]()
@@ -97,13 +72,7 @@ namespace PocketConsensus
 
             return { !exists, ConsensusResult_ManyTransactions };
         }
-        
-        size_t CollectStringsSize(const BarteronAccountRef& ptx) override
-        {
-            return SocialConsensus::CollectStringsSize(ptx) -
-                (ptx->GetPayloadTagsAdd() ? ptx->GetPayloadTagsAdd()->size() : 0) -
-                (ptx->GetPayloadTagsDel() ? ptx->GetPayloadTagsDel()->size() : 0);
-        }
+
     };
 
 

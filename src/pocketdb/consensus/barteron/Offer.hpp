@@ -21,7 +21,7 @@ namespace PocketConsensus
     public:
         BarteronOfferConsensus() : SocialConsensus<BarteronOffer>()
         {
-            Limits.Set("list_max_size", 10, 10, 5);
+            Limits.Set("payload_size", 60000, 30000, 1024);
             Limits.Set("max_active_count", 30, 10, 5);
         }
 
@@ -29,13 +29,7 @@ namespace PocketConsensus
         {
             // Check payload size
             Result(ConsensusResult_Size, [&]() {
-                return CollectStringsSize(ptx) > (size_t)Limits.Get("payload_size");
-            });
-
-            // Lists must be <= max size
-            Result(ConsensusResult_Size, [&]() {
-                auto lst = ptx->GetPayloadTagsIds();
-                return (lst && lst->size() > (size_t)Limits.Get("list_max_size"));
+                return PayloadSize(ptx) > (size_t)Limits.Get("payload_size");
             });
 
             // Validate new or edited transaction
@@ -48,19 +42,6 @@ namespace PocketConsensus
             if (ResultCode != ConsensusResult_Success) return {false, ResultCode};
 
             return SocialConsensus::Validate(tx, ptx, block);
-        }
-
-        ConsensusValidateResult Check(const CTransactionRef& tx, const BarteronOfferRef& ptx) override
-        {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
-                return {false, baseCheckCode};
-
-            // Tags list must be exists and all elements must be numbers
-            Result(ConsensusResult_Failed, [&]() {
-                return !ptx->GetPayloadTagsIds();
-            });
-
-            return {ResultCode == ConsensusResult_Success, ResultCode};
         }
 
     protected:

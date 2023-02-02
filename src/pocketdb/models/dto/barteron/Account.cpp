@@ -7,20 +7,14 @@
 
 namespace PocketTx
 {
-    BarteronAccount::BarteronAccount() : BarteronList()
+    BarteronAccount::BarteronAccount() : SocialTransaction()
     {
         SetType(TxType::BARTERON_ACCOUNT);
     }
 
-    BarteronAccount::BarteronAccount(const CTransactionRef& tx) : BarteronList(tx)
+    BarteronAccount::BarteronAccount(const CTransactionRef& tx) : SocialTransaction(tx)
     {
         SetType(TxType::BARTERON_ACCOUNT);
     }
-
-    optional<string> BarteronAccount::GetPayloadTagsAdd() const { return GetPayload() ? GetPayload()->GetString4() : nullopt; }
-    const optional<vector<int64_t>> BarteronAccount::GetPayloadTagsAddIds() const { return ParseList(GetPayloadTagsAdd()); }
-
-    optional<string> BarteronAccount::GetPayloadTagsDel() const { return GetPayload() ? GetPayload()->GetString5() : nullopt; }
-    const optional<vector<int64_t>> BarteronAccount::GetPayloadTagsDelIds() const { return ParseList(GetPayloadTagsDel()); }
 
 } // namespace PocketTx

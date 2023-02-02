@@ -145,7 +145,7 @@ namespace PocketConsensus
         }
 
         // Collect all string fields size
-        virtual size_t CollectStringsSize(const shared_ptr<T>& ptx)
+        virtual size_t PayloadSize(const shared_ptr<T>& ptx)
         {
             size_t dataSize =
                 (ptx->GetString1() ? ptx->GetString1()->size() : 0) +
