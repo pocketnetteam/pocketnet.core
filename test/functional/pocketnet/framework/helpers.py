@@ -32,9 +32,7 @@ def generate_accounts(node, node_address, account_num, amount=10, is_moderator=F
         acc = node.public().generateaddress()
         name = f"moderator{i}" if is_moderator else f"user{i}"
         accounts.append(Account(acc["address"], acc["privkey"], name))
-        node.sendtoaddress(
-            address=accounts[i].Address, amount=amount, destaddress=node_address
-        )
+        node.sendtoaddress(address=accounts[i].Address, amount=amount, destaddress=node_address)
 
     node.stakeblock(1)
 
@@ -105,9 +103,7 @@ def register_accounts(node, accounts, out_count=50, confirmations=0):
     hashes = []
     pub_gen_tx = node.public().generatetransaction
     for account in accounts:
-        payload = AccountPayload(
-            account.Name, "image", "en", "about", "s", "b", "pubkey"
-        )
+        payload = AccountPayload(account.Name, "image", "en", "about", "s", "b", "pubkey")
         _hash = pub_gen_tx(account, payload, out_count, confirmations)
         hashes.append(_hash)
 

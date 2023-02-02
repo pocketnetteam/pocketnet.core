@@ -40,22 +40,16 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         # /src/pocketdb/consensus/Base.h:674 moderation_jury_flag_count
         # /src/pocketdb/consensus/Base.h:679 moderation_jury_flag_depth
 
-        lastFlagTx = pubGenTx(
-            moders[0], ModFlagPayload(jury["post"], jury["account"].Address, 1)
-        )
+        lastFlagTx = pubGenTx(moders[0], ModFlagPayload(jury["post"], jury["account"].Address, 1))
         node.stakeblock(10)
-        lastFlagTx = pubGenTx(
-            moders[1], ModFlagPayload(jury["post"], jury["account"].Address, 1)
-        )
+        lastFlagTx = pubGenTx(moders[1], ModFlagPayload(jury["post"], jury["account"].Address, 1))
         node.stakeblock(1)
         assert "id" not in node.public().getjury(lastFlagTx)
         assert len(node.public().getjurymoderators(lastFlagTx)) == 0
 
         # ---------------------------------------------------------------------------------
 
-        lastFlagTx = pubGenTx(
-            moders[3], ModFlagPayload(jury["post"], jury["account"].Address, 1)
-        )
+        lastFlagTx = pubGenTx(moders[3], ModFlagPayload(jury["post"], jury["account"].Address, 1))
         node.stakeblock(1)
         jury["data"] = node.public().getjury(lastFlagTx)
         assert "id" in jury["data"] and jury["data"]["id"] == lastFlagTx
@@ -162,9 +156,7 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         # Like another for set comment liker
         for i in range(len(moders)):
             accTo = moders[0 if i == len(moders) - 1 else i + 1]
-            pubGenTx(
-                moders[i], ScoreCommentPayload(accTo.badgeComment, 1, accTo.Address)
-            )
+            pubGenTx(moders[i], ScoreCommentPayload(accTo.badgeComment, 1, accTo.Address))
         node.stakeblock(5)
 
         # Check moderator badges
