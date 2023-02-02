@@ -806,10 +806,10 @@ namespace PocketDb
                             b.Ending > v.Height
                     )
             )sql");
-            TryBindStatementText(stmt_ban, 1, voteTxHash);
-            TryBindStatementInt(stmt_ban, 2, ban1Time);
-            TryBindStatementInt(stmt_ban, 3, ban2Time);
-            TryBindStatementInt(stmt_ban, 4, ban3Time);
+            TryBindStatementInt(stmt_ban, 1, ban1Time);
+            TryBindStatementInt(stmt_ban, 2, ban2Time);
+            TryBindStatementInt(stmt_ban, 3, ban3Time);
+            TryBindStatementText(stmt_ban, 4, voteTxHash);
             TryStepStatement(stmt_ban);
         });
     }
