@@ -6,6 +6,7 @@ import logging
 import random
 
 from framework.helpers import (
+    generate_coinbase,
     boost_post,
     generate_account_blockings,
     generate_accounts,
@@ -19,7 +20,6 @@ from framework.helpers import (
 
 class ChainBuilder:
     ACCOUNT_NUM = 10
-    FIRST_COINBASE_BLOCKS = 1020
 
     def __init__(self, node, logger=None):
         self._node = node
@@ -39,14 +39,8 @@ class ChainBuilder:
         self.log.info("Done generating blockchain activities.")
 
     def build_init(self):
-        self.log.info("Generate general node address")
-        self._node_address = self._node.getnewaddress()
-
-        self.log.info(f"Generate first coinbase {self.FIRST_COINBASE_BLOCKS} blocks")
-        self._node.generatetoaddress(self.FIRST_COINBASE_BLOCKS, self.node_address)
-
-        info = self._node.public().getaddressinfo(self.node_address)
-        self.log.info(f"Node balance: {info}")
+        self.log.info("Generate coinbase")
+        self._node_address = generate_coinbase(self._node)
 
         self.log.info(f"Generate {self.ACCOUNT_NUM} account addresses")
         self._accounts = generate_accounts(

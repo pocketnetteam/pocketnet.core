@@ -326,7 +326,7 @@ namespace PocketDb
                             Transactions t indexed by Transactions_BlockHash
                             join Payload p -- primary key
                                 on p.TxHash = t.Hash
-                            join json_each(p.String4) as pj
+                            join json_each(p.String5) as pj
                             join BarteronAccounts ba indexed by BarteronAccounts_Tag_AccountId
                                 on ba.Tag = pj.value and
                                 ba.AccountId = t.Id
