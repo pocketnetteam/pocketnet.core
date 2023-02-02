@@ -294,9 +294,7 @@ class CommentEditPayload(CommentDeletePayload):
 class CommentPayload(CommentEditPayload):
     TxType = "636f6d6d656e74"
 
-    def __init__(
-        self, postId, parentId="", answerId="", message="comment test message"
-    ):
+    def __init__(self, postId, parentId="", answerId="", message="comment test message"):
         CommentEditPayload.__init__(self, postId, "", parentId, answerId, message)
 
 

@@ -57,9 +57,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
         accounts[0].content.append(pubGenTx(accounts[0], ContentAudioPayload()))
         node.stakeblock(1)
 
-        accounts[0].comment.append(
-            pubGenTx(accounts[0], CommentPayload(accounts[0].content[0]))
-        )
+        accounts[0].comment.append(pubGenTx(accounts[0], CommentPayload(accounts[0].content[0])))
         node.stakeblock(1)
 
         # ---------------------------------------------------------------------------------
@@ -77,9 +75,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
 
         pubGenTx(accounts[0], BoostPayload(accounts[0].content[0]))
 
-        accounts[0].comment.append(
-            pubGenTx(accounts[0], CommentPayload(accounts[0].content[0]))
-        )
+        accounts[0].comment.append(pubGenTx(accounts[0], CommentPayload(accounts[0].content[0])))
         accounts[0].comment.append(
             pubGenTx(
                 accounts[0],
@@ -128,9 +124,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
         # Prepare another accounts
         accounts[1].content.append(pubGenTx(accounts[1], ContentPostPayload()))
 
-        accounts[1].comment.append(
-            pubGenTx(accounts[1], CommentPayload(accounts[0].content[0]))
-        )
+        accounts[1].comment.append(pubGenTx(accounts[1], CommentPayload(accounts[0].content[0])))
         accounts[1].comment.append(
             pubGenTx(
                 accounts[1],
@@ -342,9 +336,7 @@ class AccountDeleteTest(PocketcoinTestFramework):
         )
         pubGenTx(
             accounts[1],
-            CommentDeletePayload(
-                accounts[0].content[0], accounts[1].comment[1], accounts[0].comment[0]
-            ),
+            CommentDeletePayload(accounts[0].content[0], accounts[1].comment[1], accounts[0].comment[0]),
         )
 
         assert_raises_rpc_error(

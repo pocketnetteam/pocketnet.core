@@ -108,9 +108,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
             if acc.moderator:
                 assert "moderator" in node.public().getuserstate(acc.Address)["badges"]
             else:
-                assert (
-                    "moderator" not in node.public().getuserstate(acc.Address)["badges"]
-                )
+                assert "moderator" not in node.public().getuserstate(acc.Address)["badges"]
 
         # Rollback 1 block for remove all badges
         rollback_node(node, 1, self.log)  # height : 1049
@@ -139,9 +137,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
             if acc.moderator:
                 assert "moderator" in node.public().getuserstate(acc.Address)["badges"]
             else:
-                assert (
-                    "moderator" not in node.public().getuserstate(acc.Address)["badges"]
-                )
+                assert "moderator" not in node.public().getuserstate(acc.Address)["badges"]
 
 
 if __name__ == "__main__":
