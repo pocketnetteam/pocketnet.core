@@ -310,7 +310,7 @@ namespace PocketDb
                 select
                     cu.Uid, 1
 
-                from Transactions u indexed by Transactions_Type_Last_Height_Id
+                from Transactions u
 
                 join Chain cu on
                     cu.TxId = u.RowId
