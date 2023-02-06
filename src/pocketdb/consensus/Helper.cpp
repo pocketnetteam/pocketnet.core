@@ -11,6 +11,7 @@ namespace PocketConsensus
     ArticleConsensusFactory SocialConsensusHelper::m_articleFactory;
     StreamConsensusFactory SocialConsensusHelper::m_streamFactory;
     AudioConsensusFactory SocialConsensusHelper::m_audioFactory;
+    CollectionConsensusFactory SocialConsensusHelper::m_collectionFactory;
     AccountSettingConsensusFactory SocialConsensusHelper::m_accountSettingFactory;
     AccountDeleteConsensusFactory SocialConsensusHelper::m_accountDeleteFactory;
     AccountUserConsensusFactory SocialConsensusHelper::m_accountUserFactory;
@@ -29,6 +30,13 @@ namespace PocketConsensus
     BoostContentConsensusFactory SocialConsensusHelper::m_boostContentFactory;
     
     ModerationFlagConsensusFactory SocialConsensusHelper::m_moderationFlagFactory;
+    ModerationVoteConsensusFactory SocialConsensusHelper::m_moderationVoteFactory;
+    // ModeratorRequestCoinConsensusFactory SocialConsensusHelper::m_moderatorRequestCoinFactory;
+    // ModeratorRequestSubsConsensusFactory SocialConsensusHelper::m_moderatorRequestSubsFactory;
+    // ModeratorRequestCancelConsensusFactory SocialConsensusHelper::m_moderatorRequestCancelFactory;
+    // ModeratorRegisterSelfConsensusFactory SocialConsensusHelper::m_moderatRegisterSelfFactory;
+    // ModeratorRegisterRequestConsensusFactory SocialConsensusHelper::m_moderatRegisterRequestFactory;
+    // ModeratorRegisterCancelConsensusFactory SocialConsensusHelper::m_moderatRegisterCancelFactory;
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CBlock& block, const PocketBlockRef& pBlock, int height)
     {
@@ -159,7 +167,6 @@ namespace PocketConsensus
             return {true, SocialConsensusResult_Success};
 
         // Check transactions with consensus logic
-        tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
             case ACCOUNT_SETTING:
@@ -178,6 +185,8 @@ namespace PocketConsensus
                 return m_streamFactory.Instance(height)->Check(tx, static_pointer_cast<Stream>(ptx));
             case CONTENT_AUDIO:
                 return m_audioFactory.Instance(height)->Check(tx, static_pointer_cast<Audio>(ptx));
+            case CONTENT_COLLECTION:
+                return m_collectionFactory.Instance(height)->Check(tx, static_pointer_cast<Collection>(ptx));
             case CONTENT_COMMENT:
                 return m_commentFactory.Instance(height)->Check(tx, static_pointer_cast<Comment>(ptx));
             case CONTENT_COMMENT_EDIT:
@@ -208,6 +217,20 @@ namespace PocketConsensus
             // Moderation
             case MODERATION_FLAG:
                 return m_moderationFlagFactory.Instance(height)->Check(tx, static_pointer_cast<ModerationFlag>(ptx));
+            case MODERATION_VOTE:
+                return m_moderationVoteFactory.Instance(height)->Check(tx, static_pointer_cast<ModerationVote>(ptx));
+            // case MODERATOR_REQUEST_COIN:
+            //     return m_moderatorRequestCoinFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRequestCoin>(ptx));
+            // case MODERATOR_REQUEST_SUBS:
+            //     return m_moderatorRequestSubsFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRequestSubs>(ptx));
+            // case MODERATOR_REQUEST_CANCEL:
+            //     return m_moderatorRequestCancelFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRequestCancel>(ptx));
+            // case MODERATOR_REGISTER_SELF:
+            //     return m_moderatRegisterSelfFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRegisterSelf>(ptx));
+            // case MODERATOR_REGISTER_REQUEST:
+            //     return m_moderatRegisterRequestFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRegisterRequest>(ptx));
+            // case MODERATOR_REGISTER_CANCEL:
+            //     return m_moderatRegisterCancelFactory.Instance(height)->Check(tx, static_pointer_cast<ModeratorRegisterCancel>(ptx));
 
             default:
                 return {false, SocialConsensusResult_NotImplemeted};
@@ -220,7 +243,6 @@ namespace PocketConsensus
             return {true, SocialConsensusResult_Success};
 
         // Validate transactions with consensus logic
-        tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
             case ACCOUNT_SETTING:
@@ -239,6 +261,8 @@ namespace PocketConsensus
                 return m_streamFactory.Instance(height)->Validate(tx, static_pointer_cast<Stream>(ptx), pBlock);
             case CONTENT_AUDIO:
                 return m_audioFactory.Instance(height)->Validate(tx, static_pointer_cast<Audio>(ptx), pBlock);
+            case CONTENT_COLLECTION:
+                return m_collectionFactory.Instance(height)->Validate(tx, static_pointer_cast<Collection>(ptx), pBlock);
             case CONTENT_COMMENT:
                 return m_commentFactory.Instance(height)->Validate(tx, static_pointer_cast<Comment>(ptx), pBlock);
             case CONTENT_COMMENT_EDIT:
@@ -269,6 +293,20 @@ namespace PocketConsensus
             // Moderation
             case MODERATION_FLAG:
                 return m_moderationFlagFactory.Instance(height)->Validate(tx, static_pointer_cast<ModerationFlag>(ptx), pBlock);
+            case MODERATION_VOTE:
+                return m_moderationVoteFactory.Instance(height)->Validate(tx, static_pointer_cast<ModerationVote>(ptx), pBlock);
+            // case MODERATOR_REQUEST_COIN:
+            //     return m_moderatorRequestCoinFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRequestCoin>(ptx), pBlock);
+            // case MODERATOR_REQUEST_SUBS:
+            //     return m_moderatorRequestSubsFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRequestSubs>(ptx), pBlock);
+            // case MODERATOR_REQUEST_CANCEL:
+            //     return m_moderatorRequestCancelFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRequestCancel>(ptx), pBlock);
+            // case MODERATOR_REGISTER_SELF:
+            //     return m_moderatRegisterSelfFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRegisterSelf>(ptx), pBlock);
+            // case MODERATOR_REGISTER_REQUEST:
+            //     return m_moderatRegisterRequestFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRegisterRequest>(ptx), pBlock);
+            // case MODERATOR_REGISTER_CANCEL:
+            //     return m_moderatRegisterCancelFactory.Instance(height)->Validate(tx, static_pointer_cast<ModeratorRegisterCancel>(ptx), pBlock);
 
             default:
                 return {false, SocialConsensusResult_NotImplemeted};

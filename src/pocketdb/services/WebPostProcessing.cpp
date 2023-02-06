@@ -71,9 +71,7 @@ namespace PocketServices
                 }
                 case QueueRecordType::BlockHeight:
                 {
-                    ProcessBadges(queueRecord.BlockHeight);
-                    // TODO (aok): implement this
-                    // ProcessAuthors(queueRecord.BlockHeight);
+                    // queueRecord.Height % N == 0 -> actions
                 }
                 default:
                     break;
@@ -196,49 +194,6 @@ namespace PocketServices
         catch (const std::exception& e)
         {
             LogPrintf("Warning: WebPostProcessor::ProcessSearchContent - %s\n", e.what());
-        }
-    }
-
-    void WebPostProcessor::ProcessBadges(int blockHeight)
-    {
-        try
-        {
-            int64_t nTime1 = GetTimeMicros();
-
-            // Actual consensus checker instance by current height
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(blockHeight);
-            auto sharkCond = reputationConsensus->GetBadgeSharkConditions();
-
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessBadges (Reputation Consensus instance): %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
-
-            // Clear and calculate all shark accounts
-            webRepoInst->CalculateSharkAccounts(sharkCond);
-
-            int64_t nTime3 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessBadges (Clear & Insert new values): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
-        }
-        catch (const std::exception& e)
-        {
-            LogPrintf("Warning: WebPostProcessor::ProcessBadges - %s\n", e.what());
-        }
-    }
-
-    void WebPostProcessor::ProcessAuthors(int blockHeight)
-    {
-        try
-        {
-            int64_t nTime1 = GetTimeMicros();
-
-            // Clear and calculate new valid authors
-            webRepoInst->CalculateValidAuthors(blockHeight);
-
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessAuthors (Clear & Insert new values): %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
-        }
-        catch (const std::exception& e)
-        {
-            LogPrintf("Warning: WebPostProcessor::ProcessAuthors - %s\n", e.what());
         }
     }
 

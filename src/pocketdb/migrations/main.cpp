@@ -17,8 +17,14 @@ namespace PocketDb
                 Height   int     not null,
 
                 -- AccountUser.Id
+                -- AccountSetting.Id
+                -- AccountDelete.Id
                 -- ContentPost.Id
                 -- ContentVideo.Id
+                -- ContentArticle.Id
+                -- ContentStream.Id
+                -- ContentAudio.Id
+                -- ContentDelete.Id
                 -- Comment.Id
                 Uid       int     null
             );
@@ -29,9 +35,14 @@ namespace PocketDb
             create table if not exists Last
             (
                 -- AccountUser
+                -- AccountSetting
+                -- AccountDelete
                 -- ContentPost
                 -- ContentVideo
+                -- ContentArticle
                 -- ContentDelete
+                -- ContentStream
+                -- ContentAudio
                 -- Comment
                 -- Blocking
                 -- Subscribe
@@ -39,7 +50,24 @@ namespace PocketDb
             );
         )sql");
 
-        // TODO (optimization): create table First
+        _tables.emplace_back(R"sql(
+            create table if not exists First
+            (
+                -- AccountUser
+                -- AccountSetting
+                -- AccountDelete
+                -- ContentPost
+                -- ContentVideo
+                -- ContentArticle
+                -- ContentDelete
+                -- ContentStream
+                -- ContentAudio
+                -- Comment
+                -- Blocking
+                -- Subscribe
+                TxId integer primary key
+            );
+        )sql");
 
         _tables.emplace_back(R"sql(
             create table if not exists Transactions
@@ -49,17 +77,24 @@ namespace PocketDb
                 HashId    int    not null, -- Id of tx hash in Registry table
                 Time      int    not null,
 
-                -- AccountUser.AddressId
-                -- ContentPost.AddressId
-                -- ContentVideo.AddressId
-                -- ContentDelete.AddressId
-                -- Comment.AddressId
-                -- ScorePost.AddressId
-                -- ScoreComment.AddressId
-                -- Subscribe.AddressId
-                -- Blocking.AddressId
-                -- Complain.AddressId
-                -- Boost.AddressId
+                -- AccountUser.ReferrerAddressId
+                -- ContentPost.RootTxId
+                -- ContentVideo.RootTxId
+                -- ContentArticle.RootTxId
+                -- ContentStream.RootTxId
+                -- ContentAudio.RootTxId
+                -- ContentDelete.RootTxId
+                -- Comment.RootTxId
+                -- CommentEdit.RootTxId
+                -- CommentDelete.RootTxId
+                -- ScorePost.ContentRootTxId
+                -- ScoreComment.CommentRootTxId
+                -- Subscribe.AddressToId
+                -- Blocking.AddressToId
+                -- Complain.ContentRootTxId
+                -- Boost.ContentRootTxId
+                -- ModerationFlag.ContentTxId
+                -- ModerationVote.JuryId
                 RegId1   int   null,
 
                 -- AccountUser.ReferrerAddressId
@@ -92,6 +127,7 @@ namespace PocketDb
                 -- Complain.Reason
                 -- Boost.Amount
                 -- ModerationFlag.Reason
+                -- ModerationVote.Verdict
                 Int1      int    null
             );
         )sql");
@@ -210,6 +246,123 @@ namespace PocketDb
             );
         )sql");
 
+        _tables.emplace_back(R"sql(
+            create table if not exists Jury
+            (
+                -- Link to the Flag (via ROWID) that initiated this ury
+                FlagRowId     int   not null,
+                -- Transactions.Id
+                AccountId     int   not null,
+                Reason        int   not null,
+                primary key (FlagRowId)
+            ) without rowid;
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists JuryVerdict
+            (
+                -- Link to the Flag (via ROWID) that initiated this ury
+                FlagRowId     int   not null,
+                -- Link to the Vote (via ROWID) that initiated this ury
+                VoteRowId     int   not null,
+                -- 1 or 0
+                Verdict       int   null,
+                primary key (FlagRowId)
+            ) without rowid;
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists JuryModerators
+            (
+                -- Link to the Flag (via ROWID) that initiated this ury
+                FlagRowId     int   not null,
+                -- Transactions.Id
+                AccountId     int   not null,
+                primary key (FlagRowId, AccountId)
+            ) without rowid;
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists JuryBan
+            (
+                -- Link to the Vote (via ROWID) that initiated this ban
+                VoteRowId     int   not null,
+                -- Transactions.Id
+                AccountId     int   not null,
+                -- The height to which the penalty continues to apply
+                Ending        int   not null,
+                primary key (VoteRowId)
+            ) without rowid;
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists Badges
+            (
+                -- Transactions.Id
+                AccountId   int   not null,
+                -- Developer = 0
+                -- Shark = 1
+                -- Whale = 2
+                -- Moderator = 3
+                Badge       int   not null,
+                Cancel      int   not null,
+                Height      int   not null,
+                primary key (AccountId, Badge, Cancel, Height)
+            ) without rowid;
+        )sql");
+
+        _views.emplace_back(R"sql(
+            drop view if exists vBadges;
+
+            create view if not exists vBadges as
+            select
+                Badge, Cancel, AccountId, Height
+            from
+                Badges b indexed by Badges_Badge_Cancel_AccountId_Height
+            where
+                b.Badge in (0,1,2,3) and
+                b.Cancel = 0 and
+                not exists (
+                    select
+                        1
+                    from
+                        Badges bb indexed by Badges_Badge_Cancel_AccountId_Height
+                    where
+                        bb.Badge = b.Badge and
+                        bb.Cancel = 1 and
+                        bb.AccountId = b.AccountId and
+                        bb.Height > b.Height
+                );
+        )sql");
+
+        _views.emplace_back(R"sql(
+            drop view if exists vLastAccountTx;
+
+            create view if not exists vLastAccountTx as
+            select
+                u.Type,
+                u.Hash,
+                u.Time,
+                u.BlockHash,
+                u.BlockNum,
+                u.Height,
+                u.Last,
+                u.First,
+                u.Id,
+                u.String1,
+                u.String2,
+                u.String3,
+                u.String4,
+                u.String5,
+                u.Int1
+            from
+                Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+            where
+                u.Type in (100) and
+                u.Last in (1) and
+                u.Height > 0;
+        )sql");
+
         _views.emplace_back(R"sql(
             drop view if exists vTx;
             create view if not exists vTx as
@@ -243,9 +396,8 @@ namespace PocketDb
             from TxOutputs o;
         )sql");
 
-        
         _preProcessing = R"sql(
-            
+
         )sql";
 
 
@@ -278,6 +430,13 @@ namespace PocketDb
             create index if not exists Payload_String2_nocase_TxId on Payload (String2 collate nocase, TxId);
             create index if not exists Payload_String7 on Payload (String7);
             create index if not exists Payload_String1_TxId on Payload (String1, TxId);
+
+            create index if not exists Jury_AccountId_Reason on Jury (AccountId, Reason);
+            create index if not exists JuryBan_AccountId_Ending on JuryBan (AccountId, Ending);
+            create index if not exists JuryVerdict_VoteRowId_FlagRowId_Verdict on JuryVerdict (VoteRowId, FlagRowId, Verdict);
+            create index if not exists JuryModerators_AccountId_FlagRowId on JuryModerators (AccountId, FlagRowId);
+
+            create index if not exists Badges_Badge_Cancel_AccountId_Height on Badges (Badge, Cancel, AccountId, Height);
 
         )sql";
 

@@ -116,10 +116,10 @@ public:
         consensus.nHeight_version_1_0_0 = 108300;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000468b769a98426fb23d"); // 1882338
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000005142d01d2ea9e0af44"); // 2045508
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x5ca3972693e188404c6d9abba5f5d9be6ef4229e70e8a141f82ad946ac17d86b"); // 1882338
+        consensus.defaultAssumeValid = uint256S("0xc08624db131ac96f8d7b0fa788745b810d2b7661d15cf905490c92502b64d605"); // 2045508
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -409,7 +409,7 @@ public:
         networkId = NetworkRegTest;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 150;
+        consensus.nSubsidyHalvingInterval = 15000;
         consensus.BIP16Exception = uint256();
         consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256();
@@ -419,11 +419,11 @@ public:
         consensus.SegwitHeight = std::numeric_limits<int>::max(); // SEGWIT is disabled on regtest
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // two weeks
+        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60;
         consensus.nPowTargetSpacing = 1;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
-        consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
+        consensus.nRuleChangeActivationThreshold = 108; 
         consensus.nMinerConfirmationWindow = 100;
 
         consensus.nPosFirstBlock = 1020;

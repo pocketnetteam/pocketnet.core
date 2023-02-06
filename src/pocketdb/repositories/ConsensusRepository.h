@@ -37,28 +37,20 @@ namespace PocketDb
         int64_t LikersComment;
         int64_t LikersCommentAnswer;
 
+        bool ModeratorBadge;
+
         int64_t LikersAll() const
         {
             return LikersContent + LikersComment + LikersCommentAnswer;
         }
     };
 
-    struct BadgeSharkConditions
-    {
-        int Height;
-        int64_t LikersAll;
-        int64_t LikersContent;
-        int64_t LikersComment;
-        int64_t LikersAnswer;
-        int64_t RegistrationDepth;
-    };
-
     struct BadgeSet
     {
-        bool Shark = false;
-        bool Whale = false;
-        bool Moderator = false;
-        bool Developer = false;
+        bool Shark = false; // 1
+        bool Whale = false; // 2
+        bool Moderator = false; // 3
+        bool Developer = false; // 4
 
         UniValue ToJson()
         {
@@ -118,6 +110,7 @@ namespace PocketDb
 
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);
+        tuple<bool, vector<PTransactionRef>>GetLastContents(const vector<string>& rootHashes, const vector<TxType>& types);
         tuple<bool, TxType> GetLastAccountType(const string& address);
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
         tuple<bool, TxType> GetLastBlockingType(const string& address, const string& addressTo);
@@ -152,11 +145,19 @@ namespace PocketDb
         bool ExistsComplain(const string& postHash, const string& address, bool mempool);
         bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
         bool ExistsUserRegistrations(vector<string>& addresses);
+        bool ExistsAccountBan(const string& address, int height);
         bool ExistsAnotherByName(const string& address, const string& name);
-        bool Exists(const string& txHash, const vector<TxType>& types, bool inChain);
-        bool ExistsInMempool(const string& string1, const vector<TxType>& types);
-        bool ExistsInMempool(const string& string1, const string& string2, const vector<TxType>& types);
         bool ExistsNotDeleted(const string& txHash, const string& address, const vector<TxType>& types);
+        bool ExistsActiveJury(const string& juryId);
+
+        bool Exists_S1S2T(const string& string1, const string& string2, const vector<TxType>& types);
+        bool Exists_MS1T(const string& string1, const vector<TxType>& types);
+        bool Exists_MS1S2T(const string& string1, const string& string2, const vector<TxType>& types);
+        bool Exists_LS1T(const string& string1, const vector<TxType>& types);
+        bool Exists_LS1S2T(const string& string1, const string& string2, const vector<TxType>& types);
+        bool Exists_HS1T(const string& txHash, const string& string1, const vector<TxType>& types, bool last);
+        bool Exists_HS2T(const string& txHash, const string& string2, const vector<TxType>& types, bool last);
+        bool Exists_HS1S2T(const string& txHash, const string& string1, const string& string2, const vector<TxType>& types, bool last);
 
         // get counts in "mempool" - Height is null
         int CountMempoolBlocking(const string& address, const string& addressTo);
@@ -185,6 +186,9 @@ namespace PocketDb
 
         int CountMempoolAudio(const string& address);
         int CountChainAudio(const string& address, int height);
+
+        int CountMempoolCollection(const string& address);
+        int CountChainCollection(const string& address, int height);
 
         int CountMempoolScoreComment(const string& address);
         int CountChainScoreCommentTime(const string& address, int64_t time);
@@ -217,12 +221,18 @@ namespace PocketDb
         int CountMempoolAudioEdit(const string& address, const string& rootTxHash);
         int CountChainAudioEdit(const string& address, const string& rootTxHash);
 
+        int CountMempoolCollectionEdit(const string& address, const string& rootTxHash);
+        int CountChainCollectionEdit(const string& address, const string& rootTxHash);
+
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
 
         /* MODERATION */
         int CountModerationFlag(const string& address, int height, bool includeMempool);
         int CountModerationFlag(const string& address, const string& addressTo, bool includeMempool);
+        bool AllowJuryModerate(const string& address, const string& flagTxHash);
 
+    protected:
+    
     };
 
     typedef shared_ptr<ConsensusRepository> ConsensusRepositoryRef;

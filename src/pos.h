@@ -34,6 +34,8 @@ double GetPoWMHashPS();
 
 double GetPoSKernelPS();
 
+double GetPoSKernelPS(int nHeight);
+
 inline static bool GetLastStakeModifier(const CBlockIndex* pindex, uint64_t& nStakeModifier, int64_t& nModifierTime);
 
 arith_uint256 GetProofOfStakeLimit(int nHeight);

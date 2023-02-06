@@ -145,14 +145,9 @@ namespace PocketDb
 
         // Collect data
         template <class ...Collects>
-        int Collect(Collects&... collects)
+        void Collect(Collects&... collects)
         {
-            auto st = m_stmt->Step();
-            if (st != SQLITE_ROW)
-                return st;
-
             (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
-            return st;
         }
 
         tuple<bool, std::string> TryGetColumnString(int index);

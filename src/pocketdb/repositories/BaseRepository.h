@@ -20,6 +20,14 @@ namespace PocketDb
     using namespace std;
     using namespace PocketHelpers;
 
+    struct Pagination {
+        int TopHeight;
+        int PageStart;
+        int PageSize;
+        string OrderBy;
+        bool Desc;
+    };
+
     class BaseRepository
     {
     private:
@@ -98,6 +106,15 @@ namespace PocketDb
             }
 
             return *itr->second;
+        }
+
+        bool ExistsRows(Stmt& stmt)
+        {
+            bool res = false;
+            stmt.Select([&](Cursor& cursor) {
+                res = cursor.StepV() == SQLITE_ROW;
+            });
+            return res;
         }
 
         void SetLastInsertRowId(int64_t value)

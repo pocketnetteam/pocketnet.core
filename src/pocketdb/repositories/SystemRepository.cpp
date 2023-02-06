@@ -16,7 +16,8 @@ namespace PocketDb
                 PRAGMA user_version
             )sql")
             .Select([&](Cursor& cursor) {
-                cursor.Collect(result);
+                if (cursor.Step())
+                    cursor.Collect(result);
             });
         });
 

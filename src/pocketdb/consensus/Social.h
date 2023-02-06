@@ -39,6 +39,14 @@ namespace PocketConsensus
                 return ValidateBlock(ptx, block);
             else
                 return ValidateMempool(ptx);
+            
+            // TODO (merge)
+            // // Check active account ban
+            // if (PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height))
+            //     return {false, SocialConsensusResult_AccountBanned};
+            // TODO (brangr): delete - в один блок пусть с удалением пролазят - проверитЬ!
+            // if (*blockTx->GetType() == ACCOUNT_DELETE)
+            //     return {false, SocialConsensusResult_AccountDeleted};
         }
 
         // Generic transactions validating

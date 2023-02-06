@@ -83,6 +83,7 @@ namespace PocketConsensus
         SocialConsensusResult_ExceededLimit = 65,
         SocialConsensusResult_LowReputation = 66,
         SocialConsensusResult_AccountDeleted = 67,
+        SocialConsensusResult_AccountBanned = 68,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
@@ -153,6 +154,8 @@ namespace PocketConsensus
             case (SocialConsensusResult_SelfFlag): return "SelfFlag";
             case (SocialConsensusResult_ExceededLimit): return "ExceededLimit";
             case (SocialConsensusResult_LowReputation): return "LowReputation";
+            case (SocialConsensusResult_AccountDeleted): return "AccountDeleted";
+            case (SocialConsensusResult_AccountBanned): return "AccountBanned";
 
             default: return "Unknown";
         }
@@ -191,11 +194,19 @@ namespace PocketConsensus
         threshold_whale_likers_comment,
         threshold_whale_likers_comment_answer,
 
+        // Thresholds for obtaining badges - AUTHOR
+        threshold_author_reg_depth,
+        threshold_author_likers_all,
+        threshold_author_likers_content,
+        threshold_author_likers_comment,
+        threshold_author_likers_comment_answer,
+
         ConsensusLimit_trial_post,
         ConsensusLimit_trial_video,
         ConsensusLimit_trial_article,
         ConsensusLimit_trial_stream,
         ConsensusLimit_trial_audio,
+        ConsensusLimit_trial_collection,
         ConsensusLimit_trial_score,
         ConsensusLimit_trial_complain,
         ConsensusLimit_trial_comment,
@@ -206,6 +217,7 @@ namespace PocketConsensus
         ConsensusLimit_full_article,
         ConsensusLimit_full_stream,
         ConsensusLimit_full_audio,
+        ConsensusLimit_full_collection,
         ConsensusLimit_full_score,
         ConsensusLimit_full_complain,
         ConsensusLimit_full_comment,
@@ -218,6 +230,7 @@ namespace PocketConsensus
         ConsensusLimit_article_edit_count,
         ConsensusLimit_stream_edit_count,
         ConsensusLimit_audio_edit_count,
+        ConsensusLimit_collection_edit_count,
         ConsensusLimit_comment_edit_count,
 
         ConsensusLimit_edit_post_depth,
@@ -225,6 +238,7 @@ namespace PocketConsensus
         ConsensusLimit_edit_article_depth,
         ConsensusLimit_edit_stream_depth,
         ConsensusLimit_edit_audio_depth,
+        ConsensusLimit_edit_collection_depth,
         ConsensusLimit_edit_comment_depth,
         ConsensusLimit_edit_user_depth,
 
@@ -232,6 +246,7 @@ namespace PocketConsensus
         account_settings_daily_count,
 
         ConsensusLimit_multiple_lock_addresses_count,
+        ConsensusLimit_collection_ids_count,
 
         ConsensusLimit_max_user_size,
         ConsensusLimit_max_post_size,
@@ -239,6 +254,7 @@ namespace PocketConsensus
         ConsensusLimit_max_article_size,
         ConsensusLimit_max_stream_size,
         ConsensusLimit_max_audio_size,
+        ConsensusLimit_max_collection_size,
         ConsensusLimit_max_comment_size,
         ConsensusLimit_max_account_setting_size,
 
@@ -251,7 +267,15 @@ namespace PocketConsensus
 
         ConsensusLimit_bad_reputation,
 
-        ConsensusLimit_moderation_flag_count,
+        moderation_flag_count,
+        moderation_flag_max_value,
+        moderation_jury_flag_count,
+        moderation_jury_flag_depth,
+        moderation_jury_moders_count,
+        moderation_jury_vote_count,
+        moderation_jury_ban_1_time,
+        moderation_jury_ban_2_time,
+        moderation_jury_ban_3_time,
     };
 
     /*********************************************************************************************/
@@ -271,12 +295,12 @@ namespace PocketConsensus
         { ConsensusLimit_threshold_reputation, {
             { NetworkMain,    { {0, 500}, {292800, 1000} } },
             { NetworkTest,    { {0, 100}, {761000, 10} } },
-            { NetworkRegTest, { {0, 10} } }
+            { NetworkRegTest, { {0, 0} } }
         } },
         { ConsensusLimit_threshold_reputation_score, {
             { NetworkMain,    { {0, -10000}, {108300, 500}, {292800, 1000} } },
             { NetworkTest,    { {0, 0}, {100000, 100} } },
-            { NetworkRegTest, { {0, 10} } }
+            { NetworkRegTest, { {0, 0} } }
         } },
         { ConsensusLimit_threshold_balance, {
             { NetworkMain,    { {0, 50 * COIN} } },
@@ -301,7 +325,7 @@ namespace PocketConsensus
         { ConsensusLimit_threshold_low_likers_depth, {
             { NetworkMain,    { {1180000, 250'000} } },
             { NetworkTest,    { {0, 250'000} } },
-            { NetworkRegTest, { {0, 250'000} } }
+            { NetworkRegTest, { {0, 50} } }
         } },
         { ConsensusLimit_depth, {
             { NetworkMain,    { {0, 86400}, {1180000, 1440} } },
@@ -318,7 +342,7 @@ namespace PocketConsensus
         { threshold_shark_likers_all, {
             { NetworkMain,    { {0, 100} } },
             { NetworkTest,    { {0, 1} } },
-            { NetworkRegTest, { {0, 1} } }
+            { NetworkRegTest, { {0, 0}, {1100, 1}, {1150, 2} } }
         } },
         { threshold_shark_likers_content, {
             { NetworkMain,    { {0, 0} } },
@@ -328,7 +352,7 @@ namespace PocketConsensus
         { threshold_shark_likers_comment, {
             { NetworkMain,    { {0, 15}, {1873500, 25} } },
             { NetworkTest,    { {0, 1} } },
-            { NetworkRegTest, { {0, 1} } }
+            { NetworkRegTest, { {0, 0}, {1100, 1} } }
         } },
         { threshold_shark_likers_comment_answer, {
             { NetworkMain,    { {0, 0} } },
@@ -362,7 +386,7 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
         } },
-
+        
         // Other
         { ConsensusLimit_edit_user_depth, {
             { NetworkMain,    { {0, 3600}, {1180000, 60} } },
@@ -391,11 +415,13 @@ namespace PocketConsensus
         } },
         { ConsensusLimit_edit_stream_depth, {
             { NetworkMain, { {0, 1440} } },
-            { NetworkTest, { {0, 1440} } }
+            { NetworkTest, { {0, 1440} } },
+            { NetworkRegTest, { {0, 1440} } }
         } },
         { ConsensusLimit_edit_audio_depth, {
             { NetworkMain, { {0, 1440} } },
-            { NetworkTest, { {0, 1440} } }
+            { NetworkTest, { {0, 1440} } },
+            { NetworkRegTest, { {0, 1440} } }
         } },
         { ConsensusLimit_edit_comment_depth, {
             { NetworkMain,    { {0, 86400}, {1180000, 1440} } },
@@ -445,13 +471,17 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_trial_stream, {
             { NetworkMain, { {0, 5} } },
-            { NetworkTest, { {0, 15} } }
+            { NetworkTest, { {0, 15} } },
+            { NetworkRegTest, { {0, 15} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_trial_audio, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 15} } },
+            { NetworkRegTest, { {0, 15} } }
+        } },
+        { ConsensusLimit_trial_collection, {
             { NetworkMain, { {0, 5} } },
             { NetworkTest, { {0, 15} } }
         } },
@@ -491,13 +521,17 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 30} } },
             { NetworkRegTest, { {0, 30} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_full_stream, {
             { NetworkMain, { {0, 30} } },
-            { NetworkTest, { {0, 30} } }
+            { NetworkTest, { {0, 30} } },
+            { NetworkRegTest, { {0, 30} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_full_audio, {
+            { NetworkMain, { {0, 30} } },
+            { NetworkTest, { {0, 30} } },
+            { NetworkRegTest, { {0, 30} } }
+        } },
+        { ConsensusLimit_full_collection, {
             { NetworkMain, { {0, 30} } },
             { NetworkTest, { {0, 30} } }
         } },
@@ -527,21 +561,17 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 100} } },
             { NetworkRegTest, { {0, 10} } }
         } },
-       // TODO (o1q): is it correct?
 //        { ConsensusLimit_pro_stream, {
 //            { NetworkMain, { {0, 100} } },
-//            { NetworkTest, { {0, 100} } }
+//            { NetworkTest, { {0, 100} } },
+//            { NetworkRegTest, { {0, 100} } }
 //        } },
 //        { ConsensusLimit_pro_audio, {
 //            { NetworkMain, { {0, 100} } },
-//            { NetworkTest, { {0, 100} } }
+//            { NetworkTest, { {0, 100} } },
+//            { NetworkRegTest, { {0, 100} } }
 //        } },
         
-        { ConsensusLimit_moderation_flag_count, {
-            { NetworkMain, { {0, 30} }},
-            { NetworkTest, { {0, 100} }}
-        }},
-
         { ConsensusLimit_post_edit_count, {
             { NetworkMain,    { {0, 5} } },
             { NetworkTest,    { {0, 5} } },
@@ -557,13 +587,17 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_stream_edit_count, {
             { NetworkMain, { {0, 5} } },
-            { NetworkTest, { {0, 5} } }
+            { NetworkTest, { {0, 5} } },
+            { NetworkRegTest, { {0, 5} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_audio_edit_count, {
+            { NetworkMain, { {0, 5} } },
+            { NetworkTest, { {0, 5} } },
+            { NetworkRegTest, { {0, 5} } }
+        } },
+        { ConsensusLimit_collection_edit_count, {
             { NetworkMain, { {0, 5} } },
             { NetworkTest, { {0, 5} } }
         } },
@@ -583,6 +617,12 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 100} } },
             { NetworkTest,    { {0, 100} } },
             { NetworkRegTest, { {0, 100} } }
+        } },
+
+        { ConsensusLimit_collection_ids_count, {
+            { NetworkMain,    { {0, 100} } },
+            { NetworkTest,    { {0, 100} } },
+            { NetworkRegTest, { {0, 10} } }
         } },
 
         // Size
@@ -606,15 +646,19 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 60000} } },
             { NetworkRegTest, { {0, 60000} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_max_stream_size, {
             { NetworkMain, { {0, 60000} } },
-            { NetworkTest, { {0, 60000} } }
+            { NetworkTest, { {0, 60000} } },
+            { NetworkRegTest, { {0, 60000} } }
         } },
-        // TODO (o1q): is it correct?
         { ConsensusLimit_max_audio_size, {
             { NetworkMain, { {0, 60000} } },
-            { NetworkTest, { {0, 60000} } }
+            { NetworkTest, { {0, 60000} } },
+            { NetworkRegTest, { {0, 60000} } }
+        } },
+        { ConsensusLimit_max_collection_size, {
+            { NetworkMain, { {0, 2000} } },
+            { NetworkTest, { {0, 2000} } }
         } },
         { ConsensusLimit_max_comment_size, {
             { NetworkMain,    { {0, 2000} } },
@@ -626,6 +670,68 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 2048} } },
             { NetworkRegTest, { {0, 2048} } }
         } },
+
+        // MODERATION
+
+        { moderation_flag_count, {
+            { NetworkMain,    { {0, 30} }},
+            { NetworkTest,    { {0, 100} }},
+            { NetworkRegTest, { {0, 100} } }
+        }},
+        { moderation_flag_max_value, {
+            { NetworkMain,    { {0, 4}, {9999999, 5} }}, // TODO (release): set actual height
+            { NetworkTest,    { {0, 4}, {1531000, 5} }},
+            { NetworkRegTest, { {0, 5} } }
+        }},
+
+        // JURY
+        { moderation_jury_flag_count, {
+            { NetworkMain,    { {0, 20} }},
+            { NetworkTest,    { {0, 5} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        { moderation_jury_flag_depth, {
+            { NetworkMain,    { {0, 43200} }},
+            { NetworkTest,    { {0, 4320} }},
+            { NetworkRegTest, { {0, 10} } }
+        }},
+        { moderation_jury_moders_count, {
+            { NetworkMain,    { {0, 80} }},
+            { NetworkTest,    { {0, 6} }},
+            { NetworkRegTest, { {0, 4} } }
+        }},
+        { moderation_jury_vote_count, {
+            { NetworkMain,    { {0, 8} }},
+            { NetworkTest,    { {0, 3} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        
+        { moderation_jury_ban_1_time, {
+            { NetworkMain,    { {0, 43200} }},
+            { NetworkTest,    { {0, 5000} }},
+            { NetworkRegTest, { {0, 100} } }
+        }},
+        { moderation_jury_ban_2_time, {
+            { NetworkMain,    { {0, 129600} }},
+            { NetworkTest,    { {0, 10000} }},
+            { NetworkRegTest, { {0, 200} } }
+        }},
+        { moderation_jury_ban_3_time, {
+            { NetworkMain,    { {0, 51840000} }},
+            { NetworkTest,    { {0, 15000} }},
+            { NetworkRegTest, { {0, 1000} } }
+        }},
+
+        // { threshold_moderator_request, {
+        //     { NetworkMain, { {0, 10080} }},
+        //     { NetworkTest, { {0, 1440} }},
+        //     { NetworkRegTest, { {0, 10} } }
+        // }},
+        // { threshold_moderator_register, {
+        //     { NetworkMain, { {0, 129600} }},
+        //     { NetworkTest, { {0, 10080} }},
+        //     { NetworkRegTest, { {0, 10} } }
+        // }},
         
     };
 
@@ -637,6 +743,7 @@ namespace PocketConsensus
         explicit BaseConsensus(int height);
         virtual ~BaseConsensus() = default;
         int64_t GetConsensusLimit(ConsensusLimit type) const;
+        int GetHeight() const { return Height; }
     protected:
         int Height = 0;
     };

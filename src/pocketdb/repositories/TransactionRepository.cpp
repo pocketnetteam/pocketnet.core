@@ -592,11 +592,12 @@ namespace PocketDb
             )sql")
             .Bind(number, txHash)
             .Select([&](Cursor& cursor) {
-                cursor.Collect(
-                    result.TxTime,
-                    result.OutValue,
-                    result.BlockHash
-                );
+                if (cursor.Step())
+                    cursor.Collect(
+                        result.TxTime,
+                        result.OutValue,
+                        result.BlockHash
+                    );
             });
         });
 
@@ -625,7 +626,7 @@ namespace PocketDb
         return result;
     }
 
-    bool TransactionRepository::ExistsInChain(const string& hash)
+    bool TransactionRepository::ExistsLast(const string& hash)
     {
         bool result = false;
         SqlTransaction(__func__, [&]()
@@ -661,7 +662,8 @@ namespace PocketDb
                     (select count() from Chain)
             )sql")
             .Select([&](Cursor& cursor) {
-                cursor.Collect(result);
+                if (cursor.Step())
+                    cursor.Collect(result);
             });
         });
 
@@ -1075,7 +1077,7 @@ namespace PocketDb
         if (!includedPayload)
             return make_tuple(true, ptx);
 
-        if (auto[ok, value] = cursor.TryGetColumnString(11); !ok)
+        if (auto[ok, _] = cursor.TryGetColumnString(11); !ok)
             return make_tuple(true, ptx);
 
         auto payload = Payload();

@@ -39,6 +39,9 @@ namespace PocketDb
     extern SystemRepository SystemRepoInst;
     extern MigrationRepository MigrationRepoInst;
 
+    extern NotifierRepository NotifierRepoInst;
+    extern ExplorerRepository ExplorerRepoInst;
+
     extern CheckpointRepository CheckpointRepoInst;
 } // namespace PocketDb
 

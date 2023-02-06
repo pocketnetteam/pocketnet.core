@@ -32,7 +32,7 @@ namespace PocketDb
         
         SqlTransaction(__func__, [&]()
         {
-            Sql(
+            result = Sql(
                 R"sql(
                 select 1
                 from Ratings indexed by Ratings_Type_Id_Value
