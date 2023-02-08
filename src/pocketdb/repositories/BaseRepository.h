@@ -100,7 +100,7 @@ namespace PocketDb
             {
                 auto stmt = make_shared<Stmt>();
                 stmt->Init(m_database, sql);
-                itr = _statements.insert({sql, stmt}).first;
+                itr = _statements.emplace(sql, std::move(stmt)).first;
             }
 
             return *itr->second;
