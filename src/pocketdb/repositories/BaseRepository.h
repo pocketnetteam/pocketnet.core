@@ -31,7 +31,7 @@ namespace PocketDb
     class BaseRepository
     {
     private:
-        unordered_map<size_t, shared_ptr<Stmt>> _statements;
+        unordered_map<string, shared_ptr<Stmt>> _statements;
 
     protected:
         SQLiteDatabase& m_database;
@@ -95,14 +95,12 @@ namespace PocketDb
 
         Stmt& Sql(const string& sql)
         {
-            size_t key = hash<string>{}(sql);
-
-            auto itr = _statements.find(key);
+            auto itr = _statements.find(sql);
             if (itr == _statements.end())
             {
                 auto stmt = make_shared<Stmt>();
                 stmt->Init(m_database, sql);
-                itr = _statements.insert({key, stmt}).first;
+                itr = _statements.insert({sql, stmt}).first;
             }
 
             return *itr->second;
