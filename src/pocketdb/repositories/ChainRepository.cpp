@@ -686,21 +686,28 @@ namespace PocketDb
                 select
 
                     f.ROWID, /* Unique id of Flag record */
-                    u.Id, /* Account unique id of the content author */
+                    cu.Uid, /* Account unique id of the content author */
                     f.Int1 /* Reason */
 
                 from Transactions f
-                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    on u.Type = 100 and u.Last = 1 and u.String1 = f.String3 and u.Height > 0
-                
-                where f.Hash = ?
+                join Chain cf on
+                    cf.TxId = f.RowId
+
+                cross join Transactions u on
+                    u.Type = 100 and
+                    u.RegId1 = f.RegId3 and
+                    exists (select 1 from Last lu where lu.TxId = u.RowId)
+
+                join Chain cu on
+                    cu.TxId = u.RowId
+                where f.HashId = (select r.RowId from Registry r where r.String = ?)
 
                     -- Is there no active punishment listed on the account ?
                     and not exists (
                         select 1
                         from JuryBan b indexed by JuryBan_AccountId_Ending
-                        where b.AccountId = u.Id
-                            and b.Ending > f.Height
+                        where b.AccountId = cu.Uid
+                            and b.Ending > cf.Height
                     )
 
                     -- there is no active jury for the same reason
@@ -709,7 +716,7 @@ namespace PocketDb
                         from Jury j indexed by Jury_AccountId_Reason
                         left join JuryVerdict jv
                             on jv.FlagRowId = j.FlagRowId
-                        where j.AccountId = u.Id
+                        where j.AccountId = cu.Uid
                             and j.Reason = f.Int1
                             and jv.Verdict is null
                     )
@@ -717,11 +724,13 @@ namespace PocketDb
                     -- if there are X flags of the same reason for X time
                     and ? <= (
                         select count()
-                        from Transactions ff indexed by Transactions_Type_Last_String3_Height
+                        from Transactions ff
+                        join Chain cff indexed by Chain_Height_BlockId on
+                            cff.TxId = ff.RowId and
+                            cff.Height > ?
                         where ff.Type in (410)
-                            and ff.Last = 0
-                            and ff.String3 = f.String3
-                            and ff.Height > ?
+                            and ff.RegId3 = f.RegId3
+                            and not exists (select 1 from Last lff where lff.TxId = ff.RowId);
                     )
             )sql")
             .Bind(flagTxHash, flagsMinCount, flagsDepth)
@@ -735,22 +744,23 @@ namespace PocketDb
                 insert into JuryModerators (AccountId, FlagRowId)
                 with
                   h as (
-                    select ? as hash
+                    select r.String as hash, r.RowId as hashid
+                    from Registry r where r.String = ?
                   ),
                   f as (
-                    select f.ROWID, f.Hash
+                    select f.ROWID, h.hash
                     from Transactions f,
                         Jury j,
                         h
-                    where f.Hash = h.hash and j.FlagRowId = f.ROWID
+                    where f.HashId = h.hashid and j.FlagRowId = f.ROWID
                   ),
                   c as (
                     select ?/2 as cnt
                   ),
                   a as (
-                    select b.AccountId, u.Hash
+                    select b.AccountId, (select r.String from Registry r where r.RowId = (select t.HashId from Transactions t where t.RowId = u.TxId)) as Hash
                     from vBadges b
-                    cross join Transactions u indexed by Transactions_Id_First on u.Id = b.AccountId and u.First = 1
+                    cross join Chain u on u.Uid = b.AccountId and exists (select 1 from First f where f.TxId = u.TxId)
                     where b.Badge = 3
                   ),
                   l as (
@@ -830,21 +840,21 @@ namespace PocketDb
                 insert or ignore into
                     JuryVerdict (FlagRowId, VoteRowId, Verdict)
                 select
-                    f.ROWID,
-                    v.ROWID,
+                    f.RowId,
+                    v.RowId,
                     0
                 from
                     Transactions v
                     cross join Transactions f
-                        on f.Hash = v.String2
-                    cross join Transactions vv indexed by Transactions_Type_Last_String2_Height
-                        on vv.Type in (420) and -- Votes
-                           vv.Last = 0 and
-                           vv.String2 = f.Hash and -- JuryId over FlagTxHash
-                           vv.Height > 0 and
-                           vv.Int1 = 0 -- Negative verdict
+                        on f.HashId = v.RegId2
+                    cross join Transactions vv on
+                        vv.Type in (420) and -- Votes
+                        vv.RegId2 = f.HashId and -- JuryId over FlagTxHash
+                        vv.Int1 = 0 and -- Negative verdict
+                        not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
+                        
                 where
-                    v.Hash = ?
+                    v.HashId = (select r.RowId from Registry r where r.String = ?)
             )sql")
             .Bind(voteTxHash)
             .Run();
@@ -854,26 +864,26 @@ namespace PocketDb
                 insert or ignore into
                     JuryVerdict (FlagRowId, VoteRowId, Verdict)
                 select
-                    f.ROWID,
-                    v.ROWID,
+                    f.RowId,
+                    v.RowId,
                     1
                 from
                     Transactions v
                     cross join Transactions f
-                        on f.Hash = v.String2
+                        on f.HashId = v.RegId2
                 where
-                    v.Hash = ? and
+                    v.HashId = (select r.RowId from Registry r where r.String = ?) and
                     ? <= (
                         select
                             count()
                         from
-                            Transactions vv indexed by Transactions_Type_Last_String2_Height
+                            Transactions vv
                         where
                             vv.Type in (420) and -- Votes
-                            vv.Last = 0 and
-                            vv.String2 = f.Hash and -- JuryId over FlagTxHash
-                            vv.Height > 0 and
-                            vv.Int1 = 1 -- Positive verdict
+                            vv.RegId2 = f.HashId and -- JuryId over FlagTxHash
+                            vv.Int1 = 1 and -- Positive verdict
+                            not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
+                    )
                     )
             )sql")
             .Bind(voteTxHash, votesCount)
@@ -884,7 +894,7 @@ namespace PocketDb
                 insert into
                     JuryBan (VoteRowId, AccountId, Ending)
                 select
-                    v.ROWID, /* Unique id of Vote record */
+                    v.RowId, /* Unique id of Vote record */
                     j.AccountId, /* Address of the content author */
                     (
                         case ( select count() from JuryBan b indexed by JuryBan_AccountId_Ending where b.AccountId = j.AccountId )
@@ -895,8 +905,10 @@ namespace PocketDb
                     ) /* Ban period */
                 from
                     Transactions v
+                    join Chain cv
+                        on cv.TxId = v.RowId
                     join Transactions f
-                        on f.Hash = v.String2
+                        on f.HashId = v.RegId2
                     cross join Jury j
                         on j.FlagRowId = f.ROWID
                     cross join JuryVerdict jv
@@ -904,7 +916,7 @@ namespace PocketDb
                            jv.FlagRowId = j.FlagRowId and
                            jv.Verdict = 1
                 where
-                    v.Hash = ? and
+                    v.HashId = (select r.RowId from Registry r where r.String = ?) and
                     not exists (
                         select
                             1
@@ -912,7 +924,7 @@ namespace PocketDb
                             JuryBan b indexed by JuryBan_AccountId_Ending
                         where
                             b.AccountId = j.AccountId and
-                            b.Ending > v.Height
+                            b.Ending > cv.Height
                     )
             )sql")
             .Bind(ban1Time, ban2Time, ban3Time, voteTxHash)
@@ -992,11 +1004,11 @@ namespace PocketDb
                             select
                                 lc.Value
                             from
-                                Ratings lc indexed by Ratings_Type_Id_Last_Value
+                                Ratings lc indexed by Ratings_Type_Uid_Last_Value
                             where
                                 lc.Type in (112) and
                                 lc.Last = 1 and
-                                lc.Id = b.AccountId
+                                lc.Uid = b.AccountId
                         ), 0) or
 
                         -- Sum liker must be above N
@@ -1004,11 +1016,11 @@ namespace PocketDb
                             select
                                 sum(l.Value)
                             from
-                                Ratings l
+                                Ratings l indexed by Ratings_Type_Uid_Last_Value
                             where
                                 l.Type in (111, 112, 113) and
                                 l.Last = 1 and
-                                l.Id = b.AccountId
+                                l.Uid = b.AccountId
                         ), 0) or
 
                         -- Account must be registered above N months
@@ -1016,10 +1028,10 @@ namespace PocketDb
                             select
                                 reg.Height
                             from
-                                Transactions reg indexed by Transactions_Id_First
+                                Chain reg
                             where
-                                reg.Id = b.AccountId and
-                                reg.First = 1
+                                reg.Uid = b.AccountId and
+                                exists (select 1 from First f where f.TxId = reg.TxId)
                         )) or
 
                         -- Account must be active (not deleted)
@@ -1027,11 +1039,14 @@ namespace PocketDb
                             select
                             1
                             from
-                                Transactions u indexed by Transactions_Id_Last
+                                Transactions u
+                            join
+                                Chain c on
+                                    c.TxId = u.RowId and
+                                    c.Uid = b.AccountId
                             where
                                 u.Type = 100 and
-                                u.Last = 1 and
-                                u.Id = b.AccountId
+                                exists (select 1 from Last lu where lu.TxId = u.RowId)
                         )
                     )
             )sql")
@@ -1050,18 +1065,18 @@ namespace PocketDb
                     Badges (AccountId, Badge, Cancel, Height)
 
                 select
-                    lc.Id, ?, 0, ?
+                    lc.Uid, ?, 0, ?
 
                 from
-                    Ratings lc indexed by Ratings_Type_Id_Last_Value
+                    Ratings lc indexed by Ratings_Type_Uid_Last_Value
 
                 where
-                    not exists(select 1 from vBadges b where b.Badge = ? and b.AccountId = lc.Id) and
+                    not exists(select 1 from vBadges b where b.Badge = ? and b.AccountId = lc.Uid) and
 
                     -- The main filtering rule is performed by the main filter
                     -- Likers over root comments must be above N
                     lc.Type = 112 and
-                    lc.Id > 0 and
+                    lc.Uid > 0 and
                     lc.Last = 1 and
                     lc.Value >= ? and
 
@@ -1070,21 +1085,21 @@ namespace PocketDb
                         select
                             sum(l.Value)
                         from
-                            Ratings l indexed by Ratings_Type_Id_Last_Value
+                            Ratings l indexed by Ratings_Type_Uid_Last_Value
                         where
                             l.Type in (111, 112, 113) and
                             l.Last = 1 and
-                            l.Id = lc.Id
+                            l.Uid = lc.Uid
                     ), 0) and
 
                     -- Account must be registered above N months
                     ? < (? - (
                         select
                             reg.Height
-                        from Transactions reg indexed by Transactions_Id_First
+                        from Chain reg
                         where
-                            reg.Id = lc.Id and
-                            reg.First = 1
+                            reg.Uid = lc.Uid and
+                            exists (select 1 from First f where f.TxId = reg.TxId)
                     )) and
 
                     -- Account must be active
@@ -1092,11 +1107,14 @@ namespace PocketDb
                         select
                             1
                         from
-                            Transactions u indexed by Transactions_Id_Last
+                            Transactions u
+                        join
+                            Chain c on
+                                c.TxId = u.RowId and
+                                c.Uid = lc.Uid
                         where
                             u.Type = 100 and
-                            u.Last = 1 and
-                            u.Id = lc.Id
+                            exists (select 1 from Last lu where lu.TxId = u.RowId)
                     )
             )sql")
             .Bind(
