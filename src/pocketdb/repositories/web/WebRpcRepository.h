@@ -120,8 +120,8 @@ namespace PocketDb
 
         UniValue SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut);
 
-        map<string, UniValue> GetContentsData(const vector<string>& hashes, const string& address);
-        map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
+        map<string, UniValue> GetContentsData(const vector<string>& hashes, const string& address = "");
+        map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address = "");
         vector<UniValue> GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address);
         vector<UniValue> GetCollectionsData(const vector<int64_t>& ids);
 
