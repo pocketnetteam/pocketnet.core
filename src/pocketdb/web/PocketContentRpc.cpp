@@ -218,8 +218,8 @@ namespace PocketWeb::PocketWebRpc
             address = request.params[1].get_str();
 
         bool last = true;
-        if (request.params.size() > 2 && request.params[2].isBool())
-            last = request.params[2].get_bool();
+        if (request.params.size() > 2 && request.params[2].isNum())
+            last = (request.params[2].get_int() == 1);
 
         vector<UniValue> content;
 
