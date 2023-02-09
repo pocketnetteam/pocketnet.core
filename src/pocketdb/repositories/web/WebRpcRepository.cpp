@@ -5486,7 +5486,7 @@ namespace PocketDb
                     where
                         t.Type = 100 and
                         t.RegId2 > 0 and
-                        c.TxId = (select min(cc.TxId) from Chain cc indexed by Chain_Uid_Height where cc.Uid = c.Uid) -- Only original;
+                        exists (select 1 from First f where f.TxId = t.RowId) -- Only original;
             )sql",
                 heightBinder
             }},
@@ -6161,7 +6161,7 @@ namespace PocketDb
 
                     where
                         c.Type in (200,201,202,209,210) and
-                        c.RowId = c.RegId2 -- only orig
+                        exists (select 1 from First f where f.TxId = c.RowId)
             )sql",
                 heightBinder
             }},
@@ -6402,8 +6402,8 @@ namespace PocketDb
 
                 where
                     r.Type = 200 and
-                    r.RowId = r.RegId2 and -- Only orig
-                    r.RegId3 > 0
+                    r.RegId3 > 0 and
+                    exists (select 1 from First f where f.TxId = r.RowId) -- Only orig
             )sql",
                 heightBinder
             }},
