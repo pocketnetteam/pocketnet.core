@@ -3023,13 +3023,13 @@ namespace PocketDb
 
         if (!hashes.empty())
         {
-            whereSql = R"sql( and t.Hash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )sql";
+            whereSql = R"sql( and t.Hash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( ) )sql";
         }
 
         if (!ids.empty())
         {
             indexSql = R"sql( indexed by Transactions_Last_Id_Height )sql";
-            whereSql = R"sql( and t.Last = 1 and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )sql";
+            whereSql = R"sql( and t.Last = 1 and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( ) )sql";
         }
 
         string sql = R"sql(
@@ -3083,11 +3083,9 @@ namespace PocketDb
                     select
                         json_group_array(json_object('h', Height, 'hs', hash))
                     from
-                        Transactions tv indexed by Transactions_Type_Last_String2_Height
+                        Transactions tv indexed by Transactions_Id
                     where
-                        tv.Type = t.Type and
-                        tv.Last in (0, 1) and
-                        tv.String2 = t.String2 and
+                        tv.Id = t.Id and
                         tv.Hash != t.Hash
                 )versions                
 
@@ -3123,13 +3121,13 @@ namespace PocketDb
                 int ii = 0;
                 UniValue record(UniValue::VOBJ);
 
-                auto[_, hash] = TryGetColumnString(*stmt, ii++);
+                auto[okHash, hash] = TryGetColumnString(*stmt, ii++);
                 record.pushKV("hash", hash);
 
-                auto[_, hashRoot] = TryGetColumnString(*stmt, ii++);
+                auto[okHashRoot, hashRoot] = TryGetColumnString(*stmt, ii++);
                 record.pushKV("txid", hashRoot);
 
-                auto[_, id] = TryGetColumnInt64(*stmt, ii++);
+                auto[okId, id] = TryGetColumnInt64(*stmt, ii++);
                 record.pushKV("id", id);
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("edit", value);
@@ -3180,7 +3178,12 @@ namespace PocketDb
                 if (auto [ok, value] = TryGetColumnInt(*stmt, ii++); ok && value > 0) record.pushKV("reposted", value);
                 if (auto [ok, value] = TryGetColumnInt(*stmt, ii++); ok) record.pushKV("comments", value);
                 if (auto [ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("myVal", value);
-                if (auto [ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("versions", value);
+                if (auto [ok, value] = TryGetColumnString(*stmt, ii++); ok)
+                {
+                    UniValue ii(UniValue::VARR);
+                    ii.read(value);
+                    record.pushKV("versions", ii);
+                }
 
                 tmpResult[id] = record;                
             }
