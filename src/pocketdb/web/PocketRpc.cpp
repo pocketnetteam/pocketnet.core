@@ -131,7 +131,7 @@ static const CRPCCommand commands[] =
 
     // Moderation
     {"moderation",     "getjury",                          &GetJury,                        {"juryid"}},
-    {"moderation",     "getjuryassigned",                  &GetJuryAssigned,                {"address", "topHeight", "count"}},
+    {"moderation",     "getjuryassigned",                  &GetJuryAssigned,                {"address", "topHeight", "pageStart", "pageSize", "orderBy", "desc"}},
     {"moderation",     "getjurymoderators",                &GetJuryModerators,              {"juryid"}},
     {"moderation",     "getbans",                          &GetBans,                        {"address"}},
     

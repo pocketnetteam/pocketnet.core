@@ -2855,7 +2855,7 @@ namespace PocketDb
         if (ids.empty())
             return result;
 
-        auto contents = GetContentsData(ids, "");
+        auto contents = GetContentsData({}, ids, "");
         result.push_backV(contents);
 
         return result;
@@ -2979,22 +2979,62 @@ namespace PocketDb
         if (ids.empty())
             return result;
 
-        auto contents = GetContentsData(ids, address);
+        auto contents = GetContentsData({}, ids, address);
         result.push_backV(contents);
 
         return result;
     }
 
-    vector<UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
+    map<int64_t, UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
+    {
+        map<int64_t, UniValue> rslt;
+        auto vctr = GetContentsData({}, ids, address);
+
+        for (const auto& v : vctr)
+            rslt.emplace(v["id"].get_int64(), v);
+
+        return rslt;
+    }
+
+    map<string, UniValue> WebRpcRepository::GetContentsData(const vector<string>& hashes, const string& address)
+    {
+        map<string, UniValue> rslt;
+        auto vctr = GetContentsData(hashes, {}, address);
+
+        for (const auto& v : vctr)
+            rslt.emplace(v["hash"].get_str(), v);
+
+        return rslt;
+    }
+
+    vector<UniValue> WebRpcRepository::GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address)
     {
         auto func = __func__;
         vector<UniValue> result{};
 
-        if (ids.empty())
+        if (hashes.empty() && ids.empty())
             return result;
+
+        if (!hashes.empty() && !ids.empty())
+            throw std::runtime_error("Only one use: hashes or ids");
+
+        string indexSql = "";
+        string whereSql = "";
+
+        if (!hashes.empty())
+        {
+            whereSql = R"sql( and t.Hash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )sql";
+        }
+
+        if (!ids.empty())
+        {
+            indexSql = R"sql( indexed by Transactions_Last_Id_Height )sql";
+            whereSql = R"sql( and t.Last = 1 and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )sql";
+        }
 
         string sql = R"sql(
             select
+                t.Hash,
                 t.String2 as RootTxHash,
                 t.Id,
                 case when t.Hash != t.String2 then 'true' else null end edit,
@@ -3037,15 +3077,26 @@ namespace PocketDb
                 ) AS CommentsCount,
                 
                 ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
-                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore,
+                
+                (
+                    select
+                        json_group_array(json_object('h', Height, 'hs', hash))
+                    from
+                        Transactions tv indexed by Transactions_Type_Last_String2_Height
+                    where
+                        tv.Type = t.Type and
+                        tv.Last in (0, 1) and
+                        tv.String2 = t.String2 and
+                        tv.Hash != t.Hash
+                )versions                
 
-            from Transactions t indexed by Transactions_Last_Id_Height
+            from Transactions t )sql" + indexSql + R"sql(
             cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
                 on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
             left join Payload p on t.Hash = p.TxHash
             where t.Height is not null
-              and t.Last = 1
-              and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+              )sql" + whereSql + R"sql(
         )sql";
 
         // Get posts
@@ -3058,72 +3109,80 @@ namespace PocketDb
 
             TryBindStatementText(stmt, i++, address);
 
-            for (int64_t id : ids)
-                TryBindStatementInt64(stmt, i++, id);
+            if (!hashes.empty())
+                for (const string& hash : hashes)
+                    TryBindStatementText(stmt, i++, hash);
+
+            if (!ids.empty())
+                for (int64_t id : ids)
+                    TryBindStatementInt64(stmt, i++, id);
 
             // ---------------------------
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
+                int ii = 0;
                 UniValue record(UniValue::VOBJ);
 
-                auto[okHash, txHash] = TryGetColumnString(*stmt, 0);
-                auto[okId, txId] = TryGetColumnInt64(*stmt, 1);
-                record.pushKV("txid", txHash);
-                record.pushKV("id", txId);
+                auto[_, hash] = TryGetColumnString(*stmt, ii++);
+                record.pushKV("hash", hash);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("edit", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("repost", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok)
+                auto[_, hashRoot] = TryGetColumnString(*stmt, ii++);
+                record.pushKV("txid", hashRoot);
+
+                auto[_, id] = TryGetColumnInt64(*stmt, ii++);
+                record.pushKV("id", id);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("edit", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("repost", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok)
                 {
                     authors.emplace_back(value);
                     record.pushKV("address", value);
                 }
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("c", value); // caption
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("m", value); // message
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("u", value); // url
-                
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("l", value); // lang
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, ii++); ok)
                 {
                     record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
                     if ((TxType)value == CONTENT_DELETE)
                         record.pushKV("deleted", "true");
                 }
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("c", value); // caption
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("m", value); // message
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("u", value); // url
+                
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok)
                 {
                     UniValue t(UniValue::VARR);
                     t.read(value);
                     record.pushKV("t", t);
                 }
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok)
                 {
                     UniValue ii(UniValue::VARR);
                     ii.read(value);
                     record.pushKV("i", ii);
                 }
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, ii++); ok)
                 {
                     UniValue s(UniValue::VOBJ);
                     s.read(value);
                     record.pushKV("s", s);
                 }
 
-                if (auto [ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("scoreCnt", value);
-                if (auto [ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("scoreSum", value);
-                if (auto [ok, value] = TryGetColumnInt(*stmt, 16); ok && value > 0) record.pushKV("reposted", value);
-                if (auto [ok, value] = TryGetColumnInt(*stmt, 17); ok) record.pushKV("comments", value);
+                if (auto [ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("scoreCnt", value);
+                if (auto [ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("scoreSum", value);
+                if (auto [ok, value] = TryGetColumnInt(*stmt, ii++); ok && value > 0) record.pushKV("reposted", value);
+                if (auto [ok, value] = TryGetColumnInt(*stmt, ii++); ok) record.pushKV("comments", value);
+                if (auto [ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("myVal", value);
+                if (auto [ok, value] = TryGetColumnString(*stmt, ii++); ok) record.pushKV("versions", value);
 
-                if (!address.empty())
-                {
-                    if (auto [ok, value] = TryGetColumnString(*stmt, 18); ok)
-                        record.pushKV("myVal", value);
-                }
-
-                tmpResult[txId] = record;                
+                tmpResult[id] = record;                
             }
 
             FinalizeSqlStatement(*stmt);
@@ -3378,7 +3437,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -3545,7 +3604,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -3746,7 +3805,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -3901,7 +3960,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -4051,7 +4110,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -4291,7 +4350,7 @@ namespace PocketDb
         // Get content data
         if (!resultIds.empty())
         {
-            auto contents = GetContentsData(resultIds, address);
+            auto contents = GetContentsData({}, resultIds, address);
             result.push_backV(contents);
         }
 
