@@ -135,7 +135,7 @@ namespace PocketDb
                     left join juryVerd jv
             )sql");
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue rcrd(UniValue::VOBJ);
 
@@ -145,12 +145,7 @@ namespace PocketDb
                     rcrd.pushKV("address", value);
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)
                     rcrd.pushKV("reason", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok && value > -1)
-                {
-                    rcrd.pushKV("verdict", value);
-
-                    // TODO (aok): add object with ban information if verditc == 1
-                }
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok && value > -1) rcrd.pushKV("verdict", value);
 
                 result.push_back(rcrd);
             }
