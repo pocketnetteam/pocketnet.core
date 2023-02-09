@@ -107,22 +107,13 @@ namespace PocketDb
                     ),
                     flag as (
                         select
-                            f.Hash
+                            f.Hash,
+                            f.String3 as Address
                         from
                             Transactions f,
                             juryRec
                         where
                             f.ROWID = juryRec.FlagRowId
-                    ),
-                    account as (
-                        select
-                            u.String1 as AddressHash
-                        from
-                            Transactions u indexed by Transactions_Id_First,
-                            juryRec
-                        where
-                            u.Id = juryRec.AccountId and
-                            u.First = 1
                     ),
                     juryVerd as (
                         select
@@ -135,13 +126,12 @@ namespace PocketDb
                     )
                 select
                     f.Hash,
-                    a.AddressHash,
+                    f.Address,
                     j.Reason,
                     ifnull(jv.Verdict, -1)
                 from
                     juryRec j
                     join flag f
-                    join account a
                     left join juryVerd jv
             )sql");
 
