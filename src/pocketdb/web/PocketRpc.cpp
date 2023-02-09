@@ -64,8 +64,8 @@ static const CRPCCommand commands[] =
     {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed", "keyword"}},
     {"contents",        "getprofilecollections",            &GetProfileCollections,         {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed", "keyword"}},
     {"contents",        "getsubscribesfeed",                &GetSubscribesFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed"}},
-    {"contents",        "getrawtransactionwithmessagebyid", &GetContent,                    {"ids", "address"}},
-    {"contents",        "getcontent",                       &GetContent,                    {"ids", "address"}},
+    {"contents",        "getrawtransactionwithmessagebyid", &GetContent,                    {"hashes", "address", "last"}},
+    {"contents",        "getcontent",                       &GetContent,                    {"hashes", "address", "last"}},
     {"contents",        "getcontentsstatistic",             &GetContentsStatistic,          {"addresses", "contentTypes", "height", "depth"}},
     {"contents",        "getcontents",                      &GetContents,                   {"address"}},
     {"contents",        "getrandomcontents",                &GetRandomContents,             {}},
@@ -132,7 +132,7 @@ static const CRPCCommand commands[] =
     // Moderation
     {"moderation",     "getalljury",                       &GetAllJury,                     {}},
     {"moderation",     "getjury",                          &GetJury,                        {"juryid"}},
-    {"moderation",     "getjuryassigned",                  &GetJuryAssigned,                {"address", "topHeight", "pageStart", "pageSize", "orderBy", "desc"}},
+    {"moderation",     "getjuryassigned",                  &GetJuryAssigned,                {"address", "verdict", "topHeight", "pageStart", "pageSize", "orderBy", "desc"}},
     {"moderation",     "getjurymoderators",                &GetJuryModerators,              {"juryid"}},
     {"moderation",     "getbans",                          &GetBans,                        {"address"}},
     
