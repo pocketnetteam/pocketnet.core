@@ -68,7 +68,7 @@ namespace PocketServices
                     ProcessTags(queueRecord.BlockHash);
                     ProcessSearchContent(queueRecord.BlockHash);
                     webRepoInst->UpsertBarteronAccounts(queueRecord.BlockHash);
-                    ProcessBarteronOffer(queueRecord.BlockHash);
+                    webRepoInst->UpsertBarteronOffers(queueRecord.BlockHash);
                     break;
                 }
                 case QueueRecordType::BlockHeight:
@@ -197,11 +197,6 @@ namespace PocketServices
         {
             LogPrintf("Warning: WebPostProcessor::ProcessSearchContent - %s\n", e.what());
         }
-    }
-
-    void WebPostProcessor::ProcessBarteronOffer(const string& blockHash)
-    {
-
     }
 
 } // PocketServices

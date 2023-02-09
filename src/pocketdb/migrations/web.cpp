@@ -49,11 +49,20 @@ namespace PocketDb
         //
         // BARTERON
         //
-        // TODO (barteron): implement
+        
         _tables.emplace_back(R"sql(
-            create table if not exists BarteronAccounts
+            create table if not exists BarteronAccountTags
             (
                 AccountId  int not null,
+                Tag        int not null
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists BarteronOffers
+            (
+                AccountId  int not null,
+                OfferId    int not null,
                 Tag        int not null
             );
         )sql");
@@ -67,7 +76,8 @@ namespace PocketDb
             create index if not exists Tags_Lang_Value_Id on Tags (Lang, Value, Id);
             create index if not exists TagsMap_TagId_ContentId on TagsMap (TagId, ContentId);
 
-            create index if not exists BarteronAccounts_Tag_AccountId on BarteronAccounts (Tag, AccountId);
+            create index if not exists BarteronAccountTags_Tag_AccountId on BarteronAccountTags (Tag, AccountId);
+            create index if not exists BarteronOffers_Tag_OfferId_AccountId on BarteronOffers (Tag, OfferId, AccountId);
         )sql";
     }
 }

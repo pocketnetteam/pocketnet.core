@@ -2,10 +2,13 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <boost/format.hpp>
 #include "pocketdb/repositories/web/WebRepository.h"
 
 namespace PocketDb
 {
+    using boost::format;
+
     void WebRepository::Init() {}
 
     void WebRepository::Destroy() {}
@@ -294,21 +297,25 @@ namespace PocketDb
         {
             // Add
             auto stmt = SetupSqlStatement(R"sql(
-                insert into BarteronAccounts (AccountId, Tag)
+                with js as ( select '$.t.a' as path )
+                insert into BarteronAccountTags (AccountId, Tag)
                 select
                     t.Id,
                     pj.value
                 from
+                    js,
                     Transactions t indexed by Transactions_BlockHash
                     join Payload p -- primary key
                         on p.TxHash = t.Hash
-                    join json_each(p.String4) as pj
+                    join json_each(p.String4, js.path) as pj
                 where
                     t.BlockHash = ? and
                     t.Type = 104 and
+                    json_valid(p.String4) and
+                    json_type(p.String4, js.path) = 'array'
                     not exists (
                         select 1
-                        from BarteronAccounts ba indexed by BarteronAccounts_Tag_AccountId
+                        from BarteronAccountTags ba indexed by BarteronAccountTags_Tag_AccountId
                         where ba.Tag = pj.value and ba.AccountId = t.Id
                     )
             )sql");
@@ -317,22 +324,26 @@ namespace PocketDb
 
             // Delete
             stmt = SetupSqlStatement(R"sql(
-                delete from BarteronAccounts
+                with js as ( select '$.t.r' as path )
+                delete from BarteronAccountTags
                 where
-                    BarteronAccounts.ROWID in (
+                    BarteronAccountTags.ROWID in (
                         select
                             ba.ROWID
                         from
+                            js,
                             Transactions t indexed by Transactions_BlockHash
                             join Payload p -- primary key
                                 on p.TxHash = t.Hash
-                            join json_each(p.String5) as pj
-                            join BarteronAccounts ba indexed by BarteronAccounts_Tag_AccountId
+                            join json_each(p.String4, js.path) as pj
+                            join BarteronAccountTags ba indexed by BarteronAccountTags_Tag_AccountId
                                 on ba.Tag = pj.value and
                                 ba.AccountId = t.Id
                         where
                             t.BlockHash = ? and
                             t.Type = 104
+                            json_valid(p.String4) and
+                            json_type(p.String4, js.path) = 'array'
                     )
             )sql");
             TryBindStatementText(stmt, 1, blockHash);
@@ -340,5 +351,26 @@ namespace PocketDb
         });
     }
 
+    void WebRepository::UpsertBarteronOffers(const string& blockHash)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            // Delete
+            auto stmt = SetupSqlStatement(R"sql(
+                delete from BarteronOffers
+                where ...
+            )sql");
+            TryBindStatementText(stmt, 1, blockHash);
+            TryStepStatement(stmt);
+
+            // Add
+            stmt = SetupSqlStatement(R"sql(
+                insert into BarteronOffers
+                ...
+            )sql");
+            TryBindStatementText(stmt, 1, blockHash);
+            TryStepStatement(stmt);
+        });
+    }
 
 }

@@ -45,7 +45,6 @@ namespace PocketServices
                 
         void ProcessTags(const string& blockHash);
         void ProcessSearchContent(const string& blockHash);
-        void ProcessBarteronOffer(const string& blockHash);
 
         void ProcessBadges(int blockHeight);
         void ProcessAuthors(int blockHeight);
