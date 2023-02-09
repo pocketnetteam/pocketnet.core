@@ -5544,7 +5544,7 @@ namespace PocketDb
                     cross join vTxStr sa on
                         sa.RowId = a.RowId
 
-                    join Transactions c on -- My comments
+                    join Transactions c indexed by Transactions_Type_RegId2 on -- My comments
                         c.Type in (204, 205) and
                         c.RegId2 = a.RegId5 and
                         c.RegId1 != a.RegId1
