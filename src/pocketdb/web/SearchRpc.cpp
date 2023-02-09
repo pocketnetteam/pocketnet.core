@@ -111,7 +111,7 @@ namespace PocketWeb::PocketWebRpc
             auto ids = request.DbConnection()->SearchRepoInst->SearchIds(searchRequest);
             
             // Get content data
-            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, searchRequest.Address);
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, searchRequest.Address);
             
             UniValue data(UniValue::VARR);
             data.push_backV(contents);
@@ -130,7 +130,7 @@ namespace PocketWeb::PocketWebRpc
             auto ids = request.DbConnection()->SearchRepoInst->SearchIds(searchRequest);
             
             // Get content data
-            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, searchRequest.Address);
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, searchRequest.Address);
 
             UniValue data(UniValue::VARR);
             data.push_backV(contents);
@@ -412,14 +412,14 @@ namespace PocketWeb::PocketWebRpc
         auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntRec, nHeight, depth);
         if (!ids.empty())
         {
-            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
             resultContent.push_backV(contents);
         }
 
         if (cntOthers > 0) {
             ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOthers);
             if (!ids.empty()) {
-                auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+                auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
                 resultContent.push_backV(contents);
             }
         }
@@ -427,7 +427,7 @@ namespace PocketWeb::PocketWebRpc
         if (cntSubs > 0) {
             ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, false);
             if (!ids.empty()) {
-                auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+                auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
                 resultContent.push_backV(contents);
             }
 
@@ -437,7 +437,7 @@ namespace PocketWeb::PocketWebRpc
                 if (!ids.empty()) {
                     restCntSubs = std::min(restCntSubs, static_cast<int>(ids.size()));
                     ids = {ids.begin(), ids.begin() + restCntSubs};
-                    auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+                    auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
                     resultContent.push_backV(contents);
                 }
             }

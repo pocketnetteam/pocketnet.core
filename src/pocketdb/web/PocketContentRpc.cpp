@@ -172,20 +172,22 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetContent()
     {
         return RPCHelpMan{"getcontent",
-                "\nReturns contents for list of ids\n",
+                "\nReturns contents for list of hash\n",
                 {
-                    {"ids", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
+                    {"hashes", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
                         {
-                            {"id", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                            {"hash", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
                         }
-                    }
+                    },
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address (Default: \"\")"},
+                    {"last", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Get last version of content (Default: True)"},
                 },
                 {
                     // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    HelpExampleCli("getcontent", "ids[]") +
-                    HelpExampleRpc("getcontent", "ids[]")
+                    HelpExampleCli("getcontent", "hashes[]") +
+                    HelpExampleRpc("getcontent", "hashes[]")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -215,8 +217,21 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 1 && request.params[1].isStr())
             address = request.params[1].get_str();
 
-        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds(hashes);
-        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, address);
+        bool last = true;
+        if (request.params.size() > 2 && request.params[2].isBool())
+            last = request.params[2].get_bool();
+
+        vector<UniValue> content;
+
+        if (last)
+        {
+            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds(hashes);
+            content = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, address);
+        }
+        else
+        {
+            content = request.DbConnection()->WebRpcRepoInst->GetContentsData(hashes, {}, address);
+        }
 
         UniValue result(UniValue::VARR);
         result.push_backV(content);
@@ -230,11 +245,7 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getcontents",
                 "\nReturns contents for address\n",
                 {
-                    {"ids", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
-                        {
-                            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "A pocketcoin addresses to filter"}   
-                        }
-                    }
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
                 {
                     // TODO (rpc): provide return description
@@ -245,24 +256,9 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        // if (request.fHelp)
-        // {
-        //     throw runtime_error(
-        //         "getcontents address\n"
-        //         "\nReturns contents for address.\n"
-        //         "\nArguments:\n"
-        //         "1. address            (string) A pocketcoin addresses to filter\n"
-        //         "\nResult\n"
-        //         "[                     (array of contents)\n"
-        //         "  ...\n"
-        //         "]");
-        // }
-
         string address;
         if (request.params[0].isStr())
             address = request.params[0].get_str();
-
-        // TODO (aok, team): add pagination
 
         return request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
     },
@@ -1280,7 +1276,7 @@ namespace PocketWeb::PocketWebRpc
         const int height = ChainActive().Height() - 150000;
 
         auto ids = request.DbConnection()->WebRpcRepoInst->GetRandomContentIds(lang, count, height);
-        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
 
         UniValue result(UniValue::VARR);
         result.push_backV(content);
