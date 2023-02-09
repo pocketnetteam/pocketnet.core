@@ -6412,7 +6412,7 @@ namespace PocketDb
                 ShortTxType::JuryAssigned, { R"sql(
                     select
                         -- Notifier data
-                        u.String1,
+                        su.String1,
                         p.String1,
                         p.String2,
                         p.String3,
@@ -6420,11 +6420,11 @@ namespace PocketDb
                         -- type of shortForm
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql('),
                         -- Flag data
-                        f.Hash, -- Jury Tx
+                        sf.Hash, -- Jury Tx
                         f.Type,
                         null,
-                        f.Height,
-                        f.BlockNum,
+                        cf.Height,
+                        cf.BlockNum,
                         f.Time,
                         null,
                         null, -- Tx of content
@@ -6442,14 +6442,14 @@ namespace PocketDb
                         -- Additional data
                         null,
                         -- Related Content
-                        c.Hash,
+                        sc.Hash,
                         c.Type,
-                        c.String1,
-                        c.Height,
-                        c.BlockNum,
+                        sc.String1,
+                        cc.Height,
+                        cc.BlockNum,
                         c.Time,
-                        c.String2,
-                        c.String3,
+                        sc.String2,
+                        sc.String3,
                         null,
                         null,
                         null,
@@ -6459,8 +6459,8 @@ namespace PocketDb
                                 else cp.String2
                             end
                         ),
-                        c.String4,
-                        c.String5,
+                        sc.String4,
+                        sc.String5,
                         -- Account data for related tx
                         null,
                         null,
@@ -6469,29 +6469,45 @@ namespace PocketDb
                         null
 
                     from
-                        Transactions f indexed by Transactions_Height_Type
+                        Transactions f
+
+                        cross join Chain cf indexed by Chain_Height_BlockId on
+                            cf.TxId = f.RowId and
+                            cf.Height = ?
+
+                        cross join vTxStr sf on
+                            sf.RowId = f.RowId
 
                         cross join Jury j
                             on j.FlagRowId = f.ROWID
 
-                        cross join Transactions u indexed by Transactions_Id_Last
-                            on u.Id = j.AccountId and u.Last = 1
+                        cross join Chain cu on
+                            cu.Uid = j.AccountId and
+                            exists (select 1 from Last l where l.TxId = cu.TxId)
+
+                        cross join vTxStr su on
+                            su.RowId = cu.TxId
 
                         cross join Payload p
-                            on p.TxHash = u.Hash
+                            on p.TxId = cu.TxId
 
                         cross join Transactions c
-                            on c.Hash = f.String2
-                        
-                        cross join Payload cp
-                            on cp.TxHash = c.Hash
+                            on c.RowId = f.RegId2
 
-                        left join Ratings rn indexed by Ratings_Type_Id_Last_Height
-                            on rn.Type = 0 and rn.Id = j.AccountId and rn.Last = 1
+                        cross join Chain cc on
+                            cc.TxId = c.RowId
+
+                        cross join vTxStr sc on
+                            sc.RowId = c.RowId
+
+                        cross join Payload cp
+                            on cp.TxId = c.RowId
+
+                        left join Ratings rn indexed by Ratings_Type_Uid_Last_Height
+                            on rn.Type = 0 and rn.Uid = j.AccountId and rn.Last = 1
 
                     where
-                        f.Type = 410 and
-                        f.Height = ?
+                        f.Type = 410
                 )sql",
                 heightBinder
             }},
@@ -6500,7 +6516,7 @@ namespace PocketDb
                 ShortTxType::JuryVerdict, { R"sql(
                     select
                         -- Notifier data
-                        u.String1,
+                        su.String1,
                         p.String1,
                         p.String2,
                         p.String3,
@@ -6508,14 +6524,14 @@ namespace PocketDb
                         -- type of shortForm
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryVerdict) + R"sql('),
                         -- Tx data
-                        v.Hash,
+                        sv.Hash,
                         v.Type,
                         null,
-                        v.Height,
-                        v.BlockNum,
+                        cv.Height,
+                        cv.BlockNum,
                         v.Time,
                         null,
-                        v.String2, -- Jury Tx
+                        sv.String2, -- Jury Tx
                         v.Int1, -- Value
                         null,
                         null,
@@ -6530,14 +6546,14 @@ namespace PocketDb
                         -- Additional data
                         null,
                         -- Related Content
-                        c.Hash,
+                        sc.Hash,
                         c.Type,
-                        c.String1,
-                        c.Height,
-                        c.BlockNum,
+                        sc.String1,
+                        cc.Height,
+                        cc.BlockNum,
                         c.Time,
-                        c.String2,
-                        c.String3,
+                        sc.String2,
+                        sc.String3,
                         null,
                         null,
                         null,
@@ -6547,8 +6563,8 @@ namespace PocketDb
                                 else cp.String2
                             end
                         ),
-                        c.String4,
-                        c.String5,
+                        sc.String4,
+                        sc.String5,
                         -- Account data for related tx
                         null,
                         null,
@@ -6557,35 +6573,51 @@ namespace PocketDb
                         null
 
                     from
-                        Transactions v indexed by Transactions_Height_Type
+                        Transactions v
+
+                        cross join Chain cv indexed by Chain_Height_BlockId on
+                            cv.TxId = v.RowId and
+                            cv.Height = ?
+
+                        cross join vTxStr sv on
+                            sv.RowId = v.RowId
 
                         cross join JuryBan jb
                             on jb.VoteRowId = v.ROWID
 
-                        cross join Transactions u indexed by Transactions_Id_Last
-                            on u.Id = jb.AccountId and u.Last = 1
+                        cross join Chain cu on
+                            cu.Uid = jb.AccountId and
+                            exists (select 1 from Last l where l.TxId = cu.TxId)
+
+                        cross join vTxStr su on
+                            su.RowId = cu.TxId
 
                         cross join Payload p
-                            on p.TxHash = u.Hash
+                            on p.TxId = cu.TxId
 
                         cross join JuryVerdict jv indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
                             on jv.VoteRowId = jb.VoteRowId
 
                         cross join Transactions f
-                            on f.ROWID = jv.FlagRowId
+                            on f.RowId = jv.FlagRowId
 
                         cross join Transactions c
-                            on c.Hash = f.String2
+                            on c.RowId = f.RegId2
+
+                        cross join Chain cc on
+                            cc.TxId = c.RowId
+
+                        cross join vTxStr sc on
+                            sc.RowId = c.RowId
 
                         cross join Payload cp
-                            on cp.TxHash = c.Hash
+                            on cp.TxId = c.RowId
 
-                        left join Ratings rn indexed by Ratings_Type_Id_Last_Height
-                            on rn.Type = 0 and rn.Id = jb.AccountId and rn.Last = 1
+                        left join Ratings rn indexed by Ratings_Type_Uid_Last_Height
+                            on rn.Type = 0 and rn.Uid = jb.AccountId and rn.Last = 1
 
                     where
-                        v.Type = 420 and
-                        v.Height = ?
+                        v.Type = 420
                 )sql",
                 heightBinder
             }},
@@ -6594,7 +6626,7 @@ namespace PocketDb
                 ShortTxType::JuryModerate, { R"sql(
                     select
                         -- Notifier data
-                        u.String1,
+                        su.String1,
                         p.String1,
                         p.String2,
                         p.String3,
@@ -6602,11 +6634,11 @@ namespace PocketDb
                         -- type of shortForm
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryModerate) + R"sql('),
                         -- Tx data
-                        f.Hash, -- Jury Tx
+                        sf.Hash, -- Jury Tx
                         f.Type,
                         null,
-                        f.Height,
-                        f.BlockNum,
+                        cf.Height,
+                        cf.BlockNum,
                         f.Time,
                         null,
                         null,
@@ -6624,14 +6656,14 @@ namespace PocketDb
                         -- Additional data
                         null,
                         -- Related Content
-                        c.Hash,
+                        sc.Hash,
                         c.Type,
-                        c.String1,
-                        c.Height,
-                        c.BlockNum,
+                        sc.String1,
+                        cc.Height,
+                        cc.BlockNum,
                         c.Time,
-                        c.String2,
-                        c.String3,
+                        sc.String2,
+                        sc.String3,
                         null,
                         null,
                         null,
@@ -6641,50 +6673,72 @@ namespace PocketDb
                                 else cp.String2
                             end
                         ),
-                        c.String4,
-                        c.String5,
+                        sc.String4,
+                        sc.String5,
                         -- Account data for related tx
-                        uc.String1,
+                        suc.String1,
                         cpc.String1,
                         cpc.String2,
                         cpc.String3,
                         ifnull(rnc.Value, 0)
 
                     from
-                        Transactions f indexed by Transactions_Height_Type
+                        Transactions f
+
+                        cross join Chain cf indexed by Chain_Height_BlockId on
+                            cf.TxId = f.RowId and
+                            cf.Height = (? - 10)
+
+                        cross join vTxStr sf on
+                            sf.RowId = f.RowId
 
                         cross join JuryModerators jm
-                            on jm.FlagRowId = f.ROWID
+                            on jm.FlagRowId = f.RowId
 
-                        cross join Transactions u indexed by Transactions_Id_Last
-                            on u.Id = jm.AccountId and u.Last = 1
+                        cross join Chain cu on
+                            cu.Uid = jm.AccountId and
+                            exists (select 1 from Last l where l.TxId = cu.TxId)
+
+                        cross join vTxStr su on
+                            su.RowId = cu.TxId
 
                         cross join Payload p
-                            on p.TxHash = u.Hash
+                            on p.TxId = cu.TxId
 
-                        left join Ratings rn indexed by Ratings_Type_Id_Last_Height
-                            on rn.Type = 0 and rn.Id = jm.AccountId and rn.Last = 1
+                        left join Ratings rn indexed by Ratings_Type_Uid_Last_Height
+                            on rn.Type = 0 and rn.Uid = jm.AccountId and rn.Last = 1
 
                         -- content
                         cross join Transactions c
-                            on c.Hash = f.String2
+                            on c.RowId = f.RegId2
+
+                        cross join Chain cc on
+                            cc.TxId = c.RowId
+
+                        cross join vTxStr sc on
+                            sc.RowId = c.RowId
 
                         cross join Payload cp
-                            on cp.TxHash = c.Hash
+                            on cp.TxId = c.RowId
 
                         -- content author
-                        cross join Transactions uc indexed by Transactions_Type_Last_String1_Height_Id
-                            on uc.Type = 100 and uc.Last = 1 and uc.String1 = c.String1 and uc.Height > 0
+                        cross join Transactions uc
+                            on uc.Type = 100 and exists (select 1 from Last l where l.TxId = uc.RowId) and uc.RegId1 = c.RegId1
+
+                        cross join Chain cuc on
+                            cuc.TxId = uc.RowId
+
+                        cross join vTxStr suc on
+                            suc.RowId = uc.RowId
 
                         cross join Payload cpc
-                            on cpc.TxHash = uc.Hash
+                            on cpc.TxId = uc.RowId
 
-                        left join Ratings rnc indexed by Ratings_Type_Id_Last_Height
-                            on rnc.Type = 0 and rnc.Id = uc.Id and rnc.Last = 1
+                        left join Ratings rnc indexed by Ratings_Type_Uid_Last_Height
+                            on rnc.Type = 0 and rnc.Uid = cuc.Uid and rnc.Last = 1
 
                     where
-                        f.Type = 410 and
-                        f.Height = (? - 10)
+                        f.Type = 410
                 )sql",
                 heightBinder
             }}
