@@ -5547,12 +5547,10 @@ namespace PocketDb
                     join Transactions c indexed by Transactions_Type_RegId2 on -- My comments
                         c.Type in (204, 205) and
                         c.RegId2 = a.RegId5 and
-                        c.RegId1 != a.RegId1
+                        c.RegId1 != a.RegId1 and
+                        exists (select 1 from Last lc where lc.TxId = c.RowId)
                     cross join vTxStr sc on
                         sc.RowId = c.RowId
-
-                    join Last lc on
-                        lc.TxId = c.RowId
 
                     join Chain ca indexed by Chain_Height_BlockId on
                         ca.TxId = a.RowId and
