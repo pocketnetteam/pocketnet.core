@@ -295,9 +295,26 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            // Add
+            // Delete
             auto stmt = SetupSqlStatement(R"sql(
-                with js as ( select '$.t.a' as path )
+                delete from BarteronAccountTags
+                where
+                    BarteronAccountTags.AccountId in (
+                        select
+                            t.Id
+                        from
+                            Transactions t indexed by Transactions_BlockHash
+                        where
+                            t.BlockHash = ? and
+                            t.Type = 104
+                    )
+            )sql");
+            TryBindStatementText(stmt, 1, blockHash);
+            TryStepStatement(stmt);
+
+            // Add
+            stmt = SetupSqlStatement(R"sql(
+                with js as ( select '$.t' as path )
                 insert into BarteronAccountTags (AccountId, Tag)
                 select
                     t.Id,
@@ -313,38 +330,6 @@ namespace PocketDb
                     t.Type = 104 and
                     json_valid(p.String4) and
                     json_type(p.String4, js.path) = 'array'
-                    not exists (
-                        select 1
-                        from BarteronAccountTags ba indexed by BarteronAccountTags_Tag_AccountId
-                        where ba.Tag = pj.value and ba.AccountId = t.Id
-                    )
-            )sql");
-            TryBindStatementText(stmt, 1, blockHash);
-            TryStepStatement(stmt);
-
-            // Delete
-            stmt = SetupSqlStatement(R"sql(
-                with js as ( select '$.t.r' as path )
-                delete from BarteronAccountTags
-                where
-                    BarteronAccountTags.ROWID in (
-                        select
-                            ba.ROWID
-                        from
-                            js,
-                            Transactions t indexed by Transactions_BlockHash
-                            join Payload p -- primary key
-                                on p.TxHash = t.Hash
-                            join json_each(p.String4, js.path) as pj
-                            join BarteronAccountTags ba indexed by BarteronAccountTags_Tag_AccountId
-                                on ba.Tag = pj.value and
-                                ba.AccountId = t.Id
-                        where
-                            t.BlockHash = ? and
-                            t.Type = 104
-                            json_valid(p.String4) and
-                            json_type(p.String4, js.path) = 'array'
-                    )
             )sql");
             TryBindStatementText(stmt, 1, blockHash);
             TryStepStatement(stmt);
@@ -358,15 +343,41 @@ namespace PocketDb
             // Delete
             auto stmt = SetupSqlStatement(R"sql(
                 delete from BarteronOffers
-                where ...
+                where
+                    BarteronOffers.OfferId in (
+                        select
+                            t.Id
+                        from
+                            Transactions t indexed by Transactions_BlockHash
+                        where
+                            t.BlockHash = ? and
+                            t.Type = 211
+                    )
             )sql");
             TryBindStatementText(stmt, 1, blockHash);
             TryStepStatement(stmt);
 
             // Add
             stmt = SetupSqlStatement(R"sql(
-                insert into BarteronOffers
-                ...
+                with js as ( select '$.t' as path )
+                insert into BarteronOffers (AccountId, OfferId, Tag)
+                select
+                    u.Id as AccountId,
+                    t.Id as OfferId,
+                    pj.value as Tag
+                from
+                    js,
+                    Transactions t indexed by Transactions_BlockHash
+                    cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                        on u.Type = 100 and u.Last = 1 and u.String1 = t.String1 and u.Height > 0
+                    cross join Payload p -- primary key
+                        on p.TxHash = t.Hash
+                    cross join json_each(p.String4, js.path) as pj
+                where
+                    t.BlockHash = ? and
+                    t.Type = 211 and
+                    json_valid(p.String4) and
+                    json_type(p.String4, js.path) = 'array'
             )sql");
             TryBindStatementText(stmt, 1, blockHash);
             TryStepStatement(stmt);
