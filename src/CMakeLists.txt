@@ -639,7 +639,23 @@ add_library(${POCKETDB}
 
         pocketdb/models/dto/moderation/Flag.h
         pocketdb/models/dto/moderation/Flag.cpp
-
+        pocketdb/models/dto/moderation/Vote.h
+        pocketdb/models/dto/moderation/Vote.cpp
+        # pocketdb/models/dto/moderation/Moderator.h
+        # pocketdb/models/dto/moderation/Moderator.cpp
+        # pocketdb/models/dto/moderation/RequestCoin.h
+        # pocketdb/models/dto/moderation/RequestCoin.cpp
+        # pocketdb/models/dto/moderation/RequestSubs.h
+        # pocketdb/models/dto/moderation/RequestSubs.cpp
+        # pocketdb/models/dto/moderation/RequestCancel.h
+        # pocketdb/models/dto/moderation/RequestCancel.cpp
+        # pocketdb/models/dto/moderation/RegisterSelf.h
+        # pocketdb/models/dto/moderation/RegisterSelf.cpp
+        # pocketdb/models/dto/moderation/RegisterRequest.h
+        # pocketdb/models/dto/moderation/RegisterRequest.cpp
+        # pocketdb/models/dto/moderation/RegisterCancel.h
+        # pocketdb/models/dto/moderation/RegisterCancel.cpp
+        
         pocketdb/models/web/WebTag.h
         pocketdb/models/web/WebContent.h
         pocketdb/models/web/SearchRequest.h
@@ -1090,6 +1106,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/web/PocketTagsRpc.cpp
         pocketdb/web/WebRpcUtils.h
         pocketdb/web/WebRpcUtils.cpp
+        pocketdb/web/ModerationRpc.h
+        pocketdb/web/ModerationRpc.cpp
         pocketdb/pocketnet.h
         pocketdb/pocketnet.cpp
         pocketdb/services/WsNotifier.cpp
@@ -1128,6 +1146,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/web/ExplorerRepository.cpp
         pocketdb/repositories/web/SearchRepository.h
         pocketdb/repositories/web/SearchRepository.cpp
+        pocketdb/repositories/web/ModerationRepository.h
+        pocketdb/repositories/web/ModerationRepository.cpp
         pocketdb/consensus/Base.h
         pocketdb/consensus/Helper.h
         pocketdb/consensus/Social.h
@@ -1156,6 +1176,15 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/ContentDelete.hpp
         pocketdb/consensus/social/BoostContent.hpp
         pocketdb/consensus/moderation/Flag.hpp
+        pocketdb/consensus/moderation/Vote.hpp
+        # pocketdb/consensus/moderation/Register.hpp
+        # pocketdb/consensus/moderation/RegisterSelf.hpp
+        # pocketdb/consensus/moderation/RegisterRequest.hpp
+        # pocketdb/consensus/moderation/RegisterCancel.hpp
+        # pocketdb/consensus/moderation/Request.hpp
+        # pocketdb/consensus/moderation/RequestCoin.hpp
+        # pocketdb/consensus/moderation/RequestSubs.hpp
+        # pocketdb/consensus/moderation/RequestCancel.hpp
         pocketdb/consensus/Helper.cpp
         pocketdb/consensus/Base.cpp
         pocketdb/consensus/Lottery.cpp
@@ -1264,7 +1293,7 @@ set(POCKETCOIN_CLI pocketcoin-cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
 # TODO (build): remove leveldb after header fix
 target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli leveldb)
-target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
+target_include_directories(${POCKETCOIN_CLI} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 
 set(POCKETCOIN_TX pocketcoin-tx)
 add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)

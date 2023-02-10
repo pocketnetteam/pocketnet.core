@@ -2431,16 +2431,15 @@ bool CConnman::InitBinds(
     for (const auto& addrBind : whiteBinds) {
         fBound |= Bind(addrBind.m_service, (BF_EXPLICIT | BF_REPORT_ERROR), addrBind.m_flags);
     }
+    for (const auto& addr_bind : onion_binds) {
+        fBound |= Bind(addr_bind, BF_EXPLICIT | BF_DONT_ADVERTISE, NetPermissionFlags::PF_NONE);
+    }
     if (binds.empty() && whiteBinds.empty()) {
         struct in_addr inaddr_any;
         inaddr_any.s_addr = htonl(INADDR_ANY);
         struct in6_addr inaddr6_any = IN6ADDR_ANY_INIT;
         fBound |= Bind(CService(inaddr6_any, GetListenPort()), BF_NONE, NetPermissionFlags::PF_NONE);
         fBound |= Bind(CService(inaddr_any, GetListenPort()), !fBound ? BF_REPORT_ERROR : BF_NONE, NetPermissionFlags::PF_NONE);
-    }
-
-    for (const auto& addr_bind : onion_binds) {
-        fBound |= Bind(addr_bind, BF_EXPLICIT | BF_DONT_ADVERTISE, NetPermissionFlags::PF_NONE);
     }
 
     return fBound;

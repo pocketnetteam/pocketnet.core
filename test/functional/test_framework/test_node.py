@@ -26,6 +26,7 @@ from .descriptors import descsum_create
 from .messages import MY_SUBVERSION
 from .util import (
     MAX_NODES,
+    PORT_RANGE,
     append_config,
     delete_cookie_file,
     get_auth_cookie,
@@ -231,7 +232,7 @@ class TestNode():
                     coveragedir=self.coverage_dir,
                 )
                 rpc_public = get_rpc_proxy(
-                    rpc_url(self.datadir, self.index+1, self.chain, self.rpchost),
+                    rpc_url(self.datadir, self.index+PORT_RANGE, self.chain, self.rpchost),
                     self.index,
                     timeout=self.rpc_timeout // 2,  # Shorter timeout to allow for one retry in case of ETIMEDOUT
                     coveragedir=self.coverage_dir,
@@ -734,7 +735,11 @@ class RPCPublicOverloadWrapper():
     def __getattr__(self, name):
         return getattr(self.rpc, name)
 
-    def generatetransaction(self, account, tx, outCount=1, conf=10, contentAddress=''):
+    def generatetransaction(self, account, tx, outCount=1, conf=9):
+        contentAddress = ''
+        if (tx.TxType == '7570766f74655368617265' or tx.TxType == '6353636f7265'):
+            contentAddress = tx.ContentAddress
+
         return self.__getattr__('generatetransaction')(
             address=account.Address,
             privkeys=[ account.PrivKey ],

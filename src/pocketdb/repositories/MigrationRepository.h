@@ -26,6 +26,7 @@ namespace PocketDb
         void Destroy() override {}
 
         bool CreateBlockingList();
+        void AddTransactionFirstField();
 
     protected:
 

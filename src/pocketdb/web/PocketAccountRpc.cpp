@@ -316,7 +316,7 @@ namespace PocketWeb::PocketWebRpc
             result.pushKV("score_unspent", scoreLimit - result["score_spent"].get_int());
 
         if (!result["mod_flag_spent"].isNull())
-            result.pushKV("mod_flag_unspent", reputationConsensus->GetConsensusLimit(ConsensusLimit_moderation_flag_count) - result["mod_flag_spent"].get_int());
+            result.pushKV("mod_flag_unspent", reputationConsensus->GetConsensusLimit(moderation_flag_count) - result["mod_flag_spent"].get_int());
 
         return result;
     },

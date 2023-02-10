@@ -357,7 +357,8 @@ def initialize_datadir(dirname, n, chain):
         f.write("[{}]\n".format(chain_name_conf_section))
         f.write("port=" + str(p2p_port(n)) + "\n")
         f.write("rpcport=" + str(rpc_port(n)) + "\n")
-        f.write("publicrpcport=" + str(rpc_port(n+1)) + "\n")
+        f.write("publicrpcport=" + str(rpc_port(n+PORT_RANGE)) + "\n")
+        f.write("wsport=" + str(rpc_port(n+PORT_RANGE*2)) + "\n")
         f.write("fallbackfee=0.0002\n")
         f.write("server=1\n")
         f.write("keypool=1\n")
@@ -369,6 +370,7 @@ def initialize_datadir(dirname, n, chain):
         f.write("shrinkdebugfile=0\n")
         f.write("autowallet=0\n")
         f.write("staking=0\n")
+        f.write("rpccachesize=0\n")
         os.makedirs(os.path.join(datadir, 'stderr'), exist_ok=True)
         os.makedirs(os.path.join(datadir, 'stdout'), exist_ok=True)
     return datadir
