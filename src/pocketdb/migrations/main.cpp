@@ -128,8 +128,8 @@ namespace PocketDb
                 -- AccountUser.About
                 -- ContentPost.Tags JSON
                 -- ContentVideo.Tags JSON
-                -- Barteron.Account.Tags JSON
-                -- Barteron.Offer.Tags JSON
+                -- Barteron.Account.Settings JSON
+                -- Barteron.Offer.Settings JSON
                 String4 text   null,
 
                 -- AccountUser.Url

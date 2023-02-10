@@ -16,6 +16,18 @@ namespace PocketTx
     public:
         BarteronAccount();
         BarteronAccount(const CTransactionRef& tx);
+
+        /*
+        Use p.s4 for JSON payload
+        {
+            ...
+            "t": { // Tags
+                "a": [ 1, 2, 3, .. ] // Append tags,
+                "r": [ 4, 5, 6, .. ] // Remove tags
+            }
+            ...
+        }
+        */
     };
 
 } // namespace PocketTx

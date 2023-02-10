@@ -21,6 +21,22 @@ namespace PocketTx
         void SetRootTxHash(const string& value);
         
         bool IsEdit() const;
+
+        /*
+            Use p.s1 for LANGUAGE
+            Use p.s2 for CAPTION
+            Use p.s3 for MESSAGE
+
+            Use p.s4 for JSON payload
+            {
+                ...
+                "t": { // Tags
+                    "a": [ 1, 2, 3, .. ] // Append tags,
+                    "r": [ 4, 5, 6, .. ] // Remove tags
+                }
+                ...
+            }
+        */
     };
 
 } // namespace PocketTx
