@@ -29,9 +29,6 @@ namespace PocketDb
     public:
         explicit ChainRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
-        void Init() override {}
-        void Destroy() override {}
-
         // Update transactions set block hash & height
         // Also spent outputs
         void IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs);

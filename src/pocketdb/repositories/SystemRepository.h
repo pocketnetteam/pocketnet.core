@@ -15,9 +15,6 @@ namespace PocketDb
     public:
         explicit SystemRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
-        void Init() override {}
-        void Destroy() override {}
-
         int GetDbVersion(const string& db);
         void SetDbVersion(const string& db, int version);
 
