@@ -69,7 +69,7 @@ namespace PocketDb
                     p.String7 pString7
                 from Transactions t indexed by Transactions_Hash_Height
                 left join Payload p on t.Hash = p.TxHash
-                where t.Type in (200,201,202,203,204,209,210,220)
+                where t.Type in (200,201,202,203,204,209,210,211,220)
                   and t.Hash = ?
                   and t.String2 = ?
                   and t.Height is not null
@@ -1025,7 +1025,7 @@ namespace PocketDb
 
             -- Content
             join Transactions c indexed by Transactions_Hash_Height
-                on c.Type in (200,201,202,203,204,205,206,207,209,210) and c.Height > 0 and c.Hash = s.String2
+                on c.Type in (200,201,202,203,204,205,206,207,209,210,211) and c.Height > 0 and c.Hash = s.String2
 
             -- Content Address
             join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
@@ -1179,7 +1179,7 @@ namespace PocketDb
                and s.Time >= ?
                and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
                and s.Hash != ?
-            where c.Type in (200,201,202,209,210,207)
+            where c.Type in (200,201,202,209,210,211,207)
               and c.String1 = ?
               and c.Height is not null
               and c.Last = 1
@@ -2538,7 +2538,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200,201,202,209,210,207)
+                where Type in (200,201,202,209,210,211,220,207)
                   and Height is null
                   and String1 = ?
                   and String2 = ?

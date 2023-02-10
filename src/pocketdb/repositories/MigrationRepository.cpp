@@ -115,7 +115,7 @@ namespace PocketDb
                     update Transactions set First = 1
                     where Transactions.ROWID in (
                       select t.ROWID from Transactions t indexed by Transactions_Type_Last_Height_Id
-                      where t.Type in (100,170,302,303,304,305,306,103,200,201,202,204,205,206,209,210,207)
+                      where t.Type in (100,170,302,303,304,305,306,103,200,201,202,204,205,206,209,210,211,220,207)
                         and t.Last in (0,1)
                         and t.Height = (select min(f.Height) from Transactions f indexed by Transactions_Last_Id_Height where f.Last in (0,1) and f.Id=t.Id)
                     )
