@@ -96,43 +96,17 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                with
-                    juryRec as (
-                        select
-                            j.FlagRowId,
-                            j.AccountId,
-                            j.Reason
-                        from
-                            Jury j
-                    ),
-                    flag as (
-                        select
-                            f.Hash,
-                            f.String3 as Address
-                        from
-                            Transactions f,
-                            juryRec
-                        where
-                            f.ROWID = juryRec.FlagRowId
-                    ),
-                    juryVerd as (
-                        select
-                            jv.Verdict
-                        from
-                            juryVerdict jv,
-                            juryRec j
-                        where
-                            jv.FlagRowId = j.FlagRowId
-                    )
                 select
                     f.Hash,
-                    f.Address,
+                    f.String3,
                     j.Reason,
                     ifnull(jv.Verdict, -1)
                 from
-                    juryRec j
-                    join flag f
-                    left join juryVerd jv
+                    Jury j
+                    cross join Transactions f
+                        on f.ROWID = j.FlagRowId
+                    left join JuryVerdict jv
+                        on jv.FlagRowId = j.FlagRowId
             )sql");
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -145,7 +119,8 @@ namespace PocketDb
                     rcrd.pushKV("address", value);
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)
                     rcrd.pushKV("reason", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok && value > -1) rcrd.pushKV("verdict", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok && value > -1)
+                    rcrd.pushKV("verdict", value);
 
                 result.push_back(rcrd);
             }
