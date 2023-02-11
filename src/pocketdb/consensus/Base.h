@@ -386,7 +386,7 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
         } },
-        
+
         // Other
         { ConsensusLimit_edit_user_depth, {
             { NetworkMain,    { {0, 3600}, {1180000, 60} } },
@@ -422,6 +422,11 @@ namespace PocketConsensus
             { NetworkMain, { {0, 1440} } },
             { NetworkTest, { {0, 1440} } },
             { NetworkRegTest, { {0, 1440} } }
+        } },
+        { ConsensusLimit_edit_collection_depth, {
+                { NetworkMain, { {0, 1440} } },
+                { NetworkTest, { {0, 1440} } },
+                { NetworkRegTest, { {0, 100} } }
         } },
         { ConsensusLimit_edit_comment_depth, {
             { NetworkMain,    { {0, 86400}, {1180000, 1440} } },
@@ -483,7 +488,8 @@ namespace PocketConsensus
         } },
         { ConsensusLimit_trial_collection, {
             { NetworkMain, { {0, 5} } },
-            { NetworkTest, { {0, 15} } }
+            { NetworkTest, { {0, 5} } },
+            { NetworkRegTest, { {0, 5} } }
         } },
         { ConsensusLimit_trial_score, {
             { NetworkMain,    { {0, 45}, {175600, 100}, {1324655, 15} } },
@@ -533,7 +539,8 @@ namespace PocketConsensus
         } },
         { ConsensusLimit_full_collection, {
             { NetworkMain, { {0, 30} } },
-            { NetworkTest, { {0, 30} } }
+            { NetworkTest, { {0, 30} } },
+            { NetworkRegTest, { {0, 30} } }
         } },
         { ConsensusLimit_full_score, {
             { NetworkMain,    { {0, 90}, {175600, 200}, {1757000, 60}, {1791787, 100}, {1873500, 200} } },
@@ -571,7 +578,7 @@ namespace PocketConsensus
 //            { NetworkTest, { {0, 100} } },
 //            { NetworkRegTest, { {0, 100} } }
 //        } },
-        
+
         { ConsensusLimit_post_edit_count, {
             { NetworkMain,    { {0, 5} } },
             { NetworkTest,    { {0, 5} } },
@@ -599,7 +606,8 @@ namespace PocketConsensus
         } },
         { ConsensusLimit_collection_edit_count, {
             { NetworkMain, { {0, 5} } },
-            { NetworkTest, { {0, 5} } }
+            { NetworkTest, { {0, 5} } },
+            { NetworkRegTest, { {0, 5} } }
         } },
         { ConsensusLimit_comment_edit_count, {
             { NetworkMain,    { {0, 4} } },
@@ -658,7 +666,8 @@ namespace PocketConsensus
         } },
         { ConsensusLimit_max_collection_size, {
             { NetworkMain, { {0, 2000} } },
-            { NetworkTest, { {0, 2000} } }
+            { NetworkTest, { {0, 2000} } },
+            { NetworkRegTest, { {0, 2000} } }
         } },
         { ConsensusLimit_max_comment_size, {
             { NetworkMain,    { {0, 2000} } },
@@ -705,7 +714,7 @@ namespace PocketConsensus
             { NetworkTest,    { {0, 3} }},
             { NetworkRegTest, { {0, 2} } }
         }},
-        
+
         { moderation_jury_ban_1_time, {
             { NetworkMain,    { {0, 43200} }},
             { NetworkTest,    { {0, 5000} }},
@@ -732,7 +741,7 @@ namespace PocketConsensus
         //     { NetworkTest, { {0, 10080} }},
         //     { NetworkRegTest, { {0, 10} } }
         // }},
-        
+
     };
 
     /*********************************************************************************************/

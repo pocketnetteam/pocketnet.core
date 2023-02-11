@@ -144,6 +144,10 @@ namespace PocketConsensus
             if (*originalTx->GetType() != *ptx->GetType())
                 return {false, SocialConsensusResult_NotAllowed};
 
+            // Change conteents type not allowed
+            if (*originalTx->GetInt1() != *ptx->GetContentTypes())
+                return {false, SocialConsensusResult_NotAllowed};
+
             // You are author? Really?
             if (*ptx->GetAddress() != *originalPtx->GetAddress())
                 return {false, SocialConsensusResult_ContentEditUnauthorized};
@@ -180,7 +184,7 @@ namespace PocketConsensus
             // Double edit in block not allowed
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_COLLECTION, CONTENT_DELETE}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<Collection>(blockTx);
@@ -205,7 +209,7 @@ namespace PocketConsensus
         }
         virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const CollectionRef& ptx)
         {
-            int count = ConsensusRepoInst.CountChainCollectionEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
+            int count = ConsensusRepoInst.CountChainCollectionEdit(*ptx->GetAddress(), *ptx->GetRootTxHash(), Height, GetConsensusLimit(ConsensusLimit_edit_collection_depth));
             if (count >= GetConsensusLimit(ConsensusLimit_collection_edit_count))
                 return {false, SocialConsensusResult_ContentEditLimit};
 

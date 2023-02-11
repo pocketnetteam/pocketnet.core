@@ -94,7 +94,7 @@ namespace PocketTx
     void Collection::SetContentTypes(const int64_t& value) { m_int1 = value; }
 
     const optional<string>& Collection::GetContentIds() const { return m_string3; }
-    const tuple<bool, vector<string>>& Collection::GetContentIdsVector() const
+    tuple<bool, vector<string>> Collection::GetContentIdsVector()
     {
         vector<string> contentIds;
 
