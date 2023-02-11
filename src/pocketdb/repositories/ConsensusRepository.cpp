@@ -6,10 +6,6 @@
 
 namespace PocketDb
 {
-    void ConsensusRepository::Init() {}
-
-    void ConsensusRepository::Destroy() {}
-
     bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
     {
         bool result = false;
