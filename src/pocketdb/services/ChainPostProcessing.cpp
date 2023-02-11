@@ -238,9 +238,9 @@ namespace PocketServices
                 ChainRepoInst.IndexModerationBan(
                     txInfo.Hash,
                     reputationConsensus->GetConsensusLimit(moderation_jury_vote_count),
-                    reputationConsensus->GetConsensusLimit(moderation_jury_ban_1_time),
-                    reputationConsensus->GetConsensusLimit(moderation_jury_ban_2_time),
-                    reputationConsensus->GetConsensusLimit(moderation_jury_ban_3_time)
+                    height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_1_time),
+                    height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_2_time),
+                    height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_3_time)
                 );
             }
         }

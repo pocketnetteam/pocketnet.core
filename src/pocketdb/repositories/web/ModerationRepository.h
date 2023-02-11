@@ -9,6 +9,13 @@
 
 namespace PocketDb
 {
+    struct JuryContent
+    {
+        int64_t ContentId;
+        TxType ContentType;
+        UniValue JuryData;
+    };
+
     class ModerationRepository : public BaseRepository
     {
     public:
@@ -18,7 +25,8 @@ namespace PocketDb
         void Destroy() override;
 
         UniValue GetJury(const string& jury);
-        UniValue GetJuryAssigned(const string& address, const Pagination& pagination);
+        UniValue GetAllJury();
+        vector<JuryContent> GetJuryAssigned(const string& address, bool verdict, const Pagination& pagination);
         UniValue GetJuryModerators(const string& jury);
 
         UniValue GetBans(const string& address);
