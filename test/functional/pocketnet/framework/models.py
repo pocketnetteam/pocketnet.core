@@ -207,29 +207,22 @@ class ContentDeletePayload:
 @dataclass
 class ContentCollectionsPayload:
     TxType = '636f6c6c656374696f6e'
-    TxEdit = ''
-    Language = ''
-    Caption = ''
-    Image = ''
-    ContentTypes = 0
-    ContentIds = ''
 
-    def __init__(self, language='en', caption='captions', image='image', contenttypes=0, contentids=['123', '456'], txEdit=''):
-        self.TxEdit = txEdit
-        self.Language = language
-        self.Caption = caption
-        self.Image = image
-        self.ContentTypes = contenttypes
-        self.ContentIds = contentids
+    language: str = 'en'
+    caption: str = 'caption'
+    image: str = 'image'
+    contenttypes: int = 200
+    contentids: list = field(default_factory=lambda: ['123', '456'])
+    txedit: str = ''
 
     def Serialize(self):
         return {
-            "txidEdit": self.TxEdit,
-            "l": self.Language,
-            "c": self.Caption,
-            "i": self.Image,
-            "contentTypes": self.ContentTypes,
-            "contentIds": self.ContentIds
+            "c": self.caption,
+            "i": self.image,
+            "l": self.language,
+            "contentTypes": self.contenttypes,
+            "contentIds": self.contentids,
+            "txidEdit": self.txedit
         }
 
 # -----------------------------------------------------------------------------------------------------------------
