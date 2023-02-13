@@ -151,32 +151,74 @@ namespace PocketDb
         return m_stmt->Step();
     }
 
+    template <class T>
+    bool _collectSetAndReturn(const std::optional<T>& val, T& valOut)
+    {
+        if (val) {
+            valOut = *val;
+        }
+        return val.has_value();
+    }
+
+    bool Cursor::Collect(const int& index, std::string& val)
+    {
+        return _collectSetAndReturn(m_stmt->GetColumnText(index), val);
+    }
+
+    bool Cursor::Collect(const int& index, optional<string>& val)
+    {
+        val = m_stmt->GetColumnText(index);
+        return val.has_value();
+    }
+
+    bool Cursor::Collect(const int& index, int& val)
+    {
+        return _collectSetAndReturn(m_stmt->GetColumnInt(index), val);
+    }
+
+    bool Cursor::Collect(const int& index, optional<int>& val)
+    {
+        val = m_stmt->GetColumnInt(index);
+        return val.has_value();
+    }
+
+    bool Cursor::Collect(const int& index, int64_t& val)
+    {
+        return _collectSetAndReturn(m_stmt->GetColumnInt64(index), val);
+    }
+
+    bool Cursor::Collect(const int& index, optional<int64_t>& val)
+    {
+        val = m_stmt->GetColumnInt64(index);
+        return val.has_value();
+    }
+
+    bool Cursor::Collect(const int& index, bool& val)
+    {
+        int v;
+        auto res = Collect(index, v);
+        if (res) val = !!v;
+        return res;
+    }
+
+    bool Cursor::Collect(const int& index, optional<bool>& val)
+    {
+        if (auto res = m_stmt->GetColumnInt64(index); res)
+            val = !!*res;
+        return val.has_value();
+    }
+
     tuple<bool, string> Cursor::TryGetColumnString(int index)
     {
-        if (!m_stmt) throw runtime_error(strprintf("%s: Cursor::TryGetColumnString() Statement is null\n", __func__));
-        auto res = m_stmt->GetColumnText(index);
-        if (res) {
-            return {true, res.value()};
-        }
-        return {false, ""};
+        return TryGetColumn<std::string>(*this, index);
     }
     tuple<bool, int64_t> Cursor::TryGetColumnInt64(int index)
     {
-        if (!m_stmt) throw runtime_error(strprintf("%s: Cursor::TryGetColumnString() Statement is null\n", __func__));
-        auto res = m_stmt->GetColumnInt64(index);
-        if (res) {
-            return {true, res.value()};
-        }
-        return {false, 0};
+        return TryGetColumn<int64_t>(*this, index);
     }
     tuple<bool, int> Cursor::TryGetColumnInt(int index)
     {
-        if (!m_stmt) throw runtime_error(strprintf("%s: Cursor::TryGetColumnString() Statement is null\n", __func__));
-        auto res = m_stmt->GetColumnInt(index);
-        if (res) {
-            return {true, res.value()};
-        }
-        return {false, 0};
+        return TryGetColumn<int>(*this, index);
     }
 
     int Cursor::Reset()
@@ -271,4 +313,5 @@ namespace PocketDb
     {
         return sqlite3_expanded_sql(m_stmt);
     }
+
 } // namespace PocketDb

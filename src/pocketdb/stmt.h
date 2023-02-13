@@ -6,6 +6,7 @@
 #define POCKETDB_STMT_H
 
 #include "pocketdb/SQLiteDatabase.h"
+#include "univalue.h"
 #include <sqlite3.h>
 
 #include <optional>
@@ -126,6 +127,28 @@ namespace PocketDb
         };
     };
 
+    template <size_t N>
+    class SeqRes
+    {
+    public:
+        SeqRes(std::array<bool, N> resArray)
+            : m_resArray(std::move(resArray)),
+              m_overallRes(std::all_of(m_resArray.begin(), m_resArray.end(), [](const bool& elem) { return elem; })) {}
+
+        operator bool() const { return m_overallRes; }
+
+        bool operator[](const size_t& index)
+        {
+            if (index < m_resArray.size() && index >=0)
+                return m_resArray[index];
+            else
+                return false;
+        }
+    private:
+        const std::array<bool, N> m_resArray;
+        const bool m_overallRes;
+    };
+
     class Cursor
     {
     public:
@@ -145,12 +168,47 @@ namespace PocketDb
 
         // Collect data
         template <class ...Collects>
-        void CollectAll(Collects&... collects)
+        auto CollectAll(Collects&... collects)
         {
-            (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
+            return SeqRes(std::array{Collector<Collects>::collect(*this, m_currentCollectIndex, collects) ...});
         }
 
-        tuple<bool, std::string> TryGetColumnString(int index);
+        bool Collect(const int& index, string& val);
+        bool Collect(const int& index, optional<string>& val);
+        bool Collect(const int& index, int& val);
+        bool Collect(const int& index, optional<int>& val);
+        bool Collect(const int& index, int64_t& val);
+        bool Collect(const int& index, optional<int64_t>& val);
+        bool Collect(const int& index, bool& val);
+        bool Collect(const int& index, optional<bool>& val);
+
+        template <class Func>
+        bool Collect(const int& index, const Func& func)
+        {
+            function f = func;
+            _collectFunctor(index, f);
+        }
+
+        template <class T>
+        bool Collect(const int& index, UniValue& uni, const std::string& key)
+        {
+            return Collect(
+                index,
+                [&](const T& val)
+                {
+                    uni.pushKV(key, val);
+                }
+            );
+        }
+
+        template <class T>
+        tuple<bool, T> TryGetColumn(Cursor& cursor, int index)
+        {
+            T val;
+            auto res = cursor.Collect(index, val);
+            return {res, val};
+        }
+        tuple<bool, string> TryGetColumnString(int index);
         tuple<bool, int64_t> TryGetColumnInt64(int index);
         tuple<bool, int> TryGetColumnInt(int index);
     
@@ -162,31 +220,25 @@ namespace PocketDb
         std::shared_ptr<StmtWrapper> m_stmt;
         int m_currentCollectIndex = 0;
 
+        template <class T>
+        bool _collectFunctor(const int& index, const std::function<void(T)>& func)
+        {
+            using Type = remove_const_t<remove_reference_t<T>>;
+            Type val;
+            auto res = Collect(index, val);
+            if (res) func(val);
+            return res;
+        }
+
         template<class T>
         class Collector
         {
         public:
-            static void collect(Cursor& stmt, int& i, T& t)
+            static bool collect(Cursor& stmt, int& i, T& t)
             {
-                if constexpr (std::is_same_v<int, T> || std::is_same_v<std::optional<int>, T>) {
-                    if (auto [ok, val] = stmt.TryGetColumnInt(i++); ok) t = val;
-                } else if constexpr (std::is_convertible_v<int64_t, T> || std::is_convertible_v<std::optional<int64_t>, T>) {
-                    if (auto [ok, val] = stmt.TryGetColumnInt64(i++); ok) t = val;
-                } else if constexpr (std::is_convertible_v<std::string, T> || std::is_convertible_v<std::optional<std::string>, T>) {
-                    if (auto [ok, val] = stmt.TryGetColumnString(i++); ok) t = val;
-                } else {
-                    static_assert(always_false<T>::value, "Cursor collecting with unsupported type");                
-                }
+                return stmt.Collect(i++, t);
             }
-        private:
-            // Hack to allow static asserting based on generated template code
-            template<typename A>
-            struct always_false { 
-                enum { value = false };  
-            };
         };
-
-
     };
 }
 
