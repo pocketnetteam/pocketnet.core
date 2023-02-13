@@ -38,13 +38,17 @@ def generate_accounts(node, node_address, account_num, amount=10, is_moderator=F
     return accounts
 
 
-def generate_posts(node, account):
+def add_content(node, account, payload):
     pub_gen_tx = node.public().generatetransaction
-    account.content.append(pub_gen_tx(account, ContentPostPayload()))
-    account.content.append(pub_gen_tx(account, ContentVideoPayload()))
-    account.content.append(pub_gen_tx(account, ContentArticlePayload()))
-    account.content.append(pub_gen_tx(account, ContentStreamPayload()))
-    account.content.append(pub_gen_tx(account, ContentAudioPayload()))
+    account.content.append(pub_gen_tx(account, payload))
+
+
+def generate_posts(node, account):
+    add_content(node, account, ContentPostPayload())
+    add_content(node, account, ContentVideoPayload())
+    add_content(node, account, ContentArticlePayload())
+    add_content(node, account, ContentStreamPayload())
+    add_content(node, account, ContentAudioPayload())
     node.stakeblock(1)
 
 
