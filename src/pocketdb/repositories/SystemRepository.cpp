@@ -17,7 +17,7 @@ namespace PocketDb
             )sql")
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(result);
+                    cursor.CollectAll(result);
             });
         });
 

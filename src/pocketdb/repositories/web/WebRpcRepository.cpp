@@ -3910,7 +3910,7 @@ namespace PocketDb
                     int64_t contentId;
                     int contentRating, accountRating, contentOrigHeight, contentScores;
 
-                    cursor.Collect(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
+                    cursor.CollectAll(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
 
                     record.Id = contentId;
                     record.LAST5 = 1.0 * contentScores;
@@ -4122,7 +4122,7 @@ namespace PocketDb
                 {
                     int64_t contentId, sumBoost;
                     std::string contentHash;
-                    cursor.Collect(contentId, contentHash, sumBoost);
+                    cursor.CollectAll(contentId, contentHash, sumBoost);
 
                     UniValue boost(UniValue::VOBJ);
                     boost.pushKV("id", contentId);

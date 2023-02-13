@@ -101,7 +101,7 @@ namespace PocketDb
             .Bind(height, blockHash, height + 1)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(exists, last);
+                    cursor.CollectAll(exists, last);
             });
         });
 
@@ -282,7 +282,7 @@ namespace PocketDb
         .Bind(txInfo.Hash)
         .Select([&](Cursor& cursor) {
             if (cursor.Step())
-                cursor.Collect(id, lastTxId);
+                cursor.CollectAll(id, lastTxId);
         });
 
         return {id, lastTxId};

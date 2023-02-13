@@ -137,7 +137,7 @@ namespace PocketDb
             .Bind(address, depth, _name, _name)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(
+                    cursor.CollectAll(
                         result.LastTxType,
                         result.EditsCount,
                         result.MempoolCount,
@@ -1028,7 +1028,7 @@ namespace PocketDb
             stmt.Bind(address)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step()) {
-                    cursor.Collect(
+                    cursor.CollectAll(
                         result.AddressId,
                         result.RegistrationTime,
                         result.RegistrationHeight,
@@ -1828,7 +1828,7 @@ namespace PocketDb
             .Bind(address)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(result);
+                    cursor.CollectAll(result);
             });
         });
 
@@ -1851,7 +1851,7 @@ namespace PocketDb
             .Bind(address, height)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(result);
+                    cursor.CollectAll(result);
             });
         });
 
@@ -2374,7 +2374,7 @@ namespace PocketDb
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(result);
+                    cursor.CollectAll(result);
             });
         });
 
@@ -2398,7 +2398,7 @@ namespace PocketDb
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(result);
+                    cursor.CollectAll(result);
             });
         });
 
@@ -2503,7 +2503,7 @@ namespace PocketDb
             .Bind(flagTxHash, address)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(result);
+                    cursor.CollectAll(result);
             });
         });
 

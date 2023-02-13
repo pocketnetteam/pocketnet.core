@@ -145,7 +145,7 @@ namespace PocketDb
 
         // Collect data
         template <class ...Collects>
-        void Collect(Collects&... collects)
+        void CollectAll(Collects&... collects)
         {
             (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
         }

@@ -593,7 +593,7 @@ namespace PocketDb
             .Bind(number, txHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(
+                    cursor.CollectAll(
                         result.TxTime,
                         result.OutValue,
                         result.BlockHash
@@ -663,7 +663,7 @@ namespace PocketDb
             )sql")
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.Collect(result);
+                    cursor.CollectAll(result);
             });
         });
 
