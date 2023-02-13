@@ -36,7 +36,7 @@ BOLD = ("\033[0m", "\033[1m")
 
 def discover(tests_dir):
     dir_items = os.listdir(tests_dir)
-    scripts = [f for f in dir_items if os.path.isfile(f) and f.endswith(".py")]
+    scripts = [f for f in dir_items if os.path.isfile(os.path.join(tests_dir, f)) and f.endswith(".py")]
     tests = sorted(list(set(scripts) - set(NON_SCRIPTS)))
     print("\nDiscovered Tests:\n")
     for test in tests:
