@@ -4729,7 +4729,7 @@ namespace PocketDb
                 String1 address,
                        (select json_group_array(c.String2)
                         from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
-                        where c.Type in (200, 201, 202)
+                        where c.Type in (200, 201, 202, 209, 210)
                           and c.Last = 1
                           and c.Height > 0
                           and c.Height <= ?
@@ -4741,14 +4741,15 @@ namespace PocketDb
 
             where s.Type in (302, 303)
                 and s.Last = 1
-                and tb.Height <= ?
-                and tb.Height > 0
+                and s.Height <= ?
+                and s.Height > 0
                 and s.String2 = ?
                 and exists(select 1
                            from Transactions c
-                           where c.Type in (200, 201, 202)
+                           where c.Type in (200, 201, 202, 209, 210)
                              and c.Last = 1
-                             and c.Height is not null
+                             and c.Height > 0
+                             and c.Height <= ?
                              and c.String1 = s.String1
                            limit 1)
 
@@ -4770,6 +4771,7 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, countOutOfcontents);
             TryBindStatementInt(stmt, i++, nHeight);
             TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, nHeight);
             if (!addressPagination.empty()) TryBindStatementText(stmt, i++, addressPagination);
             TryBindStatementInt(stmt, i++, badReputationLimit);
             TryBindStatementInt(stmt, i++, countOutOfUsers);

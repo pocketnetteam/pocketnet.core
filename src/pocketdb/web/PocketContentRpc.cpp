@@ -1635,7 +1635,7 @@ namespace PocketWeb::PocketWebRpc
                               if (request.params.size() > 1 && request.params[1].isStr())
                                   addressPagination = request.params[1].get_str();
 
-                              if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int())
+                              if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
                                   nHeight = request.params[2].get_int();
 
                               if (request.params.size() > 3 && request.params[3].isNum())
