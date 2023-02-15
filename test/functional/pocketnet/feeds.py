@@ -203,7 +203,6 @@ class FeedTest(PocketcoinTestFramework):
         contents = feed["contents"]
         self.log.info(f"Check - Number of posts in historical feed: {len(contents)}")
         assert len(contents) == 0
-        
 
     def run_test(self):
         node = self.nodes[0]
