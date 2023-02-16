@@ -49,28 +49,31 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select (t.Time / ?), t.Type, count()
-                from Transactions t
-                where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
-                  and t.Time >= ?
-                  and t.time < ?
-                group by t.time / ?, t.Type
+                select
+                    (t.Time / ?),
+                    t.Type,
+                    count()
+                from
+                    Transactions t
+                where
+                    t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303) and
+                    t.Time >= ? and
+                    t.time < ?
+                group by
+                    t.time / ?, t.Type
             )sql")
             .Bind(period, top - (depth * period), top, period)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    auto [okPart, part] = cursor.TryGetColumnString(0);
-                    auto [okType, type] = cursor.TryGetColumnString(1);
-                    auto [okCount, count] = cursor.TryGetColumnInt(2);
+                    std::string part, type; int count;
+                    if (cursor.CollectAll(part, type, count))
+                    {
+                        if (result.At(part).isNull())
+                            result.pushKV(part, UniValue(UniValue::VOBJ));
 
-                    if (!okPart || !okType || !okCount)
-                        continue;
-
-                    if (result.At(part).isNull())
-                        result.pushKV(part, UniValue(UniValue::VOBJ));
-
-                    result.At(part).pushKV(type, count);
+                        result.At(part).pushKV(type, count);
+                    }
                 }
             });
         });
