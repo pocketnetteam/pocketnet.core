@@ -13,21 +13,27 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select t.Height, t.Type, count(*)
-                from Transactions t indexed by Transactions_Height_Type
-                where   t.Height > ?
-                    and t.Height <= ?
-                group by t.Height, t.Type
+                select
+                    c.Height,
+                    t.Type,
+                    count(1)
+                from
+                    Chain c indexed by Chain_Height_BlockId
+
+                    left join Transactions t on
+                        t.RowId = c.TxId
+                where
+                    c.Height > ? and
+                    c.Height <= ?
+                group by
+                    c.Height, t.Type
             )sql")
             .Bind(bottomHeight, topHeight)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    auto [ok0, sHeight] = cursor.TryGetColumnInt(0);
-                    auto [ok1, sType] = cursor.TryGetColumnInt(1);
-                    auto [ok2, sCount] = cursor.TryGetColumnInt(2);
-
-                    if (ok0 && ok1 && ok2)
+                    int sHeight, sType, sCount;
+                    if (cursor.CollectAll(sHeight, sType, sCount)) 
                         result[sHeight][sType] = sCount;
                 }
             });
