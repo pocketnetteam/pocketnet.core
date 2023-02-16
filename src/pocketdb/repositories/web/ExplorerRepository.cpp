@@ -227,37 +227,40 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select (u.Height / 1440)
-                  ,(
-                    select
-                      count()
-                    from Transactions u1 indexed by Transactions_Type_Last_Height_Id
-                    where u1.Type in (100)
-                    and u1.Height <= u.Height
-                    and u1.Last = 1
-                  )cnt
-
-                from Transactions u indexed by Transactions_Type_HeightByDay
-                
-                where u.Type in (3)
-                  and (u.Height / 1440) <= (? / 1440)
-                  and (u.Height / 1440) > (? / 1440)
-                
-                group by (u.Height / 1440)
-                order by (u.Height / 1440) desc
+                select
+                    (c.Height / 1440),
+                    (
+                        select
+                            count()
+                        from Transactions u1
+                        join Chain c1 on
+                            c1.TxId = u1.RowId and
+                            c1.Height <= c.Height and
+                            exists (select 1 from Last l where l.TxId = c1.TxId)
+                        where
+                            u1.Type in (100)
+                    )cnt
+                from
+                    Transactions u
+                    join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = u.RowId and
+                        (c.Height / 1440) <= (? / 1440) and
+                        (c.Height / 1440) > (? / 1440)
+                where
+                    u.Type in (3)
+                group by
+                    (c.Height / 1440)
+                order by
+                    (c.Height / 1440) desc
             )sql")
             .Bind(topHeight, topHeight - depth)
             .Select([&](Cursor& cursor)
             {
                 while (cursor.Step())
                 {
-                    auto [okPart, part] = cursor.TryGetColumnString(0);
-                    auto [okCount, count] = cursor.TryGetColumnInt(1);
-
-                    if (!okPart || !okCount)
-                        continue;
-
-                    result.pushKV(part, count);
+                    std::string part; int count;
+                    if (cursor.CollectAll(part, count))
+                        result.pushKV(part, count);
                 }
             });
         });
