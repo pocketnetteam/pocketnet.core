@@ -275,20 +275,21 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select t.Type, count()
-                from Transactions t indexed by Transactions_Type_Last_Height_Id
-                where t.Type in (100,200,201,202,208,209,210)
-                  and t.Last = 1
-                  and t.Height > 0
-                group by t.Type
+                select
+                    t.Type,
+                    count()
+                from Transactions t indexed by Transactions_Type_RegId2
+                where
+                    t.Type in (100,200,201,202,208,209,210) and
+                    exists (select 1 from Last l where l.TxId = t.RowId)
+                group by
+                    t.Type
             )sql")
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    auto [okType, type] = cursor.TryGetColumnString(0);
-                    auto [okCount, count] = cursor.TryGetColumnInt(1);
-
-                    if (okType && okCount)
+                    std::string type; int count {};
+                    if (cursor.CollectAll(type, count))
                         result.pushKV(type, count);
                 }
             });
