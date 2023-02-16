@@ -88,28 +88,39 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select (t.Height / 60)Hour, t.Type, count()Count
-                from Transactions t indexed by Transactions_Type_HeightByHour
-                where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
-                  and (t.Height / 60) < (? / 60)
-                  and (t.Height / 60) >= (? / 60)
-                group by (t.Height / 60), t.Type
+                select
+                    (c.Height / 60)Hour,
+                    t.Type,
+                    count()Count
+
+                from
+                    Chain c indexed by Chain_Height_Uid
+
+                    cross join Transactions t on
+                        t.RowId = c.TxId and
+                        t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
+
+                where
+                  (c.Height / 60) < (? / 60) and
+                  (c.Height / 60) >= (? / 60)
+
+                group by
+                    (c.Height / 60), t.Type
             )sql")
             .Bind(topHeight, topHeight - depth)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    auto [okPart, part] = cursor.TryGetColumnString(0);
-                    auto [okType, type] = cursor.TryGetColumnString(1);
-                    auto [okCount, count] = cursor.TryGetColumnInt(2);
+                    std::string part; // TODO (optimization): should it be string???
+                    std::string type; // TODO (optimization): should it be string???
+                    int count {};
+                    if (cursor.CollectAll(part, type, count))
+                    {
+                        if (result.At(part).isNull())
+                            result.pushKV(part, UniValue(UniValue::VOBJ));
 
-                    if (!okPart || !okType || !okCount)
-                        continue;
-
-                    if (result.At(part).isNull())
-                        result.pushKV(part, UniValue(UniValue::VOBJ));
-
-                    result.At(part).pushKV(type, count);
+                        result.At(part).pushKV(type, count);
+                    }
                 }
             });
         });
