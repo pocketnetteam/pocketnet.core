@@ -88,7 +88,7 @@ class FeedTest(PocketcoinTestFramework):
             params = DEFAULT_FEED_PARAMS.copy() + [account.Address]
             feed = builder.node.public().getsubscribesfeed(*params)
             contents = feed["contents"]
-            self.log.info(f"Check - Number of posts in subscribes feed: {len(contents)}")
+            self.log.info(f"Check - Number of posts for account {account.Address} in subscribes feed: {len(contents)}")
             assert len(contents) == 0
 
     def test_subscribes_feed_with_subscriptions(self, builder):
