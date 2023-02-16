@@ -135,28 +135,37 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select (t.Height / 1440)Day, t.Type, count()Count
-                from Transactions t indexed by Transactions_Type_HeightByDay
-                where t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
-                  and (t.Height / 1440) < (? / 1440)
-                  and (t.Height / 1440) >= (? / 1440)
-                group by (t.Height / 1440), t.Type
+                select
+                    (c.Height / 1440)Day,
+                    t.Type,
+                    count()Count
+
+                from
+                    Chain c indexed by Chain_Height_Uid
+
+                    join Transactions t on
+                        t.RowId = c.TxId and
+                        t.Type in (1,100,103,200,201,202,204,205,208,209,210,300,301,302,303)
+
+                where
+                  (c.Height / 1440) < (? / 1440) and
+                  (c.Height / 1440) >= (? / 1440)
+
+                group by
+                    (c.Height / 1440), t.Type
             )sql")
             .Bind(topHeight, topHeight - depth)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    auto [okPart, part] = cursor.TryGetColumnInt(0);
-                    auto [okType, type] = cursor.TryGetColumnInt(1);
-                    auto [okCount, count] = cursor.TryGetColumnInt(2);
+                    int part, type, count;
+                    if (cursor.CollectAll(part, type, count))
+                    {
+                        if (result.At(to_string(part)).isNull())
+                            result.pushKV(to_string(part), UniValue(UniValue::VOBJ));
 
-                    if (!okPart || !okType || !okCount)
-                        continue;
-
-                    if (result.At(to_string(part)).isNull())
-                        result.pushKV(to_string(part), UniValue(UniValue::VOBJ));
-
-                    result.At(to_string(part)).pushKV(to_string(type), count);
+                        result.At(to_string(part)).pushKV(to_string(type), count);
+                    }
                 }
             });
         });
