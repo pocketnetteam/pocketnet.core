@@ -42,6 +42,7 @@ def generate_accounts(node, node_address, account_num, amount=10, is_moderator=F
 def add_content(node, account, payload):
     pub_gen_tx = node.public().generatetransaction
     account.content.append(pub_gen_tx(account, payload))
+    node.stakeblock(1)
 
 
 def generate_posts(node, account):
@@ -50,7 +51,6 @@ def generate_posts(node, account):
     add_content(node, account, ContentArticlePayload())
     add_content(node, account, ContentStreamPayload())
     add_content(node, account, ContentAudioPayload())
-    node.stakeblock(1)
 
 
 def boost_post(node, account, post_id):
@@ -59,9 +59,9 @@ def boost_post(node, account, post_id):
     node.stakeblock(1)
 
 
-def comment_post(node, account, post_id):
+def comment_post(node, account, post_id, message="comment test message"):
     pub_gen_tx = node.public().generatetransaction
-    comment_id = pub_gen_tx(account, CommentPayload(post_id))
+    comment_id = pub_gen_tx(account, CommentPayload(post_id, message=message))
     account.comment.append(comment_id)
     node.stakeblock(1)
 
