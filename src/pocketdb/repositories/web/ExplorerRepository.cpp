@@ -395,11 +395,27 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select t.Hash
-                from Transactions t indexed by Transactions_BlockHash
-                where t.BlockHash = ?
-                order by t.BlockNum asc
-                limit ?, ?
+                with block as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select s.Hash
+                from
+                    block,
+                    Chain c
+                    
+                    cross join vTxStr s on
+                        s.RowId = c.TxId
+                where
+                    c.BlockId = block.id
+                order by
+                    c.BlockNum asc
+                limit
+                    ?, ?
             )sql")
             .Bind(blockHash, pageStart, pageSize)
             .Select([&](Cursor& cursor) {
