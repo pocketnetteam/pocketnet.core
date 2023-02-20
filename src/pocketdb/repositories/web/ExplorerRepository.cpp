@@ -346,13 +346,33 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select distinct o.TxHash
-                from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
-                join Transactions t on t.Hash = o.TxHash
-                where o.AddressHash = ?
-                  and o.TxHeight <= ?
-                order by o.TxHeight desc, t.BlockNum desc
-                limit ?, ?
+                with address as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select distinct
+                    s.Hash
+                from
+                    address,
+                    TxOutputs o
+
+                    join Chain c on
+                        c.TxId = o.TxId and
+                        c.Height <= ?
+
+                    cross join vTxStr s on
+                        s.RowId = c.TxId
+
+                where
+                    o.AddressId = address.id
+                order by
+                    c.Height desc, c.BlockNum desc
+                limit
+                    ?, ?
             )sql")
             .Bind(address, pageInitBlock, pageSize, pageSize)
             .Select([&](Cursor& cursor) {
