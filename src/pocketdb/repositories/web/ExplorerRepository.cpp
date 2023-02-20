@@ -330,9 +330,11 @@ namespace PocketDb
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    string address; int height; int64_t value;
-                    if (cursor.CollectAll(address, height, value))
-                        infos.emplace(address, make_tuple(height, value));
+                    string address; int64_t value;
+                    if (cursor.CollectAll(address, value))
+                        // TODO (optimization): height removed from balances, passing here "-1"
+                        // may be calculate on the flight
+                        infos.emplace(address, make_tuple(-1, value));
                 }
             });
         });
