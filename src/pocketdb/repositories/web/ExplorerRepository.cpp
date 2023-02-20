@@ -242,6 +242,7 @@ namespace PocketDb
                     )cnt
                 from
                     Transactions u
+                    -- TODO (optimization): is there any difference using index with "/ 1440" expression? 
                     join Chain c indexed by Chain_Height_Uid on
                         c.TxId = u.RowId and
                         (c.Height / 1440) <= (? / 1440) and
