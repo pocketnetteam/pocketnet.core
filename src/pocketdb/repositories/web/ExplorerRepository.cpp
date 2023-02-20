@@ -308,20 +308,29 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select AddressHash, Height, Value
-                from Balances indexed by Balances_AddressHash_Last
-                where AddressHash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )
-                  and Last = 1
+                with addresses as (
+                    select
+                        r.String as hash,
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    a.hash,
+                    b.Value
+                from
+                    Balances b
+                    join addresses a on
+                        b.AddressId = a.id
             )sql")
             .Bind(hashes)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    auto [ok0, address] = cursor.TryGetColumnString(0);
-                    auto [ok1, height] = cursor.TryGetColumnInt(1);
-                    auto [ok2, value] = cursor.TryGetColumnInt64(2);
-
-                    if (ok0 && ok1 && ok2)
+                    string address; int height; int64_t value;
+                    if (cursor.CollectAll(address, height, value))
                         infos.emplace(address, make_tuple(height, value));
                 }
             });
