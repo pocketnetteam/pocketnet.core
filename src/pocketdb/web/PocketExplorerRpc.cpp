@@ -390,6 +390,7 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
+        throw std::runtime_error("Reimplementation required because of new db structure");
         vector<string> addresses;
         if (!request.params[0].isArray() && !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address argument");
