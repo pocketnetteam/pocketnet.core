@@ -1,5 +1,7 @@
 name: Add new tasks to project
 
+[![Add new tasks to project](https://github.com/pocketnetteam/pocketnet.core/actions/workflows/add.tasks.to.project.yml/badge.svg)](https://github.com/pocketnetteam/pocketnet.core/actions/workflows/add.tasks.to.project.yml)
+
 on:
   issues:
     types:
