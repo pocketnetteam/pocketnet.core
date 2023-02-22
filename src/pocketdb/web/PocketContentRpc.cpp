@@ -1596,4 +1596,64 @@ namespace PocketWeb::PocketWebRpc
     },
         };
     }
+
+    RPCHelpMan GetsubsciptionsGroupedByAuthors()
+    {
+        return RPCHelpMan{"GetsubsciptionsGroupedByAuthors",
+                          "\n\n", // TODO (rpc)
+                          {
+                                  {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
+                                  {"addressPagination", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
+                                  {"nHeight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "" /*TODO (rpc): arg description*/},
+                                  {"countOutOfUsers", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
+                                  {"countOutOfcontents", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/}
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc): better examples
+                                  HelpExampleCli("getsubsciptionsgroupedbyauthors", "...") +
+                                  HelpExampleRpc("getsubsciptionsgroupedbyauthors", "...")
+                          },
+                          [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+                          {
+                              string address = "";
+                              string addressPagination = "";
+                              int nHeight = ChainActive().Height();
+                              int countOutOfUsers = 10;
+                              int countOutOfcontents = 10;
+
+                              UniValue result(UniValue::VOBJ);
+
+                              if (request.params.empty())
+                                  return result;
+
+                              if (request.params[0].isStr())
+                                  address = request.params[0].get_str();
+
+                              if (request.params.size() > 1 && request.params[1].isStr())
+                                  addressPagination = request.params[1].get_str();
+
+                              if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
+                                  nHeight = request.params[2].get_int();
+
+                              if (request.params.size() > 3 && request.params[3].isNum())
+                                  countOutOfUsers = std::min(request.params[3].get_int(), 100);
+
+                              if (request.params.size() > 4 && request.params[4].isNum())
+                                  countOutOfcontents = std::min(request.params[4].get_int(), 1000);
+
+                              auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+                              auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
+                              UniValue content = request.DbConnection()->WebRpcRepoInst->GetsubsciptionsGroupedByAuthors(
+                                      address, addressPagination, nHeight, countOutOfUsers, countOutOfcontents, badReputationLimit);
+
+                              result.pushKV("height", nHeight);
+                              result.pushKV("contents", content);
+                              return result;
+                          },
+        };
+    }
 }

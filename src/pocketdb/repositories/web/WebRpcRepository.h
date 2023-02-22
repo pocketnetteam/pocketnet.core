@@ -172,6 +172,8 @@ namespace PocketDb
                                        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
                                        const string& keyword, const string& orderby, const string& ascdesc);
 
+        UniValue GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight, int countOutOfUsers, int countOutOfcontents, int badReputationLimit);
+
         /**
          * Returns map where key is address. Value is map, where key - height, value - vector of transactions for this height.
          */
