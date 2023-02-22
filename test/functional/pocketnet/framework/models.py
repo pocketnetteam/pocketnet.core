@@ -8,6 +8,7 @@ from enum import Enum
 
 # -----------------------------------------------------------------------------------------------------------------
 
+
 class ConsensusResult(Enum):
     Success = 0
     NotRegistered = 1
@@ -75,7 +76,9 @@ class ConsensusResult(Enum):
     LowReputation = 66
     AccountDeleted = 67
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class Account:
@@ -87,7 +90,9 @@ class Account:
     subscribes: list = field(default_factory=list)
     blockings: list = field(default_factory=list)
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class AccountPayload:
@@ -114,7 +119,9 @@ class AccountPayload:
             "k": self.pubkey,
         }
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class AccountDeletePayload:
@@ -123,7 +130,9 @@ class AccountDeletePayload:
     def Serialize(self):
         return asdict(self)
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class AccountSettingPayload:
@@ -136,7 +145,9 @@ class AccountSettingPayload:
             "d": self.data,
         }
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ContentPostPayload:
@@ -163,7 +174,9 @@ class ContentPostPayload:
             "i": self.images,
         }
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ContentArticlePayload(ContentPostPayload):
@@ -172,12 +185,14 @@ class ContentArticlePayload(ContentPostPayload):
 
 # -----------------------------------------------------------------------------------------------------------------
 
+
 @dataclass
 class ContentAudioPayload(ContentPostPayload):
     TxType = "617564696f"
 
 
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ContentVideoPayload(ContentPostPayload):
@@ -186,12 +201,14 @@ class ContentVideoPayload(ContentPostPayload):
 
 # -----------------------------------------------------------------------------------------------------------------
 
+
 @dataclass
 class ContentStreamPayload(ContentPostPayload):
     TxType = "73747265616d"
 
 
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ContentDeletePayload:
@@ -205,6 +222,7 @@ class ContentDeletePayload:
 
 
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ContentCollectionsPayload:
@@ -224,10 +242,12 @@ class ContentCollectionsPayload:
             "l": self.language,
             "contentTypes": self.contenttypes,
             "contentIds": self.contentids,
-            "txidEdit": self.txedit
+            "txidEdit": self.txedit,
         }
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class CommentDeletePayload:
@@ -241,7 +261,9 @@ class CommentDeletePayload:
     def Serialize(self):
         return asdict(self)
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class CommentEditPayload(CommentDeletePayload):
@@ -251,6 +273,7 @@ class CommentEditPayload(CommentDeletePayload):
 
 
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class CommentPayload(CommentEditPayload):
@@ -262,6 +285,7 @@ class CommentPayload(CommentEditPayload):
 
 # -----------------------------------------------------------------------------------------------------------------
 
+
 @dataclass
 class BlockingPayload:
     TxType = "626c6f636b696e67"
@@ -272,7 +296,9 @@ class BlockingPayload:
     def Serialize(self):
         return asdict(self)
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class UnblockingPayload(BlockingPayload):
@@ -280,6 +306,7 @@ class UnblockingPayload(BlockingPayload):
 
 
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class BoostPayload:
@@ -290,7 +317,9 @@ class BoostPayload:
     def Serialize(self):
         return asdict(self)
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ComplainPayload:
@@ -302,7 +331,9 @@ class ComplainPayload:
     def Serialize(self):
         return asdict(self)
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ScoreContentPayload:
@@ -322,7 +353,9 @@ class ScoreContentPayload:
             "value": self.value,
         }
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ScoreCommentPayload:
@@ -341,7 +374,10 @@ class ScoreCommentPayload:
             "commentid": self.comment_tx,
             "value": self.value,
         }
+
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class SubscribePayload:
@@ -352,7 +388,9 @@ class SubscribePayload:
     def Serialize(self):
         return asdict(self)
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class SubscribePrivatePayload(SubscribePayload):
@@ -361,12 +399,14 @@ class SubscribePrivatePayload(SubscribePayload):
 
 # -----------------------------------------------------------------------------------------------------------------
 
+
 @dataclass
 class UnsubscribePayload(SubscribePayload):
     TxType = "756e737562736372696265"
 
 
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ModFlagPayload:
@@ -383,7 +423,9 @@ class ModFlagPayload:
             "i1": self.reason,
         }
 
+
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class ModVotePayload:
@@ -398,6 +440,7 @@ class ModVotePayload:
             "i1": self.verdict,
         }
 
+
 # -----------------------------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------
@@ -405,6 +448,7 @@ class ModVotePayload:
 # -----------------------------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class EmptyPayload:

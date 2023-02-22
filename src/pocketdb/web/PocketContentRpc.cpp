@@ -1639,10 +1639,10 @@ namespace PocketWeb::PocketWebRpc
                                   nHeight = request.params[2].get_int();
 
                               if (request.params.size() > 3 && request.params[3].isNum())
-                                  countOutOfUsers = std::max(request.params[3].get_int(), 100);
+                                  countOutOfUsers = std::min(request.params[3].get_int(), 100);
 
                               if (request.params.size() > 4 && request.params[4].isNum())
-                                  countOutOfcontents = std::max(request.params[4].get_int(), 1000);
+                                  countOutOfcontents = std::min(request.params[4].get_int(), 1000);
 
                               auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
                               auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);

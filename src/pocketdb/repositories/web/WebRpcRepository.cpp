@@ -4745,7 +4745,7 @@ namespace PocketDb
                 and s.Height > 0
                 and s.String2 = ?
                 and exists(select 1
-                           from Transactions c
+                           from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
                            where c.Type in (200, 201, 202, 209, 210)
                              and c.Last = 1
                              and c.Height > 0
@@ -4756,7 +4756,7 @@ namespace PocketDb
                 )sql" + addressPaginationFilter + R"sql(
 
                 -- Do not show posts from users with low reputation
-                and ifnull(ur.Value,0) > ?
+                -- and ifnull(ur.Value,0) > ?
 
                 order by s.String1
                 limit ?
@@ -4773,7 +4773,7 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, address);
             TryBindStatementInt(stmt, i++, nHeight);
             if (!addressPagination.empty()) TryBindStatementText(stmt, i++, addressPagination);
-            TryBindStatementInt(stmt, i++, badReputationLimit);
+//            TryBindStatementInt(stmt, i++, badReputationLimit);
             TryBindStatementInt(stmt, i++, countOutOfUsers);
 
             // ---------------------------------------------
@@ -4782,8 +4782,8 @@ namespace PocketDb
             {
                 UniValue contents(UniValue::VOBJ);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) contents.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) contents.pushKV("txids", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) contents.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) contents.pushKV("txids", value);
 
                 result.push_back(contents);
             }
