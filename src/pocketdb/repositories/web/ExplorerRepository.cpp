@@ -346,6 +346,7 @@ namespace PocketDb
     {
         map<string, int> txHashes;
 
+        // TODO (optimization): optimize me
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
@@ -356,24 +357,56 @@ namespace PocketDb
                         Registry r
                     where
                         r.String = ?
+                ),
+                height as (
+                    select ? as val
                 )
+
+                -- Address in outputs
                 select distinct
-                    s.Hash
+                    s.Hash,
+                    c.Height as Height,
+                    c.BlockNum as BlockNum
                 from
                     address,
+                    height,
                     TxOutputs o
 
                     join Chain c on
                         c.TxId = o.TxId and
-                        c.Height <= ?
+                        c.Height <= height.val
 
                     cross join vTxStr s on
                         s.RowId = c.TxId
-
                 where
                     o.AddressId = address.id
+
+                union
+
+                -- Address in inputs
+                select distinct
+                    s.Hash,
+                    c.Height as Height,
+                    c.BlockNum as BlockNum
+                from
+                    address,
+                    height,
+                    TxInputs i
+
+                    join Chain c on
+                        c.TxId = i.SpentTxId and
+                        c.Height <= height.val
+
+                    join vTxStr s on
+                        s.RowId = c.TxId
+
+                    join TxOutputs o on
+                        o.TxId = i.TxId and
+                        o.Number = i.Number and
+                        o.AddressId = address.id
+
                 order by
-                    c.Height desc, c.BlockNum desc
+                    Height desc, BlockNum desc
                 limit
                     ?, ?
             )sql")
