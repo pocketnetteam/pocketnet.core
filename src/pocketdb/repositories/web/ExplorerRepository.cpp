@@ -410,7 +410,7 @@ namespace PocketDb
                 limit
                     ?, ?
             )sql")
-            .Bind(address, pageInitBlock, pageSize, pageSize)
+            .Bind(address, pageInitBlock, pageStart, pageSize)
             .Select([&](Cursor& cursor) {
                 int i = 0;
                 while (cursor.Step())
