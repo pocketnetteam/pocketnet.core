@@ -115,7 +115,7 @@ static const CRPCCommand commands[] =
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
     {"explorer",       "searchbyhash",                     &SearchByHash,                   {"value"}},
     {"explorer",       "gettransactions",                  &GetTransactions,                {"transactions"}},
-    {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address", "pageStart", "pageSize"}},
+    {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address", "pageStart", "pageSize", "filters"}},
     {"explorer",       "getblocktransactions",             &GetBlockTransactions,           {"blockHash", "pageStart", "pageSize"}},
     {"explorer",       "getbalancehistory",                &GetBalanceHistory,              {"address", "topHeight", "count"}},
 

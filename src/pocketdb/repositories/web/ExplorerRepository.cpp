@@ -342,9 +342,16 @@ namespace PocketDb
         return infos;
     }
 
-    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize)
+    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize, const std::vector<TxType>& filters)
     {
         map<string, int> txHashes;
+        std::string filtering;
+        if (!filters.empty()) {
+            filtering = R"sql(
+                join Transactions t indexed by Transactions_Type_RegId2 on
+                   t.RowId = c.TxId and
+                   t.Type in ( )sql" + join(vector<string>(filters.size(), "?"), ",") + ")";
+        }
 
         // TODO (optimization): optimize me
         SqlTransaction(__func__, [&]()
@@ -376,6 +383,8 @@ namespace PocketDb
                         c.TxId = o.TxId and
                         c.Height <= height.val
 
+                )sql" + filtering + R"sql(
+
                     cross join vTxStr s on
                         s.RowId = c.TxId
                 where
@@ -397,6 +406,8 @@ namespace PocketDb
                         c.TxId = i.SpentTxId and
                         c.Height <= height.val
 
+                )sql" + filtering + R"sql(
+
                     join vTxStr s on
                         s.RowId = c.TxId
 
@@ -410,7 +421,7 @@ namespace PocketDb
                 limit
                     ?, ?
             )sql")
-            .Bind(address, pageInitBlock, pageStart, pageSize)
+            .Bind(address, pageInitBlock, filters, filters, pageStart, pageSize)
             .Select([&](Cursor& cursor) {
                 int i = 0;
                 while (cursor.Step())
