@@ -79,6 +79,12 @@ def delete_post(node, account, post_id):
     node.stakeblock(1)
 
 
+def like_comment(node, account1, account2, comment_id, score=1):
+    pub_gen_tx = node.public().generatetransaction
+    pub_gen_tx(account1, ScoreCommentPayload(comment_id, score, account2.Address))
+    node.stakeblock(1)
+
+
 def generate_comments(node, account1, account2):
     pub_gen_tx = node.public().generatetransaction
     for post_id in account1.content:
@@ -98,9 +104,7 @@ def generate_likes(node, account1, account2):
     for comment_id in account2.comment:
         # TODO: enable dislikes (need high reputation for that)
         # score = random.randint(0, 1)
-        score = 1
-        pub_gen_tx(account1, ScoreCommentPayload(comment_id, score, account2.Address))
-        node.stakeblock(1)
+        like_comment(node, account1, account2, comment_id)
 
 
 def generate_subscription(node, account1, account2):

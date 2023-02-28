@@ -258,7 +258,7 @@ class ContentTest(PocketcoinTestFramework):
         data = summary.get(builder.moderators[0].Address)
         assert data == {"comment": 2, "contentscore": 2}
 
-        self.log.info("Chekc - Notifications summary for all accounts")
+        self.log.info("Check - Notifications summary for all accounts")
         post_id = builder.accounts[1].content[0]
         comment_post(builder.node, builder.accounts[0], post_id)
         addresses = [acc.Address for acc in builder.accounts + builder.moderators]
