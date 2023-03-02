@@ -294,7 +294,8 @@ class BlockingPayload:
     addresses: str = ""
 
     def Serialize(self):
-        return asdict(self)
+        # return asdict(self)
+        return {"address": self.address, "addresses": self.addresses}
 
 
 # -----------------------------------------------------------------------------------------------------------------

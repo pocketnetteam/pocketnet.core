@@ -244,7 +244,7 @@ namespace PocketConsensus
     {
     protected:
         const vector<ConsensusCheckpoint<CollectionConsensus>> m_rules = {
-            { 2136400, 1531000, 0, [](int height) { return make_shared<CollectionConsensus>(height); }},
+            { 2162400, 1531000, 0, [](int height) { return make_shared<CollectionConsensus>(height); }},
         };
     public:
         shared_ptr<CollectionConsensus> Instance(int height)
