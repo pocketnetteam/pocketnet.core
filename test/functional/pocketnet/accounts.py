@@ -94,6 +94,87 @@ class AccountsTest(PocketcoinTestFramework):
             assert "txid" in reg
             assert reg["address"] in addresses
 
+    def test_getuserstate(self, builder):
+        self.log.info("Test 4 - Getting user state")
+        public_api = builder.node.public()
+        for account in builder.accounts:
+            state = public_api.getuserstate(account.Address)
+            assert isinstance(state, dict)
+            assert state["address"] == account.Address
+
+        self.log.info("Check - Account 1 state detail check")
+        state = public_api.getuserstate(builder.accounts[0].Address)
+        assert state["article_spent"] == 0
+        assert state["audio_spent"] == 0
+        assert state["comment_score_spent"] == 1
+        assert state["comment_spent"] == 0
+        assert state["complain_spent"] == 0
+        assert state["likers"] == 1
+        assert state["mod_flag_spent"] == 0
+        assert state["post_spent"] == 1
+        assert state["reputation"] == 2
+        assert state["score_spent"] == 0
+        assert state["stream_spent"] == 0
+        assert state["trial"] == False
+        assert state["video_spent"] == 0
+        assert state["badges"] == ["shark"]
+        assert state["mode"] == 1
+
+    def test_txunspent(self, builder):
+        self.log.info("Test 5 - Getting txunspent")
+        public_api = builder.node.public()
+        addresses = [account.Address for account in builder.accounts]
+        unspent = public_api.txunspent(addresses)
+
+        assert isinstance(unspent, list)
+        for item in unspent:
+            assert isinstance(item, dict)
+            assert item["address"] in addresses
+            assert "amount" in item
+            assert "amountSat" in item
+            assert "coinbase" in item
+            assert "confirmations" in item
+            assert "height" in item
+            assert "pockettx" in item
+            assert "scriptPubKey" in item
+            assert "txid" in item
+            assert "vout" in item
+
+    def test_getaddressid(self, builder):
+        self.log.info("Test 6 - Getting address id")
+        public_api = builder.node.public()
+
+        for account in builder.accounts:
+            result = public_api.getaddressid(account.Address)
+            assert isinstance(result, dict)
+            assert result["address"] == account.Address
+            id_ = result["id"]
+            result_by_id = public_api.getaddressid(id_)
+            assert isinstance(id_, int)
+            assert result == result_by_id
+
+    def test_getaccountsetting(self, builder):
+        self.log.info("Test 7 - Getting account setting")
+        public_api = builder.node.public()
+
+    def test_getuserstatistic(self, builder):
+        pass
+
+    def test_getusersubscribes(self, builder):
+        pass
+
+    def test_getusersubscribers(self, builder):
+        pass
+
+    def test_getuserblockings(self, builder):
+        pass
+
+    def test_getuserblockers(self, builder):
+        pass
+
+    def test_gettopaccounts(self, builder):
+        pass
+
     def test_sync_nodes(self, builder):
         self.log.info("Check - sync nodes")
         self.connect_nodes(1, 2)
@@ -109,6 +190,16 @@ class AccountsTest(PocketcoinTestFramework):
         self.test_getuseraddress(builder)
         self.test_getuserprofile(builder)
         self.test_getaddressregistration(builder)
+        self.test_getuserstate(builder)
+        self.test_txunspent(builder)
+        self.test_getaddressid(builder)
+        self.test_getaccountsetting(builder)
+        self.test_getuserstatistic(builder)
+        self.test_getusersubscribes(builder)
+        self.test_getusersubscribers(builder)
+        self.test_getuserblockings(builder)
+        self.test_getuserblockers(builder)
+        self.test_gettopaccounts(builder)
         self.test_sync_nodes(builder)
 
 
