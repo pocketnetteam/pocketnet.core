@@ -87,11 +87,21 @@ namespace PocketConsensus
     };
 
     // ---------------------------------------
-    // Lottery checkpoint at _ block
-    class LotteryConsensus_checkpoint_ : public LotteryConsensus_checkpoint_1180000
+    class LotteryConsensus_bip_100 : public LotteryConsensus_checkpoint_1180000
+    {
+    protected:
+        int64_t MaxWinnersCount() { return 5; } override;
+    public:
+        explicit LotteryConsensus_bip_100(int height) : LotteryConsensus_checkpoint_1180000(height) {}
+        CAmount RatingReward(CAmount nCredit, opcodetype code) override;
+        LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource) override;
+    };
+
+    // ---------------------------------------
+    class LotteryConsensus_checkpoint_ : public LotteryConsensus_bip_100
     {
     public:
-        explicit LotteryConsensus_checkpoint_(int height) : LotteryConsensus_checkpoint_1180000(height) {}
+        explicit LotteryConsensus_checkpoint_(int height) : LotteryConsensus_bip_100(height) {}
     protected:
         void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) override;
         void ExtendReferrers() override;
@@ -103,11 +113,12 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < LotteryConsensus>> m_rules = {
-            {0,       -1, -1, [](int height) { return make_shared<LotteryConsensus>(height); }},
-            {514185,  -1, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_514185>(height); }},
-            {1035000, -1, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1035000>(height); }},
-            {1124000, -1, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1124000>(height); }},
-            {1180000,  0,  0, [](int height) { return make_shared<LotteryConsensus_checkpoint_1180000>(height); }},
+            {0,            -1, -1, [](int height) { return make_shared<LotteryConsensus>(height); }},
+            {514185,       -1, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_514185>(height); }},
+            {1035000,      -1, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1035000>(height); }},
+            {1124000,      -1, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1124000>(height); }},
+            {1180000,       0, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1180000>(height); }},
+            {2162400, 1650652,  0, [](int height) { return make_shared<LotteryConsensus_bip_100>(height); }},
         };
     public:
         shared_ptr<LotteryConsensus> Instance(int height)

@@ -203,6 +203,58 @@ namespace PocketConsensus
     }
 
     // ----------------------------------------
+    // Lottery checkpoint at 2162400 block
+    // Disable lottery payments for likes to comments.
+    // Also disable referral program
+    CAmount LotteryConsensus_bip_100::RatingReward(CAmount nCredit, opcodetype code)
+    {
+        if (code == OP_WINNER_POST) return nCredit * 0.025;
+        return 0;
+    }
+
+    LotteryWinners& LotteryConsensus_bip_100::Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
+    {
+        auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+
+        map<string, int> postCandidates;
+
+        for (const auto& tx : block.vtx)
+        {
+            // Get destination address and score value
+            // In lottery allowed only likes to posts and comments
+            // Also in lottery allowed only positive scores
+            auto[parseScoreOk, scoreTxData] = TransactionHelper::ParseScore(tx);
+            if (!parseScoreOk)
+                continue;
+
+            // BIP100: Only scores to content allowed
+            if (scoreTxData->ScoreType == ACTION_SCORE_CONTENT
+                && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
+                continue;
+
+            auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
+            if (!scoreData)
+            {
+                LogPrintf("%s: Failed get score data for tx: %s\n", __func__, tx->GetHash().GetHex());
+                continue;
+            }
+
+            if (!reputationConsensus->AllowModifyReputation(
+                scoreData,
+                true
+            ))
+                continue;
+
+            postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
+        }
+
+        // Sort founded users
+        SortWinners(postCandidates, hashProofOfStakeSource, _winners.PostWinners);
+
+        return _winners;
+    }
+
+    // ----------------------------------------
     // Lottery checkpoint at _ block
     void LotteryConsensus_checkpoint_::ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs)
     {
