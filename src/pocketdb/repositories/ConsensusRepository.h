@@ -70,9 +70,6 @@ namespace PocketDb
     public:
         explicit ConsensusRepository(SQLiteDatabase& db) : TransactionRepository(db) {}
 
-        void Init() override;
-        void Destroy() override;
-
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);
         tuple<bool, vector<PTransactionRef>>GetLastContents(const vector<string>& rootHashes, const vector<TxType>& types);
@@ -193,7 +190,7 @@ namespace PocketDb
         int CountChainAudioEdit(const string& address, const string& rootTxHash);
 
         int CountMempoolCollectionEdit(const string& address, const string& rootTxHash);
-        int CountChainCollectionEdit(const string& address, const string& rootTxHash);
+        int CountChainCollectionEdit(const string& address, const string& rootTxHash, const int& nHeight, const int& depth);
         
         int CountMempoolBarteronOfferEdit(const string& address, const string& rootTxHash);
         int CountChainBarteronOfferEdit(const string& address, const string& rootTxHash);

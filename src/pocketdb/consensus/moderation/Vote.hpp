@@ -108,7 +108,7 @@ namespace PocketConsensus
     public:
         ModerationVoteConsensusFactory()
         {
-            Checkpoint({ 0, 0, 0, make_shared<ModerationVoteConsensus>() });
+            Checkpoint({ 2162400, 1531000, 0, make_shared<ModerationVoteConsensus>() });
         }
     };
 

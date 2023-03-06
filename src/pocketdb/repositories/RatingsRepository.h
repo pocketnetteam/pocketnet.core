@@ -26,10 +26,6 @@ namespace PocketDb
     public:
         explicit RatingsRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
-        void Init() override {}
-
-        void Destroy() override {}
-
         // Accumulate new rating records
         void InsertRatings(shared_ptr<vector<Rating>> ratings);
         bool ExistsLiker(int addressId, int likerId);

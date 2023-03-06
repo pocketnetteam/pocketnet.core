@@ -18,7 +18,6 @@ namespace PocketDb
         ExplorerRepoInst = make_shared<ExplorerRepository>(*SQLiteDbInst);
         SearchRepoInst = make_shared<SearchRepository>(*SQLiteDbInst);
         ModerationRepoInst = make_shared<ModerationRepository>(*SQLiteDbInst);
-
         TransactionRepoInst = make_shared<TransactionRepository>(*SQLiteDbInst);
         ConsensusRepoInst = make_shared<ConsensusRepository>(*SQLiteDbInst);
     }
@@ -31,7 +30,6 @@ namespace PocketDb
         ExplorerRepoInst->Destroy();
         SearchRepoInst->Destroy();
         ModerationRepoInst->Destroy();
-
         TransactionRepoInst->Destroy();
         ConsensusRepoInst->Destroy();
 

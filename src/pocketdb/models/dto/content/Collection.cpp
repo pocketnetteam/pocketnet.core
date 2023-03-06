@@ -57,6 +57,9 @@ namespace PocketTx
         if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok)
             if (auto[ok, valTxId] = TryGetStr(src, "txid"); ok)
                 SetRootTxHash(valTxId);
+
+        if (auto[ok, valIds] = TryGetStr(src, "contentIds"); ok) SetContentIds(valIds);
+        if (auto[ok, valTypes] = TryGetInt64(src, "contentTypes"); ok) SetContentTypes(valTypes);
     }
 
     void Collection::DeserializeRpc(const UniValue& src)
@@ -94,7 +97,7 @@ namespace PocketTx
     void Collection::SetContentTypes(const int64_t& value) { m_int1 = value; }
 
     const optional<string>& Collection::GetContentIds() const { return m_string3; }
-    const tuple<bool, vector<string>>& Collection::GetContentIdsVector() const
+    tuple<bool, vector<string>> Collection::GetContentIdsVector()
     {
         vector<string> contentIds;
 

@@ -26,7 +26,7 @@ namespace PocketTx
         void SetContentTypes(const int64_t& value);
 
         const optional<string>& GetContentIds() const;
-        const tuple<bool, vector<string>>& GetContentIdsVector() const;
+        tuple<bool, vector<string>> GetContentIdsVector();
         void SetContentIds(const string& value);
 
         optional<string> GetPayloadLang() const;

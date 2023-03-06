@@ -255,8 +255,7 @@ namespace PocketConsensus
     public:
         StreamConsensusFactory()
         {
-            //TODO (release): set height for main network
-            Checkpoint({ 99999999, 1531000, 0, make_shared<StreamConsensus>() });
+            Checkpoint({ 2162400, 1531000, 0, make_shared<StreamConsensus>() });
         }
     };
 

@@ -24,6 +24,12 @@ class ChainBuilderFullActivityTest(PocketcoinTestFramework):
         self.num_nodes = 1
         self.extra_args = [["-debug=consensus"]]
 
+    def test_check_historical_feed(self, node):
+        feed = node.public().gethistoricalfeed()
+        contents = feed["contents"]
+        assert len(contents) > 0
+        self.log.info(f"Number of posts in historical feed: {len(contents)}")
+
     def run_test(self):
         node = self.nodes[0]
         builder = ChainBuilder(node, self.log)
@@ -31,6 +37,8 @@ class ChainBuilderFullActivityTest(PocketcoinTestFramework):
 
         info = node.public().getaddressinfo(builder.node_address)
         self.log.info(f"Node balance: {info}")
+
+        self.test_check_historical_feed(node)
 
 
 if __name__ == "__main__":
