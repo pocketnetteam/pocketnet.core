@@ -90,7 +90,7 @@ namespace PocketConsensus
     class LotteryConsensus_bip_100 : public LotteryConsensus_checkpoint_1180000
     {
     protected:
-        int64_t MaxWinnersCount() { return 5; } override;
+        int64_t MaxWinnersCount() override { return 5; };
     public:
         explicit LotteryConsensus_bip_100(int height) : LotteryConsensus_checkpoint_1180000(height) {}
         CAmount RatingReward(CAmount nCredit, opcodetype code) override;
