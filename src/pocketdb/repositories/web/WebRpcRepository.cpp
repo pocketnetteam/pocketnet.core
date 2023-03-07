@@ -2138,69 +2138,28 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                rewards.address,
-                sum(rewards.amountLottery) as amountLottery,
-                sum(rewards.amountDonation) as amountDonation,
-                sum(rewards.amountTransfer) as amountTransfer
-            from
-            (
-                -- lottery
-                select
-                    'lottery' as type,
-                    o.AddressHash as address,
-                    sum(o.Value) as amountLottery,
-                    0 as amountDonation,
-                    0 as amountTransfer
-                from Transactions t indexed by Transactions_Height_Type
-                join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                    on o.TxHash = t.Hash and o.AddressHash = ?
-                where
-                    t.Type = 3
-                    and t.Height <= ?
-                    and t.Height >= ?
-                group by o.AddressHash
-
-                union
-
-                -- donations
-                select
-                    'donations' as type,
-                    o.AddressHash as address,
-                    0 as amountLottery,
-                    sum(o.Value) as amountDonation,
-                    sum(o.Value) as amountTransfer
-                from Transactions comment indexed by Transactions_Hash_Type_Height
-                join Transactions content indexed by sqlite_autoindex_Transactions_1
-                    on content.Hash = comment.String3
-                        and content.Type in (200, 201, 202, 209, 210)
-                        and content.String1 = ?
-                join TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
-                    on o.TxHash = comment.Hash
-                        and o.AddressHash = content.String1
-                        and o.AddressHash != comment.String1
-                        and o.TxHeight <= ?
-                        and o.TxHeight >= ?
-                where comment.Type in (204)
-                group by o.AddressHash
-
-                union
-
-                -- transfer
-                select
-                    'transfer' as type,
-                    o.AddressHash as address,
-                    0 as amountLottery,
-                    0 as amountDonation,
-                    sum(o.Value) as amountTransfer
-                from Transactions t indexed by Transactions_Height_Type
-                join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                    on o.TxHash = t.Hash and o.AddressHash = ?
-                where
-                    t.Type = 1
-                    and t.Height <= ?
-                    and t.Height >= ?
-                group by o.AddressHash
-            )rewards
+                a.address,
+                ifnull(t.Type,0) as type,
+                sum(ifnull(o.Value, 0)) as amount
+            from (select ? address)a
+            left join TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
+                on o.AddressHash = a.address
+                    and o.AddressHash !=
+                    (
+                        select
+                            oi.AddressHash
+                        from TxInputs i indexed by TxInputs_SpentTxHash_TxHash_Number
+                        join TxOutputs oi indexed by sqlite_autoindex_TxOutputs_1
+                            on oi.TxHash = i.TxHash
+                                and oi.Number = i.Number
+                        where i.SpentTxHash = o.TxHash
+                        limit 1
+                    )
+                    and o.TxHeight <= ?
+                    and o.TxHeight >= ?
+            left join Transactions t indexed by sqlite_autoindex_Transactions_1
+                on t.Hash = o.TxHash
+            group by t.Type, a.address
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -2212,25 +2171,39 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, height);
             TryBindStatementInt(stmt, i++, height - depth);
 
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, height);
-            TryBindStatementInt(stmt, i++, height - depth);
-
-            TryBindStatementText(stmt, i++, address);
-            TryBindStatementInt(stmt, i++, height);
-            TryBindStatementInt(stmt, i++, height - depth);
-
+            int64_t amountLottery = 0;
+            int64_t amountDonation = 0;
+            int64_t amountTransfer = 0;
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                UniValue record(UniValue::VOBJ);
+//                TryGetColumnInt(*stmt, 0); // address
+                int type = 0;
+                int64_t amount = 0;
+                if (auto[ok, type] = TryGetColumnInt(*stmt, 1); ok)
+                {
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) amount = value;
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok)record.pushKV("amountLottery", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)record.pushKV("amountDonation", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok)record.pushKV("amountTransfer", value);
-
-                result.push_back(record);
+                    switch (type) {
+                        case 1:
+                            amountTransfer += amount;
+                            break;
+                        case 3:
+                            amountLottery += amount;
+                            break;
+                        case 204:
+                            amountDonation += amount;
+                            break;
+                        default:
+                            break;
+                    }
+                }
             }
+            UniValue record(UniValue::VOBJ);
+            record.pushKV("address", address);
+            record.pushKV("amountLottery", amountLottery);
+            record.pushKV("amountDonation", amountDonation);
+            record.pushKV("amountTransfer", amountTransfer);
+            result.push_back(record);
 
             FinalizeSqlStatement(*stmt);
         });
