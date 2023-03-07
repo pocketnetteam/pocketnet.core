@@ -2219,7 +2219,7 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, address);
             TryBindStatementInt(stmt, i++, height);
             TryBindStatementInt(stmt, i++, height - depth);
-            LogPrintf(sqlite3_expanded_sql(*stmt));
+
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
