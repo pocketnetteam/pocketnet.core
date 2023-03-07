@@ -7,6 +7,7 @@ import random
 from framework.models import (
     Account,
     AccountPayload,
+    AccountSettingPayload,
     BlockingPayload,
     BoostPayload,
     CommentPayload,
@@ -37,6 +38,12 @@ def generate_accounts(node, node_address, account_num, amount=10, is_moderator=F
         assert address_info["balance"] == amount
 
     return accounts
+
+
+def set_account_setting(node, account, data={"setting1": "value"}):
+    pub_gen_tx = node.public().generatetransaction
+    pub_gen_tx(account, AccountSettingPayload(data))
+    node.stakeblock(1)
 
 
 def add_content(node, account, payload):

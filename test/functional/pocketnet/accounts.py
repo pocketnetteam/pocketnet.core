@@ -8,6 +8,7 @@ Launch this from 'test/functional/pocketnet' directory or via
 test_runner.py
 """
 
+import json
 import sys
 import pathlib
 
@@ -21,6 +22,7 @@ from framework.helpers import (
     generate_subscription,
     like_comment,
     like_post,
+    set_account_setting,
 )
 from framework.models import ContentPostPayload
 
@@ -156,24 +158,110 @@ class AccountsTest(PocketcoinTestFramework):
     def test_getaccountsetting(self, builder):
         self.log.info("Test 7 - Getting account setting")
         public_api = builder.node.public()
+        account = builder.accounts[0]
+
+        account_setting = public_api.getaccountsetting(account.Address)
+        assert isinstance(account_setting, str)
+        assert account_setting == ""
+
+        settings = {"foo": "bar", "test": True, "count": 5}
+        set_account_setting(builder.node, account, settings)
+
+        account_setting = public_api.getaccountsetting(account.Address)
+        assert isinstance(account_setting, str)
+        as_dict = json.loads(account_setting)
+        assert as_dict == settings
 
     def test_getuserstatistic(self, builder):
-        pass
+        self.log.info("Test 8 - Getting user statistic")
+        public_api = builder.node.public()
+        account = builder.accounts[0]
+
+        self.log.info("Check - Account without commentators and referals")
+        statistic = public_api.getuserstatistic(account.Address)
+        assert isinstance(statistic, list)
+        assert len(statistic) == 1
+        assert statistic[0]["address"] == account.Address
+        assert statistic[0]["commentators"] == 0
+        assert statistic[0]["histreferals"] == 0
 
     def test_getusersubscribes(self, builder):
-        pass
+        self.log.info("Test 9 - Getting user subscriptions")
+        public_api = builder.node.public()
+
+        accounts = [builder.accounts[0], builder.accounts[1], builder.accounts[2]]
+        subscribes = [builder.accounts[4], builder.accounts[0], builder.accounts[0]]
+
+        for account, subscribed_to in zip(accounts, subscribes):
+            subs = public_api.getusersubscribes(account.Address)
+            assert isinstance(subs, list)
+            assert isinstance(subs[0], dict)
+            assert subs[0]["adddress"] == subscribed_to.Address
+            assert subs[0]["private"] == 0
+            assert "height" in subs[0]
+            assert "reputation" in subs[0]
 
     def test_getusersubscribers(self, builder):
-        pass
+        self.log.info("Test 10 - Getting user subscribers")
+        public_api = builder.node.public()
+
+        self.log.info("Check - Account with multiple subscribers")
+        subscribers = public_api.getusersubscribers(builder.accounts[0].Address)
+        expected = [builder.accounts[1].Address, builder.accounts[2].Address]
+        assert isinstance(subscribers, list)
+        assert len(subscribers) == 2
+        for subscriber in subscribers:
+            assert isinstance(subscriber, dict)
+            assert subscriber["address"] in expected
+            assert subscriber["private"] == 0
+            assert "height" in subscriber
+            assert "reputation" in subscriber
+        
+        self.log.info("Check - Account with single subscriber")
+        subscribers = public_api.getusersubscribers(builder.accounts[4].Address)
+        assert isinstance(subscribers, list)
+        assert len(subscribers) == 1
+        assert isinstance(subscribers[0], dict)
+        assert subscribers[0]["address"] == builder.accounts[0].Address
 
     def test_getuserblockings(self, builder):
-        pass
+        self.log.info("Test 11 - Getting user blockings")
+        public_api = builder.node.public()
+
+        accounts = [builder.accounts[0], builder.accounts[4]]
+        blockings = [builder.accounts[3], builder.accounts[0]]
+
+        for account, blocking in zip(accounts, blockings):
+            result = public_api.getuserblockings(account.Address)
+
+            blocking_id = public_api.getaddressid(blocking.Address)
+            assert isinstance(result, list)
+            assert len(result) == 1
+            assert result[0] == blocking_id["id"]
 
     def test_getuserblockers(self, builder):
-        pass
+        self.log.info("Test 12 - Getting user blockers")
+        public_api = builder.node.public()
+
+        accounts = [builder.accounts[3], builder.accounts[0]]
+        blockers = [builder.accounts[0], builder.accounts[4]]
+
+        for account, blocker in zip(accounts, blockers):
+            result = public_api.getuserblockers(account.Address)
+
+            blocker_id = public_api.getaddressid(blocker.Address)
+            assert isinstance(result, list)
+            assert len(result) == 1
+            assert result[0] == blocker_id["id"]
 
     def test_gettopaccounts(self, builder):
-        pass
+        self.log.info("Test 13 - Getting top accounts")
+        public_api = builder.node.public()
+
+        self.log.info("Check - No top users so far")
+        result = public_api.gettopaccounts()
+        assert isinstance(result, list)
+        assert len(result) == 0
 
     def test_sync_nodes(self, builder):
         self.log.info("Check - sync nodes")
