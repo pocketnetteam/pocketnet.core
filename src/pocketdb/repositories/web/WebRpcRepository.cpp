@@ -2132,6 +2132,112 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetAccountEarning(const string& address, int height, int depth)
+    {
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select
+                rewards.address,
+                sum(rewards.amountLottery) as amountLottery,
+                sum(rewards.amountDonation) as amountDonation,
+                sum(rewards.amountTransfer) as amountTransfer
+            from
+            (
+                -- lottery
+                select
+                    'lottery' as type,
+                    o.AddressHash as address,
+                    sum(o.Value) as amountLottery,
+                    0 as amountDonation,
+                    0 as amountTransfer
+                from Transactions t indexed by Transactions_Height_Type
+                join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                    on o.TxHash = t.Hash and o.AddressHash = ?
+                where
+                    t.Type = 3
+                    and t.Height <= ?
+                    and t.Height >= ?
+                group by o.AddressHash
+
+                union
+
+                -- donations
+                select
+                    'donations' as type,
+                    o.AddressHash as address,
+                    0 as amountLottery,
+                    sum(o.Value) as amountDonation,
+                    sum(o.Value) as amountTransfer
+                from Transactions comment indexed by Transactions_Hash_Type_Height
+                join Transactions content indexed by sqlite_autoindex_Transactions_1
+                    on content.Hash = comment.String3
+                        and content.Type in (200, 201, 202, 209, 210)
+                        and content.String1 = ?
+                join TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
+                    on o.TxHash = comment.Hash
+                        and o.AddressHash = content.String1
+                        and o.AddressHash != comment.String1
+                        and o.TxHeight <= ?
+                        and o.TxHeight >= ?
+                where comment.Type in (204)
+                group by o.AddressHash
+
+                union
+
+                -- transfer
+                select
+                    'transfer' as type,
+                    o.AddressHash as address,
+                    0 as amountLottery,
+                    0 as amountDonation,
+                    sum(o.Value) as amountTransfer
+                from Transactions t indexed by Transactions_Height_Type
+                join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                    on o.TxHash = t.Hash and o.AddressHash = ?
+                where
+                    t.Type = 1
+                    and t.Height <= ?
+                    and t.Height >= ?
+                group by o.AddressHash
+            )rewards
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, height);
+            TryBindStatementInt(stmt, i++, height - depth);
+
+            TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, height);
+            TryBindStatementInt(stmt, i++, height - depth);
+
+            TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, height);
+            TryBindStatementInt(stmt, i++, height - depth);
+            LogPrintf(sqlite3_expanded_sql(*stmt));
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok)record.pushKV("amountLottery", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok)record.pushKV("amountDonation", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok)record.pushKV("amountTransfer", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     tuple<int, UniValue> WebRpcRepository::GetContentLanguages(int height)
     {
         int resultCount = 0;

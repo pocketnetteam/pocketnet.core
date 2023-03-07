@@ -105,6 +105,8 @@ namespace PocketDb
 
         UniValue GetUnspents(const vector<string>& addresses, int height, int confirmations, vector<pair<string, uint32_t>>& mempoolInputs);
 
+        UniValue GetAccountEarning(const string& address, int height, int depth);
+
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
         UniValue GetContentsForAddress(const string& address);
