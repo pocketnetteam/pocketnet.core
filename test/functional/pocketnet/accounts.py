@@ -216,7 +216,7 @@ class AccountsTest(PocketcoinTestFramework):
             assert subscriber["private"] == 0
             assert "height" in subscriber
             assert "reputation" in subscriber
-        
+
         self.log.info("Check - Account with single subscriber")
         subscribers = public_api.getusersubscribers(builder.accounts[4].Address)
         assert isinstance(subscribers, list)
