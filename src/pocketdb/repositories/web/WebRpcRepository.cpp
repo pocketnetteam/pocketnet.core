@@ -2308,6 +2308,7 @@ namespace PocketDb
             {
                 UniValue record(UniValue::VOBJ);
 
+                auto[ok0, id] = TryGetColumnInt64(*stmt, 0);
                 auto[ok1, hash] = TryGetColumnString(*stmt, 1);
                 auto[ok2, time] = TryGetColumnString(*stmt, 2);
                 auto[ok3, caption] = TryGetColumnString(*stmt, 3);
