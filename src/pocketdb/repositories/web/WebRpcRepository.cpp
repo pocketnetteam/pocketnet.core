@@ -2132,6 +2132,85 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetAccountEarning(const string& address, int height, int depth)
+    {
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select
+                a.address,
+                ifnull(t.Type,0) as type,
+                sum(ifnull(o.Value, 0)) as amount
+            from (select ? address)a
+            left join TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
+                on o.AddressHash = a.address
+                    and o.AddressHash !=
+                    (
+                        select
+                            oi.AddressHash
+                        from TxInputs i indexed by TxInputs_SpentTxHash_TxHash_Number
+                        join TxOutputs oi indexed by sqlite_autoindex_TxOutputs_1
+                            on oi.TxHash = i.TxHash
+                                and oi.Number = i.Number
+                        where i.SpentTxHash = o.TxHash
+                        limit 1
+                    )
+                    and o.TxHeight <= ?
+                    and o.TxHeight >= ?
+            left join Transactions t indexed by sqlite_autoindex_Transactions_1
+                on t.Hash = o.TxHash
+            group by t.Type, a.address
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, height);
+            TryBindStatementInt(stmt, i++, height - depth);
+
+            int64_t amountLottery = 0;
+            int64_t amountDonation = 0;
+            int64_t amountTransfer = 0;
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+//                TryGetColumnInt(*stmt, 0); // address
+                int type = 0;
+                int64_t amount = 0;
+                if (auto[ok, type] = TryGetColumnInt(*stmt, 1); ok)
+                {
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) amount = value;
+
+                    switch (type) {
+                        case 1:
+                            amountTransfer += amount;
+                            break;
+                        case 3:
+                            amountLottery += amount;
+                            break;
+                        case 204:
+                            amountDonation += amount;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+            UniValue record(UniValue::VOBJ);
+            record.pushKV("address", address);
+            record.pushKV("amountLottery", amountLottery);
+            record.pushKV("amountDonation", amountDonation);
+            record.pushKV("amountTransfer", amountTransfer);
+            result.push_back(record);
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     tuple<int, UniValue> WebRpcRepository::GetContentLanguages(int height)
     {
         int resultCount = 0;
