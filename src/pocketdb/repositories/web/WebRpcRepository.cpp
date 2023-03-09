@@ -693,7 +693,7 @@ namespace PocketDb
         map<string, UniValue> result{};
 
         auto _result = GetAccountProfiles(addresses, {}, shortForm, firstFlagsDepth);
-        for (const auto[address, id, record] : _result)
+        for (auto const& [address, id, record] : _result)
             result.insert_or_assign(address, record);
 
         return result;
@@ -704,7 +704,7 @@ namespace PocketDb
         map<int64_t, UniValue> result{};
 
         auto _result = GetAccountProfiles({}, ids, shortForm, firstFlagsDepth);
-        for (const auto[address, id, record] : _result)
+        for (auto const& [address, id, record] : _result)
             result.insert_or_assign(id, record);
 
         return result;
@@ -2096,7 +2096,7 @@ namespace PocketDb
                 if (!ok0 || !ok1 || find_if(
                     mempoolInputs.begin(),
                     mempoolInputs.end(),
-                    [&](const pair<string, uint32_t>& itm)
+                    [&](const pair<string, int>& itm)
                     {
                         return itm.first == _txHash && itm.second == _txOut;
                     })  != mempoolInputs.end())
