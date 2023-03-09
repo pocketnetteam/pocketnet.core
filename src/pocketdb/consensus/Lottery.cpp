@@ -228,6 +228,8 @@ namespace PocketConsensus
                 continue;
 
             // BIP100: Only scores to content allowed
+            if (scoreTxData->ScoreType == ACTION_SCORE_COMMENT)
+                continue;
             if (scoreTxData->ScoreType == ACTION_SCORE_CONTENT
                 && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
                 continue;
