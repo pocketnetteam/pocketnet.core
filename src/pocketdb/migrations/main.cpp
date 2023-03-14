@@ -374,7 +374,9 @@ namespace PocketDb
                 Transactions t indexed by Transactions_HashId
             where
                 t.HashId = r.RowId;
+        )sql");
 
+        _views.emplace_back(R"sql(
             drop view if exists vTxStr;
             create view if not exists vTxStr as
             select
