@@ -5356,49 +5356,50 @@ namespace PocketDb
                             select json_group_array(json_object(
                                 'Value', o.Value,
                                 'Number', o.Number,
-                                'AddressHash', so.AddressHash,
-                                'ScriptPubKey', so.ScriptPubKey
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
                             ))
-                            from TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
-                            join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
-                                o.TxId = i.TxId and
-                                o.Number = i.Number
-                            cross join vTxOutStr so on
-                                so.TxId = o.TxId
+
+                            from
+                                TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+
+                                join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
+                                    o.TxId = i.TxId and
+                                    o.Number = i.Number
+
                             where
                                 i.SpentTxId = t.RowId
                         ),
                         (
                             select json_group_array(json_object(
                                 'Value', o.Value,
-                                'AddressHash', so.AddressHash,
-                                'ScriptPubKey', so.ScriptPubKey,
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId),
                                 'Account', json_object(
                                     'Lang', pna.String1,
                                     'Name', pna.String2,
                                     'Avatar', pna.String3
                                 )
                             ))
-                            from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
 
-                            cross join vTxOutStr so on
-                                so.TxId = o.TxId
+                            from
+                                TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
 
-                            left join Transactions na indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                na.Type = 100 and
-                                na.RegId1 = o.AddressId and
-                                exists (select 1 from Last lna where lna.TxId = na.RowId)
+                                left join Transactions na indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    na.Type = 100 and
+                                    na.RegId1 = o.AddressId and
+                                    exists (select 1 from Last lna where lna.TxId = na.RowId)
 
-                            left join Chain cna on
-                                cna.TxId = na.RowId
+                                left join Chain cna on
+                                    cna.TxId = na.RowId
 
-                            left join Payload pna on
-                                pna.TxId = na.RowId
-                                
-                            left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                                rna.Type = 0 and
-                                rna.Uid = cna.Uid and
-                                rna.Last = 1
+                                left join Payload pna on
+                                    pna.TxId = na.RowId
+
+                                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
+                                    rna.Type = 0 and
+                                    rna.Uid = cna.Uid and
+                                    rna.Last = 1
 
                             where
                                 o.TxId = t.RowId
@@ -5406,14 +5407,15 @@ namespace PocketDb
                                 o.Number
                         )
 
-                    from Transactions t
+                    from
+                        Transactions t
 
-                    join Chain c indexed by Chain_Height_BlockId on
-                        c.TxId = t.RowId and
-                        c.Height = ?
+                        join Chain c indexed by Chain_Height_BlockId on
+                            c.TxId = t.RowId and
+                            c.Height = ?
 
-                    join Registry r on
-                        r.RowId = t.HashId
+                        join Registry r on
+                            r.RowId = t.HashId
 
                     where
                         t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
@@ -5649,15 +5651,17 @@ namespace PocketDb
                             select json_group_array(json_object(
                                 'Value', o.Value,
                                 'Number', o.Number,
-                                'AddressHash', so.AddressHash,
-                                'ScriptPubKey', so.ScriptPubKey
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
                             ))
-                            from TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
-                            join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
-                                o.TxId = i.TxId and
-                                o.Number = i.Number
-                            cross join vTxOutStr so on
-                                so.TxId = o.TxId
+
+                            from
+                                TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+
+                                join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
+                                    o.TxId = i.TxId and
+                                    o.Number = i.Number
+
                             where
                                 i.SpentTxId = c.RowId
                         ),
@@ -5667,10 +5671,8 @@ namespace PocketDb
                                 'AddressHash', so.AddressHash,
                                 'ScriptPubKey', so.ScriptPubKey
                             ))
-                            from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
 
-                            cross join vTxOutStr so on
-                                so.TxId = o.TxId
+                            from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
 
                             where
                                 o.TxId = c.RowId
@@ -6187,28 +6189,29 @@ namespace PocketDb
                             select json_group_array(json_object(
                                 'Value', o.Value,
                                 'Number', o.Number,
-                                'AddressHash', so.AddressHash,
-                                'ScriptPubKey', so.ScriptPubKey
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
                             ))
-                            from TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
-                            join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
-                                o.TxId = i.TxId and
-                                o.Number = i.Number
-                            cross join vTxOutStr so on
-                                so.TxId = o.TxId
+
+                            from
+                                TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+
+                                join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
+                                    o.TxId = i.TxId and
+                                    o.Number = i.Number
+
                             where
                                 i.SpentTxId = tBoost.RowId
                         ),
                         (
                             select json_group_array(json_object(
                                 'Value', o.Value,
-                                'AddressHash', so.AddressHash,
-                                'ScriptPubKey', so.ScriptPubKey
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
                             ))
-                            from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
 
-                            cross join vTxOutStr so on
-                                so.TxId = o.TxId
+                            from
+                                TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
 
                             where
                                 o.TxId = tBoost.RowId
