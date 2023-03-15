@@ -4541,6 +4541,7 @@ namespace PocketDb
     static inline auto _constructSelectsBasedOnFilters(
                 const std::set<ShortTxType>& filters,
                 const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>>& selects,
+                const std::string& header,
                 const std::string& footer, const std::string& separator = "union")
     {
         auto predicate = _choosePredicate(filters);
@@ -4563,6 +4564,7 @@ namespace PocketDb
         queryElems.pop_back(); // Dropping last "union"
 
         std::stringstream ss;
+        ss << header;
         for (const auto& elem: queryElems) {
             ss << elem;
         }
@@ -4577,11 +4579,10 @@ namespace PocketDb
         // This is required because we want static bind functors for optimization so parameters can't be captured there
         struct QueryParams {
             // Handling all by reference
-            const std::string& address;
             const int64_t& heightMax;
             const int64_t& heightMin;
             const int64_t& blockNumMax;
-        } queryParams{address, heightMax, heightMin, blockNumMax};
+        } queryParams{heightMax, heightMin, blockNumMax};
 
         static const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
         {
@@ -4687,8 +4688,7 @@ namespace PocketDb
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
-                    queryParams.blockNumMax,
-                    queryParams.address
+                    queryParams.blockNumMax
                 );
             }
         }},
@@ -4801,8 +4801,7 @@ namespace PocketDb
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
-                    queryParams.blockNumMax,
-                    queryParams.address
+                    queryParams.blockNumMax
                 );
             }
         }},
@@ -4875,7 +4874,6 @@ namespace PocketDb
         )sql",
             [](Stmt& stmt, QueryParams const& queryParams) {
                 stmt.Bind(
-                    queryParams.address,
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -4984,8 +4982,7 @@ namespace PocketDb
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
-                    queryParams.blockNumMax,
-                    queryParams.address
+                    queryParams.blockNumMax
                 );
             }
         }},
@@ -5071,8 +5068,7 @@ namespace PocketDb
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
-                    queryParams.blockNumMax,
-                    queryParams.address
+                    queryParams.blockNumMax
                 );
             }
         }},
@@ -5174,7 +5170,6 @@ namespace PocketDb
         )sql",
             [](Stmt& stmt, QueryParams const& queryParams) {
                 stmt.Bind(
-                    queryParams.address,
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -5276,7 +5271,6 @@ namespace PocketDb
         )sql",
             [](Stmt& stmt, QueryParams const& queryParams) {
                 stmt.Bind(
-                    queryParams.address,
                     queryParams.heightMin,
                     queryParams.heightMax,
                     queryParams.heightMax,
@@ -5286,6 +5280,23 @@ namespace PocketDb
         }},
         };
 
+        static const auto header = R"sql(
+
+            -- Common 'with' for all unions
+            with
+                address as (
+                    select
+                        r.String as hash,
+                        r.RowId as id
+
+                    from
+                        Registry r
+                    
+                    where
+                        r.String = ?
+                )
+        )sql";
+
         static const auto footer = R"sql(
 
             -- Global order and limit for pagination
@@ -5294,7 +5305,7 @@ namespace PocketDb
 
         )sql";
 
-        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, footer);
+        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, header, footer);
         auto& sql = elem1;
         auto& binds = elem2;
 
@@ -5302,7 +5313,7 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
-
+            stmt.Bind(address);
             for (const auto& bind: binds) {
                 bind(stmt, queryParams);
             }
@@ -7912,7 +7923,7 @@ namespace PocketDb
 
         )sql";
         
-        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, footer);
+        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "", footer);
         // A bit dirty hack because structure bindings can't be captured by lambda function.
         auto& sql = elem1;
         auto& binds = elem2;
