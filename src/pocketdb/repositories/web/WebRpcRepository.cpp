@@ -4590,97 +4590,128 @@ namespace PocketDb
             -- My answers to other's comments
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                a.Hash,
+                sa.Hash,
                 a.Type,
                 null,
-                a.Height as Height,
-                a.BlockNum as BlockNum,
+                ca.Height as Height,
+                ca.BlockNum as BlockNum,
                 a.Time,
-                a.String2,
-                a.String3,
+                sa.String2,
+                sa.String3,
                 null,
                 null,
                 null,
                 pa.String1,
-                a.String4,
-                a.String5,
+                sa.String4,
+                sa.String5,
                 null,
                 null,
                 null,
                 null,
                 null,
-                c.Hash,
+                sc.Hash,
                 c.Type,
-                c.String1,
-                c.Height,
-                c.BlockNum,
+                sc.String1,
+                cc.Height,
+                cc.BlockNum,
                 c.Time,
-                c.String2,
+                sc.String2,
                 null,
                 null,
                 (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'Number', Number,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs i
-                    where i.SpentTxHash = c.Hash
+                    select
+                        json_group_array(
+                            json_object(
+                                'Value', o.Value,
+                                'Number', o.Number,
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
+                            )
+                        )
+
+                    from
+                        TxInputs i
+
+                        join TxOutputs o on
+                            o.TxId = i.TxId and
+                            o.Number = i.Number
+
+                    where
+                        i.SpentTxId = c.RowId
                 ),
                 (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs o
-                    where o.TxHash = c.Hash
-                        and o.TxHeight = c.Height
-                    order by o.Number
+                    select
+                        json_group_array(
+                            json_object(
+                                'Value', o.Value,
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
+                            )
+                        )
+
+                    from
+                        TxOutputs o
+
+                    where
+                        o.TxId = c.RowId
+                    order by
+                        o.Number
                 ),
                 pc.String1,
-                c.String4,
-                c.String5,
+                sc.String4,
+                sc.String5,
                 null, -- Badge
-                pca.String2,
-                pca.String3,
+                pac.String2,
+                pac.String3,
                 ifnull(rca.Value,0),
                 null
 
-            from Transactions c indexed by Transactions_Type_Last_String2_Height -- My comments
+            from
+                address,
+                Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 -- My comments
 
-            left join Payload pc
-                on pc.TxHash = c.Hash
+                join Chain cc on
+                    cc.TxId = c.RowId
 
-            join Transactions a indexed by Transactions_Type_String1_Height_Time_Int1 -- Other answers
-                on a.Type in (204, 205, 206)
-                and a.Height > ?
-                and (a.Height < ? or (a.Height = ? and a.BlockNum < ?))
-                and a.String5 = c.String2
-                and a.String1 != c.String1
-                and a.String1 = ?
+                join vTxStr sc on
+                    sc.RowId = c.RowId
 
-            left join Payload pa
-                on pa.TxHash = a.Hash
+                left join Payload pc on
+                    pc.TxId = c.RowId
 
-            left join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
-                on ca.Type = 100
-                and ca.Last = 1
-                and ca.String1 = c.String1
-                and ca.Height > 0
+                join Transactions a indexed by Transactions_Type_RegId5_RegId1 on -- Other answers
+                    a.Type in (204, 205, 206) and
+                    a.RegId5 = c.RegId2 and
+                    a.RegId1 != c.RegId1 and
+                    a.RegId1 = address.id
 
-            left join Payload pca
-                on pca.TxHash = ca.Hash
+                join vTxStr sa on
+                    sa.RowId = a.RowId
 
-            left join Ratings rca indexed by Ratings_Type_Id_Last_Height
-                on rca.Type = 0
-                and rca.Id = ca.Id
-                and rca.Last = 1
+                join Chain ca on
+                    ca.TxId = a.RowId and
+                    ca.Height > ? and
+                    (ca.Height < ? or (ca.Height = ? and ca.BlockNum < ?))
 
-            where c.Type in (204, 205)
-            and c.Last = 1
-            and c.Height > 0
+                left join Payload pa on
+                    pa.TxId = a.RowId
+
+                left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    ac.Type = 100 and
+                    ac.RegId1 = c.RegId1 and
+                    exists (select 1 from Last l where l.TxId = ac.RowId)
+
+                left join Payload pac on
+                    pac.TxId = ac.RowId
+
+                left join Ratings rca indexed by Ratings_Type_Uid_Last_Height on
+                    rca.Type = 0 and
+                    rca.Uid = ca.Uid and
+                    rca.Last = 1
+
+            where
+                c.Type in (204, 205) and
+                exists (select 1 from Last l where l.TxId = c.RowId)
 
         )sql",
             [](Stmt& stmt, QueryParams const& queryParams) {
