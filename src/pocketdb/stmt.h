@@ -139,7 +139,7 @@ namespace PocketDb
 
         bool operator[](const size_t& index)
         {
-            if (index < m_resArray.size() && index >=0)
+            if (index < m_resArray.size())
                 return m_resArray[index];
             else
                 return false;
