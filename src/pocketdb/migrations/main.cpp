@@ -405,6 +405,7 @@ namespace PocketDb
             create unique index if not exists Transactions_HashId on Transactions (HashId);
             create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
             create index if not exists Transactions_Type_RegId2 on Transactions (Type, RegId2);
+            create index if not exists Transactions_Type_RegId5_RegId1 on Transactions (Type, RegId5, RegId1);
 
             create index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
 
