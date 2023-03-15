@@ -845,11 +845,11 @@ namespace PocketDb
                     0
                 from
                     Transactions v
-                    cross join Transactions f
-                        on f.RowId = v.RegId2
+                    cross join Transactions f indexed by Transactions_HashId
+                        on f.HashId = v.RegId2
                     cross join Transactions vv on
                         vv.Type in (420) and -- Votes
-                        vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
+                        vv.RegId2 = f.HashId and -- JuryId over FlagTxHash
                         vv.Int1 = 0 and -- Negative verdict
                         not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
                         
@@ -869,8 +869,8 @@ namespace PocketDb
                     1
                 from
                     Transactions v
-                    cross join Transactions f
-                        on f.RowId = v.RegId2
+                    cross join Transactions f indexed by Transactions_HashId
+                        on f.HashId = v.RegId2
                 where
                     v.HashId = (select r.RowId from Registry r where r.String = ?) and
                     ? <= (
@@ -880,7 +880,7 @@ namespace PocketDb
                             Transactions vv
                         where
                             vv.Type in (420) and -- Votes
-                            vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
+                            vv.RegId2 = f.HashId and -- JuryId over FlagTxHash
                             vv.Int1 = 1 and -- Positive verdict
                             not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
                     )
@@ -907,8 +907,8 @@ namespace PocketDb
                     Transactions v
                     join Chain cv
                         on cv.TxId = v.RowId
-                    join Transactions f
-                        on f.RowId = v.RegId2
+                    join Transactions f indexed by Transactions_HashId
+                        on f.HashId = v.RegId2
                     cross join Jury j
                         on j.FlagRowId = f.ROWID
                     cross join JuryVerdict jv

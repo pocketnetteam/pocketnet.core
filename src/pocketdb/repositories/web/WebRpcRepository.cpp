@@ -6534,8 +6534,8 @@ namespace PocketDb
                         cross join Payload p
                             on p.TxId = cu.TxId
 
-                        cross join Transactions c
-                            on c.RowId = f.RegId2
+                        cross join Transactions c indexed by Transactions_HashId
+                            on c.HashId = f.RegId2
 
                         cross join Chain cc on
                             cc.TxId = c.RowId
@@ -6644,8 +6644,8 @@ namespace PocketDb
                         cross join Transactions f
                             on f.RowId = jv.FlagRowId
 
-                        cross join Transactions c
-                            on c.RowId = f.RegId2
+                        cross join Transactions c indexed by Transactions_HashId on
+                            c.HashId = f.RegId2
 
                         cross join Chain cc on
                             cc.TxId = c.RowId
@@ -6653,11 +6653,11 @@ namespace PocketDb
                         cross join vTxStr sc on
                             sc.RowId = c.RowId
 
-                        cross join Payload cp
-                            on cp.TxId = c.RowId
+                        cross join Payload cp on
+                            cp.TxId = c.RowId
 
-                        left join Ratings rn indexed by Ratings_Type_Uid_Last_Height
-                            on rn.Type = 0 and rn.Uid = jb.AccountId and rn.Last = 1
+                        left join Ratings rn indexed by Ratings_Type_Uid_Last_Height on
+                            rn.Type = 0 and rn.Uid = jb.AccountId and rn.Last = 1
 
                     where
                         v.Type = 420
@@ -6752,8 +6752,8 @@ namespace PocketDb
                             on rn.Type = 0 and rn.Uid = jm.AccountId and rn.Last = 1
 
                         -- content
-                        cross join Transactions c
-                            on c.RowId = f.RegId2
+                        cross join Transactions c indexed by Transactions_HashId
+                            on c.HashId = f.RegId2
 
                         cross join Chain cc on
                             cc.TxId = c.RowId
