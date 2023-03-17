@@ -4873,11 +4873,11 @@ namespace PocketDb
             -- Subscribers
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
-                subs.Hash,
+                ssubs.Hash,
                 subs.Type,
                 null,
-                subs.Height as Height,
-                subs.BlockNum as BlockNum,
+                csubs.Height as Height,
+                csubs.BlockNum as BlockNum,
                 subs.Time,
                 null,
                 null,
@@ -4892,11 +4892,11 @@ namespace PocketDb
                 null,
                 null,
                 null,
-                u.Hash,
+                su.Hash,
                 u.Type,
-                u.String1,
-                u.Height,
-                u.BlockNum,
+                su.String1,
+                cu.Height,
+                cu.BlockNum,
                 u.Time,
                 null,
                 null,
@@ -4912,26 +4912,40 @@ namespace PocketDb
                 ifnull(ru.Value,0),
                 null
 
-            from Transactions subs indexed by Transactions_Type_String1_Height_Time_Int1
+            from
+                address,
+                Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
 
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type in (100)
-                and u.Last = 1
-                and u.String1 = subs.String2
-                and u.Height > 0
+                join Chain csubs on
+                    csubs.TxId = subs.RowId and
+                    csubs.Height > ? and
+                    (csubs.Height < ? or (csubs.Height = ? and csubs.BlockNum < ?))
 
-            left join Payload pu
-                on pu.TxHash = u.Hash
+                join vTxStr ssubs on
+                    ssubs.RowId = subs.RowId
 
-            left join Ratings ru indexed by Ratings_Type_Id_Last_Height
-                on ru.Type = 0
-                and ru.Id = u.Id
-                and ru.Last = 1
+                join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    u.Type in (100) and
+                    u.RegId1 = subs.RegId2 and
+                    exists (select 1 from Last l where l.TxId = u.RowId)
 
-            where subs.Type in (302, 303, 304)
-                and subs.String1 = ?
-                and subs.Height > ?
-                and (subs.Height < ? or (subs.Height = ? and subs.BlockNum < ?))
+                join Chain cu on
+                    cu.TxId = u.RowId
+
+                join vTxStr su on
+                    su.RowId = u.RowId
+
+                left join Payload pu on
+                    pu.TxId = u.RowId
+
+                left join Ratings ru indexed by Ratings_Type_Uid_Last_Height on
+                    ru.Type = 0 and
+                    ru.Uid = cu.Uid and
+                    ru.Last = 1
+
+            where
+                subs.Type in (302, 303, 304) and
+                subs.RegId1 = address.id
 
         )sql",
             [](Stmt& stmt, QueryParams const& queryParams) {
