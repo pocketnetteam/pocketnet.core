@@ -4963,11 +4963,11 @@ namespace PocketDb
             -- Comment scores
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
-                s.Hash,
+                ss.Hash,
                 s.Type,
                 null,
-                s.Height as Height,
-                s.BlockNum as BlockNum,
+                cs.Height as Height,
+                cs.BlockNum as BlockNum,
                 s.Time,
                 null,
                 null,
@@ -4982,75 +4982,108 @@ namespace PocketDb
                 null,
                 null,
                 null,
-                c.Hash,
+                sc.Hash,
                 c.Type,
-                c.String1,
-                c.Height,
-                c.BlockNum,
+                sc.String1,
+                cc.Height,
+                cc.BlockNum,
                 c.Time,
-                c.String2,
-                c.String3,
+                sc.String2,
+                sc.String3,
                 null,
                 (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'Number', Number,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs i
-                    where i.SpentTxHash = c.Hash
+                    select
+                        json_group_array(
+                            json_object(
+                                'Value', o.Value,
+                                'Number', o.Number,
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
+                            )
+                        )
+
+                    from
+                        TxInputs i
+
+                        join TxOutputs o on
+                            o.TxId = i.TxId and
+                            o.Number = i.Number
+
+                    where
+                        i.SpentTxId = c.RowId
                 ),
                 (
-                    select json_group_array(json_object(
-                            'Value', Value,
-                            'AddressHash', AddressHash,
-                            'ScriptPubKey', ScriptPubKey
-                            ))
-                    from TxOutputs o
-                    where o.TxHash = c.Hash
-                        and o.TxHeight = c.Height
-                    order by o.Number
+                    select
+                        json_group_array(
+                            json_object(
+                                'Value', o.Value,
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
+                            )
+                        )
+
+                    from
+                        TxOutputs o
+
+                    where
+                        o.TxId = c.RowId
+                    order by
+                        o.Number
                 ),
                 pc.String1,
-                c.String4,
-                c.String5,
+                sc.String4,
+                sc.String5,
                 null,
                 pac.String2,
                 pac.String3,
                 ifnull(rac.Value,0),
                 null
 
-            from Transactions c indexed by Transactions_Type_Last_String2_Height
+            from
+                address,
+                Transactions c indexed by Transactions_Type_RegId5_RegId1 -- TODO (optimization): only (Type)
 
-            left join Payload pc
-                on pc.TxHash = c.Hash
+                join Chain cc on
+                    cc.TxId = c.RowId
 
-            join Transactions s indexed by Transactions_Type_Last_String1_Height_Id
-                on s.Type = 301
-                and s.Last = 0
-                and s.String2 = c.String2
-                and s.Height > ?
-                and (s.Height < ? or (s.Height = ? and s.BlockNum < ?))
-                and s.String1 = ?
+                join vTxStr sc on
+                    sc.RowId = c.RowId
 
-            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                on ac.Type = 100
-                and ac.Last = 1
-                and ac.String1 = c.String1
-                and ac.Height > 0
+                left join Payload pc on
+                    pc.TxId = c.RowId
 
-            left join Payload pac
-                on pac.TxHash = ac.Hash
+                join Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    s.Type = 301 and
+                    s.RegId2 = c.RegId2 and
+                    s.RegId1 = address.id and
+                    exists (select 1 from Last l where l.TxId = s.RowId)
 
-            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                on rac.Type = 0
-                and rac.Id = ac.Id
-                and rac.Last = 1
+                join Chain cs indexed by Chain_Height_Uid on
+                    cs.Height > ? and
+                    (cs.Height < ? or (cs.Height = ? and cs.BlockNum < ?))
 
-            where c.Type in (204,205)
-                and c.Last = 1
-                and c.Height > 0
+                join vTxStr ss on
+                    ss.RowId = s.RowId
+
+                left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    ac.Type = 100 and
+                    ac.RegId1 = c.RegId1 and
+                    exists (select 1 from Last l where l.TxId = ac.RowId)
+
+                left join Chain cac on
+                    cac.TxId = ac.RowId
+
+                left join Payload pac on
+                    pac.TxId = ac.RowId
+
+                left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
+                    rac.Type = 0 and
+                    rac.Uid = cac.Uid and
+                    rac.Last = 1
+
+            where
+                c.Type in (204,205) and
+                exists (select 1 from Last l where l.TxId = c.RowId)
 
         )sql",
             [](Stmt& stmt, QueryParams const& queryParams) {
