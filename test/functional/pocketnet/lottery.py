@@ -89,9 +89,9 @@ class ModerationJuryTest(PocketcoinTestFramework):
 
         node.stakeblock(2)  # height : 1047
 
-        bestBlock = node.getblockchaininfo()['bestblockhash']
-        lastCoinstakeTx = node.getblock(bestBlock)['tx'][1]
-        assert node.public().gettransactions(lastCoinstakeTx)[0]['vout'][0]['scriptPubKey']['hex'] == 'c0'
+        bestBlock = node.getblockchaininfo()["bestblockhash"]
+        lastCoinstakeTx = node.getblock(bestBlock)["tx"][1]
+        assert node.public().gettransactions(lastCoinstakeTx)[0]["vout"][0]["scriptPubKey"]["hex"] == "c0"
 
         # ---------------------------------------------------------------------------------
         self.log.info("Create comments from all acounts and like all accounts")
@@ -120,7 +120,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
         self.log.info("Generate another post for set scores")
         fakePostTx = pubGenTx(fakeAcc, ContentPostPayload(), 1, 0)
         node.stakeblock(1)  # height : 1101
-        
+
         self.log.info("Set score (4) to fakePost for check lottery payment")
         for acc in accounts:
             pubGenTx(
@@ -130,9 +130,9 @@ class ModerationJuryTest(PocketcoinTestFramework):
 
         node.stakeblock(2)  # height : 1103
 
-        bestBlock = node.getblockchaininfo()['bestblockhash']
-        lastCoinstakeTx = node.getblock(bestBlock)['tx'][1]
-        assert node.public().gettransactions(lastCoinstakeTx)[0]['vout'][0]['scriptPubKey']['hex'] == 'c0'
+        bestBlock = node.getblockchaininfo()["bestblockhash"]
+        lastCoinstakeTx = node.getblock(bestBlock)["tx"][1]
+        assert node.public().gettransactions(lastCoinstakeTx)[0]["vout"][0]["scriptPubKey"]["hex"] == "c0"
 
 
 if __name__ == "__main__":
