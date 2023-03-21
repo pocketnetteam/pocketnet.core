@@ -1482,7 +1482,7 @@ namespace PocketDb
             where s.Type in (300)
                 and s.String1 = ?
                 and s.Height is not null
-                )sql" + postWhere + R"sql()
+                )sql" + postWhere + R"sql(
             order by s.Time desc
         )sql";
 
