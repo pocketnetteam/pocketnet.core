@@ -204,10 +204,10 @@ namespace PocketDb
         }
 
         template <class T>
-        tuple<bool, T> TryGetColumn(Cursor& cursor, int index)
+        tuple<bool, T> TryGetColumn(int index)
         {
             T val;
-            auto res = cursor.Collect(index, val);
+            auto res = Collect(index, val);
             return {res, val};
         }
         tuple<bool, string> TryGetColumnString(int index);

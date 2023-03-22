@@ -210,15 +210,15 @@ namespace PocketDb
 
     tuple<bool, string> Cursor::TryGetColumnString(int index)
     {
-        return TryGetColumn<std::string>(*this, index);
+        return TryGetColumn<std::string>(index);
     }
     tuple<bool, int64_t> Cursor::TryGetColumnInt64(int index)
     {
-        return TryGetColumn<int64_t>(*this, index);
+        return TryGetColumn<int64_t>(index);
     }
     tuple<bool, int> Cursor::TryGetColumnInt(int index)
     {
-        return TryGetColumn<int>(*this, index);
+        return TryGetColumn<int>(index);
     }
 
     int Cursor::Reset()
