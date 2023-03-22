@@ -102,6 +102,8 @@ namespace PocketDb
 
         UniValue GetUnspents(const vector<string>& addresses, int height, int confirmations, vector<pair<string, uint32_t>>& mempoolInputs);
 
+        UniValue GetAccountEarning(const string& address, int height, int depth);
+
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
         UniValue GetContentsForAddress(const string& address);
@@ -117,7 +119,9 @@ namespace PocketDb
 
         UniValue SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut);
 
-        vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
+        map<string, UniValue> GetContentsData(const vector<string>& hashes, const string& address = "");
+        map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address = "");
+        vector<UniValue> GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address);
         vector<UniValue> GetCollectionsData(const vector<int64_t>& ids);
 
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
@@ -166,6 +170,8 @@ namespace PocketDb
                                        const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
                                        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
                                        const string& keyword, const string& orderby, const string& ascdesc);
+
+        UniValue GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight, int countOutOfUsers, int countOutOfcontents, int badReputationLimit);
 
         /**
          * Returns map where key is address. Value is map, where key - height, value - vector of transactions for this height.

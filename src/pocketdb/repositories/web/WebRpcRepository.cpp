@@ -639,7 +639,7 @@ namespace PocketDb
         map<string, UniValue> result{};
 
         auto _result = GetAccountProfiles(addresses, {}, shortForm, firstFlagsDepth);
-        for (const auto[address, id, record] : _result)
+        for (auto const& [address, id, record] : _result)
             result.insert_or_assign(address, record);
 
         return result;
@@ -650,7 +650,7 @@ namespace PocketDb
         map<int64_t, UniValue> result{};
 
         auto _result = GetAccountProfiles({}, ids, shortForm, firstFlagsDepth);
-        for (const auto[address, id, record] : _result)
+        for (auto const& [address, id, record] : _result)
             result.insert_or_assign(id, record);
 
         return result;
@@ -1970,7 +1970,7 @@ namespace PocketDb
                     if (!ok0 || !ok1 || find_if(
                         mempoolInputs.begin(),
                         mempoolInputs.end(),
-                        [&](const pair<string, uint32_t>& itm)
+                        [&](const pair<string, int>& itm)
                         {
                             return itm.first == _txHash && itm.second == _txOut;
                         })  != mempoolInputs.end())
@@ -1999,6 +1999,85 @@ namespace PocketDb
 
                     result.push_back(record);
                 }
+            });
+        });
+
+        return result;
+    }
+
+    UniValue WebRpcRepository::GetAccountEarning(const string& address, int height, int depth)
+    {
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select
+                a.address,
+                ifnull(t.Type,0) as type,
+                sum(ifnull(o.Value, 0)) as amount
+            from (select ? address)a
+            left join TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
+                on o.AddressHash = a.address
+                    and o.AddressHash !=
+                    (
+                        select
+                            oi.AddressHash
+                        from TxInputs i indexed by TxInputs_SpentTxHash_TxHash_Number
+                        join TxOutputs oi indexed by sqlite_autoindex_TxOutputs_1
+                            on oi.TxHash = i.TxHash
+                                and oi.Number = i.Number
+                        where i.SpentTxHash = o.TxHash
+                        limit 1
+                    )
+                    and o.TxHeight <= ?
+                    and o.TxHeight >= ?
+            left join Transactions t indexed by sqlite_autoindex_Transactions_1
+                on t.Hash = o.TxHash
+            group by t.Type, a.address
+        )sql";
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(
+                address,
+                height,
+                height - depth
+            )
+            .Select([&](Cursor& cursor) {
+                int64_t amountLottery = 0;
+                int64_t amountDonation = 0;
+                int64_t amountTransfer = 0;
+
+                while (cursor.Step())
+                {
+//                    TryGetColumnInt(*stmt, 0); // address
+                    int64_t amount = 0;
+                    if (auto[ok, type] = cursor.TryGetColumnInt(1); ok)
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) amount = value;
+
+                        switch (type) {
+                            case 1:
+                                amountTransfer += amount;
+                                break;
+                            case 3:
+                                amountLottery += amount;
+                                break;
+                            case 204:
+                                amountDonation += amount;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+
+                UniValue record(UniValue::VOBJ);
+                record.pushKV("address", address);
+                record.pushKV("amountLottery", amountLottery);
+                record.pushKV("amountDonation", amountDonation);
+                record.pushKV("amountTransfer", amountTransfer);
+                result.push_back(record);
             });
         });
 
@@ -2679,7 +2758,7 @@ namespace PocketDb
         if (ids.empty())
             return result;
 
-        auto contents = GetContentsData(ids, "");
+        auto contents = GetContentsData({}, ids, "");
         result.push_backV(contents);
 
         return result;
@@ -2789,22 +2868,62 @@ namespace PocketDb
         if (ids.empty())
             return result;
 
-        auto contents = GetContentsData(ids, address);
+        auto contents = GetContentsData({}, ids, address);
         result.push_backV(contents);
 
         return result;
     }
 
-    vector<UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
+    map<int64_t, UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
+    {
+        map<int64_t, UniValue> rslt;
+        auto vctr = GetContentsData({}, ids, address);
+
+        for (const auto& v : vctr)
+            rslt.emplace(v["id"].get_int64(), v);
+
+        return rslt;
+    }
+
+    map<string, UniValue> WebRpcRepository::GetContentsData(const vector<string>& hashes, const string& address)
+    {
+        map<string, UniValue> rslt;
+        auto vctr = GetContentsData(hashes, {}, address);
+
+        for (const auto& v : vctr)
+            rslt.emplace(v["hash"].get_str(), v);
+
+        return rslt;
+    }
+
+    vector<UniValue> WebRpcRepository::GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address)
     {
         auto func = __func__;
         vector<UniValue> result{};
 
-        if (ids.empty())
+        if (hashes.empty() && ids.empty())
             return result;
+
+        if (!hashes.empty() && !ids.empty())
+            throw std::runtime_error("Only one use: hashes or ids");
+
+        string indexSql = "";
+        string whereSql = "";
+
+        if (!hashes.empty())
+        {
+            whereSql = R"sql( and t.Hash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( ) )sql";
+        }
+
+        if (!ids.empty())
+        {
+            indexSql = R"sql( indexed by Transactions_Last_Id_Height )sql";
+            whereSql = R"sql( and t.Last = 1 and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( ) )sql";
+        }
 
         string sql = R"sql(
             select
+                t.Hash,
                 t.String2 as RootTxHash,
                 t.Id,
                 case when t.Hash != t.String2 then 'true' else null end edit,
@@ -2847,15 +2966,24 @@ namespace PocketDb
                 ) AS CommentsCount,
                 
                 ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
-                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore,
+                
+                (
+                    select
+                        json_group_array(json_object('h', Height, 'hs', hash))
+                    from
+                        Transactions tv indexed by Transactions_Id
+                    where
+                        tv.Id = t.Id and
+                        tv.Hash != t.Hash
+                )versions                
 
-            from Transactions t indexed by Transactions_Last_Id_Height
+            from Transactions t )sql" + indexSql + R"sql(
             cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
                 on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
             left join Payload p on t.Hash = p.TxHash
             where t.Height is not null
-              and t.Last = 1
-              and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+              )sql" + whereSql + R"sql(
         )sql";
 
         // Get posts
@@ -2864,70 +2992,68 @@ namespace PocketDb
         SqlTransaction(func, [&]()
         {
             Sql(sql)
-            .Bind(address, ids)
+            .Bind(address, hashes, ids)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
+                    int ii = 0;
                     UniValue record(UniValue::VOBJ);
 
-                    auto[okHash, txHash] = cursor.TryGetColumnString(0);
-                    auto[okId, txId] = cursor.TryGetColumnInt64(1);
-                    record.pushKV("txid", txHash);
-                    record.pushKV("id", txId);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("edit", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("repost", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
-                    {
+                    cursor.Collect<string>(ii++, record, "hash");
+                    cursor.Collect<string>(ii++, record, "txid");
+                    int64_t id;
+                    if (!cursor.Collect(ii++, id)) {
+                        continue; // TODO (aok): error
+                    }
+                    record.pushKV("id", id);
+                    cursor.Collect<string>(ii++, record, "edit"); // TODO (aok): is it str?
+                    cursor.Collect<string>(ii++, record, "repost"); // TODO (aok): is it str?
+                    cursor.Collect(ii++, [&](const string& value) {
                         authors.emplace_back(value);
                         record.pushKV("address", value);
-                    }
-                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("l", value); // lang
-                    if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("c", value); // caption
-                    if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("m", value); // message
-                    if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("u", value); // url
-                    
-                    if (auto[ok, value] = cursor.TryGetColumnInt(7); ok)
-                    {
+                    });
+                    cursor.Collect<string>(ii++, record, "time"); // TODO (aok): is it str?
+                    cursor.Collect<string>(ii++, record, "l");
+
+                    cursor.Collect(ii++, [&](int value) {
                         record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
                         if ((TxType)value == CONTENT_DELETE)
                             record.pushKV("deleted", "true");
-                    }
+                    });
+                    cursor.Collect<string>(ii++, record, "c");
+                    cursor.Collect<string>(ii++, record, "m");
+                    cursor.Collect<string>(ii++, record, "u");
 
-                    if (auto[ok, value] = cursor.TryGetColumnString(11); ok)
-                    {
+                    cursor.Collect(ii++, [&](const string& value) {
                         UniValue t(UniValue::VARR);
                         t.read(value);
                         record.pushKV("t", t);
-                    }
+                    });
 
-                    if (auto[ok, value] = cursor.TryGetColumnString(12); ok)
-                    {
+                    cursor.Collect(ii++, [&](const string& value) {
                         UniValue ii(UniValue::VARR);
                         ii.read(value);
                         record.pushKV("i", ii);
-                    }
+                    });
 
-                    if (auto[ok, value] = cursor.TryGetColumnString(13); ok)
-                    {
+                    cursor.Collect(ii++, [&](const string& value) {
                         UniValue s(UniValue::VOBJ);
                         s.read(value);
                         record.pushKV("s", s);
-                    }
+                    });
 
-                    if (auto [ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("scoreCnt", value);
-                    if (auto [ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("scoreSum", value);
-                    if (auto [ok, value] = cursor.TryGetColumnInt(16); ok && value > 0) record.pushKV("reposted", value);
-                    if (auto [ok, value] = cursor.TryGetColumnInt(17); ok) record.pushKV("comments", value);
+                    cursor.Collect<string>(ii++, record, "scoreCnt");
+                    cursor.Collect<string>(ii++, record, "scoreSum");
+                    cursor.Collect<int>(ii++, record, "reposted");
+                    cursor.Collect<int>(ii++, record, "comments");
+                    cursor.Collect<string>(ii++, record, "myVal");
+                    cursor.Collect(ii++, [&](const string& value) {
+                        UniValue ii(UniValue::VARR);
+                        ii.read(value);
+                        record.pushKV("versions", ii);
+                    });
 
-                    if (!address.empty())
-                    {
-                        if (auto [ok, value] = cursor.TryGetColumnString(18); ok)
-                            record.pushKV("myVal", value);
-                    }
-
-                    tmpResult[txId] = record;                
+                    tmpResult[id] = record;                
                 }
             });
         });
@@ -3161,7 +3287,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -3313,7 +3439,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -3498,7 +3624,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -3633,7 +3759,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -3769,7 +3895,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData(ids, address);
+            auto contents = GetContentsData({}, ids, address);
             result.push_backV(contents);
         }
 
@@ -3988,7 +4114,7 @@ namespace PocketDb
         // Get content data
         if (!resultIds.empty())
         {
-            auto contents = GetContentsData(resultIds, address);
+            auto contents = GetContentsData({}, resultIds, address);
             result.push_backV(contents);
         }
 
@@ -4328,6 +4454,83 @@ namespace PocketDb
         }
 
         // Complete!
+        return result;
+    }
+
+    UniValue WebRpcRepository::GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight, int countOutOfUsers, int countOutOfcontents, int badReputationLimit)
+    {
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        string addressPaginationFilter;
+        if (!addressPagination.empty())
+            addressPaginationFilter += " and String1 > ? ";
+
+        string sql = R"sql(
+            select
+                String1 address,
+                       (select json_group_array(c.String2)
+                        from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+                        where c.Type in (200, 201, 202, 209, 210)
+                          and c.Last = 1
+                          and c.Height > 0
+                          and c.Height <= ?
+                          and c.String1 = s.String1
+                        order by c.id desc
+                        limit ?)
+
+            from Transactions s indexed by Transactions_Type_Last_String1_Height_Id
+
+            where s.Type in (302, 303)
+                and s.Last = 1
+                and s.Height <= ?
+                and s.Height > 0
+                and s.String2 = ?
+                and exists(select 1
+                           from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+                           where c.Type in (200, 201, 202, 209, 210)
+                             and c.Last = 1
+                             and c.Height > 0
+                             and c.Height <= ?
+                             and c.String1 = s.String1
+                           limit 1)
+
+                )sql" + addressPaginationFilter + R"sql(
+
+                -- Do not show posts from users with low reputation
+                -- and ifnull(ur.Value,0) > ?
+
+                order by s.String1
+                limit ?
+            )sql";
+
+        SqlTransaction(func, [&]()
+        {
+            auto& stmt = Sql(sql)
+            .Bind(
+                nHeight,
+                countOutOfcontents,
+                nHeight,
+                address,
+                nHeight
+            );
+            if (!addressPagination.empty())
+                stmt.Bind(addressPagination);
+            stmt.Bind(countOutOfUsers);
+
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    UniValue contents(UniValue::VOBJ);
+
+                    cursor.Collect<string>(0, contents, "address");
+                    cursor.Collect<string>(1, contents, "txids");
+
+                    result.push_back(contents);
+                }
+            });
+        });
+
         return result;
     }
 

@@ -140,6 +140,8 @@ class ModerationJuryTest(PocketcoinTestFramework):
         jury1["mods"] = node.public().getjurymoderators(lastFlagTx)
         assert len(jury1["mods"]) == 4
 
+        assert len(node.public().getalljury()) == 1
+
         # ---------------------------------------------------------------------------------
         self.log.info("Test 3 - not assigned moderator dont allowed vote")
 

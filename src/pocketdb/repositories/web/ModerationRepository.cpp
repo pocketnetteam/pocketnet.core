@@ -69,12 +69,9 @@ namespace PocketDb
                 if (cursor.Step())
                 {
                     result.pushKV("id", jury);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
-                        result.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
-                        result.pushKV("reason", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok && value > -1)
+                    cursor.Collect<std::string>(0, result, "address");
+                    cursor.Collect<int>(1, result, "address");
+                    if (auto [ok, value] = cursor.TryGetColumnInt(2); ok)
                     {
                         result.pushKV("verdict", value);
 
@@ -87,9 +84,46 @@ namespace PocketDb
         return result;
     }
 
-    UniValue ModerationRepository::GetJuryAssigned(const string& address, const Pagination& pagination)
+    UniValue ModerationRepository::GetAllJury()
     {
         UniValue result(UniValue::VARR);
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select
+                    f.Hash,
+                    f.String3,
+                    j.Reason,
+                    ifnull(jv.Verdict, -1)
+                from
+                    Jury j
+                    cross join Transactions f
+                        on f.ROWID = j.FlagRowId
+                    left join JuryVerdict jv
+                        on jv.FlagRowId = j.FlagRowId
+            )sql")
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    UniValue rcrd(UniValue::VOBJ);
+
+                    cursor.Collect<std::string>(0, rcrd, "id");
+                    cursor.Collect<std::string>(1, rcrd, "address");
+                    cursor.Collect<int>(2, rcrd, "reason");
+                    cursor.Collect<int>(3, rcrd, "verdict");
+
+                    result.push_back(rcrd);
+                }
+            });
+        });
+
+        return result;
+    }
+
+    vector<JuryContent> ModerationRepository::GetJuryAssigned(const string& address, bool verdict, const Pagination& pagination)
+    {
+        vector<JuryContent> result;
 
         SqlTransaction(__func__, [&]()
         {
@@ -97,18 +131,40 @@ namespace PocketDb
             orderBy += (pagination.Desc ? " desc " : " asc ");
 
             Sql(R"sql(
-                select f.Hash
+                select
+
+                    f.Hash as FlagHash,
+                    f.Height as FlagHeight,
+                    f.Int1 as Reason,
+                    c.Id as ContentId,
+                    c.Type as ContentType
+
                 from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 cross join JuryModerators jm indexed by JuryModerators_AccountId_FlagRowId
                     on jm.AccountId = u.Id
                 cross join Transactions f
                     on f.ROWID = jm.FlagRowId
+                cross join Transactions c
+                    on c.Hash = f.String2
+
                 where u.Type in (100)
                   and u.Last = 1
                   and u.Height is not null
                   and u.String1 = ? 
                   and f.Height <= ?
+
+                  and )sql" + string(verdict ? "" : "not") + R"sql( exists (
+                     select 1
+                     from Transactions v indexed by Transactions_Type_String1_String2_Height
+                     where
+                        v.Type = 420 and
+                        v.String1 = u.String1 and
+                        v.String2 = f.Hash and
+                        v.Height > 0
+                  )
+
                 )sql" + orderBy + R"sql(
+
                 limit ? offset ?
             )sql")
             .Bind(
@@ -118,8 +174,16 @@ namespace PocketDb
                 pagination.PageStart
             )
             .Select([&](Cursor& cursor) {
-                if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
-                    result.push_back(value);
+                UniValue record(UniValue::VOBJ);
+
+                cursor.Collect<std::string>(0, record, "juryid"); // TODO (aok): is it string?
+                cursor.Collect<int64_t>(1, record, "height");
+                cursor.Collect<int>(2, record, "reason");
+
+                int64_t contentId; int contentType;
+                if (cursor.CollectAll(contentId, contentType)) {
+                    result.push_back(JuryContent{contentId, (TxType)contentType, record});
+                }
             });
         });
 

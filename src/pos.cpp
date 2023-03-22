@@ -639,8 +639,11 @@ bool GenerateOuts(CAmount nCredit,
         return true;
 
     CAmount ratingReward = lotteryInst->RatingReward(nCredit, type);
-    totalAmount += ratingReward;
+    if (ratingReward <= 0)
+        return true;
 
+    totalAmount += ratingReward;
+    
     int current = 0;
     const int rewardsCount = (int)winners.size();
     CAmount rewardsPool = ratingReward;

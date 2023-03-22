@@ -84,7 +84,7 @@ private:
         { "gettopaccounts", 60 },
         { "getrecommendedcontentbyaddress", 60 },
         { "getrecommendedaccountbyaddress", 60 },
-
+        { "getaccountearning", 1 },
     };
     
     /* Make a key for the unordered hash map by concatenating together the methodname and

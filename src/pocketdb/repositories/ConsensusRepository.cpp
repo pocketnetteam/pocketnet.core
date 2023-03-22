@@ -322,7 +322,7 @@ namespace PocketDb
                 from Transactions t indexed by Transactions_Type_Last_String2_Height
                 left join Payload p on t.Hash = p.TxHash
                 where t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-                  and t.String2 = in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
+                  and t.String2 in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
                   and t.Last = 1
                   and t.Height is not null
             )sql";
@@ -330,9 +330,11 @@ namespace PocketDb
             Sql(sql)
             .Bind(types, rootHashes)
             .Select([&](Cursor& cursor) {
-                if (cursor.Step())
+                while (cursor.Step())
+                {
                     if (auto[ok, transaction] = CreateTransactionFromListRow(cursor, true); ok)
                         txs.emplace_back(transaction);
+                }
             });
         });
 
@@ -2380,7 +2382,7 @@ namespace PocketDb
 
         return result;
     }
-    int ConsensusRepository::CountChainCollectionEdit(const string& address, const string& rootTxHash)
+    int ConsensusRepository::CountChainCollectionEdit(const string& address, const string& rootTxHash, const int& nHeight, const int& depth)
     {
         int result = 0;
 
@@ -2390,12 +2392,13 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (220)
-                  and Height is not null
+                  and Height <= ?
+                  and Height > ?
                   and Hash != String2
                   and String1 = ?
                   and String2 = ?
             )sql")
-            .Bind(address, rootTxHash)
+            .Bind(nHeight, nHeight - depth, address, rootTxHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                     cursor.CollectAll(result);
@@ -2414,7 +2417,7 @@ namespace PocketDb
             auto& stmt = Sql(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200,201,202,209,210,207)
+                where Type in (200,201,202,209,210,220,207)
                   and Height is null
                   and String1 = ?
                   and String2 = ?

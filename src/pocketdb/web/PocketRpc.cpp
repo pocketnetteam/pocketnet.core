@@ -74,6 +74,7 @@ static const CRPCCommand commands[] =
     {"contents",        "getactivities",                    &GetActivities,                 {"address", "height", "blockNum", "filters"}},
     {"contents",        "getnotifications",                 &GetNotifications,              {"height", "filters"}},
     {"contents",        "getnotificationssummary",          &GetNotificationsSummary,       {"addresses", "height", "filters"}},
+    {"contents",        "getsubsciptionsgroupedbyauthors",  &GetsubsciptionsGroupedByAuthors, {"address", "addressPagination", "nHeight", "countOutOfUsers", "countOutOfcontents"}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
@@ -89,6 +90,7 @@ static const CRPCCommand commands[] =
     {"accounts",        "getaddressregistration",           &GetAccountRegistration,         {"addresses"}},
     {"accounts",        "getuserstate",                     &GetAccountState,                {"address"}},
     {"accounts",        "txunspent",                        &GetAccountUnspents,             {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
+    {"accounts",        "getaccountearning",                &GetAccountEarning,              {"address", "height", "depth"}},
     {"accounts",        "getaddressid",                     &GetAccountId,                   {"address_or_id"}},
     {"accounts",        "getaccountsetting",                &GetAccountSetting,              {"address"}},
     {"accounts",        "getuserstatistic",                 &GetAccountStatistic,            {"address", "height", "depth"}},
@@ -130,8 +132,9 @@ static const CRPCCommand commands[] =
     {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },
 
     // Moderation
+    {"moderation",     "getalljury",                       &GetAllJury,                     {}},
     {"moderation",     "getjury",                          &GetJury,                        {"juryid"}},
-    {"moderation",     "getjuryassigned",                  &GetJuryAssigned,                {"address", "topHeight", "count"}},
+    {"moderation",     "getjuryassigned",                  &GetJuryAssigned,                {"address", "topHeight", "pageStart", "pageSize", "orderBy", "desc"}},
     {"moderation",     "getjurymoderators",                &GetJuryModerators,              {"juryid"}},
     {"moderation",     "getbans",                          &GetBans,                        {"address"}},
     

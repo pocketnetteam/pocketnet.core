@@ -15,6 +15,7 @@ namespace PocketWeb::PocketWebRpc
     using namespace PocketConsensus;
 
     RPCHelpMan GetJury();
+    RPCHelpMan GetAllJury();
     RPCHelpMan GetJuryAssigned();
     RPCHelpMan GetJuryModerators();
 

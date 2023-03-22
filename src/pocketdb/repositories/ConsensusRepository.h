@@ -222,7 +222,7 @@ namespace PocketDb
         int CountChainAudioEdit(const string& address, const string& rootTxHash);
 
         int CountMempoolCollectionEdit(const string& address, const string& rootTxHash);
-        int CountChainCollectionEdit(const string& address, const string& rootTxHash);
+        int CountChainCollectionEdit(const string& address, const string& rootTxHash, const int& nHeight, const int& depth);
 
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
 

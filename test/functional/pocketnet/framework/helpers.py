@@ -7,9 +7,11 @@ import random
 from framework.models import (
     Account,
     AccountPayload,
+    AccountSettingPayload,
     BlockingPayload,
     BoostPayload,
     CommentPayload,
+    ContentDeletePayload,
     ContentPostPayload,
     ContentVideoPayload,
     ContentArticlePayload,
@@ -38,19 +40,55 @@ def generate_accounts(node, node_address, account_num, amount=10, is_moderator=F
     return accounts
 
 
-def generate_posts(node, account):
+def set_account_setting(node, account, data={"setting1": "value"}):
     pub_gen_tx = node.public().generatetransaction
-    account.content.append(pub_gen_tx(account, ContentPostPayload()))
-    account.content.append(pub_gen_tx(account, ContentVideoPayload()))
-    account.content.append(pub_gen_tx(account, ContentArticlePayload()))
-    account.content.append(pub_gen_tx(account, ContentStreamPayload()))
-    account.content.append(pub_gen_tx(account, ContentAudioPayload()))
+    pub_gen_tx(account, AccountSettingPayload(data))
     node.stakeblock(1)
+
+
+def add_content(node, account, payload):
+    pub_gen_tx = node.public().generatetransaction
+    account.content.append(pub_gen_tx(account, payload))
+    node.stakeblock(1)
+
+
+def generate_posts(node, account):
+    add_content(node, account, ContentPostPayload())
+    add_content(node, account, ContentVideoPayload())
+    add_content(node, account, ContentArticlePayload())
+    add_content(node, account, ContentStreamPayload())
+    add_content(node, account, ContentAudioPayload())
 
 
 def boost_post(node, account, post_id):
     pub_gen_tx = node.public().generatetransaction
     pub_gen_tx(account, BoostPayload(post_id))
+    node.stakeblock(1)
+
+
+def comment_post(node, account, post_id, message="comment test message"):
+    pub_gen_tx = node.public().generatetransaction
+    comment_id = pub_gen_tx(account, CommentPayload(post_id, message=message))
+    account.comment.append(comment_id)
+    node.stakeblock(1)
+
+
+def like_post(node, account1, account2, post_id, score):
+    pub_gen_tx = node.public().generatetransaction
+    pub_gen_tx(account2, ScoreContentPayload(post_id, score, account1.Address))
+    node.stakeblock(1)
+
+
+def delete_post(node, account, post_id):
+    pub_gen_tx = node.public().generatetransaction
+    pub_gen_tx(account, ContentDeletePayload(post_id))
+    account.content = [id_ for id_ in account.content if id_ != post_id]
+    node.stakeblock(1)
+
+
+def like_comment(node, account1, account2, comment_id, score=1):
+    pub_gen_tx = node.public().generatetransaction
+    pub_gen_tx(account1, ScoreCommentPayload(comment_id, score, account2.Address))
     node.stakeblock(1)
 
 
@@ -68,16 +106,12 @@ def generate_comments(node, account1, account2):
 def generate_likes(node, account1, account2):
     pub_gen_tx = node.public().generatetransaction
     for post_id in account1.content:
-        score = random.randint(3, 5)
-        pub_gen_tx(account2, ScoreContentPayload(post_id, score, account1.Address))
-        node.stakeblock(1)
+        like_post(node, account1, account2, post_id, random.randint(3, 5))
 
     for comment_id in account2.comment:
         # TODO: enable dislikes (need high reputation for that)
         # score = random.randint(0, 1)
-        score = 1
-        pub_gen_tx(account1, ScoreCommentPayload(comment_id, score, account2.Address))
-        node.stakeblock(1)
+        like_comment(node, account1, account2, comment_id)
 
 
 def generate_subscription(node, account1, account2):

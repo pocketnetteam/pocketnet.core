@@ -62,6 +62,7 @@ namespace PocketDb
         ChainRepoInst.Init();
         RatingsRepoInst.Init();
         ConsensusRepoInst.Init();
+        ExplorerRepoInst.Init();
         SystemRepoInst.Init();
         MigrationRepoInst.Init();
 
