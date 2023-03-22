@@ -160,40 +160,40 @@ namespace PocketDb
         return val.has_value();
     }
 
-    bool Cursor::Collect(const int& index, std::string& val)
+    bool Cursor::_collect(const int& index, std::string& val)
     {
         return _collectSetAndReturn(m_stmt->GetColumnText(index), val);
     }
 
-    bool Cursor::Collect(const int& index, optional<string>& val)
+    bool Cursor::_collect(const int& index, optional<string>& val)
     {
         val = m_stmt->GetColumnText(index);
         return val.has_value();
     }
 
-    bool Cursor::Collect(const int& index, int& val)
+    bool Cursor::_collect(const int& index, int& val)
     {
         return _collectSetAndReturn(m_stmt->GetColumnInt(index), val);
     }
 
-    bool Cursor::Collect(const int& index, optional<int>& val)
+    bool Cursor::_collect(const int& index, optional<int>& val)
     {
         val = m_stmt->GetColumnInt(index);
         return val.has_value();
     }
 
-    bool Cursor::Collect(const int& index, int64_t& val)
+    bool Cursor::_collect(const int& index, int64_t& val)
     {
         return _collectSetAndReturn(m_stmt->GetColumnInt64(index), val);
     }
 
-    bool Cursor::Collect(const int& index, optional<int64_t>& val)
+    bool Cursor::_collect(const int& index, optional<int64_t>& val)
     {
         val = m_stmt->GetColumnInt64(index);
         return val.has_value();
     }
 
-    bool Cursor::Collect(const int& index, bool& val)
+    bool Cursor::_collect(const int& index, bool& val)
     {
         int v;
         auto res = Collect(index, v);
@@ -201,7 +201,7 @@ namespace PocketDb
         return res;
     }
 
-    bool Cursor::Collect(const int& index, optional<bool>& val)
+    bool Cursor::_collect(const int& index, optional<bool>& val)
     {
         if (auto res = m_stmt->GetColumnInt64(index); res)
             val = !!*res;

@@ -166,6 +166,17 @@ namespace PocketDb
 
         int Reset();
 
+        // Indirection to allow combine Collect
+        // and CollectAll calls together
+        template <class T>
+        bool Collect(const int& index, T& val)
+        {
+            // Set collect_index to requested plus one to
+            // allow further use of CollectAll.
+            m_currentCollectIndex = index+1;
+            return _collect(index, val);
+        }
+
         // Collect data
         template <class ...Collects>
         auto CollectAll(Collects&... collects)
@@ -173,20 +184,11 @@ namespace PocketDb
             return SeqRes(std::array{Collector<Collects>::collect(*this, m_currentCollectIndex, collects) ...});
         }
 
-        bool Collect(const int& index, string& val);
-        bool Collect(const int& index, optional<string>& val);
-        bool Collect(const int& index, int& val);
-        bool Collect(const int& index, optional<int>& val);
-        bool Collect(const int& index, int64_t& val);
-        bool Collect(const int& index, optional<int64_t>& val);
-        bool Collect(const int& index, bool& val);
-        bool Collect(const int& index, optional<bool>& val);
-
         template <class Func>
         bool Collect(const int& index, const Func& func)
         {
             function f = func;
-            _collectFunctor(index, f);
+            return _collectFunctor(index, f);
         }
 
         template <class T>
@@ -220,12 +222,21 @@ namespace PocketDb
         std::shared_ptr<StmtWrapper> m_stmt;
         int m_currentCollectIndex = 0;
 
+        bool _collect(const int& index, string& val);
+        bool _collect(const int& index, optional<string>& val);
+        bool _collect(const int& index, int& val);
+        bool _collect(const int& index, optional<int>& val);
+        bool _collect(const int& index, int64_t& val);
+        bool _collect(const int& index, optional<int64_t>& val);
+        bool _collect(const int& index, bool& val);
+        bool _collect(const int& index, optional<bool>& val);
+
         template <class T>
         bool _collectFunctor(const int& index, const std::function<void(T)>& func)
         {
             using Type = remove_const_t<remove_reference_t<T>>;
             Type val;
-            auto res = Collect(index, val);
+            auto res = _collect(index, val);
             if (res) func(val);
             return res;
         }
