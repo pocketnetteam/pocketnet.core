@@ -4787,6 +4787,15 @@ namespace PocketDb
             const int64_t& blockNumMax;
         } queryParams{heightMax, heightMin, blockNumMax};
 
+        static const auto binding = [](Stmt& stmt, QueryParams const& params) {
+            stmt.Bind(
+                params.heightMin,
+                params.heightMax,
+                params.heightMax,
+                params.blockNumMax
+            );
+        };
+
         static const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
         {
             ShortTxType::Answer, { R"sql(
@@ -4917,14 +4926,7 @@ namespace PocketDb
                 exists (select 1 from Last l where l.TxId = c.RowId)
 
         )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(
-                    queryParams.heightMin,
-                    queryParams.heightMax,
-                    queryParams.heightMax,
-                    queryParams.blockNumMax
-                );
-            }
+            binding 
         }},
 
         {
@@ -5061,14 +5063,7 @@ namespace PocketDb
                 exists (select 1 from Last l where l.TxId = p.RowId)
 
         )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(
-                    queryParams.heightMin,
-                    queryParams.heightMax,
-                    queryParams.heightMax,
-                    queryParams.blockNumMax
-                );
-            }
+            binding
         }},
 
         {
@@ -5151,14 +5146,7 @@ namespace PocketDb
                 subs.RegId1 = address.id
 
         )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(
-                    queryParams.heightMin,
-                    queryParams.heightMax,
-                    queryParams.heightMax,
-                    queryParams.blockNumMax
-                );
-            }
+            binding
         }},
 
         {
@@ -5289,14 +5277,7 @@ namespace PocketDb
                 exists (select 1 from Last l where l.TxId = c.RowId)
 
         )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(
-                    queryParams.heightMin,
-                    queryParams.heightMax,
-                    queryParams.heightMax,
-                    queryParams.blockNumMax
-                );
-            }
+            binding
         }},
 
         {
@@ -5390,14 +5371,7 @@ namespace PocketDb
                 exists (select 1 from Last l where l.TxId = c.RowId)
 
         )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(
-                    queryParams.heightMin,
-                    queryParams.heightMax,
-                    queryParams.heightMax,
-                    queryParams.blockNumMax
-                );
-            }
+            binding
         }},
 
         {
@@ -5528,14 +5502,7 @@ namespace PocketDb
                 exists (select 1 from Last l where l.TxId = tBoost.RowId)
 
         )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(
-                    queryParams.heightMin,
-                    queryParams.heightMax,
-                    queryParams.heightMax,
-                    queryParams.blockNumMax
-                );
-            }
+            binding
         }},
 
         {
@@ -5649,14 +5616,7 @@ namespace PocketDb
                 b.RegId1 = ?
 
         )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(
-                    queryParams.heightMin,
-                    queryParams.heightMax,
-                    queryParams.heightMax,
-                    queryParams.blockNumMax
-                );
-            }
+            binding
         }},
         };
 
