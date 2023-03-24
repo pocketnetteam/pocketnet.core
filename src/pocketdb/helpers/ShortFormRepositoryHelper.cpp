@@ -249,7 +249,7 @@ PocketHelpers::EventsReconstructor::EventsReconstructor()
 
 void PocketHelpers::EventsReconstructor::FeedRow(Cursor& cursor)
 {
-    m_result.emplace_back(std::move(m_parser.ParseFull(cursor)));
+    m_result.emplace_back(m_parser.ParseFull(cursor));
 }
 
 std::vector<PocketDb::ShortForm> PocketHelpers::EventsReconstructor::GetResult() const
@@ -273,7 +273,7 @@ void PocketHelpers::NotificationsReconstructor::FeedRow(Cursor& cursor)
     auto [ok, addressOne] = cursor.TryGetColumnString(0);
     if (ok) {
         auto pulp = m_parser.ParseAccount(cursor, 1);
-        notifiers.insert(std::move(std::make_pair(std::move(addressOne), std::move(pulp))));
+        notifiers.insert(std::make_pair(std::move(addressOne), std::move(pulp)));
     } else {
         if (auto outputs = m_parser.ParseOutputs(cursor); outputs) {
             for (const auto& output: *outputs) {
