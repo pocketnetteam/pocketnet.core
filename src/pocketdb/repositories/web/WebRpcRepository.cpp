@@ -5543,11 +5543,11 @@ namespace PocketDb
             -- My blockings and unblockings
             select
                 ('blocking')TP,
-                b.Hash,
+                sb.Hash,
                 b.Type,
-                ac.String1,
-                b.Height as Height,
-                b.BlockNum as BlockNum,
+                sac.String1,
+                cb.Height as Height,
+                cb.BlockNum as BlockNum,
                 b.Time,
                 null,
                 null,
@@ -5562,30 +5562,38 @@ namespace PocketDb
                 pac.String3,
                 ifnull(rac.Value,0),
                 (
-                    select json_group_array(
-                        json_object(
-                            'address', mac.String1,
-                            'account', json_object(
-                                'name', pmac.String2,
-                                'avatar', pmac.String3,
-                                'reputation', ifnull(rmac.Value,0)
+                    select
+                        json_group_array(
+                            json_object(
+                                'address', smac.String1,
+                                'account', json_object(
+                                    'name', pmac.String2,
+                                    'avatar', pmac.String3,
+                                    'reputation', ifnull(rmac.Value,0)
+                                )
                             )
                         )
-                    )
-                    from Transactions mac indexed by Transactions_Type_Last_String1_Height_Id
+                    from
+                        Transactions mac indexed by Transactions_Type_RegId1_RegId2_RegId3
 
-                    left join Payload pmac
-                        on pmac.TxHash = mac.Hash
+                        join vTxStr smac on
+                            smac.RowId = mac.RowId
 
-                    left join Ratings rmac indexed by Ratings_Type_Id_Last_Height
-                        on rmac.Type = 0
-                        and rmac.Id = mac.Id
-                        and rmac.Last = 1
+                        join Chain cmac on
+                            cmac.TxId = mac.RowId
 
-                    where mac.String1 in (select value from json_each(b.String3))
-                        and mac.Type = 100
-                        and mac.Last = 1
-                        and mac.Height > 0
+                        left join Payload pmac on
+                            pmac.TxId = mac.RowId
+
+                        left join Ratings rmac indexed by Ratings_Type_Uid_Last_Height on
+                            rmac.Type = 0 and
+                            rmac.Uid = cmac.Uid and
+                            rmac.Last = 1
+
+                    where
+                        mac.RegId1 in (select value from json_each(b.RegId3)) and
+                        mac.Type = 100 and
+                        exists (select 1 from Last l where l.TxId = mac.RowId)
                 ),
                 null,
                 null,
@@ -5607,26 +5615,38 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions b indexed by Transactions_Type_String1_Height_Time_Int1
+            from Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
 
-            left join Transactions ac indexed by Transactions_Type_Last_String1_Height_Id
-                on ac.String1 = b.String2
-                and ac.Type = 100
-                and ac.Last = 1
-                and ac.Height > 0
+            join Chain cb on
+                cb.TxId = b.RowId and
+                cb.Height > ? and
+                (cb.Height < ? or (cb.Height = ? and cb.BlockNum < ?))
 
-            left join Payload pac
-                on pac.TxHash = ac.Hash
+            join vTxStr sb on
+                sb.RowId = b.RowId
 
-            left join Ratings rac indexed by Ratings_Type_Id_Last_Height
-                on rac.Type = 0
-                and rac.Id = ac.Id
-                and rac.Last = 1
+            left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                ac.RegId1 = b.RegId2 and
+                ac.Type = 100 and
+                exists (select 1 from Last l where l.TxId = ac.RowId)
 
-            where b.Type in (305,306)
-                and b.String1 = ?
-                and b.Height > ?
-                and (b.Height < ? or (b.Height = ? and b.BlockNum < ?))
+            left join vTxStr sac on
+                sac.RowId = ac.RowId
+
+            left join Chain cac on
+                cac.TxId = ac.RowId
+
+            left join Payload pac on
+                pac.TxId = ac.RowId
+
+            left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
+                rac.Type = 0 and
+                rac.Uid = cac.Uid and
+                rac.Last = 1
+
+            where
+                b.Type in (305,306) and
+                b.RegId1 = ?
 
         )sql",
             [](Stmt& stmt, QueryParams const& queryParams) {
