@@ -25,6 +25,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetTopFeed();
     RPCHelpMan GetMostCommentedFeed();
     RPCHelpMan GetProfileFeed();
+    RPCHelpMan GetProfileCollections();
     RPCHelpMan GetSubscribesFeed();
     RPCHelpMan GetContentsStatistic();
     RPCHelpMan GetRandomContents();
@@ -33,6 +34,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetNotifications();
     RPCHelpMan GetActivities();
     RPCHelpMan GetNotificationsSummary();
+    RPCHelpMan GetsubsciptionsGroupedByAuthors();
 }
 
 #endif //SRC_POCKETDEBUG_H

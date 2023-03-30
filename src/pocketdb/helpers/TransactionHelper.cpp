@@ -43,6 +43,8 @@ namespace PocketHelpers
             return TxType::CONTENT_STREAM;
         else if (op == OR_AUDIO)
             return TxType::CONTENT_AUDIO;
+        else if (op == OR_COLLECTION)
+            return TxType::CONTENT_COLLECTION;
             
         else if (op == OR_CONTENT_BOOST)
             return TxType::BOOST_CONTENT;
@@ -86,6 +88,9 @@ namespace PocketHelpers
 
         else if (op == OR_MODERATION_FLAG)
             return TxType::MODERATION_FLAG;
+
+        else if (op == OR_MODERATION_VOTE)
+            return TxType::MODERATION_VOTE;
 
         return TxType::TX_DEFAULT;
     }
@@ -150,6 +155,8 @@ namespace PocketHelpers
             case TxType::CONTENT_AUDIO:
             case TxType::CONTENT_DELETE:
                 return "Posts";
+            case TxType::CONTENT_COLLECTION:
+                return "Collection";
             case TxType::CONTENT_COMMENT:
             case TxType::CONTENT_COMMENT_EDIT:
             case TxType::CONTENT_COMMENT_DELETE:
@@ -171,6 +178,8 @@ namespace PocketHelpers
                 return "Boosts";
             case TxType::MODERATION_FLAG:
                 return "ModFlag";
+            case TxType::MODERATION_VOTE:
+                return "ModVote";
             default:
                 return "";
         }
@@ -321,6 +330,9 @@ namespace PocketHelpers
             case CONTENT_AUDIO:
                 ptx = make_shared<Audio>(tx);
                 break;
+            case CONTENT_COLLECTION:
+                ptx = make_shared<Collection>(tx);
+                break;
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>(tx);
                 break;
@@ -362,6 +374,9 @@ namespace PocketHelpers
                 break;
             case MODERATION_FLAG:
                 ptx = make_shared<ModerationFlag>(tx);
+                break;
+            case MODERATION_VOTE:
+                ptx = make_shared<ModerationVote>(tx);
                 break;
             default:
                 return nullptr;
@@ -408,6 +423,9 @@ namespace PocketHelpers
             case CONTENT_AUDIO:
                 ptx = make_shared<Audio>();
                 break;
+            case CONTENT_COLLECTION:
+                ptx = make_shared<Collection>();
+                break;
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>();
                 break;
@@ -450,6 +468,9 @@ namespace PocketHelpers
             case MODERATION_FLAG:
                 ptx = make_shared<ModerationFlag>();
                 break;
+            case MODERATION_VOTE:
+                ptx = make_shared<ModerationVote>();
+                break;
             default:
                 return nullptr;
         }
@@ -482,6 +503,8 @@ namespace PocketHelpers
                 return "stream";
             case CONTENT_AUDIO:
                 return "audio";
+            case CONTENT_COLLECTION:
+                return "collection";
             case ACTION_SCORE_CONTENT:
                 return "upvoteShare";
             case ACTION_SUBSCRIBE:
@@ -508,6 +531,8 @@ namespace PocketHelpers
                 return "contentBoost";
             case MODERATION_FLAG:
                 return "modFlag";
+            case MODERATION_VOTE:
+                return "modVote";
             default:
                 return "";
         }
@@ -521,6 +546,7 @@ namespace PocketHelpers
         else if (type == "article" || type == OR_ARTICLE) return TxType::CONTENT_ARTICLE;
         else if (type == "stream" || type == OR_STREAM) return TxType::CONTENT_STREAM;
         else if (type == "audio" || type == OR_AUDIO) return TxType::CONTENT_AUDIO;
+        else if (type == "collection" || type == OR_COLLECTION) return TxType::CONTENT_COLLECTION;
         else if (type == "upvoteShare" || type == OR_SCORE) return TxType::ACTION_SCORE_CONTENT;
         else if (type == "subscribe" || type == OR_SUBSCRIBE) return TxType::ACTION_SUBSCRIBE;
         else if (type == "subscribePrivate" || type == OR_SUBSCRIBEPRIVATE) return TxType::ACTION_SUBSCRIBE_PRIVATE;
@@ -534,6 +560,7 @@ namespace PocketHelpers
         else if (type == "cScore" || type == OR_COMMENT_SCORE) return TxType::ACTION_SCORE_COMMENT;
         else if (type == "contentBoost" || type == OR_CONTENT_BOOST) return TxType::BOOST_CONTENT;
         else if (type == "modFlag") return TxType::MODERATION_FLAG;
+        else if (type == "modVote") return TxType::MODERATION_VOTE;
         else return TxType::NOT_SUPPORTED;
     }
 }

@@ -6,35 +6,69 @@
 #define POCKETDB_STMT_H
 
 #include "pocketdb/SQLiteDatabase.h"
+#include "univalue.h"
 #include <sqlite3.h>
 
 #include <optional>
 
 namespace PocketDb
 {
+    class Cursor;
+    
     /**
     * Wrapper around sqlite3_stmt pointer.
     * Implemets RAII and calls sqlite3_finalize on object destruction.
     * If stmt object is not dynamically generated, it can be created as static and
     * reused by calling Stmt::Reset() method at the end of processing queue.
     */
+
+    class StmtWrapper
+    {
+    public:
+        StmtWrapper() = default;
+        StmtWrapper(const StmtWrapper&) = delete;
+        StmtWrapper(StmtWrapper&&) = default;
+        ~StmtWrapper();
+
+        int PrepareV2(SQLiteDatabase& db, const std::string& sql);
+        int Step();
+
+        int BindText(int index, const std::string& val);
+        int BindInt(int index, int val);
+        int BindInt64(int index, int64_t val);
+        int BindNull(int index);
+
+        int GetColumnType(int index);
+
+        optional<string> GetColumnText(int index);
+        optional<int> GetColumnInt(int index);
+        optional<int64_t> GetColumnInt64(int index);
+
+        int Reset();
+        int Finalize();
+        int ClearBindings();
+
+        const char* ExpandedSql();
+
+    private:
+        sqlite3_stmt* m_stmt = nullptr;
+    };
+
     class Stmt
     {
     public:
         Stmt(const Stmt&) = delete;
         Stmt(Stmt&&) = default;
         Stmt() = default;
-        ~Stmt();
 
         void Init(SQLiteDatabase& db, const std::string& sql);
-        int Step(bool reset = false);
-        int Finalize();
-        int Reset();
+        int Run();
         bool CheckValidResult(int result);
+        int Select(const std::function<void(Cursor&)>& func);
 
         auto Log()
         {
-            return sqlite3_expanded_sql(m_stmt);
+            return m_stmt->ExpandedSql();
         }
 
         // --------------------------------
@@ -59,41 +93,14 @@ namespace PocketDb
         void TryBindStatementInt64(int index, int64_t value);
         bool TryBindStatementNull(int index);
 
-        // Collect data
-        template <class ...Collects>
-        bool Collect(Collects&... collects)
-        {
-            if (Step(false) != SQLITE_ROW)
-                return false;
-
-            (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
-            return true;
-        }
-
-        // Collect data to UniValue array
-        // template <class ...Collects>
-        // bool Collect(UniValue& arr, Collects&... collects)
-        // {
-        //     if (Step(false) != SQLITE_ROW)
-        //         return false;
-
-        //     (Collector<Collects>::collect(*this, m_currentCollectIndex, collects), ...);
-        //     return true;
-        // }
-
-        tuple<bool, std::string> TryGetColumnString(int index);
-        tuple<bool, int64_t> TryGetColumnInt64(int index);
-        tuple<bool, int> TryGetColumnInt(int index);
-
     protected:
-        void ResetInternalIndicies();
+        std::shared_ptr<StmtWrapper> m_stmt = nullptr;
+        void ResetCurrentBindIndex();
+        // int Finalize(); // Removed because unused.
 
     private:
-        sqlite3_stmt* m_stmt = nullptr;
         int m_currentBindIndex = 1;
-        int m_currentCollectIndex = 0;
 
-    private:
         template<class T>
         class Binder
         {
@@ -118,29 +125,130 @@ namespace PocketDb
                 }
             }
         };
+    };
+
+    template <size_t N>
+    class SeqRes
+    {
+    public:
+        SeqRes(std::array<bool, N> resArray)
+            : m_resArray(std::move(resArray)),
+              m_overallRes(std::all_of(m_resArray.begin(), m_resArray.end(), [](const bool& elem) { return elem; })) {}
+
+        operator bool() const { return m_overallRes; }
+
+        bool operator[](const size_t& index)
+        {
+            if (index < m_resArray.size())
+                return m_resArray[index];
+            else
+                return false;
+        }
+    private:
+        const std::array<bool, N> m_resArray;
+        const bool m_overallRes;
+    };
+
+    class Cursor
+    {
+    public:
+        Cursor(std::shared_ptr<StmtWrapper> stmt)
+            : m_stmt(std::move(stmt)) {}
+        ~Cursor();
+
+        Cursor(const Cursor&) = delete;
+        Cursor() = delete;
+        Cursor(Cursor&&) = default;
+
+        bool Step();
+        // Step verbose (with result code)
+        int StepV();
+
+        int Reset();
+
+        // Indirection to allow combine Collect
+        // and CollectAll calls together
+        template <class T>
+        bool Collect(const int& index, T& val)
+        {
+            // Set collect_index to requested plus one to
+            // allow further use of CollectAll.
+            m_currentCollectIndex = index+1;
+            return _collect(index, val);
+        }
+
+        // Collect data
+        template <class ...Collects>
+        auto CollectAll(Collects&... collects)
+        {
+            return SeqRes(std::array{Collector<Collects>::collect(*this, m_currentCollectIndex, collects) ...});
+        }
+
+        template <class Func>
+        bool Collect(const int& index, const Func& func)
+        {
+            function f = func;
+            return _collectFunctor(index, f);
+        }
+
+        template <class T>
+        bool Collect(const int& index, UniValue& uni, const std::string& key)
+        {
+            return Collect(
+                index,
+                [&](const T& val)
+                {
+                    uni.pushKV(key, val);
+                }
+            );
+        }
+
+        template <class T>
+        tuple<bool, T> TryGetColumn(int index)
+        {
+            T val;
+            auto res = Collect(index, val);
+            return {res, val};
+        }
+        tuple<bool, string> TryGetColumnString(int index);
+        tuple<bool, int64_t> TryGetColumnInt64(int index);
+        tuple<bool, int> TryGetColumnInt(int index);
+    
+    private:
+        void ResetCurrentCollectIndex()
+        {
+            m_currentCollectIndex = 0;
+        }
+        std::shared_ptr<StmtWrapper> m_stmt;
+        int m_currentCollectIndex = 0;
+
+        bool _collect(const int& index, string& val);
+        bool _collect(const int& index, optional<string>& val);
+        bool _collect(const int& index, int& val);
+        bool _collect(const int& index, optional<int>& val);
+        bool _collect(const int& index, int64_t& val);
+        bool _collect(const int& index, optional<int64_t>& val);
+        bool _collect(const int& index, bool& val);
+        bool _collect(const int& index, optional<bool>& val);
+
+        template <class T>
+        bool _collectFunctor(const int& index, const std::function<void(T)>& func)
+        {
+            using Type = remove_const_t<remove_reference_t<T>>;
+            Type val;
+            auto res = _collect(index, val);
+            if (res) func(val);
+            return res;
+        }
 
         template<class T>
         class Collector
         {
         public:
-            static void collect(Stmt& stmt, int& i, T& t)
+            static bool collect(Cursor& stmt, int& i, T& t)
             {
-                if constexpr (std::is_same_v<int, T> || std::is_same_v<std::optional<int>, T>) {
-                    if (auto [ok, val] = stmt.TryGetColumnInt(i++); ok) t = val;
-                } else if constexpr (std::is_convertible_v<int64_t, T> || std::is_convertible_v<std::optional<int64_t>, T>) {
-                    if (auto [ok, val] = stmt.TryGetColumnInt64(i++); ok) t = val;
-                } else if constexpr (std::is_convertible_v<std::string, T> || std::is_convertible_v<std::optional<std::string>, T>) {
-                    if (auto [ok, val] = stmt.TryGetColumnString(i++); ok) t = val;
-                } else {
-                    static_assert(always_false<T>::value, "Stmt collecting with unsupported type");                
-                }
+                return stmt.Collect(i++, t);
             }
-        private:
-            // Hack to allow static asserting based on generated template code
-            template<typename A>
-            struct always_false { 
-                enum { value = false };  
-            };
         };
     };
 }

@@ -33,11 +33,6 @@ namespace PocketDb
 
         vector<WebContent> GetContent(const string& blockHash);
         void UpsertContent(const vector<WebContent>& contentList);
-
-        void CalculateSharkAccounts(BadgeSharkConditions& cond);
-        void CalculateValidAuthors(int blockHeight);
-
-        // TODO (aok): расчитать авторов согласно комментариев от акул на их посты
     };
 
     typedef shared_ptr<WebRepository> WebRepositoryRef;

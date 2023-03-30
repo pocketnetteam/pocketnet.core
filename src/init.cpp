@@ -185,6 +185,8 @@ void ShutdownPocketServices()
     PocketDb::ChainRepoInst.Destroy();
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
+    PocketDb::ExplorerRepoInst.Destroy();
+    PocketDb::SystemRepoInst.Destroy();
     PocketDb::MigrationRepoInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");
@@ -663,10 +665,11 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-server", "Accept command line and JSON-RPC commands", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
 
     // SQLite
+    argsman.AddArg("-sqlmode", "Experimental: Set journal mode (wal|persist|etc, default: wal)", ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
+    argsman.AddArg("-sqlsync", "Experimental: Set journal mode (full|normal|etc, default: full)", ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlsharedcache", strprintf("Experimental: enable shared cache for sqlite connections (default: disabled)"), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
-
 
 #if HAVE_DECL_DAEMON
     argsman.AddArg("-daemon", "Run in the background as a daemon and accept commands", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -2008,29 +2011,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
                 break;
             }
 
-            bool failed_rewind{false};
-            // Can't hold cs_main while calling RewindBlockIndex, so retrieve the relevant
-            // chainstates beforehand.
-            for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
-                if (!fReset) {
-                    // Note that RewindBlockIndex MUST run even if we're about to -reindex-chainstate.
-                    // It both disconnects blocks based on the chainstate, and drops block data in
-                    // BlockIndex() based on lack of available witness data.
-                    uiInterface.InitMessage(_("Rewinding blocks...").translated);
-                    if (!chainstate->RewindBlockIndex(chainparams)) {
-                        strLoadError = _(
-                            "Unable to rewind the database to a pre-fork state. "
-                            "You will need to redownload the blockchain");
-                        failed_rewind = true;
-                        break; // out of the per-chainstate loop
-                    }
-                }
-            }
-
-            if (failed_rewind) {
-                break; // out of the chainstate activation do-while
-            }
-
             bool failed_verification = false;
 
             try {
@@ -2101,10 +2081,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     }
 
     // // ********************************************************* Step 7.1: start db migrations
-    // uiInterface.InitMessage(_("Updating Pocket DB...").translated);
-    // bool cleanMempool = false;
-    // PocketDb::SQLiteDbInst.InitMigration(cleanMempool);
-    // if (cleanMempool) args.SoftSetBoolArg("-mempoolclean", true);
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
@@ -2113,9 +2089,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         LogPrintf("Shutdown requested. Exiting.\n");
         return false;
     }
-
-    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE) && gArgs.GetArg("-reindex", 0) == 0)
-        PocketServices::WebPostProcessorInst.Enqueue(ChainActive().Height());
 
     fs::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
     CAutoFile est_filein(fsbridge::fopen(est_path, "rb"), SER_DISK, CLIENT_VERSION);

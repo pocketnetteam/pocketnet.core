@@ -25,6 +25,7 @@
 #include "pocketdb/models/dto/content/Article.h"
 #include "pocketdb/models/dto/content/Stream.h"
 #include "pocketdb/models/dto/content/Audio.h"
+#include "pocketdb/models/dto/content/Collection.h"
 #include "pocketdb/models/dto/content/Comment.h"
 #include "pocketdb/models/dto/content/CommentEdit.h"
 #include "pocketdb/models/dto/content/CommentDelete.h"
@@ -45,6 +46,7 @@
 #include "pocketdb/models/dto/account/Delete.h"
 
 #include "pocketdb/models/dto/moderation/Flag.h"
+#include "pocketdb/models/dto/moderation/Vote.h"
 
 namespace PocketHelpers
 {

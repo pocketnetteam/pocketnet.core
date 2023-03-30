@@ -184,6 +184,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"createwallet",                  6, "load_on_startup"},
         {"loadwallet",                    1, "load_on_startup"},
         {"unloadwallet",                  1, "load_on_startup"},
+        {"getnetstakeweight",             0, "nHeight"},
         {"getnodeaddresses",              0, "count"},
         {"addpeeraddress",                1, "port"},
         {"stop",                          0, "wait"},
@@ -196,6 +197,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getaddressregistration",        0, "addresses"},
         {"getuserprofile",                0, "addresses"},
         {"getuserstate",                  1, "time"},
+        {"getaccountearning",             1, "height"},
+        {"getaccountearning",             2, "depth"},
     };
 // clang-format on
 

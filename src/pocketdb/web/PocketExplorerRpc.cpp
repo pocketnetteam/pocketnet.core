@@ -390,6 +390,7 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
+        throw std::runtime_error("Reimplementation required because of new db structure");
         vector<string> addresses;
         if (!request.params[0].isArray() && !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address argument");
@@ -520,11 +521,20 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 3 && request.params[3].isNum())
             pageSize = request.params[3].get_int();
 
+        std::vector<TxType> filters;
+        if (request.params.size() > 4 && request.params[4].isArray()) {
+            const auto arr = request.params[4].get_array();
+            for (int i = 0; i < arr.size(); i++) {
+                filters.emplace_back((TxType)arr[i].get_int());
+            }
+        }
+
         auto txHashesOrdered = request.DbConnection()->ExplorerRepoInst->GetAddressTransactions(
             address,
             pageInitBlock,
             pageStart,
-            pageSize
+            pageSize,
+            filters
         );
 
         vector<string> txHashes;

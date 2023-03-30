@@ -27,7 +27,7 @@ namespace PocketDb
     static void InitializeSqlite()
     {
         LogPrintf("SQLite usage version: %d\n", (int)sqlite3_libversion_number());
-
+        
         int ret = sqlite3_config(SQLITE_CONFIG_LOG, ErrorLogCallback, nullptr);
         if (ret != SQLITE_OK)
             throw std::runtime_error(
@@ -57,13 +57,16 @@ namespace PocketDb
         PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDbMainMigration>();
         PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
         SQLiteDbInst.CreateStructure();
-
+        
         TransRepoInst.Init();
         ChainRepoInst.Init();
         RatingsRepoInst.Init();
         ConsensusRepoInst.Init();
+        ExplorerRepoInst.Init();
         SystemRepoInst.Init();
         MigrationRepoInst.Init();
+
+        LogPrintf("SQLite database version: %d\n", SystemRepoInst.GetDbVersion());
 
         // Execute migration scripts
         if (gArgs.GetArg("-reindex", 0) == 0)
@@ -77,6 +80,7 @@ namespace PocketDb
             // }
             
             // Any necessary logic for database modification
+            MigrationRepoInst.AddTransactionFirstField();
         }
 
         // Open, create structure and close `web` db
@@ -104,106 +108,6 @@ namespace PocketDb
             LogPrintf("%s: %d; Failed to shutdown SQLite: %s\n", __func__, ret, sqlite3_errstr(ret));
         }
     }
-
-/*
-    void SQLiteDatabase::InitMigration(bool& cleanMempool)
-    {
-
-        // Update Pocket DB from 0 to version 1
-        // This migration is necessary to fill the database with TxOutputs
-        // records with OP_RETURN records - these records were not saved initially in the database
-        // 
-        // It is also necessary to fill in the TxInputs table
-        // 
-        // Since the data of these tables become critically important for the operation of the node,
-        // it is necessary to make sure that they are available and valid.
-        // To do this, a full chainActive scan is performed, checking for the presence of all data.
-        // 
-        // Only after the end of the process, the DB version will be increased - in case of a process failure.
-         
-        const string dbNameMain = "main";
-        const int newDbVersion = 1;
-        int dbVersion = SystemRepoInst.GetDbVersion(dbNameMain);
-
-        if (dbVersion < newDbVersion)
-        {
-            // Clean mempool for resaving transactions data
-            cleanMempool = true;
-
-            // For optimize work drop all indexes
-            uiInterface.InitMessage("Preparing the database for updating..");
-            DropIndexes();
-
-            // Full rescan blockchain for resaving all transactions data
-            int height = 0;
-            int percent = ChainActive().Height() / 100;
-            int64_t startTime = GetTimeMicros();
-            while (height <= ChainActive().Height() && !ShutdownRequested())
-            {
-                try
-                {
-                    // Read block from disk
-                    CBlock block;
-                    CBlockIndex* pblockindex = ChainActive()[height];
-                    if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-                    {
-                        LogPrintf("Failed read block %s from disk. Stopping\n", pblockindex->GetBlockHash().GetHex());
-                        StartShutdown();
-                        return;
-                    }
-
-                    // The default logic is used to deserialize the necessary data
-                    // We can use standard methods to write data to the database, because inside `WHERE NOT EXISTS` is used
-                    // This will allow us to record only the missing data without changing the existing ones.
-                    if (auto[ok, pocketBlock] = PocketServices::Serializer::DeserializeBlock(block); ok)
-                    {
-                        TransRepoInst.InsertTransactions(pocketBlock);
-                        
-                        for (size_t i = 0; i < block.vtx.size(); i++)
-                        {
-                            const auto& tx = block.vtx[i];
-
-                            ChainRepoInst.UpdateTransactionHeight(
-                                pblockindex->GetBlockHash().GetHex(),
-                                i,
-                                height,
-                                tx->GetHash().GetHex()
-                            );
-                        }
-                    }
-                    else
-                    {
-                        LogPrintf("Failed deserialize block %s. Stopping\n", pblockindex->GetBlockHash().GetHex());
-                        StartShutdown();
-                        return;
-                    }
-
-                    // Message for logging
-                    if (height % percent == 0)
-                    {
-                        int64_t time = GetTimeMicros();
-                        uiInterface.InitMessage(tfm::format("Updating Pocket DB: %d%% (%.2fm)", (height / percent), (0.000001 * (time - startTime)) / 60.0));
-                        LogPrintf("Updating Pocket DB: %d%% (%.2fm)\n", (height / percent), (0.000001 * (time - startTime)) / 60.0);
-                    }
-
-                    height += 1;
-                }
-                catch (std::exception& e)
-                {
-                    LogPrintf("Unknown error: %s\n", e.what());
-                    StartShutdown();
-                    return;
-                }
-            }
-
-            // Restore db structure
-            CreateStructure();
-
-            // Increment db version
-            SystemRepoInst.SetDbVersion(dbNameMain, newDbVersion);
-        }
-    }
-*/
 
     bool SQLiteDatabase::BulkExecute(std::string sql)
     {
@@ -311,19 +215,24 @@ namespace PocketDb
 
             if (!isReadOnlyConnect)
             {
-                if (sqlite3_exec(m_db, "PRAGMA journal_mode = wal;", nullptr, nullptr, nullptr) != 0)
-                    throw std::runtime_error("Failed apply journal_mode = wal");
+                string mode = gArgs.GetArg("-sqlmode", "wal");
+                if (sqlite3_exec(m_db, ("PRAGMA journal_mode = " + mode + ";").c_str(), nullptr, nullptr, nullptr) != 0)
+                    throw std::runtime_error("Failed apply journal_mode = " + mode);
 
-                // if (sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)
-                //     throw std::runtime_error("Failed apply temp_store = memory");
+                string sync = gArgs.GetArg("-sqlsync", "full");
+                if (sqlite3_exec(m_db, ("PRAGMA synchronous = " + sync + ";").c_str(), nullptr, nullptr, nullptr) != 0)
+                    throw std::runtime_error("Failed apply synchronous = full");
+
+                if (sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)
+                    throw std::runtime_error("Failed apply temp_store = memory");
             }
 
             // TODO (tawmaz): Not working for existed database
-            // int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
-            // int pageCount = cacheSize * 1024 * 1024 / 4096;
-            // string cmd = "PRAGMA cache_size = " + to_string(pageCount) + ";";
-            // if (sqlite3_exec(m_db, cmd.c_str(), nullptr, nullptr, nullptr) != 0)
-            //     throw std::runtime_error("Failed to apply cache size");
+            int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
+            int pageCount = cacheSize * 1024 * 1024 / 4096;
+            string cmd = "PRAGMA cache_size = " + to_string(pageCount) + ";";
+            if (sqlite3_exec(m_db, cmd.c_str(), nullptr, nullptr, nullptr) != 0)
+                throw std::runtime_error("Failed to apply cache size");
         }
         catch (const std::runtime_error&)
         {

@@ -20,10 +20,18 @@ namespace PocketDb
     using namespace std;
     using namespace PocketHelpers;
 
+    struct Pagination {
+        int TopHeight;
+        int PageStart;
+        int PageSize;
+        string OrderBy;
+        bool Desc;
+    };
+
     class BaseRepository
     {
     private:
-        unordered_map<size_t, shared_ptr<Stmt>> _statements;
+        unordered_map<string, shared_ptr<Stmt>> _statements;
 
     protected:
         SQLiteDatabase& m_database;
@@ -87,19 +95,24 @@ namespace PocketDb
 
         Stmt& Sql(const string& sql)
         {
-            size_t key = hash<string>{}(sql);
-
-            auto itr = _statements.find(key);
+            auto itr = _statements.find(sql);
             if (itr == _statements.end())
             {
                 auto stmt = make_shared<Stmt>();
                 stmt->Init(m_database, sql);
-                itr = _statements.insert({key, stmt}).first;
+                itr = _statements.emplace(sql, std::move(stmt)).first;
             }
 
-            const auto& stmt = itr->second;
-            stmt->Reset();
-            return *stmt;
+            return *itr->second;
+        }
+
+        bool ExistsRows(Stmt& stmt)
+        {
+            bool res = false;
+            stmt.Select([&](Cursor& cursor) {
+                res = cursor.StepV() == SQLITE_ROW;
+            });
+            return res;
         }
 
         void SetLastInsertRowId(int64_t value)

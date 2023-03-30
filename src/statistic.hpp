@@ -221,7 +221,6 @@ namespace Statistic
             chainStat.pushKV("Chain", Params().NetworkIDString());
             chainStat.pushKV("Height", ChainActive().Height());
             chainStat.pushKV("LastBlock", ChainActive().Tip()->GetBlockHash().GetHex());
-            chainStat.pushKV("PeersALL", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
             chainStat.pushKV("PeersIN", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
             chainStat.pushKV("PeersOUT", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
             result.pushKV("General", chainStat);
@@ -331,8 +330,6 @@ namespace Statistic
                         return sample.TimestampEnd < time;
                     }),
                 _samples.end());
-
-            LogPrint(BCLog::STAT, "Clear statistic cache: %d -> %d items after.\n", sizeBefore, _samples.size());
         }
 
         std::vector<RequestSample> GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since)

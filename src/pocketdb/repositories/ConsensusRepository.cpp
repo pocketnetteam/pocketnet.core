@@ -133,20 +133,18 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(address, depth, _name, _name);
-
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                stmt.Collect(
-                    result.LastTxType,
-                    result.EditsCount,
-                    result.MempoolCount,
-                    result.DuplicatesChainCount,
-                    result.DuplicatesMempoolCount
-                );
-            }
+            Sql(sql)
+            .Bind(address, depth, _name, _name)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(
+                        result.LastTxType,
+                        result.EditsCount,
+                        result.MempoolCount,
+                        result.DuplicatesChainCount,
+                        result.DuplicatesMempoolCount
+                    );
+            });
         });
 
         return result;
@@ -192,9 +190,9 @@ namespace PocketDb
 
             stmt.Bind(_name, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    result = (value > 0);
+            // if (stmt.Step())
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            //         result = (value > 0);
         });
 
         return result;
@@ -229,7 +227,7 @@ namespace PocketDb
                     p.String7 pString7
                 from Transactions t indexed by Transactions_Hash_Height
                 left join Payload p on t.Hash = p.TxHash
-                where t.Type in (200,201,202,203,204,209,210)
+                where t.Type in (200,201,202,203,204,209,210,220)
                   and t.Hash = ?
                   and t.String2 = ?
                   and t.Height is not null
@@ -238,9 +236,9 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(rootHash, rootHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
-                    tx = transaction;
+            // if (stmt.Step())
+            //     if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
+            //         tx = transaction;
         });
 
         return {tx != nullptr, tx};
@@ -285,12 +283,62 @@ namespace PocketDb
 
             stmt.Bind(types, rootHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
-                    tx = transaction;
+            // if (stmt.Step())
+            //     if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
+            //         tx = transaction;
         });
 
         return {tx != nullptr, tx};
+    }
+
+    tuple<bool, vector<PTransactionRef>> ConsensusRepository::GetLastContents(const vector<string> &rootHashes,
+                                                                              const vector<TxType> &types)
+    {
+        vector<PTransactionRef> txs;
+
+        SqlTransaction(__func__, [&]()
+        {
+            string sql = R"sql(
+                select
+                    t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                from Transactions t indexed by Transactions_Type_Last_String2_Height
+                left join Payload p on t.Hash = p.TxHash
+                where t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                  and t.String2 in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
+                  and t.Last = 1
+                  and t.Height is not null
+            )sql";
+
+            Sql(sql)
+            .Bind(types, rootHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, transaction] = CreateTransactionFromListRow(cursor, true); ok)
+                        txs.emplace_back(transaction);
+                }
+            });
+        });
+
+        return {txs.size() != 0, txs};
     }
 
     bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
@@ -317,9 +365,39 @@ namespace PocketDb
 
             stmt.Bind(addresses);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    result = (value == (int) addresses.size());
+            // if (stmt.Step())
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            //         result = (value == (int) addresses.size());
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::ExistsAccountBan(const string& address, int height)
+    {
+        auto result = false;
+
+        string sql = R"sql(
+            select
+                1
+            from
+                Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                cross join JuryBan b indexed by JuryBan_AccountId_Ending
+                    on b.AccountId = u.Id and b.Ending > ?
+            where
+                u.Type = 100 and
+                u.Last = 1 and
+                u.String1 = ? and
+                u.Height > 0
+        )sql";
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(height, address)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
         });
 
         return result;
@@ -344,14 +422,14 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                {
-                    blockingExists = true;
-                    blockingType = (TxType) value;
-                }
-            }
+            // if (stmt.Step())
+            // {
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            //     {
+            //         blockingExists = true;
+            //         blockingType = (TxType) value;
+            //     }
+            // }
         });
 
         return {blockingExists, blockingType};
@@ -377,13 +455,13 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo, addressesTo);
 
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok && value > 0)
-                {
-                    blockingExists = true;
-                }
-            }
+            // if (stmt.Step())
+            // {
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok && value > 0)
+            //     {
+            //         blockingExists = true;
+            //     }
+            // }
         });
 
         return blockingExists;
@@ -409,14 +487,14 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                {
-                    subscribeExists = true;
-                    subscribeType = (TxType) value;
-                }
-            }
+            // if (stmt.Step())
+            // {
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            //     {
+            //         subscribeExists = true;
+            //         subscribeType = (TxType) value;
+            //     }
+            // }
         });
 
         return {subscribeExists, subscribeType};
@@ -437,9 +515,9 @@ namespace PocketDb
 
             stmt.Bind(postHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
-                    result = make_shared<string>(value);
+            // if (stmt.Step())
+            //     if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
+            //         result = make_shared<string>(value);
         });
 
         return result;
@@ -466,9 +544,9 @@ namespace PocketDb
 
             stmt.Bind(address, postHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    result = (value > 0);
+            // if (stmt.Step())
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            //         result = (value > 0);
         });
 
         return result;
@@ -495,44 +573,76 @@ namespace PocketDb
 
             stmt.Bind(address, contentHash, (int) type);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    result = (value > 0);
+            // if (stmt.Step())
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            //         result = (value > 0);
         });
 
         return result;
     }
 
-    bool ConsensusRepository::Exists(const string& txHash, const vector<TxType>& types, bool inChain = true)
+    bool ConsensusRepository::ExistsActiveJury(const string& juryId)
     {
+        assert(juryId != "");
+        bool result = false;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select
+                    1
+                from
+                    Transactions t
+                    join Jury j
+                        on j.FlagRowId = t.ROWID
+                    left join JuryVerdict jv
+                        on jv.FlagRowId = j.FlagRowId
+                where
+                    t.Hash = ? and
+                    jv.Verdict is null
+            )sql")
+            .Bind(juryId)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
+
+        return result;
+    }
+
+    
+    bool ConsensusRepository::Exists_S1S2T(const string& string1, const string& string2, const vector<TxType>& types)
+    {
+        assert(string1 != "");
+        assert(string2 != "");
+        assert(!types.empty());
         bool result = false;
 
         string sql = R"sql(
             select 1
-            from Transactions
-            where Hash = ?
-              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+            from Transactions indexed by Transactions_Type_String1_String2_Height
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and String1 = ?
+              and String2 = ?
+              and Height > 0
         )sql";
-
-        if (inChain)
-            sql += " and Height is not null";
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-            
-            stmt.Bind(txHash, types);
-
-            if (stmt.Step() == SQLITE_ROW)
-                result = true;
+            Sql(sql)
+            .Bind(types, string1, string2)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
         });
 
         return result;
     }
 
-    bool ConsensusRepository::ExistsInMempool(const string& string1, const vector<TxType>& types)
+    bool ConsensusRepository::Exists_MS1T(const string& string1, const vector<TxType>& types)
     {
         assert(string1 != "");
+        assert(!types.empty());
         bool result = false;
 
         string sql = R"sql(
@@ -550,17 +660,18 @@ namespace PocketDb
 
             stmt.Bind(types, string1);
             
-            if (stmt.Step() == SQLITE_ROW)
-                result = true;
+            // if (stmt.Step())
+            //     result = true;
         });
 
         return result;
     }
 
-    bool ConsensusRepository::ExistsInMempool(const string& string1, const string& string2, const vector<TxType>& types)
+    bool ConsensusRepository::Exists_MS1S2T(const string& string1, const string& string2, const vector<TxType>& types)
     {
         assert(string1 != "");
         assert(string2 != "");
+        assert(!types.empty());
         bool result = false;
 
         string sql = R"sql(
@@ -578,8 +689,153 @@ namespace PocketDb
 
             stmt.Bind(types, string1, string2);
             
-            if (stmt.Step() == SQLITE_ROW)
-                result = true;
+            // if (stmt.Step())
+            //     result = true;
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::Exists_LS1T(const string& string1, const vector<TxType>& types)
+    {
+        assert(string1 != "");
+        assert(!types.empty());
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by Transactions_Type_Last_String1_Height_Id
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and Last = 1
+              and String1 = ?
+              and Height is not null
+        )sql";
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(types, string1)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::Exists_LS1S2T(const string& string1, const string& string2, const vector<TxType>& types)
+    {
+        assert(string1 != "");
+        assert(string2 != "");
+        assert(!types.empty());
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by Transactions_Type_Last_String1_String2_Height
+            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and Last = 1
+              and String1 = ?
+              and String2 = ?
+              and Height is not null
+        )sql";
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(types, string1, string2)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::Exists_HS1T(const string& txHash, const string& string1, const vector<TxType>& types, bool last)
+    {
+        assert(txHash != "");
+        assert(string1 != "");
+        assert(!types.empty());
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by sqlite_autoindex_Transactions_1
+            where Hash = ?
+              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              )sql" + (last ? " and Last = 1 " : "") + R"sql(
+              and String1 = ?
+              and Height is not null
+        )sql";
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(txHash, types, string1)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::Exists_HS2T(const string& txHash, const string& string2, const vector<TxType>& types, bool last)
+    {
+        assert(txHash != "");
+        assert(string2 != "");
+        assert(!types.empty());
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by sqlite_autoindex_Transactions_1
+            where Hash = ?
+              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              )sql" + (last ? " and Last = 1 " : "") + R"sql(
+              and String2 = ?
+              and Height is not null
+        )sql";
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(txHash, types, string2)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::Exists_HS1S2T(const string& txHash, const string& string1, const string& string2, const vector<TxType>& types, bool last)
+    {
+        assert(txHash != "");
+        assert(string1 != "");
+        assert(string2 != "");
+        assert(!types.empty());
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions indexed by sqlite_autoindex_Transactions_1
+            where Hash = ?
+              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              )sql" + (last ? " and Last = 1 " : "") + R"sql(
+              and String1 = ?
+              and String2 = ?
+              and Height is not null
+        )sql";
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(txHash, types, string1, string2)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
         });
 
         return result;
@@ -605,8 +861,8 @@ namespace PocketDb
 
             stmt.Bind(txHash, types, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                result = true;
+            // if (stmt.Step())
+            //     result = true;
         });
 
         return result;
@@ -629,8 +885,8 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -662,8 +918,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -687,8 +943,8 @@ namespace PocketDb
 
             stmt.Bind(addressId);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -715,8 +971,8 @@ namespace PocketDb
 
             stmt.Bind(addressId);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -724,7 +980,7 @@ namespace PocketDb
 
     AccountData ConsensusRepository::GetAccountData(const string& address)
     {
-        AccountData result = {address,-1,0,0,0,0,0,0};
+        AccountData result = {address,-1,0,0,0,0,0,0,0,0};
 
         SqlTransaction(__func__, [&]()
         {
@@ -738,7 +994,8 @@ namespace PocketDb
                     ifnull(r.Value,0)Reputation,
                     ifnull(lp.Value,0)LikersContent,
                     ifnull(lc.Value,0)LikersComment,
-                    ifnull(lca.Value,0)LikersCommentAnswer
+                    ifnull(lca.Value,0)LikersCommentAnswer,
+                    iif(bmod.Badge,1,0)ModeratorBadge
 
                 from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
 
@@ -760,6 +1017,8 @@ namespace PocketDb
                 left join Ratings lca indexed by Ratings_Type_Id_Last_Value
                     on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
 
+                left join vBadges bmod
+                    on bmod.Badge = 3 and bmod.AccountId = u.Id
 
                 where u.Type in (100, 170)
                   and u.Last = 1
@@ -768,20 +1027,22 @@ namespace PocketDb
                   
                 limit 1
             )sql");
-            stmt.Bind(address);
-            
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                stmt.Collect(
-                    result.AddressId,
-                    result.RegistrationTime,
-                    result.RegistrationHeight,
-                    result.Balance,
-                    result.Reputation,
-                    result.LikersContent,
-                    result.LikersComment,
-                    result.LikersCommentAnswer);
-            }
+            stmt.Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step()) {
+                    cursor.CollectAll(
+                        result.AddressId,
+                        result.RegistrationTime,
+                        result.RegistrationHeight,
+                        result.Balance,
+                        result.Reputation,
+                        result.LikersContent,
+                        result.LikersComment,
+                        result.LikersCommentAnswer,
+                        result.ModeratorBadge
+                    );
+                }
+            });
         });
 
         return result;
@@ -832,33 +1093,33 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(txHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                ScoreDataDto data;
+            // if (stmt.Step())
+            // {
+            //     ScoreDataDto data;
 
-                int contentType, scoreType = -1;
+            //     int contentType, scoreType = -1;
 
-                stmt.Collect(
-                    data.ScoreTxHash,
-                    scoreType, // Dirty hack
-                    data.ScoreTime,
-                    data.ScoreValue,
-                    data.ScoreAddressId,
-                    data.ScoreAddressHash,
-                    data.ContentTxHash,
-                    contentType, // Dirty hack
-                    data.ContentTime,
-                    data.ContentId,
-                    data.ContentAddressId,
-                    data.ContentAddressHash,
-                    data.String5
-                );
+            //     stmt.Collect(
+            //         data.ScoreTxHash,
+            //         scoreType, // Dirty hack
+            //         data.ScoreTime,
+            //         data.ScoreValue,
+            //         data.ScoreAddressId,
+            //         data.ScoreAddressHash,
+            //         data.ContentTxHash,
+            //         contentType, // Dirty hack
+            //         data.ContentTime,
+            //         data.ContentId,
+            //         data.ContentAddressId,
+            //         data.ContentAddressHash,
+            //         data.String5
+            //     );
 
-                data.ContentType = (TxType)contentType;
-                data.ScoreType = (TxType)scoreType;
+            //     data.ContentType = (TxType)contentType;
+            //     data.ScoreType = (TxType)scoreType;
 
-                result = make_shared<ScoreDataDto>(data);
-            }
+            //     result = make_shared<ScoreDataDto>(data);
+            // }
         });
 
         return result;
@@ -900,12 +1161,12 @@ namespace PocketDb
 
             stmt.Bind(minHeight, addresses);
 
-            while (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok1, value1] = stmt.TryGetColumnString(1); ok1 && !value1.empty())
-                    if (auto[ok2, value2] = stmt.TryGetColumnString(2); ok2 && !value2.empty())
-                        result->emplace(value1, value2);
-            }
+            // while (stmt.Step())
+            // {
+            //     if (auto[ok1, value1] = stmt.TryGetColumnString(1); ok1 && !value1.empty())
+            //         if (auto[ok2, value2] = stmt.TryGetColumnString(2); ok2 && !value2.empty())
+            //             result->emplace(value1, value2);
+            // }
         });
 
         return result;
@@ -932,14 +1193,14 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, value] = stmt.TryGetColumnString(0); ok && !value.empty())
-                {
-                    result = true;
-                    referrer = value;
-                }
-            }
+            // if (stmt.Step())
+            // {
+            //     if (auto[ok, value] = stmt.TryGetColumnString(0); ok && !value.empty())
+            //     {
+            //         result = true;
+            //         referrer = value;
+            //     }
+            // }
         });
 
         return {result, referrer};
@@ -988,9 +1249,9 @@ namespace PocketDb
                 scoreData->ScoreTxHash,
                 scoreData->ContentAddressHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    result = value;
+            // if (stmt.Step())
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            //         result = value;
         });
 
         return result;
@@ -1040,9 +1301,9 @@ namespace PocketDb
                 scoreData->ScoreTxHash,
                 scoreData->ContentAddressHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    result = value;
+            // if (stmt.Step())
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            //         result = value;
         });
 
         return result;
@@ -1066,11 +1327,11 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-            {
-                if (auto[ok, type] = stmt.TryGetColumnInt64(0); ok)
-                    result = {true, (TxType)type};
-            }
+            // if (stmt.Step())
+            // {
+            //     if (auto[ok, type] = stmt.TryGetColumnInt64(0); ok)
+            //         result = {true, (TxType)type};
+            // }
         });
 
         return result;
@@ -1091,9 +1352,9 @@ namespace PocketDb
 
             stmt.Bind(hash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
-                    result = { true, val };
+            // if (stmt.Step())
+            //     if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
+            //         result = { true, val };
         });
 
         return result;
@@ -1119,8 +1380,8 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1142,8 +1403,8 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1166,8 +1427,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1190,8 +1451,8 @@ namespace PocketDb
 
             stmt.Bind(time, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1214,8 +1475,8 @@ namespace PocketDb
 
             stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1238,8 +1499,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1262,8 +1523,8 @@ namespace PocketDb
 
             stmt.Bind(time, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1286,8 +1547,8 @@ namespace PocketDb
 
             stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1310,8 +1571,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1334,8 +1595,8 @@ namespace PocketDb
 
             stmt.Bind(address, time);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1357,8 +1618,8 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1381,8 +1642,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1404,8 +1665,8 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1428,8 +1689,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1451,8 +1712,8 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1475,8 +1736,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1498,8 +1759,8 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1522,8 +1783,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1545,8 +1806,55 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::CountMempoolCollection(const string& address)
+    {
+        int result = 0;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+                where Type in (220)
+                  and Height is null
+                  and String1 = ?
+                  and Hash = String2
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+    int ConsensusRepository::CountChainCollection(const string& address, int height)
+    {
+        int result = 0;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+                where Type in (220)
+                  and String1 = ?
+                  and Height >= ?
+                  and Hash = String2
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1568,8 +1876,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1591,8 +1899,8 @@ namespace PocketDb
 
             stmt.Bind(address, time);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1614,8 +1922,8 @@ namespace PocketDb
 
             stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1637,8 +1945,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1660,8 +1968,8 @@ namespace PocketDb
 
             stmt.Bind(address, time);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1683,8 +1991,8 @@ namespace PocketDb
 
             stmt.Bind(height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1706,8 +2014,8 @@ namespace PocketDb
 
             stmt.Bind(address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1729,8 +2037,8 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1753,8 +2061,8 @@ namespace PocketDb
 
             stmt.Bind((int)txType, height, address);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1779,9 +2087,9 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-                    result = value;
+            // if (stmt.Step())
+            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+            //         result = value;
         });
 
         return result;
@@ -1804,8 +2112,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1828,8 +2136,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1852,8 +2160,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1876,8 +2184,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1900,8 +2208,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1924,8 +2232,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1948,8 +2256,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1972,8 +2280,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -1996,8 +2304,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -2020,8 +2328,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -2044,8 +2352,57 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::CountMempoolCollectionEdit(const string& address, const string& rootTxHash)
+    {
+        int result = 0;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (220,207)
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+    int ConsensusRepository::CountChainCollectionEdit(const string& address, const string& rootTxHash, const int& nHeight, const int& depth)
+    {
+        int result = 0;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (220)
+                  and Height <= ?
+                  and Height > ?
+                  and Hash != String2
+                  and String1 = ?
+                  and String2 = ?
+            )sql")
+            .Bind(nHeight, nHeight - depth, address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2060,7 +2417,7 @@ namespace PocketDb
             auto& stmt = Sql(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200,201,202,209,210,207)
+                where Type in (200,201,202,209,210,220,207)
                   and Height is null
                   and String1 = ?
                   and String2 = ?
@@ -2068,8 +2425,8 @@ namespace PocketDb
 
             stmt.Bind(address, rootTxHash);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
@@ -2094,13 +2451,12 @@ namespace PocketDb
 
             stmt.Bind(address, height);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
     }
-    
     int ConsensusRepository::CountModerationFlag(const string& address, const string& addressTo, bool includeMempool)
     {
         int result = 0;
@@ -2119,10 +2475,43 @@ namespace PocketDb
 
             stmt.Bind(address, addressTo);
 
-            if (stmt.Step() == SQLITE_ROW)
-                stmt.Collect(result);
+            // if (stmt.Step())
+            //     stmt.Collect(result);
         });
 
         return result;
     }
+
+    bool ConsensusRepository::AllowJuryModerate(const string& address, const string& flagTxHash)
+    {
+        bool result = false;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select 1
+                from JuryModerators jm
+                where 
+                    jm.FlagRowId = (
+                        select f.ROWID
+                        from Transactions f indexed by sqlite_autoindex_Transactions_1
+                        where f.Hash = ?
+                    ) and
+                    jm.AccountId = (
+                        select u.Id
+                        from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                        where u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = ?
+                    )
+            )sql")
+            .Bind(flagTxHash, address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+
+
 }

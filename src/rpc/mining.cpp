@@ -254,18 +254,6 @@ static RPCHelpMan generatetodescriptor()
     };
 }
 
-static RPCHelpMan generate()
-{
-    return RPCHelpMan{"generate", "has been replaced by the -generate cli option. Refer to -help for more information.", {}, {}, RPCExamples{""}, [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
-
-    if (request.fHelp) {
-        throw std::runtime_error(self.ToString());
-    } else {
-        throw JSONRPCError(RPC_METHOD_NOT_FOUND, self.ToString());
-    }
-    }};
-}
-
 static RPCHelpMan generatetoaddress()
 {
     return RPCHelpMan{"generatetoaddress",
@@ -430,12 +418,13 @@ static RPCHelpMan stakeblock()
     return RPCHelpMan{"stakeblock",
         "\nStake one or more blocks\n",
         {
-            {"count", RPCArg::Type::NUM, RPCArg::Optional::NO, "Count of new blocks."},
+            {"count", RPCArg::Type::NUM, /* default */ "1", "Count of new blocks."},
+            {"wallet_name", RPCArg::Type::STR, /* default */ "", "Count of new blocks."},
         },
         RPCResult{RPCResult::Type::NONE, "", ""},
         RPCExamples{
-            HelpExampleCli("stakeblock", "") +
-            HelpExampleRpc("stakeblock", "")
+            HelpExampleCli("stake", "") +
+            HelpExampleRpc("stake", "")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -444,8 +433,16 @@ static RPCHelpMan stakeblock()
         if (Params().NetworkID() != NetworkId::NetworkRegTest)
             throw JSONRPCError(RPC_MISC_ERROR, "Only for RegTestNet");
 
-        const int num_blocks{request.params[0].get_int()};
-        Staker::getInstance()->stake(request.context, Params(), num_blocks);
+        int num_blocks = 1;
+        if (request.params.size() > 0 && request.params[0].isNum())
+            num_blocks = request.params[0].get_int();
+
+        std::string wallet_name = "";
+        if (request.params.size() > 1 && request.params[1].isStr())
+            wallet_name = request.params[1].get_str();
+        
+        if (!Staker::getInstance()->stake(request.context, Params(), num_blocks, wallet_name))
+            throw JSONRPCError(RPC_MISC_ERROR, "Stake failed, see debug.log");
         
         return NullUniValue;
     }};
@@ -1280,7 +1277,6 @@ static const CRPCCommand commands[] =
     { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
 
     { "hidden",             "estimaterawfee",         &estimaterawfee,         {"conf_target", "threshold"} },
-    { "hidden",             "generate",               &generate,               {} },
 };
 // clang-format on
     for (const auto& c : commands) {

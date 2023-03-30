@@ -172,20 +172,22 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetContent()
     {
         return RPCHelpMan{"getcontent",
-                "\nReturns contents for list of ids\n",
+                "\nReturns contents for list of hash\n",
                 {
-                    {"ids", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
+                    {"hashes", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
                         {
-                            {"id", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                            {"hash", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
                         }
-                    }
+                    },
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address (Default: \"\")"},
+                    {"last", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Get last version of content (Default: True)"},
                 },
                 {
                     // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    HelpExampleCli("getcontent", "ids[]") +
-                    HelpExampleRpc("getcontent", "ids[]")
+                    HelpExampleCli("getcontent", "hashes[]") +
+                    HelpExampleRpc("getcontent", "hashes[]")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -215,8 +217,21 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 1 && request.params[1].isStr())
             address = request.params[1].get_str();
 
-        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds(hashes);
-        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, address);
+        bool last = true;
+        if (request.params.size() > 2 && request.params[2].isNum())
+            last = (request.params[2].get_int() == 1);
+
+        vector<UniValue> content;
+
+        if (last)
+        {
+            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds(hashes);
+            content = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, address);
+        }
+        else
+        {
+            content = request.DbConnection()->WebRpcRepoInst->GetContentsData(hashes, {}, address);
+        }
 
         UniValue result(UniValue::VARR);
         result.push_backV(content);
@@ -230,11 +245,7 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getcontents",
                 "\nReturns contents for address\n",
                 {
-                    {"ids", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
-                        {
-                            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "A pocketcoin addresses to filter"}   
-                        }
-                    }
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
                 {
                     // TODO (rpc): provide return description
@@ -245,24 +256,9 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        // if (request.fHelp)
-        // {
-        //     throw runtime_error(
-        //         "getcontents address\n"
-        //         "\nReturns contents for address.\n"
-        //         "\nArguments:\n"
-        //         "1. address            (string) A pocketcoin addresses to filter\n"
-        //         "\nResult\n"
-        //         "[                     (array of contents)\n"
-        //         "  ...\n"
-        //         "]");
-        // }
-
         string address;
         if (request.params[0].isStr())
             address = request.params[0].get_str();
-
-        // TODO (aok, team): add pagination
 
         return request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
     },
@@ -379,6 +375,100 @@ namespace PocketWeb::PocketWebRpc
         result.pushKV("contents", content);
         return result;
     },
+        };
+    }
+
+    RPCHelpMan GetProfileCollections()
+    {
+        return RPCHelpMan{"GetProfileCollections",
+                          "\n\n", // TODO (rpc)
+                          {
+                                  {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
+                                  {"topContentHash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
+                                  {"countOut", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
+                                  {"lang", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
+                                  {"tags", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                                   {
+                                           {"tag", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
+                                   }
+                                  },
+                                  {"contentTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                                   {
+                                           {"contentType", RPCArg::Type::NUM, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
+                                   }
+                                  },
+                                  {"txIdsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                                   {
+                                           {"txIdExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
+                                   }
+                                  },
+                                  {"adrsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                                   {
+                                           {"adrExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
+                                   }
+                                  },
+                                  {"tagsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                                   {
+                                           {"tagExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
+                                   }
+                                  },
+                                  {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
+                                  {"address_feed", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
+                                  {"keyword", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
+                                  {"orderby", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
+                                  {"ascdesc", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc): better examples
+                                  HelpExampleCli("getprofilecollections", "...") +
+                                  HelpExampleRpc("getprofilecollections", "...")
+                          },
+                          [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+                          {
+                              int topHeight;
+                              string topContentHash;
+                              int countOut;
+                              string lang;
+                              vector<string> tags;
+                              vector<int> contentTypes;
+                              vector<string> txIdsExcluded;
+                              vector<string> adrsExcluded;
+                              vector<string> tagsExcluded;
+                              string address;
+                              string address_feed;
+                              string keyword;
+                              string orderby;
+                              string ascdesc;
+                              ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+                                               adrsExcluded, tagsExcluded, address, address_feed, keyword, orderby, ascdesc);
+
+                              if (address_feed.empty())
+                                  throw JSONRPCError(RPC_INVALID_REQUEST, string("No profile address"));
+
+                              int64_t topContentId = 0;
+                              int pageNumber = 0;
+                              if (!topContentHash.empty())
+                              {
+                                  auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+                                  if (!ids.empty())
+                                      topContentId = ids[0];
+                              } else if (topContentHash.empty() && request.params.size() > 1 && request.params[1].isNum())
+                              {
+                                  pageNumber = request.params[1].get_int();
+                              }
+
+                              UniValue result(UniValue::VOBJ);
+                              UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileCollections(
+                                      address_feed, countOut, pageNumber, topContentId, topHeight, lang, tags, contentTypes,
+                                      txIdsExcluded, adrsExcluded, tagsExcluded, address, keyword, orderby, ascdesc);
+
+                              result.pushKV("height", topHeight);
+                              result.pushKV("contents", content);
+                              return result;
+                          },
         };
     }
 
@@ -1186,7 +1276,7 @@ namespace PocketWeb::PocketWebRpc
         const int height = ChainActive().Height() - 150000;
 
         auto ids = request.DbConnection()->WebRpcRepoInst->GetRandomContentIds(lang, count, height);
-        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
 
         UniValue result(UniValue::VARR);
         result.push_backV(content);
@@ -1504,6 +1594,66 @@ namespace PocketWeb::PocketWebRpc
 
         return response;
     },
+        };
+    }
+
+    RPCHelpMan GetsubsciptionsGroupedByAuthors()
+    {
+        return RPCHelpMan{"GetsubsciptionsGroupedByAuthors",
+                          "\n\n", // TODO (rpc)
+                          {
+                                  {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
+                                  {"addressPagination", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
+                                  {"nHeight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "" /*TODO (rpc): arg description*/},
+                                  {"countOutOfUsers", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
+                                  {"countOutOfcontents", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/}
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc): better examples
+                                  HelpExampleCli("getsubsciptionsgroupedbyauthors", "...") +
+                                  HelpExampleRpc("getsubsciptionsgroupedbyauthors", "...")
+                          },
+                          [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+                          {
+                              string address = "";
+                              string addressPagination = "";
+                              int nHeight = ChainActive().Height();
+                              int countOutOfUsers = 10;
+                              int countOutOfcontents = 10;
+
+                              UniValue result(UniValue::VOBJ);
+
+                              if (request.params.empty())
+                                  return result;
+
+                              if (request.params[0].isStr())
+                                  address = request.params[0].get_str();
+
+                              if (request.params.size() > 1 && request.params[1].isStr())
+                                  addressPagination = request.params[1].get_str();
+
+                              if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
+                                  nHeight = request.params[2].get_int();
+
+                              if (request.params.size() > 3 && request.params[3].isNum())
+                                  countOutOfUsers = std::min(request.params[3].get_int(), 100);
+
+                              if (request.params.size() > 4 && request.params[4].isNum())
+                                  countOutOfcontents = std::min(request.params[4].get_int(), 1000);
+
+                              auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+                              auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
+                              UniValue content = request.DbConnection()->WebRpcRepoInst->GetsubsciptionsGroupedByAuthors(
+                                      address, addressPagination, nHeight, countOutOfUsers, countOutOfcontents, badReputationLimit);
+
+                              result.pushKV("height", nHeight);
+                              result.pushKV("contents", content);
+                              return result;
+                          },
         };
     }
 }

@@ -13,14 +13,17 @@ namespace PocketTx
     using namespace std;
 
     // OpReturn hex codes
+
+    #define OR_USERINFO "75736572496e666f"
+    #define OR_ACCOUNT_SETTING "616363536574"
+    #define OR_ACCOUNT_DELETE "61636344656c"
+
     #define OR_SCORE "7570766f74655368617265"
-    #define OR_COMPLAIN "636f6d706c61696e5368617265"
     #define OR_POST "7368617265"
     #define OR_POSTEDIT "736861726565646974"
     #define OR_SUBSCRIBE "737562736372696265"
     #define OR_SUBSCRIBEPRIVATE "73756273637269626550726976617465"
     #define OR_UNSUBSCRIBE "756e737562736372696265"
-    #define OR_USERINFO "75736572496e666f" // (userType = 0 ala gender)
     #define OR_BLOCKING "626c6f636b696e67"
     #define OR_UNBLOCKING "756e626c6f636b696e67"
 
@@ -35,6 +38,8 @@ namespace PocketTx
     #define OR_STREAM "73747265616d" // Post for stream hosting
     #define OR_AUDIO "617564696f" // Post for audio hosting
 
+    #define OR_COLLECTION "636f6c6c656374696f6e" // Collection of contents
+
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
     #define OR_TRANSLATE "7472616e736c617465"                 // Post for translating words
@@ -46,11 +51,17 @@ namespace PocketTx
 
     #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
     #define OR_CONTENT_BOOST "636f6e74656e74426f6f7374" // Boost content
-    #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
-    #define OR_ACCOUNT_DELETE "61636344656c" // Public account settings (accSet)
 
+    #define OR_COMPLAIN "636f6d706c61696e5368617265"
     #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
-    
+    #define OR_MODERATION_VOTE "6d6f64566f7465" // Vote from moderator
+    // #define OR_MODERATOR_REQUEST_SUBS "6d6f6452657153756273"
+    // #define OR_MODERATOR_REQUEST_COIN "6d6f64526571436f696e"
+    // #define OR_MODERATOR_REQUEST_CANCEL "6d6f64526571436e"
+    // #define OR_MODERATOR_REGISTER_SELF "6d6f6452656753656c66"
+    // #define OR_MODERATOR_REGISTER_REQUEST "6d6f64526567526571"
+    // #define OR_MODERATOR_REGISTER_CANCEL "6d6f64526567436e"
+
 
     // Int tx type
     enum TxType
@@ -62,26 +73,26 @@ namespace PocketTx
         TX_COINSTAKE = 3,
 
         ACCOUNT_USER = 100,
-        ACCOUNT_VIDEO_SERVER = 101,
-        ACCOUNT_MESSAGE_SERVER = 102,
+        // ACCOUNT_VIDEO_SERVER = 101,
+        // ACCOUNT_MESSAGE_SERVER = 102,
         ACCOUNT_SETTING = 103,
         ACCOUNT_DELETE = 170,
+
+        CONTENT_DELETE = 207,
 
         CONTENT_POST = 200,
         CONTENT_VIDEO = 201,
         CONTENT_ARTICLE = 202,
         // CONTENT_SERVERPING = 203,
+        CONTENT_STREAM = 209,
+        CONTENT_AUDIO = 210,
+        CONTENT_COLLECTION = 220,
 
         CONTENT_COMMENT = 204,
         CONTENT_COMMENT_EDIT = 205,
         CONTENT_COMMENT_DELETE = 206,
 
-        CONTENT_DELETE = 207,
-
         BOOST_CONTENT = 208,
-
-        CONTENT_STREAM = 209,
-        CONTENT_AUDIO = 210,
 
         ACTION_SCORE_CONTENT = 300,
         ACTION_SCORE_COMMENT = 301,
@@ -95,8 +106,13 @@ namespace PocketTx
 
         ACTION_COMPLAIN = 307,
 
-        MODERATOR_REQUEST = 400, // Some users have the right to choose a moderator
-        MODERATOR_REGISTER = 401, // Each moderator must define a list of public key hashes for voting
+        // MODERATOR_REQUEST_SUBS = 400, // Some users have the right to choose a moderator
+        // MODERATOR_REQUEST_COIN = 401, // Some users have the right to choose a moderator
+        // MODERATOR_REQUEST_CANCEL = 402, // Users have the right to cancel the status of the moderator they have appointed
+        // MODERATOR_REGISTER_SELF = 403, // Each moderator must register in the system to perform their functions
+        // MODERATOR_REGISTER_REQUEST = 404, // Each moderator must register with request in the system to perform their functions
+        // MODERATOR_REGISTER_CANCEL = 405, // Each moderator have the right to cancel self moderation status
+
         MODERATION_FLAG = 410, // Flags are used to mark content that needs moderation
         MODERATION_VOTE = 420, // Votes is used by moderators in the jury process
     };
@@ -162,6 +178,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_ARTICLE ||
                    Type == TxType::CONTENT_STREAM ||
                    Type == TxType::CONTENT_AUDIO ||
+                   Type == TxType::CONTENT_COLLECTION ||
                    Type == TxType::CONTENT_DELETE;
         }
 
@@ -195,6 +212,59 @@ namespace PocketTx
         {
             return Type == TxType::BOOST_CONTENT;
         }
+
+        bool IsModerationFlag() const
+        {
+            return Type == TxType::MODERATION_FLAG;
+        }
+
+        bool IsModerationVote() const
+        {
+            return Type == TxType::MODERATION_VOTE;
+        }
+    };
+
+
+    // ----------------------------------------------
+    //  BADGES
+    // ----------------------------------------------
+    struct BadgeConditions
+    {
+    protected:
+        BadgeConditions(int number, int likersAll, int likersContent, int likersComment, int likersAnswer, int registrationDepth)
+            : Number{number}, LikersAll{likersAll}, LikersContent{likersContent}, LikersComment{likersComment},
+              LikersAnswer{likersAnswer}, RegistrationDepth{registrationDepth}
+        { }
+
+    public:
+        int Number;
+
+        int LikersAll = 0;
+        int LikersContent = 0;
+        int LikersComment = 0;
+        int LikersAnswer = 0;
+        int RegistrationDepth = 0;
+    };
+
+    struct BadgeSharkConditions : public BadgeConditions
+    {
+        BadgeSharkConditions(int likersAll, int likersContent, int likersComment, int likersAnswer, int registrationDepth)
+            : BadgeConditions{1, likersAll, likersContent, likersComment, likersAnswer, registrationDepth}
+        { }
+    };
+
+    struct BadgeWhaleConditions : public BadgeConditions
+    {
+        BadgeWhaleConditions(int likersAll, int likersContent, int likersComment, int likersAnswer, int registrationDepth)
+            : BadgeConditions{2, likersAll, likersContent, likersComment, likersAnswer, registrationDepth}
+        { }
+    };
+
+    struct BadgeModeratorConditions : public BadgeConditions
+    {
+        BadgeModeratorConditions(int likersAll, int likersContent, int likersComment, int likersAnswer, int registrationDepth)
+            : BadgeConditions{3, likersAll, likersContent, likersComment, likersAnswer, registrationDepth}
+        { }
     };
 }
 

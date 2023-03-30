@@ -24,6 +24,7 @@ namespace PocketDb
     using namespace std;
     using namespace PocketTx;
     using namespace PocketHelpers;
+    using namespace std::literals::string_literals;
 
     struct HierarchicalRecord
     {
@@ -80,8 +81,12 @@ namespace PocketDb
         map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int firstFlagsDepth = 14);
         map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int firstFlagsDepth = 14);
 
-        UniValue GetSubscribesAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
-        UniValue GetSubscribersAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+        UniValue GetSubscribesAddresses(
+            const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE },
+            const string& orderBy = "height", bool orderDesc = true, int offset = 0, int limit = 10);
+        UniValue GetSubscribersAddresses(
+            const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE },
+            const string& orderBy = "height", bool orderDesc = true, int offset = 0, int limit = 10);
         UniValue GetBlockings(const string& address);
         UniValue GetBlockers(const string& address);
 
@@ -95,7 +100,9 @@ namespace PocketDb
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
         map<string,string> GetContentsAddresses(const vector<string>& txHashes);
 
-        UniValue GetUnspents(const vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
+        UniValue GetUnspents(const vector<string>& addresses, int height, int confirmations, vector<pair<string, uint32_t>>& mempoolInputs);
+
+        UniValue GetAccountEarning(const string& address, int height, int depth);
 
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
@@ -112,8 +119,11 @@ namespace PocketDb
 
         UniValue SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut);
 
-        vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
-        
+        map<string, UniValue> GetContentsData(const vector<string>& hashes, const string& address = "");
+        map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address = "");
+        vector<UniValue> GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address);
+        vector<UniValue> GetCollectionsData(const vector<int64_t>& ids);
+
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
 
         UniValue GetTopFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
@@ -155,6 +165,13 @@ namespace PocketDb
         vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
 
         UniValue GetContentActions(const string& postTxHash);
+
+        UniValue GetProfileCollections(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight, const string& lang,
+                                       const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+                                       const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
+                                       const string& keyword, const string& orderby, const string& ascdesc);
+
+        UniValue GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight, int countOutOfUsers, int countOutOfcontents, int badReputationLimit);
 
         /**
          * Returns map where key is address. Value is map, where key - height, value - vector of transactions for this height.

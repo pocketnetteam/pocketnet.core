@@ -22,6 +22,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetAccountRegistration();
     RPCHelpMan GetAccountState();
     RPCHelpMan GetAccountUnspents();
+    RPCHelpMan GetAccountEarning();
     RPCHelpMan GetAccountStatistic();
     RPCHelpMan GetAccountSubscribes();
     RPCHelpMan GetAccountSubscribers();

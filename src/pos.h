@@ -16,6 +16,7 @@
 
 using namespace PocketHelpers;
 using namespace PocketConsensus;
+using namespace PocketDb;
 
 static LotteryConsensusFactory lotteryConsensusFactory;
 
@@ -32,6 +33,8 @@ double GetPosDifficulty(const CBlockIndex* blockindex);
 double GetPoWMHashPS();
 
 double GetPoSKernelPS();
+
+double GetPoSKernelPS(int nHeight);
 
 inline static bool GetLastStakeModifier(const CBlockIndex* pindex, uint64_t& nStakeModifier, int64_t& nModifierTime);
 
@@ -59,7 +62,7 @@ bool CheckKernel(CBlockIndex* pindexPrev, unsigned int nBits, int64_t nTime, con
 bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const & chainparams, ChainstateManager& chainman, CTxMemPool& mempool);
 #endif
 
-bool CheckStakeKernelHash(CBlockIndex* pindexPrev, unsigned int nBits, CBlockIndex& blockFrom, PocketTx::Transaction const & txPrev, COutPoint const & prevout, unsigned int nTimeTx, arith_uint256& hashProofOfStake, CDataStream& hashProofOfStakeSource, arith_uint256& targetProofOfStake, bool fPrintProofOfStake = true);
+bool CheckStakeKernelHash(CBlockIndex* pindexPrev, unsigned int nBits, CBlockIndex& blockFrom, StakeKernelHashTx& txPrev, COutPoint const & prevout, unsigned int nTimeTx, arith_uint256& hashProofOfStake, CDataStream& hashProofOfStakeSource, arith_uint256& targetProofOfStake, bool fPrintProofOfStake = true);
 
 bool CheckProofOfStake(CBlockIndex* pindexPrev, CTransactionRef const & tx, unsigned int nBits, arith_uint256& hashProofOfStake, CDataStream& hashProofOfStakeSource, arith_uint256& targetProofOfStake, std::vector<CScriptCheck> *pvChecks, CTxMemPool& mempool, bool fCheckSignature = false);
 
