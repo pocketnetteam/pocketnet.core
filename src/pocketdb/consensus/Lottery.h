@@ -246,11 +246,73 @@ namespace PocketConsensus
     };
 
     // ---------------------------------------
-    // Lottery checkpoint at _ block
-    class LotteryConsensus_checkpoint_ : public LotteryConsensus_checkpoint_1180000
+    class LotteryConsensus_bip_100 : public LotteryConsensus_checkpoint_1180000
+    {
+    protected:
+        int64_t MaxWinnersCount() override { return 5; };
+    public:
+        explicit LotteryConsensus_bip_100() : LotteryConsensus_checkpoint_1180000() {}
+            
+        // ----------------------------------------
+        // Lottery checkpoint at 2162400 block
+        // Disable lottery payments for likes to comments.
+        // Also disable referral program
+        CAmount RatingReward(CAmount nCredit, opcodetype code)
+        {
+            if (code == OP_WINNER_POST) return nCredit * 0.025;
+            return 0;
+        }
+
+        LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
+        {
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
+
+            map<string, int> postCandidates;
+
+            for (const auto& tx : block.vtx)
+            {
+                // Get destination address and score value
+                // In lottery allowed only likes to posts and comments
+                // Also in lottery allowed only positive scores
+                auto[parseScoreOk, scoreTxData] = TransactionHelper::ParseScore(tx);
+                if (!parseScoreOk)
+                    continue;
+
+                // BIP100: Only scores to content allowed
+                if (scoreTxData->ScoreType == ACTION_SCORE_COMMENT)
+                    continue;
+                if (scoreTxData->ScoreType == ACTION_SCORE_CONTENT
+                    && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
+                    continue;
+
+                auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
+                if (!scoreData)
+                {
+                    LogPrintf("%s: Failed get score data for tx: %s\n", __func__, tx->GetHash().GetHex());
+                    continue;
+                }
+
+                if (!reputationConsensus->AllowModifyReputation(
+                    scoreData,
+                    true
+                ))
+                    continue;
+
+                postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
+            }
+
+            // Sort founded users
+            SortWinners(postCandidates, hashProofOfStakeSource, _winners.PostWinners);
+
+            return _winners;
+        }
+    };
+
+    // ---------------------------------------
+    class LotteryConsensus_checkpoint_ : public LotteryConsensus_bip_100
     {
     public:
-        explicit LotteryConsensus_checkpoint_() : LotteryConsensus_checkpoint_1180000() {}
+        explicit LotteryConsensus_checkpoint_() : LotteryConsensus_bip_100() {}
     protected:
         void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) override
         {
@@ -296,11 +358,12 @@ namespace PocketConsensus
     public:
         LotteryConsensusFactory()
         {
-            Checkpoint({0,       -1, -1, make_shared<LotteryConsensus>() });
-            Checkpoint({514185,  -1, -1, make_shared<LotteryConsensus_checkpoint_514185>() });
-            Checkpoint({1035000, -1, -1, make_shared<LotteryConsensus_checkpoint_1035000>() });
-            Checkpoint({1124000, -1, -1, make_shared<LotteryConsensus_checkpoint_1124000>() });
-            Checkpoint({1180000,  0,  0, make_shared<LotteryConsensus_checkpoint_1180000>() });
+            Checkpoint({       0,      -1, -1, make_shared<LotteryConsensus>() });
+            Checkpoint({  514185,      -1, -1, make_shared<LotteryConsensus_checkpoint_514185>() });
+            Checkpoint({ 1035000,      -1, -1, make_shared<LotteryConsensus_checkpoint_1035000>() });
+            Checkpoint({ 1124000,      -1, -1, make_shared<LotteryConsensus_checkpoint_1124000>() });
+            Checkpoint({ 1180000,       0,  0, make_shared<LotteryConsensus_checkpoint_1180000>() });
+            Checkpoint({ 2162400, 1650652,  0, make_shared<LotteryConsensus_bip_100>() });
         }
     };
 

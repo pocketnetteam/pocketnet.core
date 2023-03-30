@@ -150,7 +150,7 @@ namespace PocketConsensus
 
             // Change conteents type not allowed
             if (*originalTx->GetInt1() != *ptx->GetContentTypes())
-                return {false, SocialConsensusResult_NotAllowed};
+                return {false, ConsensusResult_NotAllowed};
 
             // You are author? Really?
             if (*ptx->GetAddress() != *originalPtx->GetAddress())

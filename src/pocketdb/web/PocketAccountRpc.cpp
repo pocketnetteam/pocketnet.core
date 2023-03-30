@@ -428,6 +428,63 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
+    RPCHelpMan GetAccountEarning()
+    {
+        return RPCHelpMan{"getaccountearning",
+                          "\nReturns account earnings for the period\n",
+                          {
+                                  {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "A string of pocketcoin addresses",},
+                                  {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum height for filter. Default is current chain height"},
+                                  {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth for query. Default is 43200 (about 1 month)"},
+
+                          },
+                          {
+                                  // TODO (rpc): provide return description
+                          },
+                          RPCExamples{
+                                  // TODO (rpc): provide correct examples
+                                  HelpExampleCli("getaccountearning", "\"ab1123afd1231\"") +
+                                  HelpExampleRpc("getaccountearning", "\"ab1123afd1231\"")
+                          },
+                          [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+                          {
+                              std::string address;
+                              if (request.params.size() > 0)
+                              {
+                                  if (request.params[0].isStr())
+                                  {
+                                      address = request.params[0].get_str();
+                                      CTxDestination dest = DecodeDestination(address);
+                                      if (!IsValidDestination(dest))
+                                      {
+                                          throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                                                             std::string("Invalid Pocketnet address: ") + address);
+                                      }
+                                  }
+                              }
+
+                              int height = ::ChainActive().Height();
+                              if (request.params.size() > 1) {
+                                  if (request.params[1].isNum()) {
+                                      if (request.params[1].get_int() > 0) {
+                                          height = std::min(request.params[1].get_int(), height);
+                                      }
+                                  }
+                              }
+
+                              int depth = 43200;
+                              if (request.params.size() > 2) {
+                                  if (request.params[2].isNum()) {
+                                      if (request.params[2].get_int() > 0) {
+                                          depth = request.params[2].get_int();
+                                      }
+                                  }
+                              }
+                              return request.DbConnection()->WebRpcRepoInst->GetAccountEarning(address, height, depth);
+                          },
+        };
+    }
+
     RPCHelpMan GetAccountSetting()
     {
         return RPCHelpMan{"getaccountsetting",

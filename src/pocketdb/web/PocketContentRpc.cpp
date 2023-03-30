@@ -1644,7 +1644,7 @@ namespace PocketWeb::PocketWebRpc
                               if (request.params.size() > 4 && request.params[4].isNum())
                                   countOutOfcontents = std::min(request.params[4].get_int(), 1000);
 
-                              auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+                              auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
                               auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
                               UniValue content = request.DbConnection()->WebRpcRepoInst->GetsubsciptionsGroupedByAuthors(
