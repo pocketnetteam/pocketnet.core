@@ -112,7 +112,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(CmakeCheckEndian.cmake)
 
 # LevelDB
-# TODO (build): only if EMBEDDED_LVLDB defined
 add_subdirectory(leveldb/)
 
 
