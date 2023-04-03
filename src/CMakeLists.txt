@@ -112,6 +112,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(CmakeCheckEndian.cmake)
 
 # LevelDB
+# Disable leveldb benchmarks because they break building
+# pocketnet.core with clang
+option(LEVELDB_BUILD_BENCHMARKS "" OFF)
 add_subdirectory(leveldb/)
 
 
