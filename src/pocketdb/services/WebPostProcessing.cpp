@@ -67,12 +67,13 @@ namespace PocketServices
                 {
                     ProcessTags(queueRecord.BlockHash);
                     ProcessSearchContent(queueRecord.BlockHash);
-                    webRepoInst->UpsertBarteronAccounts(queueRecord.BlockHash);
-                    webRepoInst->UpsertBarteronOffers(queueRecord.BlockHash);
                     break;
                 }
                 case QueueRecordType::BlockHeight:
                 {
+                    webRepoInst->UpsertBarteronAccounts(queueRecord.BlockHeight);
+                    webRepoInst->UpsertBarteronOffers(queueRecord.BlockHeight);
+                    break;
                     // queueRecord.Height % N == 0 -> actions
                 }
                 default:

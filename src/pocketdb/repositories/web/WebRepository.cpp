@@ -295,97 +295,110 @@ namespace PocketDb
         });
     }
 
-    void WebRepository::UpsertBarteronAccounts(const string& blockHash)
+    void WebRepository::UpsertBarteronAccounts(int64_t height)
     {
-        // TryTransactionStep(__func__, [&]()
-        // {
-        //     // Delete
-        //     auto stmt = SetupSqlStatement(R"sql(
-        //         delete from BarteronAccountTags
-        //         where
-        //             BarteronAccountTags.AccountId in (
-        //                 select
-        //                     t.Id
-        //                 from
-        //                     Transactions t indexed by Transactions_BlockHash
-        //                 where
-        //                     t.BlockHash = ? and
-        //                     t.Type = 104
-        //             )
-        //     )sql");
-        //     TryBindStatementText(stmt, 1, blockHash);
-        //     TryStepStatement(stmt);
+        SqlTransaction(__func__, [&]()
+        {
+            // Delete
+            Sql(R"sql(
+                delete from BarteronAccountTags
+                where
+                    BarteronAccountTags.AccountId in (
+                        select
+                            c.Uid
+                        from
+                            Transactions t
+                            join Chain c indexed by Chain_Height_Uid on
+                                c.TxId = t.RowId and
+                                c.Height = ?
+                        where
+                            t.Type = 104
+                    )
 
-        //     // Add
-        //     stmt = SetupSqlStatement(R"sql(
-        //         with js as ( select '$.t' as path )
-        //         insert into BarteronAccountTags (AccountId, Tag)
-        //         select
-        //             t.Id,
-        //             pj.value
-        //         from
-        //             js,
-        //             Transactions t indexed by Transactions_BlockHash
-        //             join Payload p -- primary key
-        //                 on p.TxHash = t.Hash
-        //             join json_each(p.String4, js.path) as pj
-        //         where
-        //             t.BlockHash = ? and
-        //             t.Type = 104 and
-        //             json_valid(p.String4) and
-        //             json_type(p.String4, js.path) = 'array'
-        //     )sql");
-        //     TryBindStatementText(stmt, 1, blockHash);
-        //     TryStepStatement(stmt);
-        // });
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add
+            Sql(R"sql(
+                with js as ( select '$.t' as path )
+                insert into BarteronAccountTags (AccountId, Tag)
+                select
+                    c.Uid,
+                    pj.value
+                from
+                    js,
+                    Transactions t
+                    join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = t.RowId and
+                        c.Height = ?
+                    join Payload p
+                        on p.TxId = t.RowId
+                    join json_each(p.String4, js.path) as pj
+                where
+                    t.Type = 104 and
+                    json_valid(p.String4) and
+                    json_type(p.String4, js.path) = 'array'
+            )sql")
+            .Bind(height)
+            .Run();
+        });
     }
 
-    void WebRepository::UpsertBarteronOffers(const string& blockHash)
+    void WebRepository::UpsertBarteronOffers(int64_t height)
     {
-        // TryTransactionStep(__func__, [&]()
-        // {
-        //     // Delete
-        //     auto stmt = SetupSqlStatement(R"sql(
-        //         delete from BarteronOffers
-        //         where
-        //             BarteronOffers.OfferId in (
-        //                 select
-        //                     t.Id
-        //                 from
-        //                     Transactions t indexed by Transactions_BlockHash
-        //                 where
-        //                     t.BlockHash = ? and
-        //                     t.Type = 211
-        //             )
-        //     )sql");
-        //     TryBindStatementText(stmt, 1, blockHash);
-        //     TryStepStatement(stmt);
+        SqlTransaction(__func__, [&]()
+        {
+            // Delete
+            Sql(R"sql(
+                delete from BarteronOffers
+                where
+                    BarteronOffers.OfferId in (
+                        select
+                            c.Uid
+                        from
+                            Transactions t
+                            join Chain c indexed by Chain_Height_Uid on
+                                c.TxId = t.RowId and
+                                c.Height = ?
+                        where
+                            t.Type = 211
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
 
-        //     // Add
-        //     stmt = SetupSqlStatement(R"sql(
-        //         with js as ( select '$.t' as path )
-        //         insert into BarteronOffers (AccountId, OfferId, Tag)
-        //         select
-        //             u.Id as AccountId,
-        //             t.Id as OfferId,
-        //             pj.value as Tag
-        //         from
-        //             js,
-        //             Transactions t indexed by Transactions_BlockHash
-        //             cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-        //                 on u.Type = 100 and u.Last = 1 and u.String1 = t.String1 and u.Height > 0
-        //             cross join Payload p -- primary key
-        //                 on p.TxHash = t.Hash
-        //             cross join json_each(p.String4, js.path) as pj
-        //         where
-        //             t.BlockHash = ? and
-        //             t.Type = 211 and
-        //             json_valid(p.String4) and
-        //             json_type(p.String4, js.path) = 'array'
-        //     )sql");
-        //     TryBindStatementText(stmt, 1, blockHash);
-        //     TryStepStatement(stmt);
-        // });
+            // Add
+            Sql(R"sql(
+                with js as ( select '$.t' as path )
+                insert into BarteronOffers (AccountId, OfferId, Tag)
+                select
+                    cu.Uid as AccountId,
+                    ct.Uid as OfferId,
+                    pj.value as Tag
+                from
+                    js,
+                    Transactions t
+                    join Chain ct indexed by Chain_Height_Uid on
+                        ct.TxId = t.RowId and
+                        ct.Height = ?
+                    cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type = 100 and
+                        u.RegId1 = t.RegId1 and
+                        exists (select 1 from Last l where l.TxId = u.RowId)
+                    cross join Chain cu on
+                        cu.TxId = u.RowId
+                    cross join Payload p -- primary key
+                        on p.TxId = t.RowId
+                    cross join json_each(p.String4, js.path) as pj
+                where
+                    t.Type = 211 and
+                    json_valid(p.String4) and
+                    json_type(p.String4, js.path) = 'array'
+            )sql")
+            .Bind(height)
+            .Run();
+        });
     }
 
 }
