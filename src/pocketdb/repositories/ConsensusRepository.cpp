@@ -137,6 +137,7 @@ namespace PocketDb
             .Bind(address, depth, _name, _name)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
+                {
                     cursor.CollectAll(
                         result.LastTxType,
                         result.EditsCount,
@@ -144,15 +145,180 @@ namespace PocketDb
                         result.DuplicatesChainCount,
                         result.DuplicatesMempoolCount
                     );
+                }
             });
         });
 
         return result;
-        
     }
 
 
+    ConsensusData_BarteronAccount ConsensusRepository::BarteronAccount(const string& address)
+    {
+        #pragma region Prepare
 
+        ConsensusData_BarteronAccount result;
+        
+        string sql = R"sql(
+            with
+
+                addressRegId as (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        String = ?
+                ),
+
+                mempool as (
+                    select
+                        count()cnt
+                    from
+                        addressRegId,
+                        Transactions t
+                    where
+                        t.Type in (104) and
+                        t.RegId1 = addressRegId.RowId and
+                        -- include only non-chain transactions
+                        not exists(select 1 from Chain c where c.TxId = t.RowId)
+                ),
+
+            select
+                mempool.cnt
+            from
+                mempool
+        )sql";
+
+        #pragma endregion
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    cursor.CollectAll(
+                        result.MempoolCount
+                    );
+                }
+            });
+        });
+
+        return result;
+    }
+
+    ConsensusData_BarteronOffer ConsensusRepository::BarteronOffer(const string& address, const string& rootTxHash)
+    {
+        // BARTERON OFFER
+        // NEW ----------------
+        // --- Count active (not deleted) offers
+        // ExternalRepoInst.TryTransactionStep(__func__, [&]()
+        // {
+        //     auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
+        //         select
+        //             count()
+        //         from
+        //             Transactions t indexed by Transactions_Type_Last_String1_Height_Id
+        //         where
+        //             t.Type in (211) and
+        //             t.Last = 1 and
+        //             t.String1 = ? and
+        //             t.Height is not null
+        //     )sql");
+        //     ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
+
+        //     if (ExternalRepoInst.Step(stmt) == SQLITE_ROW)
+        //         if (auto[ok, value] = ExternalRepoInst.TryGetColumnInt(*stmt, 0); ok)
+        //             count = value;
+
+        //     ExternalRepoInst.FinalizeSqlStatement(*stmt);
+        // });
+
+        // EDIT -------------
+        // --- edited offer must be same type and not deleted
+        // ExternalRepoInst.TryTransactionStep(__func__, [&]()
+        // {
+        //     auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
+        //         select
+        //             1
+        //         from
+        //             Transactions t indexed by Transactions_Type_Last_String1_String2_Height
+        //         where
+        //             t.Type in (211) and
+        //             t.Last = 1 and
+        //             t.String1 = ? and
+        //             t.String2 = ? and
+        //             t.Height is not null
+        //     )sql");
+        //     ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
+        //     ExternalRepoInst.TryBindStatementText(stmt, 2, *ptx->GetRootTxHash());
+
+        //     allow = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
+
+        //     ExternalRepoInst.FinalizeSqlStatement(*stmt);
+        // });
+
+        #pragma region Prepare
+
+        ConsensusData_BarteronOffer result;
+        
+        string sql = R"sql(
+            with
+
+                addressRegId as (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        String = ?
+                ),
+
+                -- count of active offers
+
+                -- type of last offers instance
+
+                mempool as (
+                    select
+                        count()cnt
+                    from
+                        addressRegId,
+                        Transactions t
+                    where
+                        t.Type in (211) and
+                        t.RegId1 = addressRegId.RowId and
+                        -- include only non-chain transactions
+                        not exists(select 1 from Chain c where c.TxId = t.RowId)
+                ),
+
+            select
+                mempool.cnt
+            from
+                mempool
+        )sql";
+
+        #pragma endregion
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    cursor.CollectAll(
+                        result.LastTxType,
+                        result.ActiveCount,
+                        result.MempoolCount
+                    );
+                }
+            });
+        });
+
+        return result;
+    }
 
 
 

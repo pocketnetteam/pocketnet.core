@@ -29,10 +29,16 @@ namespace PocketConsensus
             if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
                 return {false, code};
 
+            // Get all the necessary data for transaction validation
+            consensusData = ConsensusRepoInst.BarteronAccount(
+                *ptx->GetAddress()
+            );
+
             return Success;
         }
 
     protected:
+        ConsensusData_BarteronAccount consensusData;
     
         ConsensusValidateResult ValidateBlock(const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
@@ -45,26 +51,7 @@ namespace PocketConsensus
         
         ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
         {
-            bool exists = false;
-
-            // ExternalRepoInst.TryTransactionStep(__func__, [&]()
-            // {
-            //     auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
-            //         select
-            //             1
-            //         from
-            //             Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
-            //         where
-            //             t.Type in (104) and
-            //             t.String1 = ? and
-            //             t.Height is null
-            //     )sql");
-            //     ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
-            //     exists = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
-            //     ExternalRepoInst.FinalizeSqlStatement(*stmt);
-            // });
-
-            return { !exists, ConsensusResult_ManyTransactions };
+            return { consensusData.MempoolCount <= 0, ConsensusResult_ManyTransactions };
         }
 
     };
@@ -78,7 +65,7 @@ namespace PocketConsensus
         BarteronAccountConsensusFactory()
         {
             // TODO (release): set height
-            Checkpoint({ 99999999, 99999999, 0, make_shared<BarteronAccountConsensus>() });
+            Checkpoint({ 99999999, 0, 0, make_shared<BarteronAccountConsensus>() });
         }
     };
 

@@ -31,6 +31,9 @@ namespace PocketConsensus
         
         ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
         {
+            if (auto[ok, code] = Base::Validate(tx, ptx, block); !ok)
+                return {false, code};
+
             // Get all the necessary data for transaction validation
             consensusData = ConsensusRepoInst.AccountUser(
                 *ptx->GetAddress(),
@@ -50,7 +53,7 @@ namespace PocketConsensus
             if (consensusData.EditsCount > GetConsensusLimit(edit_account_daily_count))
                 return {false, ConsensusResult_ChangeInfoLimit};
 
-            return Base::Validate(tx, ptx, block);
+            return Success;
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const UserRef& ptx) override

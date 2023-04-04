@@ -95,12 +95,20 @@ namespace PocketConsensus
         virtual ConsensusValidateResult Check(const CTransactionRef& tx, const TRef& ptx)
         {
             // All social transactions must have an address
-            if (IsEmpty(ptx->GetAddress()))
-                return {false, ConsensusResult_Failed};
+            Result(ConsensusResult_Failed, [&]()
+            {
+                return IsEmpty(ptx->GetAddress());
+            });
 
-            if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
-                return {false, result};
+            Result(ConsensusResult_FailedOpReturn, [&]()
+            {
+                if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
+                    return false;
 
+                return true;
+            });
+
+            if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
             return Success;
         }
 

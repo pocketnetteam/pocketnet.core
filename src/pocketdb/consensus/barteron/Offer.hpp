@@ -30,48 +30,50 @@ namespace PocketConsensus
             if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
                 return {false, code};
 
+            // Get all the necessary data for transaction validation
+            consensusData = ConsensusRepoInst.BarteronOffer(
+                *ptx->GetAddress(),
+                *ptx->GetRootTxHash()
+            );
+
             // Validate new or edited transaction
             if (ptx->IsEdit())
                 ValidateEdit(ptx);
             else
                 ValidateNew(ptx);
 
-            // TODO (aok): remove when all consensus classes support Result
-            if (ResultCode != ConsensusResult_Success) return {false, ResultCode};
+            if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
+            return Success;
+        }
+
+        ConsensusValidateResult Check(const CTransactionRef& tx, const BarteronOfferRef& ptx) override
+        {
+            SocialConsensus::Check(tx, ptx);
+
+            // Payload must be exists and not empty
+            Result(ConsensusResult_Failed, [&]()
+            {
+                return !ptx->GetPayload();
+            });
+
+            // RootTxHash must not empty
+            Result(ConsensusResult_Failed, [&]()
+            {
+                return !ptx->GetRootTxHash();
+            });
+             
+            if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
             return Success;
         }
 
     protected:
+        ConsensusData_BarteronOffer consensusData;
 
         void ValidateNew(const BarteronOfferRef& ptx)
         {
             // Allowed only N active offers per account
             Result(ConsensusResult_ExceededLimit, [&]() {
-                int count = 0;
-
-                // ExternalRepoInst.TryTransactionStep(__func__, [&]()
-                // {
-                //     auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
-                //         select
-                //             count()
-                //         from
-                //             Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-                //         where
-                //             t.Type in (211) and
-                //             t.Last = 1 and
-                //             t.String1 = ? and
-                //             t.Height is not null
-                //     )sql");
-                //     ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
-
-                //     if (ExternalRepoInst.Step(stmt) == SQLITE_ROW)
-                //         if (auto[ok, value] = ExternalRepoInst.TryGetColumnInt(*stmt, 0); ok)
-                //             count = value;
-
-                //     ExternalRepoInst.FinalizeSqlStatement(*stmt);
-                // });
-
-                return (count >= Limits.Get("max_active_count"));
+                return consensusData.ActiveCount >= Limits.Get("max_active_count");
             });
         }
 
@@ -79,31 +81,7 @@ namespace PocketConsensus
         {
             // Edited transaction must be same type and not deleted
             Result(ConsensusResult_ExceededLimit, [&]() {
-                bool allow = true;
-
-                // ExternalRepoInst.TryTransactionStep(__func__, [&]()
-                // {
-                //     auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
-                //         select
-                //             1
-                //         from
-                //             Transactions t indexed by Transactions_Type_Last_String1_String2_Height
-                //         where
-                //             t.Type in (211) and
-                //             t.Last = 1 and
-                //             t.String1 = ? and
-                //             t.String2 = ? and
-                //             t.Height is not null
-                //     )sql");
-                //     ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
-                //     ExternalRepoInst.TryBindStatementText(stmt, 2, *ptx->GetRootTxHash());
-
-                //     allow = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
-
-                //     ExternalRepoInst.FinalizeSqlStatement(*stmt);
-                // });
-
-                return allow;
+                return (TxType)consensusData.LastTxType != BARTERON_OFFER;
             });
         }
     
@@ -115,36 +93,17 @@ namespace PocketConsensus
                 return blockPtxs.size() > 0;
             });
 
-            return { ResultCode == ConsensusResult_Success, ResultCode };
+            return { ResultCode == ConsensusResult_Success, ResultCode }; // TODO (aok): remove when all consensus classes support Result
         }
 
         ConsensusValidateResult ValidateMempool(const BarteronOfferRef& ptx) override
         {
             // Only one transaction change barteron offer allowed in mempool
             Result(ConsensusResult_ManyTransactions, [&]() {
-                bool exists = false;
-
-                // ExternalRepoInst.TryTransactionStep(__func__, [&]()
-                // {
-                //     auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
-                //         select
-                //             1
-                //         from
-                //             Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
-                //         where
-                //             t.Type in (211) and
-                //             t.String1 = ? and
-                //             t.Height is null
-                //     )sql");
-                //     ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
-                //     exists = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
-                //     ExternalRepoInst.FinalizeSqlStatement(*stmt);
-                // });
-
-                return exists;
+                return consensusData.MempoolCount > 0;
             });
 
-            return { ResultCode == ConsensusResult_Success, ResultCode };
+            return { ResultCode == ConsensusResult_Success, ResultCode }; // TODO (aok): remove when all consensus classes support Result
         }
 
     };
@@ -158,7 +117,7 @@ namespace PocketConsensus
         BarteronOfferConsensusFactory()
         {
             // TODO (release): set height
-            Checkpoint({ 99999999, 99999999, 0, make_shared<BarteronOfferConsensus>() });
+            Checkpoint({ 99999999, 0, 0, make_shared<BarteronOfferConsensus>() });
         }
     };
 
