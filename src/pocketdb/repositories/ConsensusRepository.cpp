@@ -6,8 +6,7 @@
 
 namespace PocketDb
 {
-    ConsensusData_AccountUser ConsensusRepository::AccountUser(
-        const string& address, int depth, const string& name)
+    ConsensusData_AccountUser ConsensusRepository::AccountUser(const string& address, int depth, const string& name)
     {
         #pragma region Prepare
 
@@ -152,7 +151,6 @@ namespace PocketDb
         return result;
     }
 
-
     ConsensusData_BarteronAccount ConsensusRepository::BarteronAccount(const string& address)
     {
         #pragma region Prepare
@@ -211,55 +209,6 @@ namespace PocketDb
 
     ConsensusData_BarteronOffer ConsensusRepository::BarteronOffer(const string& address, const string& rootTxHash)
     {
-        // BARTERON OFFER
-        // NEW ----------------
-        // --- Count active (not deleted) offers
-        // ExternalRepoInst.TryTransactionStep(__func__, [&]()
-        // {
-        //     auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
-        //         select
-        //             count()
-        //         from
-        //             Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-        //         where
-        //             t.Type in (211) and
-        //             t.Last = 1 and
-        //             t.String1 = ? and
-        //             t.Height is not null
-        //     )sql");
-        //     ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
-
-        //     if (ExternalRepoInst.Step(stmt) == SQLITE_ROW)
-        //         if (auto[ok, value] = ExternalRepoInst.TryGetColumnInt(*stmt, 0); ok)
-        //             count = value;
-
-        //     ExternalRepoInst.FinalizeSqlStatement(*stmt);
-        // });
-
-        // EDIT -------------
-        // --- edited offer must be same type and not deleted
-        // ExternalRepoInst.TryTransactionStep(__func__, [&]()
-        // {
-        //     auto stmt = ExternalRepoInst.SetupSqlStatement(R"sql(
-        //         select
-        //             1
-        //         from
-        //             Transactions t indexed by Transactions_Type_Last_String1_String2_Height
-        //         where
-        //             t.Type in (211) and
-        //             t.Last = 1 and
-        //             t.String1 = ? and
-        //             t.String2 = ? and
-        //             t.Height is not null
-        //     )sql");
-        //     ExternalRepoInst.TryBindStatementText(stmt, 1, *ptx->GetAddress());
-        //     ExternalRepoInst.TryBindStatementText(stmt, 2, *ptx->GetRootTxHash());
-
-        //     allow = (ExternalRepoInst.Step(stmt) == SQLITE_ROW);
-
-        //     ExternalRepoInst.FinalizeSqlStatement(*stmt);
-        // });
-
         #pragma region Prepare
 
         ConsensusData_BarteronOffer result;
@@ -276,9 +225,44 @@ namespace PocketDb
                         String = ?
                 ),
 
-                -- count of active offers
+                rootRegId as (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        String = ?
+                ),
 
-                -- type of last offers instance
+                lastTx as (
+                    select
+                        ifnull(min(t.Type),0) type
+                    from
+                        addressRegId,
+                        rootRegId,
+                        Transactions t -- todo : index
+                    where
+                        t.Type in (211) and
+                        t.RegId1 = addressRegId.RowId and
+                        t.RegId2 = rootRegId.RowId and
+                        -- filter by chain for exclude mempool
+                        exists(select 1 from Chain c where c.TxId = t.RowId) and
+                        -- filter by Last
+                        exists(select 1 from Last l where l.TxId = t.RowId)
+                ),
+
+                active as (
+                    select
+                        count()cnt
+                    from
+                        addressRegId,
+                        Transactions t
+                    where
+                        t.Type in (211) and
+                        t.RegId1 = addressRegId.RowId and
+                        -- include only chain transactions
+                        exists (select 1 from Chain c where c.TxId = t.RowId)
+                ),
 
                 mempool as (
                     select
@@ -290,12 +274,16 @@ namespace PocketDb
                         t.Type in (211) and
                         t.RegId1 = addressRegId.RowId and
                         -- include only non-chain transactions
-                        not exists(select 1 from Chain c where c.TxId = t.RowId)
+                        not exists (select 1 from Chain c where c.TxId = t.RowId)
                 ),
 
             select
+                lastTx.type,
+                active.cnt,
                 mempool.cnt
             from
+                lastTx,
+                active,
                 mempool
         )sql";
 
@@ -304,7 +292,7 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(address)
+            .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                 {
