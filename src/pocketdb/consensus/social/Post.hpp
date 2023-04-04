@@ -52,10 +52,6 @@ namespace PocketConsensus
                 }
             }
 
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 

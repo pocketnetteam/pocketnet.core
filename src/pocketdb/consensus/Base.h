@@ -257,7 +257,6 @@ namespace PocketConsensus
         ConsensusLimit_max_audio_size,
         ConsensusLimit_max_collection_size,
         ConsensusLimit_max_comment_size,
-        ConsensusLimit_max_account_setting_size,
 
         ConsensusLimit_scores_one_to_one,
         ConsensusLimit_scores_one_to_one_over_comment,
@@ -674,11 +673,6 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 2000} } },
             { NetworkTest,    { {0, 2000} } },
             { NetworkRegTest, { {0, 2000} } }
-        } },
-        { ConsensusLimit_max_account_setting_size, {
-            { NetworkMain,    { {0, 2048} } },
-            { NetworkTest,    { {0, 2048} } },
-            { NetworkRegTest, { {0, 2048} } }
         } },
 
         // MODERATION

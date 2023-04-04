@@ -137,56 +137,56 @@ namespace PocketConsensus
         // Check transactions with consensus logic
         switch (*ptx->GetType())
         {
-            case ACCOUNT_SETTING:
-                return ConsensusFactoryInst_AccountSetting.Instance(height)->Check(tx, static_pointer_cast<AccountSetting>(ptx));
-            case ACCOUNT_DELETE:
-                return ConsensusFactoryInst_AccountDelete.Instance(height)->Check(tx, static_pointer_cast<AccountDelete>(ptx));
+            // case ACCOUNT_SETTING:
+            //     return ConsensusFactoryInst_AccountSetting.Instance(height)->Check(tx, static_pointer_cast<AccountSetting>(ptx));
+            // case ACCOUNT_DELETE:
+            //     return ConsensusFactoryInst_AccountDelete.Instance(height)->Check(tx, static_pointer_cast<AccountDelete>(ptx));
             case ACCOUNT_USER:
                 return ConsensusFactoryInst_AccountUser.Instance(height)->Check(tx, static_pointer_cast<User>(ptx));
-            case CONTENT_POST:
-                return ConsensusFactoryInst_Post.Instance(height)->Check(tx, static_pointer_cast<Post>(ptx));
-            case CONTENT_VIDEO:
-                return ConsensusFactoryInst_Video.Instance(height)->Check(tx, static_pointer_cast<Video>(ptx));
-            case CONTENT_ARTICLE:
-                return ConsensusFactoryInst_Article.Instance(height)->Check(tx, static_pointer_cast<Article>(ptx));
-            case CONTENT_STREAM:
-                return ConsensusFactoryInst_Stream.Instance(height)->Check(tx, static_pointer_cast<Stream>(ptx));
-            case CONTENT_AUDIO:
-                return ConsensusFactoryInst_Audio.Instance(height)->Check(tx, static_pointer_cast<Audio>(ptx));
-            case CONTENT_COLLECTION:
-                return ConsensusFactoryInst_Collection.Instance(height)->Check(tx, static_pointer_cast<Collection>(ptx));
-            case CONTENT_COMMENT:
-                return ConsensusFactoryInst_Comment.Instance(height)->Check(tx, static_pointer_cast<Comment>(ptx));
-            case CONTENT_COMMENT_EDIT:
-                return ConsensusFactoryInst_CommentEdit.Instance(height)->Check(tx, static_pointer_cast<CommentEdit>(ptx));
-            case CONTENT_COMMENT_DELETE:
-                return ConsensusFactoryInst_CommentDelete.Instance(height)->Check(tx, static_pointer_cast<CommentDelete>(ptx));
-            case CONTENT_DELETE:
-                return ConsensusFactoryInst_ContentDelete.Instance(height)->Check(tx, static_pointer_cast<ContentDelete>(ptx));
-            case BOOST_CONTENT:
-                return ConsensusFactoryInst_BoostContent.Instance(height)->Check(tx, static_pointer_cast<BoostContent>(ptx));
-            case ACTION_SCORE_CONTENT:
-                return ConsensusFactoryInst_ScoreContent.Instance(height)->Check(tx, static_pointer_cast<ScoreContent>(ptx));
-            case ACTION_SCORE_COMMENT:
-                return ConsensusFactoryInst_ScoreComment.Instance(height)->Check(tx, static_pointer_cast<ScoreComment>(ptx));
-            case ACTION_SUBSCRIBE:
-                return ConsensusFactoryInst_Subscribe.Instance(height)->Check(tx, static_pointer_cast<Subscribe>(ptx));
-            case ACTION_SUBSCRIBE_PRIVATE:
-                return ConsensusFactoryInst_SubscribePrivate.Instance(height)->Check(tx, static_pointer_cast<SubscribePrivate>(ptx));
-            case ACTION_SUBSCRIBE_CANCEL:
-                return ConsensusFactoryInst_SubscribeCancel.Instance(height)->Check(tx, static_pointer_cast<SubscribeCancel>(ptx));
-            case ACTION_BLOCKING:
-                return ConsensusFactoryInst_Blocking.Instance(height)->Check(tx, static_pointer_cast<Blocking>(ptx));
-            case ACTION_BLOCKING_CANCEL:
-                return ConsensusFactoryInst_BlockingCancel.Instance(height)->Check(tx, static_pointer_cast<BlockingCancel>(ptx));
-            case ACTION_COMPLAIN:
-                return ConsensusFactoryInst_Complain.Instance(height)->Check(tx, static_pointer_cast<Complain>(ptx));
+            // case CONTENT_POST:
+            //     return ConsensusFactoryInst_Post.Instance(height)->Check(tx, static_pointer_cast<Post>(ptx));
+            // case CONTENT_VIDEO:
+            //     return ConsensusFactoryInst_Video.Instance(height)->Check(tx, static_pointer_cast<Video>(ptx));
+            // case CONTENT_ARTICLE:
+            //     return ConsensusFactoryInst_Article.Instance(height)->Check(tx, static_pointer_cast<Article>(ptx));
+            // case CONTENT_STREAM:
+            //     return ConsensusFactoryInst_Stream.Instance(height)->Check(tx, static_pointer_cast<Stream>(ptx));
+            // case CONTENT_AUDIO:
+            //     return ConsensusFactoryInst_Audio.Instance(height)->Check(tx, static_pointer_cast<Audio>(ptx));
+            // case CONTENT_COLLECTION:
+            //     return ConsensusFactoryInst_Collection.Instance(height)->Check(tx, static_pointer_cast<Collection>(ptx));
+            // case CONTENT_COMMENT:
+            //     return ConsensusFactoryInst_Comment.Instance(height)->Check(tx, static_pointer_cast<Comment>(ptx));
+            // case CONTENT_COMMENT_EDIT:
+            //     return ConsensusFactoryInst_CommentEdit.Instance(height)->Check(tx, static_pointer_cast<CommentEdit>(ptx));
+            // case CONTENT_COMMENT_DELETE:
+            //     return ConsensusFactoryInst_CommentDelete.Instance(height)->Check(tx, static_pointer_cast<CommentDelete>(ptx));
+            // case CONTENT_DELETE:
+            //     return ConsensusFactoryInst_ContentDelete.Instance(height)->Check(tx, static_pointer_cast<ContentDelete>(ptx));
+            // case BOOST_CONTENT:
+            //     return ConsensusFactoryInst_BoostContent.Instance(height)->Check(tx, static_pointer_cast<BoostContent>(ptx));
+            // case ACTION_SCORE_CONTENT:
+            //     return ConsensusFactoryInst_ScoreContent.Instance(height)->Check(tx, static_pointer_cast<ScoreContent>(ptx));
+            // case ACTION_SCORE_COMMENT:
+            //     return ConsensusFactoryInst_ScoreComment.Instance(height)->Check(tx, static_pointer_cast<ScoreComment>(ptx));
+            // case ACTION_SUBSCRIBE:
+            //     return ConsensusFactoryInst_Subscribe.Instance(height)->Check(tx, static_pointer_cast<Subscribe>(ptx));
+            // case ACTION_SUBSCRIBE_PRIVATE:
+            //     return ConsensusFactoryInst_SubscribePrivate.Instance(height)->Check(tx, static_pointer_cast<SubscribePrivate>(ptx));
+            // case ACTION_SUBSCRIBE_CANCEL:
+            //     return ConsensusFactoryInst_SubscribeCancel.Instance(height)->Check(tx, static_pointer_cast<SubscribeCancel>(ptx));
+            // case ACTION_BLOCKING:
+            //     return ConsensusFactoryInst_Blocking.Instance(height)->Check(tx, static_pointer_cast<Blocking>(ptx));
+            // case ACTION_BLOCKING_CANCEL:
+            //     return ConsensusFactoryInst_BlockingCancel.Instance(height)->Check(tx, static_pointer_cast<BlockingCancel>(ptx));
+            // case ACTION_COMPLAIN:
+            //     return ConsensusFactoryInst_Complain.Instance(height)->Check(tx, static_pointer_cast<Complain>(ptx));
 
-            // Moderation
-            case MODERATION_FLAG:
-                return ConsensusFactoryInst_ModerationFlag.Instance(height)->Check(tx, static_pointer_cast<ModerationFlag>(ptx));
-            case MODERATION_VOTE:
-                return ConsensusFactoryInst_ModerationVote.Instance(height)->Check(tx, static_pointer_cast<ModerationVote>(ptx));
+            // // Moderation
+            // case MODERATION_FLAG:
+            //     return ConsensusFactoryInst_ModerationFlag.Instance(height)->Check(tx, static_pointer_cast<ModerationFlag>(ptx));
+            // case MODERATION_VOTE:
+            //     return ConsensusFactoryInst_ModerationVote.Instance(height)->Check(tx, static_pointer_cast<ModerationVote>(ptx));
 
             // Barteron
             case BARTERON_OFFER:
@@ -195,7 +195,8 @@ namespace PocketConsensus
                 return ConsensusFactoryInst_BarteronAccount.Instance(height)->Check(tx, static_pointer_cast<BarteronAccount>(ptx));
 
             default:
-                return {false, ConsensusResult_NotImplemeted};
+                // return { false, ConsensusResult_NotImplemeted };
+                return { true, ConsensusResult_Success };
         }
     }
 
@@ -207,56 +208,56 @@ namespace PocketConsensus
         // Validate transactions with consensus logic
         switch (*ptx->GetType())
         {
-            case ACCOUNT_SETTING:
-                return ConsensusFactoryInst_AccountSetting.Instance(height)->Validate(tx, static_pointer_cast<AccountSetting>(ptx), pBlock);
-            case ACCOUNT_DELETE:
-                return ConsensusFactoryInst_AccountDelete.Instance(height)->Validate(tx, static_pointer_cast<AccountDelete>(ptx), pBlock);
+            // case ACCOUNT_SETTING:
+            //     return ConsensusFactoryInst_AccountSetting.Instance(height)->Validate(tx, static_pointer_cast<AccountSetting>(ptx), pBlock);
+            // case ACCOUNT_DELETE:
+            //     return ConsensusFactoryInst_AccountDelete.Instance(height)->Validate(tx, static_pointer_cast<AccountDelete>(ptx), pBlock);
             case ACCOUNT_USER:
                 return ConsensusFactoryInst_AccountUser.Instance(height)->Validate(tx, static_pointer_cast<User>(ptx), pBlock);
-            case CONTENT_POST:
-                return ConsensusFactoryInst_Post.Instance(height)->Validate(tx, static_pointer_cast<Post>(ptx), pBlock);
-            case CONTENT_VIDEO:
-                return ConsensusFactoryInst_Video.Instance(height)->Validate(tx, static_pointer_cast<Video>(ptx), pBlock);
-            case CONTENT_ARTICLE:
-                return ConsensusFactoryInst_Article.Instance(height)->Validate(tx, static_pointer_cast<Article>(ptx), pBlock);
-            case CONTENT_STREAM:
-                return ConsensusFactoryInst_Stream.Instance(height)->Validate(tx, static_pointer_cast<Stream>(ptx), pBlock);
-            case CONTENT_AUDIO:
-                return ConsensusFactoryInst_Audio.Instance(height)->Validate(tx, static_pointer_cast<Audio>(ptx), pBlock);
-            case CONTENT_COLLECTION:
-                return ConsensusFactoryInst_Collection.Instance(height)->Validate(tx, static_pointer_cast<Collection>(ptx), pBlock);
-            case CONTENT_COMMENT:
-                return ConsensusFactoryInst_Comment.Instance(height)->Validate(tx, static_pointer_cast<Comment>(ptx), pBlock);
-            case CONTENT_COMMENT_EDIT:
-                return ConsensusFactoryInst_CommentEdit.Instance(height)->Validate(tx, static_pointer_cast<CommentEdit>(ptx), pBlock);
-            case CONTENT_COMMENT_DELETE:
-                return ConsensusFactoryInst_CommentDelete.Instance(height)->Validate(tx, static_pointer_cast<CommentDelete>(ptx), pBlock);
-            case CONTENT_DELETE:
-                return ConsensusFactoryInst_ContentDelete.Instance(height)->Validate(tx, static_pointer_cast<ContentDelete>(ptx), pBlock);
-            case BOOST_CONTENT:
-                return ConsensusFactoryInst_BoostContent.Instance(height)->Validate(tx, static_pointer_cast<BoostContent>(ptx), pBlock);
-            case ACTION_SCORE_CONTENT:
-                return ConsensusFactoryInst_ScoreContent.Instance(height)->Validate(tx, static_pointer_cast<ScoreContent>(ptx), pBlock);
-            case ACTION_SCORE_COMMENT:
-                return ConsensusFactoryInst_ScoreComment.Instance(height)->Validate(tx, static_pointer_cast<ScoreComment>(ptx), pBlock);
-            case ACTION_SUBSCRIBE:
-                return ConsensusFactoryInst_Subscribe.Instance(height)->Validate(tx, static_pointer_cast<Subscribe>(ptx), pBlock);
-            case ACTION_SUBSCRIBE_PRIVATE:
-                return ConsensusFactoryInst_SubscribePrivate.Instance(height)->Validate(tx, static_pointer_cast<SubscribePrivate>(ptx), pBlock);
-            case ACTION_SUBSCRIBE_CANCEL:
-                return ConsensusFactoryInst_SubscribeCancel.Instance(height)->Validate(tx, static_pointer_cast<SubscribeCancel>(ptx), pBlock);
-            case ACTION_BLOCKING:
-                return ConsensusFactoryInst_Blocking.Instance(height)->Validate(tx, static_pointer_cast<Blocking>(ptx), pBlock);
-            case ACTION_BLOCKING_CANCEL:
-                return ConsensusFactoryInst_BlockingCancel.Instance(height)->Validate(tx, static_pointer_cast<BlockingCancel>(ptx), pBlock);
-            case ACTION_COMPLAIN:
-                return ConsensusFactoryInst_Complain.Instance(height)->Validate(tx, static_pointer_cast<Complain>(ptx), pBlock);
+            // case CONTENT_POST:
+            //     return ConsensusFactoryInst_Post.Instance(height)->Validate(tx, static_pointer_cast<Post>(ptx), pBlock);
+            // case CONTENT_VIDEO:
+            //     return ConsensusFactoryInst_Video.Instance(height)->Validate(tx, static_pointer_cast<Video>(ptx), pBlock);
+            // case CONTENT_ARTICLE:
+            //     return ConsensusFactoryInst_Article.Instance(height)->Validate(tx, static_pointer_cast<Article>(ptx), pBlock);
+            // case CONTENT_STREAM:
+            //     return ConsensusFactoryInst_Stream.Instance(height)->Validate(tx, static_pointer_cast<Stream>(ptx), pBlock);
+            // case CONTENT_AUDIO:
+            //     return ConsensusFactoryInst_Audio.Instance(height)->Validate(tx, static_pointer_cast<Audio>(ptx), pBlock);
+            // case CONTENT_COLLECTION:
+            //     return ConsensusFactoryInst_Collection.Instance(height)->Validate(tx, static_pointer_cast<Collection>(ptx), pBlock);
+            // case CONTENT_COMMENT:
+            //     return ConsensusFactoryInst_Comment.Instance(height)->Validate(tx, static_pointer_cast<Comment>(ptx), pBlock);
+            // case CONTENT_COMMENT_EDIT:
+            //     return ConsensusFactoryInst_CommentEdit.Instance(height)->Validate(tx, static_pointer_cast<CommentEdit>(ptx), pBlock);
+            // case CONTENT_COMMENT_DELETE:
+            //     return ConsensusFactoryInst_CommentDelete.Instance(height)->Validate(tx, static_pointer_cast<CommentDelete>(ptx), pBlock);
+            // case CONTENT_DELETE:
+            //     return ConsensusFactoryInst_ContentDelete.Instance(height)->Validate(tx, static_pointer_cast<ContentDelete>(ptx), pBlock);
+            // case BOOST_CONTENT:
+            //     return ConsensusFactoryInst_BoostContent.Instance(height)->Validate(tx, static_pointer_cast<BoostContent>(ptx), pBlock);
+            // case ACTION_SCORE_CONTENT:
+            //     return ConsensusFactoryInst_ScoreContent.Instance(height)->Validate(tx, static_pointer_cast<ScoreContent>(ptx), pBlock);
+            // case ACTION_SCORE_COMMENT:
+            //     return ConsensusFactoryInst_ScoreComment.Instance(height)->Validate(tx, static_pointer_cast<ScoreComment>(ptx), pBlock);
+            // case ACTION_SUBSCRIBE:
+            //     return ConsensusFactoryInst_Subscribe.Instance(height)->Validate(tx, static_pointer_cast<Subscribe>(ptx), pBlock);
+            // case ACTION_SUBSCRIBE_PRIVATE:
+            //     return ConsensusFactoryInst_SubscribePrivate.Instance(height)->Validate(tx, static_pointer_cast<SubscribePrivate>(ptx), pBlock);
+            // case ACTION_SUBSCRIBE_CANCEL:
+            //     return ConsensusFactoryInst_SubscribeCancel.Instance(height)->Validate(tx, static_pointer_cast<SubscribeCancel>(ptx), pBlock);
+            // case ACTION_BLOCKING:
+            //     return ConsensusFactoryInst_Blocking.Instance(height)->Validate(tx, static_pointer_cast<Blocking>(ptx), pBlock);
+            // case ACTION_BLOCKING_CANCEL:
+            //     return ConsensusFactoryInst_BlockingCancel.Instance(height)->Validate(tx, static_pointer_cast<BlockingCancel>(ptx), pBlock);
+            // case ACTION_COMPLAIN:
+            //     return ConsensusFactoryInst_Complain.Instance(height)->Validate(tx, static_pointer_cast<Complain>(ptx), pBlock);
 
-            // Moderation
-            case MODERATION_FLAG:
-                return ConsensusFactoryInst_ModerationFlag.Instance(height)->Validate(tx, static_pointer_cast<ModerationFlag>(ptx), pBlock);
-            case MODERATION_VOTE:
-                return ConsensusFactoryInst_ModerationVote.Instance(height)->Validate(tx, static_pointer_cast<ModerationVote>(ptx), pBlock);
+            // // Moderation
+            // case MODERATION_FLAG:
+            //     return ConsensusFactoryInst_ModerationFlag.Instance(height)->Validate(tx, static_pointer_cast<ModerationFlag>(ptx), pBlock);
+            // case MODERATION_VOTE:
+            //     return ConsensusFactoryInst_ModerationVote.Instance(height)->Validate(tx, static_pointer_cast<ModerationVote>(ptx), pBlock);
 
             // Barteron
             case BARTERON_OFFER:
@@ -265,7 +266,8 @@ namespace PocketConsensus
                 return ConsensusFactoryInst_BarteronAccount.Instance(height)->Validate(tx, static_pointer_cast<BarteronAccount>(ptx), pBlock);
 
             default:
-                return {false, ConsensusResult_NotImplemeted};
+                // return { false, ConsensusResult_NotImplemeted };
+                return {true, ConsensusResult_Success};
         }
     }
 

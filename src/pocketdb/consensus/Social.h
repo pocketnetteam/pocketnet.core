@@ -108,6 +108,11 @@ namespace PocketConsensus
                 return true;
             });
 
+            Result(ConsensusResult_Size, [&]()
+            {
+                return ptx->PayloadSize() > (size_t)Limits.Get("payload_size");
+            });
+
             if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
             return Success;
         }
@@ -134,16 +139,6 @@ namespace PocketConsensus
             return Success;
         }
         
-        virtual ConsensusValidateResult ValidatePayloadSize(const TRef& ptx)
-        {
-            Result(ConsensusResult_Size, [&]() {
-                return PayloadSize(ptx) > (size_t)Limits.Get("payload_size");
-            });
-
-            if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
-            return Success;
-        }
-
         // Generic check consistence Transaction and Payload
         virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const TRef& ptx)
         {
@@ -163,31 +158,6 @@ namespace PocketConsensus
         virtual vector<string> GetAddressesForCheckRegistration(const TRef& ptx)
         {
             return { *ptx->GetAddress() };
-        }
-
-        // Collect all string fields size
-        virtual size_t PayloadSize(const shared_ptr<T>& ptx)
-        {
-            size_t dataSize =
-                (ptx->GetString1() ? ptx->GetString1()->size() : 0) +
-                (ptx->GetString2() ? ptx->GetString2()->size() : 0) +
-                (ptx->GetString3() ? ptx->GetString3()->size() : 0) +
-                (ptx->GetString4() ? ptx->GetString4()->size() : 0) +
-                (ptx->GetString5() ? ptx->GetString5()->size() : 0);
-            
-            if (ptx->GetPayload())
-            {
-                dataSize +=
-                    (ptx->GetPayload()->GetString1() ? ptx->GetPayload()->GetString1()->size() : 0) +
-                    (ptx->GetPayload()->GetString2() ? ptx->GetPayload()->GetString2()->size() : 0) +
-                    (ptx->GetPayload()->GetString3() ? ptx->GetPayload()->GetString3()->size() : 0) +
-                    (ptx->GetPayload()->GetString4() ? ptx->GetPayload()->GetString4()->size() : 0) +
-                    (ptx->GetPayload()->GetString5() ? ptx->GetPayload()->GetString5()->size() : 0) +
-                    (ptx->GetPayload()->GetString6() ? ptx->GetPayload()->GetString6()->size() : 0) +
-                    (ptx->GetPayload()->GetString7() ? ptx->GetPayload()->GetString7()->size() : 0);
-            }
-
-            return dataSize;
         }
 
         // Find transactions in block

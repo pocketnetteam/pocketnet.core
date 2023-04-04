@@ -24,6 +24,8 @@ namespace PocketTx
 
         string BuildHash() override;
         
+        size_t PayloadSize() override;
+        
     };
 
     typedef shared_ptr<SocialTransaction> SocialTransactionRef;

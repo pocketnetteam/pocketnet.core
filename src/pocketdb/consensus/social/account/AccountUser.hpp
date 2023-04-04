@@ -86,8 +86,9 @@ namespace PocketConsensus
             if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
                 return Success;
 
-            LogPrintf("DEBUG! ConsensusResult_FailedOpReturn - %s\n", *ptx->GetHash());
+            LogPrintf("DEBUG - ConsensusResult_FailedOpReturn - %s\n", *ptx->GetHash());
             return Success;
+            // return {false, SocialConsensusResult_FailedOpReturn};
         }
 
     protected:
@@ -130,7 +131,7 @@ namespace PocketConsensus
             return Success;
         }
         
-        ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx) override
+        ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx)
         {
             size_t dataSize =
                 (ptx->GetPayloadName() ? ptx->GetPayloadName()->size() : 0) +
@@ -198,7 +199,7 @@ namespace PocketConsensus
     public:
         AccountUserConsensusFactory()
         {
-            Checkpoint({       0,     -1, -1, make_shared<AccountUserConsensus>() });
+            Checkpoint({ 0, -1, -1, make_shared<AccountUserConsensus>() });
         }
     };
 

@@ -27,10 +27,6 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const ArticleRef& ptx, const PocketBlockRef& block) override
         {
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
@@ -209,7 +205,7 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual ConsensusValidateResult ValidatePayloadSize(const ArticleRef& ptx)
+        ConsensusValidateResult ValidatePayloadSize(const ArticleRef& ptx)
         {
             size_t dataSize =
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +

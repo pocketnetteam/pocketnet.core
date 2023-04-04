@@ -26,10 +26,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const VideoRef& ptx, const PocketBlockRef& block) override
         {
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 

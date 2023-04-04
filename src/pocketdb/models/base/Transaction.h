@@ -87,6 +87,7 @@ namespace PocketTx
         
         void GeneratePayload();
         void ClearPayload();
+        virtual size_t PayloadSize();
 
     protected:
         optional<TxType> m_type = nullopt;

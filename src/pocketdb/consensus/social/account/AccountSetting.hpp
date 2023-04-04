@@ -25,10 +25,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const AccountSettingRef& ptx, const PocketBlockRef& block) override
         {
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             return SocialConsensus::Validate(tx, ptx, block);
         }
 
@@ -89,14 +85,6 @@ namespace PocketConsensus
                 *ptx->GetAddress(),
                 Height - (int)GetConsensusLimit(ConsensusLimit_depth)
             );
-        }
-    
-        ConsensusValidateResult ValidatePayloadSize(const AccountSettingRef& ptx) override
-        {
-            if ((int64_t)ptx->GetPayloadData()->size() > GetConsensusLimit(ConsensusLimit_max_account_setting_size))
-                return {false, ConsensusResult_ContentSizeLimit};
-
-            return Success;
         }
     };
 

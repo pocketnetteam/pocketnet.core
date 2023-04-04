@@ -26,10 +26,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const AudioRef& ptx, const PocketBlockRef& block) override
         {
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
@@ -212,7 +208,7 @@ namespace PocketConsensus
 
             return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_audio_depth);
         }
-        virtual ConsensusValidateResult ValidatePayloadSize(const AudioRef& ptx)
+        ConsensusValidateResult ValidatePayloadSize(const AudioRef& ptx)
         {
             size_t dataSize =
                     (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +

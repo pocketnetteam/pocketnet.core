@@ -98,10 +98,6 @@ namespace PocketConsensus
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
                 return {false, ConsensusResult_Blocking};
 
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             // Check edit limit
             if (auto[checkResult, checkCode] = ValidateEditOneLimit(ptx); !checkResult)
                 return {false, checkCode};

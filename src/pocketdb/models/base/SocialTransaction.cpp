@@ -108,5 +108,29 @@ namespace PocketTx
         return SocialTransaction::GenerateHash(data);
     }
 
+    size_t SocialTransaction::PayloadSize()
+    {
+        size_t dataSize =
+            (GetString1() ? GetString1()->size() : 0) +
+            (GetString2() ? GetString2()->size() : 0) +
+            (GetString3() ? GetString3()->size() : 0) +
+            (GetString4() ? GetString4()->size() : 0) +
+            (GetString5() ? GetString5()->size() : 0);
+        
+        if (GetPayload())
+        {
+            dataSize +=
+                (GetPayload()->GetString1() ? GetPayload()->GetString1()->size() : 0) +
+                (GetPayload()->GetString2() ? GetPayload()->GetString2()->size() : 0) +
+                (GetPayload()->GetString3() ? GetPayload()->GetString3()->size() : 0) +
+                (GetPayload()->GetString4() ? GetPayload()->GetString4()->size() : 0) +
+                (GetPayload()->GetString5() ? GetPayload()->GetString5()->size() : 0) +
+                (GetPayload()->GetString6() ? GetPayload()->GetString6()->size() : 0) +
+                (GetPayload()->GetString7() ? GetPayload()->GetString7()->size() : 0);
+        }
+
+        return dataSize;
+    }
+
 } // namespace PocketTx
 

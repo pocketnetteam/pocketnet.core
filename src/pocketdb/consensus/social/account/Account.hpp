@@ -29,10 +29,6 @@ namespace PocketConsensus
         
         ConsensusValidateResult Validate(const CTransactionRef& tx, const TRef& ptx, const PocketBlockRef& block) override
         {
-            // Check payload size
-            if (auto[ok, code] = Base::ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             return Base::Validate(tx, ptx, block);
         }
 
@@ -46,23 +42,6 @@ namespace PocketConsensus
                 return {false, ConsensusResult_Failed};
 
             return Base::Success;
-        }
-
-        // TODO (optimization): remove after setting checkpoints
-        ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const TRef& ptx) override
-        {
-            auto ptxORHash = ptx->BuildHash();
-            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
-            if (ptxORHash == txORHash)
-                return Base::Success;
-
-            if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                return Base::Success;
-
-            // TODO (optimization): DEBUG!
-            LogPrintf("DEBUG! SocialConsensusResult_FailedOpReturn - %s\n", *ptx->GetHash());
-            return Base::Success;
-            // return {false, SocialConsensusResult_FailedOpReturn};
         }
 
     protected:

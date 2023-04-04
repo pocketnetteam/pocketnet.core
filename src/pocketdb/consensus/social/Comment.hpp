@@ -64,10 +64,6 @@ namespace PocketConsensus
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
                 return {false, ConsensusResult_Blocking};
 
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             return SocialConsensus::Validate(tx, ptx, block);
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const CommentRef& ptx) override
