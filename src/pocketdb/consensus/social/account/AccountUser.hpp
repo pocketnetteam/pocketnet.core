@@ -59,7 +59,7 @@ namespace PocketConsensus
                 return {false, code};
              
             // Check payload
-            if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+            if (!ptx->GetPayload()) return {false, ConsensusResult_Failed};
 
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
@@ -196,8 +196,6 @@ namespace PocketConsensus
         AccountUserConsensusFactory()
         {
             Checkpoint({       0,     -1, -1, make_shared<AccountUserConsensus>() });
-            Checkpoint({ 1381841, 162000, -1, make_shared<AccountUserConsensus_checkpoint_chain_count>() });
-            Checkpoint({ 1647000, 650000,  0, make_shared<AccountUserConsensus_checkpoint_login_limitation>() });
         }
     };
 

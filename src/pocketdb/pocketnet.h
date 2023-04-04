@@ -44,8 +44,7 @@ namespace PocketDb
     extern ExplorerRepository ExplorerRepoInst;
 
     extern CheckpointRepository CheckpointRepoInst;
-
-    extern ExternalRepository ExternalRepoInst;
+    
 } // namespace PocketDb
 
 namespace PocketServices
