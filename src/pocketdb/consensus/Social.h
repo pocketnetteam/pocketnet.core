@@ -128,6 +128,11 @@ namespace PocketConsensus
         
         virtual ConsensusValidateResult ValidatePayloadSize(const TRef& ptx)
         {
+            Result(ConsensusResult_Size, [&]() {
+                return PayloadSize(ptx) > (size_t)Limits.Get("payload_size");
+            });
+
+            if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
             return Success;
         }
 

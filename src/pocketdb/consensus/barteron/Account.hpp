@@ -21,21 +21,15 @@ namespace PocketConsensus
     public:
         BarteronAccountConsensus() : SocialConsensus<BarteronAccount>()
         {
-
+            Limits.Set("payload_size", 2048, 2048, 2048);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
-            // TODO (aok): move to base class
-            // Check payload size
-            Result(ConsensusResult_Size, [&]() {
-                return PayloadSize(ptx) > (size_t)Limits.Get("payload_size");
-            });
+            if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
+                return {false, code};
 
-            // TODO (aok): remove when all consensus classes support Result
-            if (ResultCode != ConsensusResult_Success) return {false, ResultCode};
-            
-            return SocialConsensus::Validate(tx, ptx, block);
+            return Success;
         }
 
     protected:

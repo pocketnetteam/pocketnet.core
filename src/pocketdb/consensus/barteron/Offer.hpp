@@ -27,11 +27,8 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronOfferRef& ptx, const PocketBlockRef& block) override
         {
-            // TODO (aok): move to base class
-            // Check payload size
-            Result(ConsensusResult_Size, [&]() {
-                return PayloadSize(ptx) > (size_t)Limits.Get("payload_size");
-            });
+            if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
+                return {false, code};
 
             // Validate new or edited transaction
             if (ptx->IsEdit())
@@ -41,8 +38,7 @@ namespace PocketConsensus
 
             // TODO (aok): remove when all consensus classes support Result
             if (ResultCode != ConsensusResult_Success) return {false, ResultCode};
-
-            return SocialConsensus::Validate(tx, ptx, block);
+            return Success;
         }
 
     protected:
@@ -119,7 +115,7 @@ namespace PocketConsensus
                 return blockPtxs.size() > 0;
             });
 
-            return {ResultCode == ConsensusResult_Success, ResultCode};
+            return { ResultCode == ConsensusResult_Success, ResultCode };
         }
 
         ConsensusValidateResult ValidateMempool(const BarteronOfferRef& ptx) override
@@ -148,7 +144,7 @@ namespace PocketConsensus
                 return exists;
             });
 
-            return {ResultCode == ConsensusResult_Success, ResultCode};
+            return { ResultCode == ConsensusResult_Success, ResultCode };
         }
 
     };
