@@ -679,41 +679,57 @@ namespace PocketDb
     {
         // Get new ID or copy previous
 
-        return "";
-
-        // auto setIdStmt = SetupSqlStatement(R"sql(
-        //     UPDATE Transactions SET
-        //         Id = ifnull(
-        //             -- copy self Id
-        //             (
-        //                 select a.Id
-        //                 from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
-        //                 where a.Type in (104)
-        //                     and a.Last = 1
-        //                     and a.String1 = Transactions.String1
-        //                     and a.Height is not null
-        //                 limit 1
-        //             ),
-        //             ifnull(
-        //                 -- new record
-        //                 (
-        //                     select max( a.Id ) + 1
-        //                     from Transactions a indexed by Transactions_Id
-        //                 ),
-        //                 0 -- for first record
-        //             )
-        //         ),
-        //         Last = 1
-        //     WHERE Hash = ?
-        // )sql");
-        // TryBindStatementText(setIdStmt, 1, txHash);
-        // TryStepStatement(setIdStmt);
-
-        // // Set first field
-        // SetFirst(txHash);
-
-        // // Clear old last records for set new last
-        // ClearOldLast(txHash);
+        return R"sql(
+            with
+                l as (
+                    select
+                        b.RowId
+                    from
+                        Transactions a -- primary key
+                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on b.Type = 104 and
+                            b.RegId1 = a.RegId1
+                        join Last l
+                            on l.TxId = b.RowId
+                    where
+                        a.Type = 104 and
+                        a.RowId = (
+                            select t.RowId
+                            from vTx t
+                            where t.Hash = ?
+                        )
+                    limit 1
+                )
+            select
+                ifnull(
+                    (
+                        select
+                            c.Uid
+                        from
+                            Chain c, -- primary key
+                            l
+                        where
+                            c.TxId = l.RowId
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select
+                                max(c.Uid) + 1
+                            from
+                                Chain c indexed by Chain_Uid_Height
+                        ),
+                        -- for first record
+                        (
+                            select 0
+                        )
+                    )
+                ),
+                (
+                    select l.RowId
+                    from l
+                )
+        )sql";
     }
     
 
