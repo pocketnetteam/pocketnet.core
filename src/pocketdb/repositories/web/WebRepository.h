@@ -33,6 +33,9 @@ namespace PocketDb
 
         vector<WebContent> GetContent(const string& blockHash);
         void UpsertContent(const vector<WebContent>& contentList);
+
+        void UpsertBarteronAccounts(const string& blockHash);
+        void UpsertBarteronOffers(const string& blockHash);
     };
 
     typedef shared_ptr<WebRepository> WebRepositoryRef;

@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Audio> AudioRef;
 
     /*******************************************************************************************************************
@@ -20,7 +19,11 @@ namespace PocketConsensus
     class AudioConsensus : public SocialConsensus<Audio>
     {
     public:
-        AudioConsensus(int height) : SocialConsensus<Audio>(height) {}
+        AudioConsensus() : SocialConsensus<Audio>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const AudioRef& ptx, const PocketBlockRef& block) override
         {
             // Check payload size
@@ -32,16 +35,17 @@ namespace PocketConsensus
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
+
         ConsensusValidateResult Check(const CTransactionRef& tx, const AudioRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
 
             // Repost not allowed
-            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
+            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, ConsensusResult_NotAllowed};
 
             return Success;
         }
@@ -117,39 +121,39 @@ namespace PocketConsensus
                     { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE, CONTENT_STREAM, CONTENT_AUDIO }
             );
             if (lastContentOk && *lastContent->GetType() != CONTENT_AUDIO)
-                return {false, SocialConsensusResult_NotAllowed};
+                return {false, ConsensusResult_NotAllowed};
 
             // First get original post transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
             if (!lastContentOk || !originalTxOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<Audio>(originalTx);
 
             // Change type not allowed
             if (*originalPtx->GetType() != *ptx->GetType())
-                return {false, SocialConsensusResult_NotAllowed};
+                return {false, ConsensusResult_NotAllowed};
 
             // You are author? Really?
             if (*ptx->GetAddress() != *originalPtx->GetAddress())
-                return {false, SocialConsensusResult_ContentEditUnauthorized};
+                return {false, ConsensusResult_ContentEditUnauthorized};
 
             // Original post edit only 24 hours
             if (!AllowEditWindow(ptx, originalPtx))
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, ConsensusResult_ContentEditLimit};
 
             return Success;
         }
         // TODO (aok): move to base Social class
         virtual ConsensusValidateResult ValidateLimit(const AudioRef& ptx, int count)
         {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             auto limit = GetLimit(mode);
 
             if (count >= limit)
-                return {false, SocialConsensusResult_ContentLimit};
+                return {false, ConsensusResult_ContentLimit};
 
             return Success;
         }
@@ -176,7 +180,7 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, SocialConsensusResult_DoubleContentEdit};
+                    return {false, ConsensusResult_DoubleContentEdit};
             }
 
             // Check edit limit
@@ -186,7 +190,7 @@ namespace PocketConsensus
         {
 
             if (ConsensusRepoInst.CountMempoolAudioEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_DoubleContentEdit};
+                return {false, ConsensusResult_DoubleContentEdit};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
@@ -196,7 +200,7 @@ namespace PocketConsensus
 
             int count = ConsensusRepoInst.CountChainAudioEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_audio_edit_count))
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, ConsensusResult_ContentEditLimit};
 
             return Success;
         }
@@ -238,33 +242,25 @@ namespace PocketConsensus
             }
 
             if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_audio_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class AudioConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class AudioConsensusFactory : public BaseConsensusFactory<AudioConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < AudioConsensus>> m_rules = {
-                { 2068000, 1449600, 0, [](int height) { return make_shared<AudioConsensus>(height); }},
-        };
     public:
-        shared_ptr<AudioConsensus> Instance(int height)
+        AudioConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                                  [&](int target, const ConsensusCheckpoint<AudioConsensus>& itm)
-                                  {
-                                      return target < itm.Height(Params().NetworkID());
-                                  }
-            ))->m_func(m_height);
+            Checkpoint({ 2068000, 1449600, 0, make_shared<AudioConsensus>() });
         }
     };
+
+    static AudioConsensusFactory ConsensusFactoryInst_Audio;
 }
 
 #endif // POCKETCONSENSUS_AUDIO_HPP

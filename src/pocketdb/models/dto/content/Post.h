@@ -25,15 +25,13 @@ namespace PocketTx
         const optional<string>& GetRelayTxHash() const;
         void SetRelayTxHash(const string& value);
 
-        // TODO (losty): not const& because requires a temporarily object creation
-        //in case of null payload
         optional<string> GetPayloadLang() const;
         optional<string> GetPayloadCaption() const;
         optional<string> GetPayloadMessage() const;
         optional<string> GetPayloadTags() const;
-        optional<string> GetPayloadUrl() const;
         optional<string> GetPayloadImages() const;
         optional<string> GetPayloadSettings() const;
+        optional<string> GetPayloadUrl() const;
 
         string BuildHash() override;
     };

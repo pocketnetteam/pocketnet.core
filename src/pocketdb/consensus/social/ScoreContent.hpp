@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<ScoreContent> ScoreContentRef;
 
     /*******************************************************************************************************************
@@ -20,13 +19,16 @@ namespace PocketConsensus
     class ScoreContentConsensus : public SocialConsensus<ScoreContent>
     {
     public:
-        ScoreContentConsensus(int height) : SocialConsensus<ScoreContent>(height) {}
+        ScoreContentConsensus() : SocialConsensus<ScoreContent>()
+        {
+            // TODO (limits): set limits
+        }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ScoreContentRef& ptx, const PocketBlockRef& block) override
         {
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(*ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, false))
-                return {false, SocialConsensusResult_DoubleScore};
+                return {false, ConsensusResult_DoubleScore};
 
             // Content should be exists in chain
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
@@ -51,15 +53,15 @@ namespace PocketConsensus
                 }
             }
             if (!lastContent)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             // Check score to self
             if (*ptx->GetAddress() == *lastContent->GetString1())
-                return {false, SocialConsensusResult_SelfScore};
+                return {false, ConsensusResult_SelfScore};
 
             // Scores for deleted contents not allowed
             if (*lastContent->GetType() == TxType::CONTENT_DELETE)
-                return {false, SocialConsensusResult_ScoreDeletedContent};
+                return {false, ConsensusResult_ScoreDeletedContent};
 
             // Check Blocking
             if (auto[ok, result] = ValidateBlocking(*lastContent->GetString1(), ptx); !ok)
@@ -72,7 +74,7 @@ namespace PocketConsensus
                 string opReturnPayloadHex = HexStr(opReturnPayloadData);
 
                 if (txOpReturnPayload != opReturnPayloadHex)
-                    return {false, SocialConsensusResult_FailedOpReturn};
+                    return {false, ConsensusResult_FailedOpReturn};
             }
 
             return SocialConsensus::Validate(tx, ptx, block);
@@ -84,13 +86,13 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetValue())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentTxHash())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetValue())) return {false, ConsensusResult_Failed};
 
             auto value = *ptx->GetValue();
             if (value < 1 || value > 5)
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -117,8 +119,8 @@ namespace PocketConsensus
                         count += 1;
 
                     if (*blockPtx->GetContentTxHash() == *ptx->GetContentTxHash())
-                        if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleScore))
-                            return {false, SocialConsensusResult_DoubleScore};
+                        if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_DoubleScore))
+                            return {false, ConsensusResult_DoubleScore};
                 }
             }
 
@@ -130,7 +132,7 @@ namespace PocketConsensus
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
                 *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, true))
-                return {false, SocialConsensusResult_DoubleScore};
+                return {false, ConsensusResult_DoubleScore};
 
             // Get count from chain
             int count = GetChainCount(ptx);
@@ -160,14 +162,14 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidateLimit(const ScoreContentRef& ptx, int count)
         {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             if (count >= GetScoresLimit(mode))
-                return {false, SocialConsensusResult_ScoreLimit};
+                return {false, ConsensusResult_ScoreLimit};
 
             if (!ValidateLowReputation(ptx, mode))
-                return {false, SocialConsensusResult_ScoreLowReputation};
+                return {false, ConsensusResult_ScoreLowReputation};
 
             return Success;
         }
@@ -192,7 +194,7 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_430000 : public ScoreContentConsensus
     {
     public:
-        ScoreContentConsensus_checkpoint_430000(int height) : ScoreContentConsensus(height) {}
+        ScoreContentConsensus_checkpoint_430000() : ScoreContentConsensus() {}
     protected:
         ConsensusValidateResult ValidateBlocking(const string& contentAddress, const ScoreContentRef& ptx) override
         {
@@ -202,7 +204,7 @@ namespace PocketConsensus
             );
 
             if (existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, SocialConsensusResult_Blocking};
+                return {false, ConsensusResult_Blocking};
 
             return Success;
         }
@@ -214,7 +216,7 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_514184 : public ScoreContentConsensus_checkpoint_430000
     {
     public:
-        ScoreContentConsensus_checkpoint_514184(int height) : ScoreContentConsensus_checkpoint_430000(height) {}
+        ScoreContentConsensus_checkpoint_514184() : ScoreContentConsensus_checkpoint_430000() {}
     protected:
         ConsensusValidateResult ValidateBlocking(const string& contentAddress, const ScoreContentRef& ptx) override
         {
@@ -228,7 +230,7 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_1124000 : public ScoreContentConsensus_checkpoint_514184
     {
     public:
-        ScoreContentConsensus_checkpoint_1124000(int height) : ScoreContentConsensus_checkpoint_514184(height) {}
+        ScoreContentConsensus_checkpoint_1124000() : ScoreContentConsensus_checkpoint_514184() {}
     protected:
         bool CheckBlockLimitTime(const ScoreContentRef& ptx, const ScoreContentRef& blockPtx) override
         {
@@ -242,7 +244,7 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_1180000 : public ScoreContentConsensus_checkpoint_1124000
     {
     public:
-        ScoreContentConsensus_checkpoint_1180000(int height) : ScoreContentConsensus_checkpoint_1124000(height) {}
+        ScoreContentConsensus_checkpoint_1180000() : ScoreContentConsensus_checkpoint_1124000() {}
     protected:
         int GetChainCount(const ScoreContentRef& ptx) override
         {
@@ -259,7 +261,7 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_1324655 : public ScoreContentConsensus_checkpoint_1180000
     {
     public:
-        ScoreContentConsensus_checkpoint_1324655(int height) : ScoreContentConsensus_checkpoint_1180000(height) {}
+        ScoreContentConsensus_checkpoint_1324655() : ScoreContentConsensus_checkpoint_1180000() {}
     protected:
         bool ValidateLowReputation(const ScoreContentRef& ptx, AccountMode mode) override
         {
@@ -271,7 +273,7 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_disable_for_blocked : public ScoreContentConsensus_checkpoint_1324655
     {
     public:
-        ScoreContentConsensus_checkpoint_disable_for_blocked(int height) : ScoreContentConsensus_checkpoint_1324655(height) {}
+        ScoreContentConsensus_checkpoint_disable_for_blocked() : ScoreContentConsensus_checkpoint_1324655() {}
     protected:
         ConsensusValidateResult ValidateBlocking(const string& contentAddress, const ScoreContentRef& ptx) override
         {
@@ -281,39 +283,31 @@ namespace PocketConsensus
             );
 
             if (existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, SocialConsensusResult_Blocking};
+                return {false, ConsensusResult_Blocking};
 
             return Success;
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class ScoreContentConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class ScoreContentConsensusFactory : public BaseConsensusFactory<ScoreContentConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < ScoreContentConsensus>> m_rules = {
-            {       0,     -1, -1, [](int height) { return make_shared<ScoreContentConsensus>(height); }},
-            {  430000,     -1, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_430000>(height); }},
-            {  514184,     -1, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_514184>(height); }},
-            { 1124000,     -1, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1124000>(height); }},
-            { 1180000,      0, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1180000>(height); }},
-            { 1324655,  65000, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1324655>(height); }},
-            { 1757000, 953000,  0, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_disable_for_blocked>(height); }},
-        };
     public:
-        shared_ptr<ScoreContentConsensus> Instance(int height)
+        ScoreContentConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ScoreContentConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,     -1, -1, make_shared<ScoreContentConsensus>() });
+            Checkpoint({  430000,     -1, -1, make_shared<ScoreContentConsensus_checkpoint_430000>() });
+            Checkpoint({  514184,     -1, -1, make_shared<ScoreContentConsensus_checkpoint_514184>() });
+            Checkpoint({ 1124000,     -1, -1, make_shared<ScoreContentConsensus_checkpoint_1124000>() });
+            Checkpoint({ 1180000,      0, -1, make_shared<ScoreContentConsensus_checkpoint_1180000>() });
+            Checkpoint({ 1324655,  65000, -1, make_shared<ScoreContentConsensus_checkpoint_1324655>() });
+            Checkpoint({ 1757000, 953000,  0, make_shared<ScoreContentConsensus_checkpoint_disable_for_blocked>() });
         }
     };
+
+    static ScoreContentConsensusFactory ConsensusFactoryInst_ScoreContent;
 }
 
 #endif // POCKETCONSENSUS_SCORECONTENT_HPP

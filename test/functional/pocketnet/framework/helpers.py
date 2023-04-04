@@ -23,6 +23,11 @@ from framework.models import (
 )
 
 
+def generate_coinbase(node):
+    node_address = node.getnewaddress()
+    node.generatetoaddress(1020, node_address)
+    return node_address
+
 def generate_accounts(node, node_address, account_num, amount=10, is_moderator=False):
     accounts = []
     for i in range(account_num):

@@ -1129,6 +1129,45 @@ namespace PocketDb
             .Run();
         });
     }
+
+    // TODO (barteron): implement
+    void ChainRepository::IndexAccountBarteron(const string& txHash)
+    {
+        // Get new ID or copy previous
+        auto setIdStmt = SetupSqlStatement(R"sql(
+            UPDATE Transactions SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select a.Id
+                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
+                        where a.Type in (104)
+                            and a.Last = 1
+                            and a.String1 = Transactions.String1
+                            and a.Height is not null
+                        limit 1
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select max( a.Id ) + 1
+                            from Transactions a indexed by Transactions_Id
+                        ),
+                        0 -- for first record
+                    )
+                ),
+                Last = 1
+            WHERE Hash = ?
+        )sql");
+        TryBindStatementText(setIdStmt, 1, txHash);
+        TryStepStatement(setIdStmt);
+
+        // Set first field
+        SetFirst(txHash);
+
+        // Clear old last records for set new last
+        ClearOldLast(txHash);
+    }
     
     // TODO (optimization): convert to restore
     void ChainRepository::RollbackBadges(int height)

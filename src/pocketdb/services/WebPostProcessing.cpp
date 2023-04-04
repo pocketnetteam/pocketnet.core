@@ -67,6 +67,8 @@ namespace PocketServices
                 {
                     ProcessTags(queueRecord.BlockHash);
                     ProcessSearchContent(queueRecord.BlockHash);
+                    webRepoInst->UpsertBarteronAccounts(queueRecord.BlockHash);
+                    webRepoInst->UpsertBarteronOffers(queueRecord.BlockHash);
                     break;
                 }
                 case QueueRecordType::BlockHeight:

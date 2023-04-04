@@ -26,9 +26,11 @@ namespace PocketConsensus
 
     public:
 
-        ModeratorRegisterConsensus(int height) : SocialConsensus<T>(height)
+        ModeratorRegisterConsensus() : SocialConsensus<T>()
         {
-            reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+            // TODO (limits): set limits
+            
+            reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block) override
@@ -37,7 +39,7 @@ namespace PocketConsensus
 
             // Already `Moderator` cant't register again
             if (badges.Moderator)
-                return {false, SocialConsensusResult_AlreadyExists};
+                return {false, ConsensusResult_AlreadyExists};
 
             return Base::Validate(tx, ptx, block);
         }
@@ -48,10 +50,10 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             if (!ptx->GetModeratorAddress() || (*ptx->GetModeratorAddress()).empty())
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             if (*ptx->GetAddress() != *ptx->GetModeratorAddress())
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Base::Success;
         }
@@ -69,7 +71,7 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<Moderator>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    return {false, SocialConsensusResult_Duplicate};
+                    return {false, ConsensusResult_Duplicate};
             }
 
             return Base::Success;
@@ -78,7 +80,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const shared_ptr<T>& ptx) override
         {
             if (ConsensusRepoInst.Exists_MS1T(*ptx->GetAddress(), { MODERATOR_REGISTER_SELF, MODERATOR_REGISTER_REQUEST, MODERATOR_REGISTER_CANCEL }))
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Base::Success;
         }

@@ -39,6 +39,9 @@ namespace PocketTx
     #define OR_AUDIO "617564696f" // Post for audio hosting
 
     #define OR_COLLECTION "636f6c6c656374696f6e" // Collection of contents
+    
+    #define OR_BARTERON_ACCOUNT "6272746163636f756e74"
+    #define OR_BARTERON_OFFER "6272746f66666572"
 
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
@@ -73,8 +76,6 @@ namespace PocketTx
         TX_COINSTAKE = 3,
 
         ACCOUNT_USER = 100,
-        // ACCOUNT_VIDEO_SERVER = 101,
-        // ACCOUNT_MESSAGE_SERVER = 102,
         ACCOUNT_SETTING = 103,
         ACCOUNT_DELETE = 170,
 
@@ -83,7 +84,6 @@ namespace PocketTx
         CONTENT_POST = 200,
         CONTENT_VIDEO = 201,
         CONTENT_ARTICLE = 202,
-        // CONTENT_SERVERPING = 203,
         CONTENT_STREAM = 209,
         CONTENT_AUDIO = 210,
         CONTENT_COLLECTION = 220,
@@ -115,6 +115,10 @@ namespace PocketTx
 
         MODERATION_FLAG = 410, // Flags are used to mark content that needs moderation
         MODERATION_VOTE = 420, // Votes is used by moderators in the jury process
+
+        // Barteron transactions
+        BARTERON_ACCOUNT = 104,
+        BARTERON_OFFER = 211,
     };
 
     // Rating types
@@ -172,6 +176,11 @@ namespace PocketTx
             return Type == TxType::ACCOUNT_SETTING;
         }
 
+        bool IsAccountBarteron() const
+        {
+            return Type == TxType::BARTERON_ACCOUNT;
+        }
+
         bool IsContent() const {
             return Type == TxType::CONTENT_POST ||
                    Type == TxType::CONTENT_VIDEO ||
@@ -179,6 +188,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_STREAM ||
                    Type == TxType::CONTENT_AUDIO ||
                    Type == TxType::CONTENT_COLLECTION ||
+                   Type == TxType::BARTERON_OFFER ||
                    Type == TxType::CONTENT_DELETE;
         }
 

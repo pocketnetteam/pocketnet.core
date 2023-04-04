@@ -25,7 +25,7 @@ namespace PocketConsensus
         typedef shared_ptr<T> TRef;
 
     public:
-        AccountConsensus(int height) : SocialConsensus<T>(height) {}
+        AccountConsensus() : SocialConsensus<T>() {}
         
         ConsensusValidateResult Validate(const CTransactionRef& tx, const TRef& ptx, const PocketBlockRef& block) override
         {
@@ -43,7 +43,7 @@ namespace PocketConsensus
 
             // Check payload
             if (!ptx->GetPayload())
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Base::Success;
         }

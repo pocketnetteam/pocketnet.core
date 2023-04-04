@@ -8,6 +8,7 @@
 #include "univalue/include/univalue.h"
 
 #include "pocketdb/pocketnet.h"
+#include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/models/base/Base.h"
 
 namespace PocketConsensus
@@ -18,144 +19,144 @@ namespace PocketConsensus
 
     enum SocialConsensusResult
     {
-        SocialConsensusResult_Success = 0,
-        SocialConsensusResult_NotRegistered = 1,
-        SocialConsensusResult_ContentLimit = 2,
-        SocialConsensusResult_ScoreLimit = 3,
-        SocialConsensusResult_DoubleScore = 4,
-        SocialConsensusResult_SelfScore = 5,
-        SocialConsensusResult_ChangeInfoLimit = 6,
-        SocialConsensusResult_InvalideSubscribe = 7,
-        SocialConsensusResult_DoubleSubscribe = 8,
-        SocialConsensusResult_SelfSubscribe = 9,
-        SocialConsensusResult_Unknown = 10,
-        SocialConsensusResult_Failed = 11,
-        SocialConsensusResult_NotFound = 12,
-        SocialConsensusResult_DoubleComplain = 13,
-        SocialConsensusResult_SelfComplain = 14,
-        SocialConsensusResult_ComplainLimit = 15,
-        SocialConsensusResult_ComplainLowReputation = 16,
-        SocialConsensusResult_ContentSizeLimit = 17,
-        SocialConsensusResult_NicknameDouble = 18,
-        SocialConsensusResult_NicknameLong = 19,
-        SocialConsensusResult_ReferrerSelf = 20,
-        SocialConsensusResult_FailedOpReturn = 21,
-        SocialConsensusResult_InvalidBlocking = 22,
-        SocialConsensusResult_DoubleBlocking = 23,
-        SocialConsensusResult_SelfBlocking = 24,
-        SocialConsensusResult_DoubleContentEdit = 25,
-        SocialConsensusResult_ContentEditLimit = 26,
-        SocialConsensusResult_ContentEditUnauthorized = 27,
-        SocialConsensusResult_ManyTransactions = 28,
-        SocialConsensusResult_CommentLimit = 29,
-        SocialConsensusResult_CommentEditLimit = 30,
-        SocialConsensusResult_CommentScoreLimit = 31,
-        SocialConsensusResult_Blocking = 32,
-        SocialConsensusResult_Size = 33,
-        SocialConsensusResult_InvalidParentComment = 34,
-        SocialConsensusResult_InvalidAnswerComment = 35,
-        SocialConsensusResult_DoubleCommentEdit = 37,
-        SocialConsensusResult_SelfCommentScore = 38,
-        SocialConsensusResult_DoubleCommentDelete = 39,
-        SocialConsensusResult_DoubleCommentScore = 40,
-        SocialConsensusResult_CommentDeletedEdit = 42,
-        SocialConsensusResult_NotAllowed = 44,
-        SocialConsensusResult_ChangeTxType = 45,
-        SocialConsensusResult_ContentDeleteUnauthorized = 46,
-        SocialConsensusResult_ContentDeleteDouble = 47,
-        SocialConsensusResult_AccountSettingsDouble = 48,
-        SocialConsensusResult_AccountSettingsLimit = 49,
-        SocialConsensusResult_ChangeInfoDoubleInBlock = 50,
-        SocialConsensusResult_CommentDeletedContent = 51,
-        SocialConsensusResult_RepostDeletedContent = 52,
-        SocialConsensusResult_AlreadyExists = 53,
-        SocialConsensusResult_PocketDataNotFound = 54,
-        SocialConsensusResult_TxORNotFound = 55,
-        SocialConsensusResult_ComplainDeletedContent = 56,
-        SocialConsensusResult_ScoreDeletedContent = 57,
-        SocialConsensusResult_RelayContentNotFound = 58,
-        SocialConsensusResult_BadPayload = 59,
-        SocialConsensusResult_ScoreLowReputation = 60,
-        SocialConsensusResult_ChangeInfoDoubleInMempool = 61,
-        SocialConsensusResult_Duplicate = 62,
-        SocialConsensusResult_NotImplemeted = 63,
-        SocialConsensusResult_SelfFlag = 64,
-        SocialConsensusResult_ExceededLimit = 65,
-        SocialConsensusResult_LowReputation = 66,
-        SocialConsensusResult_AccountDeleted = 67,
-        SocialConsensusResult_AccountBanned = 68,
+        ConsensusResult_Success = 0,
+        ConsensusResult_NotRegistered = 1,
+        ConsensusResult_ContentLimit = 2,
+        ConsensusResult_ScoreLimit = 3,
+        ConsensusResult_DoubleScore = 4,
+        ConsensusResult_SelfScore = 5,
+        ConsensusResult_ChangeInfoLimit = 6,
+        ConsensusResult_InvalideSubscribe = 7,
+        ConsensusResult_DoubleSubscribe = 8,
+        ConsensusResult_SelfSubscribe = 9,
+        ConsensusResult_Unknown = 10,
+        ConsensusResult_Failed = 11,
+        ConsensusResult_NotFound = 12,
+        ConsensusResult_DoubleComplain = 13,
+        ConsensusResult_SelfComplain = 14,
+        ConsensusResult_ComplainLimit = 15,
+        ConsensusResult_ComplainLowReputation = 16,
+        ConsensusResult_ContentSizeLimit = 17,
+        ConsensusResult_NicknameDouble = 18,
+        ConsensusResult_NicknameLong = 19,
+        ConsensusResult_ReferrerSelf = 20,
+        ConsensusResult_FailedOpReturn = 21,
+        ConsensusResult_InvalidBlocking = 22,
+        ConsensusResult_DoubleBlocking = 23,
+        ConsensusResult_SelfBlocking = 24,
+        ConsensusResult_DoubleContentEdit = 25,
+        ConsensusResult_ContentEditLimit = 26,
+        ConsensusResult_ContentEditUnauthorized = 27,
+        ConsensusResult_ManyTransactions = 28,
+        ConsensusResult_CommentLimit = 29,
+        ConsensusResult_CommentEditLimit = 30,
+        ConsensusResult_CommentScoreLimit = 31,
+        ConsensusResult_Blocking = 32,
+        ConsensusResult_Size = 33,
+        ConsensusResult_InvalidParentComment = 34,
+        ConsensusResult_InvalidAnswerComment = 35,
+        ConsensusResult_DoubleCommentEdit = 37,
+        ConsensusResult_SelfCommentScore = 38,
+        ConsensusResult_DoubleCommentDelete = 39,
+        ConsensusResult_DoubleCommentScore = 40,
+        ConsensusResult_CommentDeletedEdit = 42,
+        ConsensusResult_NotAllowed = 44,
+        ConsensusResult_ChangeTxType = 45,
+        ConsensusResult_ContentDeleteUnauthorized = 46,
+        ConsensusResult_ContentDeleteDouble = 47,
+        ConsensusResult_AccountSettingsDouble = 48,
+        ConsensusResult_AccountSettingsLimit = 49,
+        ConsensusResult_ChangeInfoDoubleInBlock = 50,
+        ConsensusResult_CommentDeletedContent = 51,
+        ConsensusResult_RepostDeletedContent = 52,
+        ConsensusResult_AlreadyExists = 53,
+        ConsensusResult_PocketDataNotFound = 54,
+        ConsensusResult_TxORNotFound = 55,
+        ConsensusResult_ComplainDeletedContent = 56,
+        ConsensusResult_ScoreDeletedContent = 57,
+        ConsensusResult_RelayContentNotFound = 58,
+        ConsensusResult_BadPayload = 59,
+        ConsensusResult_ScoreLowReputation = 60,
+        ConsensusResult_ChangeInfoDoubleInMempool = 61,
+        ConsensusResult_Duplicate = 62,
+        ConsensusResult_NotImplemeted = 63,
+        ConsensusResult_SelfFlag = 64,
+        ConsensusResult_ExceededLimit = 65,
+        ConsensusResult_LowReputation = 66,
+        ConsensusResult_AccountDeleted = 67,
+        ConsensusResult_AccountBanned = 68,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
     {
         switch (code)
         {
-            case (SocialConsensusResult_Success): return "Success";
-            case (SocialConsensusResult_NotRegistered): return "NotRegistered";
-            case (SocialConsensusResult_ContentLimit): return "ContentLimit";
-            case (SocialConsensusResult_ScoreLimit): return "ScoreLimit";
-            case (SocialConsensusResult_DoubleScore): return "DoubleScore";
-            case (SocialConsensusResult_SelfScore): return "SelfScore";
-            case (SocialConsensusResult_ChangeInfoLimit): return "ChangeInfoLimit";
-            case (SocialConsensusResult_InvalideSubscribe): return "InvalideSubscribe";
-            case (SocialConsensusResult_DoubleSubscribe): return "DoubleSubscribe";
-            case (SocialConsensusResult_SelfSubscribe): return "SelfSubscribe";
-            case (SocialConsensusResult_Unknown): return "Unknown";
-            case (SocialConsensusResult_Failed): return "Failed";
-            case (SocialConsensusResult_NotFound): return "NotFound";
-            case (SocialConsensusResult_DoubleComplain): return "DoubleComplain";
-            case (SocialConsensusResult_SelfComplain): return "SelfComplain";
-            case (SocialConsensusResult_ComplainLimit): return "ComplainLimit";
-            case (SocialConsensusResult_ComplainLowReputation): return "ComplainLowReputation";
-            case (SocialConsensusResult_ScoreLowReputation): return "ScoreLowReputation";
-            case (SocialConsensusResult_ContentSizeLimit): return "ContentSizeLimit";
-            case (SocialConsensusResult_NicknameDouble): return "NicknameDouble";
-            case (SocialConsensusResult_NicknameLong): return "NicknameLong";
-            case (SocialConsensusResult_ReferrerSelf): return "ReferrerSelf";
-            case (SocialConsensusResult_FailedOpReturn): return "FailedOpReturn";
-            case (SocialConsensusResult_InvalidBlocking): return "InvalidBlocking";
-            case (SocialConsensusResult_DoubleBlocking): return "DoubleBlocking";
-            case (SocialConsensusResult_SelfBlocking): return "SelfBlocking";
-            case (SocialConsensusResult_DoubleContentEdit): return "DoubleContentEdit";
-            case (SocialConsensusResult_ContentEditLimit): return "ContentEditLimit";
-            case (SocialConsensusResult_ContentEditUnauthorized): return "ContentEditUnauthorized";
-            case (SocialConsensusResult_ManyTransactions): return "ManyTransactions";
-            case (SocialConsensusResult_CommentLimit): return "CommentLimit";
-            case (SocialConsensusResult_CommentEditLimit): return "CommentEditLimit";
-            case (SocialConsensusResult_CommentScoreLimit): return "CommentScoreLimit";
-            case (SocialConsensusResult_Blocking): return "Blocking";
-            case (SocialConsensusResult_Size): return "Size";
-            case (SocialConsensusResult_InvalidParentComment): return "InvalidParentComment";
-            case (SocialConsensusResult_InvalidAnswerComment): return "InvalidAnswerComment";
-            case (SocialConsensusResult_DoubleCommentEdit): return "DoubleCommentEdit";
-            case (SocialConsensusResult_SelfCommentScore): return "SelfCommentScore";
-            case (SocialConsensusResult_DoubleCommentDelete): return "DoubleCommentDelete";
-            case (SocialConsensusResult_DoubleCommentScore): return "DoubleCommentScore";
-            case (SocialConsensusResult_CommentDeletedEdit): return "CommentDeletedEdit";
-            case (SocialConsensusResult_NotAllowed): return "NotAllowed";
-            case (SocialConsensusResult_ChangeTxType): return "ChangeTxType";
-            case (SocialConsensusResult_ContentDeleteUnauthorized): return "ContentDeleteUnauthorized";
-            case (SocialConsensusResult_ContentDeleteDouble): return "ContentDeleteDouble";
-            case (SocialConsensusResult_AccountSettingsDouble): return "AccountSettingsDouble";
-            case (SocialConsensusResult_AccountSettingsLimit): return "AccountSettingsLimit";
-            case (SocialConsensusResult_ChangeInfoDoubleInBlock): return "ChangeInfoDoubleInBlock";
-            case (SocialConsensusResult_CommentDeletedContent): return "CommentDeletedContent";
-            case (SocialConsensusResult_RepostDeletedContent): return "RepostDeletedContent";
-            case (SocialConsensusResult_AlreadyExists): return "AlreadyExists";
-            case (SocialConsensusResult_PocketDataNotFound): return "PocketDataNotFound";
-            case (SocialConsensusResult_TxORNotFound): return "TxORNotFound";
-            case (SocialConsensusResult_ComplainDeletedContent): return "ComplainDeletedContent";
-            case (SocialConsensusResult_ScoreDeletedContent): return "ScoreDeletedContent";
-            case (SocialConsensusResult_RelayContentNotFound): return "RelayContentNotFound";
-            case (SocialConsensusResult_BadPayload): return "BadPayload";
-            case (SocialConsensusResult_ChangeInfoDoubleInMempool): return "ChangeInfoDoubleInMempool";
-            case (SocialConsensusResult_Duplicate): return "Duplicate";
-            case (SocialConsensusResult_NotImplemeted): return "NotImplemeted";
-            case (SocialConsensusResult_SelfFlag): return "SelfFlag";
-            case (SocialConsensusResult_ExceededLimit): return "ExceededLimit";
-            case (SocialConsensusResult_LowReputation): return "LowReputation";
-            case (SocialConsensusResult_AccountDeleted): return "AccountDeleted";
-            case (SocialConsensusResult_AccountBanned): return "AccountBanned";
+            case (ConsensusResult_Success): return "Success";
+            case (ConsensusResult_NotRegistered): return "NotRegistered";
+            case (ConsensusResult_ContentLimit): return "ContentLimit";
+            case (ConsensusResult_ScoreLimit): return "ScoreLimit";
+            case (ConsensusResult_DoubleScore): return "DoubleScore";
+            case (ConsensusResult_SelfScore): return "SelfScore";
+            case (ConsensusResult_ChangeInfoLimit): return "ChangeInfoLimit";
+            case (ConsensusResult_InvalideSubscribe): return "InvalideSubscribe";
+            case (ConsensusResult_DoubleSubscribe): return "DoubleSubscribe";
+            case (ConsensusResult_SelfSubscribe): return "SelfSubscribe";
+            case (ConsensusResult_Unknown): return "Unknown";
+            case (ConsensusResult_Failed): return "Failed";
+            case (ConsensusResult_NotFound): return "NotFound";
+            case (ConsensusResult_DoubleComplain): return "DoubleComplain";
+            case (ConsensusResult_SelfComplain): return "SelfComplain";
+            case (ConsensusResult_ComplainLimit): return "ComplainLimit";
+            case (ConsensusResult_ComplainLowReputation): return "ComplainLowReputation";
+            case (ConsensusResult_ScoreLowReputation): return "ScoreLowReputation";
+            case (ConsensusResult_ContentSizeLimit): return "ContentSizeLimit";
+            case (ConsensusResult_NicknameDouble): return "NicknameDouble";
+            case (ConsensusResult_NicknameLong): return "NicknameLong";
+            case (ConsensusResult_ReferrerSelf): return "ReferrerSelf";
+            case (ConsensusResult_FailedOpReturn): return "FailedOpReturn";
+            case (ConsensusResult_InvalidBlocking): return "InvalidBlocking";
+            case (ConsensusResult_DoubleBlocking): return "DoubleBlocking";
+            case (ConsensusResult_SelfBlocking): return "SelfBlocking";
+            case (ConsensusResult_DoubleContentEdit): return "DoubleContentEdit";
+            case (ConsensusResult_ContentEditLimit): return "ContentEditLimit";
+            case (ConsensusResult_ContentEditUnauthorized): return "ContentEditUnauthorized";
+            case (ConsensusResult_ManyTransactions): return "ManyTransactions";
+            case (ConsensusResult_CommentLimit): return "CommentLimit";
+            case (ConsensusResult_CommentEditLimit): return "CommentEditLimit";
+            case (ConsensusResult_CommentScoreLimit): return "CommentScoreLimit";
+            case (ConsensusResult_Blocking): return "Blocking";
+            case (ConsensusResult_Size): return "Size";
+            case (ConsensusResult_InvalidParentComment): return "InvalidParentComment";
+            case (ConsensusResult_InvalidAnswerComment): return "InvalidAnswerComment";
+            case (ConsensusResult_DoubleCommentEdit): return "DoubleCommentEdit";
+            case (ConsensusResult_SelfCommentScore): return "SelfCommentScore";
+            case (ConsensusResult_DoubleCommentDelete): return "DoubleCommentDelete";
+            case (ConsensusResult_DoubleCommentScore): return "DoubleCommentScore";
+            case (ConsensusResult_CommentDeletedEdit): return "CommentDeletedEdit";
+            case (ConsensusResult_NotAllowed): return "NotAllowed";
+            case (ConsensusResult_ChangeTxType): return "ChangeTxType";
+            case (ConsensusResult_ContentDeleteUnauthorized): return "ContentDeleteUnauthorized";
+            case (ConsensusResult_ContentDeleteDouble): return "ContentDeleteDouble";
+            case (ConsensusResult_AccountSettingsDouble): return "AccountSettingsDouble";
+            case (ConsensusResult_AccountSettingsLimit): return "AccountSettingsLimit";
+            case (ConsensusResult_ChangeInfoDoubleInBlock): return "ChangeInfoDoubleInBlock";
+            case (ConsensusResult_CommentDeletedContent): return "CommentDeletedContent";
+            case (ConsensusResult_RepostDeletedContent): return "RepostDeletedContent";
+            case (ConsensusResult_AlreadyExists): return "AlreadyExists";
+            case (ConsensusResult_PocketDataNotFound): return "PocketDataNotFound";
+            case (ConsensusResult_TxORNotFound): return "TxORNotFound";
+            case (ConsensusResult_ComplainDeletedContent): return "ComplainDeletedContent";
+            case (ConsensusResult_ScoreDeletedContent): return "ScoreDeletedContent";
+            case (ConsensusResult_RelayContentNotFound): return "RelayContentNotFound";
+            case (ConsensusResult_BadPayload): return "BadPayload";
+            case (ConsensusResult_ChangeInfoDoubleInMempool): return "ChangeInfoDoubleInMempool";
+            case (ConsensusResult_Duplicate): return "Duplicate";
+            case (ConsensusResult_NotImplemeted): return "NotImplemeted";
+            case (ConsensusResult_SelfFlag): return "SelfFlag";
+            case (ConsensusResult_ExceededLimit): return "ExceededLimit";
+            case (ConsensusResult_LowReputation): return "LowReputation";
+            case (ConsensusResult_AccountDeleted): return "AccountDeleted";
+            case (ConsensusResult_AccountBanned): return "AccountBanned";
 
             default: return "Unknown";
         }
@@ -284,9 +285,9 @@ namespace PocketConsensus
     // Reputation - double value in integer
     // i.e. 213 = 21.3
     // i.e. 45  = 4.5
-    typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimits;
+    typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimitsMap;
 
-    static inline ConsensusLimits m_consensus_limits = {
+    static inline ConsensusLimitsMap m_consensus_limits = {
         { ConsensusLimit_bad_reputation, {
             { NetworkMain,    { {0, -500} } },
             { NetworkTest,    { {0, -50} } },
@@ -744,17 +745,68 @@ namespace PocketConsensus
 
     };
 
+
+
+
+
+    /*********************************************************************************************/
+    typedef tuple<bool, SocialConsensusResult> ConsensusValidateResult;
+
+    /*********************************************************************************************/
+    class ConsensusLimits
+    {
+    public:
+        void Set(const string& type, int64_t mainValue, int64_t testValue, int64_t regValue)
+        {
+            _limits[type] = {
+                {NetworkMain, mainValue},
+                {NetworkTest, testValue},
+                {NetworkRegTest, regValue}
+            };
+        }
+        int64_t Get(const string& type)
+        {
+            return _limits.at(type).at(Params().NetworkID());
+        }
+    private:
+        map<string, map<NetworkId, int64_t>> _limits;
+    };
+
     /*********************************************************************************************/
     class BaseConsensus
     {
     public:
-        BaseConsensus();
-        explicit BaseConsensus(int height);
+        ConsensusLimits Limits;
+
+        BaseConsensus() = default;
         virtual ~BaseConsensus() = default;
-        int64_t GetConsensusLimit(ConsensusLimit type) const;
+
+        int64_t GetConsensusLimit(ConsensusLimit type) const
+        {
+            return (--m_consensus_limits[type][Params().NetworkID()].upper_bound(Height))->second;
+        }
+
+        void SetHeight(int height) { Height = height; }
         int GetHeight() const { return Height; }
+
     protected:
         int Height = 0;
+        ConsensusValidateResult Success{ true, ConsensusResult_Success };
+        SocialConsensusResult ResultCode = ConsensusResult_Success;
+        
+        // Set result tuple if not already negative
+        // All checks if already negative skeeped
+        void Result(SocialConsensusResult result, const function<bool()>& func)
+        {
+            if (ResultCode != ConsensusResult_Success)
+                return;
+
+            if (func())
+                ResultCode = result;
+        }
+    
+    private:
+        
     };
 
     /*********************************************************************************************/
@@ -764,7 +816,7 @@ namespace PocketConsensus
         int m_main_height;
         int m_test_height;
         int m_regtest_height;
-        function<shared_ptr<T>(int height)> m_func;
+        shared_ptr<T> m_factory;
 
         [[nodiscard]] int Height(NetworkId networkId) const
         {
@@ -782,6 +834,36 @@ namespace PocketConsensus
     };
 
     /*********************************************************************************************/
+    template<class T>
+    class BaseConsensusFactory
+    {
+    private:
+        vector<ConsensusCheckpoint<T>> m_rules;
+
+    protected:
+        void Checkpoint(const ConsensusCheckpoint<T>& inst)
+        {
+            m_rules.push_back(inst);
+        }
+
+    public:
+        shared_ptr<T> Instance(int height)
+        {
+            int m_height = (height > 0 ? height : 0);
+            auto func = --upper_bound(m_rules.begin(), m_rules.end(), m_height,
+                                  [&](int target, const ConsensusCheckpoint<T>& itm)
+                                  {
+                                      return target < itm.Height(Params().NetworkID());
+                                  }
+            );
+            
+            if (func == m_rules.end())
+                return nullptr;
+            
+            func->m_factory->SetHeight(height);
+            return func->m_factory;
+        }
+    };
 }
 
 #endif // POCKETCONSENSUS_BASE_H

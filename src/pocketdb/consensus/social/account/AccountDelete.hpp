@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<AccountDelete> AccountDeleteRef;
 
     /*******************************************************************************************************************
@@ -19,7 +18,10 @@ namespace PocketConsensus
     class AccountDeleteConsensus : public SocialConsensus<AccountDelete>
     {
     public:
-        AccountDeleteConsensus(int height) : SocialConsensus<AccountDelete>(height) {}
+        AccountDeleteConsensus() : SocialConsensus<AccountDelete>()
+        {
+            // TODO (limits): set limits
+        }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const AccountDeleteRef& ptx) override
         {
@@ -27,7 +29,7 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             if (IsEmpty(ptx->GetAddress()))
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -47,7 +49,7 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<SocialTransaction>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    return {false, SocialConsensusResult_ManyTransactions};
+                    return {false, ConsensusResult_ManyTransactions};
             }
 
             return Success;
@@ -56,34 +58,25 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const AccountDeleteRef& ptx) override
         {
             if (ConsensusRepoInst.Exists_MS1T(*ptx->GetAddress(), { ACCOUNT_USER, ACCOUNT_DELETE }))
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Success;
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class AccountDeleteConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class AccountDeleteConsensusFactory : public BaseConsensusFactory<AccountDeleteConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<AccountDeleteConsensus>> m_rules = {
-            { 0, 0, 0, [](int height) { return make_shared<AccountDeleteConsensus>(height); }},
-        };
     public:
-        shared_ptr<AccountDeleteConsensus> Instance(int height)
+        AccountDeleteConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<AccountDeleteConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0, 0, 0, make_shared<AccountDeleteConsensus>() });
         }
     };
 
-} // namespace PocketConsensus
+    static AccountDeleteConsensusFactory ConsensusFactoryInst_AccountDelete;
+}
 
 #endif // POCKETCONSENSUS_ACCOUNT_DELETE_HPP

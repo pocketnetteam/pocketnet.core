@@ -34,12 +34,9 @@
 
 #include "pocketdb/consensus/moderation/Flag.hpp"
 #include "pocketdb/consensus/moderation/Vote.hpp"
-// #include "pocketdb/consensus/moderation/RequestCoin.hpp"
-// #include "pocketdb/consensus/moderation/RequestSubs.hpp"
-// #include "pocketdb/consensus/moderation/RequestCancel.hpp"
-// #include "pocketdb/consensus/moderation/RegisterSelf.hpp"
-// #include "pocketdb/consensus/moderation/RegisterRequest.hpp"
-// #include "pocketdb/consensus/moderation/RegisterCancel.hpp"
+
+#include "pocketdb/consensus/barteron/Offer.hpp"
+#include "pocketdb/consensus/barteron/Account.hpp"
 
 namespace PocketConsensus
 {
@@ -56,42 +53,13 @@ namespace PocketConsensus
         static tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PTransactionRef& ptx, PocketBlockRef& pBlock, int height);
         static tuple<bool, SocialConsensusResult> Check(const CBlock& block, const PocketBlockRef& pBlock, int height);
         static tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PTransactionRef& ptx, int height);
+        
     protected:
+
         static tuple<bool, SocialConsensusResult> validate(const CTransactionRef& tx, const PTransactionRef& ptx, const PocketBlockRef& pBlock, int height);
         static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx, int height);
         static bool isConsensusable(TxType txType);
-    private:
-        static AccountUserConsensusFactory m_accountUserFactory;
-        static AccountSettingConsensusFactory m_accountSettingFactory;
-        static AccountDeleteConsensusFactory m_accountDeleteFactory;
-        static PostConsensusFactory m_postFactory;
-        static VideoConsensusFactory m_videoFactory;
-        static ArticleConsensusFactory m_articleFactory;
-        static StreamConsensusFactory m_streamFactory;
-        static AudioConsensusFactory m_audioFactory;
-        static CollectionConsensusFactory m_collectionFactory;
-        static CommentConsensusFactory m_commentFactory;
-        static CommentEditConsensusFactory m_commentEditFactory;
-        static CommentDeleteConsensusFactory m_commentDeleteFactory;
-        static ScoreContentConsensusFactory m_scoreContentFactory;
-        static ScoreCommentConsensusFactory m_scoreCommentFactory;
-        static SubscribeConsensusFactory m_subscribeFactory;
-        static SubscribePrivateConsensusFactory m_subscribePrivateFactory;
-        static SubscribeCancelConsensusFactory m_subscribeCancelFactory;
-        static BlockingConsensusFactory m_blockingFactory;
-        static BlockingCancelConsensusFactory m_blockingCancelFactory;
-        static ComplainConsensusFactory m_complainFactory;
-        static ContentDeleteConsensusFactory m_contentDeleteFactory;
-        static BoostContentConsensusFactory m_boostContentFactory;
-        
-        static ModerationFlagConsensusFactory m_moderationFlagFactory;
-        static ModerationVoteConsensusFactory m_moderationVoteFactory;
-        // static ModeratorRequestCoinConsensusFactory m_moderatorRequestCoinFactory;
-        // static ModeratorRequestSubsConsensusFactory m_moderatorRequestSubsFactory;
-        // static ModeratorRequestCancelConsensusFactory m_moderatorRequestCancelFactory;
-        // static ModeratorRegisterSelfConsensusFactory m_moderatRegisterSelfFactory;
-        // static ModeratorRegisterRequestConsensusFactory m_moderatRegisterRequestFactory;
-        // static ModeratorRegisterCancelConsensusFactory m_moderatRegisterCancelFactory;
+
     };
 }
 

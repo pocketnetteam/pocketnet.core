@@ -13,6 +13,7 @@
 
 #include "logging.h"
 
+#include "pocketdb/repositories/BaseRepository.h"
 #include "pocketdb/repositories/ChainRepository.h"
 #include "pocketdb/repositories/RatingsRepository.h"
 #include "pocketdb/repositories/TransactionRepository.h"
@@ -43,6 +44,8 @@ namespace PocketDb
     extern ExplorerRepository ExplorerRepoInst;
 
     extern CheckpointRepository CheckpointRepoInst;
+
+    extern ExternalRepository ExternalRepoInst;
 } // namespace PocketDb
 
 namespace PocketServices

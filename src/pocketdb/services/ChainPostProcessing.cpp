@@ -94,7 +94,7 @@ namespace PocketServices
         map<RatingType, map<int, vector<int>>> likersValues;
 
         // Actual consensus checker instance by current height
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
 
         // Loop all transactions for find scores and increase ratings for accounts and contents
         for (const auto& txInfo : txs)
@@ -223,7 +223,7 @@ namespace PocketServices
     // The verdicts of the moderators within the jury are also taken into account.
     void ChainPostProcessing::IndexModeration(int height, vector<TransactionIndexingInfo>& txs)
     {
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
 
         for (const auto& txInfo : txs)
         {
@@ -252,7 +252,7 @@ namespace PocketServices
 
     void ChainPostProcessing::IndexBadges(int height)
     {
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(height);
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
         if (reputationConsensus->UseBadges() && height % BadgePeriod() == 0)
         {
             const BadgeSharkConditions sharkConditions = {

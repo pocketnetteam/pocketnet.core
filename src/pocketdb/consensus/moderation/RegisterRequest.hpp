@@ -29,7 +29,7 @@ namespace PocketConsensus
         {
             // Check request exists in chain
             if (!ConsensusRepoInst.Exists_HS2T(*ptx->GetRequestTxHash(), *ptx->GetAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }, true))
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
             
             return ModeratorRegisterConsensus::Validate(tx, ptx, block);
         }
@@ -40,7 +40,7 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             if (IsEmpty(ptx->GetRequestTxHash()))
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return EnableTransaction();
         }
@@ -49,7 +49,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult EnableTransaction()
         {
-            return { false, SocialConsensusResult_NotAllowed };
+            return { false, ConsensusResult_NotAllowed };
         }
 
     };

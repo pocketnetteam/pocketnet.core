@@ -65,6 +65,7 @@ namespace PocketDb
         ExplorerRepoInst.Init();
         SystemRepoInst.Init();
         MigrationRepoInst.Init();
+        ExternalRepoInst.Init();
 
         LogPrintf("SQLite database version: %d\n", SystemRepoInst.GetDbVersion());
 

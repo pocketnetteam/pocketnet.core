@@ -620,6 +620,11 @@ add_library(${POCKETDB}
         pocketdb/models/dto/content/CommentDelete.h
         pocketdb/models/dto/content/CommentDelete.cpp
 
+        pocketdb/models/dto/barteron/Account.h
+        pocketdb/models/dto/barteron/Account.cpp
+        pocketdb/models/dto/barteron/Offer.h
+        pocketdb/models/dto/barteron/Offer.cpp
+
         pocketdb/models/dto/action/ScoreContent.h
         pocketdb/models/dto/action/ScoreContent.cpp
         pocketdb/models/dto/action/ScoreComment.h
@@ -1183,17 +1188,9 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/BoostContent.hpp
         pocketdb/consensus/moderation/Flag.hpp
         pocketdb/consensus/moderation/Vote.hpp
-        # pocketdb/consensus/moderation/Register.hpp
-        # pocketdb/consensus/moderation/RegisterSelf.hpp
-        # pocketdb/consensus/moderation/RegisterRequest.hpp
-        # pocketdb/consensus/moderation/RegisterCancel.hpp
-        # pocketdb/consensus/moderation/Request.hpp
-        # pocketdb/consensus/moderation/RequestCoin.hpp
-        # pocketdb/consensus/moderation/RequestSubs.hpp
-        # pocketdb/consensus/moderation/RequestCancel.hpp
+        pocketdb/consensus/barteron/Offer.hpp
+        pocketdb/consensus/barteron/Account.hpp
         pocketdb/consensus/Helper.cpp
-        pocketdb/consensus/Base.cpp
-        pocketdb/consensus/Lottery.cpp
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
