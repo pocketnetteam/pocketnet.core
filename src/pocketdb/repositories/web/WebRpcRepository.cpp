@@ -15,12 +15,27 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                SELECT String1, Id
-                FROM Transactions
-                WHERE Type in (100,170)
-                and Height is not null
-                and Last = 1
-                and String1 = ?
+                with str1 as (
+                    select
+                        String as value,
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                )
+                select
+                    str1.value,
+                    c.Uid
+                from
+                    str1,
+                    Transactions t
+                    join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (100,170) and
+                    t.RegId1 = str1.id and
+                    exists (select 1 from Last l where l.TxId = t.RowId)
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -42,12 +57,19 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                SELECT String1, Id
-                FROM Transactions
-                WHERE Type in (100,170)
-                and Height is not null
-                and Last = 1
-                and Id = ?
+                select
+                    s.String1,
+                    c.Uid
+                from
+                    Transactions t
+                    join Chain c on
+                        c.TxId = t.RowId and
+                        c.Uid = ?
+                    join vTxStr s on
+                        s.RowId = t.RowId
+                where
+                    t.Type in (100,170) and
+                    exists (select 1 from Last l where l.TxId = t.RowId)
             )sql")
             .Bind(id)
             .Select([&](Cursor& cursor) {
