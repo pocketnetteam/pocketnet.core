@@ -32,10 +32,7 @@ namespace PocketDb
                         -- filter registrations & deleting transactions by address
                         cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on t.Type in (100, 170) and t.RegId1 = addressRegId.RowId
-                        -- filter by chain for exclude mempool
-                        cross join Chain c
-                            on c.TxId = t.RowId
-                        -- filter by Last
+                        -- filter by Last (also excludes mempool)
                         cross join Last l
                             on l.TxId = t.RowId
                 ),
@@ -73,10 +70,7 @@ namespace PocketDb
                             on (p.String2 like ? escape '\')
                         cross join Transactions t
                             on t.RowId = p.TxId and t.Type = 100 and t.RegId1 != addressRegId.RowId
-                        -- filter by chain for exclude mempool
-                        cross join Chain c
-                            on c.TxId = t.RowId
-                        -- filter by Last
+                        -- filter by Last (also excludes mempool)
                         cross join Last l
                             on l.TxId = t.RowId
                 ),
@@ -2653,4 +2647,3 @@ namespace PocketDb
     }
 
 
-}
