@@ -95,11 +95,20 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select p.String2, u.String1
-                from Payload p indexed by Payload_String2_nocase_TxHash
-                cross join Transactions u indexed by Transactions_Hash_Height
-                    on u.Type in (100) and u.Height > 0 and u.Hash = p.TxHash and u.Last = 1
-                where p.String2 like ? escape '\'
+                select
+                    p.String2,
+                    s.String1
+                from
+                    Payload p indexed by Payload_String2_nocase_TxId
+                    cross join Transactions u on
+                        u.RowId = p.TxId and
+                        u.Type = 100
+                    cross join vTxStr s on
+                        s.RowId = p.TxId
+                where
+                    p.String2 like ? escape '\' and
+                    -- Checking last against payload id for optimization reasons
+                    exists(select 1 from Last l where l.TxId = p.TxId)
                 limit 1
             )sql")
             .Bind(_name)
@@ -108,8 +117,8 @@ namespace PocketDb
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, valueStr] = cursor.TryGetColumnString(0); ok) record.pushKV("name", valueStr);
-                    if (auto[ok, valueStr] = cursor.TryGetColumnString(1); ok) record.pushKV("address", valueStr);
+                    cursor.Collect<string>(0, record, "name");
+                    cursor.Collect<string>(1, record, "address");
 
                     result.push_back(record);
                 }
