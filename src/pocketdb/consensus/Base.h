@@ -780,8 +780,16 @@ namespace PocketConsensus
             return (--m_consensus_limits[type][Params().NetworkID()].upper_bound(Height))->second;
         }
 
-        void SetHeight(int height) { Height = height; }
-        int GetHeight() const { return Height; }
+        void Initialize(int height)
+        {
+            Height = height;
+            ResultCode = ConsensusResult_Success;
+        }
+
+        int GetHeight() const
+        {
+            return Height;
+        }
 
     protected:
         int Height = 0;
@@ -844,17 +852,20 @@ namespace PocketConsensus
         shared_ptr<T> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
-            auto func = --upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                                  [&](int target, const ConsensusCheckpoint<T>& itm)
-                                  {
-                                      return target < itm.Height(Params().NetworkID());
-                                  }
+            auto func = --upper_bound(
+                m_rules.begin(),
+                m_rules.end(),
+                m_height,
+                [&](int target, const ConsensusCheckpoint<T>& itm)
+                {
+                    return target < itm.Height(Params().NetworkID());
+                }
             );
             
             if (func == m_rules.end())
                 return nullptr;
             
-            func->m_factory->SetHeight(height);
+            func->m_factory->Initialize(height);
             return func->m_factory;
         }
     };
