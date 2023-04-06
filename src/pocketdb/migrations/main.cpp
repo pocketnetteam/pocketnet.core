@@ -427,6 +427,8 @@ namespace PocketDb
             create index if not exists Ratings_Type_Uid_Last_Value on Ratings (Type, Uid, Last, Value);
             create index if not exists Ratings_Type_Uid_Height_Value on Ratings (Type, Uid, Height, Value);
 
+            create index if not exists Balances_Value on Balances (Value);
+
             -- TODO (optimization): maybe remove TxId from the index because it is literally the RowId and it
             -- appears in the index anyway
             create index if not exists Payload_String2_nocase_TxId on Payload (String2 collate nocase, TxId);
