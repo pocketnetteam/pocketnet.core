@@ -835,6 +835,7 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
+                        -- TODO (optimization): indices
                         from
                             Transactions f
                         join
@@ -855,6 +856,7 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
+                        -- TODO (optimization): indices
                         from
                             Transactions f
                         join
