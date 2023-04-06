@@ -196,10 +196,13 @@ namespace PocketDb
         UniValue result(UniValue::VARR);
 
         auto sql = R"sql(
-            select AddressHash, Value
-            from Balances indexed by Balances_Last_Value
-            where Last = 1
-            order by Value desc
+            select
+                (select String from Registry where RowId = AddressId),
+                Value
+            from
+                Balances indexed by Balances_Value
+            order by
+                Value desc
             limit ?
         )sql";
 
@@ -211,8 +214,10 @@ namespace PocketDb
                 while (cursor.Step())
                 {
                     UniValue addr(UniValue::VOBJ);
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) addr.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) addr.pushKV("balance", value);
+
+                    cursor.Collect<string>(0, addr, "addresses");
+                    cursor.Collect<int64_t>(1, addr, "balance");
+
                     result.push_back(addr);
                 }
             });
