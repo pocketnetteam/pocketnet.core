@@ -136,16 +136,37 @@ namespace PocketDb
             return result;
 
         string sql = R"sql(
-            select u.String1, u.Time, u.Hash
-            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            where u.Type in (100)
-            and u.Last in (0,1)
-            and u.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-            and u.Height = (
-                select min(uf.Height)
-                from Transactions uf indexed by Transactions_Id
-                where uf.Id = u.Id
+            with addresses as (
+                select
+                    RowId as id,
+                    String as str
+                from
+                    Registry
+                where
+                    String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
             )
+            select
+                s.String1, -- TODO (optimization): mb use addresses.str?
+                u.Time,
+                s.Hash
+            from
+                addresses,
+                Transactions u
+                join Chain cu indexed by Chain_Height_Uid on
+                    cu.TxId = u.RowId and
+                    cu.Height = (
+                        select
+                            min(uf.Height)
+                        from
+                            Chain uf indexed by Chain_Uid_Height
+                        where
+                            uf.Uid = cu.Uid
+                    )
+                join vtxStr s on
+                    s.RowId = u.RowId
+            where
+                u.Type in (100) and
+                u.RegId1 = addresses.id
         )sql";
 
         SqlTransaction(__func__, [&]()
@@ -157,9 +178,10 @@ namespace PocketDb
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, valueStr] = cursor.TryGetColumnString(0); ok) record.pushKV("address", valueStr);
-                    if (auto[ok, valueStr] = cursor.TryGetColumnString(1); ok) record.pushKV("time", valueStr);
-                    if (auto[ok, valueStr] = cursor.TryGetColumnString(2); ok) record.pushKV("txid", valueStr);
+                    cursor.Collect<string>(0, record, "address");
+                    // TODO (optimization): Use int for this?
+                    cursor.Collect<string>(1, record, "time");
+                    cursor.Collect<string>(2, record, "txid");
 
                     result.push_back(record);
                 }
