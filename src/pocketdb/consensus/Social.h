@@ -36,59 +36,63 @@ namespace PocketConsensus
         // Validate transaction in block for miner & network full block sync
         virtual ConsensusValidateResult Validate(const CTransactionRef& tx, const TRef& ptx, const PocketBlockRef& block)
         {
-            Result(ConsensusResult_NotRegistered, [&]()
-            {
-                // TODO (aok): optimize algorithm
-                // Account must be registered
-                vector<string> addressesForCheck;
-                vector<string> addresses = GetAddressesForCheckRegistration(ptx);
-                if (!addresses.empty())
-                {
-                    // First check block - maybe user registration this?
-                    if (block)
-                    {
-                        for (const string& address : addresses)
-                        {
-                            bool inBlock = false;
-                            for (auto& blockTx: *block)
-                            {
-                                if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
-                                    continue;
+            // Result(ConsensusResult_NotRegistered, [&]()
+            // {
+            //     // TODO (aok): optimize algorithm
+            //     // Account must be registered
+            //     vector<string> addressesForCheck;
+            //     vector<string> addresses = GetAddressesForCheckRegistration(ptx);
+            //     if (!addresses.empty())
+            //     {
+            //         // First check block - maybe user registration this?
+            //         if (block)
+            //         {
+            //             for (const string& address : addresses)
+            //             {
+            //                 bool inBlock = false;
+            //                 for (auto& blockTx: *block)
+            //                 {
+            //                     if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }))
+            //                         continue;
 
-                                if (*blockTx->GetString1() == address)
-                                {
-                                    // TODO (brangr): delete - в один блок пусть с удалением пролазят - проверитЬ!
-                                    // if (*blockTx->GetType() == ACCOUNT_DELETE)
-                                    //     return {false, ConsensusResult_AccountDeleted};
+            //                     if (*blockTx->GetString1() == address)
+            //                     {
+            //                         // TODO (brangr): delete - в один блок пусть с удалением пролазят - проверитЬ!
+            //                         // if (*blockTx->GetType() == ACCOUNT_DELETE)
+            //                         //     return {false, ConsensusResult_AccountDeleted};
 
-                                    inBlock = true;
-                                    break;
-                                }
-                            }
+            //                         inBlock = true;
+            //                         break;
+            //                     }
+            //                 }
 
-                            if (!inBlock)
-                                addressesForCheck.push_back(address);
-                        }
-                    }
-                    else
-                    {
-                        addressesForCheck = addresses;
-                    }
-                }
+            //                 if (!inBlock)
+            //                     addressesForCheck.push_back(address);
+            //             }
+            //         }
+            //         else
+            //         {
+            //             addressesForCheck = addresses;
+            //         }
+            //     }
 
-                // Check registrations in DB
-                return (!addressesForCheck.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck));
-            });
+            //     // Check registrations in DB
+            //     return (!addressesForCheck.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck));
+            // });
 
-            // Check active account ban
-            Result(ConsensusResult_AccountBanned, [&]()
-            {
-                return PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height);
-            });
-            if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
+            // // Check active account ban
+            // Result(ConsensusResult_AccountBanned, [&]()
+            // {
+            //     return PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height);
+            // });
+            // if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
 
             // Check limits
-            return ValidateLimits(ptx, block);
+            // TODO (aok): remove when all consensus classes support Result
+            if (block)
+                return ValidateBlock(ptx, block);
+            else
+                return ValidateMempool(ptx);
         }
 
         // Generic transactions validating
@@ -102,10 +106,16 @@ namespace PocketConsensus
 
             Result(ConsensusResult_FailedOpReturn, [&]()
             {
-                if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
-                    return false;
+                auto ptxORHash = ptx->BuildHash();
+                auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
 
-                return true;
+                if (ptxORHash != txORHash)
+                    if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
+                        // return true;
+                        // TODO (optimization): DEBUG! - remove after fix all checkpoints
+                        LogPrintf("DEBUG - ConsensusResult_FailedOpReturn - %s\n", *ptx->GetHash());
+
+                return false;
             });
 
             Result(ConsensusResult_Size, [&]()
@@ -119,14 +129,6 @@ namespace PocketConsensus
 
     protected:
 
-        virtual ConsensusValidateResult ValidateLimits(const shared_ptr<T>& ptx, const PocketBlockRef& block)
-        {
-            if (block)
-                return ValidateBlock(ptx, block);
-            else
-                return ValidateMempool(ptx);
-        }
-
         virtual ConsensusValidateResult ValidateBlock(const TRef& ptx, const PocketBlockRef& block) = 0;
 
         virtual ConsensusValidateResult ValidateMempool(const TRef& ptx) = 0;
@@ -139,22 +141,8 @@ namespace PocketConsensus
             return Success;
         }
         
-        // Generic check consistence Transaction and Payload
-        virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const TRef& ptx)
-        {
-            auto ptxORHash = ptx->BuildHash();
-            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
-
-            if (ptxORHash != txORHash)
-            {
-               if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                   return {false, ConsensusResult_FailedOpReturn};
-            }
-
-            return Success;
-        }
-
         // Get addresses from transaction for check registration
+        // TODO (aok): remove after all consensus classes realized check registration and ban
         virtual vector<string> GetAddressesForCheckRegistration(const TRef& ptx)
         {
             return { *ptx->GetAddress() };

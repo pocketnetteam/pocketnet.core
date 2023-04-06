@@ -75,22 +75,6 @@ namespace PocketConsensus
             return Success;
         }
 
-        // TODO (optimization): DEBUG! - remove after fix all checkpoints
-        ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
-        {
-            auto ptxORHash = ptx->BuildHash();
-            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
-            if (ptxORHash == txORHash)
-                return Success;
-
-            if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                return Success;
-
-            LogPrintf("DEBUG - ConsensusResult_FailedOpReturn - %s\n", *ptx->GetHash());
-            return Success;
-            // return {false, SocialConsensusResult_FailedOpReturn};
-        }
-
     protected:
         ConsensusData_AccountUser consensusData;
 
@@ -186,7 +170,7 @@ namespace PocketConsensus
             {
                 if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameDouble))
                     // TODO (optimization): DEBUG!
-                    LogPrintf("DEBUG! ConsensusResult_FailedOpReturn - %s\n", *ptx->GetHash());
+                    LogPrintf("DEBUG! ConsensusResult_NicknameDouble - %s\n", *ptx->GetHash());
                     // return {false, ConsensusResult_NicknameDouble};
             }
 
