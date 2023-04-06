@@ -231,80 +231,127 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            select
-                u.Id as AddressId,
-                u.String1 as Address,
-                u.Type,
+            with
+                height as (
+                    select ? as val
+                ),
+                address as (
+                    select
+                        RowId as id,
+                        String as hash
+                    from
+                        Registry
+                    where
+                        String = ?
+                ),
+                u as (
+                    select
+                        cu.Uid as AddressId,
+                        address.hash as Address,
+                        u.Type,
+                        u.RegId1,
+                        u.RowId
 
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (200) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as PostSpent,
+                    from
+                        address,
+                        Transactions u
 
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (201) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as VideoSpent,
+                        join Chain cu on
+                            cu.TxId = u.RowId
 
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (202) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ArticleSpent,
+                    where
+                        u.Type in (100, 170) and
+                        u.RegId1 = address.id and
+                        exists (select 1 from Last l where l.TxId = u.RowId)
+                ),
+                uidtxs as (
+                    select
+                        count() as count,
+                        p.Type as Type
+                    from
+                        u,
+                        height,
+                        Transactions p
+                    where
+                        p.Type in (200,201,202,209,210) and
+                        p.RegId1 = u.RegId1 and
+                        (
+                            (
+                                exists(select 1 from First f where f.TxId = p.RowId) and
+                                exists(select 1 from Chain c indexed by Chain_Height_Uid where c.TxId = p.RowId and c.Height >= height.val)
+                            ) or
+                            not exists (select 1 from Chain c where c.TxId = p.RowId)
+                        )
+                    group by
+                        p.Type
+                ),
+                uniquetxs as (
+                    select
+                        count() as count,
+                        p.Type as Type
+                    from
+                        u,
+                        height,
+                        Transactions p
+                    where
+                        p.Type in (204,300,301,307,410) and
+                        p.RegId1 = u.RegId1 and
+                        (
+                            exists(select 1 from Chain c where c.TxId = p.RowId and c.Height >= height.val) or
+                            not exists(select 1 from Chain c where c.TxId = p.RowId)
+                        )
+                    group by
+                        p.Type
+                )
 
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (209) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as StreamSpent,
+                select
+                    u.AddressId as AddressId,
+                    u.Address as Address,
+                    u.Type,
+                    (select p.count from uidtxs p where p.type = 200) as PostSpent,
+                    (select p.count from uidtxs p where p.type = 201) as VideoSpent,
+                    (select p.count from uidtxs p where p.type = 202) as ArticleSpent,
+                    (select p.count from uidtxs p where p.type = 209) as StreamSpent,
+                    (select p.count from uidtxs p where p.type = 210) as AudioSpent,
+                    (select p.count from uniquetxs p where p.type = 204) as CommentSpent,
+                    (select p.count from uniquetxs p where p.type = 300) as ScoreSpent,
+                    (select p.count from uniquetxs p where p.type = 301) as ScoreCommentSpent,
+                    (select p.count from uniquetxs p where p.type = 307) as ComplainSpent,
+                    (select p.count from uniquetxs p where p.type = 410) as FlagsSpent
 
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (210) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as AudioSpent,
-
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (204) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as CommentSpent,
-
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (300) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ScoreSpent,
-
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (301) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ScoreCommentSpent,
-
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (307) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ComplainSpent,
-
-                (select count() from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (410) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as FlagsSpent
-
-            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-
-            where u.Type in (100, 170)
-            and u.Height is not null
-            and u.String1 = ?
-            and u.Last = 1
+                from
+                    u,
+                    address
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, heightWindow, address)
+            .Bind(heightWindow, address)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                 {
                     int i = 0;
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("address_id", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) result.pushKV("address", value);
+                    cursor.Collect<int64_t>(i++, result, "address_id");
+                    cursor.Collect<string>(i++, result, "address");
 
                     bool isDeleted = false;
-                    if (auto[ok, Type] = cursor.TryGetColumnInt(i++); ok)
-                    {
+                    cursor.Collect(i++, [&](int Type) {
                         isDeleted = (Type==TxType::ACCOUNT_DELETE);
                         if (isDeleted) result.pushKV("deleted", true);
-                    }
+                    });
 
                     if (!isDeleted) {
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("post_spent", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("video_spent", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("article_spent", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("stream_spent", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("audio_spent", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("comment_spent", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("score_spent", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok)
-                            result.pushKV("comment_score_spent", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("complain_spent", value);
-
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) result.pushKV("mod_flag_spent", value);
+                        cursor.Collect<int64_t>(i++, result, "post_spent");
+                        cursor.Collect<int64_t>(i++, result, "video_spent");
+                        cursor.Collect<int64_t>(i++, result, "article_spent");
+                        cursor.Collect<int64_t>(i++, result, "stream_spent");
+                        cursor.Collect<int64_t>(i++, result, "audio_spent");
+                        cursor.Collect<int64_t>(i++, result, "comment_spent");
+                        cursor.Collect<int64_t>(i++, result, "score_spent");
+                        cursor.Collect<int64_t>(i++, result, "comment_score_spent");
+                        cursor.Collect<int64_t>(i++, result, "complain_spent");
+                        cursor.Collect<int64_t>(i++, result, "mod_flag_spent");
                     }
                 }
             });
