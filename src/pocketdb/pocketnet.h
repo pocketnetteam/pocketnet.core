@@ -36,11 +36,9 @@ namespace PocketDb
     extern ChainRepository ChainRepoInst;
     extern RatingsRepository RatingsRepoInst;
     extern ConsensusRepository ConsensusRepoInst;
-    extern ExplorerRepository ExplorerRepoInst;
     extern SystemRepository SystemRepoInst;
     extern MigrationRepository MigrationRepoInst;
-
-    extern NotifierRepository NotifierRepoInst;
+    // extern NotifierRepository NotifierRepoInst;
     extern ExplorerRepository ExplorerRepoInst;
 
     extern CheckpointRepository CheckpointRepoInst;
