@@ -222,8 +222,10 @@ void Shutdown(NodeContext& node)
     PocketServices::WebPostProcessorInst.Stop();
     gStatEngineInstance.Stop();
 
-    if (notifyClientsThread)
+    if (notifyClientsThread) {
         notifyClientsThread->Stop();
+        notifyClientsThread.reset(); // Explicit clear memory to exist sqlite connection.
+    }
         
     StopHTTPRPC();
     StopREST();
