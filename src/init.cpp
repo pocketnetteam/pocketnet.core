@@ -265,9 +265,6 @@ void Shutdown(NodeContext& node)
 
     StopTorControl();
 
-    if (notifyClientsThread)
-        notifyClientsThread->Stop();
-
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue, threadGroup and load block thread.
     if (node.scheduler) node.scheduler->stop();
