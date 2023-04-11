@@ -4,6 +4,7 @@
 
 #include "pocketdb/services/WebPostProcessing.h"
 #include "pocketdb/consensus/Reputation.h"
+#include "pocketdb/pocketnet.h"
 
 namespace PocketServices
 {
@@ -38,11 +39,11 @@ namespace PocketServices
         // Run database
         auto dbBasePath = (GetDataDir() / "pocketdb").string();
 
-        sqliteDbInst = make_shared<SQLiteDatabase>(false);
-        sqliteDbInst->Init(dbBasePath, "main");
-        sqliteDbInst->AttachDatabase("web");
+        // sqliteDbInst = make_shared<SQLiteDatabase>(false);
+        // sqliteDbInst->Init(dbBasePath, "main");
+        // sqliteDbInst->AttachDatabase("web");
 
-        webRepoInst = make_shared<WebRepository>(*sqliteDbInst);
+        // webRepoInst = make_shared<WebRepository>(*sqliteDbInst);
 
         // Start worker infinity loop
         while (true)
@@ -71,8 +72,8 @@ namespace PocketServices
                 }
                 case QueueRecordType::BlockHeight:
                 {
-                    webRepoInst->UpsertBarteronAccounts(queueRecord.BlockHeight);
-                    webRepoInst->UpsertBarteronOffers(queueRecord.BlockHeight);
+                    WebRepositoryInst.UpsertBarteronAccounts(queueRecord.BlockHeight);
+                    WebRepositoryInst.UpsertBarteronOffers(queueRecord.BlockHeight);
                     break;
                     // queueRecord.Height % N == 0 -> actions
                 }
@@ -82,16 +83,16 @@ namespace PocketServices
         }
 
         // Shutdown DB
-        sqliteDbInst->m_connection_mutex.lock();
+        // sqliteDbInst->m_connection_mutex.lock();
 
-        webRepoInst->Destroy();
-        webRepoInst = nullptr;
+        // webRepoInst->Destroy();
+        // webRepoInst = nullptr;
 
-        sqliteDbInst->DetachDatabase("web");
-        sqliteDbInst->Close();
+        // sqliteDbInst->DetachDatabase("web");
+        // sqliteDbInst->Close();
 
-        sqliteDbInst->m_connection_mutex.unlock();
-        sqliteDbInst = nullptr;
+        // sqliteDbInst->m_connection_mutex.unlock();
+        // sqliteDbInst = nullptr;
 
         LogPrintf("WebPostProcessor: thread worker exit\n");
     }
@@ -118,7 +119,7 @@ namespace PocketServices
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<WebTag> contentTags = webRepoInst->GetContentTags(blockHash);
+            vector<WebTag> contentTags = WebRepositoryInst.GetContentTags(blockHash);
             if (contentTags.empty())
                 return;
 
@@ -136,7 +137,7 @@ namespace PocketServices
             LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
 
             // Insert content tags
-            webRepoInst->UpsertContentTags(contentTags);
+            WebRepositoryInst.UpsertContentTags(contentTags);
 
             int64_t nTime4 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Upsert): %.2fms\n", 0.001 * (double)(nTime4 - nTime3));
@@ -153,7 +154,7 @@ namespace PocketServices
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<WebContent> contentList = webRepoInst->GetContent(blockHash);
+            vector<WebContent> contentList = WebRepositoryInst.GetContent(blockHash);
             if (contentList.empty())
                 return;
 
@@ -189,7 +190,7 @@ namespace PocketServices
             LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
 
             // Insert content
-            webRepoInst->UpsertContent(contentList);
+            WebRepositoryInst.UpsertContent(contentList);
 
             int64_t nTime4 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Upsert): %.2fms\n", 0.001 * (double)(nTime4 - nTime3));

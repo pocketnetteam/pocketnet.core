@@ -188,6 +188,7 @@ void ShutdownPocketServices()
     PocketDb::ExplorerRepoInst.Destroy();
     PocketDb::SystemRepoInst.Destroy();
     PocketDb::MigrationRepoInst.Destroy();
+    PocketDb::WebRepositoryInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");
     PocketDb::SQLiteDbInst.Close();
