@@ -4,12 +4,12 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/services/WalController.h"
-#include <filesystem>
+#include <fs.h>
 
 namespace {
     size_t GetFileSize(std::string path)
     {
-        return std::filesystem::file_size(path);
+        return fs::file_size(path);
     }
     
     const static size_t MAX_WAL_BYTES_SIZE = 100242880;
