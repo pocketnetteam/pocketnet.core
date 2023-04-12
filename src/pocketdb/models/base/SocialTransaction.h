@@ -21,9 +21,14 @@ namespace PocketTx
 
         const optional<string>& GetAddress() const;
         void SetAddress(const string& value);
-        
-    }; // class SocialTransaction
 
-} // namespace PocketTx
+        string BuildHash() override;
+        
+        size_t PayloadSize() override;
+        
+    };
+
+    typedef shared_ptr<SocialTransaction> SocialTransactionRef;
+}
 
 #endif // POCKETTX_SOCIAL_TRANSACTION_H

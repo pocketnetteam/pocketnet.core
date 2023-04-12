@@ -46,12 +46,9 @@ namespace PocketServices
         void ProcessTags(const string& blockHash);
         void ProcessSearchContent(const string& blockHash);
 
-        void ProcessBadges(int blockHeight);
-        void ProcessAuthors(int blockHeight);
-
     private:
-        SQLiteDatabaseRef sqliteDbInst;
-        WebRepositoryRef webRepoInst;
+        // SQLiteDatabaseRef sqliteDbInst;
+        // WebRepositoryRef webRepoInst;
 
         bool shutdown = false;
 

@@ -24,10 +24,16 @@ namespace PocketConsensus
         using Base = AccountConsensus<User>;
 
     public:
-        AccountUserConsensus(int height) : AccountConsensus<User>(height) {}
+        AccountUserConsensus() : AccountConsensus<User>()
+        {
+            // TODO (limits): set current limits
+        }
         
         ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
         {
+            if (auto[ok, code] = Base::Validate(tx, ptx, block); !ok)
+                return {false, code};
+
             // Get all the necessary data for transaction validation
             consensusData = ConsensusRepoInst.AccountUser(
                 *ptx->GetAddress(),
@@ -36,48 +42,36 @@ namespace PocketConsensus
             );
 
             // Duplicate name
-            if (consensusData.DuplicatesChainCount > 0 && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameDouble))
-                return {false, SocialConsensusResult_NicknameDouble};
+            if (consensusData.DuplicatesChainCount > 0 && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameDouble))
+                return {false, ConsensusResult_NicknameDouble};
 
             // The deleted account cannot be restored
             if ((TxType)consensusData.LastTxType == TxType::ACCOUNT_DELETE)
-                return {false, SocialConsensusResult_AccountDeleted};
+                return {false, ConsensusResult_AccountDeleted};
 
             // Daily change limit
             if (consensusData.EditsCount > GetConsensusLimit(edit_account_daily_count))
-                return {false, SocialConsensusResult_ChangeInfoLimit};
+                return {false, ConsensusResult_ChangeInfoLimit};
 
-            return Base::Validate(tx, ptx, block);
+            return Success;
         }
 
         ConsensusValidateResult Check(const CTransactionRef& tx, const UserRef& ptx) override
         {
             if (auto[ok, code] = Base::Check(tx, ptx); !ok)
                 return {false, code};
+             
+            // Check payload
+            if (!ptx->GetPayload()) return {false, ConsensusResult_Failed};
 
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
-                return {false, SocialConsensusResult_ReferrerSelf};
+                return {false, ConsensusResult_ReferrerSelf};
 
             // Name check
             if (auto[ok, result] = CheckLogin(ptx); !ok)
                 return {false, result};
 
-            return Success;
-        }
-
-        // TODO (optimization): DEBUG! - remove after fix all checkpoints
-        ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
-        {
-            auto ptxORHash = ptx->BuildHash();
-            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
-            if (ptxORHash == txORHash)
-                return Success;
-
-            if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                return Success;
-
-            LogPrintf("DEBUG! SocialConsensusResult_FailedOpReturn - %s\n", *ptx->GetHash());
             return Success;
         }
 
@@ -95,8 +89,8 @@ namespace PocketConsensus
                 auto blockPtx = static_pointer_cast<SocialTransaction>(blockTx);
 
                 // In the early stages of the network, double transactions were allowed in blocks
-                if (*ptx->GetAddress() == *blockPtx->GetAddress() && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoDoubleInBlock))
-                    return {false, SocialConsensusResult_ChangeInfoDoubleInBlock};
+                if (*ptx->GetAddress() == *blockPtx->GetAddress() && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_ChangeInfoDoubleInBlock))
+                    return {false, ConsensusResult_ChangeInfoDoubleInBlock};
 
                 // We can allow "capture" another username in one block
                 if (TransactionHelper::IsIn(*blockPtx->GetType(), { ACCOUNT_USER }))
@@ -113,15 +107,15 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const UserRef& ptx) override
         {
             if (consensusData.MempoolCount > 0)
-                return {false, SocialConsensusResult_ChangeInfoDoubleInMempool};
+                return {false, ConsensusResult_ChangeInfoDoubleInMempool};
 
             if (consensusData.DuplicatesMempoolCount > 0)
-                return {false, SocialConsensusResult_NicknameDouble};
+                return {false, ConsensusResult_NicknameDouble};
 
             return Success;
         }
         
-        ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx) override
+        ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx)
         {
             size_t dataSize =
                 (ptx->GetPayloadName() ? ptx->GetPayloadName()->size() : 0) +
@@ -134,7 +128,7 @@ namespace PocketConsensus
                 (ptx->GetPayloadPubkey() ? ptx->GetPayloadPubkey()->size() : 0);
 
             if (dataSize > (size_t) GetConsensusLimit(ConsensusLimit_max_user_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }
@@ -144,21 +138,21 @@ namespace PocketConsensus
         {
             if (IsEmpty(ptx->GetPayloadName()))
                 // TODO (optimization): DEBUG!
-                LogPrintf("DEBUG! SocialConsensusResult_Failed - %s\n", *ptx->GetHash());
-                // return {false, SocialConsensusResult_Failed};
+                LogPrintf("DEBUG! ConsensusResult_Failed - %s\n", *ptx->GetHash());
+                // return {false, ConsensusResult_Failed};
 
             auto name = *ptx->GetPayloadName();
             boost::algorithm::to_lower(name);
 
             if (name.size() > 20)
                 // TODO (optimization): DEBUG!
-                LogPrintf("DEBUG! SocialConsensusResult_NicknameLong - %s\n", *ptx->GetHash());
-                // return {false, SocialConsensusResult_NicknameLong};
+                LogPrintf("DEBUG! ConsensusResult_NicknameLong - %s\n", *ptx->GetHash());
+                // return {false, ConsensusResult_NicknameLong};
             
             if (!all_of(name.begin(), name.end(), [](unsigned char ch) { return ::isalnum(ch) || ch == '_'; }))
                 // TODO (optimization): DEBUG!
-                LogPrintf("DEBUG! SocialConsensusResult_Failed - %s\n", *ptx->GetHash());
-                //return {false, SocialConsensusResult_Failed};
+                LogPrintf("DEBUG! ConsensusResult_Failed - %s\n", *ptx->GetHash());
+                //return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -174,35 +168,26 @@ namespace PocketConsensus
 
             if (ptxName == blockPtxName)
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameDouble))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameDouble))
                     // TODO (optimization): DEBUG!
-                    LogPrintf("DEBUG! SocialConsensusResult_FailedOpReturn - %s\n", *ptx->GetHash());
-                    // return {false, SocialConsensusResult_NicknameDouble};
+                    LogPrintf("DEBUG! ConsensusResult_NicknameDouble - %s\n", *ptx->GetHash());
+                    // return {false, ConsensusResult_NicknameDouble};
             }
 
             return Success;
         }
     };
 
-    class AccountUserConsensusFactory
+    class AccountUserConsensusFactory : public BaseConsensusFactory<AccountUserConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<AccountUserConsensus>> m_rules = {
-            { 0, 0, 0, [](int height) { return make_shared<AccountUserConsensus>(height); }},
-        };
     public:
-        shared_ptr<AccountUserConsensus> Instance(int height)
+        AccountUserConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<AccountUserConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0, -1, -1, make_shared<AccountUserConsensus>() });
         }
     };
 
-} // namespace PocketConsensus
+    static AccountUserConsensusFactory ConsensusFactoryInst_AccountUser;
+}
 
 #endif // POCKETCONSENSUS_USER_HPP

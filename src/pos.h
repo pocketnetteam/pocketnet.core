@@ -18,8 +18,6 @@ using namespace PocketHelpers;
 using namespace PocketConsensus;
 using namespace PocketDb;
 
-static LotteryConsensusFactory lotteryConsensusFactory;
-
 static const int STAKE_TIMESTAMP_MASK = 15;
 
 static const int MODIFIER_INTERVAL_RATIO = 3;

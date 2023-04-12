@@ -7,24 +7,24 @@
 
 namespace PocketTx
 {
-    AccountSetting::AccountSetting() : Transaction()
+    AccountSetting::AccountSetting() : SocialTransaction()
     {
         SetType(TxType::ACCOUNT_SETTING);
     }
 
-    AccountSetting::AccountSetting(const CTransactionRef& tx) : Transaction(tx)
+    AccountSetting::AccountSetting(const CTransactionRef& tx) : SocialTransaction(tx)
     {
         SetType(TxType::ACCOUNT_SETTING);
     }
 
-    
-    const optional <string>& AccountSetting::GetAddress() const { return m_string1; }
-    void AccountSetting::SetAddress(const string& value) { m_string1 = value; }
+    optional<string> AccountSetting::GetPayloadData() const { return GetPayload() ? GetPayload()->GetString1() : nullopt; }
 
-    optional <string> AccountSetting::GetPayloadData() const {return GetPayload() ? GetPayload()->GetString1() : nullopt; }
+    size_t AccountSetting::PayloadSize()
+    {
+        return GetPayload() && GetPayload()->GetString1() ? GetPayload()->GetString1()->size() : 0;
+    }
 
-
-    optional <UniValue> AccountSetting::Serialize() const
+    optional<UniValue> AccountSetting::Serialize() const
     {
         auto result = Transaction::Serialize();
 

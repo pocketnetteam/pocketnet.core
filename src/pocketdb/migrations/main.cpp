@@ -163,21 +163,26 @@ namespace PocketDb
                 -- ContentVideo.Lang
                 -- ContentDelete.Settings
                 -- Comment.Message
+                -- Barteron.Offer.Lang
                 String1 text   null,
 
                 -- AccountUser.Name
                 -- ContentPost.Caption
                 -- ContentVideo.Caption
+                -- Barteron.Offer.Caption
                 String2 text   null,
 
                 -- AccountUser.Avatar
                 -- ContentPost.Message
                 -- ContentVideo.Message
+                -- Barteron.Offer.Message
                 String3 text   null,
 
                 -- AccountUser.About
                 -- ContentPost.Tags JSON
                 -- ContentVideo.Tags JSON
+                -- Barteron.Account.Settings JSON
+                -- Barteron.Offer.Settings JSON
                 String4 text   null,
 
                 -- AccountUser.Url

@@ -29,11 +29,11 @@ namespace PocketConsensus
         {
             // Source request exists and address and moderator address equals
             if (!ConsensusRepoInst.Exists_HS1S2T(*ptx->GetRequestTxHash(), *ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_SUBS, MODERATOR_REQUEST_COIN }, false))
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             // Request already canceled
             if (ConsensusRepoInst.Exists_LS1S2T(*ptx->GetAddress(), *ptx->GetModeratorAddress(), { MODERATOR_REQUEST_CANCEL }))
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return ModeratorRequestConsensus::Validate(tx, ptx, block);
         }
@@ -44,7 +44,7 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             if (IsEmpty(ptx->GetRequestTxHash()))
-                return {false, SocialConsensusResult_Failed};
+                return {false, ConsensusResult_Failed};
 
             return EnableTransaction();
         }
@@ -53,7 +53,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult EnableTransaction()
         {
-            return { false, SocialConsensusResult_NotAllowed };
+            return { false, ConsensusResult_NotAllowed };
         }
 
     };

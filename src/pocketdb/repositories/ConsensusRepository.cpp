@@ -6,8 +6,7 @@
 
 namespace PocketDb
 {
-    ConsensusData_AccountUser ConsensusRepository::AccountUser(
-        const string& address, int depth, const string& name)
+    ConsensusData_AccountUser ConsensusRepository::AccountUser(const string& address, int depth, const string& name)
     {
         #pragma region Prepare
 
@@ -17,7 +16,6 @@ namespace PocketDb
 
         string sql = R"sql(
             with
-
                 addressRegId as (
                     select
                         r.RowId
@@ -26,95 +24,79 @@ namespace PocketDb
                     where
                         String = ?
                 ),
-
                 lastTx as (
                     select
-                        ifnull(min(t.Type),0) type
+                        ifnull(min(t.Type),0) as type
                     from
-                        addressRegId,
-                        Transactions t -- todo : index
-                    where
+                        addressRegId
                         -- filter registrations & deleting transactions by address
-                        t.Type in (100, 170) and
-                        t.RegId1 = addressRegId.RowId and
+                        cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (100, 170) and t.RegId1 = addressRegId.RowId
                         -- filter by chain for exclude mempool
-                        exists(select 1 from Chain c where c.TxId = t.RowId) and
+                        cross join Chain c
+                            on c.TxId = t.RowId
                         -- filter by Last
-                        exists(select 1 from Last l where l.TxId = t.RowId)
+                        cross join Last l
+                            on l.TxId = t.RowId
                 ),
-
                 edits as (
                     select
                         count() cnt
                     from
-                        addressRegId,
-                        Transactions t, -- todo : index
-                        Chain c         -- todo : index
-                    where
+                        addressRegId
                         -- filter registrations transactions by address
-                        t.Type = 100 and
-                        t.RegId1 = addressRegId.RowId and
+                        cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type = 100 and t.RegId1 = addressRegId.RowId
                         -- filter by height for exclude mempool
-                        c.TxId = t.RowId and
-                        c.Height >= ?
+                        cross join Chain c
+                            on c.TxId = t.RowId and c.Height >= ?
                 ),
-
                 mempool as (
                     select
                         count()cnt
                     from
-                        addressRegId,
-                        Transactions t
-                    where
+                        addressRegId
                         -- filter registrations transactions and address
-                        t.Type in (100, 170) and
-                        t.RegId1 = addressRegId.RowId and
+                        cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (100, 170) and t.RegId1 = addressRegId.RowId
+                    where
                         -- include only non-chain transactions
                         not exists(select 1 from Chain c where c.TxId = t.RowId)
                 ),
-
                 duplicatesChain as (
                     select
                         count() cnt
                     from
-                        addressRegId,
-                        Payload p,      -- todo : index
-                        Transactions t  -- todo : index
-                    where
+                        addressRegId
                         -- find all same names in payload
-                        (p.String2 like ? escape '\') and
-                        -- link with payload
-                        p.TxId = t.RowId and
-                        -- filter registrations transactions
-                        t.Type = 100 and
-                        -- exclude self
-                        t.RegId1 != addressRegId.RowId and
+                        cross join Payload p
+                            on (p.String2 like ? escape '\')
+                        cross join Transactions t
+                            on t.RowId = p.TxId and t.Type = 100 and t.RegId1 != addressRegId.RowId
                         -- filter by chain for exclude mempool
-                        exists(select 1 from Chain c where c.TxId = t.RowId) and
+                        cross join Chain c
+                            on c.TxId = t.RowId
                         -- filter by Last
-                        exists(select 1 from Last l where l.TxId = t.RowId)
+                        cross join Last l
+                            on l.TxId = t.RowId
                 ),
-
                 duplicatesMempool as (
                     select
                         count() cnt
                     from
-                        addressRegId,
-                        Payload p,      -- todo : index
-                        Transactions t  -- todo : index
-                    where
+                        addressRegId
                         -- find all same names in payload
-                        (p.String2 like ? escape '\') and
-                        -- link with payload
-                        p.TxId = t.RowId and
-                        -- filter registrations transactions
-                        t.Type = 100 and
-                        -- exclude self
-                        t.RegId1 != addressRegId.RowId and
+                        cross join Payload p
+                            on (p.String2 like ? escape '\')
+                        cross join Transactions t
+                            on t.RowId = p.TxId and t.Type = 100 and t.RegId1 != addressRegId.RowId
+                        -- filter by chain for exclude mempool
+                        cross join Chain c
+                            on c.TxId = t.RowId
+                    where
                         -- include only non-chain transactions
                         not exists(select 1 from Chain c where c.TxId = t.RowId)
                 )
-
             select
                 lastTx.type,
                 edits.cnt,
@@ -137,6 +119,7 @@ namespace PocketDb
             .Bind(address, depth, _name, _name)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
+                {
                     cursor.CollectAll(
                         result.LastTxType,
                         result.EditsCount,
@@ -144,11 +127,168 @@ namespace PocketDb
                         result.DuplicatesChainCount,
                         result.DuplicatesMempoolCount
                     );
+                }
             });
         });
 
         return result;
+    }
+
+    ConsensusData_BarteronAccount ConsensusRepository::BarteronAccount(const string& address)
+    {
+        #pragma region Prepare
+
+        ConsensusData_BarteronAccount result;
         
+        string sql = R"sql(
+            with
+
+                addressRegId as (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        String = ?
+                ),
+
+                mempool as (
+                    select
+                        count()cnt
+                    from
+                        addressRegId,
+                        Transactions t
+                    where
+                        t.Type in (104) and
+                        t.RegId1 = addressRegId.RowId and
+                        -- include only non-chain transactions
+                        not exists(select 1 from Chain c where c.TxId = t.RowId)
+                ),
+
+            select
+                mempool.cnt
+            from
+                mempool
+        )sql";
+
+        #pragma endregion
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    cursor.CollectAll(
+                        result.MempoolCount
+                    );
+                }
+            });
+        });
+
+        return result;
+    }
+
+    ConsensusData_BarteronOffer ConsensusRepository::BarteronOffer(const string& address, const string& rootTxHash)
+    {
+        #pragma region Prepare
+
+        ConsensusData_BarteronOffer result;
+        
+        string sql = R"sql(
+            with
+
+                addressRegId as (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        String = ?
+                ),
+
+                rootRegId as (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        String = ?
+                ),
+
+                lastTx as (
+                    select
+                        ifnull(min(t.Type),0) type
+                    from
+                        addressRegId,
+                        rootRegId,
+                        Transactions t -- todo : index
+                    where
+                        t.Type in (211) and
+                        t.RegId1 = addressRegId.RowId and
+                        t.RegId2 = rootRegId.RowId and
+                        -- filter by chain for exclude mempool
+                        exists(select 1 from Chain c where c.TxId = t.RowId) and
+                        -- filter by Last
+                        exists(select 1 from Last l where l.TxId = t.RowId)
+                ),
+
+                active as (
+                    select
+                        count()cnt
+                    from
+                        addressRegId,
+                        Transactions t
+                    where
+                        t.Type in (211) and
+                        t.RegId1 = addressRegId.RowId and
+                        -- include only chain transactions
+                        exists (select 1 from Chain c where c.TxId = t.RowId)
+                ),
+
+                mempool as (
+                    select
+                        count()cnt
+                    from
+                        addressRegId,
+                        Transactions t
+                    where
+                        t.Type in (211) and
+                        t.RegId1 = addressRegId.RowId and
+                        -- include only non-chain transactions
+                        not exists (select 1 from Chain c where c.TxId = t.RowId)
+                ),
+
+            select
+                lastTx.type,
+                active.cnt,
+                mempool.cnt
+            from
+                lastTx,
+                active,
+                mempool
+        )sql";
+
+        #pragma endregion
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    cursor.CollectAll(
+                        result.LastTxType,
+                        result.ActiveCount,
+                        result.MempoolCount
+                    );
+                }
+            });
+        });
+
+        return result;
     }
 
 
@@ -166,10 +306,71 @@ namespace PocketDb
 
 
 
-
-
-
     // ------------------------------------------------------------------------------------------
+
+
+    // bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
+    // {
+    //     auto result = false;
+
+    //     if (addresses.empty())
+    //         return result;
+
+    //     // Build sql string
+    //     string sql = R"sql(
+    //         select count()
+    //         from Transactions indexed by Transactions_Type_Last_String1_Height_Id
+    //         where Type in (100)
+    //           and Last = 1
+    //           and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+    //           and Height is not null
+    //     )sql";
+
+    //     // Execute
+    //     SqlTransaction(__func__, [&]()
+    //     {
+    //         auto& stmt = Sql(sql);
+
+    //         stmt.Bind(addresses);
+
+    //         // if (stmt.Step())
+    //         //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
+    //         //         result = (value == (int) addresses.size());
+    //     });
+
+    //     return result;
+    // }
+
+    // bool ConsensusRepository::ExistsAccountBan(const string& address, int height)
+    // {
+    //     auto result = false;
+
+    //     string sql = R"sql(
+    //         select
+    //             1
+    //         from
+    //             Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+    //             cross join JuryBan b indexed by JuryBan_AccountId_Ending
+    //                 on b.AccountId = u.Id and b.Ending > ?
+    //         where
+    //             u.Type = 100 and
+    //             u.Last = 1 and
+    //             u.String1 = ? and
+    //             u.Height > 0
+    //     )sql";
+
+    //     SqlTransaction(__func__, [&]()
+    //     {
+    //         Sql(sql)
+    //         .Bind(height, address)
+    //         .Select([&](Cursor& cursor) {
+    //             result = cursor.Step();
+    //         });
+    //     });
+
+    //     return result;
+    // }
+
 
     bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
     {
@@ -227,7 +428,7 @@ namespace PocketDb
                     p.String7 pString7
                 from Transactions t indexed by Transactions_Hash_Height
                 left join Payload p on t.Hash = p.TxHash
-                where t.Type in (200,201,202,203,204,209,210,220)
+                where t.Type in (200,201,202,203,204,209,210,211,220)
                   and t.Hash = ?
                   and t.String2 = ?
                   and t.Height is not null
@@ -339,68 +540,6 @@ namespace PocketDb
         });
 
         return {txs.size() != 0, txs};
-    }
-
-    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
-    {
-        auto result = false;
-
-        if (addresses.empty())
-            return result;
-
-        // Build sql string
-        string sql = R"sql(
-            select count()
-            from Transactions indexed by Transactions_Type_Last_String1_Height_Id
-            where Type in (100)
-              and Last = 1
-              and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-              and Height is not null
-        )sql";
-
-        // Execute
-        SqlTransaction(__func__, [&]()
-        {
-            auto& stmt = Sql(sql);
-
-            stmt.Bind(addresses);
-
-            // if (stmt.Step())
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //         result = (value == (int) addresses.size());
-        });
-
-        return result;
-    }
-
-    bool ConsensusRepository::ExistsAccountBan(const string& address, int height)
-    {
-        auto result = false;
-
-        string sql = R"sql(
-            select
-                1
-            from
-                Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                cross join JuryBan b indexed by JuryBan_AccountId_Ending
-                    on b.AccountId = u.Id and b.Ending > ?
-            where
-                u.Type = 100 and
-                u.Last = 1 and
-                u.String1 = ? and
-                u.Height > 0
-        )sql";
-
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(sql)
-            .Bind(height, address)
-            .Select([&](Cursor& cursor) {
-                result = cursor.Step();
-            });
-        });
-
-        return result;
     }
 
     tuple<bool, TxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
@@ -1079,7 +1218,7 @@ namespace PocketDb
 
             -- Content
             join Transactions c indexed by Transactions_Hash_Height
-                on c.Type in (200,201,202,203,204,205,206,207,209,210) and c.Height > 0 and c.Hash = s.String2
+                on c.Type in (200,201,202,203,204,205,206,207,209,210,211) and c.Height > 0 and c.Hash = s.String2
 
             -- Content Address
             join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
@@ -1230,7 +1369,7 @@ namespace PocketDb
                and s.Time >= ?
                and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
                and s.Hash != ?
-            where c.Type in (200,201,202,209,210,207)
+            where c.Type in (200,201,202,209,210,211,207)
               and c.String1 = ?
               and c.Height is not null
               and c.Last = 1
@@ -2417,7 +2556,7 @@ namespace PocketDb
             auto& stmt = Sql(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200,201,202,209,210,220,207)
+                where Type in (200,201,202,209,210,211,220,207)
                   and Height is null
                   and String1 = ?
                   and String2 = ?

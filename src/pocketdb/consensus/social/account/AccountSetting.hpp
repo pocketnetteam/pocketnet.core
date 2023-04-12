@@ -5,40 +5,40 @@
 #ifndef POCKETCONSENSUS_ACCOUNT_SETTING_HPP
 #define POCKETCONSENSUS_ACCOUNT_SETTING_HPP
 
-#include "pocketdb/consensus/social/account/Account.hpp"
+#include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/account/Setting.h"
 
 namespace PocketConsensus
 {
-    using namespace std;
-    
     typedef shared_ptr<AccountSetting> AccountSettingRef;
 
     /*******************************************************************************************************************
     *  AccountSetting consensus base class
     *******************************************************************************************************************/
-    class AccountSettingConsensus : public AccountConsensus<AccountSetting>
+    class AccountSettingConsensus : public SocialConsensus<AccountSetting>
     {
-    private:
-        using Base = AccountConsensus<AccountSetting>;
-
     public:
-        AccountSettingConsensus(int height) : AccountConsensus<AccountSetting>(height) {}
+        AccountSettingConsensus() : SocialConsensus<AccountSetting>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const AccountSettingRef& ptx, const PocketBlockRef& block) override
         {
-            if (auto[ok, code] = Base::Validate(tx, ptx, block); !ok)
-                return {false, code};
-
-            int count = GetChainCount(ptx);
-            return ValidateLimit(account_settings_daily_count, count);
+            return SocialConsensus::Validate(tx, ptx, block);
         }
+
         ConsensusValidateResult Check(const CTransactionRef& tx, const AccountSettingRef& ptx) override
         {
-            if (auto[ok, code] = Base::Check(tx, ptx); !ok)
-                return {false, code};
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
 
-            if (IsEmpty(ptx->GetPayloadData()))
-                return {false, SocialConsensusResult_Failed};
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+
+            // Check payload
+            if (!ptx->GetPayload()) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPayloadData())) return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -58,28 +58,27 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    return {false, SocialConsensusResult_AccountSettingsDouble};
+                    return {false, ConsensusResult_AccountSettingsDouble};
             }
 
-            return Success;
+            int count = GetChainCount(ptx);
+            return ValidateLimit(account_settings_daily_count, count);
         }
 
         ConsensusValidateResult ValidateMempool(const AccountSettingRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolAccountSetting(*ptx->GetAddress()) > 0)
-                return {false, SocialConsensusResult_AccountSettingsDouble};
+                return {false, ConsensusResult_AccountSettingsDouble};
 
-            return Success;
+            int count = GetChainCount(ptx);
+            return ValidateLimit(account_settings_daily_count, count);
         }
-        
-        ConsensusValidateResult ValidatePayloadSize(const AccountSettingRef& ptx) override
+
+        vector<string> GetAddressesForCheckRegistration(const AccountSettingRef& ptx) override
         {
-            if ((int64_t)ptx->GetPayloadData()->size() > GetConsensusLimit(ConsensusLimit_max_account_setting_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
-
-            return Success;
+            return {*ptx->GetAddress()};
         }
-        
+    
         virtual int GetChainCount(const AccountSettingRef& ptx)
         {
             return ConsensusRepoInst.CountChainAccountSetting(
@@ -89,28 +88,19 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class AccountSettingConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class AccountSettingConsensusFactory : public BaseConsensusFactory<AccountSettingConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<AccountSettingConsensus>> m_rules = {
-            { 0, 0, 0, [](int height) { return make_shared<AccountSettingConsensus>(height); }},
-        };
     public:
-        shared_ptr<AccountSettingConsensus> Instance(int height)
+        AccountSettingConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<AccountSettingConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0, 0, 0, make_shared<AccountSettingConsensus>() });
         }
     };
 
-} // namespace PocketConsensus
+    static AccountSettingConsensusFactory ConsensusFactoryInst_AccountSetting;
+}
 
 #endif // POCKETCONSENSUS_ACCOUNT_SETTING_HPP

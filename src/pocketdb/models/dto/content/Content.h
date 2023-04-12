@@ -5,17 +5,16 @@
 #ifndef POCKETTX_CONTENT_H
 #define POCKETTX_CONTENT_H
 
-#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/base/SocialTransaction.h"
 
 namespace PocketTx
 {
-    using namespace std;
-
-    class Content : public Transaction
+    class Content : public SocialTransaction
     {
     public:
         Content();
         Content(const CTransactionRef& tx);
+        virtual ~Content() = 0;
 
         const optional<string>& GetAddress() const;
         void SetAddress(const string& value);

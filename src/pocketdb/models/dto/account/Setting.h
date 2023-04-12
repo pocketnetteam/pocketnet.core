@@ -5,11 +5,11 @@
 #ifndef POCKETTX_ACCOUNT_SETTING_H
 #define POCKETTX_ACCOUNT_SETTING_H
 
-#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/base/SocialTransaction.h"
 
 namespace PocketTx
 {
-    class AccountSetting : public Transaction
+    class AccountSetting : public SocialTransaction
     {
     public:
         AccountSetting();
@@ -21,10 +21,8 @@ namespace PocketTx
         void DeserializeRpc(const UniValue& src) override;
         void DeserializePayload(const UniValue& src) override;
 
-        const optional <string>& GetAddress() const;
-        void SetAddress(const string& value);
-
-        optional <string> GetPayloadData() const;
+        optional<string> GetPayloadData() const;
+        size_t PayloadSize() override;
 
         string BuildHash() override;
 

@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Blocking> BlockingRef;
 
     /*******************************************************************************************************************
@@ -19,7 +18,11 @@ namespace PocketConsensus
     class BlockingConsensus : public SocialConsensus<Blocking>
     {
     public:
-        BlockingConsensus(int height) : SocialConsensus<Blocking>(height) {}
+        BlockingConsensus() : SocialConsensus<Blocking>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BlockingRef& ptx, const PocketBlockRef& block) override
         {
             // Double blocking in chain
@@ -28,8 +31,8 @@ namespace PocketConsensus
                     *ptx->GetAddressTo()
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleBlocking))
-                    return {false, SocialConsensusResult_DoubleBlocking};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_DoubleBlocking))
+                    return {false, ConsensusResult_DoubleBlocking};
             }
 
             return SocialConsensus::Validate(tx, ptx, block);
@@ -40,12 +43,12 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, ConsensusResult_Failed};
 
             // Blocking self
             if (*ptx->GetAddress() == *ptx->GetAddressTo())
-                return {false, SocialConsensusResult_SelfBlocking};
+                return {false, ConsensusResult_SelfBlocking};
 
             return Success;
         }
@@ -64,7 +67,7 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
-                    return {false, SocialConsensusResult_ManyTransactions};
+                    return {false, ConsensusResult_ManyTransactions};
             }
 
             return Success;
@@ -72,7 +75,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const BlockingRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolBlocking(*ptx->GetAddress(), *ptx->GetAddressTo()) > 0)
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Success;
         }
@@ -85,7 +88,8 @@ namespace PocketConsensus
     class BlockingConsensus_checkpoint_multiple_blocking : public BlockingConsensus
     {
     public:
-        BlockingConsensus_checkpoint_multiple_blocking(int height) : BlockingConsensus(height) {}
+        BlockingConsensus_checkpoint_multiple_blocking() : BlockingConsensus() {}
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BlockingRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -99,8 +103,8 @@ namespace PocketConsensus
                     IsEmpty(ptx->GetAddressesTo()) ? "[]" : *ptx->GetAddressesTo()
                 ))
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleBlocking))
-                    return {false, SocialConsensusResult_DoubleBlocking};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_DoubleBlocking))
+                    return {false, ConsensusResult_DoubleBlocking};
             }
 
             return Success;
@@ -111,23 +115,23 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetAddressTo()) && IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
-            if (!IsEmpty(ptx->GetAddressTo()) && !IsEmpty(ptx->GetAddressesTo())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo()) && IsEmpty(ptx->GetAddressesTo())) return {false, ConsensusResult_Failed};
+            if (!IsEmpty(ptx->GetAddressTo()) && !IsEmpty(ptx->GetAddressesTo())) return {false, ConsensusResult_Failed};
             if (!IsEmpty(ptx->GetAddressesTo()))
             {
                 UniValue addrs(UniValue::VARR);
                 if (!addrs.read(*ptx->GetAddressesTo()))
-                    return {false, SocialConsensusResult_Failed};
+                    return {false, ConsensusResult_Failed};
                 if (addrs.size() > (size_t)GetConsensusLimit(ConsensusLimit_multiple_lock_addresses_count))
-                    return {false, SocialConsensusResult_Failed};
+                    return {false, ConsensusResult_Failed};
             }
 
             // Blocking self
             auto blockingaddresses = IsEmpty(ptx->GetAddressTo()) ? "" : *ptx->GetAddressTo();
             blockingaddresses.append(IsEmpty(ptx->GetAddressesTo()) ? "" : *ptx->GetAddressesTo());
             if ((blockingaddresses).find(*ptx->GetAddress()) != std::string::npos)
-                return {false, SocialConsensusResult_SelfBlocking};
+                return {false, ConsensusResult_SelfBlocking};
 
             return Success;
         }
@@ -149,10 +153,10 @@ namespace PocketConsensus
                     if (!IsEmpty(ptx->GetAddressTo()) &&
                         !IsEmpty(blockPtx->GetAddressTo()) &&
                         *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
-                        return {false, SocialConsensusResult_ManyTransactions};
+                        return {false, ConsensusResult_ManyTransactions};
                     if (!IsEmpty(ptx->GetAddressesTo()) &&
                         !IsEmpty(blockPtx->GetAddressesTo()))
-                        return {false, SocialConsensusResult_ManyTransactions};
+                        return {false, ConsensusResult_ManyTransactions};
                 }
             }
 
@@ -161,7 +165,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const BlockingRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolBlocking(*ptx->GetAddress(), IsEmpty(ptx->GetAddressTo()) ? "" : *ptx->GetAddressTo()) > 0)
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Success;
         }
@@ -182,28 +186,20 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class BlockingConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class BlockingConsensusFactory : public BaseConsensusFactory<BlockingConsensus>
     {
-    protected:
-        const vector<ConsensusCheckpoint<BlockingConsensus>> m_rules = {
-            {       0,       0, -1, [](int height) { return make_shared<BlockingConsensus>(height); }},
-            { 1873500, 1114500,  0, [](int height) { return make_shared<BlockingConsensus_checkpoint_multiple_blocking>(height); }},
-        };
     public:
-        shared_ptr<BlockingConsensus> Instance(int height)
+        BlockingConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<BlockingConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,       0, -1, make_shared<BlockingConsensus>() });
+            Checkpoint({ 1873500, 1114500,  0, make_shared<BlockingConsensus_checkpoint_multiple_blocking>() });
         }
     };
+
+    static BlockingConsensusFactory ConsensusFactoryInst_Blocking;
 }
 
 #endif // POCKETCONSENSUS_BLOCKING_HPP

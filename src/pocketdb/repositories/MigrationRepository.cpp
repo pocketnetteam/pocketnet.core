@@ -138,7 +138,7 @@ namespace PocketDb
                     c.TxId = t.RowId and
                     c.Height = (select min(f.Height) from Chain f where f.Uid = c.Uid)
                 where
-                    t.Type in (100,170,302,303,304,305,306,103,200,201,202,204,205,206,209,210,220,207)
+                    t.Type in (100,170,302,303,304,305,306,103,200,201,202,204,205,206,209,210,211,220,207)
             )sql").Run();
 
             // Set First=0 for checkpointed transactions

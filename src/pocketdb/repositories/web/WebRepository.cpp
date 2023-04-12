@@ -2,6 +2,7 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <boost/format.hpp>
 #include "pocketdb/repositories/web/WebRepository.h"
 
 namespace PocketDb
@@ -291,6 +292,112 @@ namespace PocketDb
                 0.001 * (nTime4 - nTime3),
                 0.001 * (nTime4 - nTime1)
             );
+        });
+    }
+
+    void WebRepository::UpsertBarteronAccounts(int64_t height)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            // Delete
+            Sql(R"sql(
+                delete from BarteronAccountTags
+                where
+                    BarteronAccountTags.AccountId in (
+                        select
+                            c.Uid
+                        from
+                            Transactions t
+                            join Chain c indexed by Chain_Height_Uid on
+                                c.TxId = t.RowId and
+                                c.Height = ?
+                        where
+                            t.Type = 104
+                    )
+
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add
+            Sql(R"sql(
+                with js as ( select '$.t' as path )
+                insert into BarteronAccountTags (AccountId, Tag)
+                select
+                    c.Uid,
+                    pj.value
+                from
+                    js,
+                    Transactions t
+                    join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = t.RowId and
+                        c.Height = ?
+                    join Payload p
+                        on p.TxId = t.RowId
+                    join json_each(p.String4, js.path) as pj
+                where
+                    t.Type = 104 and
+                    json_valid(p.String4) and
+                    json_type(p.String4, js.path) = 'array'
+            )sql")
+            .Bind(height)
+            .Run();
+        });
+    }
+
+    void WebRepository::UpsertBarteronOffers(int64_t height)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            // Delete
+            Sql(R"sql(
+                delete from BarteronOffers
+                where
+                    BarteronOffers.OfferId in (
+                        select
+                            c.Uid
+                        from
+                            Transactions t
+                            join Chain c indexed by Chain_Height_Uid on
+                                c.TxId = t.RowId and
+                                c.Height = ?
+                        where
+                            t.Type = 211
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add
+            Sql(R"sql(
+                with js as ( select '$.t' as path )
+                insert into BarteronOffers (AccountId, OfferId, Tag)
+                select
+                    cu.Uid as AccountId,
+                    ct.Uid as OfferId,
+                    pj.value as Tag
+                from
+                    js,
+                    Transactions t
+                    join Chain ct indexed by Chain_Height_Uid on
+                        ct.TxId = t.RowId and
+                        ct.Height = ?
+                    cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type = 100 and
+                        u.RegId1 = t.RegId1 and
+                        exists (select 1 from Last l where l.TxId = u.RowId)
+                    cross join Chain cu on
+                        cu.TxId = u.RowId
+                    cross join Payload p -- primary key
+                        on p.TxId = t.RowId
+                    cross join json_each(p.String4, js.path) as pj
+                where
+                    t.Type = 211 and
+                    json_valid(p.String4) and
+                    json_type(p.String4, js.path) = 'array'
+            )sql")
+            .Bind(height)
+            .Run();
         });
     }
 

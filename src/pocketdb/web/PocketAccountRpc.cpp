@@ -215,7 +215,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + request.params[0].get_str());
         auto address = request.params[0].get_str();
 
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(::ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(::ChainActive().Height());
         auto windowDepth = reputationConsensus->GetConsensusLimit(ConsensusLimit_depth);
 
         // Read general account info and current state
@@ -826,7 +826,7 @@ namespace PocketWeb::PocketWebRpc
                                   depth = std::min(depth, request.params[7].get_int());
                               }
 
-                              auto reputationConsensus = ReputationConsensusFactoryInst.Instance(::ChainActive().Height());
+                              auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(::ChainActive().Height());
                               auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
                               UniValue result(UniValue::VARR);

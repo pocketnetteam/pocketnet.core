@@ -7,13 +7,9 @@
 
 namespace PocketTx
 {
-    Content::Content() : Transaction()
-    {
-    }
-
-    Content::Content(const CTransactionRef& tx) : Transaction(tx)
-    {
-    }
+    Content::Content() : SocialTransaction() {}
+    Content::Content(const CTransactionRef& tx) : SocialTransaction(tx) {}
+    Content::~Content() {}
 
     const optional<string>& Content::GetAddress() const { return m_string1; }
     void Content::SetAddress(const string& value) { m_string1 = value; }

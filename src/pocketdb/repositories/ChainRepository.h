@@ -77,6 +77,7 @@ namespace PocketDb
         string IndexComment();
         string IndexBlocking();
         string IndexSubscribe();
+        string IndexAccountBarteron();
 
     };
 

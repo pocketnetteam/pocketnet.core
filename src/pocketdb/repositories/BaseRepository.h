@@ -143,4 +143,3 @@ namespace PocketDb
 }
 
 #endif //POCKETDB_BASEREPOSITORY_H
-

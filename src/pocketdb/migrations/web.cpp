@@ -46,11 +46,38 @@ namespace PocketDb
             drop table if exists Badges;
         )sql");
 
+        //
+        // BARTERON
+        //
+        
+        _tables.emplace_back(R"sql(
+            create table if not exists BarteronAccountTags
+            (
+                AccountId  int not null,
+                Tag        int not null
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists BarteronOffers
+            (
+                AccountId  int not null,
+                OfferId    int not null,
+                Tag        int not null
+            );
+        )sql");
+
+        //
+        // INDEXES
+        //
         _indexes = R"sql(
             create unique index if not exists Tags_Lang_Value on Tags (Lang, Value);
             create index if not exists Tags_Lang_Id on Tags (Lang, Id);
             create index if not exists Tags_Lang_Value_Id on Tags (Lang, Value, Id);
             create index if not exists TagsMap_TagId_ContentId on TagsMap (TagId, ContentId);
+
+            create index if not exists BarteronAccountTags_Tag_AccountId on BarteronAccountTags (Tag, AccountId);
+            create index if not exists BarteronOffers_Tag_OfferId_AccountId on BarteronOffers (Tag, OfferId, AccountId);
         )sql";
     }
 }

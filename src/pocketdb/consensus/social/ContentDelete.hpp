@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<ContentDelete> ContentDeleteRef;
 
     /*******************************************************************************************************************
@@ -19,25 +18,29 @@ namespace PocketConsensus
     class ContentDeleteConsensus : public SocialConsensus<ContentDelete>
     {
     public:
-        ContentDeleteConsensus(int height) : SocialConsensus<ContentDelete>(height) {}
+        ContentDeleteConsensus() : SocialConsensus<ContentDelete>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ContentDeleteRef& ptx, const PocketBlockRef& block) override
         {
             // Actual content not deleted
             auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COLLECTION, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COLLECTION, BARTERON_OFFER, CONTENT_DELETE }
             );
 
             if (!ok)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             if (*actuallTx->GetType() == TxType::CONTENT_DELETE)
-                return {false, SocialConsensusResult_ContentDeleteDouble};
+                return {false, ConsensusResult_ContentDeleteDouble};
 
             // TODO (aok): convert to Content base class
             // You are author? Really?
             if (*ptx->GetAddress() != *actuallTx->GetString1())
-                return {false, SocialConsensusResult_ContentDeleteUnauthorized};
+                return {false, ConsensusResult_ContentDeleteUnauthorized};
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -47,8 +50,8 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetRootTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetRootTxHash())) return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -58,7 +61,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_ARTICLE, CONTENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_ARTICLE, CONTENT_COLLECTION, BARTERON_OFFER, CONTENT_DELETE }))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())
@@ -66,7 +69,7 @@ namespace PocketConsensus
 
                 // TODO (aok): convert to content base class
                 if (*ptx->GetRootTxHash() == *blockTx->GetString2())
-                    return {false, SocialConsensusResult_ContentDeleteDouble};
+                    return {false, ConsensusResult_ContentDeleteDouble};
             }
 
             return Success;
@@ -74,7 +77,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const ContentDeleteRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolContentDelete(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_ContentDeleteDouble};
+                return {false, ConsensusResult_ContentDeleteDouble};
 
             return Success;
         }
@@ -84,27 +87,19 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class ContentDeleteConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class ContentDeleteConsensusFactory : public BaseConsensusFactory<ContentDeleteConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < ContentDeleteConsensus>> m_rules = {
-            { 0, 0, 0, [](int height) { return make_shared<ContentDeleteConsensus>(height); }},
-        };
     public:
-        shared_ptr<ContentDeleteConsensus> Instance(int height)
+        ContentDeleteConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ContentDeleteConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0, 0, 0, make_shared<ContentDeleteConsensus>() });
         }
     };
+
+    static ContentDeleteConsensusFactory ConsensusFactoryInst_ContentDelete;
 }
 
 #endif // POCKETCONSENSUS_CONTENT_DELETE_HPP

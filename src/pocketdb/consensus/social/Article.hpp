@@ -11,7 +11,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<Article> ArticleRef;
     typedef shared_ptr<Content> ContentRef;
 
@@ -21,13 +20,13 @@ namespace PocketConsensus
     class ArticleConsensus : public SocialConsensus<Article>
     {
     public:
-        ArticleConsensus(int height) : SocialConsensus<Article>(height) {}
+        ArticleConsensus() : SocialConsensus<Article>()
+        {
+            // TODO (limits): set limits
+        }
+
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const ArticleRef& ptx, const PocketBlockRef& block) override
         {
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
@@ -39,20 +38,15 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
 
             // Repost not allowed
-            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
+            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, ConsensusResult_NotAllowed};
 
-            return EnableAccept();
+            return Success;
         }
 
     protected:
-    
-        virtual ConsensusValidateResult EnableAccept()
-        {
-            return {false, SocialConsensusResult_NotAllowed};
-        }
 
         virtual int64_t GetLimit(AccountMode mode)
         {
@@ -122,39 +116,39 @@ namespace PocketConsensus
                 { CONTENT_ARTICLE }
             );
             if (!lastContentOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             // First get original post transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
             if (!originalTxOk)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, ConsensusResult_NotFound};
 
             const auto originalPtx = static_pointer_cast<Content>(originalTx);
 
             // Change type not allowed
             if (*originalPtx->GetType() != *ptx->GetType())
-                return {false, SocialConsensusResult_NotAllowed};
+                return {false, ConsensusResult_NotAllowed};
 
             // You are author? Really?
             if (*ptx->GetAddress() != *originalPtx->GetAddress())
-                return {false, SocialConsensusResult_ContentEditUnauthorized};
+                return {false, ConsensusResult_ContentEditUnauthorized};
 
             // Original post edit only 24 hours
             if (!AllowEditWindow(ptx, originalPtx))
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, ConsensusResult_ContentEditLimit};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const ArticleRef& ptx, int count)
         {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
             if (count >= GetLimit(mode))
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ContentLimit))
-                    return {false, SocialConsensusResult_ContentLimit};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_ContentLimit))
+                    return {false, ConsensusResult_ContentLimit};
             }
 
             return Success;
@@ -189,7 +183,7 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, SocialConsensusResult_DoubleContentEdit};
+                    return {false, ConsensusResult_DoubleContentEdit};
             }
 
             // Check edit limit
@@ -198,7 +192,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateEditMempool(const ArticleRef& ptx)
         {
             if (ConsensusRepoInst.CountMempoolArticleEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_DoubleContentEdit};
+                return {false, ConsensusResult_DoubleContentEdit};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
@@ -207,11 +201,11 @@ namespace PocketConsensus
         {
             int count = ConsensusRepoInst.CountChainArticleEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_article_edit_count))
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, ConsensusResult_ContentEditLimit};
 
             return Success;
         }
-        virtual ConsensusValidateResult ValidatePayloadSize(const ArticleRef& ptx)
+        ConsensusValidateResult ValidatePayloadSize(const ArticleRef& ptx)
         {
             size_t dataSize =
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
@@ -241,48 +235,25 @@ namespace PocketConsensus
             }
 
             if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_article_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }
     };
     
-    /*******************************************************************************************************************
-    *  Enable accept transaction
-    *******************************************************************************************************************/
-    class ArticleConsensus_checkpoint_accept : public ArticleConsensus
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class ArticleConsensusFactory : public BaseConsensusFactory<ArticleConsensus>
     {
     public:
-        ArticleConsensus_checkpoint_accept(int height) : ArticleConsensus(height) {}
-    protected:
-        ConsensusValidateResult EnableAccept()
+        ArticleConsensusFactory()
         {
-            return Success;
+            Checkpoint({ 0, 0, 0, make_shared<ArticleConsensus>() });
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class ArticleConsensusFactory
-    {
-    protected:
-        const vector<ConsensusCheckpoint < ArticleConsensus>> m_rules = {
-            {       0,      0, -1, [](int height) { return make_shared<ArticleConsensus>(height); }},
-            { 1586000, 528000,  0, [](int height) { return make_shared<ArticleConsensus_checkpoint_accept>(height); }},
-        };
-    public:
-        shared_ptr<ArticleConsensus> Instance(int height)
-        {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ArticleConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
-        }
-    };
-} // namespace PocketConsensus
+    static ArticleConsensusFactory ConsensusFactoryInst_Article;
+}
 
 #endif // POCKETCONSENSUS_ARTICLE_H

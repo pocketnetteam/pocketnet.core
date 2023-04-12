@@ -188,6 +188,7 @@ void ShutdownPocketServices()
     PocketDb::ExplorerRepoInst.Destroy();
     PocketDb::SystemRepoInst.Destroy();
     PocketDb::MigrationRepoInst.Destroy();
+    PocketDb::WebRepositoryInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");
     PocketDb::SQLiteDbInst.Close();
@@ -222,8 +223,10 @@ void Shutdown(NodeContext& node)
     PocketServices::WebPostProcessorInst.Stop();
     gStatEngineInstance.Stop();
 
-    if (notifyClientsThread)
+    if (notifyClientsThread) {
         notifyClientsThread->Stop();
+        notifyClientsThread.reset(); // Explicit clear memory to exist sqlite connection.
+    }
         
     StopHTTPRPC();
     StopREST();
@@ -262,9 +265,6 @@ void Shutdown(NodeContext& node)
     }
 
     StopTorControl();
-
-    if (notifyClientsThread)
-        notifyClientsThread->Stop();
 
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue, threadGroup and load block thread.

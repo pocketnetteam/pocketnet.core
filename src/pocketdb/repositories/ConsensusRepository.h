@@ -76,6 +76,16 @@ namespace PocketDb
         int DuplicatesChainCount = 0;
         int DuplicatesMempoolCount = 0;
     };
+    
+    struct ConsensusData_BarteronAccount {
+        int MempoolCount = 0;
+    };
+
+    struct ConsensusData_BarteronOffer {
+        int MempoolCount = 0;
+        int LastTxType = -1;
+        int ActiveCount = 0;
+    };
 
     // ----------------------------------------------------------------------
 
@@ -85,6 +95,8 @@ namespace PocketDb
         explicit ConsensusRepository(SQLiteDatabase& db) : TransactionRepository(db) {}
 
         ConsensusData_AccountUser AccountUser(const string& address, int depth, const string& name);
+        ConsensusData_BarteronAccount BarteronAccount(const string& address);
+        ConsensusData_BarteronOffer BarteronOffer(const string& address, const string& rootTxHash);
 
 
 
@@ -189,6 +201,12 @@ namespace PocketDb
 
         int CountMempoolCollection(const string& address);
         int CountChainCollection(const string& address, int height);
+        
+        int CountMempoolBarteronOffer(const std::string& address);
+        int CountChainBarteronOffer(const std::string& address, int height);
+
+        int CountMempoolBarteronRequest(const std::string& address);
+        int CountChainBarteronRequest(const std::string& address, int height);
 
         int CountMempoolScoreComment(const string& address);
         int CountChainScoreCommentTime(const string& address, int64_t time);
@@ -223,6 +241,9 @@ namespace PocketDb
 
         int CountMempoolCollectionEdit(const string& address, const string& rootTxHash);
         int CountChainCollectionEdit(const string& address, const string& rootTxHash, const int& nHeight, const int& depth);
+        
+        int CountMempoolBarteronOfferEdit(const string& address, const string& rootTxHash);
+        int CountChainBarteronOfferEdit(const string& address, const string& rootTxHash);
 
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
 

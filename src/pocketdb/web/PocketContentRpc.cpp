@@ -548,7 +548,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 5)
             address = request.params[5].get_str();
 
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         return request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang,
@@ -639,7 +639,7 @@ namespace PocketWeb::PocketWebRpc
                 topContentId = ids[0];
         }
 
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -737,7 +737,7 @@ namespace PocketWeb::PocketWebRpc
                 topContentId = ids[0];
         }
 
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -825,7 +825,7 @@ namespace PocketWeb::PocketWebRpc
         ParseFeedRequest(request, topHeight, skipString, skipInt, lang, tags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, skipString);
 
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -932,7 +932,7 @@ namespace PocketWeb::PocketWebRpc
                 topContentId = ids[0];
         }
 
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -1039,7 +1039,7 @@ namespace PocketWeb::PocketWebRpc
         //         topContentId = ids[0];
         // }
 
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -1644,7 +1644,7 @@ namespace PocketWeb::PocketWebRpc
                               if (request.params.size() > 4 && request.params[4].isNum())
                                   countOutOfcontents = std::min(request.params[4].get_int(), 1000);
 
-                              auto reputationConsensus = ReputationConsensusFactoryInst.Instance(ChainActive().Height());
+                              auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
                               auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
                               UniValue content = request.DbConnection()->WebRpcRepoInst->GetsubsciptionsGroupedByAuthors(

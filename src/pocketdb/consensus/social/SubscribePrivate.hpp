@@ -10,7 +10,6 @@
 
 namespace PocketConsensus
 {
-    using namespace std;
     typedef shared_ptr<SubscribePrivate> SubscribePrivateRef;
 
     /*******************************************************************************************************************
@@ -19,7 +18,11 @@ namespace PocketConsensus
     class SubscribePrivateConsensus : public SocialConsensus<SubscribePrivate>
     {
     public:
-        SubscribePrivateConsensus(int height) : SocialConsensus<SubscribePrivate>(height) {}
+        SubscribePrivateConsensus() : SocialConsensus<SubscribePrivate>()
+        {
+            // TODO (limits): set limits
+        }
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const SubscribePrivateRef& ptx, const PocketBlockRef& block) override
         {
             // Check double subscribe
@@ -29,8 +32,8 @@ namespace PocketConsensus
 
             if (subscribeExists && subscribeType == ACTION_SUBSCRIBE_PRIVATE)
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
-                    return {false, SocialConsensusResult_DoubleSubscribe};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_DoubleSubscribe))
+                    return {false, ConsensusResult_DoubleSubscribe};
             }
 
             // Check Blocking
@@ -45,12 +48,12 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, ConsensusResult_Failed};
 
             // Blocking self
             if (*ptx->GetAddress() == *ptx->GetAddressTo())
-                return {false, SocialConsensusResult_SelfSubscribe};
+                return {false, ConsensusResult_SelfSubscribe};
 
             return Success;
         }
@@ -71,8 +74,8 @@ namespace PocketConsensus
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
                 {
-                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
-                        return {false, SocialConsensusResult_DoubleSubscribe};
+                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_DoubleSubscribe))
+                        return {false, ConsensusResult_DoubleSubscribe};
                 }
             }
 
@@ -86,7 +89,7 @@ namespace PocketConsensus
             );
 
             if (mempoolCount > 0)
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, ConsensusResult_ManyTransactions};
 
             return Success;
         }
@@ -104,40 +107,33 @@ namespace PocketConsensus
     class SubscribePrivateConsensus_checkpoint_disable_for_blocked : public SubscribePrivateConsensus
     {
     public:
-        SubscribePrivateConsensus_checkpoint_disable_for_blocked(int height) : SubscribePrivateConsensus(height) {}
+        SubscribePrivateConsensus_checkpoint_disable_for_blocked() : SubscribePrivateConsensus() {}
+
     protected:
         ConsensusValidateResult ValidateBlocking(const SubscribePrivateRef& ptx) override
         {
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                 *ptx->GetAddressTo(), *ptx->GetAddress()); existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, SocialConsensusResult_Blocking};
+                return {false, ConsensusResult_Blocking};
 
             return Success;
         }
     };
 
-    /*******************************************************************************************************************
-    *  Factory for select actual rules version
-    *******************************************************************************************************************/
-    class SubscribePrivateConsensusFactory
+
+    // ----------------------------------------------------------------------------------------------
+    // Factory for select actual rules version
+    class SubscribePrivateConsensusFactory : public BaseConsensusFactory<SubscribePrivateConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint < SubscribePrivateConsensus>> m_rules = {
-            {       0,      0, -1, [](int height) { return make_shared<SubscribePrivateConsensus>(height); }},
-            { 1757000, 953000,  0, [](int height) { return make_shared<SubscribePrivateConsensus_checkpoint_disable_for_blocked>(height); }},
-        };
     public:
-        shared_ptr<SubscribePrivateConsensus> Instance(int height)
+        SubscribePrivateConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<SubscribePrivateConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({       0,      0, -1, make_shared<SubscribePrivateConsensus>() });
+            Checkpoint({ 1757000, 953000,  0, make_shared<SubscribePrivateConsensus_checkpoint_disable_for_blocked>() });
         }
     };
+
+    static SubscribePrivateConsensusFactory ConsensusFactoryInst_SubscribePrivate;
 }
 
 #endif // POCKETCONSENSUS_SUBSCRIBEPRIVATE_HPP

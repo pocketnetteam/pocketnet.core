@@ -130,7 +130,7 @@ namespace PocketConsensus
         }
 
     public:
-        explicit ReputationConsensus(int height) : BaseConsensus(height) {}
+        explicit ReputationConsensus() : BaseConsensus() {}
 
         virtual BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
         {
@@ -280,7 +280,7 @@ namespace PocketConsensus
     class ReputationConsensus_checkpoint_151600 : public ReputationConsensus
     {
     public:
-        explicit ReputationConsensus_checkpoint_151600(int height) : ReputationConsensus(height) {}
+        explicit ReputationConsensus_checkpoint_151600() : ReputationConsensus() {}
     protected:
         string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery) override
         {
@@ -292,7 +292,7 @@ namespace PocketConsensus
     class ReputationConsensus_checkpoint_1180000 : public ReputationConsensus_checkpoint_151600
     {
     public:
-        explicit ReputationConsensus_checkpoint_1180000(int height) : ReputationConsensus_checkpoint_151600(height) {}
+        explicit ReputationConsensus_checkpoint_1180000() : ReputationConsensus_checkpoint_151600() {}
     protected:
         int64_t GetMinLikers(int64_t registrationHeight) override
         {
@@ -315,7 +315,7 @@ namespace PocketConsensus
             lkrs[scoreData->LikerType(false)][scoreData->ContentAddressId].emplace_back(scoreData->ScoreAddressId);
         }
     public:
-        explicit ReputationConsensus_checkpoint_1324655(int height) : ReputationConsensus_checkpoint_1180000(height) {}
+        explicit ReputationConsensus_checkpoint_1324655() : ReputationConsensus_checkpoint_1180000() {}
         AccountMode GetAccountMode(int reputation, int64_t balance) override
         {
             if (reputation >= GetConsensusLimit(ConsensusLimit_threshold_reputation)
@@ -337,7 +337,7 @@ namespace PocketConsensus
     class ReputationConsensus_checkpoint_scores_content_author_reducing_impact : public ReputationConsensus_checkpoint_1324655
     {
     public:
-        explicit ReputationConsensus_checkpoint_scores_content_author_reducing_impact(int height) : ReputationConsensus_checkpoint_1324655(height) {}
+        explicit ReputationConsensus_checkpoint_scores_content_author_reducing_impact() : ReputationConsensus_checkpoint_1324655() {}
         int GetScoreContentAuthorValue(int scoreValue) override
         {
             int multiplier = 10;
@@ -359,7 +359,7 @@ namespace PocketConsensus
     class ReputationConsensus_checkpoint_badges : public ReputationConsensus_checkpoint_scores_content_author_reducing_impact
     {
     public:
-        explicit ReputationConsensus_checkpoint_badges(int height) : ReputationConsensus_checkpoint_scores_content_author_reducing_impact(height) {}
+        explicit ReputationConsensus_checkpoint_badges() : ReputationConsensus_checkpoint_scores_content_author_reducing_impact() {}
         BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation) override
         {
             BadgeSet badgeSet;
@@ -382,7 +382,7 @@ namespace PocketConsensus
             
             return badgeSet;
         }
-        virtual bool UseBadges()
+        bool UseBadges() override
         {
             return true;
         }
@@ -390,32 +390,21 @@ namespace PocketConsensus
 
 
     //  Factory for select actual rules version
-    class ReputationConsensusFactory
+    class ReputationConsensusFactory : public BaseConsensusFactory<ReputationConsensus>
     {
-    private:
-        const vector<ConsensusCheckpoint<ReputationConsensus>> m_rules = {
-            { 0,           -1, -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
-            { 151600,      -1, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
-            { 1180000,      0, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
-            { 1324655,  65000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
-            { 1700000, 761000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>(height); }},
-            { 1757000, 947500,  0, [](int height) { return make_shared<ReputationConsensus_checkpoint_badges>(height); }},
-        };
     public:
-        shared_ptr<ReputationConsensus> Instance(int height)
+        ReputationConsensusFactory()
         {
-            int m_height = (height > 0 ? height : 0);
-            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ReputationConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkID());
-                }
-            ))->m_func(m_height);
+            Checkpoint({ 0,           -1, -1, make_shared<ReputationConsensus>() });
+            Checkpoint({ 151600,      -1, -1, make_shared<ReputationConsensus_checkpoint_151600>() });
+            Checkpoint({ 1180000,      0, -1, make_shared<ReputationConsensus_checkpoint_1180000>() });
+            Checkpoint({ 1324655,  65000, -1, make_shared<ReputationConsensus_checkpoint_1324655>() });
+            Checkpoint({ 1700000, 761000, -1, make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>() });
+            Checkpoint({ 1757000, 947500,  0, make_shared<ReputationConsensus_checkpoint_badges>() });
         }
     };
     
-    typedef shared_ptr<PocketConsensus::ReputationConsensus> ReputationConsensusRef;
-    static ReputationConsensusFactory ReputationConsensusFactoryInst;
+    static ReputationConsensusFactory ConsensusFactoryInst_Reputation;
 }
 
 #endif // POCKETCONSENSUS_REPUTATION_H

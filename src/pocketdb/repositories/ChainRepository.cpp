@@ -674,6 +674,64 @@ namespace PocketDb
         )sql";
     }
 
+    // TODO (barteron): implement
+    string ChainRepository::IndexAccountBarteron()
+    {
+        // Get new ID or copy previous
+
+        return R"sql(
+            with
+                l as (
+                    select
+                        b.RowId
+                    from
+                        Transactions a -- primary key
+                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on b.Type = 104 and
+                            b.RegId1 = a.RegId1
+                        join Last l
+                            on l.TxId = b.RowId
+                    where
+                        a.Type = 104 and
+                        a.RowId = (
+                            select t.RowId
+                            from vTx t
+                            where t.Hash = ?
+                        )
+                    limit 1
+                )
+            select
+                ifnull(
+                    (
+                        select
+                            c.Uid
+                        from
+                            Chain c, -- primary key
+                            l
+                        where
+                            c.TxId = l.RowId
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select
+                                max(c.Uid) + 1
+                            from
+                                Chain c indexed by Chain_Uid_Height
+                        ),
+                        -- for first record
+                        (
+                            select 0
+                        )
+                    )
+                ),
+                (
+                    select l.RowId
+                    from l
+                )
+        )sql";
+    }
+    
 
     void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount)
     {
@@ -1129,7 +1187,7 @@ namespace PocketDb
             .Run();
         });
     }
-    
+
     // TODO (optimization): convert to restore
     void ChainRepository::RollbackBadges(int height)
     {
