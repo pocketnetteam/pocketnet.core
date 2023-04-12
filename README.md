@@ -179,12 +179,7 @@ $ pocketcoind --help
     $ rm -r ./pocketdb
     
     # unpack new checkpoint DB
-    
-    # for tar.gz archive
     $ tar -xzf latest.tgz -C ./
-    
-    # for bz2 archive
-    $ tar -xjf latest.tbz -C ./
     
     # create wallets directory if not exist
     $ mkdir wallets
