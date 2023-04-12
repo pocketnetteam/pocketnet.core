@@ -38,8 +38,8 @@ namespace PocketDb
     extern ConsensusRepository ConsensusRepoInst;
     extern SystemRepository SystemRepoInst;
     extern MigrationRepository MigrationRepoInst;
+    // extern NotifierRepository NotifierRepoInst;
     extern ExplorerRepository ExplorerRepoInst;
-    extern WebRepository WebRepositoryInst;
 
     extern CheckpointRepository CheckpointRepoInst;
     
