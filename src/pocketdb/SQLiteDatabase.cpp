@@ -208,6 +208,13 @@ namespace PocketDb
                 if (ret != SQLITE_OK)
                     throw std::runtime_error(strprintf("%s: %d; Failed to open database: %s\n",
                         __func__, ret, sqlite3_errstr(ret)));
+
+                // Setting up busy timeout per connection
+                // TODO (losty): get timeout from args
+                ret = sqlite3_busy_timeout(m_db, 10000);
+                if (ret != SQLITE_OK)
+                    throw std::runtime_error(strprintf("%s: %d; Failed to setup busy_timeout: %s\n",
+                        __func__, ret, sqlite3_errstr(ret)));
             }
 
             if (!isReadOnlyConnect && sqlite3_db_readonly(m_db, dbName.c_str()) == 1)
