@@ -14,7 +14,6 @@ namespace PocketDb
     ExplorerRepository ExplorerRepoInst(SQLiteDbInst);
     SystemRepository SystemRepoInst(SQLiteDbInst);
     MigrationRepository MigrationRepoInst(SQLiteDbInst);
-    WebRepository WebRepositoryInst(SQLiteDbInst);
 
     CheckpointRepository CheckpointRepoInst;
 } // PocketDb
@@ -27,4 +26,5 @@ namespace PocketWeb
 namespace PocketServices
 {
     WebPostProcessor WebPostProcessorInst;
+    WalController WalControllerInst;
 } // namespace PocketServices

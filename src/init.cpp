@@ -188,7 +188,6 @@ void ShutdownPocketServices()
     PocketDb::ExplorerRepoInst.Destroy();
     PocketDb::SystemRepoInst.Destroy();
     PocketDb::MigrationRepoInst.Destroy();
-    PocketDb::WebRepositoryInst.Destroy();
 
     PocketDb::SQLiteDbInst.DetachDatabase("web");
     PocketDb::SQLiteDbInst.Close();
@@ -221,6 +220,7 @@ void Shutdown(NodeContext& node)
     Assert(node.args);
 
     PocketServices::WebPostProcessorInst.Stop();
+    PocketServices::WalControllerInst.Stop();
     gStatEngineInstance.Stop();
 
     if (notifyClientsThread) {
@@ -1658,6 +1658,8 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // Always start WEB DB building thread
     if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
+
+    PocketServices::WalControllerInst.Start(threadGroup);
 
     if (ShutdownRequested())
     {
