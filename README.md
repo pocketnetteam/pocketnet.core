@@ -44,36 +44,85 @@ Recommended System Requirements
 
 
 # Installation
+## Windows
+Run the `pocketnetcore_*_win_x64_setup.exe` and follow the instructions of the installer.\
+When you first start, the pocketnetcore desktop utility will ask for the location of the blockchain data directory. Default for Windows `%APPDATA%/Pocketcoin`, for linux `~/.pocketcoin`.
+
 ## Linux (Ubuntu, Debian, Mint, etc.)
 Install package with root privilegies. To do this, open the terminal in the directory where you downloaded the installer and execute commands:
 ```shell
 $ sudo dpkg -i pocketnetcore_*_linux_x64_setup.deb
 ```
-## Windows
-Run the `pocketnetcore_*_win_x64_setup.exe` and follow the instructions of the installer.\
-When you first start, the pocketnetcore desktop utility will ask for the location of the blockchain data directory. Default for Windows `%APPDATA%/Pocketcoin`, for linux `~/.pocketcoin`.
 
 ## Docker
-Make sure that enough resources are allocated in your docker settings for the node to work from the section https://github.com/pocketnetteam/pocketnet.core#usage \
+Make sure that enough resources are allocated in your docker settings for the node to work from the section https://github.com/pocketnetteam/pocketnet.core#usage
+### docker
 You can start your node with a single command from Docker.
 ```shell
 $ docker run -d \
     --name=pocketnet.main \
+    --ulimit nofile=65536:65536 \
+    --log-driver local \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
     -p 37070:37070 \
     -p 38081:38081 \
     -p 8087:8087 \
-    -v /var/pocketnet/.data:/home/pocketcoin/.pocketcoin \
+    -v /var/pocketnet/.data:/home/pocketcore/.pocketcoin \
     pocketnetteam/pocketnet.core:latest
 ```
-Control
+### docker-compose (recommended)
+Sample `docker-compose.yml`:
+```
+version: '3.7'
+services:
+  pocketnet.core:
+    container_name: pocketnet.core
+    image: pocketnetteam/pocketnet.core:latest
+    restart: on-failure
+    stop_grace_period: 1m30s
+    # Increasing the number of available file descriptors
+    ulimits:
+      nofile:
+        soft: "65536"
+        hard: "65536"
+    # Create a Volume for the Blockchain database directory
+    volumes:
+      - ~/.pocketcoin:/home/pocketcore/.pocketcoin 
+    ports:
+      # To accept connections from other network nodes
+      - 37070:37070
+      # Manage node. Be careful - port 37071 opens access to your node and wallet
+      - 37071:37071
+      # To accept HTTP POST requests along the path 127.0.0.1:38081/public/
+      - 38081:38081
+      # For the ability to establish a WebSocket connection to a node to support notifications
+      - 8087:8087
+    logging:
+      driver: "local"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+Run via docker-compose:
+```shell
+$ docker-compose up -d
+```
+
+### Control by single command
 ```shell
 $ docker ps --format '{{.ID}}\t{{.Names}}\t{{.Image}}'
 ea7759a47250    pocketnet.main      pocketnetteam/pocketnet.core:latest
-$
+$ docker exec -it pocketnet.main pocketcoind -help
+$ docker exec -it pocketnet.main pocketcoin-cli help
+```
+
+### Control through docker session
+```shell
 $ docker exec -it pocketnet.main /bin/sh
-$
-$ pocketcoin-cli --help
-$ pocketcoin-tx --help
+$ pocketcoind -help
+$ pocketcoin-cli help
+$ exit
 ```
 More information : https://hub.docker.com/r/pocketnetteam/pocketnet.core
 
@@ -100,7 +149,7 @@ $ pocketcoind --help
     # Latest snapshot archive
     https://snapshot.pocketnet.app/latest.tgz
     ```
-3. There must be archive tgz with 5 directories:
+3. There must be tgz archive with 4 subdirectories:
     ```shell
     blocks\
       - ...
@@ -111,8 +160,6 @@ $ pocketcoind --help
     pocketdb\
       - main.sqlite3
       - web.sqlite3
-    checkpoints\
-      - main.sqlite3
     ```
 4. Clean out everything except **wallet.dat** file, **wallets/** directory and **pocketcoin.conf** config file in the blockchain working directory and unpack the archive:
     ```shell
@@ -122,23 +169,17 @@ $ pocketcoind --help
     # or for windows
     $ cd %APPDATA%\Pocketcoin\
     
-    # or for macos
+    # or for macOS
     $ cd ~/Library/Application\ Support/Pocketcoin/
      
-    # delete exists DB
+    # delete existing DB subdirs
     $ rm -r ./blocks
     $ rm -r ./chainstate
     $ rm -r ./indexes
     $ rm -r ./pocketdb
-    $ rm -r ./checkpoints
     
     # unpack new checkpoint DB
-    
-    # for tar.gz archive
     $ tar -xzf latest.tgz -C ./
-    
-    # for bz2 archive
-    $ tar -xjf latest.tgz -C ./
     
     # create wallets directory if not exist
     $ mkdir wallets
