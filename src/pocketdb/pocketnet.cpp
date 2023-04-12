@@ -26,4 +26,5 @@ namespace PocketWeb
 namespace PocketServices
 {
     WebPostProcessor WebPostProcessorInst;
+    WalController WalControllerInst;
 } // namespace PocketServices

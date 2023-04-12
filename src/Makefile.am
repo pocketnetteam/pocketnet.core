@@ -161,6 +161,7 @@ POCKETDB_H = \
     pocketdb/services/b/services/ChainPostProcessing.h \
     pocketdb/services/b/services/WebPostProcessing.h \
     pocketdb/services/Accessor.h \
+    pocketdb/services/WalController.h \
     \
     pocketdb/consensus/Base.h \
     pocketdb/consensus/Helper.h \
@@ -269,6 +270,7 @@ POCKETDB_CPP = \
     pocketdb/services/ChainPostProcessing.cpp \
     pocketdb/services/WebPostProcessing.cpp \
     pocketdb/services/Accessor.cpp \
+    pocketdb/services/WalController.cpp \
     \
     pocketdb/repositories/ConsensusRepository.cpp \
     pocketdb/repositories/ChainRepository.cpp \

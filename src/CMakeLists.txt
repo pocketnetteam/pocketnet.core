@@ -1131,6 +1131,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/services/ChainPostProcessing.h
         pocketdb/services/WebPostProcessing.h
         pocketdb/services/Accessor.h
+        pocketdb/services/WalController.h
+        pocketdb/services/WalController.cpp
         pocketdb/repositories/BaseRepository.h
         pocketdb/repositories/TransactionRepository.h
         pocketdb/repositories/TransactionRepository.cpp

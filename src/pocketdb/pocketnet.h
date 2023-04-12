@@ -28,6 +28,7 @@
 
 #include "pocketdb/web/PocketFrontend.h"
 #include "pocketdb/services/WebPostProcessing.h"
+#include "pocketdb/services/WalController.h"
 
 namespace PocketDb
 {
@@ -48,6 +49,7 @@ namespace PocketDb
 namespace PocketServices
 {
     extern WebPostProcessor WebPostProcessorInst;
+    extern WalController WalControllerInst;
 } // namespace PocketServices
 
 namespace PocketWeb
