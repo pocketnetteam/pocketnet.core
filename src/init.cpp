@@ -220,7 +220,7 @@ void Shutdown(NodeContext& node)
     Assert(node.args);
 
     PocketServices::WebPostProcessorInst.Stop();
-    PocketServices::WalControllerInst.Stop();
+    // PocketServices::WalControllerInst.Stop();
     gStatEngineInstance.Stop();
 
     if (notifyClientsThread) {
@@ -1659,7 +1659,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
-    PocketServices::WalControllerInst.Start(threadGroup);
+    // PocketServices::WalControllerInst.Start(threadGroup);
 
     if (ShutdownRequested())
     {
