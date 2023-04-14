@@ -78,7 +78,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select 1
                 from Transactions b
                 join Chain bc
@@ -122,10 +122,14 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            if (ExistsRows(Sql("select 1 from First")))
+            bool exists = false;
+            Sql("select 1 from First")
+            .Select([&](Cursor& cursor)
             {
-              return;
-            }
+                exists = cursor.Step();
+            });
+            if (exists)
+                return;
                 
             // Update all "lasted" transactions for set First version
             Sql(R"sql(
@@ -139,7 +143,8 @@ namespace PocketDb
                     c.Height = (select min(f.Height) from Chain f where f.Uid = c.Uid)
                 where
                     t.Type in (100,170,302,303,304,305,306,103,200,201,202,204,205,206,209,210,211,220,207)
-            )sql").Run();
+            )sql")
+            .Run();
 
             // Set First=0 for checkpointed transactions
             Sql(R"sql(

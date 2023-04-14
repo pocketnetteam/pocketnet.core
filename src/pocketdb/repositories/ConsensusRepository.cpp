@@ -329,7 +329,7 @@ namespace PocketDb
     //     // Execute
     //     SqlTransaction(__func__, [&]()
     //     {
-    //         auto& stmt = Sql(sql);
+    //         auto stmt = Sql(sql);
 
     //         stmt.Bind(addresses);
 
@@ -380,7 +380,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Payload ap indexed by Payload_String2_nocase_TxHash
                 cross join Transactions t indexed by Transactions_Hash_Height
@@ -434,7 +434,7 @@ namespace PocketDb
                   and t.Height is not null
             )sql";
 
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
             stmt.Bind(rootHash, rootHash);
 
             // if (stmt.Step())
@@ -480,7 +480,7 @@ namespace PocketDb
                   and t.Height is not null
             )sql";
 
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(types, rootHash);
 
@@ -549,7 +549,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 SELECT Type
                 FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
                 WHERE Type in (305, 306)
@@ -580,7 +580,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 SELECT 1
                 FROM BlockingLists b
                 JOIN Transactions us indexed by Transactions_Type_Last_String1_Height_Id
@@ -614,7 +614,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 SELECT Type
                 FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
                 WHERE Type in (302, 303, 304)
@@ -645,7 +645,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 SELECT String1
                 FROM Transactions
                 WHERE Hash = ?
@@ -679,7 +679,7 @@ namespace PocketDb
             if (!mempool)
                 sql += " and Height > 0";
 
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(address, postHash);
 
@@ -708,7 +708,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(address, contentHash, (int) type);
 
@@ -795,7 +795,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(types, string1);
             
@@ -824,7 +824,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(types, string1, string2);
             
@@ -996,7 +996,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(txHash, types, address);
 
@@ -1021,7 +1021,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
             stmt.Bind(address);
 
             // if (stmt.Step())
@@ -1053,7 +1053,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(address);
 
@@ -1078,7 +1078,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(addressId);
 
@@ -1106,7 +1106,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(addressId);
 
@@ -1123,7 +1123,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select
 
                     (u.Id)AddressId,
@@ -1229,7 +1229,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
             stmt.Bind(txHash);
 
             // if (stmt.Step())
@@ -1296,7 +1296,7 @@ namespace PocketDb
         // Execute
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(minHeight, addresses);
 
@@ -1329,7 +1329,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
             stmt.Bind(address);
 
             // if (stmt.Step())
@@ -1378,7 +1378,7 @@ namespace PocketDb
         // Execute
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(
                 height,
@@ -1430,7 +1430,7 @@ namespace PocketDb
         // Execute
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            auto stmt = Sql(sql);
 
             stmt.Bind(
                 height,
@@ -1454,7 +1454,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select
                   Type
                 from Transactions indexed by Transactions_Type_Last_String1_Height_Id
@@ -1482,7 +1482,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select t.Height
                 from Transactions t
                 where t.Hash = ?
@@ -1508,7 +1508,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count()
                 from Transactions
                 where Type in (305, 306)
@@ -1531,7 +1531,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (302, 303, 304)
@@ -1555,7 +1555,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
@@ -1578,7 +1578,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
@@ -1602,7 +1602,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_Last_String1_Height_Id
                 where Type in (204,205,206)
@@ -1627,7 +1627,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (307)
@@ -1650,7 +1650,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (307)
@@ -1674,7 +1674,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (307)
@@ -1699,7 +1699,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (200)
@@ -1722,7 +1722,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (200)
@@ -1746,7 +1746,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200)
@@ -1770,7 +1770,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (201)
@@ -1793,7 +1793,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (201)
@@ -1817,7 +1817,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (202)
@@ -1840,7 +1840,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (202)
@@ -1864,7 +1864,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (209)
@@ -1887,7 +1887,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (209)
@@ -1911,7 +1911,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (210)
@@ -1934,7 +1934,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (210)
@@ -2005,7 +2005,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
@@ -2027,7 +2027,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
@@ -2050,7 +2050,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
@@ -2074,7 +2074,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
@@ -2096,7 +2096,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
@@ -2119,7 +2119,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
@@ -2143,7 +2143,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions
                 where Type in (103)
@@ -2165,7 +2165,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (103)
@@ -2189,7 +2189,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (?)
@@ -2215,7 +2215,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (204,205,206)
@@ -2239,7 +2239,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (204,205,206)
@@ -2264,7 +2264,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200,207)
@@ -2287,7 +2287,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200)
@@ -2312,7 +2312,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (201,207)
@@ -2335,7 +2335,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (201)
@@ -2360,7 +2360,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (202,207)
@@ -2383,7 +2383,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (202)
@@ -2408,7 +2408,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (209,207)
@@ -2431,7 +2431,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (209)
@@ -2456,7 +2456,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (210,207)
@@ -2479,7 +2479,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (210)
@@ -2553,7 +2553,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200,201,202,209,210,211,220,207)
@@ -2580,7 +2580,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type = 410
@@ -2603,7 +2603,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 select count()
                 from Transactions indexed by Transactions_Type_String1_String3_Height
                 where Type = 410

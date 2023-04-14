@@ -857,6 +857,8 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 return;
             }
             // We need download data forcing - pocketnet data must be loss
+            // pindex->nStatus & BLOCK_HAVE_DATA || 
+            // TODO (aok): fix
             if (pindex->nStatus & BLOCK_HAVE_DATA || ::ChainActive().Contains(pindex)) {
                 if (pindex->HaveTxsDownloaded())
                     state->pindexLastCommonBlock = pindex;

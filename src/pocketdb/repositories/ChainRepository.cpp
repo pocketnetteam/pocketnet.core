@@ -1486,7 +1486,7 @@ namespace PocketDb
     // {
     //     int64_t nTime0 = GetTimeMicros();
 
-    //     auto& stmt = Sql(R"sql(
+    //     auto stmt = Sql(R"sql(
     //         delete from BlockingLists
     //     )sql");
     //     stmt.Step();
