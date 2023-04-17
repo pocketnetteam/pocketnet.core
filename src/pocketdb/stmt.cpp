@@ -11,18 +11,6 @@ namespace PocketDb
     // STMT
     // ----------------------------------------------
 
-    // Stmt::~Stmt()
-    // {
-    //     Finalize();
-    // }
-
-    // int Stmt::Finalize()
-    // {
-    //     auto res = m_stmt->Finalize();
-    //     m_stmt.reset();
-    //     return res;
-    // }
-
     void Stmt::Init(SQLiteDatabase& db, const string& sql)
     {
         m_stmt = std::make_unique<StmtWrapper>();
@@ -120,14 +108,11 @@ namespace PocketDb
         m_currentBindIndex = 1;
     }
 
-    int Stmt::Select(const function<void(Cursor&)>& func)
+    void Stmt::Select(const function<void(Cursor&)>& func)
     {
         ResetCurrentBindIndex(); // At this point there will be no more binds
         Cursor cursor(m_stmt);
         func(cursor);
-        // Cursor can do this in destructor but we mannually perform it here
-        // to obtain the result code.
-        return cursor.Reset();
     }
 
     // ----------------------------------------------
