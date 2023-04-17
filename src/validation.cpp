@@ -2518,14 +2518,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         nTimeVerify * MILLI / nBlocksTotal);
 
     // -----------------------------------------------------------------------------------------------------------------
-    // Extend WEB database
-    if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE) && enablePocketConnect)
-    {
-        PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
-        PocketServices::WebPostProcessorInst.Enqueue(pindex->nHeight);
-    }
-
-    // -----------------------------------------------------------------------------------------------------------------
     if (!WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
         return false;
 

@@ -42,6 +42,8 @@ namespace Statistic
     public:
         RequestStatEngine() = default;
 
+        int HeightWeb = 0;
+
         void AddSample(const RequestSample& sample)
         {
             if (sample.TimestampEnd < sample.TimestampBegin)
@@ -184,8 +186,8 @@ namespace Statistic
                 value.pushKV("TimestampEnd", sample.TimestampEnd.count());
                 value.pushKV("TimestampProcess", sample.TimestampEnd.count() - sample.TimestampBegin.count());
                 value.pushKV("SourceIP", sample.SourceIP);
-                value.pushKV("InputSize", (int) sample.InputSize);
-                value.pushKV("OutputSize", (int) sample.OutputSize);
+                value.pushKV("InputSize", (int)sample.InputSize);
+                value.pushKV("OutputSize", (int)sample.OutputSize);
 
                 return value;
             };
@@ -220,17 +222,18 @@ namespace Statistic
             chainStat.pushKV("Version", FormatVersion(CLIENT_VERSION));
             chainStat.pushKV("Chain", Params().NetworkIDString());
             chainStat.pushKV("Height", ChainActive().Height());
+            chainStat.pushKV("HeightWeb", HeightWeb);
             chainStat.pushKV("LastBlock", ChainActive().Tip()->GetBlockHash().GetHex());
-            chainStat.pushKV("PeersIN", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
-            chainStat.pushKV("PeersOUT", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
+            chainStat.pushKV("PeersIN", (int)node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
+            chainStat.pushKV("PeersOUT", (int)node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
             result.pushKV("General", chainStat);
 
             UniValue rpcStat(UniValue::VOBJ);
-            rpcStat.pushKV("RequestsAll", (int) GetNumSamplesSince(since));
-            rpcStat.pushKV("RequestsFailed", (int) GetNumFailedSamplesSince(since));
+            rpcStat.pushKV("RequestsAll", (int)GetNumSamplesSince(since));
+            rpcStat.pushKV("RequestsFailed", (int)GetNumFailedSamplesSince(since));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
             rpcStat.pushKV("AvgExecTime", GetAvgExecutionTimeSince(since).count());
-            rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
+            rpcStat.pushKV("UniqueIPs", (int)unique_ips_count);
             if (LogInstance().WillLogCategory(BCLog::STATDETAIL))
             {
                 rpcStat.pushKV("UniqueIps", unique_ips_json);

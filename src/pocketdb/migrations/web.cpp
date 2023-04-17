@@ -9,6 +9,14 @@ namespace PocketDb
     PocketDbWebMigration::PocketDbWebMigration() : PocketDbMigration()
     {
         _tables.emplace_back(R"sql(
+            create table if not exists System
+            (
+                Key text primary key,
+                Value int not null default 0
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
             create table if not exists Tags
             (
               Id    integer primary key,
