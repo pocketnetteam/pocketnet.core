@@ -145,15 +145,6 @@ namespace PocketDb
             from
                 tx,
                 block
-            where
-                not exists (
-                    select
-                        1
-                    from
-                        Chain
-                    where
-                        TxId = tx.RowId
-                )
         )sql")
         .Bind(blockHash, txHash, blockNumber, height, id)
         .Run();
@@ -161,7 +152,7 @@ namespace PocketDb
         if (id.has_value())
         {
             Sql(R"sql(
-                insert into Last
+                insert or ignore into Last
                     (TxId)
                 select
                     t.RowId
@@ -178,7 +169,7 @@ namespace PocketDb
     void ChainRepository::SetFirst(const string& txHash)
     {
         Sql(R"sql(
-            insert into First
+            insert or ignore into First
                 (TxId)
             select
                 t.RowId
@@ -748,6 +739,7 @@ namespace PocketDb
                     f.Int1 /* Reason */
 
                 from Transactions f
+
                 join Chain cf on
                     cf.TxId = f.RowId
 
@@ -758,6 +750,7 @@ namespace PocketDb
 
                 join Chain cu on
                     cu.TxId = u.RowId
+                    
                 where f.HashId = (select r.RowId from Registry r where r.String = ?)
 
                     -- Is there no active punishment listed on the account ?
@@ -788,7 +781,7 @@ namespace PocketDb
                             cff.Height > ?
                         where ff.Type in (410)
                             and ff.RegId3 = f.RegId3
-                            and not exists (select 1 from Last lff where lff.TxId = ff.RowId);
+                            and not exists (select 1 from Last lff where lff.TxId = ff.RowId)
                     )
             )sql")
             .Bind(flagTxHash, flagsMinCount, flagsDepth)
