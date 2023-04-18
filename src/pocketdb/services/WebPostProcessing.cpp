@@ -67,6 +67,7 @@ namespace PocketServices
     bool WebPostProcessor::ProcessNextHeight()
     {
         int currHeight = webRepoInst->GetCurrentHeight();
+        gStatEngineInstance.HeightWeb = currHeight;
 
         // Return 'false' for non found work
         if (ChainActive().Height() - currHeight <= 0)
@@ -83,8 +84,6 @@ namespace PocketServices
         webRepoInst->UpsertBarteronOffers(currHeight);
 
         webRepoInst->SetCurrentHeight(currHeight);
-        gStatEngineInstance.HeightWeb = currHeight;
-
         return true;
     }
 
