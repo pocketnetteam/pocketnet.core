@@ -1223,7 +1223,7 @@ namespace PocketDb
 
         auto stmt = Sql(R"sql(
             insert or ignore into Registry (string)
-            select json_each(?)
+            select value from json_each(?)
         )sql");
 
         for (const auto& list: lists) {
