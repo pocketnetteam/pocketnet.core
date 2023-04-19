@@ -935,7 +935,6 @@ namespace PocketDb
                             vv.Int1 = 1 and -- Positive verdict
                             not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
                     )
-                    )
             )sql")
             .Bind(voteTxHash, votesCount)
             .Run();
