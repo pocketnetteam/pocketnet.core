@@ -50,8 +50,10 @@ namespace PocketConsensus
                 return {false, ConsensusResult_AccountDeleted};
 
             // Daily change limit
+            // TODO (optimization): DEBUG!
             if (consensusData.EditsCount > GetConsensusLimit(edit_account_daily_count))
-                return {false, ConsensusResult_ChangeInfoLimit};
+                LogPrintf("DEBUG! ConsensusResult_ChangeInfoLimit - %s\n", *ptx->GetHash());
+                // return {false, ConsensusResult_ChangeInfoLimit};
 
             return Success;
         }
