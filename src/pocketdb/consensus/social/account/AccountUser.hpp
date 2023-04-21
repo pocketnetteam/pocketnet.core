@@ -52,8 +52,9 @@ namespace PocketConsensus
             // Daily change limit
             // TODO (optimization): DEBUG!
             if (consensusData.EditsCount > GetConsensusLimit(edit_account_daily_count))
-                LogPrintf("DEBUG! ConsensusResult_ChangeInfoLimit - %s\n", *ptx->GetHash());
-                // return {false, ConsensusResult_ChangeInfoLimit};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_ChangeInfoLimit))
+                    LogPrintf("DEBUG! ConsensusResult_ChangeInfoLimit - %s\n", *ptx->GetHash());
+                    // return {false, ConsensusResult_ChangeInfoLimit};
 
             return Success;
         }
@@ -139,22 +140,25 @@ namespace PocketConsensus
         virtual ConsensusValidateResult CheckLogin(const UserRef& ptx)
         {
             if (IsEmpty(ptx->GetPayloadName()))
-                // TODO (optimization): DEBUG!
-                LogPrintf("DEBUG! ConsensusResult_Failed - %s\n", *ptx->GetHash());
-                // return {false, ConsensusResult_Failed};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_Failed))
+                    // TODO (optimization): DEBUG!
+                    LogPrintf("DEBUG! ConsensusResult_Failed - %s\n", *ptx->GetHash());
+                    // return {false, ConsensusResult_Failed};
 
             auto name = *ptx->GetPayloadName();
             boost::algorithm::to_lower(name);
 
             if (name.size() > 20)
-                // TODO (optimization): DEBUG!
-                LogPrintf("DEBUG! ConsensusResult_NicknameLong - %s\n", *ptx->GetHash());
-                // return {false, ConsensusResult_NicknameLong};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameLong))
+                    // TODO (optimization): DEBUG!
+                    LogPrintf("DEBUG! ConsensusResult_NicknameLong - %s\n", *ptx->GetHash());
+                    // return {false, ConsensusResult_NicknameLong};
             
             if (!all_of(name.begin(), name.end(), [](unsigned char ch) { return ::isalnum(ch) || ch == '_'; }))
-                // TODO (optimization): DEBUG!
-                LogPrintf("DEBUG! ConsensusResult_Failed - %s\n", *ptx->GetHash());
-                //return {false, ConsensusResult_Failed};
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_Failed))
+                    // TODO (optimization): DEBUG!
+                    LogPrintf("DEBUG! ConsensusResult_Failed - %s\n", *ptx->GetHash());
+                    //return {false, ConsensusResult_Failed};
 
             return Success;
         }
