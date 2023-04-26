@@ -4,6 +4,7 @@
 
 #include "pocketdb/services/WebPostProcessing.h"
 #include "pocketdb/consensus/Reputation.h"
+#include "init.h"
 
 namespace PocketServices
 {
@@ -17,13 +18,7 @@ namespace PocketServices
 
     void WebPostProcessor::Stop()
     {
-        // Signal for complete all tasks
-        {
-            LOCK(_queue_mutex);
-
-            shutdown = true;
-            _queue_cond.notify_all();
-        }
+        shutdown = true;
 
         // Wait all tasks completed
         LOCK(_running_mutex);
@@ -47,38 +42,11 @@ namespace PocketServices
         // Start worker infinity loop
         while (true)
         {
-            QueueRecord queueRecord;
+            if (shutdown)
+                break;
 
-            {
-                WAIT_LOCK(_queue_mutex, lock);
-
-                while (!shutdown && _queue_records.empty())
-                    _queue_cond.wait(lock);
-
-                if (shutdown) break;
-
-                queueRecord = std::move(_queue_records.front());
-                _queue_records.pop_front();
-            }
-
-            switch (queueRecord.Type)
-            {
-                case QueueRecordType::BlockHash:
-                {
-                    ProcessTags(queueRecord.BlockHash);
-                    ProcessSearchContent(queueRecord.BlockHash);
-                    break;
-                }
-                case QueueRecordType::BlockHeight:
-                {
-                    webRepoInst->UpsertBarteronAccounts(queueRecord.BlockHeight);
-                    webRepoInst->UpsertBarteronOffers(queueRecord.BlockHeight);
-                    break;
-                    // queueRecord.Height % N == 0 -> actions
-                }
-                default:
-                    break;
-            }
+            if (!ProcessNextHeight())
+                UninterruptibleSleep(std::chrono::milliseconds{1000});
         }
 
         // Shutdown DB
@@ -96,29 +64,37 @@ namespace PocketServices
         LogPrintf("WebPostProcessor: thread worker exit\n");
     }
 
-    void WebPostProcessor::Enqueue(const string& blockHash)
+    bool WebPostProcessor::ProcessNextHeight()
     {
-        QueueRecord rcrd = { QueueRecordType::BlockHash, blockHash, -1 };
-        LOCK(_queue_mutex);
-        _queue_records.emplace_back(rcrd);
-        _queue_cond.notify_one();
+        int currHeight = webRepoInst->GetCurrentHeight();
+        gStatEngineInstance.HeightWeb = currHeight;
+
+        // Return 'false' for non found work
+        if (ChainActive().Height() - currHeight <= 0)
+            return false;
+
+        // Proccess next block height
+        currHeight += 1;
+
+        // Launch all needed processes
+        ProcessTags(currHeight);
+        ProcessSearchContent(currHeight);
+        
+        webRepoInst->UpsertBarteronAccounts(currHeight);
+        webRepoInst->UpsertBarteronOffers(currHeight);
+
+        webRepoInst->SetCurrentHeight(currHeight);
+        return true;
     }
 
-    void WebPostProcessor::Enqueue(int blockHeight)
-    {
-        QueueRecord rcrd = { QueueRecordType::BlockHeight, "", blockHeight };
-        LOCK(_queue_mutex);
-        _queue_records.emplace_back(rcrd);
-        _queue_cond.notify_one();
-    }
 
-    void WebPostProcessor::ProcessTags(const string& blockHash)
+    void WebPostProcessor::ProcessTags(int height)
     {
         try
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<WebTag> contentTags = webRepoInst->GetContentTags(blockHash);
+            vector<WebTag> contentTags = webRepoInst->GetContentTags(height);
             if (contentTags.empty())
                 return;
 
@@ -147,13 +123,13 @@ namespace PocketServices
         }
     }
 
-    void WebPostProcessor::ProcessSearchContent(const string& blockHash)
+    void WebPostProcessor::ProcessSearchContent(int height)
     {
         try
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<WebContent> contentList = webRepoInst->GetContent(blockHash);
+            vector<WebContent> contentList = webRepoInst->GetContent(height);
             if (contentList.empty())
                 return;
 

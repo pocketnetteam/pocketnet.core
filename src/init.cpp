@@ -220,7 +220,7 @@ void Shutdown(NodeContext& node)
     Assert(node.args);
 
     PocketServices::WebPostProcessorInst.Stop();
-    PocketServices::WalControllerInst.Stop();
+    // PocketServices::WalControllerInst.Stop();
     gStatEngineInstance.Stop();
 
     if (notifyClientsThread) {
@@ -890,18 +890,6 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
                 if (!pblockindex)
                 {
                     LogPrintf("ERROR: Block not found in chainActive[%d]\n", i);
-                    StartShutdown();
-                    break;
-                }
-
-                try
-                {
-                    PocketServices::WebPostProcessorInst.ProcessTags(pblockindex->GetBlockHash().GetHex());
-                    PocketServices::WebPostProcessorInst.ProcessSearchContent(pblockindex->GetBlockHash().GetHex());
-                }
-                catch (std::exception& ex)
-                {
-                    LogPrintf("ERROR: Process web db building failed - block:%s height:%d what:%s\n", pblockindex->GetBlockHash().GetHex(), pblockindex->nHeight, ex.what());
                     StartShutdown();
                     break;
                 }
@@ -1655,12 +1643,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
     PocketWeb::PocketFrontendInst.Init();
 
-    // Always start WEB DB building thread
-    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
-        PocketServices::WebPostProcessorInst.Start(threadGroup);
-
-    PocketServices::WalControllerInst.Start(threadGroup);
-
     if (ShutdownRequested())
     {
         LogPrintf("Shutdown requested. Exiting.\n");
@@ -2081,6 +2063,12 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
             }
         }
     }
+
+    // Start Web database building thread after loading chainActive
+    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
+        PocketServices::WebPostProcessorInst.Start(threadGroup);
+
+    // PocketServices::WalControllerInst.Start(threadGroup);
 
     // // ********************************************************* Step 7.1: start db migrations
 

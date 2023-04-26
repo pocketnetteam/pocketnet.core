@@ -30,7 +30,6 @@
 #include <util/strencodings.h>
 #include <util/system.h>
 #include <validation.h>
-
 #include <memory>
 #include <typeinfo>
 
@@ -856,8 +855,28 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 // We wouldn't download this block or its descendants from this peer.
                 return;
             }
-            // We need download data forcing - pocketnet data must be loss
-            if (pindex->nStatus & BLOCK_HAVE_DATA || ::ChainActive().Contains(pindex)) {
+
+            // We need recheck all pocketnet data exists
+            bool block_have_data = false;
+            if (pindex->nStatus & BLOCK_HAVE_DATA)
+            {
+                block_have_data = true;
+
+                CBlock block;
+                if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
+                    block_have_data = false;
+                    
+                for (const auto& tx : block.vtx)
+                {
+                    if (!PocketServices::Accessor::ExistsTransaction(tx->GetHash().GetHex()))
+                    {
+                        block_have_data = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (block_have_data || ::ChainActive().Contains(pindex)) {
                 if (pindex->HaveTxsDownloaded())
                     state->pindexLastCommonBlock = pindex;
             } else if (mapBlocksInFlight.count(pindex->GetBlockHash()) == 0) {

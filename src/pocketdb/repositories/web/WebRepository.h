@@ -28,14 +28,17 @@ namespace PocketDb
     public:
         explicit WebRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
-        vector<WebTag> GetContentTags(const string& blockHash);
+        int GetCurrentHeight();
+        void SetCurrentHeight(int height);
+
+        vector<WebTag> GetContentTags(int height);
         void UpsertContentTags(const vector<WebTag>& contentTags);
 
-        vector<WebContent> GetContent(const string& blockHash);
+        vector<WebContent> GetContent(int height);
         void UpsertContent(const vector<WebContent>& contentList);
 
-        void UpsertBarteronAccounts(int64_t height);
-        void UpsertBarteronOffers(int64_t height);
+        void UpsertBarteronAccounts(int height);
+        void UpsertBarteronOffers(int height);
     };
 
     typedef shared_ptr<WebRepository> WebRepositoryRef;

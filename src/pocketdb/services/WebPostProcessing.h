@@ -20,47 +20,25 @@ namespace PocketServices
     using namespace PocketDb;
     using namespace PocketDbWeb;
 
-    enum QueueRecordType
-    {
-        BlockHash = 0,
-        BlockHeight = 1,
-    };
-
-    struct QueueRecord
-    {
-        QueueRecordType Type;
-        string BlockHash;
-        int BlockHeight;
-    };
-
     class WebPostProcessor
     {
     public:
         WebPostProcessor();
         void Start(boost::thread_group& threadGroup);
         void Stop();
-
-        void Enqueue(const string& blockHash);
-        void Enqueue(int blockHeight);
-                
-        void ProcessTags(const string& blockHash);
-        void ProcessSearchContent(const string& blockHash);
-
-        void ProcessBadges(int blockHeight);
-        void ProcessAuthors(int blockHeight);
+ 
+        void ProcessTags(int height);
+        void ProcessSearchContent(int height);
 
     private:
         SQLiteDatabaseRef sqliteDbInst;
         WebRepositoryRef webRepoInst;
 
         bool shutdown = false;
-
         Mutex _running_mutex;
-        Mutex _queue_mutex;
-        std::condition_variable _queue_cond;
-        deque<QueueRecord> _queue_records;
 
         void Worker();
+        bool ProcessNextHeight();
 
     };
 

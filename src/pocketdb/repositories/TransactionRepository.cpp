@@ -810,7 +810,7 @@ namespace PocketDb
 
     void TransactionRepository::InsertTransactionInputs(const vector<TransactionInput>& inputs, const string& txHash)
     {
-        auto& stmt = Sql(R"sql(
+        auto stmt = Sql(R"sql(
             with
                 data as (
                     select
@@ -856,7 +856,7 @@ namespace PocketDb
     
     void TransactionRepository::InsertTransactionOutputs(const vector<TransactionOutput>& outputs, const string& txHash)
     {
-        auto& stmt = Sql(R"sql(
+        auto stmt = Sql(R"sql(
             with
                 tx as (
                     select
@@ -1170,7 +1170,7 @@ namespace PocketDb
     //     optional<string> hash;
     //     SqlTransaction(__func__, [&]()
     //     {
-    //         auto& stmt = Sql(sql);
+    //         auto stmt = Sql(sql);
     //         stmt.Bind(id);
     //         if (stmt.Step())
     //             if (auto [ok, val] = stmt.TryGetColumnString(0); ok)
@@ -1191,7 +1191,7 @@ namespace PocketDb
     //     optional<int64_t> id;
     //     SqlTransaction(__func__, [&]()
     //     {
-    //         auto& stmt = Sql(sql);
+    //         auto stmt = Sql(sql);
     //         stmt.Bind(hash);
     //         if (stmt.Step())
     //             if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
@@ -1206,7 +1206,7 @@ namespace PocketDb
         if (strings.empty())
             return;
 
-        auto& stmt = Sql(R"sql(
+        auto stmt = Sql(R"sql(
             insert or ignore into Registry (String)
             values (?)
         )sql");
@@ -1221,9 +1221,9 @@ namespace PocketDb
         if (lists.empty())
             return;
 
-        auto& stmt = Sql(R"sql(
+        auto stmt = Sql(R"sql(
             insert or ignore into Registry (string)
-            select json_each(?)
+            select value from json_each(?)
         )sql");
 
         for (const auto& list: lists) {

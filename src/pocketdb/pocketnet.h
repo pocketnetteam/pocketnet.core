@@ -39,7 +39,6 @@ namespace PocketDb
     extern ConsensusRepository ConsensusRepoInst;
     extern SystemRepository SystemRepoInst;
     extern MigrationRepository MigrationRepoInst;
-    // extern NotifierRepository NotifierRepoInst;
     extern ExplorerRepository ExplorerRepoInst;
 
     extern CheckpointRepository CheckpointRepoInst;
@@ -49,7 +48,7 @@ namespace PocketDb
 namespace PocketServices
 {
     extern WebPostProcessor WebPostProcessorInst;
-    extern WalController WalControllerInst;
+    // extern WalController WalControllerInst;
 } // namespace PocketServices
 
 namespace PocketWeb

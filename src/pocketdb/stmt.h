@@ -64,7 +64,7 @@ namespace PocketDb
         void Init(SQLiteDatabase& db, const std::string& sql);
         int Run();
         bool CheckValidResult(int result);
-        int Select(const std::function<void(Cursor&)>& func);
+        void Select(const std::function<void(Cursor&)>& func);
 
         auto Log()
         {

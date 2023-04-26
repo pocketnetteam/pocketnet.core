@@ -75,4 +75,9 @@ namespace PocketServices
         return true;
     }
 
+    bool Accessor::ExistsTransaction(const string& hash)
+    {
+        return PocketDb::TransRepoInst.Exists(hash);
+    }
+
 } // namespace PocketServices

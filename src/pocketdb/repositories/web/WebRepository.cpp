@@ -7,7 +7,46 @@
 
 namespace PocketDb
 {
-    vector<WebTag> WebRepository::GetContentTags(const string& blockHash)
+    int WebRepository::GetCurrentHeight()
+    {
+        int result = 1;
+
+        SqlTransaction(__func__, [&]()
+        {
+            // Delete
+            Sql(R"sql(
+                select
+                    Value
+                from
+                    web.System
+                where
+                    Key = 'LastBlock'
+                limit 1
+            )sql")
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+
+    void WebRepository::SetCurrentHeight(int height)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            // Delete
+            Sql(R"sql(
+                insert into web.System (Key, Value) values ('LastBlock', ?)
+                on conflict (Key) do update set Value = ?
+            )sql")
+            .Bind(height, height)
+            .Run();
+        });
+    }
+
+    vector<WebTag> WebRepository::GetContentTags(int height)
     {
         vector<WebTag> result;
 
@@ -25,14 +64,11 @@ namespace PocketDb
             join json_each(pp.String4)
 
             join Chain c on
-                c.TxId = p.RowId
+                c.TxId = p.RowId and
+                c.Height = ?
 
             join Last l on
                 l.TxId = p.RowId
-
-            join Registry r on
-                r.RowId = c.BlockId and
-                r.String = ?
 
             where
                 p.Type in (200, 201, 202, 209, 210)
@@ -41,7 +77,7 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(blockHash)
+            .Bind(height)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
@@ -76,7 +112,7 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             // Insert new tags and ignore exists with unique index Lang+Value
-            auto& stmt = Sql(R"sql(
+            auto stmt = Sql(R"sql(
                 insert or ignore
                 into web.Tags (Lang, Value)
                 values )sql" + join(vector<string>(contentTags.size(), "(?,?)"), ",") + R"sql(
@@ -89,7 +125,9 @@ namespace PocketDb
             Sql(R"sql(
                 delete from web.TagsMap
                 where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-            )sql").Bind(ids).Run();
+            )sql")
+            .Bind(ids)
+            .Run();
 
             // Insert new mappings ContentId <-> TagId
             for (const auto& contentTag : contentTags)
@@ -107,7 +145,7 @@ namespace PocketDb
         });
     }
 
-    vector<WebContent> WebRepository::GetContent(const string& blockHash)
+    vector<WebContent> WebRepository::GetContent(int height)
     {
         vector<WebContent> result;
 
@@ -129,11 +167,9 @@ namespace PocketDb
                 p.TxId = t.RowId
 
             join Chain c on
-                c.TxId = p.RowId
+                c.TxId = p.RowId and
+                c.Height = ?
 
-            join Registry r on
-                r.RowId = c.BlockId and
-                r.String = ?
             where
                 t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
        )sql";
@@ -141,7 +177,7 @@ namespace PocketDb
        SqlTransaction(__func__, [&]()
        {
            Sql(sql)
-           .Bind(blockHash)
+           .Bind(height)
            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
@@ -295,7 +331,7 @@ namespace PocketDb
         });
     }
 
-    void WebRepository::UpsertBarteronAccounts(int64_t height)
+    void WebRepository::UpsertBarteronAccounts(int height)
     {
         SqlTransaction(__func__, [&]()
         {
@@ -345,7 +381,7 @@ namespace PocketDb
         });
     }
 
-    void WebRepository::UpsertBarteronOffers(int64_t height)
+    void WebRepository::UpsertBarteronOffers(int height)
     {
         SqlTransaction(__func__, [&]()
         {

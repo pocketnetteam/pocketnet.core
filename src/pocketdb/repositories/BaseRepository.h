@@ -93,7 +93,7 @@ namespace PocketDb
             }
         }
 
-        Stmt& Sql(const string& sql)
+        Stmt& SqlSingleton(const string& sql)
         {
             auto itr = _statements.find(sql);
             if (itr == _statements.end())
@@ -106,13 +106,11 @@ namespace PocketDb
             return *itr->second;
         }
 
-        bool ExistsRows(Stmt& stmt)
+        Stmt Sql(const string& sql)
         {
-            bool res = false;
-            stmt.Select([&](Cursor& cursor) {
-                res = cursor.StepV() == SQLITE_ROW;
-            });
-            return res;
+            Stmt stmt;
+            stmt.Init(m_database, sql);
+            return stmt;
         }
 
         void SetLastInsertRowId(int64_t value)
