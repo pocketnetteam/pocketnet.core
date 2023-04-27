@@ -36,7 +36,7 @@ namespace PocketDb
                 select 1
                 from Ratings r indexed by Ratings_Type_Uid_Value
                 where 
-                    Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                    Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
                     r.Uid = ? and
                     r.Value = ?
             )sql")
@@ -63,10 +63,11 @@ namespace PocketDb
                     ifnull((
                         select r.Value
                         from Ratings r indexed by Ratings_Type_Uid_Last_Height
-                        where r.Type = ?
-                            and r.Last = 1
-                            and r.Uid = ?
-                            and r.Height < ?
+                        where
+                            r.Type = ? and
+                            r.Last = 1 and
+                            r.Uid = ? and
+                            r.Height < ?
                         limit 1
                     ), 0) + ?
             )sql")
@@ -82,11 +83,11 @@ namespace PocketDb
 
             // Clear old Last record
             Sql(R"sql(
-                update Ratings indexed by Ratings_Type_Id_Last_Height
+                update Ratings indexed by Ratings_Type_Uid_Last_Height
                   set Last = 0
                 where Type = ?
                   and Last = 1
-                  and Id = ?
+                  and Uid = ?
                   and Height < ?
             )sql")
             .Bind(*rating.GetType(), rating.GetId(), rating.GetHeight())
