@@ -57,15 +57,15 @@ namespace PocketDb
                     Type,
                     Last,
                     Height,
-                    Id,
+                    Uid,
                     Value
                 ) select ?,1,?,?,
                     ifnull((
                         select r.Value
-                        from Ratings r indexed by Ratings_Type_Id_Last_Height
+                        from Ratings r indexed by Ratings_Type_Uid_Last_Height
                         where r.Type = ?
                             and r.Last = 1
-                            and r.Id = ?
+                            and r.Uid = ?
                             and r.Height < ?
                         limit 1
                     ), 0) + ?
