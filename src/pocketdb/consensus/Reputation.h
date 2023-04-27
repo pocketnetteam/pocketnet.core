@@ -10,6 +10,7 @@
 namespace PocketConsensus
 {
     using namespace std;
+    using namespace PocketDb;
 
     // Consensus checkpoint at 0 block
     class ReputationConsensus : public BaseConsensus
@@ -53,7 +54,7 @@ namespace PocketConsensus
                 values.push_back(5);
             }
 
-            auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreContentCount(
+            auto scores_one_to_one_count = ConsensusRepoInst.GetScoreContentCount(
                 Height, scoreData, values, _scores_one_to_one_depth);
 
             if (scores_one_to_one_count >= _max_scores_one_to_one)
@@ -84,7 +85,7 @@ namespace PocketConsensus
                 values.push_back(1);
             }
 
-            auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreCommentCount(
+            auto scores_one_to_one_count = ConsensusRepoInst.GetScoreCommentCount(
                 Height, scoreData, values, _scores_one_to_one_depth);
 
             if (scores_one_to_one_count >= _max_scores_one_to_one)
@@ -165,8 +166,8 @@ namespace PocketConsensus
 
         virtual tuple<AccountMode, int, int64_t> GetAccountMode(string& address)
         {
-            auto reputation = PocketDb::ConsensusRepoInst.GetUserReputation(address);
-            auto balance = PocketDb::ConsensusRepoInst.GetUserBalance(address);
+            auto reputation = ConsensusRepoInst.GetUserReputation(address);
+            auto balance = ConsensusRepoInst.GetUserBalance(address);
 
             return {GetAccountMode(reputation, balance), reputation, balance};
         }
@@ -231,7 +232,7 @@ namespace PocketConsensus
             auto& lkrs = likersValues[ACCOUNT_LIKERS][scoreData->ContentAddressId];
             if (find(lkrs.begin(), lkrs.end(), scoreData->ScoreAddressId) == lkrs.end())
             {
-                if (!PocketDb::RatingsRepoInst.ExistsLiker(
+                if (!RatingsRepoInst.ExistsLiker(
                     scoreData->ContentAddressId,
                     scoreData->ScoreAddressId,
                     { ACCOUNT_LIKERS }
@@ -259,7 +260,7 @@ namespace PocketConsensus
             if ((find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
                 return;
                 
-            if (!PocketDb::RatingsRepoInst.ExistsLiker(
+            if (!RatingsRepoInst.ExistsLiker(
                 scoreData->ContentAddressId,
                 scoreData->ScoreAddressId,
                 { ACCOUNT_LIKERS_POST, ACCOUNT_LIKERS_COMMENT_ROOT, ACCOUNT_LIKERS_COMMENT_ANSWER }
