@@ -1111,12 +1111,19 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
+            Sql(R"sql(
+                with
+                    address as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
+
                 select
 
-                    (u.Id)AddressId,
-                    reg.Time as RegistrationDate,
-                    reg.Height as RegistrationHeight,
+                    (cu.Uid)AddressId,
+                    uf.Time as RegistrationDate,
+                    cuf.Height as RegistrationHeight,
                     ifnull(b.Value,0)Balance,
                     ifnull(r.Value,0)Reputation,
                     ifnull(lp.Value,0)LikersContent,
@@ -1124,37 +1131,46 @@ namespace PocketDb
                     ifnull(lca.Value,0)LikersCommentAnswer,
                     iif(bmod.Badge,1,0)ModeratorBadge
 
-                from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                from address
 
-                cross join Transactions reg indexed by Transactions_Id
-                    on reg.Id = u.Id and reg.Height = (select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id = reg.Id)
+                cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type in (100, 170) and u.RegId1 = address.RowId
 
-                left join Balances b indexed by Balances_AddressHash_Last
-                    on b.AddressHash = u.String1 and b.Last = 1
+                cross join Last lu
+                    on lu.TxId = u.RowId
 
-                left join Ratings r indexed by Ratings_Type_Id_Last_Value
-                    on r.Type = 0 and r.Id = u.Id and r.Last = 1
+                cross join Chain cu
+                    on cu.TxId = u.RowId
 
-                left join Ratings lp indexed by Ratings_Type_Id_Last_Value
-                    on lp.Type = 111 and lp.Id = u.Id and lp.Last = 1
+                cross join Chain cuf
+                    on cuf.Uid = cu.Uid
 
-                left join Ratings lc indexed by Ratings_Type_Id_Last_Value
-                    on lc.Type = 112 and lc.Id = u.Id and lc.Last = 1
+                cross join First fu
+                    on fu.TxId = cuf.TxId
 
-                left join Ratings lca indexed by Ratings_Type_Id_Last_Value
-                    on lca.Type = 113 and lca.Id = u.Id and lca.Last = 1
+                cross join Transactions uf
+                    on uf.RowId = fu.TxId
+
+                left join Balances b
+                    on b.AddressId = cu.Uid
+
+                left join Ratings r indexed by Ratings_Type_Uid_Last_Value
+                    on r.Type = 0 and r.Uid = cu.Uid and r.Last = 1
+
+                left join Ratings lp indexed by Ratings_Type_Uid_Last_Value
+                    on lp.Type = 111 and lp.Uid = cu.Uid and lp.Last = 1
+
+                left join Ratings lc indexed by Ratings_Type_Uid_Last_Value
+                    on lc.Type = 112 and lc.Uid = cu.Uid and lc.Last = 1
+
+                left join Ratings lca indexed by Ratings_Type_Uid_Last_Value
+                    on lca.Type = 113 and lca.Uid = cu.Uid and lca.Last = 1
 
                 left join vBadges bmod
-                    on bmod.Badge = 3 and bmod.AccountId = u.Id
+                    on bmod.Badge = 3 and bmod.AccountId = cu.Uid
 
-                where u.Type in (100, 170)
-                  and u.Last = 1
-                  and u.String1 = ?
-                  and u.Height > 0
-                  
-                limit 1
-            )sql");
-            stmt.Bind(address)
+            )sql")
+            .Bind(address)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step()) {
                     cursor.CollectAll(
@@ -1433,7 +1449,7 @@ namespace PocketDb
 
                 cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
                     on c.Type in (204, 205, 206) and
-                    c.RegId1 = content_address.RowId
+                       c.RegId1 = content_address.RowId
 
                 cross join Chain cc
                     on cc.TxId = c.RowId
@@ -1443,19 +1459,19 @@ namespace PocketDb
 
                 cross join Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
                     on s.Type in (301) and
-                    s.RegId1 = score_address.RowId and
-                    s.RegId2 = c.RegId2 and
-                    s.Time >= ? and
-                    s.Time < ? and
-                    s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+                       s.RegId1 = score_address.RowId and
+                       s.RegId2 = c.RegId2 and
+                       s.Time >= ? and
+                       s.Time < ? and
+                       s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
 
                 cross join Chain cs
                     on cs.TxId = s.RowId and
-                    cs.Height <= ?
+                       cs.Height <= ?
 
                 cross join Registry rs
                     on rs.RowId = s.HashId and
-                    rs.String != ?
+                       rs.String != ?
             )sql")
             .Bind(
                 scoreData->ContentAddressHash,
