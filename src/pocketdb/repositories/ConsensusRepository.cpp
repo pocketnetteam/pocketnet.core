@@ -1000,20 +1000,26 @@ namespace PocketDb
     {
         int64_t result = 0;
 
-        auto sql = R"sql(
-            select Value
-            from Balances indexed by Balances_AddressHash_Last
-            where AddressHash = ?
-              and Last = 1
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
-            stmt.Bind(address);
+            Sql(R"sql(
+                with
+                    address as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
 
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+                select Value
+                from address
+                cross join Balances b
+                    on b.AddressId = address.RowId
+            )sql")
+            .Bind(address)
+            .Select([&](Crusor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
