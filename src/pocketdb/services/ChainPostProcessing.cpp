@@ -17,8 +17,7 @@ namespace PocketServices
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
 
-        // TODO (optimization): DEBUG!
-        // IndexRatings(height, txs);
+        IndexRatings(height, txs);
 
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);

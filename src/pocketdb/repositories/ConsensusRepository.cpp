@@ -1023,30 +1023,38 @@ namespace PocketDb
     {
         int result = 0;
 
-        auto sql = R"sql(
-            select r.Value
-            from Ratings r indexed by Ratings_Type_Id_Last_Value
-            where r.Type = 0
-              and r.Id = (
-                select u.Id
-                from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                where u.Type in (100,170)
-                  and u.Last = 1
-                  and u.String1 = ?
-                  and u.Height is not null
-                  limit 1
-              )
-              and r.Last = 1
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            Sql(R"sql(
+                with
+                    address as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
 
-            stmt.Bind(address);
+                select
+                    r.Value
 
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+                from address
+
+                cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type in (100, 170) and u.RegId1 = address.RowId
+
+                cross join Last lu
+                    on lu.TxId = u.RowId
+
+                cross join Chain cu
+                    on cu.TxId = u.RowId
+
+                cross join Ratings r indexed by Ratings_Type_Uid_Last_Value
+                    on r.Type = 0 and r.Uid = cu.Uid and r.Last = 1
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1152,7 +1160,7 @@ namespace PocketDb
                     on uf.RowId = fu.TxId
 
                 left join Balances b
-                    on b.AddressId = cu.Uid
+                    on b.AddressId = address.RowId
 
                 left join Ratings r indexed by Ratings_Type_Uid_Last_Value
                     on r.Type = 0 and r.Uid = cu.Uid and r.Last = 1
