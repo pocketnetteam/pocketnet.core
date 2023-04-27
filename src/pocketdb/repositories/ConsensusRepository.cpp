@@ -1016,7 +1016,7 @@ namespace PocketDb
                     on b.AddressId = address.RowId
             )sql")
             .Bind(address)
-            .Select([&](Crusor& cursor) {
+            .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                     cursor.CollectAll(result);
             });
@@ -1438,7 +1438,7 @@ namespace PocketDb
                 scoreData->ScoreTime - scoresOneToOneDepth,
                 scoreData->ScoreTime,
                 height,
-                scoreData->ScoreTxHash,
+                scoreData->ScoreTxHash
             )
             .Select([&](Cursor& cursor)
             {
@@ -1509,7 +1509,7 @@ namespace PocketDb
                 scoreData->ScoreTime - scoresOneToOneDepth,
                 scoreData->ScoreTime,
                 height,
-                scoreData->ScoreTxHash,
+                scoreData->ScoreTxHash
             )
             .Select([&](Cursor& cursor)
             {
