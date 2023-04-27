@@ -103,7 +103,7 @@ namespace PocketDb
                     Type,
                     Last,
                     Height,
-                    Id,
+                    Uid,
                     Value
                 ) values ( ?,1,?,?,? )
             )sql")
