@@ -32,13 +32,13 @@ namespace PocketDb
         
         SqlTransaction(__func__, [&]()
         {
-            result = Sql(
-                R"sql(
+            result = Sql(R"sql(
                 select 1
-                from Ratings indexed by Ratings_Type_Id_Value
-                where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-                    and Id = ?
-                    and Value = ?
+                from Ratings r indexed by Ratings_Type_Uid_Value
+                where 
+                    Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                    r.Uid = ? and
+                    r.Value = ?
             )sql")
             .Bind(types, addressId, likerId)
             .Run() == SQLITE_ROW;
