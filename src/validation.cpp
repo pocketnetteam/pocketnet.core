@@ -2439,24 +2439,23 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             }
         }
 
-        // TODO (optimization): DEBUG!
-        // if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
-        // {
-        //     int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
-        //     if (nStakeReward > nCalculatedStakeReward) {
-        //         error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward);
-        //         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
-        //     }
+        if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
+        {
+            int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
+            if (nStakeReward > nCalculatedStakeReward) {
+                error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward);
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
+            }
 
-        //     int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
+            int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
-        //     if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
-        //     {
-        //         // We do not accept blocks that do not meet the consensus conditions,
-        //         // but we should not mark them invalid for cases when the block is processed after the orphan.
-        //         return false;
-        //     }
-        // }
+            if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
+            {
+                // We do not accept blocks that do not meet the consensus conditions,
+                // but we should not mark them invalid for cases when the block is processed after the orphan.
+                return false;
+            }
+        }
 
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;
