@@ -293,20 +293,8 @@ namespace PocketDb
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     // ------------------------------------------------------------------------------------------
+
 
 
     // bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
@@ -1345,52 +1333,72 @@ namespace PocketDb
         return {result, referrer};
     }
 
-    int ConsensusRepository::GetScoreContentCount(
-        int height,
-        const shared_ptr<ScoreDataDto>& scoreData,
-        const std::vector<int>& values,
-        int64_t scoresOneToOneDepth)
+    int ConsensusRepository::GetScoreContentCount(int height, const shared_ptr<ScoreDataDto>& scoreData, const std::vector<int>& values, int64_t scoresOneToOneDepth)
     {
         int result = 0;
 
         if (values.empty())
             return result;
 
-        // Build sql string
-        string sql = R"sql(
-            select count()
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
-            join Transactions s indexed by Transactions_Type_String1_Height_Time_Int1
-                on s.String2 = c.String2
-               and s.Type in (300)
-               and s.Height <= ?
-               and s.String1 = ?
-               and s.Time < ?
-               and s.Time >= ?
-               and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
-               and s.Hash != ?
-            where c.Type in (200,201,202,209,210,211,207)
-              and c.String1 = ?
-              and c.Height is not null
-              and c.Last = 1
-        )sql";
-
-        // Execute
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            Sql(R"sql(
+                with
+                    content_address as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    ),
+                    score_address as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
 
-            stmt.Bind(
-                height,
+                select
+                    count()
+
+                from content_address, score_address
+
+                cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on c.Type in (200, 201, 202, 209, 210, 211, 207) and
+                    c.RegId1 = content_address.RowId
+
+                cross join Chain cc
+                    on cc.TxId = c.RowId
+
+                cross join Last l
+                    on l.TxId = c.RowId
+
+                cross join Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on s.Type in (300) and
+                    s.RegId1 = score_address.RowId and
+                    s.RegId2 = c.RegId2 and
+                    s.Time >= ? and
+                    s.Time < ? and
+                    s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+
+                cross join Chain cs
+                    on cs.TxId = s.RowId and
+                    cs.Height <= ?
+
+                cross join Registry rs
+                    on rs.RowId = s.HashId and
+                    rs.String != ?
+            )sql")
+            .Bind(
+                scoreData->ContentAddressHash,
                 scoreData->ScoreAddressHash,
-                scoreData->ScoreTime,
                 scoreData->ScoreTime - scoresOneToOneDepth,
+                scoreData->ScoreTime,
+                height,
                 scoreData->ScoreTxHash,
-                scoreData->ContentAddressHash);
-
-            // if (stmt.Step())
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //         result = value;
+            )
+            .Select([&](Cursor& cursor)
+            {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
