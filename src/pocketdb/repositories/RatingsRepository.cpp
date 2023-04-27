@@ -53,13 +53,13 @@ namespace PocketDb
         {
             // Insert new Last record
             Sql(R"sql(
-                INSERT OR FAIL INTO Ratings (
+                insert or fail into Ratings (
                     Type,
                     Last,
                     Height,
                     Id,
                     Value
-                ) SELECT ?,1,?,?,
+                ) select ?,1,?,?,
                     ifnull((
                         select r.Value
                         from Ratings r indexed by Ratings_Type_Id_Last_Height

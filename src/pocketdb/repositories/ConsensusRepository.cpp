@@ -1210,73 +1210,89 @@ namespace PocketDb
     {
         shared_ptr<ScoreDataDto> result = nullptr;
 
-        string sql = R"sql(
-            select
-            
-                s.Hash sTxHash,
-                s.Type sType,
-                s.Time sTime,
-                s.Int1 sValue,
-                sa.Id saId,
-                sa.String1 saHash,
-                c.Hash cTxHash,
-                c.Type cType,
-                c.Time cTime,
-                c.Id cId,
-                ca.Id caId,
-                ca.String1 caHash,
-
-                c.String5
-
-            from Transactions s indexed by Transactions_Hash_Height
-
-            -- Score Address
-            join Transactions sa indexed by Transactions_Type_Last_String1_Height_Id
-                on sa.Type in (100,170) and sa.Height > 0 and sa.String1 = s.String1 and sa.Last = 1
-
-            -- Content
-            join Transactions c indexed by Transactions_Hash_Height
-                on c.Type in (200,201,202,203,204,205,206,207,209,210,211) and c.Height > 0 and c.Hash = s.String2
-
-            -- Content Address
-            join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
-                on ca.Type in (100,170) and ca.Height > 0 and ca.String1 = c.String1 and ca.Last = 1
-
-            where s.Hash = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
-            stmt.Bind(txHash);
+            Sql(R"sql(
+                with
+                    score as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
 
-            // if (stmt.Step())
-            // {
-            //     ScoreDataDto data;
+                select
 
-            //     int contentType, scoreType = -1;
+                    (select r.RowId from Registry r where r.RowId = s.HashId)sTxHash,
+                    (s.Type)sType,
+                    (s.Time)sTime,
+                    (s.Int1)sValue,
+                    (csa.Uid)saId,
+                    (select r.RowId from Registry r where r.RowId = sa.HashId)saHash,
+                    (select r.RowId from Registry r where r.RowId = c.HashId)cTxHash,
+                    (c.Type)cType,
+                    (c.Time)cTime,
+                    (cc.Uid)cId,
+                    (cca.Uid)caId,
+                    (select r.RowId from Registry r where r.RowId = ca.HashId)caHash,
+                    (select r.RowId from Registry r where r.RowId = c.RegId5)CommentAnswerRootTxId
 
-            //     stmt.Collect(
-            //         data.ScoreTxHash,
-            //         scoreType, // Dirty hack
-            //         data.ScoreTime,
-            //         data.ScoreValue,
-            //         data.ScoreAddressId,
-            //         data.ScoreAddressHash,
-            //         data.ContentTxHash,
-            //         contentType, // Dirty hack
-            //         data.ContentTime,
-            //         data.ContentId,
-            //         data.ContentAddressId,
-            //         data.ContentAddressHash,
-            //         data.String5
-            //     );
+                from score
 
-            //     data.ContentType = (TxType)contentType;
-            //     data.ScoreType = (TxType)scoreType;
+                cross join Transactions s indexed by Transactions_HashId
+                    on s.HashId = score.RowId
 
-            //     result = make_shared<ScoreDataDto>(data);
-            // }
+                -- Score Address
+                cross join Transactions sa indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on sa.Type in (100, 170) and sa.RegId1 = s.RegId1
+                cross join Chain csa
+                    on csa.TxId = sa.RowId
+                cross join Last lsa
+                    on lsa.TxId = sa.RowId
+
+                -- Content
+                cross join Transactions c indexed by Transactions_HashId
+                    on c.Type in (200,201,202,203,204,205,206,207,209,210,211) and c.HashId = s.RegId2
+                cross join Chain cc
+                    on cc.TxId = c.RowId
+
+                -- Content Address
+                cross join Transactions ca indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on ca.Type in (100, 170) and ca.RegId1 = c.RegId1
+                cross join Chain cca
+                    on cca.TxId = ca.RowId
+                cross join Last lca
+                    on lca.TxId = ca.RowId
+            )sql")
+            .Bind(txHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    ScoreDataDto data;
+
+                    int contentType, scoreType = -1;
+
+                    cursor.CollectAll(
+                        data.ScoreTxHash,
+                        scoreType, // Dirty hack
+                        data.ScoreTime,
+                        data.ScoreValue,
+                        data.ScoreAddressId,
+                        data.ScoreAddressHash,
+                        data.ContentTxHash,
+                        contentType, // Dirty hack
+                        data.ContentTime,
+                        data.ContentId,
+                        data.ContentAddressId,
+                        data.ContentAddressHash,
+                        data.String5
+                    );
+
+                    data.ContentType = (TxType)contentType;
+                    data.ScoreType = (TxType)scoreType;
+
+                    result = make_shared<ScoreDataDto>(data);
+                }
+            });
         });
 
         return result;
