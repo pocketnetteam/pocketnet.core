@@ -147,11 +147,16 @@ namespace PocketDb
                 cross join Transactions c
                     on c.Hash = f.String2
 
+                -- left join with my votes
+                -- left join with verdict
+
                 where u.Type in (100)
                   and u.Last = 1
                   and u.Height is not null
                   and u.String1 = ? 
                   and f.Height <= ?
+
+                  -- todo for filter by verdict
 
                   and )sql" + string(verdict ? "" : "not") + R"sql( exists (
                      select 1

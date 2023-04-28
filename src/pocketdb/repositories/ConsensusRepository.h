@@ -133,7 +133,7 @@ namespace PocketDb
         int64_t GetUserBalance(const string& address);
         int GetUserReputation(const string& addressId);
         int GetUserReputation(int addressId);
-        int64_t GetAccountRegistrationTime(int addressId);
+        int64_t GetAccountRegistrationTime(const string& address);
 
         AccountData GetAccountData(const string& address);
 

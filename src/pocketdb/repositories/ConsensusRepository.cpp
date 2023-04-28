@@ -1070,50 +1070,52 @@ namespace PocketDb
     {
         int result = 0;
 
-        string sql = R"sql(
-            select r.Value
-            from Ratings r
-            where r.Type = 0
-              and r.Id = ?
-              and r.Last = 1
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
-
-            stmt.Bind(addressId);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                select r.Value
+                from Ratings r
+                where r.Type = 0
+                and r.Uid = ?
+                and r.Last = 1
+            )sql")
+            .Bind(addressId)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
 
     // TODO (aok): maybe remove in future?
-    int64_t ConsensusRepository::GetAccountRegistrationTime(int addressId)
+    int64_t ConsensusRepository::GetAccountRegistrationTime(const string& address)
     {
         int64_t result = 0;
 
-        string sql = R"sql(
-            select Time
-            from Transactions indexed by Transactions_Id
-            where Type in (100, 170)
-              and Height is not null
-              and Id = ?
-            order by Height asc
-            limit 1
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            Sql(R"sql(
+                with
+                    address as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
 
-            stmt.Bind(addressId);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+                select Time
+                from address
+                cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type in (100, 170) and u.RegId1 = address.RowId
+                cross join First fu
+                    on fu.TxId = u.RowId
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
