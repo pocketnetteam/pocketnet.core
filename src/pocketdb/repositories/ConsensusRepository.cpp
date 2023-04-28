@@ -1351,29 +1351,32 @@ namespace PocketDb
         bool result = false;
         string referrer;
 
-        string sql = R"sql(
-            select String2
-            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-            where Type in (100, 170)
-              and String1 = ?
-              and Height is not null
-            order by Height asc
-            limit 1
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
-            stmt.Bind(address);
+            Sql(R"sql(
+                with
+                    address as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
 
-            // if (stmt.Step())
-            // {
-            //     if (auto[ok, value] = stmt.TryGetColumnString(0); ok && !value.empty())
-            //     {
-            //         result = true;
-            //         referrer = value;
-            //     }
-            // }
+                select
+                    (select r.String from Registry r where r.RowId = u.RegId2)
+                from address
+                cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type in (100, 170) and u.RegId1 = address.RowId and u.RegId2 is not null
+                cross join First fu
+                    on fu.TxId = u.RowId
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    result = true;
+                    cursor.CollectAll(referrer);
+                }
+            });
         });
 
         return {result, referrer};
