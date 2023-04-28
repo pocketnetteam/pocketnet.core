@@ -3925,10 +3925,8 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
 
     // Check hardcoded checkpoints
     if (!valid)
-    {
         if (CheckpointRepoInst.IsLotteryCheckpoint(pindexPrev->nHeight + 1, block.GetHash().GetHex()))
             valid = true;
-    }
 
     return valid;
 }

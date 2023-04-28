@@ -30,8 +30,6 @@ namespace PocketConsensus
     class LotteryConsensus : public BaseConsensus
     {
     protected:
-        LotteryWinners _winners;
-        
         void SortWinners(map<string, int>& candidates, CDataStream& hashProofOfStakeSource, vector<string>& winners)
         {
             vector<pair<string, pair<int, arith_uint256>>> candidatesSorted;
@@ -68,9 +66,11 @@ namespace PocketConsensus
         }
 
         // Get all lottery winner
-        virtual LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
+        virtual LotteryWinners Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
         {
             auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
+
+            LotteryWinners _winners;
 
             map<string, int> postCandidates;
             map <string, string> postReferrersCandidates;
@@ -142,7 +142,7 @@ namespace PocketConsensus
                 ExtendReferrers();
             }
 
-            return _winners;
+            return move(_winners);
         }
 
         virtual CAmount RatingReward(CAmount nCredit, opcodetype code)
@@ -269,10 +269,11 @@ namespace PocketConsensus
             return 0;
         }
 
-        LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
+        LotteryWinners Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
         {
             auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
 
+            LotteryWinners _winners;
             map<string, int> postCandidates;
 
             for (const auto& tx : block.vtx)
@@ -310,7 +311,7 @@ namespace PocketConsensus
             // Sort founded users
             SortWinners(postCandidates, hashProofOfStakeSource, _winners.PostWinners);
 
-            return _winners;
+            return move(_winners);
         }
     };
 

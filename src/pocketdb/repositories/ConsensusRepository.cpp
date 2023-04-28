@@ -1222,19 +1222,19 @@ namespace PocketDb
 
                 select
 
-                    (select r.RowId from Registry r where r.RowId = s.HashId)sTxHash,
+                    (select r.String from Registry r where r.RowId = s.HashId)sTxHash,
                     (s.Type)sType,
                     (s.Time)sTime,
                     (s.Int1)sValue,
                     (csa.Uid)saId,
-                    (select r.RowId from Registry r where r.RowId = sa.HashId)saHash,
-                    (select r.RowId from Registry r where r.RowId = c.HashId)cTxHash,
+                    (select r.String from Registry r where r.RowId = sa.RegId1)saHash,
+                    (select r.String from Registry r where r.RowId = c.HashId)cTxHash,
                     (c.Type)cType,
                     (c.Time)cTime,
                     (cc.Uid)cId,
                     (cca.Uid)caId,
-                    (select r.RowId from Registry r where r.RowId = ca.HashId)caHash,
-                    (select r.RowId from Registry r where r.RowId = c.RegId5)CommentAnswerRootTxId
+                    (select r.String from Registry r where r.RowId = ca.RegId1)caHash,
+                    (select r.String from Registry r where r.RowId = c.RegId5)CommentAnswerRootTxHash
 
                 from score
 
