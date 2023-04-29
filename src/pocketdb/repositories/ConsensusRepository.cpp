@@ -1412,16 +1412,12 @@ namespace PocketDb
                 from content_address, score_address
 
                 cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    on c.Type in (200, 201, 202, 209, 210, 211, 207) and
-                    c.RegId1 = content_address.RowId
+                    on c.Type in (200, 201, 202, 209, 210, 211, 207) and c.RegId1 = content_address.RowId
 
-                cross join Chain cc
-                    on cc.TxId = c.RowId
+                cross join First f
+                    on f.TxId = c.RowId
 
-                cross join Last l
-                    on l.TxId = c.RowId
-
-                cross join Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join Transactions s indexed by Transactions_Type_RegId1_RegId2_Time_Int1
                     on s.Type in (300) and
                     s.RegId1 = score_address.RowId and
                     s.RegId2 = c.RegId2 and
@@ -1430,12 +1426,10 @@ namespace PocketDb
                     s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
 
                 cross join Chain cs
-                    on cs.TxId = s.RowId and
-                    cs.Height <= ?
+                    on cs.TxId = s.RowId and cs.Height <= ?
 
                 cross join Registry rs
-                    on rs.RowId = s.HashId and
-                    rs.String != ?
+                    on rs.RowId = s.HashId and rs.String != ?
             )sql")
             .Bind(
                 scoreData->ContentAddressHash,
@@ -1492,7 +1486,7 @@ namespace PocketDb
                 cross join Last l
                     on l.TxId = c.RowId
 
-                cross join Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join Transactions s indexed by Transactions_Type_RegId1_RegId2_Time_Int1
                     on s.Type in (301) and
                        s.RegId1 = score_address.RowId and
                        s.RegId2 = c.RegId2 and
