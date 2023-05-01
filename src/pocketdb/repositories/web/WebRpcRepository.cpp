@@ -1012,7 +1012,7 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
             stmt.Bind(addressHash,postHash);
             if (!parentHash.empty())
                 stmt.Bind(parentHash);
@@ -1555,7 +1555,7 @@ namespace PocketDb
         
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
             stmt.Bind(address);
             if (limit > 0)
             {
@@ -1627,7 +1627,7 @@ namespace PocketDb
         
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
             stmt.Bind(address);
             if (limit > 0)
             {
@@ -1791,7 +1791,7 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty()) stmt.Bind(lang);
 
@@ -3244,7 +3244,7 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty()) stmt.Bind(lang);
 
@@ -3396,7 +3396,7 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty()) stmt.Bind(lang);
 
@@ -3578,7 +3578,7 @@ namespace PocketDb
         vector<int64_t> ids;
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty()) stmt.Bind(lang);
 
@@ -3719,7 +3719,7 @@ namespace PocketDb
         vector<int64_t> ids;
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty()) stmt.Bind(lang);
 
@@ -3852,7 +3852,7 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty()) stmt.Bind(lang);
 
@@ -4000,7 +4000,7 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             stmt.Bind(contentTypes, durationBlocksForPrevPosts, cntPrevPosts);
             
@@ -4215,7 +4215,7 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             stmt.Bind(contentTypes);
 
@@ -4394,7 +4394,7 @@ namespace PocketDb
         vector<int64_t> ids;
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty()) stmt.Bind(lang);
 
@@ -4506,7 +4506,7 @@ namespace PocketDb
 
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
             stmt.Bind(
                 nHeight,
                 countOutOfcontents,
@@ -5652,7 +5652,7 @@ namespace PocketDb
         EventsReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
             stmt.Bind(address);
             for (const auto& bind: binds) {
                 bind(stmt, queryParams);
@@ -7105,7 +7105,7 @@ namespace PocketDb
                 const auto& selectData = select.second;
                 SqlTransaction(__func__, [&]()
                 {
-                    auto stmt = Sql(selectData.query);
+                    auto& stmt = Sql(selectData.query);
 
                     selectData.binding(stmt, queryParams);
 
@@ -8271,7 +8271,7 @@ namespace PocketDb
         EventsReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             for (const auto& bind: binds) {
                 bind(stmt, queryParams);
@@ -8452,7 +8452,7 @@ namespace PocketDb
         NotificationSummaryReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             for (const auto& bind: binds)
             {

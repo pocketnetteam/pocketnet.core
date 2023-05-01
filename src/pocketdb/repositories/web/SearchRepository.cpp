@@ -75,7 +75,7 @@ namespace PocketDb
         
         SqlTransaction(func, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (request.TopBlock > 0)
                 stmt.Bind(request.TopBlock);
@@ -133,7 +133,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (request.TopBlock > 0)
                 stmt.Bind(request.TopBlock);
@@ -195,7 +195,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             stmt.Bind(
                 (int)ContentFieldType::ContentFieldType_AccountUserName,
@@ -316,7 +316,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             stmt.Bind(contentTypes);
 
@@ -456,7 +456,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             stmt.Bind(contentTypes, contentAddress);
 
@@ -518,7 +518,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty())
                 stmt.Bind(lang);
@@ -584,7 +584,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
+            auto& stmt = Sql(sql);
 
             if (!lang.empty())
                 stmt.Bind(lang);

@@ -78,7 +78,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
+            auto& stmt = Sql(R"sql(
                 select 1
                 from Transactions b
                 join Chain bc

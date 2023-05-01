@@ -112,7 +112,7 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             // Insert new tags and ignore exists with unique index Lang+Value
-            auto stmt = Sql(R"sql(
+            auto& stmt = Sql(R"sql(
                 insert or ignore
                 into web.Tags (Lang, Value)
                 values )sql" + join(vector<string>(contentTags.size(), "(?,?)"), ",") + R"sql(
