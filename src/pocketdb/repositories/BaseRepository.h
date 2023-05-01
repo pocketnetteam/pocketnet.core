@@ -93,7 +93,7 @@ namespace PocketDb
             }
         }
 
-        Stmt& Sql(const string& sql)
+        Stmt& SqlSingleton(const string& sql)
         {
             auto itr = _statements.find(sql);
             if (itr == _statements.end())
@@ -106,7 +106,7 @@ namespace PocketDb
             return *itr->second;
         }
 
-        Stmt Sql_(const string& sql)
+        Stmt Sql(const string& sql)
         {
             Stmt stmt;
             stmt.Init(m_database, sql);
