@@ -369,18 +369,37 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select count(*)
-                from Payload ap indexed by Payload_String2_nocase_TxHash
-                cross join Transactions t indexed by Transactions_Hash_Height
-                  on t.Type in (100) and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
-                where ap.String2 like ? escape '\'
-                  and t.String1 != ?
-            )sql")
-            .Bind(_name, address);
+                with
+                    addressRegId as (
+                        select
+                            RowId
+                        from
+                            Registry
+                        where
+                            String = ?
+                    )
 
-            // if (stmt.Step())
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //         result = (value > 0);
+                select
+                    count()
+                from
+                    addressRegId
+                    -- find all same names in payload
+                    cross join Payload p
+                        on (p.String2 like ? escape '\')
+                    cross join Transactions t
+                        on t.RowId = p.TxId and t.Type = 100 and t.RegId1 != addressRegId.RowId
+                    -- filter by chain for exclude mempool
+                    cross join Chain c
+                        on c.TxId = t.RowId
+                    -- filter by Last
+                    cross join Last l
+                        on l.TxId = t.RowId
+            )sql")
+            .Bind(address, _name)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -764,22 +783,27 @@ namespace PocketDb
         assert(!types.empty());
         bool result = false;
 
-        string sql = R"sql(
-            select 1
-            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              and String1 = ?
-              and Height is null
-            limit 1
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(types, string1);
-            
-            // if (stmt.Step())
-            //     result = true;
+            Sql(R"sql(
+                with
+                    address1 as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
+
+                select 1
+                from address1
+                cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on  t.RegId1 = address1.RowId and
+                        t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                        not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(string1, types)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
         });
 
         return result;
@@ -792,22 +816,33 @@ namespace PocketDb
         assert(!types.empty());
         bool result = false;
 
-        string sql = R"sql(
-            select 1
-            from Transactions indexed by Transactions_Type_String1_String2_Height
-            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              and String1 = ?
-              and String2 = ?
-              and Height is null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(types, string1, string2);
-            
-            // if (stmt.Step())
-            //     result = true;
+            Sql(R"sql(
+                with
+                    address1 as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    ),
+                    address2 as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
+
+                select 1
+                from address1, address2
+                cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on  t.RegId1 = address1.RowId and 
+                        t.RegId2 = address2.RowId and 
+                        t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                        not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(string1, string2, types)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
         });
 
         return result;
@@ -1510,21 +1545,40 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                    addressRegId as (
+                        select
+                            r.RowId
+                        from
+                            Registry r
+                        where
+                            String = ?
+                    ),
+                
                 select
-                  Type
-                from Transactions indexed by Transactions_Type_Last_String1_Height_Id
-                where Type in (100,170)
-                  and String1 = ?
-                  and Last = 1
-                  and Height is not null
+                    t.Type
+                from
+                    addressRegId
+                    -- filter registrations & deleting transactions by address
+                    cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on t.Type in (100, 170) and t.RegId1 = addressRegId.RowId
+                    -- filter by chain for exclude mempool
+                    cross join Chain c
+                        on c.TxId = t.RowId
+                    -- filter by Last
+                    cross join Last l
+                        on l.TxId = t.RowId
             )sql")
-            .Bind(address);
-
-            // if (stmt.Step())
-            // {
-            //     if (auto[ok, type] = stmt.TryGetColumnInt64(0); ok)
-            //         result = {true, (TxType)type};
-            // }
+            .Bind(address)
+            .Select([&](Cursor& cursor)
+            {
+                if (cursor.Step())
+                {
+                    int type;
+                    cursor.CollectAll(type);
+                    result = { true, (TxType)type };
+                }
+            });
         });
 
         return result;
@@ -2242,19 +2296,28 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (?)
-                  and Height is not null
-                  and Height >= ?
-                  and String1 = ?
-            )sql");
+            Sql(R"sql(
+                with
+                    address as (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
 
-            stmt.Bind((int)txType, height, address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+                select *
+                from address
+                cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on t.Type = ? and t.RegId1 = address.RowId
+                cross join Chain c
+                    on c.TxId = t.RowId
+                cross join Chain cc indexed by Chain_Uid_Height
+                    on cc.Uid = c.Uid and cc.Height >= ? and cc.TxId = c.TxId
+            )sql")
+            .Bind(address, (int)txType, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;

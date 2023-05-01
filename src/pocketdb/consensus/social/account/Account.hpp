@@ -44,17 +44,17 @@ namespace PocketConsensus
             return Base::Success;
         }
 
-    protected:
+    // protected:
 
-        ConsensusValidateResult ValidateBlock(const TRef& ptx, const PocketBlockRef& block) override
-        {
-            return Base::Success;
-        }
+    //     ConsensusValidateResult ValidateBlock(const TRef& ptx, const PocketBlockRef& block) override
+    //     {
+    //         return Base::Success;
+    //     }
 
-        ConsensusValidateResult ValidateMempool(const TRef& ptx) override
-        {
-            return Base::Success;
-        }
+    //     ConsensusValidateResult ValidateMempool(const TRef& ptx) override
+    //     {
+    //         return Base::Success;
+    //     }
     };
 } // namespace PocketConsensus
 
