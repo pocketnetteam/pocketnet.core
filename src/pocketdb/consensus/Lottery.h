@@ -57,7 +57,6 @@ namespace PocketConsensus
         }
 
         virtual void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) {}
-        virtual void ExtendReferrers() {}
 
     public:
         LotteryConsensus() : BaseConsensus()
@@ -69,6 +68,8 @@ namespace PocketConsensus
         virtual LotteryWinners Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
         {
             auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
+
+            auto scoresData = ConsensusRepoInst.GetScoresData(Height, reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth));
 
             LotteryWinners _winners;
 
@@ -95,12 +96,14 @@ namespace PocketConsensus
                     && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
                     continue;
 
-                auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
-                if (!scoreData)
+                auto scoreDataIt = scoresData.find(tx->GetHash().GetHex());
+                if (scoreDataIt == scoresData.end())
                 {
                     LogPrintf("%s: Failed get score data for tx: %s\n", __func__, tx->GetHash().GetHex());
                     continue;
                 }
+
+                auto scoreData = scoreDataIt->second;
 
                 if (!reputationConsensus->AllowModifyReputation(
                     scoreData,
@@ -136,13 +139,9 @@ namespace PocketConsensus
                     for (auto& winner : _winners.CommentWinners)
                         if (commentReferrersCandidates.find(winner) != commentReferrersCandidates.end())
                             _winners.CommentReferrerWinners.push_back(commentReferrersCandidates[winner]);
-
-                // Find referrers for final winners list
-                // This function replaced function ExtendReferrer with wrong logic (Time -> Height)
-                ExtendReferrers();
             }
 
-            return move(_winners);
+            return _winners;
         }
 
         virtual CAmount RatingReward(CAmount nCredit, opcodetype code)
@@ -238,6 +237,7 @@ namespace PocketConsensus
     {
     public:
         LotteryConsensus_checkpoint_1180000() : LotteryConsensus_checkpoint_1124000() {}
+
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // Reduce all winnings by 10 times
@@ -250,7 +250,7 @@ namespace PocketConsensus
         }
     };
 
-    // ---------------------------------------
+
     class LotteryConsensus_bip_100 : public LotteryConsensus_checkpoint_1180000
     {
     public:
@@ -272,6 +272,7 @@ namespace PocketConsensus
         LotteryWinners Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
         {
             auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
+            auto scoresData = ConsensusRepoInst.GetScoresData(Height, reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth));
 
             LotteryWinners _winners;
             map<string, int> postCandidates;
@@ -292,12 +293,14 @@ namespace PocketConsensus
                     && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
                     continue;
 
-                auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
-                if (!scoreData)
+                auto scoreDataIt = scoresData.find(tx->GetHash().GetHex());
+                if (scoreDataIt == scoresData.end())
                 {
                     LogPrintf("%s: Failed get score data for tx: %s\n", __func__, tx->GetHash().GetHex());
                     continue;
                 }
+
+                auto scoreData = scoreDataIt->second;
 
                 if (!reputationConsensus->AllowModifyReputation(
                     scoreData,
@@ -314,6 +317,7 @@ namespace PocketConsensus
             return _winners;
         }
     };
+
 
     //  Factory for select actual rules version
     class LotteryConsensusFactory : public BaseConsensusFactory<LotteryConsensus>

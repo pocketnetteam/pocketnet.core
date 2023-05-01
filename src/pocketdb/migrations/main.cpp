@@ -316,15 +316,6 @@ namespace PocketDb
             ) without rowid;
         )sql");
 
-        _tables.emplace_back(R"sql(
-            create table if not exists Scores
-            (
-                TxId       int not null, -- Transactions.RowId
-                DestRegId  int not null, -- Destination score address
-                primary key (TxId, DestRegId)
-            );
-        )sql");
-
         _views.emplace_back(R"sql(
             drop view if exists vBadges;
 

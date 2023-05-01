@@ -137,21 +137,9 @@ namespace PocketDb
 
         AccountData GetAccountData(const string& address);
 
-        map<string, ScoreDataDtoRef> GetScoresData(vector<TransactionIndexingInfo>& txs);
+        map<string, ScoreDataDtoRef> GetScoresData(int height, int64_t scores_time_depth);
         shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
         tuple<bool, string> GetReferrer(const string& address);
-
-        int GetScoreContentCount(
-            int height,
-            const shared_ptr<ScoreDataDto>& scoreData,
-            const std::vector<int>& values,
-            int64_t scoresOneToOneDepth);
-
-        int GetScoreCommentCount(
-            int height,
-            const shared_ptr<ScoreDataDto>& scoreData,
-            const std::vector<int>& values,
-            int64_t scoresOneToOneDepth);
 
         // Exists
         bool ExistsComplain(const string& postHash, const string& address, bool mempool);

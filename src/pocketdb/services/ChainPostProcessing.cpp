@@ -95,7 +95,7 @@ namespace PocketServices
         auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
 
         // Need select content id for saving rating
-        auto scoresData = ConsensusRepoInst.GetScoresData(txs);
+        auto scoresData = ConsensusRepoInst.GetScoresData(height, reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth));
 
         // Loop all transactions for find scores and increase ratings for accounts and contents
         for (const auto& txInfo : txs)
@@ -104,10 +104,11 @@ namespace PocketServices
             if (!txInfo.IsActionScore())
                 continue;
 
-            if (scoresData.find(txInfo.Hash) == scoresData.end())
+            auto scoreDataIt = scoresData.find(txInfo.Hash);
+            if (scoreDataIt == scoresData.end())
                 throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n", __func__, txInfo.Hash));
-
-            auto scoreData = scoresData[txInfo.Hash];
+                
+            auto scoreData = scoreDataIt->second;
 
             // Old posts denied change reputation
             auto allowModifyOldPosts = reputationConsensus->AllowModifyOldPosts(

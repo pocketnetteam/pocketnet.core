@@ -23,74 +23,15 @@ namespace PocketConsensus
         
         virtual string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery)
         {
+            if (scoreData->ScoreType == TxType::ACTION_SCORE_COMMENT)
+                return scoreData->ScoreAddressHash;
+
             if (lottery)
                 return scoreData->ScoreAddressHash;
 
             return scoreData->ContentAddressHash;
         }
         
-        virtual bool AllowModifyReputationOverPost(ScoreDataDtoRef& scoreData, bool lottery)
-        {
-            // Check user reputation
-            if (!GetBadges(SelectAddressScoreContent(scoreData, lottery), ConsensusLimit_threshold_reputation_score).Shark)
-                return false;
-
-            // Disable reputation increment if from one address to one address > 2 scores over day
-            int64_t _max_scores_one_to_one = GetConsensusLimit(ConsensusLimit_scores_one_to_one);
-            int64_t _scores_one_to_one_depth = GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth);
-
-            std::vector<int> values;
-            if (lottery)
-            {
-                values.push_back(4);
-                values.push_back(5);
-            }
-            else
-            {
-                values.push_back(1);
-                values.push_back(2);
-                values.push_back(3);
-                values.push_back(4);
-                values.push_back(5);
-            }
-
-            auto scores_one_to_one_count = ConsensusRepoInst.GetScoreContentCount(Height, scoreData, values, _scores_one_to_one_depth);
-            if (scores_one_to_one_count >= _max_scores_one_to_one)
-                return false;
-
-            // All its Ok!
-            return true;
-        }
-
-        virtual bool AllowModifyReputationOverComment(ScoreDataDtoRef& scoreData, bool lottery)
-        {
-            // Check user reputation
-            if (!GetBadges(scoreData->ScoreAddressHash, ConsensusLimit_threshold_reputation_score).Shark)
-                return false;
-
-            // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
-            int64_t _max_scores_one_to_one = GetConsensusLimit(ConsensusLimit_scores_one_to_one_over_comment);
-            int64_t _scores_one_to_one_depth = GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth);
-
-            vector<int> values;
-            if (lottery)
-            {
-                values.push_back(1);
-            }
-            else
-            {
-                values.push_back(-1);
-                values.push_back(1);
-            }
-
-            auto scores_one_to_one_count = ConsensusRepoInst.GetScoreCommentCount(Height, scoreData, values, _scores_one_to_one_depth);
-            if (scores_one_to_one_count >= _max_scores_one_to_one)
-                return false;
-
-            // All its Ok!
-            return true;
-        }
-
         virtual void ExtendLikersList(vector<int>& lkrs, int likerId)
         {
             lkrs.clear();
@@ -171,13 +112,21 @@ namespace PocketConsensus
         
         virtual bool AllowModifyReputation(ScoreDataDtoRef& scoreData, bool lottery)
         {
-            if (scoreData->ScoreType == TxType::ACTION_SCORE_CONTENT)
-                return AllowModifyReputationOverPost(scoreData, lottery);
+            // Check user reputation
+            if (!GetBadges(SelectAddressScoreContent(scoreData, lottery), ConsensusLimit_threshold_reputation_score).Shark)
+                return false;
 
-            if (scoreData->ScoreType == TxType::ACTION_SCORE_COMMENT)
-                return AllowModifyReputationOverComment(scoreData, lottery);
+            // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
+            auto limit = scoreData->ScoreType == TxType::ACTION_SCORE_CONTENT ? ConsensusLimit_scores_one_to_one : ConsensusLimit_scores_one_to_one_over_comment;
+            
+            if ((lottery ? scoreData->ScoresPositiveCount : scoreData->ScoresAllCount) >= GetConsensusLimit(limit))
+                return false;
 
-            return false;
+            if ((lottery ? scoreData->ScoresPositiveCount : scoreData->ScoresAllCount) >= GetConsensusLimit(limit))
+                return false;
+
+            // All its Ok!
+            return true;
         }
 
         virtual bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType)
