@@ -8,22 +8,25 @@ namespace PocketDb
 {
     void RatingsRepository::InsertRatings(shared_ptr<vector<Rating>> ratings)
     {
-        for (const auto& rating: *ratings)
+        SqlTransaction(__func__, [&]()
         {
-            switch (*rating.GetType())
+            for (const auto& rating: *ratings)
             {
-            case RatingType::ACCOUNT_LIKERS:
-            case RatingType::ACCOUNT_LIKERS_POST:
-            case RatingType::ACCOUNT_LIKERS_COMMENT_ROOT:
-            case RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER:
-            case RatingType::ACCOUNT_DISLIKERS_COMMENT_ANSWER:
-                InsertLiker(rating);
-                break;
-            default:
-                InsertRating(rating);
-                break;
+                switch (*rating.GetType())
+                {
+                case RatingType::ACCOUNT_LIKERS:
+                case RatingType::ACCOUNT_LIKERS_POST:
+                case RatingType::ACCOUNT_LIKERS_COMMENT_ROOT:
+                case RatingType::ACCOUNT_LIKERS_COMMENT_ANSWER:
+                case RatingType::ACCOUNT_DISLIKERS_COMMENT_ANSWER:
+                    InsertLiker(rating);
+                    break;
+                default:
+                    InsertRating(rating);
+                    break;
+                }
             }
-        }
+        });
     }
 
     bool RatingsRepository::ExistsLiker(int addressId, int likerId, const vector<RatingType>& types)
@@ -49,67 +52,61 @@ namespace PocketDb
 
     void RatingsRepository::InsertRating(const Rating& rating)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            // Insert new Last record
-            Sql(R"sql(
-                insert or fail into Ratings (
-                    Type,
-                    Last,
-                    Height,
-                    Uid,
-                    Value
-                ) select ?,1,?,?,
-                    ifnull((
-                        select r.Value
-                        from Ratings r indexed by Ratings_Type_Uid_Last_Height
-                        where
-                            r.Type = ? and
-                            r.Last = 1 and
-                            r.Uid = ? and
-                            r.Height < ?
-                        limit 1
-                    ), 0) + ?
-            )sql")
-            .Bind(
-                *rating.GetType(),
-                rating.GetHeight(),
-                rating.GetId(),
-                *rating.GetType(),
-                rating.GetId(),
-                rating.GetHeight(),
-                rating.GetValue())
-            .Run();
+        // Insert new Last record
+        Sql(R"sql(
+            insert or fail into Ratings (
+                Type,
+                Last,
+                Height,
+                Uid,
+                Value
+            ) select ?,1,?,?,
+                ifnull((
+                    select r.Value
+                    from Ratings r indexed by Ratings_Type_Uid_Last_Height
+                    where
+                        r.Type = ? and
+                        r.Last = 1 and
+                        r.Uid = ? and
+                        r.Height < ?
+                    limit 1
+                ), 0) + ?
+        )sql")
+        .Bind(
+            *rating.GetType(),
+            rating.GetHeight(),
+            rating.GetId(),
+            *rating.GetType(),
+            rating.GetId(),
+            rating.GetHeight(),
+            rating.GetValue())
+        .Run();
 
-            // Clear old Last record
-            Sql(R"sql(
-                update Ratings indexed by Ratings_Type_Uid_Last_Height
-                  set Last = 0
-                where Type = ?
-                  and Last = 1
-                  and Uid = ?
-                  and Height < ?
-            )sql")
-            .Bind(*rating.GetType(), rating.GetId(), rating.GetHeight())
-            .Run();
-        });
+        // Clear old Last record
+        Sql(R"sql(
+            update Ratings indexed by Ratings_Type_Uid_Last_Height
+                set Last = 0
+            where Type = ?
+                and Last = 1
+                and Uid = ?
+                and Height < ?
+        )sql")
+        .Bind(*rating.GetType(), rating.GetId(), rating.GetHeight())
+        .Run();
     }
 
     void RatingsRepository::InsertLiker(const Rating& rating)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                insert or fail into Ratings (
-                    Type,
-                    Last,
-                    Height,
-                    Uid,
-                    Value
-                ) values ( ?,1,?,?,? )
-            )sql")
-            .Bind(*rating.GetType(), rating.GetHeight(), rating.GetId(), rating.GetValue())
-            .Run();
-        });
+        Sql(R"sql(
+            insert or fail into Ratings (
+                Type,
+                Last,
+                Height,
+                Uid,
+                Value
+            ) values ( ?,1,?,?,? )
+        )sql")
+        .Bind(*rating.GetType(), rating.GetHeight(), rating.GetId(), rating.GetValue())
+        .Run();
     }
 }

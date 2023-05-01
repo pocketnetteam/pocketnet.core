@@ -1414,53 +1414,6 @@ namespace PocketDb
         return result;
     }
 
-    // Select many referrers
-    shared_ptr<map<string, string>> ConsensusRepository::GetReferrers(const vector<string>& addresses, int minHeight)
-    {
-        shared_ptr<map<string, string>> result = make_shared<map<string, string>>();
-
-        if (addresses.empty())
-            return result;
-
-        // Build sql string
-        string sql = R"sql(
-            select u.String1, u.String2
-            from Transactions u
-            where u.Type in (100, 170)
-              and u.Height is not null
-              and u.Height >= ?
-              and u.Height = (
-                select min(u1.Height)
-                from Transactions u1 indexed by Transactions_Type_String1_Height_Time_Int1
-                where u1.Type in (100, 170)
-                  and u1.Height is not null
-                  and u1.String1 = u.String1
-              )
-              and u.String2 is not null
-        )sql";
-
-        sql += " and u.AddressHash in ( ";
-        sql += join(vector<string>(addresses.size(), "?"), ",");
-        sql += " ) ";
-
-        // Execute
-        SqlTransaction(__func__, [&]()
-        {
-            auto stmt = Sql(sql);
-
-            stmt.Bind(minHeight, addresses);
-
-            // while (stmt.Step())
-            // {
-            //     if (auto[ok1, value1] = stmt.TryGetColumnString(1); ok1 && !value1.empty())
-            //         if (auto[ok2, value2] = stmt.TryGetColumnString(2); ok2 && !value2.empty())
-            //             result->emplace(value1, value2);
-            // }
-        });
-
-        return result;
-    }
-
     // Select referrer for one account
     tuple<bool, string> ConsensusRepository::GetReferrer(const string& address)
     {

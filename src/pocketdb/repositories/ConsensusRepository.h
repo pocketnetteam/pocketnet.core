@@ -138,7 +138,6 @@ namespace PocketDb
         AccountData GetAccountData(const string& address);
 
         map<string, ScoreDataDtoRef> GetScoresData(int height, int64_t scores_time_depth);
-        shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
         tuple<bool, string> GetReferrer(const string& address);
 
         // Exists
