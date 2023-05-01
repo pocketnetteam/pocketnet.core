@@ -137,7 +137,7 @@ namespace PocketDb
 
         AccountData GetAccountData(const string& address);
 
-        ScoreDataDtoRef GetScoreData(const string& txHash);
+        map<string, ScoreDataDtoRef> GetScoresData(vector<TransactionIndexingInfo>& txs);
         shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
         tuple<bool, string> GetReferrer(const string& address);
 

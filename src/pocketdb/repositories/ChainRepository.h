@@ -36,10 +36,14 @@ namespace PocketDb
         // Precalculate address balances from TxOutputs
         void IndexBalances(int height);
 
+        // Save score facts X -> Y 
+        void IndexScores(int height);
+
         void RestoreLast(int height);
         void RestoreRatings(int height);
         void RestoreBalances(int height);
         void RestoreChain(int height);
+        void RestoreScores(int height);
 
         // Clear all calculated data
         bool ClearDatabase();

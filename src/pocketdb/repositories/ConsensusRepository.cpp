@@ -1239,21 +1239,16 @@ namespace PocketDb
         return result;
     }
 
-    // Selects for get models data
-    ScoreDataDtoRef ConsensusRepository::GetScoreData(const string& txHash)
+    map<string, ScoreDataDtoRef> ConsensusRepository::GetScoresData(vector<TransactionIndexingInfo>& txs)
     {
-        shared_ptr<ScoreDataDto> result = nullptr;
+        map<string, ScoreDataDtoRef> result;
+        vector<string> txsHashes;
+        for (const auto& tx : txs)
+            txsHashes.push_back(tx.Hash);
 
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                with
-                    score as (
-                        select RowId
-                        from Registry
-                        where String = ?
-                    )
-
                 select
 
                     (select r.String from Registry r where r.RowId = s.HashId)sTxHash,
@@ -1270,10 +1265,10 @@ namespace PocketDb
                     (select r.String from Registry r where r.RowId = ca.RegId1)caHash,
                     (select r.String from Registry r where r.RowId = c.RegId5)CommentAnswerRootTxHash
 
-                from score
+                from Registry regSc
 
                 cross join Transactions s indexed by Transactions_HashId
-                    on s.HashId = score.RowId
+                    on s.HashId = regSc.RowId
 
                 -- Score Address
                 cross join Transactions sa indexed by Transactions_Type_RegId1_RegId2_RegId3
@@ -1285,7 +1280,7 @@ namespace PocketDb
 
                 -- Content
                 cross join Transactions c indexed by Transactions_HashId
-                    on c.Type in (200,201,202,203,204,205,206,207,209,210,211) and c.HashId = s.RegId2
+                    on c.HashId = s.RegId2
                 cross join Chain cc
                     on cc.TxId = c.RowId
 
@@ -1296,15 +1291,17 @@ namespace PocketDb
                     on cca.TxId = ca.RowId
                 cross join Last lca
                     on lca.TxId = ca.RowId
+
+                where
+                    regSc.String in ( )sql" + join(vector<string>(txsHashes.size(), "?"), ",") + R"sql( )
             )sql")
-            .Bind(txHash)
+            .Bind(txsHashes)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                 {
                     ScoreDataDto data;
 
                     int contentType, scoreType = -1;
-
                     cursor.CollectAll(
                         data.ScoreTxHash,
                         scoreType, // Dirty hack
@@ -1324,7 +1321,7 @@ namespace PocketDb
                     data.ContentType = (TxType)contentType;
                     data.ScoreType = (TxType)scoreType;
 
-                    result = make_shared<ScoreDataDto>(data);
+                    result.emplace(data.ScoreTxHash, make_shared<ScoreDataDto>(data));
                 }
             });
         });
@@ -1416,6 +1413,7 @@ namespace PocketDb
         return {result, referrer};
     }
 
+    // TODO (aok) : move to new Scores table-index
     int ConsensusRepository::GetScoreContentCount(int height, const shared_ptr<ScoreDataDto>& scoreData, const std::vector<int>& values, int64_t scoresOneToOneDepth)
     {
         int result = 0;
@@ -1481,6 +1479,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok) : move to new Scores table-index
     int ConsensusRepository::GetScoreCommentCount(int height, const shared_ptr<ScoreDataDto>& scoreData, const std::vector<int>& values, int64_t scoresOneToOneDepth)
     {
         int result = 0;

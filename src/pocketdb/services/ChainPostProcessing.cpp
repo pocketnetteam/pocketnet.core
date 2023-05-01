@@ -94,7 +94,8 @@ namespace PocketServices
         // Actual consensus checker instance by current height
         auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
 
-        // todo (aok) : getscoresdata for all txs in one query
+        // Need select content id for saving rating
+        auto scoresData = ConsensusRepoInst.GetScoresData(txs);
 
         // Loop all transactions for find scores and increase ratings for accounts and contents
         for (const auto& txInfo : txs)
@@ -103,10 +104,10 @@ namespace PocketServices
             if (!txInfo.IsActionScore())
                 continue;
 
-            // Need select content id for saving rating
-            auto scoreData = ConsensusRepoInst.GetScoreData(txInfo.Hash);
-            if (!scoreData)
+            if (scoresData.find(txInfo.Hash) == scoresData.end())
                 throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n", __func__, txInfo.Hash));
+
+            auto scoreData = scoresData[txInfo.Hash];
 
             // Old posts denied change reputation
             auto allowModifyOldPosts = reputationConsensus->AllowModifyOldPosts(

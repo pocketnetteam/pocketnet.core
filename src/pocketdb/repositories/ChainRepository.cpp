@@ -9,7 +9,7 @@ namespace PocketDb
     void ChainRepository::IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
         // TODO (aok) : index scores to scores table-index
-        
+
         SqlTransaction(__func__, [&]()
         {
             int64_t nTime1 = GetTimeMicros();
@@ -49,18 +49,15 @@ namespace PocketDb
                 );
             }
 
-            int64_t nTime2 = GetTimeMicros();
-
             // After set height and mark inputs as spent we need recalculcate balances
             IndexBalances(height);
 
-            int64_t nTime3 = GetTimeMicros();
+            // Save short information about all scores for faster get X->Y scores
+            IndexScores(height);
 
-            LogPrint(BCLog::BENCH, "    - IndexBlock: %.2fms + %.2fms = %.2fms\n",
-                0.001 * double(nTime2 - nTime1),
-                0.001 * double(nTime3 - nTime2),
-                0.001 * double(nTime3 - nTime1)
-            );
+            int64_t nTime2 = GetTimeMicros();
+
+            LogPrint(BCLog::BENCH, "    - IndexBlock: %.2fms\n", 0.001 * double(nTime2 - nTime1));
         });
     }
 
@@ -243,6 +240,28 @@ namespace PocketDb
                     on b.AddressId = saldo.AddressId
             where
                 saldo.Amount != 0
+        )sql")
+        .Bind(height)
+        .Run();
+    }
+
+    void ChainRepository::IndexScores(int height)
+    {
+        Sql(R"sql(
+            insert or fail into Scores (TxId, DestRegId)
+            with
+                height as (
+                    select ? as value
+                )
+            select
+                t.RowId, cc.RegId1
+            from height
+            cross join Chain c
+                on c.Height = height.value
+            cross join Transactions t
+                on t.RowId = c.TxId and t.Type in (300, 301)
+            cross join Transactions cc indexed by Transactions_HashId
+                on cc.HashId = t.RegId2
         )sql")
         .Bind(height)
         .Run();
@@ -1219,6 +1238,7 @@ namespace PocketDb
                 Sql(R"sql( delete from JuryVerdict )sql").Run();
                 Sql(R"sql( delete from JuryBan )sql").Run();
                 Sql(R"sql( delete from Badges )sql").Run();
+                Sql(R"sql( delete from Scores )sql").Run();
 
                 // TODO (aok) : bad
                 // ClearBlockingList();
@@ -1327,7 +1347,6 @@ namespace PocketDb
     {
         SqlTransaction(__func__, [&]()
         {
-            // Rollback balances
             Sql(R"sql(
                 with
                     height as (
@@ -1384,6 +1403,27 @@ namespace PocketDb
                         on b.AddressId = saldo.AddressId
                 where
                     saldo.Amount != 0
+            )sql")
+            .Bind(height)
+            .Run();
+        });
+    }
+
+    void ChainRepository::RestoreScores(int height)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                delete from Scores
+                where
+                    TxId in (
+                        select
+                            t.RowId
+                        from Chain c
+                        cross join Transactions t
+                            on t.RowId = c.TxId and t.Type in (300, 301)
+                        where c.Height >= ?
+                    )
             )sql")
             .Bind(height)
             .Run();

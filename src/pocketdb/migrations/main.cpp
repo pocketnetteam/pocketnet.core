@@ -156,7 +156,7 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Payload
             (
-                TxId integer primary key, -- Transactions.TxId
+                TxId integer primary key, -- Transactions.RowId
 
                 -- AccountUser.Lang
                 -- ContentPost.Lang
@@ -316,6 +316,15 @@ namespace PocketDb
             ) without rowid;
         )sql");
 
+        _tables.emplace_back(R"sql(
+            create table if not exists Scores
+            (
+                TxId       int not null, -- Transactions.RowId
+                DestRegId  int not null, -- Destination score address
+                primary key (TxId, DestRegId)
+            );
+        )sql");
+
         _views.emplace_back(R"sql(
             drop view if exists vBadges;
 
@@ -411,7 +420,7 @@ namespace PocketDb
             create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
             create index if not exists Transactions_Type_RegId2 on Transactions (Type, RegId2);
             create index if not exists Transactions_Type_RegId5_RegId1 on Transactions (Type, RegId5, RegId1);
-            create index if not exists Transactions_Type_RegId1_RegId2_Time_Int1 on Transactions (Type, RegId1, RegId2, Time, Int1);
+            create index if not exists Transactions_Type_RegId1_Int1_Time on Transactions (Type, RegId1, Int1, Time);
 
             create index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
 

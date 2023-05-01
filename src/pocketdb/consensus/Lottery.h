@@ -311,7 +311,7 @@ namespace PocketConsensus
             // Sort founded users
             SortWinners(postCandidates, hashProofOfStakeSource, _winners.PostWinners);
 
-            return move(_winners);
+            return _winners;
         }
     };
 
