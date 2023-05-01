@@ -94,6 +94,8 @@ namespace PocketServices
         // Actual consensus checker instance by current height
         auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
 
+        // todo (aok) : getscoresdata for all txs in one query
+
         // Loop all transactions for find scores and increase ratings for accounts and contents
         for (const auto& txInfo : txs)
         {
@@ -116,11 +118,7 @@ namespace PocketServices
                 continue;
 
             // Check whether the current rating has the right to change the recipient's reputation
-            auto allowModifyReputation = reputationConsensus->AllowModifyReputation(
-                scoreData,
-                false);
-
-            if (!allowModifyReputation)
+            if (!reputationConsensus->AllowModifyReputation(scoreData, false))
                 continue;
 
             // Calculate ratings values

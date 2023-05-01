@@ -54,9 +54,8 @@ namespace PocketConsensus
                 values.push_back(5);
             }
 
-            auto scores_one_to_one_count = ConsensusRepoInst.GetScoreContentCount(
-                Height, scoreData, values, _scores_one_to_one_depth);
-
+            // TODO (aok) : move to new Scores table-index
+            auto scores_one_to_one_count = ConsensusRepoInst.GetScoreContentCount(Height, scoreData, values, _scores_one_to_one_depth);
             if (scores_one_to_one_count >= _max_scores_one_to_one)
                 return false;
 
@@ -85,9 +84,8 @@ namespace PocketConsensus
                 values.push_back(1);
             }
 
-            auto scores_one_to_one_count = ConsensusRepoInst.GetScoreCommentCount(
-                Height, scoreData, values, _scores_one_to_one_depth);
-
+            // TODO (aok) : move to new Scores table-index
+            auto scores_one_to_one_count = ConsensusRepoInst.GetScoreCommentCount(Height, scoreData, values, _scores_one_to_one_depth);
             if (scores_one_to_one_count >= _max_scores_one_to_one)
                 return false;
 
@@ -133,6 +131,7 @@ namespace PocketConsensus
     public:
         explicit ReputationConsensus() : BaseConsensus() {}
 
+        // TODO (aok) : refactoring for multiple accounts getter
         virtual BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
         {
             BadgeSet badgeSet;

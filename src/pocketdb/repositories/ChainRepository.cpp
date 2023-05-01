@@ -8,6 +8,8 @@ namespace PocketDb
 {
     void ChainRepository::IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
+        // TODO (aok) : index scores to scores table-index
+        
         SqlTransaction(__func__, [&]()
         {
             int64_t nTime1 = GetTimeMicros();
