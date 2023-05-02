@@ -80,4 +80,9 @@ namespace PocketServices
         return PocketDb::TransRepoInst.Exists(hash);
     }
 
+    bool Accessor::ExistsTransactions(vector<string>& txHashes)
+    {
+        return PocketDb::TransRepoInst.Exists(txHashes);
+    }
+
 } // namespace PocketServices

@@ -69,7 +69,10 @@ namespace PocketConsensus
         {
             auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
 
-            auto scoresData = ConsensusRepoInst.GetScoresData(Height, reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth));
+            auto scoresData = ConsensusRepoInst.GetScoresData(
+                Height,
+                reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth)
+            );
 
             LotteryWinners _winners;
 

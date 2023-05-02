@@ -1277,10 +1277,10 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Transactions c_c
-                                    on c_c.RowId = c_s.RegId2 and c_c.RegId1 = c.RegId1
+                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                    on c_c.Type in (200, 201, 202, 209, 210, 211, 207) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
                                 cross join First f
-                                    on f.TxId = c.RowId
+                                    on f.TxId = c_c.RowId
                                 where
                                     c_s.Type = s.Type and
                                     c_s.RegId1 = s.RegId1 and
@@ -1294,10 +1294,10 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Transactions c_c
-                                    on c_c.RowId = c_s.RegId2 and c_c.RegId1 = c.RegId1
+                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                    on c_c.Type in (204, 205, 206) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
                                 cross join First f
-                                    on f.TxId = c.RowId
+                                    on f.TxId = c_c.RowId
                                 where
                                     c_s.Type = s.Type and
                                     c_s.RegId1 = s.RegId1 and
@@ -1316,10 +1316,10 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Transactions c_c
-                                    on c_c.RowId = c_s.RegId2 and c_c.RegId1 = c.RegId1
+                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                    on c_c.Type in (200, 201, 202, 209, 210, 211, 207) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
                                 cross join First f
-                                    on f.TxId = c.RowId
+                                    on f.TxId = c_c.RowId
                                 where
                                     c_s.Type = s.Type and
                                     c_s.RegId1 = s.RegId1 and
@@ -1333,10 +1333,10 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Transactions c_c
-                                    on c_c.RowId = c_s.RegId2 and c_c.RegId1 = c.RegId1
+                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                    on c_c.Type in (204, 205, 206) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
                                 cross join First f
-                                    on f.TxId = c.RowId
+                                    on f.TxId = c_c.RowId
                                 where
                                     c_s.Type = s.Type and
                                     c_s.RegId1 = s.RegId1 and
@@ -1380,7 +1380,7 @@ namespace PocketDb
             )sql")
             .Bind(height, scores_time_depth)
             .Select([&](Cursor& cursor) {
-                if (cursor.Step())
+                while (cursor.Step())
                 {
                     ScoreDataDto data;
 
@@ -1466,7 +1466,7 @@ namespace PocketDb
                             Registry r
                         where
                             String = ?
-                    ),
+                    )
                 
                 select
                     t.Type

@@ -31,6 +31,8 @@ namespace PocketServices
         static bool GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx);
         static bool GetTransaction(const CTransaction& tx, string& data);
         static bool ExistsTransaction(const string& hash);
+        static bool ExistsTransactions(vector<string>& txHashes);
+        
     };
 } // namespace PocketServices
 

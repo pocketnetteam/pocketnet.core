@@ -60,6 +60,7 @@ namespace PocketDb
         shared_ptr<StakeKernelHashTx> GetStakeKernelHashTx(const string& txHash, int number);
 
         bool Exists(const string& hash);
+        bool Exists(vector<string>& txHashes);
         bool ExistsLast(const string& hash);
         int MempoolCount();
 
