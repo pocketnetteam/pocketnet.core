@@ -458,19 +458,28 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
+                with s2 as (
+                    select
+                        r.String as str,
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
                 select
                     t.Type,
-                    t.Hash,
+                    st.Hash,
                     t.Time,
-                    t.Last,
-                    t.Id,
-                    t.String1,
-                    t.String2,
-                    t.String3,
-                    t.String4,
-                    t.String5,
+                    1, -- TODO (optimization): is it even needed if we check transaction against existing last?
+                    c.Uid,
+                    st.String1,
+                    st.String2,
+                    st.String3,
+                    st.String4,
+                    st.String5,
                     t.Int1,
-                    p.TxHash pHash,
+                    st.Hash pHash,
                     p.String1 pString1,
                     p.String2 pString2,
                     p.String3 pString3,
@@ -478,21 +487,28 @@ namespace PocketDb
                     p.String5 pString5,
                     p.String6 pString6,
                     p.String7 pString7
-                from Transactions t indexed by Transactions_Type_Last_String2_Height
-                left join Payload p on t.Hash = p.TxHash
-                where t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-                  and t.String2 = ?
-                  and t.Last = 1
-                  and t.Height is not null
+                from
+                    s2,
+                    Transactions t indexed by Transactions_Type_RegId2
+                    cross join vTxStr st on
+                        st.RowId = t.RowId
+                    join Chain c on
+                        c.TxId = t.RowId
+                    left join Payload p on
+                        t.RowId = p.TxId
+                where
+                    t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                    t.RegId2 = s2.id and
+                    exists (select 1 from Last l where l.TxId = t.RowId)
             )sql";
 
-            auto stmt = Sql(sql);
-
-            stmt.Bind(types, rootHash);
-
-            // if (stmt.Step())
-            //     if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
-            //         tx = transaction;
+            Sql(sql)
+            .Bind(types, rootHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    if (auto[ok, transaction] = CreateTransactionFromListRow(cursor, true); ok)
+                        tx = std::move(transaction);
+            });
         });
 
         return {tx != nullptr, tx};
