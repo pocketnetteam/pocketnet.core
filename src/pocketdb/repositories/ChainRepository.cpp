@@ -1203,6 +1203,7 @@ namespace PocketDb
             SqlTransaction(__func__, [&]()
             {
                 Sql(R"sql( delete from Last )sql").Run();
+                Sql(R"sql( delete from First )sql").Run();
                 Sql(R"sql( delete from Ratings )sql").Run();
                 Sql(R"sql( delete from Balances )sql").Run();
                 Sql(R"sql( delete from Chain )sql").Run();
@@ -1276,6 +1277,22 @@ namespace PocketDb
                     cross join Chain cp indexed by Chain_Uid_Height
                         on cp.Uid = prev.Uid and
                         cp.Height = prev.maxHeight
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Remove not used First records
+            Sql(R"sql(
+                delete from First
+                where
+                    TxId in (
+                        select
+                            c.TxId
+                        from
+                            Chain c indexed by Chain_Height_Uid
+                        where
+                            c.Height >= ?
+                    )
             )sql")
             .Bind(height)
             .Run();
