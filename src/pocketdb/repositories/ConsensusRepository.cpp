@@ -1220,10 +1220,9 @@ namespace PocketDb
                 while (cursor.Step())
                 {
                     AccountData data;
-                    string address;
-
+                    
                     cursor.CollectAll(
-                        address,
+                        data.AddressHash,
                         data.AddressId,
                         data.RegistrationTime,
                         data.RegistrationHeight,
@@ -1235,7 +1234,7 @@ namespace PocketDb
                         data.ModeratorBadge
                     );
 
-                    result.emplace(address, data);
+                    result.emplace(data.AddressHash, data);
                 }
             });
         });

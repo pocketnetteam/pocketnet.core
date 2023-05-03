@@ -10,6 +10,7 @@
 #include "util/ref.h"
 #include "clientversion.h"
 #include <boost/thread.hpp>
+#include <boost/format.hpp>
 #include <chrono>
 #include <cstdint>
 #include <ctime>
@@ -223,6 +224,8 @@ namespace Statistic
             chainStat.pushKV("Chain", Params().NetworkIDString());
             chainStat.pushKV("Height", ChainActive().Height());
             chainStat.pushKV("HeightWeb", HeightWeb);
+            double syncPercent = pindexBestHeader ? (ChainActive().Height() * 100.0 / pindexBestHeader->nHeight) : -1;
+            chainStat.pushKV("SyncNetwork", boost::str(boost::format("%.2f") % syncPercent) + "%");
             chainStat.pushKV("LastBlock", ChainActive().Tip()->GetBlockHash().GetHex());
             chainStat.pushKV("PeersIN", (int)node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
             chainStat.pushKV("PeersOUT", (int)node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));

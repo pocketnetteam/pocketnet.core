@@ -107,7 +107,7 @@ namespace PocketServices
         for (auto& scoreDataIt : scoresData)
         {
             auto& scoreData = scoreDataIt.second;
-            auto& accountData = accountsData[scoreDataIt.first];
+            auto& accountData = accountsData[reputationConsensus->SelectAddressScoreContent(scoreData, false)];
 
             // Old posts denied change reputation
             auto allowModifyOldPosts = reputationConsensus->AllowModifyOldPosts(

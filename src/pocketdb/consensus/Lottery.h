@@ -121,7 +121,7 @@ namespace PocketConsensus
             for (auto& scoreDataIt : scoresData)
             {
                 auto& scoreData = scoreDataIt.second;
-                auto& accountData = accountsData[scoreDataIt.first];
+                auto& accountData = accountsData[reputationConsensus->SelectAddressScoreContent(scoreData, true)];
 
                 if (!FilterScore(scoreData))
                     continue;
@@ -281,7 +281,7 @@ namespace PocketConsensus
         // Lottery checkpoint at 2162400 block
         // Disable lottery payments for likes to comments.
         // Also disable referral program
-        CAmount RatingReward(CAmount nCredit, opcodetype code)
+        CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             if (code == OP_WINNER_POST) return nCredit * 0.025;
             return 0;
