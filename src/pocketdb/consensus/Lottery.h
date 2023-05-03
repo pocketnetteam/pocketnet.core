@@ -58,6 +58,37 @@ namespace PocketConsensus
 
         virtual void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) {}
 
+        virtual bool FilterScore(const ScoreDataDtoRef& scoreData)
+        {
+            if (scoreData->ScoreType == ACTION_SCORE_COMMENT && scoreData->ScoreValue == 1)
+                return true;
+
+            if (scoreData->ScoreType == ACTION_SCORE_CONTENT && (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5))
+                return true;
+
+            return false;
+        }
+
+        virtual void ExtendCandidates(
+            const ScoreDataDtoRef& scoreData,
+            map<string, int>& postCandidates,
+            map<string, string>& postReferrersCandidates,
+            map<string, int>& commentCandidates,
+            map<string, string>& commentReferrersCandidates)
+        {
+            if (scoreData->ScoreType == ACTION_SCORE_CONTENT)
+            {
+                postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
+                ExtendReferrer(scoreData, postReferrersCandidates);
+            }
+
+            if (scoreData->ScoreType == ACTION_SCORE_COMMENT)
+            {
+                commentCandidates[scoreData->ContentAddressHash] += scoreData->ScoreValue;
+                ExtendReferrer(scoreData, commentReferrersCandidates);
+            }
+        }
+
     public:
         LotteryConsensus() : BaseConsensus()
         {
@@ -74,44 +105,28 @@ namespace PocketConsensus
                 reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth)
             );
 
+            vector<string> accountsAddresses;
+            for (auto& scoreData : scoresData)
+                accountsAddresses.push_back(reputationConsensus->SelectAddressScoreContent(scoreData.second, true));
+            auto accountsData = ConsensusRepoInst.GetAccountsData(accountsAddresses);
+
             LotteryWinners _winners;
 
             map<string, int> postCandidates;
-            map <string, string> postReferrersCandidates;
+            map<string, string> postReferrersCandidates;
 
             map<string, int> commentCandidates;
-            map <string, string> commentReferrersCandidates;
+            map<string, string> commentReferrersCandidates;
 
-            for (const auto& tx : block.vtx)
+            for (auto& scoreDataIt : scoresData)
             {
-                // Get destination address and score value
-                // In lottery allowed only likes to posts and comments
-                // Also in lottery allowed only positive scores
-                auto[parseScoreOk, scoreTxData] = TransactionHelper::ParseScore(tx);
-                if (!parseScoreOk)
+                auto& scoreData = scoreDataIt.second;
+                auto& accountData = accountsData[scoreDataIt.first];
+
+                if (!FilterScore(scoreData))
                     continue;
 
-                if (scoreTxData->ScoreType == ACTION_SCORE_COMMENT
-                    && scoreTxData->ScoreValue != 1)
-                    continue;
-
-                if (scoreTxData->ScoreType == ACTION_SCORE_CONTENT
-                    && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
-                    continue;
-
-                auto scoreDataIt = scoresData.find(tx->GetHash().GetHex());
-                if (scoreDataIt == scoresData.end())
-                {
-                    LogPrintf("%s: Failed get score data for tx: %s\n", __func__, tx->GetHash().GetHex());
-                    continue;
-                }
-
-                auto scoreData = scoreDataIt->second;
-
-                if (!reputationConsensus->AllowModifyReputation(
-                    scoreData,
-                    true
-                ))
+                if (!reputationConsensus->AllowModifyReputation(scoreData, accountData, true))
                     continue;
 
                 if (scoreData->ScoreType == ACTION_SCORE_CONTENT)
@@ -272,52 +287,15 @@ namespace PocketConsensus
             return 0;
         }
 
-        LotteryWinners Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
+    protected:
+        void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) override { }
+
+        bool FilterScore(const ScoreDataDtoRef& scoreData) override
         {
-            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
-            auto scoresData = ConsensusRepoInst.GetScoresData(Height, reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth));
+            if (scoreData->ScoreType == ACTION_SCORE_CONTENT && (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5))
+                return true;
 
-            LotteryWinners _winners;
-            map<string, int> postCandidates;
-
-            for (const auto& tx : block.vtx)
-            {
-                // Get destination address and score value
-                // In lottery allowed only likes to posts and comments
-                // Also in lottery allowed only positive scores
-                auto[parseScoreOk, scoreTxData] = TransactionHelper::ParseScore(tx);
-                if (!parseScoreOk)
-                    continue;
-
-                // BIP100: Only scores to content allowed
-                if (scoreTxData->ScoreType == ACTION_SCORE_COMMENT)
-                    continue;
-                if (scoreTxData->ScoreType == ACTION_SCORE_CONTENT
-                    && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
-                    continue;
-
-                auto scoreDataIt = scoresData.find(tx->GetHash().GetHex());
-                if (scoreDataIt == scoresData.end())
-                {
-                    LogPrintf("%s: Failed get score data for tx: %s\n", __func__, tx->GetHash().GetHex());
-                    continue;
-                }
-
-                auto scoreData = scoreDataIt->second;
-
-                if (!reputationConsensus->AllowModifyReputation(
-                    scoreData,
-                    true
-                ))
-                    continue;
-
-                postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
-            }
-
-            // Sort founded users
-            SortWinners(postCandidates, hashProofOfStakeSource, _winners.PostWinners);
-
-            return _winners;
+            return false;
         }
     };
 

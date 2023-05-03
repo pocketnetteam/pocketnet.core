@@ -1153,22 +1153,16 @@ namespace PocketDb
         return result;
     }
 
-    AccountData ConsensusRepository::GetAccountData(const string& address)
+    map<string, AccountData> ConsensusRepository::GetAccountsData(const vector<string>& addresses)
     {
-        AccountData result = {address,-1,0,0,0,0,0,0,0,0};
+        map<string, AccountData> result;
 
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                with
-                    address as (
-                        select RowId
-                        from Registry
-                        where String = ?
-                    )
-
                 select
 
+                    (accs.String)Addresshash,
                     (cu.Uid)AddressId,
                     uf.Time as RegistrationDate,
                     cuf.Height as RegistrationHeight,
@@ -1179,10 +1173,10 @@ namespace PocketDb
                     ifnull(lca.Value,0)LikersCommentAnswer,
                     iif(bmod.Badge,1,0)ModeratorBadge
 
-                from address
+                from Registry accs
 
                 cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    on u.Type in (100, 170) and u.RegId1 = address.RowId
+                    on u.Type in (100, 170) and u.RegId1 = accs.RowId
 
                 cross join Last lu
                     on lu.TxId = u.RowId
@@ -1200,7 +1194,7 @@ namespace PocketDb
                     on uf.RowId = fu.TxId
 
                 left join Balances b
-                    on b.AddressId = address.RowId
+                    on b.AddressId = accs.RowId
 
                 left join Ratings r indexed by Ratings_Type_Uid_Last_Value
                     on r.Type = 0 and r.Uid = cu.Uid and r.Last = 1
@@ -1217,21 +1211,31 @@ namespace PocketDb
                 left join vBadges bmod
                     on bmod.Badge = 3 and bmod.AccountId = cu.Uid
 
+                where
+                    accs.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+
             )sql")
-            .Bind(address)
+            .Bind(addresses)
             .Select([&](Cursor& cursor) {
-                if (cursor.Step()) {
+                while (cursor.Step())
+                {
+                    AccountData data;
+                    string address;
+
                     cursor.CollectAll(
-                        result.AddressId,
-                        result.RegistrationTime,
-                        result.RegistrationHeight,
-                        result.Balance,
-                        result.Reputation,
-                        result.LikersContent,
-                        result.LikersComment,
-                        result.LikersCommentAnswer,
-                        result.ModeratorBadge
+                        address,
+                        data.AddressId,
+                        data.RegistrationTime,
+                        data.RegistrationHeight,
+                        data.Balance,
+                        data.Reputation,
+                        data.LikersContent,
+                        data.LikersComment,
+                        data.LikersCommentAnswer,
+                        data.ModeratorBadge
                     );
+
+                    result.emplace(address, data);
                 }
             });
         });

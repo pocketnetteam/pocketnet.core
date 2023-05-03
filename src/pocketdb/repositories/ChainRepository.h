@@ -48,13 +48,13 @@ namespace PocketDb
         void RollbackBlockingList(int height);
 
         void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount);
-        void RollbackModerationJury(int height);
+        void RestoreModerationJury(int height);
 
         void IndexModerationBan(const string& voteTxHash, int votesCount, int ban1Time, int ban2Time, int ban3Time);
-        void RollbackModerationBan(int height);
+        void RestoreModerationBan(int height);
 
         void IndexBadges(int height, const BadgeConditions& conditions);
-        void RollbackBadges(int height);
+        void RestoreBadges(int height);
         
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);

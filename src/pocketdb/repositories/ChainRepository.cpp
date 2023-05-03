@@ -659,11 +659,8 @@ namespace PocketDb
         )sql";
     }
 
-    // TODO (barteron): implement
     string ChainRepository::IndexAccountBarteron()
     {
-        // Get new ID or copy previous
-
         return R"sql(
             with
                 l as (
@@ -717,7 +714,6 @@ namespace PocketDb
         )sql";
     }
     
-
     void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount)
     {
         // TODO (optimization): update to new db
@@ -827,7 +823,7 @@ namespace PocketDb
         });
     }
 
-    void ChainRepository::RollbackModerationJury(int height)
+    void ChainRepository::RestoreModerationJury(int height)
     {
         SqlTransaction(__func__, [&]()
         {
@@ -976,7 +972,7 @@ namespace PocketDb
         });
     }
 
-    void ChainRepository::RollbackModerationBan(int height)
+    void ChainRepository::RestoreModerationBan(int height)
     {
         SqlTransaction(__func__, [&]()
         {
@@ -1024,10 +1020,8 @@ namespace PocketDb
         });
     }
 
-
     void ChainRepository::IndexBadges(int height, const BadgeConditions& conditions)
     {
-        // TODO (optimization): update to new db
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
@@ -1174,8 +1168,7 @@ namespace PocketDb
         });
     }
 
-    // TODO (optimization): convert to restore
-    void ChainRepository::RollbackBadges(int height)
+    void ChainRepository::RestoreBadges(int height)
     {
         SqlTransaction(__func__, [&]()
         {

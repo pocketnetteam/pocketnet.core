@@ -135,7 +135,7 @@ namespace PocketDb
         int GetUserReputation(int addressId);
         int64_t GetAccountRegistrationTime(const string& address);
 
-        AccountData GetAccountData(const string& address);
+        map<string, AccountData> GetAccountsData(const vector<string>& addresses);
 
         map<string, ScoreDataDtoRef> GetScoresData(int height, int64_t scores_time_depth);
         tuple<bool, string> GetReferrer(const string& address);

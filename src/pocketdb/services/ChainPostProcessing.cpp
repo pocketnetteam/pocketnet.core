@@ -39,9 +39,9 @@ namespace PocketServices
             ChainRepoInst.RestoreRatings(height);
             ChainRepoInst.RestoreBalances(height);
             // ChainRepoInst.RollbackBlockingList(height);
-            ChainRepoInst.RollbackModerationJury(height);
-            ChainRepoInst.RollbackModerationBan(height);
-            ChainRepoInst.RollbackBadges(height);
+            ChainRepoInst.RestoreModerationJury(height);
+            ChainRepoInst.RestoreModerationBan(height);
+            ChainRepoInst.RestoreBadges(height);
 
             // Rollback transactions must be lasted
             ChainRepoInst.RestoreChain(height);
@@ -97,18 +97,17 @@ namespace PocketServices
         // Need select content id for saving rating
         auto scoresData = ConsensusRepoInst.GetScoresData(height, reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth));
 
-        // Loop all transactions for find scores and increase ratings for accounts and contents
-        for (const auto& txInfo : txs)
-        {
-            // Only scores allowed in calculating ratings
-            if (!txInfo.IsActionScore())
-                continue;
+        // Get all accounts information in one query
+        vector<string> accountsAddresses;
+        for (auto& scoreData : scoresData)
+            accountsAddresses.push_back(reputationConsensus->SelectAddressScoreContent(scoreData.second, false));
+        auto accountsData = ConsensusRepoInst.GetAccountsData(accountsAddresses);
 
-            auto scoreDataIt = scoresData.find(txInfo.Hash);
-            if (scoreDataIt == scoresData.end())
-                throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n", __func__, txInfo.Hash));
-                
-            auto scoreData = scoreDataIt->second;
+        // Loop all transactions for find scores and increase ratings for accounts and contents
+        for (auto& scoreDataIt : scoresData)
+        {
+            auto& scoreData = scoreDataIt.second;
+            auto& accountData = accountsData[scoreDataIt.first];
 
             // Old posts denied change reputation
             auto allowModifyOldPosts = reputationConsensus->AllowModifyOldPosts(
@@ -120,7 +119,7 @@ namespace PocketServices
                 continue;
 
             // Check whether the current rating has the right to change the recipient's reputation
-            if (!reputationConsensus->AllowModifyReputation(scoreData, false))
+            if (!reputationConsensus->AllowModifyReputation(scoreData, accountData, false))
                 continue;
 
             // Calculate ratings values

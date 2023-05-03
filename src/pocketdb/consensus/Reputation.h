@@ -21,17 +21,6 @@ namespace PocketConsensus
             return GetConsensusLimit(ConsensusLimit_threshold_likers_count);
         }
         
-        virtual string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery)
-        {
-            if (scoreData->ScoreType == TxType::ACTION_SCORE_COMMENT)
-                return scoreData->ScoreAddressHash;
-
-            if (lottery)
-                return scoreData->ScoreAddressHash;
-
-            return scoreData->ContentAddressHash;
-        }
-        
         virtual void ExtendLikersList(vector<int>& lkrs, int likerId)
         {
             lkrs.clear();
@@ -69,8 +58,18 @@ namespace PocketConsensus
 
     public:
         explicit ReputationConsensus() : BaseConsensus() {}
+        
+        virtual string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery)
+        {
+            if (scoreData->ScoreType == TxType::ACTION_SCORE_COMMENT)
+                return scoreData->ScoreAddressHash;
 
-        // TODO (aok) : refactoring for multiple accounts getter
+            if (lottery)
+                return scoreData->ScoreAddressHash;
+
+            return scoreData->ContentAddressHash;
+        }
+
         virtual BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
         {
             BadgeSet badgeSet;
@@ -83,11 +82,6 @@ namespace PocketConsensus
             return badgeSet;
         }
 
-        virtual BadgeSet GetBadges(const string& address, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
-        {
-            auto accountData = ConsensusRepoInst.GetAccountData(address);
-            return GetBadges(accountData, limit);
-        }
         virtual bool UseBadges()
         {
             return false;
@@ -110,10 +104,10 @@ namespace PocketConsensus
             return {GetAccountMode(reputation, balance), reputation, balance};
         }
         
-        virtual bool AllowModifyReputation(ScoreDataDtoRef& scoreData, bool lottery)
+        virtual bool AllowModifyReputation(ScoreDataDtoRef& scoreData, const AccountData& accountData, bool lottery)
         {
             // Check user reputation
-            if (!GetBadges(SelectAddressScoreContent(scoreData, lottery), ConsensusLimit_threshold_reputation_score).Shark)
+            if (!GetBadges(accountData, ConsensusLimit_threshold_reputation_score).Shark)
                 return false;
 
             // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
@@ -228,7 +222,7 @@ namespace PocketConsensus
     {
     public:
         explicit ReputationConsensus_checkpoint_151600() : ReputationConsensus() {}
-    protected:
+
         string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery) override
         {
             return scoreData->ScoreAddressHash;

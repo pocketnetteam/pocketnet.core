@@ -224,7 +224,8 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
         // Check account permissions
-        const AccountData accountData = request.DbConnection()->ConsensusRepoInst->GetAccountData(address);
+        auto accountsData = request.DbConnection()->ConsensusRepoInst->GetAccountsData({ address });
+        auto accountData = accountsData[address];
         
         auto accountMode = reputationConsensus->GetAccountMode(accountData.Reputation, accountData.Balance);
         result.pushKV("mode", accountMode);
