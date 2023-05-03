@@ -1277,8 +1277,10 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                    on c_c.Type in (200, 201, 202, 209, 210, 211, 207) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
+                                cross join Chain c_sc
+                                    on c_sc.TxId = c_s.RowId
+                                cross join Transactions c_c indexed by Transactions_HashId
+                                    on c_c.HashId = c_s.RegId2 and c_c.RegId1 = c.RegId1
                                 cross join First f
                                     on f.TxId = c_c.RowId
                                 where
@@ -1294,8 +1296,10 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                    on c_c.Type in (204, 205, 206) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
+                                cross join Chain c_sc
+                                    on c_sc.TxId = c_s.RowId
+                                cross join Transactions c_c indexed by Transactions_HashId
+                                    on c_c.HashId = c_s.RegId2 and c_c.RegId1 = c.RegId1
                                 cross join First f
                                     on f.TxId = c_c.RowId
                                 where
@@ -1316,8 +1320,10 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                    on c_c.Type in (200, 201, 202, 209, 210, 211, 207) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
+                                cross join Chain c_sc
+                                    on c_sc.TxId = c_s.RowId
+                                cross join Transactions c_c indexed by Transactions_HashId
+                                    on c_c.HashId = c_s.RegId2 and c_c.RegId1 = c.RegId1
                                 cross join First f
                                     on f.TxId = c_c.RowId
                                 where
@@ -1333,8 +1339,10 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                    on c_c.Type in (204, 205, 206) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
+                                cross join Chain c_sc
+                                    on c_sc.TxId = c_s.RowId
+                                cross join Transactions c_c indexed by Transactions_HashId
+                                    on c_c.HashId = c_s.RegId2 and c_c.RegId1 = c.RegId1
                                 cross join First f
                                     on f.TxId = c_c.RowId
                                 where
@@ -2218,7 +2226,7 @@ namespace PocketDb
                         where String = ?
                     )
 
-                select *
+                select count()
                 from address
                 cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
                     on t.Type = ? and t.RegId1 = address.RowId
