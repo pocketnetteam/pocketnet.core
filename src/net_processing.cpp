@@ -856,6 +856,8 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 return;
             }
 
+            int64_t tmCheckHavedataBefore = GetTimeMicros();
+
             // We need recheck all pocketnet data exists
             bool block_have_data = false;
             if (pindex->nStatus & BLOCK_HAVE_DATA)
@@ -866,17 +868,19 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
                     block_have_data = false;
                     
-                std::vector<std::string> txHashes;
-                for (const auto& tx : block.vtx)
-                    if (!tx->IsCoinBase())
-                        txHashes.push_back(tx->GetHash().GetHex());
-
-                if (!PocketServices::Accessor::ExistsTransactions(txHashes))
+                if (block_have_data)
                 {
-                    block_have_data = false;
-                    break;
+                    std::vector<std::string> txHashes;
+                    for (const auto& tx : block.vtx)
+                        if (!tx->IsCoinBase())
+                            txHashes.push_back(tx->GetHash().GetHex());
+
+                    block_have_data = PocketServices::Accessor::ExistsTransactions(txHashes);
                 }
             }
+
+            int64_t tmCheckHavedataAfter = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "    FindNextBlocksToDownload: %.2fms _ %d\n", 0.001 * (double)(tmCheckHavedataBefore - tmCheckHavedataAfter), pindex->nHeight);
             
             if (block_have_data || ::ChainActive().Contains(pindex)) {
                 if (pindex->HaveTxsDownloaded())
