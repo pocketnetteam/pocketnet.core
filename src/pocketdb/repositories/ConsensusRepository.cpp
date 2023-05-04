@@ -489,7 +489,7 @@ namespace PocketDb
                     t.Type,
                     st.Hash,
                     t.Time,
-                    1, -- TODO (optimization): is it even needed if we check transaction against existing last?
+                    iif(l.TxId, 1, 0),
                     c.Uid,
                     st.String1,
                     st.String2,
@@ -512,12 +512,13 @@ namespace PocketDb
                         st.RowId = t.RowId
                     join Chain c on
                         c.TxId = t.RowId
+                    cross join Last l on
+                        l.TxId = t.RowId
                     left join Payload p on
                         t.RowId = p.TxId
                 where
                     t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
-                    t.RegId2 = s2.id and
-                    exists (select 1 from Last l where l.TxId = t.RowId)
+                    t.RegId2 = s2.id
             )sql";
 
             Sql(sql)
