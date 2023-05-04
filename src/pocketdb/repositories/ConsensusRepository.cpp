@@ -412,19 +412,28 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
+                with str2 as (
+                    select
+                        r.String as string,
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
                 select
                     t.Type,
-                    t.Hash,
+                    s.Hash,
                     t.Time,
-                    t.Last,
-                    t.Id,
-                    t.String1,
-                    t.String2,
-                    t.String3,
-                    t.String4,
-                    t.String5,
+                    iif(l.TxId, 1, 0),
+                    c.Uid,
+                    s.String1,
+                    s.String2,
+                    s.String3,
+                    s.String4,
+                    s.String5,
                     t.Int1,
-                    p.TxHash pHash,
+                    s.Hash pHash,
                     p.String1 pString1,
                     p.String2 pString2,
                     p.String3 pString3,
@@ -432,20 +441,29 @@ namespace PocketDb
                     p.String5 pString5,
                     p.String6 pString6,
                     p.String7 pString7
-                from Transactions t indexed by Transactions_Hash_Height
-                left join Payload p on t.Hash = p.TxHash
-                where t.Type in (200,201,202,203,204,209,210,211,220)
-                  and t.Hash = ?
-                  and t.String2 = ?
-                  and t.Height is not null
+                from
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId2
+                    cross join vTxStr s on
+                        s.RowId = t.RowId
+                    join Chain c on
+                        c.TxId = t.RowId
+                    left join Payload p on
+                        t.RowId = p.TxId
+                    cross join First f on f.TxId = t.RowId
+                    left join Last l on l.TxId = t.RowId
+                where
+                    t.Type in (200,201,202,203,204,209,210,211,220) and
+                    t.RegId2 = str2.id
             )sql";
 
-            auto stmt = Sql(sql);
-            stmt.Bind(rootHash, rootHash);
-
-            // if (stmt.Step())
-            //     if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
-            //         tx = transaction;
+            Sql(sql)
+            .Bind(rootHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    if (auto[ok, transaction] = CreateTransactionFromListRow(cursor, true); ok)
+                        tx = std::move(transaction);
+            });
         });
 
         return {tx != nullptr, tx};
