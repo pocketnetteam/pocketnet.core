@@ -118,13 +118,20 @@ namespace PocketConsensus
             map<string, int> commentCandidates;
             map<string, string> commentReferrersCandidates;
 
-            for (auto& scoreDataIt : scoresData)
+            for (const auto& tx : block.vtx)
             {
-                auto& scoreData = scoreDataIt.second;
-                auto& accountData = accountsData[reputationConsensus->SelectAddressScoreContent(scoreData, true)];
-
-                if (!FilterScore(scoreData))
+                // Get destination address and score value
+                // In lottery allowed only likes to posts and comments
+                // Also in lottery allowed only positive scores
+                auto[parseScoreOk, scoreTxData] = TransactionHelper::ParseScore(tx);
+                if (!parseScoreOk)
                     continue;
+
+                if (!FilterScore(scoreTxData))
+                    continue;
+
+                auto& scoreData = scoresData[scoreTxData->ScoreTxHash];
+                auto& accountData = accountsData[reputationConsensus->SelectAddressScoreContent(scoreData, true)];
 
                 if (!reputationConsensus->AllowModifyReputation(scoreData, accountData, true))
                     continue;

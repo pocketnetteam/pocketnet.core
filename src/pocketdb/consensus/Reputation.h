@@ -116,9 +116,6 @@ namespace PocketConsensus
             if ((lottery ? scoreData->ScoresPositiveCount : scoreData->ScoresAllCount) >= GetConsensusLimit(limit))
                 return false;
 
-            if ((lottery ? scoreData->ScoresPositiveCount : scoreData->ScoresAllCount) >= GetConsensusLimit(limit))
-                return false;
-
             // All its Ok!
             return true;
         }
