@@ -1287,23 +1287,44 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with address as (
+                select
+                    r.RowId as id
+                from
+                    Registry r
+                where
+                    r.String = ?
+            )
             select 1
-            from Transactions t
-            where t.Hash = ?
-              and t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              and t.String1 = ?
-              and t.Height > 0
-              and not exists (select 1 from Transactions d indexed by Transactions_Id_Last where d.Id = t.Id and d.Last = 1 and d.Type in (207,206))
+            from
+                address,
+                vTx t
+                join Chain c on
+                    c.TxId = t.RowId -- Not in mempool
+            where
+                t.Hash = ? and
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                t.RegId1 = address.id and
+                not exists (
+                    select 1
+                    from
+                        Chain dc indexed by Chain_Uid_Height
+                        join Transactions d on
+                            d.RowId = dc.TxId and
+                            d.Type in (207,206)
+                    where
+                        dc.Uid = c.Uid and
+                        exists (select 1 from Last l where l.TxId = dc.TxId) -- TODO (optimization): mb join on d.RowId
+                )
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
-
-            stmt.Bind(txHash, types, address);
-
-            // if (stmt.Step())
-            //     result = true;
+            Sql(sql)
+            .Bind(address, txHash, types)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step(); 
+            });
         });
 
         return result;
