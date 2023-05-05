@@ -856,8 +856,6 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 return;
             }
 
-            int64_t tmCheckHavedataBefore = GetTimeMicros();
-
             // We need recheck all pocketnet data exists
             bool block_have_data = false;
             if (pindex->nStatus & BLOCK_HAVE_DATA)
@@ -879,9 +877,6 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 }
             }
 
-            int64_t tmCheckHavedataAfter = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    FindNextBlocksToDownload: %.2fms Height: %d HaveData: %d\n", 0.001 * (double)(tmCheckHavedataBefore - tmCheckHavedataAfter), pindex->nHeight, block_have_data ? 1 : 0);
-            
             if (block_have_data || ::ChainActive().Contains(pindex)) {
                 if (pindex->HaveTxsDownloaded())
                     state->pindexLastCommonBlock = pindex;
