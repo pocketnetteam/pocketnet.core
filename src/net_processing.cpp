@@ -880,7 +880,7 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
             }
 
             int64_t tmCheckHavedataAfter = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    FindNextBlocksToDownload: %.2fms _ %d\n", 0.001 * (double)(tmCheckHavedataBefore - tmCheckHavedataAfter), pindex->nHeight);
+            LogPrint(BCLog::BENCH, "    FindNextBlocksToDownload: %.2fms Height: %d HaveData: %d\n", 0.001 * (double)(tmCheckHavedataBefore - tmCheckHavedataAfter), pindex->nHeight, block_have_data ? 1 : 0);
             
             if (block_have_data || ::ChainActive().Contains(pindex)) {
                 if (pindex->HaveTxsDownloaded())

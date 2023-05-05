@@ -835,7 +835,6 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
-                        -- TODO (optimizations): indices
                         from
                             Transactions f
                         join
@@ -856,7 +855,6 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
-                        -- TODO (optimizations): indices
                         from
                             Transactions f
                         join
@@ -1063,28 +1061,24 @@ namespace PocketDb
 
                         -- Account must be registered above N months
                         ? >= (? - (
-                            select
-                                reg.Height
-                            from
-                                Chain reg
+                            select reg.Height
+                            from Chain reg
+                            cross join First f
+                                on f.TxId = reg.TxId
                             where
-                                reg.Uid = b.AccountId and
-                                exists (select 1 from First f where f.TxId = reg.TxId)
+                                reg.Uid = b.AccountId
                         )) or
 
                         -- Account must be active (not deleted)
                         not exists (
-                            select
-                            1
-                            from
-                                Transactions u
-                            join
-                                Chain c on
-                                    c.TxId = u.RowId and
-                                    c.Uid = b.AccountId
+                            select 1
+                            from Chain c
+                            cross join Transactions u
+                                on u.RowId = c.TxId and u.Type = 100
+                            cross join Last l
+                                on l.TxId = u.RowId
                             where
-                                u.Type = 100 and
-                                exists (select 1 from Last lu where lu.TxId = u.RowId)
+                                c.Uid = b.AccountId
                         )
                     )
             )sql")
@@ -1132,27 +1126,24 @@ namespace PocketDb
 
                     -- Account must be registered above N months
                     ? < (? - (
-                        select
-                            reg.Height
+                        select reg.Height
                         from Chain reg
+                        cross join First f
+                            on f.TxId = reg.TxId
                         where
-                            reg.Uid = lc.Uid and
-                            exists (select 1 from First f where f.TxId = reg.TxId)
+                            reg.Uid = lc.Uid
                     )) and
 
                     -- Account must be active
                     exists (
-                        select
-                            1
-                        from
-                            Transactions u
-                        join
-                            Chain c on
-                                c.TxId = u.RowId and
-                                c.Uid = lc.Uid
+                        select 1
+                        from Chain c
+                        cross join Transactions u
+                            on u.RowId = c.TxId and u.Type = 100
+                        cross join Last l
+                            on l.TxId = u.RowId
                         where
-                            u.Type = 100 and
-                            exists (select 1 from Last lu where lu.TxId = u.RowId)
+                            c.Uid = lc.Uid
                     )
             )sql")
             .Bind(
