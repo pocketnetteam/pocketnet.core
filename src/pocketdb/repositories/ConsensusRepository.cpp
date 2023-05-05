@@ -866,25 +866,46 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
-            select count(*)
-            from Transactions
-            where String1 = ?
-              and String2 = ?
-              and Type = ?
+            with
+                str1 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                ),
+                str2 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+            select
+                count(*)
+            from
+                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+            where
+                t.Type = ? and
+                t.RegId1 = (select id from str1) and
+                t.RegId2 = (select id from str2)
         )sql";
 
         if (!mempool)
-            sql += " and Height is not null";
+            sql += "    and exists (select 1 from Chain c where c.TxId = t.RowId)";
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
-
-            stmt.Bind(address, contentHash, (int) type);
-
-            // if (stmt.Step())
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //         result = (value > 0);
+            Sql(sql)
+            .Bind(address, contentHash, (int) type)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.Collect(0, [&](int value) {
+                        result = (value > 0);
+                    });
+            });
         });
 
         return result;
