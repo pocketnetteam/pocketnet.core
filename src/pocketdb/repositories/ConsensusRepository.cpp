@@ -838,11 +838,13 @@ namespace PocketDb
                     -- TODO (optimization): why not select 1?
                     count(*)
                 from
+                    str1,
+                    str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
                 where
                     t.Type in (307) and
-                    t.RegId1 = (select id from str1) and
-                    t.RegId2 = (select id from str2)
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id
             )sql";
 
             if (!mempool)
@@ -886,11 +888,13 @@ namespace PocketDb
             select
                 count(*)
             from
+                str1,
+                str2,
                 Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
             where
                 t.Type = ? and
-                t.RegId1 = (select id from str1) and
-                t.RegId2 = (select id from str2)
+                t.RegId1 = str1.id and
+                t.RegId2 = str2.id
         )sql";
 
         if (!mempool)
@@ -969,11 +973,13 @@ namespace PocketDb
                 )
             select 1
             from
+                str1,
+                str2,
                 Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
             where
                 t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
-                t.RegId1 = (select id from str1) and
-                t.RegId2 = (select id from str2) and
+                t.RegId1 = str1.id and
+                t.RegId2 = str2.id and
                 exists (select 1 from Chain c where c.TxId = t.RowId)
         )sql";
 
@@ -1125,11 +1131,13 @@ namespace PocketDb
                 )
             select 1
             from
+                str1,
+                str2,
                 Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
             where
                 t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
-                t.RegId1 = (select id from str1) and
-                t.RegId2 = (select id from str2) and
+                t.RegId1 = str1.id and
+                t.RegId2 = str2.id and
                 exists (select 1 from Last l where l.TxId = t.RowId)
         )sql";
 
