@@ -950,18 +950,37 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with
+                str1 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                ),
+                str2 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
             select 1
-            from Transactions indexed by Transactions_Type_String1_String2_Height
-            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              and String1 = ?
-              and String2 = ?
-              and Height > 0
+            from
+                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+            where
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                t.RegId1 = (select id from str1) and
+                t.RegId2 = (select id from str2) and
+                exists (select 1 from Chain c where c.TxId = t.RowId)
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(types, string1, string2)
+            .Bind(string1, string2, types)
             .Select([&](Cursor& cursor) {
                 result = cursor.Step();
             });
