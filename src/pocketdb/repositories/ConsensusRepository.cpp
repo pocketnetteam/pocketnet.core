@@ -1153,19 +1153,29 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with
+                str1 as (
+                    select
+                        r.String as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
             select 1
-            from Transactions indexed by sqlite_autoindex_Transactions_1
-            where Hash = ?
-              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              )sql" + (last ? " and Last = 1 " : "") + R"sql(
-              and String1 = ?
-              and Height is not null
+            from
+                str1,
+                vTx t
+            where t.Hash = ? and
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                )sql" + (last ? "   exists (select 1 from Last l where l.TxId = t.RowId) and" : "") + R"sql(
+                t.RegId1 = str1.id
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(txHash, types, string1)
+            .Bind(string1, txHash, types)
             .Select([&](Cursor& cursor) {
                 result = cursor.Step();
             });
