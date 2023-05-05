@@ -129,7 +129,7 @@ namespace PocketDb
         bool ExistBlocking(const string& address, const string& addressTo, const string& addressesTo);
         tuple<bool, TxType> GetLastSubscribeType(const string& address, const string& addressTo);
 
-        shared_ptr<string> GetContentAddress(const string& postHash);
+        optional<string> GetContentAddress(const string& postHash);
         int64_t GetUserBalance(const string& address);
         int GetUserReputation(const string& addressId);
         int GetUserReputation(int addressId);

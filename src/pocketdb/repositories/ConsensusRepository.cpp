@@ -781,24 +781,30 @@ namespace PocketDb
         return {subscribeExists, subscribeType};
     }
 
-    shared_ptr<string> ConsensusRepository::GetContentAddress(const string& postHash)
+    optional<string> ConsensusRepository::GetContentAddress(const string& postHash)
     {
-        shared_ptr<string> result = nullptr;
+        optional<string> result = nullopt;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                SELECT String1
-                FROM Transactions
-                WHERE Hash = ?
-                  and Height is not null
-            )sql");
-
-            stmt.Bind(postHash);
-
-            // if (stmt.Step())
-            //     if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
-            //         result = make_shared<string>(value);
+            Sql(R"sql(
+                select
+                    s.String1
+                from
+                    vTx t
+                    cross join vTxStr s on
+                        s.RowId = t.RowId
+                where
+                    t.Hash = ? and
+                    exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(postHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.Collect(0, [&](const string& value) {
+                        result = value;
+                    });
+            });
         });
 
         return result;
