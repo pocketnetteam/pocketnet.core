@@ -607,26 +607,49 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                SELECT Type
-                FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
-                WHERE Type in (305, 306)
-                    and String1 = ?
-                    and String2 = ?
-                    and Height is not null
-                    and Last = 1
-            )sql");
-
-            stmt.Bind(address, addressTo);
-
-            // if (stmt.Step())
-            // {
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //     {
-            //         blockingExists = true;
-            //         blockingType = (TxType) value;
-            //     }
-            // }
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.String as str,
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.String as str,
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    Type
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Last l on l.TxId = t.RowId
+                where
+                    t.Type in (305, 306) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id
+            )sql")
+            .Bind(address, addressTo)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                    {
+                        blockingExists = true;
+                        blockingType = (TxType) value;
+                    }
+                }
+            });
         });
 
         return {blockingExists, blockingType};
