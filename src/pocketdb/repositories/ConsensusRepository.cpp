@@ -922,9 +922,10 @@ namespace PocketDb
                 select
                     1
                 from
-                    Transactions t
+                    hash,
+                    vTx t
                     join Jury j
-                        on j.FlagRowId = t.ROWID
+                        on j.FlagRowId = t.RowId
                     left join JuryVerdict jv
                         on jv.FlagRowId = j.FlagRowId
                 where
