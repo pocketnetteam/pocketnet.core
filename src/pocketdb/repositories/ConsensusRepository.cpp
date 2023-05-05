@@ -661,27 +661,70 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                SELECT 1
-                FROM BlockingLists b
-                JOIN Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-                ON us.Last = 1 and us.Id = b.IdSource and us.Type in (100, 170) and us.Height is not null
-                JOIN Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-                ON ut.Last = 1 and ut.Id = b.IdTarget and ut.Type in (100, 170) and ut.Height is not null
-                WHERE us.String1 = ?
-                    and ut.String1 in (select ? union select value from json_each(?))
-                LIMIT 1
-            )sql");
-
-            stmt.Bind(address, addressTo, addressesTo);
-
-            // if (stmt.Step())
-            // {
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok && value > 0)
-            //     {
-            //         blockingExists = true;
-            //     }
-            // }
+            Sql(R"sql(
+                with
+                    -- TODO (optimization): generalize
+                    addr1 as (
+                        select
+                            r.String as hash,
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    addrs2 as (
+                        select
+                            r.String as hash,
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String in (select ? union select value from json_each(?))
+                    ),
+                    -- TODO (optimization): generalize
+                    sourceId as (
+                        select
+                            c.Uid as id
+                        from
+                            addr1,
+                            Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            join Chain c on
+                                c.TxId = t.RowId
+                        where
+                            t.Type in (100, 170) and
+                            t.RegId1 = addr1.id and
+                            exists (select 1 from Last l where l.TxId = t.RowId)
+                    ),
+                    targetIds as (
+                        select
+                            c.Uid as id
+                        from
+                            addrs2,
+                            Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            join Chain c on
+                                c.TxId = t.RowId
+                        where
+                            t.Type in (100, 170) and
+                            t.RegId1 = addrs2.id and
+                            exists (select 1 from Last l where l.TxId = t.RowId)
+                    )
+                select 1
+                from
+                    sourceId,
+                    targetIds,
+                    BlockingLists b
+                where
+                    b.IdSource = sourceId.id and
+                    b.IdTarget = targetIds.id
+                limit 1
+            )sql")
+            .Bind(address, addressTo, addressesTo)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    if (auto [ok, value] = cursor.TryGetColumnInt(0); ok && value > 0)
+                        blockingExists = true;
+            });
         });
 
         return blockingExists;
