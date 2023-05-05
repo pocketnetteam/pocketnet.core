@@ -1817,18 +1817,25 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select t.Height
-                from Transactions t
-                where t.Hash = ?
-                  and t.Height is not null
-            )sql");
-
-            stmt.Bind(hash);
-
-            // if (stmt.Step())
-            //     if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
-            //         result = { true, val };
+            Sql(R"sql(
+                select
+                    t.Height
+                from
+                    vTx t
+                    join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Hash = ? and
+            )sql")
+            .Bind(hash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    cursor.Collect(0, [&](int64_t val) {
+                        result = { true, val };
+                    });
+                }
+            });
         });
 
         return result;
