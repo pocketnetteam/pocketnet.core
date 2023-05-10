@@ -79,7 +79,7 @@ namespace PocketDb
                 {
                     result.pushKV("verdict", value);
 
-                    // TODO (aok): add object with ban information if verditc == 1
+                    // TODO (aok): add object with ban information if verdict == 1
                 }
             }
 
@@ -140,6 +140,22 @@ namespace PocketDb
             string orderBy = " order by f.Height ";
             orderBy += (pagination.Desc ? " desc " : " asc ");
 
+            // Hide verdicted juries
+            string sqlVerdict = R"sql(
+                and v.Hash is null
+                and jv.FlagRowId is null
+            )sql";
+
+            // Show only if verdicted
+            if (verdict) {
+                sqlVerdict = R"sql(
+                    and (
+                        v.Hash is not null
+                        or jv.FlagRowId is not null
+                    )
+                )sql";
+            }
+
             auto stmt = SetupSqlStatement(R"sql(
                 select
 
@@ -147,7 +163,9 @@ namespace PocketDb
                     f.Height as FlagHeight,
                     f.Int1 as Reason,
                     c.Id as ContentId,
-                    c.Type as ContentType
+                    c.Type as ContentType,
+                    ifnull(v.Int1, -1),
+                    ifnull(jv.Verdict, -1)
 
                 from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 cross join JuryModerators jm indexed by JuryModerators_AccountId_FlagRowId
@@ -156,22 +174,19 @@ namespace PocketDb
                     on f.ROWID = jm.FlagRowId
                 cross join Transactions c
                     on c.Hash = f.String2
+                left join Transactions v indexed by Transactions_Type_String1_String2_Height
+                    on v.Type = 420 and v.String1 = u.String1 and v.String2 = f.Hash and v.Height > 0
+                left join JuryVerdict jv
+                    on jv.FlagRowId = j.FlagRowId
 
-                where u.Type in (100)
-                  and u.Last = 1
-                  and u.Height is not null
-                  and u.String1 = ? 
-                  and f.Height <= ?
+                where
+                    u.Type in (100)
+                    and u.Last = 1
+                    and u.Height is not null
+                    and u.String1 = ?
+                    and f.Height <= ?
 
-                  and )sql" + string(verdict ? "" : "not") + R"sql( exists (
-                     select 1
-                     from Transactions v indexed by Transactions_Type_String1_String2_Height
-                     where
-                        v.Type = 420 and
-                        v.String1 = u.String1 and
-                        v.String2 = f.Hash and
-                        v.Height > 0
-                  )
+                    )sql" + sqlVerdict + R"sql(
 
                 )sql" + orderBy + R"sql(
 
@@ -196,6 +211,11 @@ namespace PocketDb
 
                 auto[okContentId, contentId] = TryGetColumnInt64(*stmt, 3);
                 auto[okContentType, contentType] = TryGetColumnInt(*stmt, 4);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok && value > -1)
+                    record.pushKV("vote", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok && value > -1)
+                    record.pushKV("verdict", value);
 
                 result.push_back(JuryContent{contentId, (TxType)contentType, record});
             }
