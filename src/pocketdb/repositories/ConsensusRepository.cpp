@@ -3050,20 +3050,42 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (204,205,206)
-                  and Height is not null
-                  and Hash != String2
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (205,206) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
