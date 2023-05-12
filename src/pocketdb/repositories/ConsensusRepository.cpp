@@ -1891,6 +1891,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountMempoolSubscribe(const string& address, const string& addressTo)
     {
         int result = 0;
@@ -1974,6 +1975,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainCommentTime(const string& address, int64_t time)
     {
         int result = 0;
@@ -2013,6 +2015,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainCommentHeight(const string& address, int height)
     {
         int result = 0;
@@ -2092,6 +2095,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainComplainTime(const string& address, int64_t time)
     {
         int result = 0;
@@ -2131,6 +2135,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainComplainHeight(const string& address, int height)
     {
         int result = 0;
@@ -2208,6 +2213,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainPostTime(const string& address, int64_t time)
     {
         int result = 0;
@@ -2247,6 +2253,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainPostHeight(const string& address, int height)
     {
         int result = 0;
@@ -2324,6 +2331,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainVideo(const string& address, int height)
     {
         int result = 0;
@@ -2400,6 +2408,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainArticle(const string& address, int height)
     {
         int result = 0;
@@ -2477,6 +2486,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainStream(const string& address, int height)
     {
         int result = 0;
@@ -2554,6 +2564,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainAudio(const string& address, int height)
     {
         int result = 0;
@@ -2631,6 +2642,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainCollection(const string& address, int height)
     {
         int result = 0;
@@ -2706,6 +2718,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainScoreCommentTime(const string& address, int64_t time)
     {
         int result = 0;
@@ -2743,6 +2756,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainScoreCommentHeight(const string& address, int height)
     {
         int result = 0;
@@ -2816,6 +2830,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainScoreContentTime(const string& address, int64_t time)
     {
         int result = 0;
@@ -2853,6 +2868,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainScoreContentHeight(const string& address, int height)
     {
         int result = 0;
@@ -2926,6 +2942,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainAccountSetting(const string& address, int height)
     {
         int result = 0;
@@ -3044,6 +3061,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainCommentEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
@@ -3136,6 +3154,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainPostEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
@@ -3229,6 +3248,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainVideoEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
@@ -3323,6 +3343,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainArticleEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
@@ -3416,6 +3437,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainStreamEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
@@ -3464,6 +3486,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainAudioEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
@@ -3512,6 +3535,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainCollectionEdit(const string& address, const string& rootTxHash, const int& nHeight, const int& depth)
     {
         int result = 0;
@@ -3587,6 +3611,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountModerationFlag(const string& address, const string& addressTo, bool includeMempool)
     {
         int result = 0;
