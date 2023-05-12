@@ -104,9 +104,13 @@ namespace PocketServices
         auto accountsData = ConsensusRepoInst.GetAccountsData(accountsAddresses);
 
         // Loop all transactions for find scores and increase ratings for accounts and contents
-        for (auto& scoreDataIt : scoresData)
+        for (const auto& txInfo : txs)
         {
-            auto& scoreData = scoreDataIt.second;
+            // Only scores allowed in calculating ratings
+            if (!txInfo.IsActionScore())
+                continue;
+
+            auto& scoreData = scoresData[txInfo.Hash];
             auto& accountData = accountsData[reputationConsensus->SelectAddressScoreContent(scoreData, false)];
 
             // Old posts denied change reputation
