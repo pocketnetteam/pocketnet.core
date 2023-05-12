@@ -3587,12 +3587,34 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (220,207)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (220,207) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
