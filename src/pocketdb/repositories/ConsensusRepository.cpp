@@ -3767,23 +3767,49 @@ namespace PocketDb
     int ConsensusRepository::CountModerationFlag(const string& address, const string& addressTo, bool includeMempool)
     {
         int result = 0;
-        string whereMempool = includeMempool ? " or Height is null " : "";
+        auto onlyChain = !includeMempool;
+        string joinChain = onlyChain ? R"sql(
+            cross join Chain c on
+                c.TxId = t.RowId
+        )sql" : "";
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count()
-                from Transactions indexed by Transactions_Type_String1_String3_Height
-                where Type = 410
-                  and String1 = ?
-                  and String3 = ?
-                  and ( Height > 0 )sql" + whereMempool + R"sql( )
-            )sql");
-
-            stmt.Bind(address, addressTo);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str3 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str3,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId3
+                    )sql" + joinChain + R"sql(
+                where
+                    t.Type = 410 and
+                    t.RegId1 = str1.id and
+                    t.RegId3 = str3.id
+            )sql")
+            .Bind(address, addressTo)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
