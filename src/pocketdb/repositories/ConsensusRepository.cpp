@@ -3728,22 +3728,37 @@ namespace PocketDb
     int ConsensusRepository::CountModerationFlag(const string& address, int height, bool includeMempool)
     {
         int result = 0;
-        string whereMempool = includeMempool ? " or Height is null " : "";
+        string whereMempool = includeMempool ? " or c.TxId is null " : "";
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count()
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type = 410
-                  and String1 = ?
-                  and ( Height >= ? )sql" + whereMempool + R"sql( )
-            )sql");
-
-            stmt.Bind(address, height);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    left join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type = 410 and
+                    t.RegId1 = str1.id and
+                    ( c.Height >= ? )sql" + whereMempool + R"sql( )
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
