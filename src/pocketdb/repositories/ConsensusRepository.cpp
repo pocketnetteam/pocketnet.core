@@ -3822,18 +3822,36 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                    address as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
                 select 1
                 from JuryModerators jm
                 where 
                     jm.FlagRowId = (
-                        select f.ROWID
-                        from Transactions f indexed by sqlite_autoindex_Transactions_1
+                        select f.RowId
+                        from vTx f
                         where f.Hash = ?
                     ) and
                     jm.AccountId = (
-                        select u.Id
-                        from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                        where u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = ?
+                        select
+                            c.Uid
+                        from
+                            address,
+                            Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            join Chain c on
+                                c.TxId = u.RowId
+                            cross join Last l on
+                                l.TxId = u.RowId
+                        where
+                            u.Type = 100 and
+                            u.RegId1 = address.id
                     )
             )sql")
             .Bind(flagTxHash, address)
