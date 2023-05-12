@@ -79,17 +79,31 @@ namespace PocketWeb::PocketWebRpc
             // Collect accounts data
             if (!accountIds.empty())
             {
-                // TODO (aok): implement
+                auto contentMap = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(accountIds);
                 for (const auto& rcrd : juryList)
-                    result.push_back(rcrd.JuryData);
+                {
+                    auto cnt = contentMap.find(rcrd.ContentId);
+                    if (cnt != contentMap.end())
+                    {
+                        cnt->second.pushKV("jury", rcrd.JuryData);
+                        result.push_back(cnt->second);
+                    }
+                }
             }
 
             // Collect comments data
             if (!commentIds.empty())
             {
-                // TODO (aok): implement
+                auto contentMap = request.DbConnection()->WebRpcRepoInst->GetLastComments(commentIds, "");
                 for (const auto& rcrd : juryList)
-                    result.push_back(rcrd.JuryData);
+                {
+                    auto cnt = contentMap.find(rcrd.ContentId);
+                    if (cnt != contentMap.end())
+                    {
+                        cnt->second.pushKV("jury", rcrd.JuryData);
+                        result.push_back(cnt->second);
+                    }
+                }
             }
 
             // Collect contents data
