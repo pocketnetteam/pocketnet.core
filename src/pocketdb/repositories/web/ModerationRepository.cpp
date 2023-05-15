@@ -177,7 +177,7 @@ namespace PocketDb
                 left join Transactions v indexed by Transactions_Type_String1_String2_Height
                     on v.Type = 420 and v.String1 = u.String1 and v.String2 = f.Hash and v.Height > 0
                 left join JuryVerdict jv
-                    on jv.FlagRowId = j.FlagRowId
+                    on jv.FlagRowId = jm.FlagRowId
 
                 where
                     u.Type in (100)
