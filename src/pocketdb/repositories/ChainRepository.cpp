@@ -283,12 +283,10 @@ namespace PocketDb
                     from
                         Transactions a -- primary key
                         join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type in (100, 170) and 
-                                b.RegId1 = a.RegId1
+                            on b.Type in (100, 170) and b.RegId1 = a.RegId1
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type in (100, 170) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -338,12 +336,10 @@ namespace PocketDb
                     from
                         Transactions a -- primary key
                         join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type in (103)
-                            and b.RegId1 = a.RegId1
+                            on b.Type in (103) and b.RegId1 = a.RegId1
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type in (103) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -392,14 +388,11 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type in (200, 201, 202, 209, 210, 207) and
-                            b.RegId1 = a.RegId1 and
-                            b.RegId2 = a.RegId2
+                        join Transactions b indexed by Transactions_Type_RegId2
+                            on b.Type in (200,201,202,209,210,220,207) and b.RegId2 = a.RegId2
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type in (200, 201, 202, 209, 210, 207) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -449,12 +442,10 @@ namespace PocketDb
                     from
                         Transactions a -- primary key
                         join Transactions b indexed by Transactions_Type_RegId2
-                            on b.Type in (204, 205, 206) and
-                            b.RegId2 = a.RegId2
+                            on b.Type in (204, 205, 206) and b.RegId2 = a.RegId2
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type in (204, 205, 206) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -511,7 +502,6 @@ namespace PocketDb
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type in (305, 306) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -618,7 +608,6 @@ namespace PocketDb
                         join Last l
                             on l.TxId = b.RowId
                     where
-                        a.Type in (302, 303, 304) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
