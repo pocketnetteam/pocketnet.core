@@ -94,7 +94,7 @@ namespace PocketWeb::PocketWebRpc
             // Collect comments data
             if (!commentIds.empty())
             {
-                auto contentMap = request.DbConnection()->WebRpcRepoInst->GetLastComments(commentIds, "");
+                auto contentMap = request.DbConnection()->WebRpcRepoInst->GetCommentsByIds(commentIds, "");
                 for (const auto& rcrd : juryList)
                 {
                     auto cnt = contentMap.find(rcrd.ContentId);
