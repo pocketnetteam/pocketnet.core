@@ -1270,8 +1270,14 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
             TryBindStatementText(stmt, i++, addressHash);
-            for (const string& cmntHash : cmntHashes)
-                TryBindStatementText(stmt, i++, cmntHash);
+
+            if (!cmntHashes.empty())
+                for (const string& cmntHash : cmntHashes)
+                    TryBindStatementText(stmt, i++, cmntHash);
+
+            if (!cmntIds.empty())
+                for (const int64_t& cmntId : cmntIds)
+                    TryBindStatementInt64(stmt, i++, cmntId);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
