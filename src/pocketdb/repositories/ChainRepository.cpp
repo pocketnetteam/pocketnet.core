@@ -448,9 +448,8 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        join Transactions b indexed by Transactions_Type_RegId2
                             on b.Type in (204, 205, 206) and
-                            b.RegId1 = a.RegId1 and
                             b.RegId2 = a.RegId2
                         join Last l -- primary key
                             on l.TxId = b.RowId
