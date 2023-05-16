@@ -1326,7 +1326,7 @@ namespace PocketDb
                 }
 
                 auto[ok1, hash] = TryGetColumnString(*stmt, 1);
-                auto[ok17, id] = TryGetColumnInt64(*stmt, 17);
+                auto[ok18, id] = TryGetColumnInt64(*stmt, 18);
                 result.emplace_back(hash, id, record);
             }
 
