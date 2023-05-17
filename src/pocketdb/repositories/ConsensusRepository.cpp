@@ -1819,13 +1819,13 @@ namespace PocketDb
         {
             Sql(R"sql(
                 select
-                    t.Height
+                    c.Height
                 from
                     vTx t
                     join Chain c on
                         c.TxId = t.RowId
                 where
-                    t.Hash = ? and
+                    t.Hash = ?
             )sql")
             .Bind(hash)
             .Select([&](Cursor& cursor) {
