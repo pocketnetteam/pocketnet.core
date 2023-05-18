@@ -2846,10 +2846,11 @@ bool CChainState::DisconnectTip(BlockValidationState& state, const CChainParams&
         for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it)
         {
             auto hash = (**it).GetHash();
-            if (PocketDb::TransRepoInst.Exists(hash.GetHex()))
-            {
-                PocketDb::TransRepoInst.CleanTransaction(hash.GetHex());
-            }
+            // TODO (team) : do not remove before inspect
+            // if (PocketDb::TransRepoInst.Exists(hash.GetHex()))
+            // {
+            //     PocketDb::TransRepoInst.CleanTransaction(hash.GetHex());
+            // }
         }
     }
 
@@ -5684,7 +5685,8 @@ bool LoadMempool(CTxMemPool& pool)
             if (pool.get(txid) != nullptr) pool.AddUnbroadcastTx(txid);
         }
 
-        pool.CleanSQLite(expiredHashes, MemPoolRemovalReason::EXPIRY);
+        // TODO (team) : do not remove before inspect
+        // pool.CleanSQLite(expiredHashes, MemPoolRemovalReason::EXPIRY);
     }
     catch (const std::exception& e)
     {

@@ -161,10 +161,7 @@ namespace PocketServices
         }
 
         // Filter all distinct records
-        for (const auto& _scoreData : distinctScores)
-        {
-            reputationConsensus->ValidateAccountLiker(_scoreData, likersValues, ratingValues);
-        }
+        reputationConsensus->ValidateAccountLikers(distinctScores, likersValues, ratingValues);
             
         // Prepare all ratings model records for increase ratings
         shared_ptr<vector<Rating>> ratings = make_shared<vector<Rating>>();

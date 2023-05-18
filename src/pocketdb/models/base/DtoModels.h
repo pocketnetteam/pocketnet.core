@@ -73,15 +73,15 @@ namespace PocketTx
     public:
         TxType ScoreType;
         string ScoreTxHash;
-        int ScoreAddressId;
+        int64_t ScoreAddressId;
         string ScoreAddressHash;
         int64_t ScoreTime;
         int ScoreValue;
 
         TxType ContentType;
         string ContentTxHash;
-        int ContentId;
-        int ContentAddressId;
+        int64_t ContentId;
+        int64_t ContentAddressId;
         string ContentAddressHash;
         int64_t ContentTime;
 
@@ -89,6 +89,8 @@ namespace PocketTx
 
         int64_t ScoresAllCount;
         int64_t ScoresPositiveCount;
+
+        RatingType Type;
 
         shared_ptr<UniValue> Serialize() override
         {
