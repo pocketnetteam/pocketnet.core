@@ -704,7 +704,6 @@ namespace PocketDb
     
     void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount)
     {
-        // TODO (optimization): update to new db
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
@@ -716,27 +715,29 @@ namespace PocketDb
                     cu.Uid, /* Account unique id of the content author */
                     f.Int1 /* Reason */
 
-                from Transactions f
+                from Transactions f indexed by Transactions_HashId
 
-                join Chain cf on
-                    cf.TxId = f.RowId
+                cross join Chain cf
+                    on cf.TxId = f.RowId
 
-                cross join Transactions u on
-                    u.Type = 100 and
-                    u.RegId1 = f.RegId3 and
-                    exists (select 1 from Last lu where lu.TxId = u.RowId)
+                cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type = 100 and u.RegId1 = f.RegId3
 
-                join Chain cu on
+                cross join Last lu
+                    on lu.TxId = u.RowId
+
+                cross join Chain cu on
                     cu.TxId = u.RowId
-                    
+
                 where f.HashId = (select r.RowId from Registry r where r.String = ?)
 
                     -- Is there no active punishment listed on the account ?
                     and not exists (
                         select 1
                         from JuryBan b indexed by JuryBan_AccountId_Ending
-                        where b.AccountId = cu.Uid
-                            and b.Ending > cf.Height
+                        where
+                            b.AccountId = cu.Uid and
+                            b.Ending > cf.Height
                     )
 
                     -- there is no active jury for the same reason
@@ -745,21 +746,24 @@ namespace PocketDb
                         from Jury j indexed by Jury_AccountId_Reason
                         left join JuryVerdict jv
                             on jv.FlagRowId = j.FlagRowId
-                        where j.AccountId = cu.Uid
-                            and j.Reason = f.Int1
-                            and jv.Verdict is null
+                        where
+                            j.AccountId = cu.Uid and
+                            j.Reason = f.Int1 and
+                            jv.Verdict is null
                     )
 
                     -- if there are X flags of the same reason for X time
                     and ? <= (
                         select count()
-                        from Transactions ff
-                        join Chain cff indexed by Chain_Height_BlockId on
-                            cff.TxId = ff.RowId and
-                            cff.Height > ?
-                        where ff.Type in (410)
-                            and ff.RegId3 = f.RegId3
-                            and not exists (select 1 from Last lff where lff.TxId = ff.RowId)
+                        from Transactions ff indexed by Transactions_Type_RegId3
+                        cross join Chain cff
+                            on cff.TxId = ff.RowId and cff.Height > ?
+                        left join Last lff
+                            on lff.TxId = ff.RowId
+                        where
+                            ff.Type in (410) and
+                            ff.RegId3 = f.RegId3 and
+                            lff.ROWID is null
                     )
             )sql")
             .Bind(flagTxHash, flagsMinCount, flagsDepth)
