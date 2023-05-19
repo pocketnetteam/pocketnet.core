@@ -553,7 +553,7 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
             txToRemove.insert(nextit);
         }
 
-        // TODO (team): do not remove before inspect
+        // TODO (aok): do not remove before inspect
         // auto hash = origTx.GetHash().GetHex();
         // if (PocketDb::TransRepoInst.Exists(hash))
         // {
@@ -1099,8 +1099,7 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
 
     // Also remove from sqlite db
-    // TODO (team) : do not remove before inspect
-    // CleanSQLite(removeHashes, MemPoolRemovalReason::EXPIRY);
+    CleanSQLite(removeHashes, MemPoolRemovalReason::EXPIRY);
 
     return stage.size();
 }

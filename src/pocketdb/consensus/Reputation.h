@@ -163,59 +163,53 @@ namespace PocketConsensus
                 distinctScores.push_back(scoreData);
         }
         
-        virtual void ValidateAccountLikers(vector<ScoreDataDtoRef>& scores, map<RatingType, map<int, vector<int>>>& likersValues, map<RatingType, map<int, int>>& ratingValues)
+        virtual void ValidateAccountLiker(const ScoreDataDtoRef& scoreData, map<RatingType, map<int, vector<int>>>& likersValues, map<RatingType, map<int, int>>& ratingValues)
         {
             // Check already added to list and exists in DB
-            vector<ScoreDataDtoRef> existsLikers = RatingsRepoInst.ExistsLikers(scores);
-
-            for (const auto& scoreData : scores)
+            auto& lkrs = likersValues[ACCOUNT_LIKERS][scoreData->ContentAddressId];
+            if (find(lkrs.begin(), lkrs.end(), scoreData->ScoreAddressId) == lkrs.end())
             {
-                // Filter new likers for global account list
-                auto checkGlobal = any_of(
-                    existsLikers.begin(), existsLikers.end(),
-                    [&](const ScoreDataDtoRef& itm) -> bool {
-                        return 
-                            itm->ContentAddressId == scoreData->ContentAddressId &&
-                            itm->ScoreAddressId == scoreData->ScoreAddressId && 
-                            itm->Type == ACCOUNT_LIKERS;
-                    }
-                );
-
-                if (!checkGlobal)
+                if (!RatingsRepoInst.ExistsLiker(
+                    scoreData->ContentAddressId,
+                    scoreData->ScoreAddressId,
+                    { ACCOUNT_LIKERS }
+                ))
                 {
                     ExtendLikersList(
-                        likersValues[ACCOUNT_LIKERS][scoreData->ContentAddressId],
+                        lkrs,
                         scoreData->ScoreAddressId
                     );
                 }
-                // end of filter
+            }
 
-                // Filter likers with split types
-                auto checkSplit = any_of(
-                    existsLikers.begin(), existsLikers.end(),
-                    [&](const ScoreDataDtoRef& itm) -> bool {
-                        return
-                            itm->ContentAddressId == scoreData->ContentAddressId &&
-                            itm->ScoreAddressId == scoreData->ScoreAddressId &&
-                            (
-                                itm->Type == ACCOUNT_LIKERS_POST ||
-                                itm->Type == ACCOUNT_LIKERS_COMMENT_ROOT ||
-                                itm->Type == ACCOUNT_LIKERS_COMMENT_ANSWER
-                            );
-                    }
+            //
+            // Split likers types
+            // 
+            auto& lkrs_post = likersValues[ACCOUNT_LIKERS_POST][scoreData->ContentAddressId];
+            if ((find(lkrs_post.begin(), lkrs_post.end(), scoreData->ScoreAddressId) != lkrs_post.end()))
+                return;
+            
+            auto& lkrs_cmnt_root = likersValues[ACCOUNT_LIKERS_COMMENT_ROOT][scoreData->ContentAddressId];
+            if ((find(lkrs_cmnt_root.begin(), lkrs_cmnt_root.end(), scoreData->ScoreAddressId) != lkrs_cmnt_root.end()))
+                return;
+
+            auto& lkrs_cmnt_answer = likersValues[ACCOUNT_LIKERS_COMMENT_ANSWER][scoreData->ContentAddressId];
+            if ((find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
+                return;
+                
+            if (!RatingsRepoInst.ExistsLiker(
+                scoreData->ContentAddressId,
+                scoreData->ScoreAddressId,
+                { ACCOUNT_LIKERS_POST, ACCOUNT_LIKERS_COMMENT_ROOT, ACCOUNT_LIKERS_COMMENT_ANSWER }
+            ))
+            {
+                ExtendLikersList(
+                    likersValues,
+                    ratingValues,
+                    scoreData
                 );
 
-                if (!checkSplit)
-                {
-                    ExtendLikersList(
-                        likersValues,
-                        ratingValues,
-                        scoreData
-                    );
-
-                    ratingValues[scoreData->LikerType(true)][scoreData->ContentAddressId] += 1;
-                }
-                // end of filter
+                ratingValues[scoreData->LikerType(true)][scoreData->ContentAddressId] += 1;
             }
         }
     };
@@ -252,23 +246,10 @@ namespace PocketConsensus
     protected:
         void ExtendLikersList(vector<int>& lkrs, int likerId) override
         {
-            if (find(lkrs.begin(), lkrs.end(), likerId) == lkrs.end())
-                lkrs.emplace_back(likerId);
+            lkrs.emplace_back(likerId);
         }
         void ExtendLikersList(map<RatingType, map<int, vector<int>>>& lkrs, map<RatingType, map<int, int>>& ratingValues, const ScoreDataDtoRef& scoreData) override
         {
-            auto& lkrs_post = lkrs[ACCOUNT_LIKERS_POST][scoreData->ContentAddressId];
-            if ((find(lkrs_post.begin(), lkrs_post.end(), scoreData->ScoreAddressId) != lkrs_post.end()))
-                return;
-            
-            auto& lkrs_cmnt_root = lkrs[ACCOUNT_LIKERS_COMMENT_ROOT][scoreData->ContentAddressId];
-            if ((find(lkrs_cmnt_root.begin(), lkrs_cmnt_root.end(), scoreData->ScoreAddressId) != lkrs_cmnt_root.end()))
-                return;
-
-            auto& lkrs_cmnt_answer = lkrs[ACCOUNT_LIKERS_COMMENT_ANSWER][scoreData->ContentAddressId];
-            if ((find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
-                return;
-                
             lkrs[scoreData->LikerType(false)][scoreData->ContentAddressId].emplace_back(scoreData->ScoreAddressId);
         }
     public:

@@ -31,8 +31,6 @@ namespace PocketDb
         bool ExistsLiker(int addressId, int likerId);
         bool ExistsLiker(int addressId, int likerId, const vector<RatingType>& types);
 
-        vector<ScoreDataDtoRef> ExistsLikers(vector<ScoreDataDtoRef>& scores);
-
     private:
 
         void InsertRating(const Rating& rating);

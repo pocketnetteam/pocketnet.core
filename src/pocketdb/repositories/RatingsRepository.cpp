@@ -50,47 +50,6 @@ namespace PocketDb
         return result;
     }
 
-    vector<ScoreDataDtoRef> RatingsRepository::ExistsLikers(vector<ScoreDataDtoRef>& scores)
-    {
-        vector<ScoreDataDtoRef> result;
-
-        vector<int64_t> contentAddesses;
-        for (const auto& scoreData : scores)
-            contentAddesses.push_back(scoreData->ContentAddressId);
-        
-        vector<int64_t> scoreAddesses;
-        for (const auto& scoreData : scores)
-            scoreAddesses.push_back(scoreData->ScoreAddressId);
-        
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                select
-                    r.Uid,
-                    r.Value,
-                    r.Type
-                from Ratings r indexed by Ratings_Type_Uid_Value
-                where 
-                    r.Type in ( 1, 101, 102, 103 ) and
-                    r.Uid in ( )sql" + join(vector<string>(contentAddesses.size(), "?"), ",") + R"sql( ) and
-                    r.Value  in ( )sql" + join(vector<string>(scores.size(), "?"), ",") + R"sql( )
-            )sql")
-            .Bind(contentAddesses, scoreAddesses)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    ScoreDataDto data;
-                    int type;
-                    cursor.CollectAll(data.ContentAddressId, data.ScoreAddressId, type);
-                    data.Type = (RatingType)type;
-                    result.push_back(make_shared<ScoreDataDto>(data));
-                }
-            });
-        });
-
-        return result;
-    }
-
     void RatingsRepository::InsertRating(const Rating& rating)
     {
         // Insert new Last record
