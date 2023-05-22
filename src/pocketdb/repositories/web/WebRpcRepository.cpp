@@ -1144,12 +1144,47 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash)
+    map<string, UniValue> WebRpcRepository::GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash)
     {
-        auto result = UniValue(UniValue::VARR);
+        map<string, UniValue> result{};
 
-        if (cmntHashes.empty())
+        auto _result = GetComments(cmntHashes, {}, addressHash);
+        for (auto const& [hash, id, record] : _result)
+            result.insert_or_assign(hash, record);
+
+        return result;
+    }
+
+    map<int64_t, UniValue> WebRpcRepository::GetCommentsByIds(const vector<int64_t>& cmntIds, const string& addressHash)
+    {
+        map<int64_t, UniValue> result{};
+
+        auto _result = GetComments({}, cmntIds, addressHash);
+        for (auto const& [hash, id, record] : _result)
+            result.insert_or_assign(id, record);
+
+        return result;
+    }
+
+    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetComments(const vector<string>& cmntHashes, const vector<int64_t>& cmntIds, const string& addressHash)
+    {
+        vector<tuple<string, int64_t, UniValue>> result{};
+
+        if (cmntHashes.empty() && cmntIds.empty())
             return result;
+
+        string where;
+        string whereIndex;
+        if (!cmntHashes.empty())
+        {
+            where = " and c.String2 in (" + join(vector<string>(cmntHashes.size(), "?"), ",") + ") ";
+            whereIndex = " Transactions_Type_Last_String2_Height ";
+        }
+        if (!cmntIds.empty())
+        {
+            where = " and c.Id in (" + join(vector<string>(cmntIds.size(), "?"), ",") + ") ";
+            whereIndex = " Transactions_Last_Id_Height ";
+        }
 
         auto sql = R"sql(
             select
@@ -1203,16 +1238,18 @@ namespace PocketDb
                     join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
                     where us.String1 = t.String1 and ut.String1 = c.String1
                     limit 1
-                )Blocked
+                )Blocked,
 
-            from Transactions c indexed by Transactions_Type_Last_String2_Height
+                c.Id
+
+            from Transactions c indexed by )sql" + whereIndex + R"sql(
 
             join Transactions r ON c.String2 = r.Hash
 
             join Payload pl ON pl.TxHash = c.Hash
 
             join Transactions t indexed by Transactions_Type_Last_String2_Height
-                on t.Type in (200,201,202,209,210) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
+                on t.Type in (200,201,202,209,210,220,207) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
 
             left join Transactions sc indexed by Transactions_Type_String1_String2_Height
                 on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
@@ -1223,7 +1260,8 @@ namespace PocketDb
             where c.Type in (204, 205, 206)
                 and c.Height is not null
                 and c.Last = 1
-                and c.String2 in ( )sql" + join(vector<string>(cmntHashes.size(), "?"), ",") + R"sql( )
+                
+                )sql" + where + R"sql(
 
         )sql";
 
@@ -1232,15 +1270,20 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
             TryBindStatementText(stmt, i++, addressHash);
-            for (const string& cmntHash : cmntHashes)
-                TryBindStatementText(stmt, i++, cmntHash);
+
+            if (!cmntHashes.empty())
+                for (const string& cmntHash : cmntHashes)
+                    TryBindStatementText(stmt, i++, cmntHash);
+
+            if (!cmntIds.empty())
+                for (const int64_t& cmntId : cmntIds)
+                    TryBindStatementInt64(stmt, i++, cmntId);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                //auto[ok0, txHash] = TryGetColumnString(stmt, 1);
-                auto[ok1, rootTxHash] = TryGetColumnString(*stmt, 2);
+                auto[ok2, rootTxHash] = TryGetColumnString(*stmt, 2);
                 record.pushKV("id", rootTxHash);
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
@@ -1288,7 +1331,9 @@ namespace PocketDb
                     }
                 }
 
-                result.push_back(record);
+                auto[ok1, hash] = TryGetColumnString(*stmt, 1);
+                auto[ok18, id] = TryGetColumnInt64(*stmt, 18);
+                result.emplace_back(hash, id, record);
             }
 
             FinalizeSqlStatement(*stmt);
