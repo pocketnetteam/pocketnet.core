@@ -113,9 +113,7 @@ namespace PocketConsensus
 
                 if (ptxORHash != txORHash)
                     if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                        // return true;
-                        // TODO (optimization): DEBUG! - remove after fix all checkpoints
-                        LogPrintf("DEBUG - ConsensusResult_FailedOpReturn - %s : %s\n", *ptx->GetHash(), ptxORHash);
+                        return true;
 
                 return false;
             });
