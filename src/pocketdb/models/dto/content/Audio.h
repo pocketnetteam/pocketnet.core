@@ -16,7 +16,6 @@ namespace PocketTx
     public:
         Audio();
         Audio(const CTransactionRef& tx);
-        size_t PayloadSize() const override;
     };
 
 } // namespace PocketTx

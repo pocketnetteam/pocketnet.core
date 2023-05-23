@@ -16,8 +16,6 @@ namespace PocketTx
     public:
         Stream();
         Stream(const CTransactionRef& tx);
-
-        size_t PayloadSize() const override;
     };
 
 } // namespace PocketTx
