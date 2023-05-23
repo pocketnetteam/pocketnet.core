@@ -104,7 +104,7 @@ namespace PocketTx
 
     size_t Comment::PayloadSize() const
     {
-        return (GetPayloadMsg() ? HtmlUtils::UrlDecode(*GetPayloadMsg()).size() : 0);
+        return (GetPayload() && GetPayloadMsg() ? HtmlUtils::UrlDecode(*GetPayloadMsg()).size() : 0);
     }
 
 } // namespace PocketTx
