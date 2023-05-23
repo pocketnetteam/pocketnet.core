@@ -35,6 +35,7 @@ namespace PocketTx
         optional<string> GetPayloadSettings() const;
 
         string BuildHash() override;
+        size_t PayloadSize() override;
     };
 
 } // namespace PocketTx

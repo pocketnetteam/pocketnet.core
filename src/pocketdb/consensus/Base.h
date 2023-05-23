@@ -247,15 +247,6 @@ namespace PocketConsensus
         ConsensusLimit_multiple_lock_addresses_count,
         ConsensusLimit_collection_ids_count,
 
-        ConsensusLimit_max_user_size,
-        ConsensusLimit_max_post_size,
-        ConsensusLimit_max_video_size,
-        ConsensusLimit_max_article_size,
-        ConsensusLimit_max_stream_size,
-        ConsensusLimit_max_audio_size,
-        ConsensusLimit_max_collection_size,
-        ConsensusLimit_max_comment_size,
-
         ConsensusLimit_scores_one_to_one,
         ConsensusLimit_scores_one_to_one_over_comment,
         ConsensusLimit_scores_one_to_one_depth,
@@ -619,48 +610,6 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 100} } },
             { NetworkTest,    { {0, 100} } },
             { NetworkRegTest, { {0, 10} } }
-        } },
-
-        // Size
-        { ConsensusLimit_max_user_size, {
-            { NetworkMain,    { {0, 2000} } },
-            { NetworkTest,    { {0, 2000} } },
-            { NetworkRegTest, { {0, 2000} } }
-        } },
-        { ConsensusLimit_max_post_size, {
-            { NetworkMain,    { {0, 60000} } },
-            { NetworkTest,    { {0, 60000} } },
-            { NetworkRegTest, { {0, 60000} } }
-        } },
-        { ConsensusLimit_max_video_size, {
-            { NetworkMain,    { {0, 60000} } },
-            { NetworkTest,    { {0, 60000} } },
-            { NetworkRegTest, { {0, 60000} } }
-        } },
-        { ConsensusLimit_max_article_size, {
-            { NetworkMain,    { {0, 120000} } },
-            { NetworkTest,    { {0, 60000} } },
-            { NetworkRegTest, { {0, 60000} } }
-        } },
-        { ConsensusLimit_max_stream_size, {
-            { NetworkMain, { {0, 60000} } },
-            { NetworkTest, { {0, 60000} } },
-            { NetworkRegTest, { {0, 60000} } }
-        } },
-        { ConsensusLimit_max_audio_size, {
-            { NetworkMain, { {0, 60000} } },
-            { NetworkTest, { {0, 60000} } },
-            { NetworkRegTest, { {0, 60000} } }
-        } },
-        { ConsensusLimit_max_collection_size, {
-            { NetworkMain, { {0, 2000} } },
-            { NetworkTest, { {0, 2000} } },
-            { NetworkRegTest, { {0, 2000} } }
-        } },
-        { ConsensusLimit_max_comment_size, {
-            { NetworkMain,    { {0, 2000} } },
-            { NetworkTest,    { {0, 2000} } },
-            { NetworkRegTest, { {0, 2000} } }
         } },
 
         // MODERATION

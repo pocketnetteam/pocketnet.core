@@ -181,14 +181,11 @@ namespace PocketConsensus
         {
             Limits.Set("edit_account_daily_count", 10, 10, 10);
             Limits.Set("edit_account_depth", 86400, 1440, 1440);
+            Limits.Set("payload_size", 2000, 2000, 2000);
         }
         
         ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
         {
-            // Check payload size
-            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
-                return {false, code};
-
             // Duplicate name
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
             {
@@ -279,24 +276,6 @@ namespace PocketConsensus
         virtual int GetChainCount(const UserRef& ptx)
         {
             return 0;
-        }
-
-        virtual ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx)
-        {
-            size_t dataSize =
-                (ptx->GetPayloadName() ? ptx->GetPayloadName()->size() : 0) +
-                (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
-                (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0) +
-                (ptx->GetPayloadAbout() ? ptx->GetPayloadAbout()->size() : 0) +
-                (ptx->GetPayloadAvatar() ? ptx->GetPayloadAvatar()->size() : 0) +
-                (ptx->GetPayloadDonations() ? ptx->GetPayloadDonations()->size() : 0) +
-                (ptx->GetReferrerAddress() ? ptx->GetReferrerAddress()->size() : 0) +
-                (ptx->GetPayloadPubkey() ? ptx->GetPayloadPubkey()->size() : 0);
-
-            if (dataSize > (size_t) GetConsensusLimit(ConsensusLimit_max_user_size))
-                return {false, ConsensusResult_ContentSizeLimit};
-
-            return Success;
         }
     
         virtual ConsensusValidateResult CheckLogin(const UserRef& ptx)

@@ -23,6 +23,7 @@ namespace PocketConsensus
         CommentEditConsensus() : SocialConsensus<CommentEdit>()
         {
             // TODO (limits): set limits
+            Limits.Set("payload_size", 2000, 2000, 2000);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentEditRef& ptx, const PocketBlockRef& block) override
@@ -163,15 +164,6 @@ namespace PocketConsensus
             int count = ConsensusRepoInst.CountChainCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_comment_edit_count))
                 return {false, ConsensusResult_CommentEditLimit};
-
-            return Success;
-        }
-        virtual ConsensusValidateResult ValidatePayloadSize(const CommentEditRef& ptx)
-        {
-            int64_t dataSize = (ptx->GetPayloadMsg() ? HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).size() : 0);
-
-            if (dataSize > GetConsensusLimit(ConsensusLimit_max_comment_size))
-                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }

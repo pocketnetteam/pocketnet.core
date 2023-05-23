@@ -25,6 +25,8 @@ namespace PocketTx
 
         string BuildHash() override;
 
+        size_t PayloadSize() override;
+
     }; // class ContentDelete
 
 } // namespace PocketTx

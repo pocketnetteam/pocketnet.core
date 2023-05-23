@@ -101,4 +101,9 @@ namespace PocketTx
         return Transaction::GenerateHash(data);
     }
 
+    size_t Comment::PayloadSize()
+    {
+        return (GetPayloadMsg() ? HtmlUtils::UrlDecode(*GetPayloadMsg()).size() : 0);
+    }
+
 } // namespace PocketTx

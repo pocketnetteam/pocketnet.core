@@ -19,7 +19,7 @@ namespace PocketTx
         void DeserializePayload(const UniValue& src) override;
 
         string BuildHash() override;
-
+        size_t PayloadSize() override;
     };
 
 } // namespace PocketTx

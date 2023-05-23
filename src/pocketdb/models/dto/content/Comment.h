@@ -41,6 +41,7 @@ namespace PocketTx
         void SetPayloadMsg(const string& value);
 
         string BuildHash() override;
+        size_t PayloadSize() override;
 
     };
 

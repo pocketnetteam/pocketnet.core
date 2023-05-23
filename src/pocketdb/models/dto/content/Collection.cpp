@@ -143,4 +143,18 @@ namespace PocketTx
         return Content::GenerateHash(data);
     }
 
+    size_t Collection::PayloadSize()
+    {
+        size_t dataSize =
+            (GetPayloadCaption() ? GetPayloadCaption()->size() : 0) +
+            (GetPayloadImage() ? GetPayloadImage()->size() : 0) +
+            (GetPayloadSettings() ? GetPayloadSettings()->size() : 0) +
+            (GetPayloadLang() ? GetPayloadLang()->size() : 0);
+
+        if (GetRootTxHash() && *GetRootTxHash() != *GetHash())
+            dataSize += GetRootTxHash()->size();
+
+        return dataSize;
+    }
+
 } // namespace PocketTx

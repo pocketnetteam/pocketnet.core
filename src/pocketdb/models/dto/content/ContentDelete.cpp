@@ -65,5 +65,10 @@ namespace PocketTx
         return Transaction::GenerateHash(data);
     }
 
+    size_t ContentDelete::PayloadSize()
+    {
+        return 0;
+    }
+
 } // namespace PocketTx
 

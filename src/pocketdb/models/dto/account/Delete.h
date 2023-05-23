@@ -16,6 +16,7 @@ namespace PocketTx
         AccountDelete(const CTransactionRef& tx);
 
         string BuildHash() override;
+        size_t PayloadSize() override;
     }; // class AccountDelete
 
 } // namespace PocketTx

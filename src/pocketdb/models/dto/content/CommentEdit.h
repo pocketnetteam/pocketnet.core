@@ -14,6 +14,7 @@ namespace PocketTx
     public:
         CommentEdit();
         CommentEdit(const std::shared_ptr<const CTransaction>& tx);
+        size_t PayloadSize() override;
     };
 } // namespace PocketTx
 

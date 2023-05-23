@@ -16,6 +16,7 @@ namespace PocketTx
     public:
         Article();
         Article(const CTransactionRef& tx);
+        size_t PayloadSize() override;
     };
 
 } // namespace PocketTx
