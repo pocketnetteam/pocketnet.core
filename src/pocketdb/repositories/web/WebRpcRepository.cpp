@@ -617,6 +617,7 @@ namespace PocketDb
                 record.pushKV("hash", hash);
                 record.pushKV("address", address);
                 record.pushKV("id", id);
+                record.pushKV("type", Type);
                 if (IsDeveloper(address)) record.pushKV("dev", true);
                 if (isDeleted) record.pushKV("deleted", true);
 
@@ -1282,6 +1283,9 @@ namespace PocketDb
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    record.pushKV("type", value);
 
                 auto[ok2, rootTxHash] = TryGetColumnString(*stmt, 2);
                 record.pushKV("id", rootTxHash);
