@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::CONTENT_STREAM);
     }
 
-    size_t Stream::PayloadSize()
+    size_t Stream::PayloadSize() const
     {
         size_t dataSize =
             (GetPayloadUrl() ? GetPayloadUrl()->size() : 0) +

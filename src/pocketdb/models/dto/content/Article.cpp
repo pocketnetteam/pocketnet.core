@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::CONTENT_ARTICLE);
     }
 
-    size_t Article::PayloadSize()
+    size_t Article::PayloadSize() const
     {
         size_t dataSize =
             (GetPayloadUrl() ? GetPayloadUrl()->size() : 0) +

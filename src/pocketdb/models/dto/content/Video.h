@@ -17,7 +17,7 @@ namespace PocketTx
         Video();
         Video(const CTransactionRef& tx);
 
-        size_t PayloadSize() override;
+        size_t PayloadSize() const override;
     };
 
 } // namespace PocketTx

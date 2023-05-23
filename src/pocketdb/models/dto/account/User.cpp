@@ -134,7 +134,7 @@ namespace PocketTx
         return data;
     }
 
-    size_t User::PayloadSize()
+    size_t User::PayloadSize() const
     {
         return (GetPayloadName() ? GetPayloadName()->size() : 0) +
                (GetPayloadUrl() ? GetPayloadUrl()->size() : 0) +

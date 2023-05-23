@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::CONTENT_AUDIO);
     }
 
-    size_t Audio::PayloadSize()
+    size_t Audio::PayloadSize() const
     {
         size_t dataSize =
                 (GetPayloadUrl() ? GetPayloadUrl()->size() : 0) +

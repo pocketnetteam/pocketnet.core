@@ -24,7 +24,7 @@ namespace PocketTx
 
         string BuildHash() override;
         
-        size_t PayloadSize() override;
+        size_t PayloadSize() const override;
         
     };
 

@@ -143,7 +143,7 @@ namespace PocketTx
         return Content::GenerateHash(data);
     }
 
-    size_t Collection::PayloadSize()
+    size_t Collection::PayloadSize() const
     {
         size_t dataSize =
             (GetPayloadCaption() ? GetPayloadCaption()->size() : 0) +

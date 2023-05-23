@@ -19,7 +19,7 @@ namespace PocketTx
 
     optional<string> AccountSetting::GetPayloadData() const { return GetPayload() ? GetPayload()->GetString1() : nullopt; }
 
-    size_t AccountSetting::PayloadSize()
+    size_t AccountSetting::PayloadSize() const
     {
         return GetPayload() && GetPayload()->GetString1() ? GetPayload()->GetString1()->size() : 0;
     }

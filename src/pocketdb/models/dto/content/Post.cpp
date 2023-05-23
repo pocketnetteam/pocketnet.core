@@ -150,7 +150,7 @@ namespace PocketTx
         return Content::GenerateHash(data);
     }
 
-    size_t Post::PayloadSize()
+    size_t Post::PayloadSize() const
     {
         size_t dataSize =
             (GetPayloadUrl() ? GetPayloadUrl()->size() : 0) +

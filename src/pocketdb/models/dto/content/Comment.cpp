@@ -102,7 +102,7 @@ namespace PocketTx
         return Transaction::GenerateHash(data);
     }
 
-    size_t Comment::PayloadSize()
+    size_t Comment::PayloadSize() const
     {
         return (GetPayloadMsg() ? HtmlUtils::UrlDecode(*GetPayloadMsg()).size() : 0);
     }

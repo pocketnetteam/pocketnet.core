@@ -17,7 +17,7 @@ namespace PocketTx
         SetType(TxType::CONTENT_VIDEO);
     }
     
-    size_t Video::PayloadSize()
+    size_t Video::PayloadSize() const
     {
         size_t dataSize =
             (GetPayloadUrl() ? GetPayloadUrl()->size() : 0) +

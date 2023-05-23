@@ -18,7 +18,7 @@ namespace PocketTx
         SetType(TxType::CONTENT_COMMENT_EDIT);
     }
     
-    size_t CommentEdit::PayloadSize()
+    size_t CommentEdit::PayloadSize() const
     {
         return (GetPayloadMsg() ? HtmlUtils::UrlDecode(*GetPayloadMsg()).size() : 0);
     }
