@@ -23,7 +23,7 @@ namespace PocketConsensus
     public:
         AccountUserConsensusOld() : AccountConsensus<User>()
         {
-            // TODO (limits): set current limits
+            Limits.Set("payload_size", 2000, 2000, 2000);
         }
         
         ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
@@ -115,24 +115,6 @@ namespace PocketConsensus
             return Success;
         }
         
-        ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx)
-        {
-            size_t dataSize =
-                (ptx->GetPayloadName() ? ptx->GetPayloadName()->size() : 0) +
-                (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
-                (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0) +
-                (ptx->GetPayloadAbout() ? ptx->GetPayloadAbout()->size() : 0) +
-                (ptx->GetPayloadAvatar() ? ptx->GetPayloadAvatar()->size() : 0) +
-                (ptx->GetPayloadDonations() ? ptx->GetPayloadDonations()->size() : 0) +
-                (ptx->GetReferrerAddress() ? ptx->GetReferrerAddress()->size() : 0) +
-                (ptx->GetPayloadPubkey() ? ptx->GetPayloadPubkey()->size() : 0);
-
-            if (dataSize > (size_t) GetConsensusLimit(ConsensusLimit_max_user_size))
-                return {false, ConsensusResult_ContentSizeLimit};
-
-            return Success;
-        }
-    
         virtual ConsensusValidateResult CheckLogin(const UserRef& ptx)
         {
             if (IsEmpty(ptx->GetPayloadName()))

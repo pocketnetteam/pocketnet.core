@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include <primitives/transaction.h>
+#include "util/html.h"
 #include "pocketdb/models/dto/content/Comment.h"
 
 namespace PocketTx
