@@ -1287,15 +1287,15 @@ namespace PocketDb
                     set Last=1
                 from (
                     select r1.Type, r1.Uid, max(r2.Height)Height
-                    from Ratings r1 indexed by Ratings_Type_Uid_Last_Height
+                    from Ratings r1 indexed by Ratings_Height_Last
                     join Ratings r2 indexed by Ratings_Type_Uid_Last_Height on r2.Type = r1.Type and r2.Uid = r1.Uid and r2.Last = 0 and r2.Height < ?
-                    where r1.Height >= ?
-                    and r1.Last = 1
+                    where r1.Height >= ? and r1.Last = 1
                     group by r1.Type, r1.Uid
                 )r
-                where Ratings.Type = r.Type
-                and Ratings.Uid = r.Uid
-                and Ratings.Height = r.Height
+                where
+                    Ratings.Type = r.Type and
+                    Ratings.Uid = r.Uid and
+                    Ratings.Height = r.Height
             )sql")
             .Bind(height, height)
             .Run();
