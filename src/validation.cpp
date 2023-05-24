@@ -2843,14 +2843,15 @@ bool CChainState::DisconnectTip(BlockValidationState& state, const CChainParams&
     }
     else
     {
-        for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it)
-        {
-            auto hash = (**it).GetHash();
-            if (PocketDb::TransRepoInst.Exists(hash.GetHex()))
-            {
-                PocketDb::TransRepoInst.CleanTransaction(hash.GetHex());
-            }
-        }
+        // TODO (aok): do not remove before inspect
+        // for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it)
+        // {
+        //     auto hash = (**it).GetHash();
+        //     if (PocketDb::TransRepoInst.Exists(hash.GetHex()))
+        //     {
+        //         PocketDb::TransRepoInst.CleanTransaction(hash.GetHex());
+        //     }
+        // }
     }
 
     m_chain.SetTip(pindexDelete->pprev);
