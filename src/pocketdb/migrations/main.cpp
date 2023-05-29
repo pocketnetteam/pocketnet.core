@@ -156,7 +156,7 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Payload
             (
-                TxId integer primary key, -- Transactions.TxId
+                TxId integer primary key, -- Transactions.RowId
 
                 -- AccountUser.Lang
                 -- ContentPost.Lang
@@ -340,33 +340,33 @@ namespace PocketDb
                 );
         )sql");
 
-        _views.emplace_back(R"sql(
-            drop view if exists vLastAccountTx;
+        // _views.emplace_back(R"sql(
+        //     drop view if exists vLastAccountTx;
 
-            create view if not exists vLastAccountTx as
-            select
-                u.Type,
-                u.Hash,
-                u.Time,
-                u.BlockHash,
-                u.BlockNum,
-                u.Height,
-                u.Last,
-                u.First,
-                u.Id,
-                u.String1,
-                u.String2,
-                u.String3,
-                u.String4,
-                u.String5,
-                u.Int1
-            from
-                Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            where
-                u.Type in (100) and
-                u.Last in (1) and
-                u.Height > 0;
-        )sql");
+        //     create view if not exists vLastAccountTx as
+        //     select
+        //         u.Type,
+        //         u.Hash,
+        //         u.Time,
+        //         u.BlockHash,
+        //         u.BlockNum,
+        //         u.Height,
+        //         u.Last,
+        //         u.First,
+        //         u.Id,
+        //         u.String1,
+        //         u.String2,
+        //         u.String3,
+        //         u.String4,
+        //         u.String5,
+        //         u.Int1
+        //     from
+        //         Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+        //     where
+        //         u.Type in (100) and
+        //         u.Last in (1) and
+        //         u.Height > 0;
+        // )sql");
 
         _views.emplace_back(R"sql(
             drop view if exists vTx;
@@ -410,7 +410,9 @@ namespace PocketDb
             create unique index if not exists Transactions_HashId on Transactions (HashId);
             create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
             create index if not exists Transactions_Type_RegId2 on Transactions (Type, RegId2);
+            create index if not exists Transactions_Type_RegId3 on Transactions (Type, RegId3);
             create index if not exists Transactions_Type_RegId5_RegId1 on Transactions (Type, RegId5, RegId1);
+            create index if not exists Transactions_Type_RegId1_Int1_Time on Transactions (Type, RegId1, Int1, Time);
 
             create index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
 

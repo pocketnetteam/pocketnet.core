@@ -626,6 +626,35 @@ namespace PocketDb
         return result;
     }
 
+    bool TransactionRepository::Exists(vector<string>& txHashes)
+    {
+        bool result = false;
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select
+                    count()
+                from
+                    Registry r indexed by Registry_String
+                    cross join Transactions t indexed by Transactions_HashId
+                        on t.HashId = r.RowId
+                where
+                    r.String in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+            )sql")
+            .Bind(txHashes)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    int64_t count = 0;
+                    cursor.CollectAll(count);
+                    result = (count == txHashes.size());
+                }
+            });
+        });
+
+        return result;
+    }
+
     bool TransactionRepository::ExistsLast(const string& hash)
     {
         bool result = false;

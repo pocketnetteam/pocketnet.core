@@ -866,16 +866,17 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
                     block_have_data = false;
                     
-                for (const auto& tx : block.vtx)
+                if (block_have_data)
                 {
-                    if (!PocketServices::Accessor::ExistsTransaction(tx->GetHash().GetHex()))
-                    {
-                        block_have_data = false;
-                        break;
-                    }
+                    std::vector<std::string> txHashes;
+                    for (const auto& tx : block.vtx)
+                        if (!tx->IsCoinBase())
+                            txHashes.push_back(tx->GetHash().GetHex());
+
+                    block_have_data = PocketServices::Accessor::ExistsTransactions(txHashes);
                 }
             }
-            
+
             if (block_have_data || ::ChainActive().Contains(pindex)) {
                 if (pindex->HaveTxsDownloaded())
                     state->pindexLastCommonBlock = pindex;

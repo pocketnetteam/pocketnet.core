@@ -10,6 +10,7 @@
 namespace PocketConsensus
 {
     using namespace std;
+    using namespace PocketDb;
 
     // Consensus checkpoint at 0 block
     class ReputationConsensus : public BaseConsensus
@@ -20,80 +21,6 @@ namespace PocketConsensus
             return GetConsensusLimit(ConsensusLimit_threshold_likers_count);
         }
         
-        virtual string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery)
-        {
-            if (lottery)
-                return scoreData->ScoreAddressHash;
-
-            return scoreData->ContentAddressHash;
-        }
-        
-        virtual bool AllowModifyReputationOverPost(ScoreDataDtoRef& scoreData, bool lottery)
-        {
-            // Check user reputation
-            if (!GetBadges(SelectAddressScoreContent(scoreData, lottery), ConsensusLimit_threshold_reputation_score).Shark)
-                return false;
-
-            // Disable reputation increment if from one address to one address > 2 scores over day
-            int64_t _max_scores_one_to_one = GetConsensusLimit(ConsensusLimit_scores_one_to_one);
-            int64_t _scores_one_to_one_depth = GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth);
-
-            std::vector<int> values;
-            if (lottery)
-            {
-                values.push_back(4);
-                values.push_back(5);
-            }
-            else
-            {
-                values.push_back(1);
-                values.push_back(2);
-                values.push_back(3);
-                values.push_back(4);
-                values.push_back(5);
-            }
-
-            auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreContentCount(
-                Height, scoreData, values, _scores_one_to_one_depth);
-
-            if (scores_one_to_one_count >= _max_scores_one_to_one)
-                return false;
-
-            // All its Ok!
-            return true;
-        }
-
-        virtual bool AllowModifyReputationOverComment(ScoreDataDtoRef& scoreData, bool lottery)
-        {
-            // Check user reputation
-            if (!GetBadges(scoreData->ScoreAddressHash, ConsensusLimit_threshold_reputation_score).Shark)
-                return false;
-
-            // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
-            int64_t _max_scores_one_to_one = GetConsensusLimit(ConsensusLimit_scores_one_to_one_over_comment);
-            int64_t _scores_one_to_one_depth = GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth);
-
-            vector<int> values;
-            if (lottery)
-            {
-                values.push_back(1);
-            }
-            else
-            {
-                values.push_back(-1);
-                values.push_back(1);
-            }
-
-            auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreCommentCount(
-                Height, scoreData, values, _scores_one_to_one_depth);
-
-            if (scores_one_to_one_count >= _max_scores_one_to_one)
-                return false;
-
-            // All its Ok!
-            return true;
-        }
-
         virtual void ExtendLikersList(vector<int>& lkrs, int likerId)
         {
             lkrs.clear();
@@ -131,6 +58,17 @@ namespace PocketConsensus
 
     public:
         explicit ReputationConsensus() : BaseConsensus() {}
+        
+        virtual string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery)
+        {
+            if (scoreData->ScoreType == TxType::ACTION_SCORE_COMMENT)
+                return scoreData->ScoreAddressHash;
+
+            if (lottery)
+                return scoreData->ScoreAddressHash;
+
+            return scoreData->ContentAddressHash;
+        }
 
         virtual BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
         {
@@ -144,11 +82,6 @@ namespace PocketConsensus
             return badgeSet;
         }
 
-        virtual BadgeSet GetBadges(const string& address, ConsensusLimit limit = ConsensusLimit_threshold_reputation)
-        {
-            auto accountData = ConsensusRepoInst.GetAccountData(address);
-            return GetBadges(accountData, limit);
-        }
         virtual bool UseBadges()
         {
             return false;
@@ -165,21 +98,26 @@ namespace PocketConsensus
 
         virtual tuple<AccountMode, int, int64_t> GetAccountMode(string& address)
         {
-            auto reputation = PocketDb::ConsensusRepoInst.GetUserReputation(address);
-            auto balance = PocketDb::ConsensusRepoInst.GetUserBalance(address);
+            auto reputation = ConsensusRepoInst.GetUserReputation(address);
+            auto balance = ConsensusRepoInst.GetUserBalance(address);
 
             return {GetAccountMode(reputation, balance), reputation, balance};
         }
         
-        virtual bool AllowModifyReputation(ScoreDataDtoRef& scoreData, bool lottery)
+        virtual bool AllowModifyReputation(ScoreDataDtoRef& scoreData, const AccountData& accountData, bool lottery)
         {
-            if (scoreData->ScoreType == TxType::ACTION_SCORE_CONTENT)
-                return AllowModifyReputationOverPost(scoreData, lottery);
+            // Check user reputation
+            if (!GetBadges(accountData, ConsensusLimit_threshold_reputation_score).Shark)
+                return false;
 
-            if (scoreData->ScoreType == TxType::ACTION_SCORE_COMMENT)
-                return AllowModifyReputationOverComment(scoreData, lottery);
+            // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
+            auto limit = scoreData->ScoreType == TxType::ACTION_SCORE_CONTENT ? ConsensusLimit_scores_one_to_one : ConsensusLimit_scores_one_to_one_over_comment;
+            
+            if ((lottery ? scoreData->ScoresPositiveCount : scoreData->ScoresAllCount) >= GetConsensusLimit(limit))
+                return false;
 
-            return false;
+            // All its Ok!
+            return true;
         }
 
         virtual bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType)
@@ -231,7 +169,7 @@ namespace PocketConsensus
             auto& lkrs = likersValues[ACCOUNT_LIKERS][scoreData->ContentAddressId];
             if (find(lkrs.begin(), lkrs.end(), scoreData->ScoreAddressId) == lkrs.end())
             {
-                if (!PocketDb::RatingsRepoInst.ExistsLiker(
+                if (!RatingsRepoInst.ExistsLiker(
                     scoreData->ContentAddressId,
                     scoreData->ScoreAddressId,
                     { ACCOUNT_LIKERS }
@@ -259,7 +197,7 @@ namespace PocketConsensus
             if ((find(lkrs_cmnt_answer.begin(), lkrs_cmnt_answer.end(), scoreData->ScoreAddressId) != lkrs_cmnt_answer.end()))
                 return;
                 
-            if (!PocketDb::RatingsRepoInst.ExistsLiker(
+            if (!RatingsRepoInst.ExistsLiker(
                 scoreData->ContentAddressId,
                 scoreData->ScoreAddressId,
                 { ACCOUNT_LIKERS_POST, ACCOUNT_LIKERS_COMMENT_ROOT, ACCOUNT_LIKERS_COMMENT_ANSWER }
@@ -281,7 +219,7 @@ namespace PocketConsensus
     {
     public:
         explicit ReputationConsensus_checkpoint_151600() : ReputationConsensus() {}
-    protected:
+
         string SelectAddressScoreContent(ScoreDataDtoRef& scoreData, bool lottery) override
         {
             return scoreData->ScoreAddressHash;

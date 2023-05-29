@@ -47,18 +47,12 @@ namespace PocketDb
                 );
             }
 
-            int64_t nTime2 = GetTimeMicros();
-
             // After set height and mark inputs as spent we need recalculcate balances
             IndexBalances(height);
 
-            int64_t nTime3 = GetTimeMicros();
+            int64_t nTime2 = GetTimeMicros();
 
-            LogPrint(BCLog::BENCH, "    - IndexBlock: %.2fms + %.2fms = %.2fms\n",
-                0.001 * double(nTime2 - nTime1),
-                0.001 * double(nTime3 - nTime2),
-                0.001 * double(nTime3 - nTime1)
-            );
+            LogPrint(BCLog::BENCH, "    - IndexBlock: %.2fms\n", 0.001 * double(nTime2 - nTime1));
         });
     }
 
@@ -289,12 +283,10 @@ namespace PocketDb
                     from
                         Transactions a -- primary key
                         join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type in (100, 170) and 
-                                b.RegId1 = a.RegId1
+                            on b.Type in (100, 170) and b.RegId1 = a.RegId1
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type in (100, 170) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -344,12 +336,10 @@ namespace PocketDb
                     from
                         Transactions a -- primary key
                         join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type in (103)
-                            and b.RegId1 = a.RegId1
+                            on b.Type in (103) and b.RegId1 = a.RegId1
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type in (103) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -398,14 +388,11 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type in (200, 201, 202, 209, 210, 207) and
-                            b.RegId1 = a.RegId1 and
-                            b.RegId2 = a.RegId2
+                        join Transactions b indexed by Transactions_Type_RegId2
+                            on b.Type in (200,201,202,209,210,220,207) and b.RegId2 = a.RegId2
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type in (200, 201, 202, 209, 210, 207) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -454,14 +441,11 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type in (204, 205, 206) and
-                            b.RegId1 = a.RegId1 and
-                            b.RegId2 = a.RegId2
+                        join Transactions b indexed by Transactions_Type_RegId2
+                            on b.Type in (204, 205, 206) and b.RegId2 = a.RegId2
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type in (204, 205, 206) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -510,15 +494,16 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type in (305, 306) and
+                        join (select TxId, json_array(RegId)ab_arr from Lists)ab on
+                            ab.TxId = a.RowId
+                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            b.Type in (305, 306) and
                             b.RegId1 = a.RegId1 and
                             ifnull(b.RegId2, -1) = ifnull(a.RegId2, -1) and
-                            ifnull(b.RegId3, -1) = ifnull(a.RegId3, -1)
-                        join Last l -- primary key
-                            on l.TxId = b.RowId
+                            (select json_array(lst.RegId) from Lists lst where lst.TxId = b.RowId) = ab.ab_arr
+                        join Last l on -- primary key
+                            l.TxId = b.RowId
                     where
-                        a.Type in (305, 306) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -625,7 +610,6 @@ namespace PocketDb
                         join Last l
                             on l.TxId = b.RowId
                     where
-                        a.Type in (302, 303, 304) and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -665,11 +649,8 @@ namespace PocketDb
         )sql";
     }
 
-    // TODO (barteron): implement
     string ChainRepository::IndexAccountBarteron()
     {
-        // Get new ID or copy previous
-
         return R"sql(
             with
                 l as (
@@ -723,10 +704,8 @@ namespace PocketDb
         )sql";
     }
     
-
     void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount)
     {
-        // TODO (optimization): update to new db
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
@@ -738,27 +717,29 @@ namespace PocketDb
                     cu.Uid, /* Account unique id of the content author */
                     f.Int1 /* Reason */
 
-                from Transactions f
+                from Transactions f indexed by Transactions_HashId
 
-                join Chain cf on
-                    cf.TxId = f.RowId
+                cross join Chain cf
+                    on cf.TxId = f.RowId
 
-                cross join Transactions u on
-                    u.Type = 100 and
-                    u.RegId1 = f.RegId3 and
-                    exists (select 1 from Last lu where lu.TxId = u.RowId)
+                cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type = 100 and u.RegId1 = f.RegId3
 
-                join Chain cu on
+                cross join Last lu
+                    on lu.TxId = u.RowId
+
+                cross join Chain cu on
                     cu.TxId = u.RowId
-                    
+
                 where f.HashId = (select r.RowId from Registry r where r.String = ?)
 
                     -- Is there no active punishment listed on the account ?
                     and not exists (
                         select 1
                         from JuryBan b indexed by JuryBan_AccountId_Ending
-                        where b.AccountId = cu.Uid
-                            and b.Ending > cf.Height
+                        where
+                            b.AccountId = cu.Uid and
+                            b.Ending > cf.Height
                     )
 
                     -- there is no active jury for the same reason
@@ -767,21 +748,24 @@ namespace PocketDb
                         from Jury j indexed by Jury_AccountId_Reason
                         left join JuryVerdict jv
                             on jv.FlagRowId = j.FlagRowId
-                        where j.AccountId = cu.Uid
-                            and j.Reason = f.Int1
-                            and jv.Verdict is null
+                        where
+                            j.AccountId = cu.Uid and
+                            j.Reason = f.Int1 and
+                            jv.Verdict is null
                     )
 
                     -- if there are X flags of the same reason for X time
                     and ? <= (
                         select count()
-                        from Transactions ff
-                        join Chain cff indexed by Chain_Height_BlockId on
-                            cff.TxId = ff.RowId and
-                            cff.Height > ?
-                        where ff.Type in (410)
-                            and ff.RegId3 = f.RegId3
-                            and not exists (select 1 from Last lff where lff.TxId = ff.RowId)
+                        from Transactions ff indexed by Transactions_Type_RegId3
+                        cross join Chain cff
+                            on cff.TxId = ff.RowId and cff.Height > ?
+                        left join Last lff
+                            on lff.TxId = ff.RowId
+                        where
+                            ff.Type in (410) and
+                            ff.RegId3 = f.RegId3 and
+                            lff.ROWID is null
                     )
             )sql")
             .Bind(flagTxHash, flagsMinCount, flagsDepth)
@@ -833,7 +817,7 @@ namespace PocketDb
         });
     }
 
-    void ChainRepository::RollbackModerationJury(int height)
+    void ChainRepository::RestoreModerationJury(int height)
     {
         SqlTransaction(__func__, [&]()
         {
@@ -845,7 +829,6 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
-                        -- TODO (optimizations): indices
                         from
                             Transactions f
                         join
@@ -866,7 +849,6 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
-                        -- TODO (optimizations): indices
                         from
                             Transactions f
                         join
@@ -982,7 +964,7 @@ namespace PocketDb
         });
     }
 
-    void ChainRepository::RollbackModerationBan(int height)
+    void ChainRepository::RestoreModerationBan(int height)
     {
         SqlTransaction(__func__, [&]()
         {
@@ -1030,10 +1012,8 @@ namespace PocketDb
         });
     }
 
-
     void ChainRepository::IndexBadges(int height, const BadgeConditions& conditions)
     {
-        // TODO (optimization): update to new db
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
@@ -1075,28 +1055,24 @@ namespace PocketDb
 
                         -- Account must be registered above N months
                         ? >= (? - (
-                            select
-                                reg.Height
-                            from
-                                Chain reg
+                            select reg.Height
+                            from Chain reg
+                            cross join First f
+                                on f.TxId = reg.TxId
                             where
-                                reg.Uid = b.AccountId and
-                                exists (select 1 from First f where f.TxId = reg.TxId)
+                                reg.Uid = b.AccountId
                         )) or
 
                         -- Account must be active (not deleted)
                         not exists (
-                            select
-                            1
-                            from
-                                Transactions u
-                            join
-                                Chain c on
-                                    c.TxId = u.RowId and
-                                    c.Uid = b.AccountId
+                            select 1
+                            from Chain c
+                            cross join Transactions u
+                                on u.RowId = c.TxId and u.Type = 100
+                            cross join Last l
+                                on l.TxId = u.RowId
                             where
-                                u.Type = 100 and
-                                exists (select 1 from Last lu where lu.TxId = u.RowId)
+                                c.Uid = b.AccountId
                         )
                     )
             )sql")
@@ -1144,27 +1120,24 @@ namespace PocketDb
 
                     -- Account must be registered above N months
                     ? < (? - (
-                        select
-                            reg.Height
+                        select reg.Height
                         from Chain reg
+                        cross join First f
+                            on f.TxId = reg.TxId
                         where
-                            reg.Uid = lc.Uid and
-                            exists (select 1 from First f where f.TxId = reg.TxId)
+                            reg.Uid = lc.Uid
                     )) and
 
                     -- Account must be active
                     exists (
-                        select
-                            1
-                        from
-                            Transactions u
-                        join
-                            Chain c on
-                                c.TxId = u.RowId and
-                                c.Uid = lc.Uid
+                        select 1
+                        from Chain c
+                        cross join Transactions u
+                            on u.RowId = c.TxId and u.Type = 100
+                        cross join Last l
+                            on l.TxId = u.RowId
                         where
-                            u.Type = 100 and
-                            exists (select 1 from Last lu where lu.TxId = u.RowId)
+                            c.Uid = lc.Uid
                     )
             )sql")
             .Bind(
@@ -1180,8 +1153,7 @@ namespace PocketDb
         });
     }
 
-    // TODO (optimization): convert to restore
-    void ChainRepository::RollbackBadges(int height)
+    void ChainRepository::RestoreBadges(int height)
     {
         SqlTransaction(__func__, [&]()
         {
@@ -1209,6 +1181,7 @@ namespace PocketDb
             SqlTransaction(__func__, [&]()
             {
                 Sql(R"sql( delete from Last )sql").Run();
+                Sql(R"sql( delete from First )sql").Run();
                 Sql(R"sql( delete from Ratings )sql").Run();
                 Sql(R"sql( delete from Balances )sql").Run();
                 Sql(R"sql( delete from Chain )sql").Run();
@@ -1285,6 +1258,22 @@ namespace PocketDb
             )sql")
             .Bind(height)
             .Run();
+
+            // Remove not used First records
+            Sql(R"sql(
+                delete from First
+                where
+                    TxId in (
+                        select
+                            c.TxId
+                        from
+                            Chain c indexed by Chain_Height_Uid
+                        where
+                            c.Height >= ?
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
         });
     }
 
@@ -1298,15 +1287,15 @@ namespace PocketDb
                     set Last=1
                 from (
                     select r1.Type, r1.Uid, max(r2.Height)Height
-                    from Ratings r1 indexed by Ratings_Type_Uid_Last_Height
+                    from Ratings r1 indexed by Ratings_Height_Last
                     join Ratings r2 indexed by Ratings_Type_Uid_Last_Height on r2.Type = r1.Type and r2.Uid = r1.Uid and r2.Last = 0 and r2.Height < ?
-                    where r1.Height >= ?
-                    and r1.Last = 1
+                    where r1.Height >= ? and r1.Last = 1
                     group by r1.Type, r1.Uid
                 )r
-                where Ratings.Type = r.Type
-                and Ratings.Uid = r.Uid
-                and Ratings.Height = r.Height
+                where
+                    Ratings.Type = r.Type and
+                    Ratings.Uid = r.Uid and
+                    Ratings.Height = r.Height
             )sql")
             .Bind(height, height)
             .Run();
@@ -1325,7 +1314,6 @@ namespace PocketDb
     {
         SqlTransaction(__func__, [&]()
         {
-            // Rollback balances
             Sql(R"sql(
                 with
                     height as (

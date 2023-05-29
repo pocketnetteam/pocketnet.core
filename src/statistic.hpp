@@ -1,15 +1,17 @@
-#pragma once
+#ifndef POCKETCOIN_STATISTIC_H
+#define POCKETCOIN_STATISTIC_H
 
 #include "logging.h"
 #include "rpc/blockchain.h"
 #include "univalue.h"
 #include "util/time.h"
-
 #include "chainparams.h"
 #include "validation.h"
 #include "util/ref.h"
 #include "clientversion.h"
+#include <sqlite3.h>
 #include <boost/thread.hpp>
+#include <boost/format.hpp>
 #include <chrono>
 #include <cstdint>
 #include <ctime>
@@ -17,9 +19,11 @@
 #include <numeric>
 #include <set>
 
+#include "pocketdb/pocketnet.h"
+
 namespace Statistic
 {
-
+    using namespace std;
     using RequestKey = std::string;
     using RequestTime = std::chrono::milliseconds;
     using RequestIP = std::string;
@@ -223,11 +227,46 @@ namespace Statistic
             chainStat.pushKV("Chain", Params().NetworkIDString());
             chainStat.pushKV("Height", ChainActive().Height());
             chainStat.pushKV("HeightWeb", HeightWeb);
+            double syncPercent = pindexBestHeader ? (ChainActive().Height() * 100.0 / pindexBestHeader->nHeight) : -1;
+            chainStat.pushKV("SyncNetwork", boost::str(boost::format("%.2f") % syncPercent) + "%");
             chainStat.pushKV("LastBlock", ChainActive().Tip()->GetBlockHash().GetHex());
             chainStat.pushKV("PeersIN", (int)node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
             chainStat.pushKV("PeersOUT", (int)node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
             result.pushKV("General", chainStat);
 
+            // SQL statistic
+            UniValue sqlStats(UniValue::VOBJ);
+            sqlite3_int64 current64 = 0, highWater64 = 0; 
+            sqlite3_status64(SQLITE_STATUS_MEMORY_USED, &current64, &highWater64, false);
+            sqlStats.pushKV("MemoryUsed", (int64_t) current64);
+            sqlStats.pushKV("MemoryUsedMax", (int64_t) highWater64);
+            sqlite3_status64(SQLITE_STATUS_PAGECACHE_USED, &current64, &highWater64, false);
+            sqlStats.pushKV("PageCacheUsed", (int64_t) current64);
+            sqlStats.pushKV("PageCacheUsedMax", (int64_t) highWater64);
+            sqlite3_status64(SQLITE_STATUS_PAGECACHE_SIZE, &current64, &highWater64, false);
+            sqlStats.pushKV("PageCacheSize", (int64_t) current64);
+            sqlStats.pushKV("PageCacheSizeMax", (int64_t) highWater64);
+            sqlite3 *db = PocketDb::SQLiteDbInst.m_db;
+            int current = 0, highWater = 0; 
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &current, &highWater, false);
+            sqlStats.pushKV("CacheUsed", current);
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED_SHARED, &current, &highWater, false);
+            sqlStats.pushKV("SharedCacheUsed", current);
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_HIT, &current, &highWater, true);
+            sqlStats.pushKV("CacheHit", current);
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &current, &highWater, true);
+            sqlStats.pushKV("CacheMiss", current);
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_SPILL, &current, &highWater, true);
+            sqlStats.pushKV("CacheSpill", current);
+            result.pushKV("SQL", sqlStats);
+
+            // SQL benchmark statistic
+            if (LogInstance().WillLogCategory(BCLog::STATSQLBENCH))
+            {
+                result.pushKV("SQLBench", GetAvgSqlBench());
+            }
+
+            // RPC statistic
             UniValue rpcStat(UniValue::VOBJ);
             rpcStat.pushKV("RequestsAll", (int)GetNumSamplesSince(since));
             rpcStat.pushKV("RequestsFailed", (int)GetNumFailedSamplesSince(since));
@@ -242,37 +281,6 @@ namespace Statistic
                 rpcStat.pushKV("TopOutputSize", top_out_json);
             }
             result.pushKV("RPC", rpcStat);
-
-            UniValue sqlStats(UniValue::VOBJ);
-            sqlite3_int64 current64 = 0, highWater64 = 0; 
-            sqlite3_status64(SQLITE_STATUS_MEMORY_USED, &current64, &highWater64, false);
-            sqlStats.pushKV("MemoryUsed", (int64_t) current64);
-            sqlStats.pushKV("MemoryUsedMax", (int64_t) highWater64);
-            sqlite3_status64(SQLITE_STATUS_PAGECACHE_USED, &current64, &highWater64, false);
-            sqlStats.pushKV("PageCacheUsed", (int64_t) current64);
-            sqlStats.pushKV("PageCacheUsedMax", (int64_t) highWater64);
-            sqlite3_status64(SQLITE_STATUS_PAGECACHE_SIZE, &current64, &highWater64, false);
-            sqlStats.pushKV("PageCacheSize", (int64_t) current64);
-            sqlStats.pushKV("PageCacheSizeMax", (int64_t) highWater64);
-            sqlite3 *db = PocketDb::SQLiteDbInst.m_db;
-
-            int current = 0, highWater = 0; 
-            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &current, &highWater, false);
-            sqlStats.pushKV("CacheUsed", current);
-
-            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED_SHARED, &current, &highWater, false);
-            sqlStats.pushKV("SharedCacheUsed", current);
-
-            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_HIT, &current, &highWater, true);
-            sqlStats.pushKV("CacheHit", current);
-
-            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &current, &highWater, true);
-            sqlStats.pushKV("CacheMiss", current);
-
-            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_SPILL, &current, &highWater, true);
-            sqlStats.pushKV("CacheSpill", current);
-
-            result.pushKV("SQL", sqlStats);
 
             return result;
         }
@@ -304,7 +312,7 @@ namespace Statistic
             while (!shutdown)
             {
                 auto chunkSize = GetCurrentSystemTime() - std::chrono::milliseconds(statLoggerSleep);
-                LogPrint(BCLog::STAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize, context).write(1));
+                LogPrint(BCLog::STAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize, context).write(2, 1));
                 LogPrint(BCLog::STATDETAIL, msg.c_str(), statLoggerSleep / 1000,
                     CompileStatsAsJsonSince(chunkSize, context).write(1));
 
@@ -313,11 +321,31 @@ namespace Statistic
             }
         }
 
+        void SetSqlBench(const string& func, double time)
+        {
+            if (!LogInstance().WillLogCategory(BCLog::STATSQLBENCH))
+                return;
+
+            LOCK(_sqlBenchRecordsLock);
+
+            // if (!_sqlBenchRecordsTimes.count(func))
+            //         _sqlBenchRecordsTimes[func] = 0;
+            _sqlBenchRecordsTimes[func] += time;
+
+            // if (!_sqlBenchRecordsCounts.count(func))
+            //         _sqlBenchRecordsCounts[func] = 0;
+            _sqlBenchRecordsCounts[func] += 1;
+        }
+
     private:
         CThreadInterrupt m_interrupt;
         std::vector<RequestSample> _samples;
         Mutex _samplesLock;
         bool shutdown = false;
+
+        Mutex _sqlBenchRecordsLock;
+        map<string, double> _sqlBenchRecordsTimes;
+        map<string, int> _sqlBenchRecordsCounts;
 
         void RemoveSamplesBefore(RequestTime time)
         {
@@ -392,6 +420,29 @@ namespace Statistic
 
             return samples_copy;
         }
+
+        UniValue GetAvgSqlBench()
+        {
+            UniValue result(UniValue::VOBJ);
+
+            LOCK(_sqlBenchRecordsLock);
+
+            for (const auto& rcrd : _sqlBenchRecordsTimes)
+            {
+                int cnt = _sqlBenchRecordsCounts[rcrd.first];
+                double avg = rcrd.second / cnt;
+                result.pushKV(rcrd.first, boost::str(boost::format("%.2f") % avg) + "ms / " + to_string(cnt));
+            }
+
+            _sqlBenchRecordsTimes.clear();
+            _sqlBenchRecordsCounts.clear();
+
+            return result;
+        }
     };
 
+    static RequestStatEngine gStatEngineInstance;
+
 } // namespace Statistic
+
+#endif // POCKETCOIN_STATISTIC_H

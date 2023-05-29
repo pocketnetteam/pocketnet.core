@@ -133,25 +133,12 @@ namespace PocketDb
         int64_t GetUserBalance(const string& address);
         int GetUserReputation(const string& addressId);
         int GetUserReputation(int addressId);
-        int64_t GetAccountRegistrationTime(int addressId);
+        int64_t GetAccountRegistrationTime(const string& address);
 
-        AccountData GetAccountData(const string& address);
+        map<string, AccountData> GetAccountsData(const vector<string>& addresses);
 
-        ScoreDataDtoRef GetScoreData(const string& txHash);
-        shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
+        map<string, ScoreDataDtoRef> GetScoresData(int height, int64_t scores_time_depth);
         tuple<bool, string> GetReferrer(const string& address);
-
-        int GetScoreContentCount(
-            int height,
-            const shared_ptr<ScoreDataDto>& scoreData,
-            const std::vector<int>& values,
-            int64_t scoresOneToOneDepth);
-
-        int GetScoreCommentCount(
-            int height,
-            const shared_ptr<ScoreDataDto>& scoreData,
-            const std::vector<int>& values,
-            int64_t scoresOneToOneDepth);
 
         // Exists
         bool ExistsComplain(const string& postHash, const string& address, bool mempool);

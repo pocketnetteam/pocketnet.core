@@ -241,9 +241,7 @@ namespace PocketConsensus
         ConsensusLimit_edit_audio_depth,
         ConsensusLimit_edit_collection_depth,
         ConsensusLimit_edit_comment_depth,
-        ConsensusLimit_edit_user_depth,
 
-        edit_account_daily_count,
         account_settings_daily_count,
 
         ConsensusLimit_multiple_lock_addresses_count,
@@ -388,16 +386,6 @@ namespace PocketConsensus
         } },
 
         // Other
-        { ConsensusLimit_edit_user_depth, {
-            { NetworkMain,    { {0, 3600}, {1180000, 60} } },
-            { NetworkTest,    { {0, 30} } },
-            { NetworkRegTest, { {0, 30} } }
-        } },
-        { edit_account_daily_count, {
-            { NetworkMain,    { {0, 10} } },
-            { NetworkTest,    { {0, 10} } },
-            { NetworkRegTest, { {0, 10} } }
-        } },
         { ConsensusLimit_edit_post_depth, {
             { NetworkMain,    { {0, 86400}, {1180000, 1440} } },
             { NetworkTest,    { {0, 1440} } },

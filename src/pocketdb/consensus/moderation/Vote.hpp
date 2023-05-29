@@ -31,7 +31,8 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(Height);
-            auto badges = reputationConsensus->GetBadges(*ptx->GetAddress());
+            auto accountData = ConsensusRepoInst.GetAccountsData({ *ptx->GetAddress() });
+            auto badges = reputationConsensus->GetBadges(accountData[*ptx->GetAddress()]);
 
             // Only moderator can set votes
             if (!badges.Moderator)

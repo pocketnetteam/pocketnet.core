@@ -30,9 +30,6 @@ namespace PocketConsensus
     class LotteryConsensus : public BaseConsensus
     {
     protected:
-        LotteryWinners _winners;
-        virtual int64_t MaxWinnersCount() { return 25; }
-
         void SortWinners(map<string, int>& candidates, CDataStream& hashProofOfStakeSource, vector<string>& winners)
         {
             vector<pair<string, pair<int, arith_uint256>>> candidatesSorted;
@@ -51,8 +48,8 @@ namespace PocketConsensus
                     return a.second.second < b.second.second;
                 });
 
-                if ((int) candidatesSorted.size() > MaxWinnersCount())
-                    candidatesSorted.resize(MaxWinnersCount());
+                if (candidatesSorted.size() > Limits.Get("max_winners_counts"))
+                    candidatesSorted.resize(Limits.Get("max_winners_counts"));
 
                 for (auto& it : candidatesSorted)
                     winners.push_back(it.first);
@@ -60,21 +57,66 @@ namespace PocketConsensus
         }
 
         virtual void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) {}
-        virtual void ExtendReferrers() {}
+
+        virtual bool FilterScore(const ScoreDataDtoRef& scoreData)
+        {
+            if (scoreData->ScoreType == ACTION_SCORE_COMMENT && scoreData->ScoreValue == 1)
+                return true;
+
+            if (scoreData->ScoreType == ACTION_SCORE_CONTENT && (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5))
+                return true;
+
+            return false;
+        }
+
+        virtual void ExtendCandidates(
+            const ScoreDataDtoRef& scoreData,
+            map<string, int>& postCandidates,
+            map<string, string>& postReferrersCandidates,
+            map<string, int>& commentCandidates,
+            map<string, string>& commentReferrersCandidates)
+        {
+            if (scoreData->ScoreType == ACTION_SCORE_CONTENT)
+            {
+                postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
+                ExtendReferrer(scoreData, postReferrersCandidates);
+            }
+
+            if (scoreData->ScoreType == ACTION_SCORE_COMMENT)
+            {
+                commentCandidates[scoreData->ContentAddressHash] += scoreData->ScoreValue;
+                ExtendReferrer(scoreData, commentReferrersCandidates);
+            }
+        }
 
     public:
-        explicit LotteryConsensus() : BaseConsensus() {}
+        LotteryConsensus() : BaseConsensus()
+        {
+            Limits.Set("max_winners_counts", 25, 25, 25);
+        }
 
         // Get all lottery winner
-        virtual LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
+        virtual LotteryWinners Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
         {
             auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
 
+            auto scoresData = ConsensusRepoInst.GetScoresData(
+                Height,
+                reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth)
+            );
+
+            vector<string> accountsAddresses;
+            for (auto& scoreData : scoresData)
+                accountsAddresses.push_back(reputationConsensus->SelectAddressScoreContent(scoreData.second, true));
+            auto accountsData = ConsensusRepoInst.GetAccountsData(accountsAddresses);
+
+            LotteryWinners _winners;
+
             map<string, int> postCandidates;
-            map <string, string> postReferrersCandidates;
+            map<string, string> postReferrersCandidates;
 
             map<string, int> commentCandidates;
-            map <string, string> commentReferrersCandidates;
+            map<string, string> commentReferrersCandidates;
 
             for (const auto& tx : block.vtx)
             {
@@ -85,25 +127,13 @@ namespace PocketConsensus
                 if (!parseScoreOk)
                     continue;
 
-                if (scoreTxData->ScoreType == ACTION_SCORE_COMMENT
-                    && scoreTxData->ScoreValue != 1)
+                if (!FilterScore(scoreTxData))
                     continue;
 
-                if (scoreTxData->ScoreType == ACTION_SCORE_CONTENT
-                    && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
-                    continue;
+                auto& scoreData = scoresData[scoreTxData->ScoreTxHash];
+                auto& accountData = accountsData[reputationConsensus->SelectAddressScoreContent(scoreData, true)];
 
-                auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
-                if (!scoreData)
-                {
-                    LogPrintf("%s: Failed get score data for tx: %s\n", __func__, tx->GetHash().GetHex());
-                    continue;
-                }
-
-                if (!reputationConsensus->AllowModifyReputation(
-                    scoreData,
-                    true
-                ))
+                if (!reputationConsensus->AllowModifyReputation(scoreData, accountData, true))
                     continue;
 
                 if (scoreData->ScoreType == ACTION_SCORE_CONTENT)
@@ -134,10 +164,6 @@ namespace PocketConsensus
                     for (auto& winner : _winners.CommentWinners)
                         if (commentReferrersCandidates.find(winner) != commentReferrersCandidates.end())
                             _winners.CommentReferrerWinners.push_back(commentReferrersCandidates[winner]);
-
-                // Find referrers for final winners list
-                // This function replaced function ExtendReferrer with wrong logic (Time -> Height)
-                ExtendReferrers();
             }
 
             return _winners;
@@ -157,7 +183,8 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_514185 : public LotteryConsensus
     {
     public:
-        explicit LotteryConsensus_checkpoint_514185() : LotteryConsensus() {}
+        LotteryConsensus_checkpoint_514185() : LotteryConsensus() {}
+
         void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) override
         {
             winner_types.push_back(type);
@@ -192,14 +219,15 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_1035000 : public LotteryConsensus_checkpoint_514185
     {
     public:
-        explicit LotteryConsensus_checkpoint_1035000() : LotteryConsensus_checkpoint_514185() {}
+        LotteryConsensus_checkpoint_1035000() : LotteryConsensus_checkpoint_514185() {}
+
     protected:
         void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) override
         {
             if (refs.find(scoreData->ContentAddressHash) != refs.end())
                 return;
 
-            auto regTime = PocketDb::ConsensusRepoInst.GetAccountRegistrationTime(scoreData->ContentAddressId);
+            auto regTime = PocketDb::ConsensusRepoInst.GetAccountRegistrationTime(scoreData->ContentAddressHash);
             if (regTime < (scoreData->ScoreTime - GetConsensusLimit(ConsensusLimit_lottery_referral_depth))) return;
 
             auto[ok, referrer] = PocketDb::ConsensusRepoInst.GetReferrer(scoreData->ContentAddressHash);
@@ -214,7 +242,8 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_1124000 : public LotteryConsensus_checkpoint_1035000
     {
     public:
-        explicit LotteryConsensus_checkpoint_1124000() : LotteryConsensus_checkpoint_1035000() {}
+        LotteryConsensus_checkpoint_1124000() : LotteryConsensus_checkpoint_1035000() {}
+
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // Referrer program 5 - 100%; 4.75 - nodes; 0.25 - all for lottery;
@@ -232,7 +261,8 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_1180000 : public LotteryConsensus_checkpoint_1124000
     {
     public:
-        explicit LotteryConsensus_checkpoint_1180000() : LotteryConsensus_checkpoint_1124000() {}
+        LotteryConsensus_checkpoint_1180000() : LotteryConsensus_checkpoint_1124000() {}
+
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // Reduce all winnings by 10 times
@@ -245,113 +275,38 @@ namespace PocketConsensus
         }
     };
 
-    // ---------------------------------------
+
     class LotteryConsensus_bip_100 : public LotteryConsensus_checkpoint_1180000
     {
-    protected:
-        int64_t MaxWinnersCount() override { return 5; };
     public:
-        explicit LotteryConsensus_bip_100() : LotteryConsensus_checkpoint_1180000() {}
+        LotteryConsensus_bip_100() : LotteryConsensus_checkpoint_1180000()
+        {
+            Limits.Set("max_winners_counts", 5, 5, 5);
+        }
             
         // ----------------------------------------
         // Lottery checkpoint at 2162400 block
         // Disable lottery payments for likes to comments.
         // Also disable referral program
-        CAmount RatingReward(CAmount nCredit, opcodetype code)
+        CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             if (code == OP_WINNER_POST) return nCredit * 0.025;
             return 0;
         }
 
-        LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource)
-        {
-            auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
-
-            map<string, int> postCandidates;
-
-            for (const auto& tx : block.vtx)
-            {
-                // Get destination address and score value
-                // In lottery allowed only likes to posts and comments
-                // Also in lottery allowed only positive scores
-                auto[parseScoreOk, scoreTxData] = TransactionHelper::ParseScore(tx);
-                if (!parseScoreOk)
-                    continue;
-
-                // BIP100: Only scores to content allowed
-                if (scoreTxData->ScoreType == ACTION_SCORE_COMMENT)
-                    continue;
-                if (scoreTxData->ScoreType == ACTION_SCORE_CONTENT
-                    && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
-                    continue;
-
-                auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
-                if (!scoreData)
-                {
-                    LogPrintf("%s: Failed get score data for tx: %s\n", __func__, tx->GetHash().GetHex());
-                    continue;
-                }
-
-                if (!reputationConsensus->AllowModifyReputation(
-                    scoreData,
-                    true
-                ))
-                    continue;
-
-                postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
-            }
-
-            // Sort founded users
-            SortWinners(postCandidates, hashProofOfStakeSource, _winners.PostWinners);
-
-            return _winners;
-        }
-    };
-
-    // ---------------------------------------
-    class LotteryConsensus_checkpoint_ : public LotteryConsensus_bip_100
-    {
-    public:
-        explicit LotteryConsensus_checkpoint_() : LotteryConsensus_bip_100() {}
     protected:
-        void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) override
+        void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) override { }
+
+        bool FilterScore(const ScoreDataDtoRef& scoreData) override
         {
-            // This logic replaced with ExtendReferrers()
-        }
+            if (scoreData->ScoreType == ACTION_SCORE_CONTENT && (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5))
+                return true;
 
-        void ExtendReferrers() override
-        {
-            auto& postWinners = _winners.PostWinners;
-            auto& postRefs = _winners.PostReferrerWinners;
-            auto& commentWinners = _winners.CommentWinners;
-            auto& commentRefs = _winners.CommentReferrerWinners;
-
-            vector <string> winners;
-            for (const string& addr : postWinners)
-                if (find(winners.begin(), winners.end(), addr) == winners.end())
-                    winners.push_back(addr);
-
-            for (const string& addr : commentWinners)
-                if (find(winners.begin(), winners.end(), addr) == winners.end())
-                    winners.push_back(addr);
-
-            auto referrers = PocketDb::ConsensusRepoInst.GetReferrers(winners, Height - GetConsensusLimit(ConsensusLimit_lottery_referral_depth));
-            if (referrers->empty()) return;
-
-            for (const auto& it : *referrers)
-            {
-                if (find(postWinners.begin(), postWinners.end(), it.first) != postWinners.end())
-                    if (find(postRefs.begin(), postRefs.end(), it.second) == postRefs.end())
-                        postRefs.push_back(it.second);
-
-                if (find(commentWinners.begin(), commentWinners.end(), it.first) != commentWinners.end())
-                    if (find(commentRefs.begin(), commentRefs.end(), it.second) == commentRefs.end())
-                        commentRefs.push_back(it.second);
-            }
+            return false;
         }
     };
 
-    
+
     //  Factory for select actual rules version
     class LotteryConsensusFactory : public BaseConsensusFactory<LotteryConsensus>
     {

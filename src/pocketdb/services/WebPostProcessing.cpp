@@ -46,7 +46,7 @@ namespace PocketServices
                 break;
 
             if (!ProcessNextHeight())
-                UninterruptibleSleep(std::chrono::milliseconds{1000});
+                UninterruptibleSleep(std::chrono::milliseconds{10000});
         }
 
         // Shutdown DB

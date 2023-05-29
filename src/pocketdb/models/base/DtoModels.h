@@ -85,7 +85,10 @@ namespace PocketTx
         string ContentAddressHash;
         int64_t ContentTime;
 
-        string String5;
+        string CommentAnswerRootTxHash;
+
+        int64_t ScoresAllCount;
+        int64_t ScoresPositiveCount;
 
         shared_ptr<UniValue> Serialize() override
         {
@@ -102,6 +105,8 @@ namespace PocketTx
             ret.pushKV("ContentAddressId", ContentAddressId);
             ret.pushKV("ContentAddressHash", ContentAddressHash);
             ret.pushKV("ContentTime", ContentTime);
+            ret.pushKV("ScoresAllCount", ScoresAllCount);
+            ret.pushKV("ScoresPositiveCount", ScoresPositiveCount);
             return make_shared<UniValue>(ret);
         }
 
@@ -110,10 +115,10 @@ namespace PocketTx
             if (ScoreType == ACTION_SCORE_CONTENT)
                 return last ? ACCOUNT_LIKERS_POST_LAST : ACCOUNT_LIKERS_POST;
 
-            if (ScoreType == ACTION_SCORE_COMMENT && String5.empty())
+            if (ScoreType == ACTION_SCORE_COMMENT && CommentAnswerRootTxHash.empty())
                 return last ? ACCOUNT_LIKERS_COMMENT_ROOT_LAST : ACCOUNT_LIKERS_COMMENT_ROOT;
 
-            if (ScoreType == ACTION_SCORE_COMMENT && !String5.empty())
+            if (ScoreType == ACTION_SCORE_COMMENT && !CommentAnswerRootTxHash.empty())
                 return last ? ACCOUNT_LIKERS_COMMENT_ANSWER_LAST : ACCOUNT_LIKERS_COMMENT_ANSWER;
 
             // You don't have to get to here

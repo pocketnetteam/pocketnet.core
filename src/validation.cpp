@@ -2439,24 +2439,23 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             }
         }
 
-        // TODO (optimization): DEBUG!
-        // if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
-        // {
-        //     int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
-        //     if (nStakeReward > nCalculatedStakeReward) {
-        //         error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward);
-        //         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
-        //     }
+        if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
+        {
+            int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
+            if (nStakeReward > nCalculatedStakeReward) {
+                error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward);
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
+            }
 
-        //     int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
+            int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
-        //     if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
-        //     {
-        //         // We do not accept blocks that do not meet the consensus conditions,
-        //         // but we should not mark them invalid for cases when the block is processed after the orphan.
-        //         return false;
-        //     }
-        // }
+            if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
+            {
+                // We do not accept blocks that do not meet the consensus conditions,
+                // but we should not mark them invalid for cases when the block is processed after the orphan.
+                return false;
+            }
+        }
 
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;
@@ -2498,7 +2497,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         try
         {
             PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
-            LogPrint(BCLog::SYNC, "    Block indexed: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
         }
         catch (const std::exception& e)
         {
@@ -2845,14 +2843,15 @@ bool CChainState::DisconnectTip(BlockValidationState& state, const CChainParams&
     }
     else
     {
-        for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it)
-        {
-            auto hash = (**it).GetHash();
-            if (PocketDb::TransRepoInst.Exists(hash.GetHex()))
-            {
-                PocketDb::TransRepoInst.CleanTransaction(hash.GetHex());
-            }
-        }
+        // TODO (aok): do not remove before inspect
+        // for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it)
+        // {
+        //     auto hash = (**it).GetHash();
+        //     if (PocketDb::TransRepoInst.Exists(hash.GetHex()))
+        //     {
+        //         PocketDb::TransRepoInst.CleanTransaction(hash.GetHex());
+        //     }
+        // }
     }
 
     m_chain.SetTip(pindexDelete->pprev);
@@ -3926,10 +3925,8 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
 
     // Check hardcoded checkpoints
     if (!valid)
-    {
         if (CheckpointRepoInst.IsLotteryCheckpoint(pindexPrev->nHeight + 1, block.GetHash().GetHex()))
             valid = true;
-    }
 
     return valid;
 }

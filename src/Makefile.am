@@ -274,6 +274,7 @@ POCKETDB_CPP = \
     \
     pocketdb/repositories/ConsensusRepository.cpp \
     pocketdb/repositories/ChainRepository.cpp \
+    pocketdb/repositories/BaseRepository.cpp \
     pocketdb/repositories/TransactionRepository.cpp \
     pocketdb/repositories/RatingsRepository.cpp \
     pocketdb/repositories/CheckpointRepository.cpp \

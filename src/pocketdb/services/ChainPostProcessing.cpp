@@ -17,9 +17,7 @@ namespace PocketServices
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
 
-        // TODO (optimization): DEBUG!
-        // IndexRatings(height, txs);
-
+        IndexRatings(height, txs);
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
 
@@ -41,9 +39,9 @@ namespace PocketServices
             ChainRepoInst.RestoreRatings(height);
             ChainRepoInst.RestoreBalances(height);
             // ChainRepoInst.RollbackBlockingList(height);
-            ChainRepoInst.RollbackModerationJury(height);
-            ChainRepoInst.RollbackModerationBan(height);
-            ChainRepoInst.RollbackBadges(height);
+            ChainRepoInst.RestoreModerationJury(height);
+            ChainRepoInst.RestoreModerationBan(height);
+            ChainRepoInst.RestoreBadges(height);
 
             // Rollback transactions must be lasted
             ChainRepoInst.RestoreChain(height);
@@ -96,6 +94,15 @@ namespace PocketServices
         // Actual consensus checker instance by current height
         auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
 
+        // Need select content id for saving rating
+        auto scoresData = ConsensusRepoInst.GetScoresData(height, reputationConsensus->GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth));
+
+        // Get all accounts information in one query
+        vector<string> accountsAddresses;
+        for (auto& scoreData : scoresData)
+            accountsAddresses.push_back(reputationConsensus->SelectAddressScoreContent(scoreData.second, false));
+        auto accountsData = ConsensusRepoInst.GetAccountsData(accountsAddresses);
+
         // Loop all transactions for find scores and increase ratings for accounts and contents
         for (const auto& txInfo : txs)
         {
@@ -103,10 +110,8 @@ namespace PocketServices
             if (!txInfo.IsActionScore())
                 continue;
 
-            // Need select content id for saving rating
-            auto scoreData = ConsensusRepoInst.GetScoreData(txInfo.Hash);
-            if (!scoreData)
-                throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n", __func__, txInfo.Hash));
+            auto& scoreData = scoresData[txInfo.Hash];
+            auto& accountData = accountsData[reputationConsensus->SelectAddressScoreContent(scoreData, false)];
 
             // Old posts denied change reputation
             auto allowModifyOldPosts = reputationConsensus->AllowModifyOldPosts(
@@ -118,11 +123,7 @@ namespace PocketServices
                 continue;
 
             // Check whether the current rating has the right to change the recipient's reputation
-            auto allowModifyReputation = reputationConsensus->AllowModifyReputation(
-                scoreData,
-                false);
-
-            if (!allowModifyReputation)
+            if (!reputationConsensus->AllowModifyReputation(scoreData, accountData, false))
                 continue;
 
             // Calculate ratings values
