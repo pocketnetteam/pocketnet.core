@@ -2037,7 +2037,7 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    join Chain c on
                         c.TxId = t.RowId and
                         c.Height >= ?
                     cross join Last l on
@@ -2157,7 +2157,7 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t
-                    join Chain c indexed by Chain_Height_Uid on
+                    join Chain c on
                         c.TxId = t.RowId and
                         c.Height >= ?
                     cross join First f on
@@ -2275,7 +2275,7 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    join Chain c on
                         c.TxId = t.RowId and
                         c.Height >= ?
                     cross join First f on
@@ -2890,7 +2890,7 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    join Chain c on
                         c.TxId = t.RowId and
                         c.Height >= ?
                 where
@@ -3656,7 +3656,7 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    join Chain c on
                         c.TxId = t.RowId and
                         c.Height <= ? and
                         c.Height > ?
