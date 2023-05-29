@@ -40,6 +40,8 @@ namespace PocketTx
         string BuildHash(bool includeReferrer);
         string PreBuildHash();
 
+        size_t PayloadSize() const override;
+
     }; // class User
 
 } // namespace PocketTx

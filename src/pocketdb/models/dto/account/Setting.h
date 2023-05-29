@@ -22,7 +22,7 @@ namespace PocketTx
         void DeserializePayload(const UniValue& src) override;
 
         optional<string> GetPayloadData() const;
-        size_t PayloadSize() override;
+        size_t PayloadSize() const override;
 
         string BuildHash() override;
 

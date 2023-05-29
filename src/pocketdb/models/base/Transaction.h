@@ -15,12 +15,14 @@
 #include "pocketdb/models/base/Payload.h"
 #include "pocketdb/models/base/TransactionInput.h"
 #include "pocketdb/models/base/TransactionOutput.h"
+#include "pocketdb/util/Empty.h"
 
 #include <optional>
 
 namespace PocketTx
 {
     using namespace std;
+    using namespace PocketUtil;
 
     class Transaction : public Base
     {
@@ -87,7 +89,7 @@ namespace PocketTx
         
         void GeneratePayload();
         void ClearPayload();
-        virtual size_t PayloadSize();
+        virtual size_t PayloadSize() const;
 
     protected:
         optional<TxType> m_type = nullopt;

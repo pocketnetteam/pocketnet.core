@@ -134,5 +134,17 @@ namespace PocketTx
         return data;
     }
 
+    size_t User::PayloadSize() const
+    {
+        return (GetPayloadName() ? GetPayloadName()->size() : 0) +
+               (GetPayloadUrl() ? GetPayloadUrl()->size() : 0) +
+               (GetPayloadLang() ? GetPayloadLang()->size() : 0) +
+               (GetPayloadAbout() ? GetPayloadAbout()->size() : 0) +
+               (GetPayloadAvatar() ? GetPayloadAvatar()->size() : 0) +
+               (GetPayloadDonations() ? GetPayloadDonations()->size() : 0) +
+               (GetReferrerAddress() ? GetReferrerAddress()->size() : 0) +
+               (GetPayloadPubkey() ? GetPayloadPubkey()->size() : 0);
+    }
+
 } // namespace PocketTx
 

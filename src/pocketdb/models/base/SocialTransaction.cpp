@@ -108,7 +108,7 @@ namespace PocketTx
         return SocialTransaction::GenerateHash(data);
     }
 
-    size_t SocialTransaction::PayloadSize()
+    size_t SocialTransaction::PayloadSize() const
     {
         size_t dataSize =
             (GetString1() ? GetString1()->size() : 0) +

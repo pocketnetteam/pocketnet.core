@@ -669,7 +669,7 @@ namespace PocketDb
                         cross join Chain c -- primary key
                             on c.TxId = t.RowId
                     where
-                        t.Hash = ''
+                        t.Hash = ?
                 )sql")
                 .Bind(hash)
                 .Run() == SQLITE_ROW

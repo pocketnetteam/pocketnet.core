@@ -110,7 +110,7 @@ namespace PocketTx
         m_payload = nullopt;
     }
 
-    size_t Transaction::PayloadSize()
+    size_t Transaction::PayloadSize() const
     {
         return 0;
     }

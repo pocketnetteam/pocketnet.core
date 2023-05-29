@@ -14,11 +14,13 @@
 #include "pocketdb/models/base/Base.h"
 #include "pocketdb/consensus/Base.h"
 #include "pocketdb/helpers/TransactionHelper.h"
+#include "pocketdb/util/Empty.h"
 
 namespace PocketConsensus
 {
     using namespace std;
     using namespace PocketDb;
+    using namespace PocketUtil;
     using PocketTx::TxType;
 
     template<class T>
@@ -111,9 +113,7 @@ namespace PocketConsensus
 
                 if (ptxORHash != txORHash)
                     if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                        // return true;
-                        // TODO (optimization): DEBUG! - remove after fix all checkpoints
-                        LogPrintf("DEBUG - ConsensusResult_FailedOpReturn - %s : %s\n", *ptx->GetHash(), ptxORHash);
+                        return true;
 
                 return false;
             });
@@ -169,22 +169,6 @@ namespace PocketConsensus
             }
 
             return lst;
-        }
-
-        // Check empty pointer
-        bool IsEmpty(const optional<string>& ptr) const
-        {
-            return !ptr || (*ptr).empty();
-        }
-
-        bool IsEmpty(const optional<int>& ptr) const
-        {
-            return !ptr;
-        }
-
-        bool IsEmpty(const optional<int64_t>& ptr) const
-        {
-            return !ptr;
         }
     };
 }

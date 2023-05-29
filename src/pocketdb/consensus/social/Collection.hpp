@@ -22,6 +22,7 @@ namespace PocketConsensus
         CollectionConsensus() : SocialConsensus<Collection>()
         {
             // TODO (limits): set limits
+            Limits.Set("payload_size", 2000, 2000, 2000);
         }
 
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const CollectionRef& ptx, const PocketBlockRef& block) override
@@ -212,22 +213,6 @@ namespace PocketConsensus
             int count = ConsensusRepoInst.CountChainCollectionEdit(*ptx->GetAddress(), *ptx->GetRootTxHash(), Height, GetConsensusLimit(ConsensusLimit_edit_collection_depth));
             if (count >= GetConsensusLimit(ConsensusLimit_collection_edit_count))
                 return {false, ConsensusResult_ContentEditLimit};
-
-            return Success;
-        }
-        virtual ConsensusValidateResult ValidatePayloadSize(const CollectionRef& ptx)
-        {
-            size_t dataSize =
-                    (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
-                    (ptx->GetPayloadImage() ? ptx->GetPayloadImage()->size() : 0) +
-                    (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
-                    (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
-
-            if (ptx->GetRootTxHash() && *ptx->GetRootTxHash() != *ptx->GetHash())
-                dataSize += ptx->GetRootTxHash()->size();
-
-            if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_collection_size))
-                return {false, ConsensusResult_ContentSizeLimit};
 
             return Success;
         }

@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include <primitives/transaction.h>
+#include "util/html.h"
 #include "pocketdb/models/dto/content/Comment.h"
 
 namespace PocketTx
@@ -99,6 +100,11 @@ namespace PocketTx
         data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
 
         return Transaction::GenerateHash(data);
+    }
+
+    size_t Comment::PayloadSize() const
+    {
+        return (GetPayload() && GetPayloadMsg() ? HtmlUtils::UrlDecode(*GetPayloadMsg()).size() : 0);
     }
 
 } // namespace PocketTx

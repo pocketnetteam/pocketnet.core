@@ -4,6 +4,7 @@
 
 #include <primitives/transaction.h>
 #include "pocketdb/models/dto/content/CommentEdit.h"
+#include "util/html.h"
 
 namespace PocketTx
 {
@@ -16,4 +17,5 @@ namespace PocketTx
     {
         SetType(TxType::CONTENT_COMMENT_EDIT);
     }
+
 } // namespace PocketTx

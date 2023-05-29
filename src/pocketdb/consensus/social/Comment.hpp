@@ -23,6 +23,7 @@ namespace PocketConsensus
         CommentConsensus() : SocialConsensus<Comment>()
         {
             // TODO (limits): set limits
+            Limits.Set("payload_size", 2000, 2000, 2000);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentRef& ptx, const PocketBlockRef& block) override
@@ -78,8 +79,6 @@ namespace PocketConsensus
             // Maximum for message data
             if (!ptx->GetPayload()) return {false, ConsensusResult_Failed};
             if (IsEmpty(ptx->GetPayloadMsg())) return {false, ConsensusResult_Failed};
-            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > (size_t)GetConsensusLimit(ConsensusLimit_max_comment_size))
-                return {false, ConsensusResult_Size};
 
             return Success;
         }
@@ -143,15 +142,6 @@ namespace PocketConsensus
                 *ptx->GetAddress(),
                 *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
             );
-        }
-        virtual ConsensusValidateResult ValidatePayloadSize(const CommentRef& ptx)
-        {
-            int64_t dataSize = (ptx->GetPayloadMsg() ? HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).size() : 0);
-
-            if (dataSize > GetConsensusLimit(ConsensusLimit_max_comment_size))
-                return {false, ConsensusResult_ContentSizeLimit};
-
-            return Success;
         }
     };
 

@@ -409,10 +409,12 @@ namespace PocketDb
 
             create unique index if not exists Transactions_HashId on Transactions (HashId);
             create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
+            create index if not exists Transactions_Type_RegId1__RegId3 on Transactions (Type, RegId1, RegId3);
             create index if not exists Transactions_Type_RegId2 on Transactions (Type, RegId2);
             create index if not exists Transactions_Type_RegId3 on Transactions (Type, RegId3);
             create index if not exists Transactions_Type_RegId5_RegId1 on Transactions (Type, RegId5, RegId1);
             create index if not exists Transactions_Type_RegId1_Int1_Time on Transactions (Type, RegId1, Int1, Time);
+            create index if not exists Transactions_Type_RegId1_Time on Transactions (Type, RegId1, Time);
 
             create index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
 
@@ -429,6 +431,10 @@ namespace PocketDb
             create index if not exists Ratings_Type_Uid_Last_Value on Ratings (Type, Uid, Last, Value);
             create index if not exists Ratings_Type_Uid_Height_Value on Ratings (Type, Uid, Height, Value);
 
+            create index if not exists Balances_Value on Balances (Value);
+
+            -- TODO (optimization): maybe remove TxId from the index because it is literally the RowId and it
+            -- appears in the index anyway
             create index if not exists Payload_String2_nocase_TxId on Payload (String2 collate nocase, TxId);
             create index if not exists Payload_String7 on Payload (String7);
             create index if not exists Payload_String1_TxId on Payload (String1, TxId);

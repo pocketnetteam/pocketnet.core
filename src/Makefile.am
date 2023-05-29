@@ -248,7 +248,9 @@ POCKETDB_H = \
     pocketdb/models/shortform/ShortAccount.h \
     pocketdb/models/shortform/ShortTxData.h \
     pocketdb/models/shortform/ShortTxType.h \
-    pocketdb/models/shortform/ShortTxOutput.h
+    pocketdb/models/shortform/ShortTxOutput.h \
+	\
+	pocketdb/util/Empty.h
 
 # PocketDb CPP
 POCKETDB_CPP = \
@@ -348,7 +350,9 @@ POCKETDB_CPP = \
     pocketdb/models/shortform/ShortForm.cpp \
     pocketdb/models/shortform/ShortAccount.cpp \
     pocketdb/models/shortform/ShortTxData.cpp \
-    pocketdb/models/shortform/ShortTxOutput.cpp
+    pocketdb/models/shortform/ShortTxOutput.cpp \
+	\
+	pocketdb/util/Empty.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \

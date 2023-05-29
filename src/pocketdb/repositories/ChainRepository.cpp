@@ -829,6 +829,7 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
+                        -- TODO (optimization): indices
                         from
                             Transactions f
                         join
@@ -849,6 +850,7 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
+                        -- TODO (optimization): indices
                         from
                             Transactions f
                         join
@@ -1210,22 +1212,6 @@ namespace PocketDb
     {
         SqlTransaction(__func__, [&]()
         {
-            // Delete current last records
-            Sql(R"sql(
-                delete from Last
-                where
-                    TxId in (
-                        select
-                            c.TxId
-                        from
-                            Chain c indexed by Chain_Height_Uid
-                        where
-                            c.Height >= ?
-                    )
-            )sql")
-            .Bind(height)
-            .Run();
-
             // Restore old Last transactions
             Sql(R"sql(
                 with
@@ -1255,6 +1241,22 @@ namespace PocketDb
                     cross join Chain cp indexed by Chain_Uid_Height
                         on cp.Uid = prev.Uid and
                         cp.Height = prev.maxHeight
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Delete current last records
+            Sql(R"sql(
+                delete from Last
+                where
+                    TxId in (
+                        select
+                            c.TxId
+                        from
+                            Chain c indexed by Chain_Height_Uid
+                        where
+                            c.Height >= ?
+                    )
             )sql")
             .Bind(height)
             .Run();

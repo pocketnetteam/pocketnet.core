@@ -32,10 +32,7 @@ namespace PocketDb
                         -- filter registrations & deleting transactions by address
                         cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on t.Type in (100, 170) and t.RegId1 = addressRegId.RowId
-                        -- filter by chain for exclude mempool
-                        cross join Chain c
-                            on c.TxId = t.RowId
-                        -- filter by Last
+                        -- filter by Last (also excludes mempool)
                         cross join Last l
                             on l.TxId = t.RowId
                 ),
@@ -73,10 +70,7 @@ namespace PocketDb
                             on (p.String2 like ? escape '\')
                         cross join Transactions t
                             on t.RowId = p.TxId and t.Type = 100 and t.RegId1 != addressRegId.RowId
-                        -- filter by chain for exclude mempool
-                        cross join Chain c
-                            on c.TxId = t.RowId
-                        -- filter by Last
+                        -- filter by Last (also excludes mempool)
                         cross join Last l
                             on l.TxId = t.RowId
                 ),
@@ -412,19 +406,28 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
+                with str2 as (
+                    select
+                        r.String as string,
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
                 select
                     t.Type,
-                    t.Hash,
+                    s.Hash,
                     t.Time,
-                    t.Last,
-                    t.Id,
-                    t.String1,
-                    t.String2,
-                    t.String3,
-                    t.String4,
-                    t.String5,
+                    iif(l.TxId, 1, 0),
+                    c.Uid,
+                    s.String1,
+                    s.String2,
+                    s.String3,
+                    s.String4,
+                    s.String5,
                     t.Int1,
-                    p.TxHash pHash,
+                    s.Hash pHash,
                     p.String1 pString1,
                     p.String2 pString2,
                     p.String3 pString3,
@@ -432,20 +435,29 @@ namespace PocketDb
                     p.String5 pString5,
                     p.String6 pString6,
                     p.String7 pString7
-                from Transactions t indexed by Transactions_Hash_Height
-                left join Payload p on t.Hash = p.TxHash
-                where t.Type in (200,201,202,203,204,209,210,211,220)
-                  and t.Hash = ?
-                  and t.String2 = ?
-                  and t.Height is not null
+                from
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId2
+                    cross join vTxStr s on
+                        s.RowId = t.RowId
+                    join Chain c on
+                        c.TxId = t.RowId
+                    left join Payload p on
+                        t.RowId = p.TxId
+                    cross join First f on f.TxId = t.RowId
+                    left join Last l on l.TxId = t.RowId
+                where
+                    t.Type in (200,201,202,203,204,209,210,211,220) and
+                    t.RegId2 = str2.id
             )sql";
 
-            auto stmt = Sql(sql);
-            stmt.Bind(rootHash, rootHash);
-
-            // if (stmt.Step())
-            //     if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
-            //         tx = transaction;
+            Sql(sql)
+            .Bind(rootHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    if (auto[ok, transaction] = CreateTransactionFromListRow(cursor, true); ok)
+                        tx = std::move(transaction);
+            });
         });
 
         return {tx != nullptr, tx};
@@ -458,19 +470,28 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
+                with s2 as (
+                    select
+                        r.String as str,
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
                 select
                     t.Type,
-                    t.Hash,
+                    st.Hash,
                     t.Time,
-                    t.Last,
-                    t.Id,
-                    t.String1,
-                    t.String2,
-                    t.String3,
-                    t.String4,
-                    t.String5,
+                    iif(l.TxId, 1, 0),
+                    c.Uid,
+                    st.String1,
+                    st.String2,
+                    st.String3,
+                    st.String4,
+                    st.String5,
                     t.Int1,
-                    p.TxHash pHash,
+                    st.Hash pHash,
                     p.String1 pString1,
                     p.String2 pString2,
                     p.String3 pString3,
@@ -478,21 +499,29 @@ namespace PocketDb
                     p.String5 pString5,
                     p.String6 pString6,
                     p.String7 pString7
-                from Transactions t indexed by Transactions_Type_Last_String2_Height
-                left join Payload p on t.Hash = p.TxHash
-                where t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-                  and t.String2 = ?
-                  and t.Last = 1
-                  and t.Height is not null
+                from
+                    s2,
+                    Transactions t indexed by Transactions_Type_RegId2
+                    cross join vTxStr st on
+                        st.RowId = t.RowId
+                    join Chain c on
+                        c.TxId = t.RowId
+                    cross join Last l on
+                        l.TxId = t.RowId
+                    left join Payload p on
+                        t.RowId = p.TxId
+                where
+                    t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                    t.RegId2 = s2.id
             )sql";
 
-            auto stmt = Sql(sql);
-
-            stmt.Bind(types, rootHash);
-
-            // if (stmt.Step())
-            //     if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
-            //         tx = transaction;
+            Sql(sql)
+            .Bind(rootHash, types)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    if (auto[ok, transaction] = CreateTransactionFromListRow(cursor, true); ok)
+                        tx = std::move(transaction);
+            });
         });
 
         return {tx != nullptr, tx};
@@ -506,19 +535,28 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
+                with strs2 as (
+                    select
+                        r.String as string,
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
+                )
                 select
                     t.Type,
-                    t.Hash,
+                    s.Hash,
                     t.Time,
-                    t.Last,
-                    t.Id,
-                    t.String1,
-                    t.String2,
-                    t.String3,
-                    t.String4,
-                    t.String5,
+                    iif(l.TxId, 1, 0),
+                    c.Uid,
+                    s.String1,
+                    s.String2,
+                    s.String3,
+                    s.String4,
+                    s.String5,
                     t.Int1,
-                    p.TxHash pHash,
+                    s.Hash pHash,
                     p.String1 pString1,
                     p.String2 pString2,
                     p.String3 pString3,
@@ -526,16 +564,24 @@ namespace PocketDb
                     p.String5 pString5,
                     p.String6 pString6,
                     p.String7 pString7
-                from Transactions t indexed by Transactions_Type_Last_String2_Height
-                left join Payload p on t.Hash = p.TxHash
-                where t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-                  and t.String2 in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
-                  and t.Last = 1
-                  and t.Height is not null
+                from
+                    strs2,
+                    Transactions t indexed by Transactions_Type_RegId2
+                    cross join vTxStr s on
+                        s.RowId = t.RowId
+                    join Chain c on
+                        c.TxId = t.RowId
+                    left join Payload p on
+                        t.RowId = p.TxId
+                    cross join Last l on
+                        l.TxId = t.RowId
+                where
+                    t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                    t.RegId2 = strs2.id
             )sql";
 
             Sql(sql)
-            .Bind(types, rootHashes)
+            .Bind(rootHashes, types)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
@@ -555,26 +601,49 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                SELECT Type
-                FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
-                WHERE Type in (305, 306)
-                    and String1 = ?
-                    and String2 = ?
-                    and Height is not null
-                    and Last = 1
-            )sql");
-
-            stmt.Bind(address, addressTo);
-
-            // if (stmt.Step())
-            // {
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //     {
-            //         blockingExists = true;
-            //         blockingType = (TxType) value;
-            //     }
-            // }
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.String as str,
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.String as str,
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    Type
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Last l on l.TxId = t.RowId
+                where
+                    t.Type in (305, 306) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id
+            )sql")
+            .Bind(address, addressTo)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                    {
+                        blockingExists = true;
+                        blockingType = (TxType) value;
+                    }
+                }
+            });
         });
 
         return {blockingExists, blockingType};
@@ -586,27 +655,70 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                SELECT 1
-                FROM BlockingLists b
-                JOIN Transactions us indexed by Transactions_Type_Last_String1_Height_Id
-                ON us.Last = 1 and us.Id = b.IdSource and us.Type in (100, 170) and us.Height is not null
-                JOIN Transactions ut indexed by Transactions_Type_Last_String1_Height_Id
-                ON ut.Last = 1 and ut.Id = b.IdTarget and ut.Type in (100, 170) and ut.Height is not null
-                WHERE us.String1 = ?
-                    and ut.String1 in (select ? union select value from json_each(?))
-                LIMIT 1
-            )sql");
-
-            stmt.Bind(address, addressTo, addressesTo);
-
-            // if (stmt.Step())
-            // {
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok && value > 0)
-            //     {
-            //         blockingExists = true;
-            //     }
-            // }
+            Sql(R"sql(
+                with
+                    -- TODO (optimization): generalize
+                    addr1 as (
+                        select
+                            r.String as hash,
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    addrs2 as (
+                        select
+                            r.String as hash,
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String in (select ? union select value from json_each(?))
+                    ),
+                    -- TODO (optimization): generalize
+                    sourceId as (
+                        select
+                            c.Uid as id
+                        from
+                            addr1,
+                            Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            join Chain c on
+                                c.TxId = t.RowId
+                        where
+                            t.Type in (100, 170) and
+                            t.RegId1 = addr1.id and
+                            exists (select 1 from Last l where l.TxId = t.RowId)
+                    ),
+                    targetIds as (
+                        select
+                            c.Uid as id
+                        from
+                            addrs2,
+                            Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            join Chain c on
+                                c.TxId = t.RowId
+                        where
+                            t.Type in (100, 170) and
+                            t.RegId1 = addrs2.id and
+                            exists (select 1 from Last l where l.TxId = t.RowId)
+                    )
+                select 1
+                from
+                    sourceId,
+                    targetIds,
+                    BlockingLists b
+                where
+                    b.IdSource = sourceId.id and
+                    b.IdTarget = targetIds.id
+                limit 1
+            )sql")
+            .Bind(address, addressTo, addressesTo)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    if (auto [ok, value] = cursor.TryGetColumnInt(0); ok && value > 0)
+                        blockingExists = true;
+            });
         });
 
         return blockingExists;
@@ -620,49 +732,73 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                SELECT Type
-                FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
-                WHERE Type in (302, 303, 304)
-                    and String1 = ?
-                    and String2 = ?
-                    and Height is not null
-                    and Last = 1
-            )sql");
-
-            stmt.Bind(address, addressTo);
-
-            // if (stmt.Step())
-            // {
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //     {
-            //         subscribeExists = true;
-            //         subscribeType = (TxType) value;
-            //     }
-            // }
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    t.Type
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Last l on l.TxId = t.RowId
+                where
+                    t.Type in (302, 303, 304) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id
+            )sql")
+            .Bind(address, addressTo)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.Collect(0, [&](int value) {
+                        subscribeExists = true;
+                        subscribeType = (TxType) value;
+                    });
+            });
         });
 
         return {subscribeExists, subscribeType};
     }
 
-    shared_ptr<string> ConsensusRepository::GetContentAddress(const string& postHash)
+    optional<string> ConsensusRepository::GetContentAddress(const string& postHash)
     {
-        shared_ptr<string> result = nullptr;
+        optional<string> result = nullopt;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                SELECT String1
-                FROM Transactions
-                WHERE Hash = ?
-                  and Height is not null
-            )sql");
-
-            stmt.Bind(postHash);
-
-            // if (stmt.Step())
-            //     if (auto[ok, value] = stmt.TryGetColumnString(0); ok)
-            //         result = make_shared<string>(value);
+            Sql(R"sql(
+                select
+                    s.String1
+                from
+                    vTx t
+                    cross join vTxStr s on
+                        s.RowId = t.RowId
+                where
+                    t.Hash = ? and
+                    exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(postHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.Collect(0, [&](const string& value) {
+                        result = value;
+                    });
+            });
         });
 
         return result;
@@ -675,23 +811,47 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
-                SELECT count(*)
-                FROM Transactions
-                WHERE Type in (307)
-                  and String1 = ?
-                  and String2 = ?
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    -- TODO (optimization): why not select 1?
+                    count(*)
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (307) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id
             )sql";
 
             if (!mempool)
-                sql += " and Height > 0";
+                sql += "    and exists (select 1 from Chain c where c.TxId = t.RowId)";
 
-            auto stmt = Sql(sql);
-
-            stmt.Bind(address, postHash);
-
-            // if (stmt.Step())
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //         result = (value > 0);
+            Sql(sql)
+            .Bind(address, postHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.Collect(0, [&](int value) {
+                        result = (value > 0);
+                    });
+            });
         });
 
         return result;
@@ -702,25 +862,48 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
-            select count(*)
-            from Transactions
-            where String1 = ?
-              and String2 = ?
-              and Type = ?
+            with
+                str1 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                ),
+                str2 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+            select
+                count(*)
+            from
+                str1,
+                str2,
+                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+            where
+                t.Type = ? and
+                t.RegId1 = str1.id and
+                t.RegId2 = str2.id
         )sql";
 
         if (!mempool)
-            sql += " and Height is not null";
+            sql += "    and exists (select 1 from Chain c where c.TxId = t.RowId)";
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
-
-            stmt.Bind(address, contentHash, (int) type);
-
-            // if (stmt.Step())
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //         result = (value > 0);
+            Sql(sql)
+            .Bind(address, contentHash, (int) type)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.Collect(0, [&](int value) {
+                        result = (value > 0);
+                    });
+            });
         });
 
         return result;
@@ -737,9 +920,10 @@ namespace PocketDb
                 select
                     1
                 from
-                    Transactions t
+                    hash,
+                    vTx t
                     join Jury j
-                        on j.FlagRowId = t.ROWID
+                        on j.FlagRowId = t.RowId
                     left join JuryVerdict jv
                         on jv.FlagRowId = j.FlagRowId
                 where
@@ -764,18 +948,39 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with
+                str1 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                ),
+                str2 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
             select 1
-            from Transactions indexed by Transactions_Type_String1_String2_Height
-            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              and String1 = ?
-              and String2 = ?
-              and Height > 0
+            from
+                str1,
+                str2,
+                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+            where
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                t.RegId1 = str1.id and
+                t.RegId2 = str2.id and
+                exists (select 1 from Chain c where c.TxId = t.RowId)
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(types, string1, string2)
+            .Bind(string1, string2, types)
             .Select([&](Cursor& cursor) {
                 result = cursor.Step();
             });
@@ -862,18 +1067,29 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with
+                str1 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
             select 1
-            from Transactions indexed by Transactions_Type_Last_String1_Height_Id
-            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              and Last = 1
-              and String1 = ?
-              and Height is not null
+            from
+                str1,
+                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+            where
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                RegId1 = str1.id and
+                exists (select 1 from Last l where l.TxId = t.RowId)
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(types, string1)
+            .Bind(string1, types)
             .Select([&](Cursor& cursor) {
                 result = cursor.Step();
             });
@@ -890,19 +1106,39 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with
+                str1 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                ),
+                str2 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
             select 1
-            from Transactions indexed by Transactions_Type_Last_String1_String2_Height
-            where Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              and Last = 1
-              and String1 = ?
-              and String2 = ?
-              and Height is not null
+            from
+                str1,
+                str2,
+                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+            where
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                t.RegId1 = str1.id and
+                t.RegId2 = str2.id and
+                exists (select 1 from Last l where l.TxId = t.RowId)
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(types, string1, string2)
+            .Bind(string1, string2, types)
             .Select([&](Cursor& cursor) {
                 result = cursor.Step();
             });
@@ -919,19 +1155,29 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with
+                str1 as (
+                    select
+                        r.String as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
             select 1
-            from Transactions indexed by sqlite_autoindex_Transactions_1
-            where Hash = ?
-              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              )sql" + (last ? " and Last = 1 " : "") + R"sql(
-              and String1 = ?
-              and Height is not null
+            from
+                str1,
+                vTx t
+            where t.Hash = ? and
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                )sql" + (last ? "   exists (select 1 from Last l where l.TxId = t.RowId) and" : "") + R"sql(
+                t.RegId1 = str1.id
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(txHash, types, string1)
+            .Bind(string1, txHash, types)
             .Select([&](Cursor& cursor) {
                 result = cursor.Step();
             });
@@ -948,19 +1194,29 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with
+                str2 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
             select 1
-            from Transactions indexed by sqlite_autoindex_Transactions_1
-            where Hash = ?
-              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              )sql" + (last ? " and Last = 1 " : "") + R"sql(
-              and String2 = ?
-              and Height is not null
+            from
+                str2,
+                vTx t
+            where t.Hash = ? and
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                )sql" + (last ? "   exists (select 1 from Last l where l.TxId = t.RowId) and" : "") + R"sql(
+                t.RegId2 = str2.id
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(txHash, types, string2)
+            .Bind(string2, txHash, types)
             .Select([&](Cursor& cursor) {
                 result = cursor.Step();
             });
@@ -978,20 +1234,40 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with
+                str1 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                str2 as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
             select 1
-            from Transactions indexed by sqlite_autoindex_Transactions_1
-            where Hash = ?
-              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              )sql" + (last ? " and Last = 1 " : "") + R"sql(
-              and String1 = ?
-              and String2 = ?
-              and Height is not null
+            from
+                str1,
+                str2,
+                vTx t
+            where
+                t.Hash = ? and
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                )sql" + (last ? "   exists (select 1 from Last l where l.TxId = t.RowId) and" : "") + R"sql(
+                t.RegId1 = str1.id and
+                t.RegId2 = str2.id
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(txHash, types, string1, string2)
+            .Bind(string1, string2, txHash, types)
             .Select([&](Cursor& cursor) {
                 result = cursor.Step();
             });
@@ -1005,23 +1281,44 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
+            with address as (
+                select
+                    r.RowId as id
+                from
+                    Registry r
+                where
+                    r.String = ?
+            )
             select 1
-            from Transactions t
-            where t.Hash = ?
-              and t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
-              and t.String1 = ?
-              and t.Height > 0
-              and not exists (select 1 from Transactions d indexed by Transactions_Id_Last where d.Id = t.Id and d.Last = 1 and d.Type in (207,206))
+            from
+                address,
+                vTx t
+                join Chain c on
+                    c.TxId = t.RowId -- Not in mempool
+            where
+                t.Hash = ? and
+                t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
+                t.RegId1 = address.id and
+                not exists (
+                    select 1
+                    from
+                        Chain dc indexed by Chain_Uid_Height
+                        join Transactions d on
+                            d.RowId = dc.TxId and
+                            d.Type in (207,206)
+                    where
+                        dc.Uid = c.Uid and
+                        exists (select 1 from Last l where l.TxId = dc.TxId) -- TODO (optimization): mb join on d.RowId
+                )
         )sql";
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(sql);
-
-            stmt.Bind(txHash, types, address);
-
-            // if (stmt.Step())
-            //     result = true;
+            Sql(sql)
+            .Bind(address, txHash, types)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step(); 
+            });
         });
 
         return result;
@@ -1514,18 +1811,25 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select t.Height
-                from Transactions t
-                where t.Hash = ?
-                  and t.Height is not null
-            )sql");
-
-            stmt.Bind(hash);
-
-            // if (stmt.Step())
-            //     if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
-            //         result = { true, val };
+            Sql(R"sql(
+                select
+                    c.Height
+                from
+                    vTx t
+                    join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Hash = ?
+            )sql")
+            .Bind(hash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    cursor.Collect(0, [&](int64_t val) {
+                        result = { true, val };
+                    });
+                }
+            });
         });
 
         return result;
@@ -1540,42 +1844,89 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count()
-                from Transactions
-                where Type in (305, 306)
-                  and Height is null
-                  and String1 = ?
-                  and (String2 = ? or String3 is not null)
-            )sql");
-
-            stmt.Bind(address, addressTo);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t
+                where
+                    t.Type in (305, 306) and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
+                    t.RegId1 = str1.id and
+                    (t.RegId2 = str2.id or t.RegId3 > 0 )
+            )sql")
+            .Bind(address, addressTo)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    cursor.CollectAll(result);
+                }
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountMempoolSubscribe(const string& address, const string& addressTo)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions
-                where Type in (302, 303, 304)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, addressTo);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t
+                where
+                    t.Type in (302, 303, 304) and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str1.id
+            )sql")
+            .Bind(address, addressTo)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1587,67 +1938,113 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (204)
-                  and Height is null
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (204) and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainCommentTime(const string& address, int64_t time)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (204)
-                  and Height is not null
-                  and Time >= ?
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(time, address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_Time
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (204) and
+                    t.RegId1 = str1.id and
+                    t.Time >= ?
+            )sql")
+            .Bind(address, time)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainCommentHeight(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_Last_String1_Height_Id
-                where Type in (204,205,206)
-                  and Last = 1
-                  and Height is not null
-                  and Height >= ?
-                  and String1 = ?
-            )sql");
-
-            stmt.Bind(height, address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    cross join Last l on
+                        l.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
+                where
+                    t.Type in (204,205,206) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1659,67 +2056,115 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions
-                where Type in (307)
-                  and Height is null
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    cross join First f on
+                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
+                where
+                    t.Type in (307) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainComplainTime(const string& address, int64_t time)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions
-                where Type in (307)
-                  and Height is not null
-                  and Time >= ?
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(time, address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_Time
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (307) and
+                    t.RegId1 = str1.id and
+                    t.Time >= ?
+            )sql")
+            .Bind(address, time)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainComplainHeight(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions
-                where Type in (307)
-                  and Height is not null
-                  and Height >= ?
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(height, address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t
+                    join Chain c on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    cross join First f on
+                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
+                where
+                    t.Type in (307) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(height, address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1731,66 +2176,113 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (200)
-                  and Height is null
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (200) and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainPostTime(const string& address, int64_t time)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (200)
-                  and Height is not null
-                  and String1 = ?
-                  and Time >= ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address, time);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_Time
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (200) and
+                    t.RegId1 = str1.id and
+                    t.Time >= ?
+            )sql")
+            .Bind(address, time)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainPostHeight(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count()
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200)
-                  and String1 = ?
-                  and Height >= ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address, height);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    cross join First f on
+                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
+                where
+                    t.Type in (200) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1802,42 +2294,73 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (201)
-                  and Height is null
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (201) and
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainVideo(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (201)
-                  and String1 = ?
-                  and Height >= ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address, height);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    cross join First f on
+                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
+                where
+                    t.Type in (201) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1846,45 +2369,75 @@ namespace PocketDb
     int ConsensusRepository::CountMempoolArticle(const string& address)
     {
         int result = 0;
-
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (202)
-                  and Height is null
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (202) and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainArticle(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (202)
-                  and String1 = ?
-                  and Height >= ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address, height);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    cross join First f on
+                        f.TxId = c.TxId -- TODO (optimization): mb join in t.RowId?
+                where
+                    t.Type in (202) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1896,42 +2449,73 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (209)
-                  and Height is null
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (209) and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainStream(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (209)
-                  and String1 = ?
-                  and Height >= ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address, height);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    cross join First f on
+                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
+                where
+                    t.Type in (209) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1943,42 +2527,73 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (210)
-                  and Height is null
-                  and String1 = ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (210) and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainAudio(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (210)
-                  and String1 = ?
-                  and Height >= ?
-                  and Hash = String2
-            )sql");
-
-            stmt.Bind(address, height);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    cross join First f on
+                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
+                where
+                    t.Type in (210) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -1991,12 +2606,26 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (220)
-                  and Height is null
-                  and String1 = ?
-                  and Hash = String2
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type in (220) and
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2007,6 +2636,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainCollection(const string& address, int height)
     {
         int result = 0;
@@ -2014,12 +2644,28 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (220)
-                  and String1 = ?
-                  and Height >= ?
-                  and Hash = String2
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                    cross join First f on
+                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
+                where
+                    t.Type in (220) and
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address, height)
             .Select([&](Cursor& cursor) {
@@ -2037,64 +2683,107 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (301)
-                  and Height is null
-                  and String1 = ?
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (301) and
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainScoreCommentTime(const string& address, int64_t time)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (301)
-                  and Height is not null
-                  and String1 = ?
-                  and Time >= ?
-            )sql");
-
-            stmt.Bind(address, time);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_Time
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (301) and
+                    t.RegId1 = str1.id and
+                    t.Time >= ?
+            )sql")
+            .Bind(address, time)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainScoreCommentHeight(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (301)
-                  and Height is not null
-                  and Height >= ?
-                  and String1 = ?
-            )sql");
-
-            stmt.Bind(height, address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                where
+                    t.Type in (301) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2106,64 +2795,107 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (300)
-                  and Height is null
-                  and String1 = ?
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (300) and
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainScoreContentTime(const string& address, int64_t time)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (300)
-                  and Height is not null
-                  and String1 = ?
-                  and Time >= ?
-            )sql");
-
-            stmt.Bind(address, time);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_Time
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (300) and
+                    t.RegId1 = str1.id and
+                    t.Time >= ?
+            )sql")
+            .Bind(address, time)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainScoreContentHeight(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (300)
-                  and Height is not null
-                  and Height >= ?
-                  and String1 = ?
-            )sql");
-
-            stmt.Bind(height, address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                where
+                    t.Type in (300) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2175,41 +2907,69 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions
-                where Type in (103)
-                  and Height is null
-                  and String1 = ?
-            )sql");
-
-            stmt.Bind(address);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (103) and
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainAccountSetting(const string& address, int height)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (103)
-                  and Height is not null
-                  and Height >= ?
-                  and String1 = ?
-            )sql");
-
-            stmt.Bind(address, height);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c indexed by Chain_Height_Uid on
+                        c.TxId = t.RowId and
+                        c.Height >= ?
+                where
+                    t.Type in (103) and
+                    t.RegId1 = str1.id
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2256,44 +3016,88 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (204,205,206)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-            //         result = value;
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (204,205,206) and -- TODO (optimization): why include 204???
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainCommentEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (204,205,206)
-                  and Height is not null
-                  and Hash != String2
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (205,206) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2305,43 +3109,89 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200,207)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (200,207) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainPostEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200)
-                  and Height is not null
-                  and Hash != String2
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (200) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from First f where f.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2353,43 +3203,89 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (201,207)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,    
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (201,207) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainVideoEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (201)
-                  and Height is not null
-                  and Hash != String2
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count(*)
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (201) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from First f where f.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2401,43 +3297,90 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (202,207)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    -- TODO (optimization): check for not exists First???
+                    t.Type in (202,207) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainArticleEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (202)
-                  and Height is not null
-                  and Hash != String2
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (202) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from First f where f.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2449,43 +3392,89 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (209,207)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (209,207) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainStreamEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (209)
-                  and Height is not null
-                  and Hash != String2
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (209) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from First f where f.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2497,43 +3486,89 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (210,207)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (210,207) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountChainAudioEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (210)
-                  and Height is not null
-                  and Hash != String2
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type in (210) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from First f where f.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2546,12 +3581,34 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (220,207)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (220,207) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
@@ -2562,6 +3619,7 @@ namespace PocketDb
 
         return result;
     }
+
     int ConsensusRepository::CountChainCollectionEdit(const string& address, const string& rootTxHash, const int& nHeight, const int& depth)
     {
         int result = 0;
@@ -2569,16 +3627,41 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                select count(*)
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (220)
-                  and Height <= ?
-                  and Height > ?
-                  and Hash != String2
-                  and String1 = ?
-                  and String2 = ?
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain c on
+                        c.TxId = t.RowId and
+                        c.Height <= ? and
+                        c.Height > ?
+                where
+                    t.Type in (220) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    -- TODO (optimization): mb check agaings c.TxId???
+                    not exists (select 1 from First f where f.TxId = t.RowId)
             )sql")
-            .Bind(nHeight, nHeight - depth, address, rootTxHash)
+            .Bind(address, rootTxHash, nHeight, nHeight - depth)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                     cursor.CollectAll(result);
@@ -2594,19 +3677,41 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count()
-                from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200,201,202,209,210,211,220,207)
-                  and Height is null
-                  and String1 = ?
-                  and String2 = ?
-            )sql");
-
-            stmt.Bind(address, rootTxHash);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str2 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from 
+                    str1,
+                    str2,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                where
+                    t.Type in (200,201,202,209,210,211,220,207) and
+                    t.RegId1 = str1.id and
+                    t.RegId2 = str2.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+            )sql")
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2617,46 +3722,88 @@ namespace PocketDb
     int ConsensusRepository::CountModerationFlag(const string& address, int height, bool includeMempool)
     {
         int result = 0;
-        string whereMempool = includeMempool ? " or Height is null " : "";
+        string whereMempool = includeMempool ? " or c.TxId is null " : "";
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count()
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type = 410
-                  and String1 = ?
-                  and ( Height >= ? )sql" + whereMempool + R"sql( )
-            )sql");
-
-            stmt.Bind(address, height);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    left join Chain c on
+                        c.TxId = t.RowId
+                where
+                    t.Type = 410 and
+                    t.RegId1 = str1.id and
+                    ( c.Height >= ? )sql" + whereMempool + R"sql( )
+            )sql")
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
     }
+
     int ConsensusRepository::CountModerationFlag(const string& address, const string& addressTo, bool includeMempool)
     {
         int result = 0;
-        string whereMempool = includeMempool ? " or Height is null " : "";
+        auto onlyChain = !includeMempool;
+        string joinChain = onlyChain ? R"sql(
+            cross join Chain c on
+                c.TxId = t.RowId
+        )sql" : "";
 
         SqlTransaction(__func__, [&]()
         {
-            auto stmt = Sql(R"sql(
-                select count()
-                from Transactions indexed by Transactions_Type_String1_String3_Height
-                where Type = 410
-                  and String1 = ?
-                  and String3 = ?
-                  and ( Height > 0 )sql" + whereMempool + R"sql( )
-            )sql");
-
-            stmt.Bind(address, addressTo);
-
-            // if (stmt.Step())
-            //     stmt.Collect(result);
+            Sql(R"sql(
+                with
+                    str1 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    str3 as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    str1,
+                    str3,
+                    Transactions t indexed by Transactions_Type_RegId1_RegId3
+                    )sql" + joinChain + R"sql(
+                where
+                    t.Type = 410 and
+                    t.RegId1 = str1.id and
+                    t.RegId3 = str3.id
+            )sql")
+            .Bind(address, addressTo)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
         });
 
         return result;
@@ -2669,18 +3816,36 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                    address as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
                 select 1
                 from JuryModerators jm
                 where 
                     jm.FlagRowId = (
-                        select f.ROWID
-                        from Transactions f indexed by sqlite_autoindex_Transactions_1
+                        select f.RowId
+                        from vTx f
                         where f.Hash = ?
                     ) and
                     jm.AccountId = (
-                        select u.Id
-                        from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                        where u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = ?
+                        select
+                            c.Uid
+                        from
+                            address,
+                            Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            join Chain c on
+                                c.TxId = u.RowId
+                            cross join Last l on
+                                l.TxId = u.RowId
+                        where
+                            u.Type = 100 and
+                            u.RegId1 = address.id
                     )
             )sql")
             .Bind(flagTxHash, address)

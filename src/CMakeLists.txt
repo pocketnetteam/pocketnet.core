@@ -112,7 +112,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(CmakeCheckEndian.cmake)
 
 # LevelDB
-# TODO (build): only if EMBEDDED_LVLDB defined
+# Disable leveldb benchmarks because they break building
+# pocketnet.core with clang
+option(LEVELDB_BUILD_BENCHMARKS "" OFF)
 add_subdirectory(leveldb/)
 
 
@@ -556,6 +558,13 @@ add_library(${POCKETCOIN_COMMON}
         )
 target_include_directories(${POCKETCOIN_COMMON} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+set (POCKET_UTIL pocket_util)
+add_library(${POCKET_UTIL}
+        pocketdb/util/Empty.h
+        pocketdb/util/Empty.cpp
+)
+target_link_libraries(${POCKET_UTIL} PRIVATE ${POCKETCOIN_COMMON})
+
 # Pocket DB functional library.
 # It is divided to pocketdb-server part and this functional part
 set(POCKETDB pocketdb)
@@ -679,7 +688,7 @@ add_library(${POCKETDB}
         pocketdb/helpers/ShortFormModelsHelper.h
         pocketdb/helpers/ShortFormModelsHelper.cpp
         )
-target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
+    target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} ${POCKET_UTIL} univalue leveldb)
 
 
 # Pocketcoin support library
@@ -1195,7 +1204,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/barteron/Account.hpp
         pocketdb/consensus/Helper.cpp
         )
-target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
+    target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} ${POCKET_UTIL} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue leveldb)
 target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
