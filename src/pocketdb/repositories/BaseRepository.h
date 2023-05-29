@@ -36,13 +36,7 @@ namespace PocketDb
     protected:
         SQLiteDatabase& m_database;
 
-        string EscapeValue(string value)
-        {
-            boost::replace_all(value, "%", "\\%");
-            boost::replace_all(value, "_", "\\_");
-
-            return value;
-        }
+        string EscapeValue(string value);
 
         // General method for SQL operations
         // Locked with shutdownMutex
@@ -84,7 +78,7 @@ namespace PocketDb
 
                 int64_t nTime2 = GetTimeMicros();
 
-                LogPrint(BCLog::SQLBENCH, "SQL Bench `%s`: %.2fms\n", func, 0.001 * (nTime2 - nTime1));
+                BenchLog(func, 0.001 * (nTime2 - nTime1));
             }
             catch (const exception& ex)
             {
@@ -93,35 +87,15 @@ namespace PocketDb
             }
         }
 
-        Stmt& SqlSingleton(const string& sql)
-        {
-            auto itr = _statements.find(sql);
-            if (itr == _statements.end())
-            {
-                auto stmt = make_shared<Stmt>();
-                stmt->Init(m_database, sql);
-                itr = _statements.emplace(sql, std::move(stmt)).first;
-            }
+        Stmt& SqlSingleton(const string& sql);
 
-            return *itr->second;
-        }
+        Stmt Sql(const string& sql);
 
-        Stmt Sql(const string& sql)
-        {
-            Stmt stmt;
-            stmt.Init(m_database, sql);
-            return stmt;
-        }
+        void SetLastInsertRowId(int64_t value);
 
-        void SetLastInsertRowId(int64_t value)
-        {
-            sqlite3_set_last_insert_rowid(m_database.m_db, value);
-        }
+        int64_t GetLastInsertRowId();
 
-        int64_t GetLastInsertRowId()
-        {
-            return sqlite3_last_insert_rowid(m_database.m_db);
-        }
+        void BenchLog(const string& func, double time);
 
     public:
 

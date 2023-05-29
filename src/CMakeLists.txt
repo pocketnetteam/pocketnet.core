@@ -1143,6 +1143,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/services/WalController.h
         pocketdb/services/WalController.cpp
         pocketdb/repositories/BaseRepository.h
+        pocketdb/repositories/BaseRepository.cpp
         pocketdb/repositories/TransactionRepository.h
         pocketdb/repositories/TransactionRepository.cpp
         pocketdb/repositories/RatingsRepository.h

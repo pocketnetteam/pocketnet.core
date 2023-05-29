@@ -1067,12 +1067,13 @@ void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPool
 
 void CTxMemPool::CleanSQLite(const std::unordered_set<std::string>& hashes, MemPoolRemovalReason reason)
 {
-    AssertLockHeld(cs);
-    for (const auto& hash : hashes)
-    {
-        PocketDb::TransRepoInst.CleanTransaction(hash);
-        LogPrint(BCLog::MEMPOOL, "%s: Clean SQLite mempool tx with reason %d\n", hash, (int)reason);
-    }
+    // TODO (aok): do not remove before inspect
+    // AssertLockHeld(cs);
+    // for (const auto& hash : hashes)
+    // {
+    //     PocketDb::TransRepoInst.CleanTransaction(hash);
+    //     LogPrint(BCLog::MEMPOOL, "%s: Clean SQLite mempool tx with reason %d\n", hash, (int)reason);
+    // }
 }
 
 int CTxMemPool::Expire(std::chrono::seconds time)
