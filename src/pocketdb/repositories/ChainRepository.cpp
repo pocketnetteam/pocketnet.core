@@ -494,13 +494,13 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join (select TxId, json_array(RegId)ab_arr from Lists)ab on
+                        left join (select TxId, json_array(RegId)ab_arr from Lists)ab on
                             ab.TxId = a.RowId
                         join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                             b.Type in (305, 306) and
                             b.RegId1 = a.RegId1 and
                             ifnull(b.RegId2, -1) = ifnull(a.RegId2, -1) and
-                            (select json_array(lst.RegId) from Lists lst where lst.TxId = b.RowId) = ab.ab_arr
+                            ifnull((select json_array(lst.RegId) from Lists lst where lst.TxId = b.RowId), -1) = ifnull(ab.ab_arr, -1)
                         join Last l on -- primary key
                             l.TxId = b.RowId
                     where
