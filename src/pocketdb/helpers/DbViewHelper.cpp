@@ -70,10 +70,11 @@ public:
     bool Inject(PocketHelpers::PTransactionRef& tx, const PocketHelpers::TxContextualData& data) override
     {
         if (data.string1) tx->SetString1(*data.string1);
-        if (data.string2) tx->SetString1(*data.string2);
-        if (data.string4) tx->SetString1(*data.string4);
-        if (data.string5) tx->SetString1(*data.string5);
-        if (data.list) tx->SetString3(*data.list);
+        if (data.string2) tx->SetString2(*data.string2);
+        if (data.string3) tx->SetString3(*data.string4);
+        if (data.string4) tx->SetString4(*data.string4);
+        if (data.string5) tx->SetString5(*data.string5);
+        // TODO (optimization): different logic for Inject and Extract
         if (data.int1) tx->SetInt1(*data.int1);
 
         return true;
@@ -83,7 +84,7 @@ public:
     {
         data.string1 = tx->GetString1();
         data.string2 = tx->GetString2();
-        data.list = tx->GetString3();
+        data.string3 = tx->GetString3();
         data.string4 = tx->GetString4();
         data.string5 = tx->GetString5();
         data.int1 = tx->GetInt1().value_or(calculateIntField(tx->Outputs(), tx->Inputs()));
