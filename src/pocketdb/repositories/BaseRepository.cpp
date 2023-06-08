@@ -21,7 +21,7 @@ namespace PocketDb
         gStatEngineInstance.SetSqlBench(func, time);
     }
 
-    Stmt& BaseRepository::SqlSingleton(const string& sql)
+    Stmt& BaseRepository::Sql(const string& sql)
     {
         auto itr = _statements.find(sql);
         if (itr == _statements.end())
@@ -34,7 +34,7 @@ namespace PocketDb
         return *itr->second;
     }
 
-    Stmt BaseRepository::Sql(const string& sql)
+    Stmt BaseRepository::SqlSingleton(const string& sql)
     {
         Stmt stmt;
         stmt.Init(m_database, sql);
