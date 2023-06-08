@@ -2071,11 +2071,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join Chain c indexed by Chain_Height_Uid on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (307) and
                     t.RegId1 = str1.id
@@ -2150,12 +2150,12 @@ namespace PocketDb
                     count()
                 from
                     str1,
-                    Transactions t
-                    join Chain c on
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (307) and
                     t.RegId1 = str1.id
@@ -2269,11 +2269,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (200) and
                     t.RegId1 = str1.id
@@ -2347,11 +2347,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (201) and
                     t.RegId1 = str1.id
@@ -2424,11 +2424,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join in t.RowId?
                 where
                     t.Type in (202) and
                     t.RegId1 = str1.id
@@ -2502,11 +2502,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (209) and
                     t.RegId1 = str1.id
@@ -2580,11 +2580,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (210) and
                     t.RegId1 = str1.id
@@ -2658,11 +2658,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (220) and
                     t.RegId1 = str1.id
