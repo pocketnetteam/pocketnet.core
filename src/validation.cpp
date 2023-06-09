@@ -60,7 +60,7 @@
 #include "pocketdb/services/Accessor.h"
 #include "pocketdb/consensus/Helper.h"
 
-
+std::unordered_map<std::string, int> pocketProcessed;
 
 #define MICRO 0.000001
 #define MILLI 0.001
@@ -4415,7 +4415,8 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
     AssertLockNotHeld(cs_main);
 
     {
-        LogPrint(BCLog::BENCH, "--- ProcessBlock: %s\n", pblock->GetHash().GetHex());
+        const std::string hash = pblock->GetHash().GetHex();
+        LogPrint(BCLog::BENCH, "--- ProcessBlock: %s\n", hash);
         int64_t nTime1 = GetTimeMicros();
 
         CBlockIndex *pindex = nullptr;
@@ -4443,7 +4444,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
 
         // It is necessary to check that block and PocketBlock contain an equal number of transactions
         // Also check pocket block with general pocketnet consensus rules
-        if (ret)
+        if (ret && pocketProcessed.find(hash) == pocketProcessed.end())
         {
             int checkHeight = ::ChainActive().Height() + 1;
             
@@ -4460,7 +4461,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
                 *fNewBlock = false;
             }
                 
-            LogPrint(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, pblock->GetHash().GetHex());
+            LogPrint(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, hash);
         }
 
         int64_t nTime4 = GetTimeMicros();
@@ -4481,15 +4482,16 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
             pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime5 - nTime4) / (double)(pocketBlock->size() - 1));
 
         // Store pocketnet block to disk
-        if (ret)
+        if (ret && pocketProcessed.find(hash) == pocketProcessed.end())
         {
             try
             {
                 PocketDb::TransRepoInst.InsertTransactions(*pocketBlock);
+                pocketProcessed.emplace(hash, pindex->nHeight);
             }
             catch (const std::exception& e)
             {
-                LogPrintf("Error: ProcessNewBlock (%s) - %s\n", pblock->GetHash().GetHex(), e.what());
+                LogPrintf("Error: ProcessNewBlock (%s) - %s\n", hash, e.what());
                 ret = false;
                 *fNewBlock = false;
             }
@@ -4505,10 +4507,20 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
         if (!ret) {
             GetMainSignals().BlockChecked(*pblock, state);
             if (!state.IsValid()) {
-                return error("%s: ProcessNewBlock FAILED (block: %s) (%s)", __func__, pblock->GetHash().GetHex(), state.ToString());
+                return error("%s: ProcessNewBlock FAILED (block: %s) (%s)", __func__, hash, state.ToString());
             } else {
                 return false;
             }
+        }
+
+        // Clear pocketProcessed by height every 100 blocks
+        auto it = pocketProcessed.cbegin();
+        while (it != pocketProcessed.cend())
+        {
+            if (it->second < ::ChainActive().Height() - 100)
+                it = pocketProcessed.erase(it);
+            else
+                ++it;
         }
     }
 
