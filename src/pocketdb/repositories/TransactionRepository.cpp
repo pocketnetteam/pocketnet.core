@@ -80,9 +80,8 @@ namespace PocketDb
 
             switch (partType)
             {
-                case 0: {
+                case 0:
                     return ParseTransaction(cursor, data);
-                }
                 case 1:
                     return ParsePayload(cursor, data);
                 case 2:
@@ -146,7 +145,7 @@ namespace PocketDb
 
             if (auto[ok, value] = cursor.TryGetColumnString(13); ok) ptx->SetBlockHash(value);
 
-            if (auto[ok, value] = cursor.TryGetColumnString(14); ok) txContextData.list = value;
+            if (auto[ok, value] = cursor.TryGetColumnString(14); ok && value != "[]") txContextData.list = value;
 
             ptx->SetHash(collectData.txHash);
             collectData.ptx = move(ptx);            
