@@ -41,7 +41,7 @@ jobs:
       - name: Get branch name
         id: branch-name
         uses: tj-actions/branch-names@v6
-      - uses: andyoknen/pocketnetcore-build-action@v2
+      - uses: andyoknen/pocketnetcore-build-action@v3
         with:
           platform: ${{ matrix.platform }}
           branch: ${{ steps.branch-name.outputs.ref_branch }}
