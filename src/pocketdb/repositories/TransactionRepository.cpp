@@ -1262,15 +1262,17 @@ namespace PocketDb
     void TransactionRepository::InsertList(const string &list, const string& txHash)
     {
         Sql(R"sql(
-            with t as (
-                select a.RowId from Transactions a where a.HashId = (select r.RowId from Registry r where r.String = ?)
-            )
+            with
+                t as (
+                    select a.RowId from Transactions a where a.HashId = (select r.RowId from Registry r where r.String = ?)
+                )
             insert or ignore into Lists (TxId, OrderIndex, RegId)
-            select * from (
-                select t.RowId from t), 
+            select * from
+                (select t.RowId from t), 
                 (
-                    select key, -- key will be the index in array
-                    (select RowId from Registry where String = value) 
+                    select
+                        key, -- key will be the index in array
+                        (select RowId from Registry where String = value)
                     from json_each(?)
                 )
         )sql")

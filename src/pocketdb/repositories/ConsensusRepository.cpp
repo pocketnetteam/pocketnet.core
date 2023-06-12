@@ -657,8 +657,7 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                    -- TODO (optimization): generalize
-                    addr1 as (
+                    addrFrom as (
                         select
                             r.String as hash,
                             r.RowId as id
@@ -667,57 +666,36 @@ namespace PocketDb
                         where
                             r.String = ?
                     ),
-                    addrs2 as (
+                    addrTo as (
                         select
                             r.String as hash,
                             r.RowId as id
                         from
                             Registry r
                         where
+                            r.String != '' and
                             r.String in (select ? union select value from json_each(?))
-                    ),
-                    -- TODO (optimization): generalize
-                    sourceId as (
-                        select
-                            c.Uid as id
-                        from
-                            addr1,
-                            Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            join Chain c on
-                                c.TxId = t.RowId
-                        where
-                            t.Type in (100, 170) and
-                            t.RegId1 = addr1.id and
-                            exists (select 1 from Last l where l.TxId = t.RowId)
-                    ),
-                    targetIds as (
-                        select
-                            c.Uid as id
-                        from
-                            addrs2,
-                            Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            join Chain c on
-                                c.TxId = t.RowId
-                        where
-                            t.Type in (100, 170) and
-                            t.RegId1 = addrs2.id and
-                            exists (select 1 from Last l where l.TxId = t.RowId)
                     )
+
                 select 1
-                from
-                    sourceId,
-                    targetIds,
-                    BlockingLists b
+
+                -- Filter by FROM blocking
+                from addrFrom,
+                    addrTo
+                join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    t.Type in (305) and t.RegId1 = addrFrom.Id
+                join Last l on
+                    l.TxId = t.RowId
+                left join Lists lt on
+                    lt.TxId = t.RowId
                 where
-                    b.IdSource = sourceId.id and
-                    b.IdTarget = targetIds.id
+                    ifnull(lt.RegId, t.RegId2) = addrTo.id
+
                 limit 1
             )sql")
             .Bind(address, addressTo, addressesTo)
             .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                    if (auto [ok, value] = cursor.TryGetColumnInt(0); ok && value > 0)
-                        blockingExists = true;
+                blockingExists = cursor.Step();
             });
         });
 
