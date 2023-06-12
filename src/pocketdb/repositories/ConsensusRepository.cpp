@@ -679,17 +679,37 @@ namespace PocketDb
 
                 select 1
 
-                -- Filter by FROM blocking
-                from addrFrom,
+                from
+                    addrFrom,
                     addrTo
-                join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                    t.Type in (305) and t.RegId1 = addrFrom.Id
-                join Last l on
-                    l.TxId = t.RowId
-                left join Lists lt on
-                    lt.TxId = t.RowId
+
+                    join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        t.Type in (305) and t.RegId1 = addrFrom.Id
+                    join Last l on
+                        l.TxId = t.RowId
+                    left join Lists lt on
+                        lt.TxId = t.RowId
+
+                    -- Check registration transaction FROM
+                    join Transactions uf indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        uf.Type in (100, 170) and uf.RegId1 = addrFrom.id
+                    join Last ufl on
+                        ufl.TxId = uf.RowId
+
+                    -- Check registration transaction TO
+                    left join Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        ut.Type in (100, 170) and ut.RegId1 = lt.RegId
+                    left join Last utl on
+                        utl.TxId = ut.RowId
+
+                    left join Transactions utl indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        utl.Type in (100, 170) and utl.RegId1 = t.RegId2
+                    left join Last utll on
+                        utll.TxId = utl.RowId
+
                 where
-                    ifnull(lt.RegId, t.RegId2) = addrTo.id
+                    ifnull(lt.RegId, t.RegId2) = addrTo.id and
+                    ifnull(ut.RowId, utl.RowId) is not null
 
                 limit 1
             )sql")
