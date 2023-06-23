@@ -714,7 +714,12 @@ namespace PocketConsensus
 
         int64_t GetConsensusLimit(ConsensusLimit type) const
         {
-            return (--m_consensus_limits[type][Params().NetworkID()].upper_bound(Height))->second;
+            return GetConsensusLimit(type, Height);
+        }
+
+        static int64_t GetConsensusLimit(ConsensusLimit type, int height)
+        {
+            return (--m_consensus_limits[type][Params().NetworkID()].upper_bound(height))->second;
         }
 
         void Initialize(int height)
