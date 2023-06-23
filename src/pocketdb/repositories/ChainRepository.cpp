@@ -4,6 +4,46 @@
 
 #include "pocketdb/repositories/ChainRepository.h"
 
+#include "pocketdb/consensus/Base.h"
+
+#include "util/string.h"
+#include <array>
+
+namespace {
+    using namespace PocketTx;
+    // TODO (losty): move to a proper place
+    template <class T, size_t n>
+    class StringifyableArray
+    {
+    public:
+        template<class ...U>
+        StringifyableArray(U... u) 
+            : m_typesArr{{u...}}
+        { }
+
+        std::string ToString() const { return m_str; }
+        bool IsIn(T type) const { return find(m_typesArr.begin(), m_typesArr.end(), type) != m_typesArr.end(); };
+    private:
+        const std::array<T, n> m_typesArr;
+        const string m_str;
+    };
+    template <class T, class ...U>
+    StringifyableArray(T, U...) -> StringifyableArray<T, 1+sizeof...(U)>;
+
+    class SocialRegistryTypes
+    {
+    public:
+        static bool IsSatisfy(TxType type, bool isFirst)
+        {
+            return
+                Common.IsIn(type) ||
+                (FirstRequired.IsIn(type) && isFirst);
+        }
+        inline const static StringifyableArray FirstRequired { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_COMMENT };
+        inline const static StringifyableArray Common { ACTION_SCORE_COMMENT, ACTION_SCORE_CONTENT, ACTION_COMPLAIN };
+    };
+}
+
 namespace PocketDb
 {
     void ChainRepository::IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
@@ -37,6 +77,8 @@ namespace PocketDb
                     SetFirst(txInfo.Hash);
                 }
 
+                IndexSocialRegistry(txInfo, height, !lastTxId.has_value());
+
                 // All transactions must have a blockHash & height relation
                 InsertTransactionChainData(
                     blockHash,
@@ -49,6 +91,8 @@ namespace PocketDb
 
             // After set height and mark inputs as spent we need recalculcate balances
             IndexBalances(height);
+
+            DeleteExpiredSocialRegistry(height);
 
             int64_t nTime2 = GetTimeMicros();
 
@@ -237,6 +281,44 @@ namespace PocketDb
                 saldo.Amount != 0
         )sql")
         .Bind(height)
+        .Run();
+    }
+
+    void ChainRepository::IndexSocialRegistry(const TransactionIndexingInfo& txInfo, int height, bool isFirst)
+    {
+        if (!SocialRegistryTypes::IsSatisfy(txInfo.Type, isFirst)) return;
+
+        Sql(R"sql(
+            insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
+            with
+                address as (
+                    select
+                        t.RegId1 as id
+                    from
+                        vTx t
+                    where
+                        t.Hash = ?
+                )
+            select
+                address.id,
+                ?,
+                ?,
+                ?
+            from
+                address
+        )sql")
+        .Bind(txInfo.Hash, txInfo.Type, height, txInfo.BlockNumber)
+        .Run();
+    }
+
+    void ChainRepository::DeleteExpiredSocialRegistry(int height)
+    {
+        int minHeight = height - PocketConsensus::BaseConsensus::GetConsensusLimit(PocketConsensus::ConsensusLimit_depth, height);
+        Sql(R"sql(
+            delete from SocialRegistry
+            where Height < ? -- TODO (losty): may be <= ?
+        )sql")
+        .Bind(minHeight)
         .Run();
     }
 
@@ -1387,6 +1469,62 @@ namespace PocketDb
                 where Height >= ?
             )sql")
             .Bind(height)
+            .Run();
+        });
+    }
+
+    void ChainRepository::RestoreSocialRegistry(int height)
+    {
+        int minHeight = height - PocketConsensus::BaseConsensus::GetConsensusLimit(PocketConsensus::ConsensusLimit_depth, height);
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                delete from SocialRegistry
+                where
+                    Height > ?
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Restore content and comments (First required)
+            Sql(R"sql(
+                insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
+                select
+                    t.RegId1,
+                    t.Type,
+                    c.Height,
+                    c.BlockNum
+                from
+                    Chain c indexed by Chain_Height_Uid
+                    cross join First f on
+                        f.TxId = c.TxId
+                    join Transactions t on
+                        t.RowId = c.TxId and
+                        t.Type in ( )sql" + SocialRegistryTypes::FirstRequired.ToString() + R"sql()
+                where
+                    c.Height = ?
+            )sql")
+            .Bind(minHeight)
+            .Run();
+
+            // Restore actions
+            Sql(R"sql(
+                insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
+                select
+                    t.RegId1,
+                    t.Type,
+                    c.Height,
+                    c.BlockNum
+                from
+                    Chain c indexed by Chain_Height_Uid
+                    join Transactions t on
+                        t.RowId = c.TxId and
+                        t.Type in ( )sql" + SocialRegistryTypes::Common.ToString() + R"sql()
+                where
+                    c.Height = ?
+            )sql")
+            .Bind(minHeight)
             .Run();
         });
     }

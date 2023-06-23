@@ -159,9 +159,9 @@ namespace PocketConsensus
         virtual int GetChainCount(const VideoRef& ptx)
         {
 
-            return ConsensusRepoInst.CountChainVideo(
-                *ptx->GetAddress(),
-                Height - (int)GetConsensusLimit(ConsensusLimit_depth)
+            return ConsensusRepoInst.CountChainHeight(
+                *ptx->GetType(),
+                *ptx->GetAddress()
             );
         }
         virtual ConsensusValidateResult ValidateEditBlock(const VideoRef& ptx, const PocketBlockRef& block)

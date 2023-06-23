@@ -3720,6 +3720,39 @@ namespace PocketDb
         return result;
     }
 
+    int ConsensusRepository::CountChainHeight(TxType txType, const string& address)
+    {
+        int result = -1;
+        SqlTransaction(__func__, [&]() {
+            Sql(R"sql(
+                with
+                    address as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    address,
+                    SocialRegistry s indexed by SocialRegistry_Type_AddressId
+                where
+                    s.AddressId = address.id and
+                    s.Type = ?
+            )sql")
+            .Bind(address, (int)txType)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+
     /* MODERATION */
 
     int ConsensusRepository::CountModerationFlag(const string& address, int height, bool includeMempool)

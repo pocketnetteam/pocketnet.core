@@ -180,7 +180,7 @@ namespace PocketConsensus
     protected:
         int GetChainCount(const ComplainRef& ptx) override
         {
-            return ConsensusRepoInst.CountChainComplainHeight(*ptx->GetAddress(), Height - (int) GetConsensusLimit(ConsensusLimit_depth));
+            return ConsensusRepoInst.CountChainHeight(*ptx->GetType(), *ptx->GetAddress());
         }
     };
 

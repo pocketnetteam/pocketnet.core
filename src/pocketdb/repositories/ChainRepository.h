@@ -40,6 +40,7 @@ namespace PocketDb
         void RestoreRatings(int height);
         void RestoreBalances(int height);
         void RestoreChain(int height);
+        void RestoreSocialRegistry(int height);
 
         // Clear all calculated data
         bool ClearDatabase();
@@ -69,6 +70,9 @@ namespace PocketDb
         // Returns blockId
         void IndexBlockData(const std::string& blockHash);
         void InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id);
+
+        void IndexSocialRegistry(const TransactionIndexingInfo& txInfo, int height, bool isFirst);
+        void DeleteExpiredSocialRegistry(int height);
 
         pair<optional<int64_t>, optional<int64_t>> IndexSocial(const TransactionIndexingInfo& txInfo);
         string IndexAccount();

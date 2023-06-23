@@ -234,6 +234,8 @@ namespace PocketDb
 
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
 
+        int CountChainHeight(TxType txType, const string& address);
+
         /* MODERATION */
         int CountModerationFlag(const string& address, int height, bool includeMempool);
         int CountModerationFlag(const string& address, const string& addressTo, bool includeMempool);

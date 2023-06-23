@@ -316,6 +316,19 @@ namespace PocketDb
             ) without rowid;
         )sql");
 
+        // A helper table that consists of limited txs for a period of ConsensusLimit_depth
+        // TODO (losty): maybe rename!
+        _tables.emplace_back(R"sql(
+            create table if not exists SocialRegistry
+            (
+                AddressId int not null,
+                Type int not null,
+                Height int not null,
+                BlockNum int not null, -- TODO (losty): required only to not allow duplicates
+                primary key (Type, Height, AddressId, BlockNum)
+            ) without rowid;
+        )sql");
+
         _views.emplace_back(R"sql(
             drop view if exists vBadges;
 
@@ -446,6 +459,9 @@ namespace PocketDb
             create index if not exists JuryModerators_AccountId_FlagRowId on JuryModerators (AccountId, FlagRowId);
 
             create index if not exists Badges_Badge_Cancel_AccountId_Height on Badges (Badge, Cancel, AccountId, Height);
+
+            create index if not exists SocialRegistry_Type_AddressId on SocialRegistry (Type, AddressId);
+            create index if not exists SocialRegistry_Height on SocialRegistry (Height);
 
         )sql";
 
