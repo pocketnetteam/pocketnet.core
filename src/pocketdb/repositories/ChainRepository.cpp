@@ -18,8 +18,9 @@ namespace {
     public:
         template<class ...U>
         StringifyableArray(U... u) 
-            : m_typesArr{{u...}}
-        { }
+            : m_typesArr{{u...}},
+              m_str{Join<T>({m_typesArr.begin(), m_typesArr.end()}, ",", [](const T& e) -> string {return to_string(e);})}
+        {}
 
         std::string ToString() const { return m_str; }
         bool IsIn(T type) const { return find(m_typesArr.begin(), m_typesArr.end(), type) != m_typesArr.end(); };
