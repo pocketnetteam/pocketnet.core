@@ -15,144 +15,6 @@ namespace PocketConsensus
     using namespace PocketDb;
     typedef shared_ptr<User> UserRef;
 
-    class AccountUserConsensusOld : public AccountConsensus<User>
-    {
-    private:
-        using Base = AccountConsensus<User>;
-
-    public:
-        AccountUserConsensusOld() : AccountConsensus<User>()
-        {
-            Limits.Set("payload_size", 2000, 2000, 2000);
-        }
-        
-        ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
-        {
-            if (auto[ok, code] = Base::Validate(tx, ptx, block); !ok)
-                return {false, code};
-
-            // Get all the necessary data for transaction validation
-            consensusData = ConsensusRepoInst.AccountUser(
-                *ptx->GetAddress(),
-                Height - (int)GetConsensusLimit(ConsensusLimit_depth),
-                *ptx->GetPayloadName()
-            );
-
-            // Duplicate name
-            if (consensusData.DuplicatesChainCount > 0)
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameDouble))
-                    return {false, ConsensusResult_NicknameDouble};
-
-            // The deleted account cannot be restored
-            if ((TxType)consensusData.LastTxType == TxType::ACCOUNT_DELETE)
-                return {false, ConsensusResult_AccountDeleted};
-
-            // Daily change limit
-            // if (consensusData.EditsCount > GetConsensusLimit(edit_account_daily_count))
-            //     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_ChangeInfoLimit))
-            //         return {false, ConsensusResult_ChangeInfoLimit};
-
-            return Success;
-        }
-
-        ConsensusValidateResult Check(const CTransactionRef& tx, const UserRef& ptx) override
-        {
-            if (auto[ok, code] = Base::Check(tx, ptx); !ok)
-                return {false, code};
-             
-            // Check payload
-            if (!ptx->GetPayload()) return {false, ConsensusResult_Failed};
-
-            // Self referring
-            if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
-                return {false, ConsensusResult_ReferrerSelf};
-
-            // Name check
-            if (auto[ok, result] = CheckLogin(ptx); !ok)
-                return {false, result};
-
-            return Success;
-        }
-
-    protected:
-        ConsensusData_AccountUser consensusData;
-
-        ConsensusValidateResult ValidateBlock(const UserRef& ptx, const PocketBlockRef& block) override
-        {
-            // Only one transaction allowed in block
-            for (auto& blockTx: *block)
-            {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { ACCOUNT_USER, ACCOUNT_DELETE }) || *blockTx->GetHash() == *ptx->GetHash())
-                    continue;
-
-                auto blockPtx = static_pointer_cast<SocialTransaction>(blockTx);
-
-                // In the early stages of the network, double transactions were allowed in blocks
-                if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_ChangeInfoDoubleInBlock))
-                        return {false, ConsensusResult_ChangeInfoDoubleInBlock};
-
-                // We can allow "capture" another username in one block
-                if (TransactionHelper::IsIn(*blockPtx->GetType(), { ACCOUNT_USER }))
-                {
-                    auto blockUserPtx = static_pointer_cast<User>(blockTx);
-                    if (auto[ok, result] = ValidateBlockDuplicateName(ptx, blockUserPtx); !ok)
-                        return {false, result};
-                }
-            }
-
-            return Success;
-        }
-
-        ConsensusValidateResult ValidateMempool(const UserRef& ptx) override
-        {
-            if (consensusData.MempoolCount > 0)
-                return {false, ConsensusResult_ChangeInfoDoubleInMempool};
-
-            if (consensusData.DuplicatesMempoolCount > 0)
-                return {false, ConsensusResult_NicknameDouble};
-
-            return Success;
-        }
-        
-        virtual ConsensusValidateResult CheckLogin(const UserRef& ptx)
-        {
-            if (IsEmpty(ptx->GetPayloadName()))
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_Failed))
-                    return {false, ConsensusResult_Failed};
-
-            auto name = *ptx->GetPayloadName();
-            boost::algorithm::to_lower(name);
-
-            if (name.size() > 20)
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameLong))
-                    return {false, ConsensusResult_NicknameLong};
-            
-            if (!all_of(name.begin(), name.end(), [](unsigned char ch) { return ::isalnum(ch) || ch == '_'; }))
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_Failed))
-                    return {false, ConsensusResult_Failed};
-
-            return Success;
-        }
-    
-        virtual ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx)
-        {
-            auto ptxName = ptx->GetPayloadName() ? *ptx->GetPayloadName() : "";
-            boost::algorithm::to_lower(ptxName);
-
-            auto blockPtxName = blockPtx->GetPayloadName() ? *blockPtx->GetPayloadName() : "";
-            boost::algorithm::to_lower(blockPtxName);
-
-            if (ptxName == blockPtxName)
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameDouble))
-                    return {false, ConsensusResult_NicknameDouble};
-
-            return Success;
-        }
-    };
-
-
-
     class AccountUserConsensus : public AccountConsensus<User>
     {
     private:
@@ -209,8 +71,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateBlock(const UserRef& ptx, const PocketBlockRef& block) override
         {
-            // TODO (aok) : use here ExtractBlockPtxs
-
             // Only one transaction allowed in block
             for (auto& blockTx: *block)
             {
@@ -337,9 +197,8 @@ namespace PocketConsensus
             auto blockPtxName = blockPtx->GetPayloadName() ? *blockPtx->GetPayloadName() : "";
             boost::algorithm::to_lower(blockPtxName);
 
-            // TODO (aok): DEBUG!
             if (ptxName == blockPtxName)
-                //if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameDouble))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_NicknameDouble))
                     return {false, ConsensusResult_NicknameDouble};
 
             return Success;

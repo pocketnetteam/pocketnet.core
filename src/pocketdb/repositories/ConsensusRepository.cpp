@@ -291,67 +291,82 @@ namespace PocketDb
 
 
 
-    // bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
-    // {
-    //     auto result = false;
+    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
+    {
+        auto result = false;
 
-    //     if (addresses.empty())
-    //         return result;
+        if (addresses.empty())
+            return result;
 
-    //     // Build sql string
-    //     string sql = R"sql(
-    //         select count()
-    //         from Transactions indexed by Transactions_Type_Last_String1_Height_Id
-    //         where Type in (100)
-    //           and Last = 1
-    //           and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-    //           and Height is not null
-    //     )sql";
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                addrs as (
+                    select RowId
+                    from Registry
+                    where String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                )
 
-    //     // Execute
-    //     SqlTransaction(__func__, [&]()
-    //     {
-    //         auto& stmt = Sql(sql);
+                select count()
+                from
+                    addrs
+                    cross join Transactions t on
+                        t.Type in (100) and t.RegId1 = addrs.RowId
+                    cross join Last l on
+                        l.TxId = t.RowId
+            )sql")
+            .Bind(addresses)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    int dbCount = 0;
+                    cursor.CollectAll(dbCount);
+                    result = dbCount == (int)addresses.size();
+                }
+            });
+        });
 
-    //         stmt.Bind(addresses);
+        return result;
+    }
 
-    //         // if (stmt.Step())
-    //         //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-    //         //         result = (value == (int) addresses.size());
-    //     });
+    bool ConsensusRepository::ExistsAccountBan(const string& address, int height)
+    {
+        auto result = false;
 
-    //     return result;
-    // }
+        string sql = R"sql(
+            with
+            addr as (
+                select RowId
+                from Registry
+                where String = ?
+            )
 
-    // bool ConsensusRepository::ExistsAccountBan(const string& address, int height)
-    // {
-    //     auto result = false;
+            select
+                1
+            from
+                addr
+                cross join Transactions u indexed by Transactions_Type_RegId1_RegId3 on
+                    u.Type = 100 and u.RegId1 = addr.RowId
+                cross join Last l on
+                    l.TxId = u.RowId
+                cross join Chain c on
+                    c.TxId = u.RowId
+                cross join JuryBan b indexed by JuryBan_AccountId_Ending on
+                    b.AccountId = c.Uid and b.Ending > ?
+        )sql";
 
-    //     string sql = R"sql(
-    //         select
-    //             1
-    //         from
-    //             Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-    //             cross join JuryBan b indexed by JuryBan_AccountId_Ending
-    //                 on b.AccountId = u.Id and b.Ending > ?
-    //         where
-    //             u.Type = 100 and
-    //             u.Last = 1 and
-    //             u.String1 = ? and
-    //             u.Height > 0
-    //     )sql";
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
 
-    //     SqlTransaction(__func__, [&]()
-    //     {
-    //         Sql(sql)
-    //         .Bind(height, address)
-    //         .Select([&](Cursor& cursor) {
-    //             result = cursor.Step();
-    //         });
-    //     });
-
-    //     return result;
-    // }
+        return result;
+    }
 
 
     bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
