@@ -247,7 +247,8 @@ namespace PocketDb
             create table if not exists BlockingLists
             (
                 IdSource int not null,
-                IdTarget int not null
+                IdTarget int not null,
+                primary key (IdSource, IdTarget)
             );
         )sql");
 

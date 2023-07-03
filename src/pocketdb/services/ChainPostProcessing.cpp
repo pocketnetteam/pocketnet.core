@@ -38,7 +38,7 @@ namespace PocketServices
             ChainRepoInst.RestoreLast(height);
             ChainRepoInst.RestoreRatings(height);
             ChainRepoInst.RestoreBalances(height);
-            // ChainRepoInst.RollbackBlockingList(height);
+            ChainRepoInst.RollbackBlockingList(height);
             ChainRepoInst.RestoreModerationJury(height);
             ChainRepoInst.RestoreModerationBan(height);
             ChainRepoInst.RestoreBadges(height);

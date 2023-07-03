@@ -62,9 +62,6 @@ namespace PocketDb
 
     private:
 
-        // void RollbackBlockingList(int height);
-        // void ClearBlockingList();
-
         void SetFirst(const string& txHash);
 
         // Returns blockId
@@ -75,11 +72,13 @@ namespace PocketDb
         void DeleteExpiredSocialRegistry(int height);
 
         pair<optional<int64_t>, optional<int64_t>> IndexSocial(const TransactionIndexingInfo& txInfo);
+        void IndexSocialLastTx(const string& sql, const string& txHash, optional<int64_t>& id, optional<int64_t>& lastTxId);
         string IndexAccount();
         string IndexAccountSetting();
         string IndexContent();
         string IndexComment();
         string IndexBlocking();
+        void IndexBlockingList(const string& txHash);
         string IndexSubscribe();
         string IndexAccountBarteron();
 
