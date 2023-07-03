@@ -448,11 +448,8 @@ namespace PocketDb
 
             create index if not exists Balances_Value on Balances (Value);
 
-            -- TODO (optimization): maybe remove TxId from the index because it is literally the RowId and it
-            -- appears in the index anyway
-            create index if not exists Payload_String2_nocase_TxId on Payload (String2 collate nocase, TxId);
+            create index if not exists Payload_String2_nocase on Payload (String2 collate nocase);
             create index if not exists Payload_String7 on Payload (String7);
-            create index if not exists Payload_String1_TxId on Payload (String1, TxId);
 
             create index if not exists Jury_AccountId_Reason on Jury (AccountId, Reason);
             create index if not exists JuryBan_AccountId_Ending on JuryBan (AccountId, Ending);

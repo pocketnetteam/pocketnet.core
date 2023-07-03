@@ -99,7 +99,7 @@ namespace PocketDb
                     p.String2,
                     s.String1
                 from
-                    Payload p indexed by Payload_String2_nocase_TxId
+                    Payload p indexed by Payload_String2_nocase
                     cross join Transactions u on
                         u.RowId = p.TxId and
                         u.Type = 100
