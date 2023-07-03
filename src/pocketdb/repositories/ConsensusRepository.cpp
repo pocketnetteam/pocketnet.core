@@ -674,7 +674,6 @@ namespace PocketDb
                 with
                     addrFrom as (
                         select
-                            r.String as hash,
                             r.RowId as id
                         from
                             Registry r
@@ -683,7 +682,6 @@ namespace PocketDb
                     ),
                     addrTo as (
                         select
-                            r.String as hash,
                             r.RowId as id
                         from
                             Registry r
@@ -691,45 +689,27 @@ namespace PocketDb
                             r.String != '' and
                             r.String in (select ? union select value from json_each(?))
                     )
-
                 select 1
-
                 from
                     addrFrom,
                     addrTo
 
-                    join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        t.Type in (305) and t.RegId1 = addrFrom.Id
-                    join Last l on
-                        l.TxId = t.RowId
-                    join Chain c on
-                        c.TxId = t.RowId
-                    left join Lists lt on
-                        lt.TxId = t.RowId
+                    cross join Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        us.Type in (100, 170) and us.RegId1 = addrFrom.id
+                    cross join Chain usc on
+                        usc.TxId = us.RowId
+                    cross join Last usl on
+                        usl.TxId = us.RowId
 
-                    -- Check registration transaction FROM
-                    join Transactions uf indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        uf.Type in (100, 170) and uf.RegId1 = addrFrom.id
-                    join Last ufl on
-                        ufl.TxId = uf.RowId
-                    join Chain ufc on
-                        ufc.TxId = uf.RowId and ( (ufc.Height <> c.Height) or (ufc.Height = c.Height and ufc.BlockNum < c.BlockNum) )
+                    cross join Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        ut.Type in (100, 170) and ut.RegId1 = addrTo.id
+                    cross join Chain utc on
+                        utc.TxId = ut.RowId
+                    cross join Last utl on
+                        utl.TxId = ut.RowId
 
-                    -- Check registration transaction TO
-                    left join Transactions ut on
-                        ut.Type in (100, 170) and ut.RegId1 = t.RegId2
-                    left join Last utlast on
-                        utlast.TxId = ut.RowId
-
-                    left join Transactions utl on
-                        utl.Type in (100, 170) and utl.RegId1 = lt.RegId
-                    left join Last utlLast on
-                        utlLast.TxId = utl.RowId
-
-                where
-                    ifnull(lt.RegId, t.RegId2) = addrTo.id and
-                    ifnull(ut.RowId, utl.RowId) is not null and
-                    ifnull(utlast.TxId, utlLast.TxId) is not null
+                    cross join BlockingLists b on
+                        b.IdSource = usc.Uid and b.IdTarget = utc.Uid
 
                 limit 1
             )sql")
