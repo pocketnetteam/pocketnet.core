@@ -1595,7 +1595,7 @@ namespace PocketDb
                         cross join BlockingLists bl on
                             bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid
 
-                    where bc.Height >= 1886775
+                    where bc.Height >= ?
                 )
             )sql")
             .Bind(height)
