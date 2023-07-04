@@ -93,7 +93,7 @@ namespace PocketDb
             // After set height and mark inputs as spent we need recalculcate balances
             IndexBalances(height);
 
-            DeleteExpiredSocialRegistry(height);
+            EnsureAndTrimSocialRegistry(height);
 
             int64_t nTime2 = GetTimeMicros();
 
@@ -312,12 +312,66 @@ namespace PocketDb
         .Run();
     }
 
-    void ChainRepository::DeleteExpiredSocialRegistry(int height)
+    void ChainRepository::EnsureAndTrimSocialRegistry(int height)
     {
-        int minHeight = height - PocketConsensus::BaseConsensus::GetConsensusLimit(PocketConsensus::ConsensusLimit_depth, height);
+        // The table is always used only by the next block to validate limits, so ensure that limits are specified for the next block, not current.
+        int nextBlockHeight = height + 1; 
+        int minHeight = nextBlockHeight - PocketConsensus::BaseConsensus::GetConsensusLimit(PocketConsensus::ConsensusLimit_depth, nextBlockHeight);
+
+        // Trim from upper
         Sql(R"sql(
             delete from SocialRegistry
-            where Height < ? -- TODO (losty): may be <= ?
+            where
+                Height > ?
+        )sql")
+        .Bind(height)
+        .Run();
+
+        // Trim from bottom
+        Sql(R"sql(
+            delete from SocialRegistry
+            where
+                Height < ?
+        )sql")
+        .Bind(minHeight)
+        .Run();
+
+        // Restore content and comments (First required)
+        Sql(R"sql(
+            insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
+            select
+                t.RegId1,
+                t.Type,
+                c.Height,
+                c.BlockNum
+            from
+                Chain c indexed by Chain_Height_Uid
+                cross join First f on
+                    f.TxId = c.TxId
+                join Transactions t on
+                    t.RowId = c.TxId and
+                    t.Type in ( )sql" + SocialRegistryTypes::FirstRequired.ToString() + R"sql()
+            where
+                c.Height between ? and (select min(Height) from SocialRegistry)
+        )sql")
+        .Bind(minHeight)
+        .Run();
+
+        // Restore actions
+        Sql(R"sql(
+            insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
+            select
+                t.RegId1,
+                t.Type,
+                c.Height,
+                c.BlockNum
+            from
+                Chain c indexed by Chain_Height_Uid
+                join Transactions t on
+                    t.RowId = c.TxId and
+                    t.Type in ( )sql" + SocialRegistryTypes::Common.ToString() + R"sql()
+            where
+                c.Height between ? and (select min(Height) from SocialRegistry)
         )sql")
         .Bind(minHeight)
         .Run();
@@ -1510,57 +1564,9 @@ namespace PocketDb
 
     void ChainRepository::RestoreSocialRegistry(int height)
     {
-        int minHeight = height - PocketConsensus::BaseConsensus::GetConsensusLimit(PocketConsensus::ConsensusLimit_depth, height);
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                delete from SocialRegistry
-                where
-                    Height > ?
-            )sql")
-            .Bind(height)
-            .Run();
-
-            // Restore content and comments (First required)
-            Sql(R"sql(
-                insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
-                select
-                    t.RegId1,
-                    t.Type,
-                    c.Height,
-                    c.BlockNum
-                from
-                    Chain c indexed by Chain_Height_Uid
-                    cross join First f on
-                        f.TxId = c.TxId
-                    join Transactions t on
-                        t.RowId = c.TxId and
-                        t.Type in ( )sql" + SocialRegistryTypes::FirstRequired.ToString() + R"sql()
-                where
-                    c.Height = ?
-            )sql")
-            .Bind(minHeight)
-            .Run();
-
-            // Restore actions
-            Sql(R"sql(
-                insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
-                select
-                    t.RegId1,
-                    t.Type,
-                    c.Height,
-                    c.BlockNum
-                from
-                    Chain c indexed by Chain_Height_Uid
-                    join Transactions t on
-                        t.RowId = c.TxId and
-                        t.Type in ( )sql" + SocialRegistryTypes::Common.ToString() + R"sql()
-                where
-                    c.Height = ?
-            )sql")
-            .Bind(minHeight)
-            .Run();
+            EnsureAndTrimSocialRegistry(height);
         });
     }
 

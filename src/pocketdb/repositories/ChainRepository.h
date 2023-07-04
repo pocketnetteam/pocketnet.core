@@ -68,8 +68,9 @@ namespace PocketDb
         void IndexBlockData(const std::string& blockHash);
         void InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id);
 
-        void DeleteExpiredSocialRegistry(int height);
         void IndexSocialRegistryTx(const TransactionIndexingInfo& txInfo, int height, bool isFirst);
+        // Trims the SocialRegistry by limit and restores missing rows in case limit growth
+        void EnsureAndTrimSocialRegistry(int height);
 
         pair<optional<int64_t>, optional<int64_t>> IndexSocial(const TransactionIndexingInfo& txInfo);
         void IndexSocialLastTx(const string& sql, const string& txHash, optional<int64_t>& id, optional<int64_t>& lastTxId);
