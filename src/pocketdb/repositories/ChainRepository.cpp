@@ -78,7 +78,7 @@ namespace PocketDb
                     SetFirst(txInfo.Hash);
                 }
 
-                IndexSocialRegistry(txInfo, height, !lastTxId.has_value());
+                IndexSocialRegistryTx(txInfo, height, !lastTxId.has_value());
 
                 // All transactions must have a blockHash & height relation
                 InsertTransactionChainData(
@@ -285,7 +285,7 @@ namespace PocketDb
         .Run();
     }
 
-    void ChainRepository::IndexSocialRegistry(const TransactionIndexingInfo& txInfo, int height, bool isFirst)
+    void ChainRepository::IndexSocialRegistryTx(const TransactionIndexingInfo& txInfo, int height, bool isFirst)
     {
         if (!SocialRegistryTypes::IsSatisfy(txInfo.Type, isFirst)) return;
 
