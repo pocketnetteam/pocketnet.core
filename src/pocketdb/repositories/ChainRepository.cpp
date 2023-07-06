@@ -4,6 +4,47 @@
 
 #include "pocketdb/repositories/ChainRepository.h"
 
+#include "pocketdb/consensus/Base.h"
+
+#include "util/string.h"
+#include <array>
+
+namespace {
+    using namespace PocketTx;
+    // TODO (losty): move to a proper place
+    template <class T, size_t n>
+    class StringifyableArray
+    {
+    public:
+        template<class ...U>
+        StringifyableArray(U... u) 
+            : m_typesArr{{u...}},
+              m_str{Join<T>({m_typesArr.begin(), m_typesArr.end()}, ",", [](const T& e) -> string {return to_string(e);})}
+        {}
+
+        std::string ToString() const { return m_str; }
+        bool IsIn(T type) const { return find(m_typesArr.begin(), m_typesArr.end(), type) != m_typesArr.end(); };
+    private:
+        const std::array<T, n> m_typesArr;
+        const string m_str;
+    };
+    template <class T, class ...U>
+    StringifyableArray(T, U...) -> StringifyableArray<T, 1+sizeof...(U)>;
+
+    class SocialRegistryTypes
+    {
+    public:
+        static bool IsSatisfy(TxType type, bool isFirst)
+        {
+            return
+                Common.IsIn(type) ||
+                (FirstRequired.IsIn(type) && isFirst);
+        }
+        inline const static StringifyableArray FirstRequired { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE };
+        inline const static StringifyableArray Common { ACTION_SCORE_COMMENT, ACTION_SCORE_CONTENT, ACTION_COMPLAIN };
+    };
+}
+
 namespace PocketDb
 {
     void ChainRepository::IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
@@ -37,6 +78,8 @@ namespace PocketDb
                     SetFirst(txInfo.Hash);
                 }
 
+                IndexSocialRegistryTx(txInfo, height, !lastTxId.has_value());
+
                 // All transactions must have a blockHash & height relation
                 InsertTransactionChainData(
                     blockHash,
@@ -50,8 +93,9 @@ namespace PocketDb
             // After set height and mark inputs as spent we need recalculcate balances
             IndexBalances(height);
 
-            int64_t nTime2 = GetTimeMicros();
+            EnsureAndTrimSocialRegistry(height);
 
+            int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - IndexBlock: %.2fms\n", 0.001 * double(nTime2 - nTime1));
         });
     }
@@ -240,6 +284,98 @@ namespace PocketDb
         .Run();
     }
 
+    void ChainRepository::IndexSocialRegistryTx(const TransactionIndexingInfo& txInfo, int height, bool isFirst)
+    {
+        if (!SocialRegistryTypes::IsSatisfy(txInfo.Type, isFirst)) return;
+
+        Sql(R"sql(
+            insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
+            with
+                address as (
+                    select
+                        t.RegId1 as id
+                    from
+                        vTx t
+                    where
+                        t.Hash = ?
+                )
+            select
+                address.id,
+                ?,
+                ?,
+                ?
+            from
+                address
+        )sql")
+        .Bind(txInfo.Hash, txInfo.Type, height, txInfo.BlockNumber)
+        .Run();
+    }
+
+    void ChainRepository::EnsureAndTrimSocialRegistry(int height)
+    {
+        // The table is always used only by the next block to validate limits, so ensure that limits are specified for the next block, not current.
+        int nextBlockHeight = height + 1; 
+        int minHeight = nextBlockHeight - PocketConsensus::BaseConsensus::GetConsensusLimit(PocketConsensus::ConsensusLimit_depth, nextBlockHeight);
+        
+        // Trim from upper
+        Sql(R"sql(
+            delete from SocialRegistry
+            where
+                Height > ?
+        )sql")
+        .Bind(height)
+        .Run();
+        
+        // Trim from bottom
+        Sql(R"sql(
+            delete from SocialRegistry
+            where
+                Height < ?
+        )sql")
+        .Bind(minHeight)
+        .Run();
+        
+        // Restore content and comments (First required)
+        Sql(R"sql(
+            insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
+            select
+                t.RegId1,
+                t.Type,
+                c.Height,
+                c.BlockNum
+            from
+                Chain c indexed by Chain_Height_Uid
+                cross join First f on
+                    f.TxId = c.TxId
+                join Transactions t on
+                    t.RowId = c.TxId and
+                    t.Type in ( )sql" + SocialRegistryTypes::FirstRequired.ToString() + R"sql()
+            where
+                c.Height between ? and (select min(Height) from SocialRegistry)
+        )sql")
+        .Bind(minHeight)
+        .Run();
+        
+        // Restore actions
+        Sql(R"sql(
+            insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
+            select
+                t.RegId1,
+                t.Type,
+                c.Height,
+                c.BlockNum
+            from
+                Chain c indexed by Chain_Height_Uid
+                join Transactions t on
+                    t.RowId = c.TxId and
+                    t.Type in ( )sql" + SocialRegistryTypes::Common.ToString() + R"sql()
+            where
+                c.Height between ? and (select min(Height) from SocialRegistry)
+        )sql")
+        .Bind(minHeight)
+        .Run();
+    }
+
     pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const TransactionIndexingInfo& txInfo)
     {
         optional<int64_t> id;
@@ -249,28 +385,36 @@ namespace PocketDb
         // Account and Content must have unique ID
         // Also all edited transactions must have Last=(0/1) field
         if (txInfo.IsAccount())
-            sql = IndexAccount();
+            IndexSocialLastTx(IndexAccount(), txInfo.Hash, id, lastTxId);
         else if (txInfo.IsAccountSetting())
-            sql = IndexAccountSetting();
+            IndexSocialLastTx(IndexAccountSetting(), txInfo.Hash, id, lastTxId);
         else if (txInfo.IsContent())
-            sql = IndexContent();
+            IndexSocialLastTx(IndexContent(), txInfo.Hash, id, lastTxId);
         else if (txInfo.IsComment())
-            sql = IndexComment();
+            IndexSocialLastTx(IndexComment(), txInfo.Hash, id, lastTxId);
         else if (txInfo.IsBlocking())
-            sql = IndexBlocking();
+        {
+            IndexSocialLastTx(IndexBlocking(), txInfo.Hash, id, lastTxId);
+            IndexBlockingList(txInfo.Hash);
+        }
         else if (txInfo.IsSubscribe())
-            sql = IndexSubscribe();
+            IndexSocialLastTx(IndexSubscribe(), txInfo.Hash, id, lastTxId);
         else
             return {id, lastTxId};
 
+        
+
+        return {id, lastTxId};
+    }
+
+    void ChainRepository::IndexSocialLastTx(const string& sql, const string& txHash, optional<int64_t>& id, optional<int64_t>& lastTxId)
+    {
         Sql(sql)
-        .Bind(txInfo.Hash)
+        .Bind(txHash)
         .Select([&](Cursor& cursor) {
             if (cursor.Step())
                 cursor.CollectAll(id, lastTxId);
         });
-
-        return {id, lastTxId};
     }
 
     string ChainRepository::IndexAccount()
@@ -494,13 +638,13 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join (select TxId, json_array(RegId)ab_arr from Lists)ab on
+                        left join (select TxId, json_array(RegId)ab_arr from Lists)ab on
                             ab.TxId = a.RowId
                         join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                             b.Type in (305, 306) and
                             b.RegId1 = a.RegId1 and
                             ifnull(b.RegId2, -1) = ifnull(a.RegId2, -1) and
-                            (select json_array(lst.RegId) from Lists lst where lst.TxId = b.RowId) = ab.ab_arr
+                            ifnull((select json_array(lst.RegId) from Lists lst where lst.TxId = b.RowId), -1) = ifnull(ab.ab_arr, -1)
                         join Last l on -- primary key
                             l.TxId = b.RowId
                     where
@@ -541,57 +685,88 @@ namespace PocketDb
                     from l
                 )
         )sql";
+    }
 
-        // TODO (optimization): bad bad bad!!!
-        // SqlTransaction(__func__, [&]()
-        // {
-        //     auto insListStmt = Sql(R"sql(
-        //         insert into BlockingLists (IdSource, IdTarget)
-        //         select
-        //         usc.Id,
-        //         utc.Id
-        //         from Transactions b -- TODO (optimization): index
-        //         join Transactions us -- TODO (optimization): index
-        //         on us.Type in (100, 170) and us.Int1 = b.Int1
-        //         join Chain usc -- TODO (optimization): index
-        //         on usc.TxId = us.Id
-        //             and usc.Last = 1
-        //         join Transactions ut -- TODO (optimization): index
-        //         on ut.Type in (100, 170)
-        //             and ut.Int1 in (select b.Int2 union select cast(value as int) from json_each(b.Int3))
-        //         join Chain utc -- TODO (optimization): index
-        //         on utc.TxId = ut.Id
-        //             and utc.Last = 1
-        //         where b.Type in (305) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-        //             and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Id and bl.IdTarget = utc.Id)
-        //     )sql");
-        //     insListStmt->Bind(txHash);
-        //     TryStepStatement(insListStmt);
+    void ChainRepository::IndexBlockingList(const string& txHash)
+    {
+        Sql(R"sql(
+            with
+                block as (
+                    select RowId
+                    from Registry
+                    where String = ?
+                )
 
-        //     auto delListStmt = Sql(R"sql(
-        //         delete from BlockingLists
-        //         where exists
-        //         (select
-        //         1
-        //         from Transactions b -- TODO (optimization): index
-        //         join Transactions us -- TODO (optimization): index
-        //         on us.Type in (100, 170) and us.Int1 = b.Int1
-        //         join Chain usc -- TODO (optimization): index
-        //         on usc.TxId = us.Id
-        //             and usc.Last = 1
-        //             and usc.Id = BlockingLists.IdSource
-        //         join Transactions ut -- TODO (optimization): index
-        //         on ut.Type in (100, 170) and ut.Int1 = b.Int2
-        //         join Chain utc -- TODO (optimization): index
-        //         on utc.TxId = ut.Id
-        //             and utc.Last = 1
-        //             and utc.Id = BlockingLists.IdTarget
-        //         where b.Type in (306) and b.Id = (select RowId from Transactions where HashId = (select RowId from Registry where String = ?))
-        //         )
-        //     )sql");
-        //     delListStmt->Bind(txHash);
-        //     TryStepStatement(delListStmt);
-        // });
+            insert or ignore into BlockingLists (IdSource, IdTarget)
+
+            select
+                usc.Uid,
+                utc.Uid
+
+            from
+
+                block
+                cross join Transactions b on
+                    b.Type in (305) and b.HashId = block.RowId
+
+                cross join Transactions us on
+                    us.Type in (100, 170) and us.RegId1 = b.RegId1
+                cross join Chain usc on
+                    usc.TxId = us.RowId
+                cross join Last usl on
+                    usl.TxId = us.RowId
+
+                cross join Transactions ut on
+                    ut.Type in (100, 170) and ut.RegId1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
+                cross join Chain utc on
+                    utc.TxId = ut.RowId
+                cross join Last utl on
+                    utl.TxId = ut.RowId
+        )sql")
+        .Bind(txHash)
+        .Run();
+
+        Sql(R"sql(
+            with
+                block as (
+                    select RowId
+                    from Registry
+                    where String = ?
+                )
+
+            delete from BlockingLists
+                
+            where BlockingLists.ROWID in
+            (
+                select
+                    bl.ROWID
+
+                from
+
+                    block
+                    cross join Transactions b on
+                        b.Type in (306) and b.HashId = block.RowId
+
+                    cross join Transactions us on
+                        us.Type in (100, 170) and us.RegId1 = b.RegId1
+                    cross join Chain usc on
+                        usc.TxId = us.RowId
+                    cross join Last usl on
+                        usl.TxId = us.RowId
+
+                    cross join Transactions ut on
+                        ut.Type in (100, 170) and ut.RegId1 = b.RegId2
+                    cross join Chain utc on
+                        utc.TxId = ut.RowId
+                    cross join Last utl on
+                        utl.TxId = ut.RowId
+
+                    cross join BlockingLists bl on
+                        bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid
+            )
+        )sql")
+        .Bind(txHash)
+        .Run();
     }
 
     string ChainRepository::IndexSubscribe()
@@ -1192,9 +1367,7 @@ namespace PocketDb
                 Sql(R"sql( delete from JuryVerdict )sql").Run();
                 Sql(R"sql( delete from JuryBan )sql").Run();
                 Sql(R"sql( delete from Badges )sql").Run();
-
-                // TODO (aok) : bad
-                // ClearBlockingList();
+                Sql(R"sql( delete from BlockingLists )sql").Run();
             });
 
             m_database.CreateStructure();
@@ -1391,91 +1564,82 @@ namespace PocketDb
         });
     }
 
-    // void ChainRepository::RollbackBlockingList(int height)
-    // {
-    //     int64_t nTime0 = GetTimeMicros();
+    void ChainRepository::RestoreSocialRegistry(int height)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            EnsureAndTrimSocialRegistry(height);
+        });
+    }
 
-    //     auto& delListStmt = Sql(R"sql(
-    //         delete from BlockingLists where ROWID in
-    //         (
-    //             select bl.ROWID
-    //             from Transactions b
-    //             join Chain bc
-    //               on bc.TxId =  b.RowId
-    //                 and bc.Height >= ?
-    //             join Transactions us
-    //               on us.Type in (100, 170)
-    //                 and us.RegId1 = b.RegId1
-    //             join Chain usc
-    //               on usc.TxId = us.RowId
-    //             join Last usl
-    //               on usl.TxId = us.RowId
-    //             join Transactions ut
-    //               on ut.Type in (100, 170)
-    //                 and ut.Int1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
-    //             join Chain utc
-    //               on utc.TxId = ut.RowId
-    //             join Last utl
-    //               on utl.TxId = ut.RowId
-    //             join BlockingLists bl on bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid
-    //             where b.Type in (305)
-    //         )
-    //     )sql");
-    //     delListStmt->Bind(height);
-    //     delListStmt->Step();
-        
-    //     int64_t nTime1 = GetTimeMicros();
-    //     LogPrint(BCLog::BENCH, "        - RollbackList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
+    void ChainRepository::RollbackBlockingList(int height)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                delete from BlockingLists where ROWID in
+                (
+                    select bl.ROWID
+                    from
 
-    //     auto& insListStmt = Sql(R"sql(
-    //         insert into BlockingLists
-    //         (
-    //             IdSource,
-    //             IdTarget
-    //         )
-    //         select distinct
-    //           usc.Uid,
-    //           utc.Uid
-    //         from Transactions b
-    //         join Chain bc
-    //           on bc.TxId = b.RowId
-    //             and bc.Height >= ?
-    //         join Transactions us
-    //           on us.Type in (100, 170) and us.Int1 = b.Int1
-    //         join Chain usc
-    //           on usc.TxId = us.RowId
-    //         join Last usl
-    //             on usl.TxId = us.RowId
-    //         join Transactions ut
-    //           on ut.Type in (100, 170)
-    //             --and ut.String1 = b.String2
-    //             and ut.Int1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
-    //         join Chain utc
-    //           on utc.TxId = ut.RowId
-    //         join Last utl
-    //           on utl.TxId = ut.RowId
-    //         where b.Type in (306)
-    //           and not exists (select 1 from BlockingLists bl where bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid)
-    //     )sql");
-    //     insListStmt->Bind(height);
-    //     insListStmt->Step();
-        
-    //     int64_t nTime2 = GetTimeMicros();
-    //     LogPrint(BCLog::BENCH, "        - RollbackList (Insert blocking list): %.2fms\n", 0.001 * (nTime2 - nTime1));
-    // }
+                        Chain bc
+                        cross join Transactions b on
+                            b.RowId = bc.TxId and b.Type in (305)
 
-    // void ChainRepository::ClearBlockingList()
-    // {
-    //     int64_t nTime0 = GetTimeMicros();
+                        cross join Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            us.Type in (100, 170) and us.RegId1 = b.RegId1
+                        cross join Chain usc on
+                            usc.TxId = us.RowId
+                        cross join Last usl on
+                            usl.TxId = us.RowId
 
-    //     auto stmt = Sql(R"sql(
-    //         delete from BlockingLists
-    //     )sql");
-    //     stmt.Step();
-        
-    //     int64_t nTime1 = GetTimeMicros();
-    //     LogPrint(BCLog::BENCH, "        - ClearBlockingList (Delete blocking list): %.2fms\n", 0.001 * (nTime1 - nTime0));
-    // }
+                        cross join Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            ut.Type in (100, 170) and ut.RegId1 =b.RegId2 -- in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
+                        cross join Chain utc on
+                            utc.TxId = ut.RowId
+                        cross join Last utl on
+                            utl.TxId = ut.RowId
 
+                        cross join BlockingLists bl on
+                            bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid
+
+                    where bc.Height >= ?
+                )
+            )sql")
+            .Bind(height)
+            .Run();
+            
+            Sql(R"sql(
+                insert or ignore into BlockingLists (IdSource, IdTarget)
+                select distinct
+                    usc.Uid,
+                    utc.Uid
+                from
+
+                    Chain bc
+                    cross join Transactions b on
+                        b.RowId = bc.TxId and b.Type in (306)
+
+
+                    cross join Transactions us on
+                        us.Type in (100, 170) and us.RegId1 = b.RegId1
+                    cross join Chain usc on
+                        usc.TxId = us.RowId
+                    cross join Last usl on
+                        usl.TxId = us.RowId
+
+                    cross join Transactions ut on
+                        ut.Type in (100, 170) and ut.RegId1 = b.RegId2
+                    cross join Chain utc on
+                        utc.TxId = ut.RowId
+                    cross join Last utl on
+                        utl.TxId = ut.RowId
+
+                    where bc.Height >= ?
+            )sql")
+            .Bind(height)
+            .Run();
+        });
+    }
 
 } // namespace PocketDb

@@ -71,7 +71,7 @@ namespace PocketDb
         // Execute migration scripts
         if (gArgs.GetArg("-reindex", 0) == 0)
         {
-            // TODO (aok) : bad
+            // TODO (aok, losty) : Change for migration 021 -> 0.22
             // if (!MigrationRepoInst.CreateBlockingList())
             // {
             //     LogPrintf("SQLDB Migration: CreateBlockingList completed.\n");
@@ -80,7 +80,7 @@ namespace PocketDb
             // }
             
             // Any necessary logic for database modification
-            MigrationRepoInst.AddTransactionFirstField();
+            // MigrationRepoInst.AddTransactionFirstField();
         }
 
         // Open, create structure and close `web` db

@@ -79,12 +79,14 @@ namespace PocketConsensus
             return {*ptx->GetAddress()};
         }
     
+        // TODO (team) : fix with fork in future
         virtual int GetChainCount(const AccountSettingRef& ptx)
         {
-            return ConsensusRepoInst.CountChainAccountSetting(
-                *ptx->GetAddress(),
-                Height - (int)GetConsensusLimit(ConsensusLimit_depth)
-            );
+            return 0;
+            // return ConsensusRepoInst.CountChainAccountSetting(
+            //     *ptx->GetAddress(),
+            //     Height - (int)GetConsensusLimit(ConsensusLimit_depth)
+            // );
         }
     };
 

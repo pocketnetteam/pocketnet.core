@@ -247,7 +247,8 @@ namespace PocketDb
             create table if not exists BlockingLists
             (
                 IdSource int not null,
-                IdTarget int not null
+                IdTarget int not null,
+                primary key (IdSource, IdTarget)
             );
         )sql");
 
@@ -313,6 +314,19 @@ namespace PocketDb
                 Cancel      int   not null,
                 Height      int   not null,
                 primary key (AccountId, Badge, Cancel, Height)
+            ) without rowid;
+        )sql");
+
+        // A helper table that consists of limited txs for a period of ConsensusLimit_depth
+        // TODO (losty): maybe rename!
+        _tables.emplace_back(R"sql(
+            create table if not exists SocialRegistry
+            (
+                AddressId int not null,
+                Type int not null,
+                Height int not null,
+                BlockNum int not null, -- TODO (losty): required only to not allow duplicates
+                primary key (Type, Height, AddressId, BlockNum)
             ) without rowid;
         )sql");
 
@@ -404,12 +418,13 @@ namespace PocketDb
             create index if not exists Chain_Uid_Height on Chain (Uid, Height);
             create index if not exists Chain_Height_Uid on Chain (Height, Uid);
             create index if not exists Chain_Height_BlockId on Chain (Height, BlockId);
+            create index if not exists Chain_TxId_Height on Chain (TxId, Height);
 
             create unique index if not exists Registry_String on Registry (String);
 
             create unique index if not exists Transactions_HashId on Transactions (HashId);
             create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
-            create index if not exists Transactions_Type_RegId1__RegId3 on Transactions (Type, RegId1, RegId3);
+            create index if not exists Transactions_Type_RegId1_RegId3 on Transactions (Type, RegId1, RegId3);
             create index if not exists Transactions_Type_RegId2 on Transactions (Type, RegId2);
             create index if not exists Transactions_Type_RegId3 on Transactions (Type, RegId3);
             create index if not exists Transactions_Type_RegId5_RegId1 on Transactions (Type, RegId5, RegId1);
@@ -420,7 +435,7 @@ namespace PocketDb
 
             create index if not exists TxOutputs_TxId_Number_AddressId on TxOutputs (TxId, Number, AddressId);
 
-            create index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
+            create unique index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
 
             ------------------------------
 
@@ -433,11 +448,8 @@ namespace PocketDb
 
             create index if not exists Balances_Value on Balances (Value);
 
-            -- TODO (optimization): maybe remove TxId from the index because it is literally the RowId and it
-            -- appears in the index anyway
-            create index if not exists Payload_String2_nocase_TxId on Payload (String2 collate nocase, TxId);
+            create index if not exists Payload_String2_nocase on Payload (String2 collate nocase);
             create index if not exists Payload_String7 on Payload (String7);
-            create index if not exists Payload_String1_TxId on Payload (String1, TxId);
 
             create index if not exists Jury_AccountId_Reason on Jury (AccountId, Reason);
             create index if not exists JuryBan_AccountId_Ending on JuryBan (AccountId, Ending);
@@ -445,6 +457,9 @@ namespace PocketDb
             create index if not exists JuryModerators_AccountId_FlagRowId on JuryModerators (AccountId, FlagRowId);
 
             create index if not exists Badges_Badge_Cancel_AccountId_Height on Badges (Badge, Cancel, AccountId, Height);
+
+            create index if not exists SocialRegistry_Type_AddressId on SocialRegistry (Type, AddressId);
+            create index if not exists SocialRegistry_Height on SocialRegistry (Height);
 
         )sql";
 

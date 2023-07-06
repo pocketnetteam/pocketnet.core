@@ -104,7 +104,6 @@ namespace Statistic
             return sum / count;
         }
 
-
         RequestTime GetAvgExecutionTimeSince(RequestTime since)
         {
             LOCK(_samplesLock);
@@ -328,12 +327,7 @@ namespace Statistic
 
             LOCK(_sqlBenchRecordsLock);
 
-            // if (!_sqlBenchRecordsTimes.count(func))
-            //         _sqlBenchRecordsTimes[func] = 0;
             _sqlBenchRecordsTimes[func] += time;
-
-            // if (!_sqlBenchRecordsCounts.count(func))
-            //         _sqlBenchRecordsCounts[func] = 0;
             _sqlBenchRecordsCounts[func] += 1;
         }
 
@@ -427,12 +421,18 @@ namespace Statistic
 
             LOCK(_sqlBenchRecordsLock);
 
+            double ttl_time = 0;
+            int ttl_count = 0;
             for (const auto& rcrd : _sqlBenchRecordsTimes)
             {
                 int cnt = _sqlBenchRecordsCounts[rcrd.first];
                 double avg = rcrd.second / cnt;
-                result.pushKV(rcrd.first, boost::str(boost::format("%.2f") % avg) + "ms / " + to_string(cnt));
+                result.pushKV(rcrd.first, boost::str(boost::format("%.2f") % avg) + "ms / " + boost::str(boost::format("%.2f") % rcrd.second) + "ms / " + to_string(cnt));
+                
+                ttl_time += rcrd.second;
+                ttl_count += cnt;
             }
+            result.pushKV("!Total", boost::str(boost::format("%.2f") % (ttl_time/ttl_count)) + "ms / " + boost::str(boost::format("%.2f") % ttl_time) + "ms / " + to_string(ttl_count));
 
             _sqlBenchRecordsTimes.clear();
             _sqlBenchRecordsCounts.clear();

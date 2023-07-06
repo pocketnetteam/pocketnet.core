@@ -291,67 +291,82 @@ namespace PocketDb
 
 
 
-    // bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
-    // {
-    //     auto result = false;
+    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
+    {
+        auto result = false;
 
-    //     if (addresses.empty())
-    //         return result;
+        if (addresses.empty())
+            return result;
 
-    //     // Build sql string
-    //     string sql = R"sql(
-    //         select count()
-    //         from Transactions indexed by Transactions_Type_Last_String1_Height_Id
-    //         where Type in (100)
-    //           and Last = 1
-    //           and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-    //           and Height is not null
-    //     )sql";
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                addrs as (
+                    select RowId
+                    from Registry
+                    where String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                )
 
-    //     // Execute
-    //     SqlTransaction(__func__, [&]()
-    //     {
-    //         auto stmt = Sql(sql);
+                select count()
+                from
+                    addrs
+                    cross join Transactions t on
+                        t.Type in (100) and t.RegId1 = addrs.RowId
+                    cross join Last l on
+                        l.TxId = t.RowId
+            )sql")
+            .Bind(addresses)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    int dbCount = 0;
+                    cursor.CollectAll(dbCount);
+                    result = dbCount == (int)addresses.size();
+                }
+            });
+        });
 
-    //         stmt.Bind(addresses);
+        return result;
+    }
 
-    //         // if (stmt.Step())
-    //         //     if (auto[ok, value] = stmt.TryGetColumnInt(0); ok)
-    //         //         result = (value == (int) addresses.size());
-    //     });
+    bool ConsensusRepository::ExistsAccountBan(const string& address, int height)
+    {
+        auto result = false;
 
-    //     return result;
-    // }
+        string sql = R"sql(
+            with
+            addr as (
+                select RowId
+                from Registry
+                where String = ?
+            )
 
-    // bool ConsensusRepository::ExistsAccountBan(const string& address, int height)
-    // {
-    //     auto result = false;
+            select
+                1
+            from
+                addr
+                cross join Transactions u indexed by Transactions_Type_RegId1_RegId3 on
+                    u.Type = 100 and u.RegId1 = addr.RowId
+                cross join Last l on
+                    l.TxId = u.RowId
+                cross join Chain c on
+                    c.TxId = u.RowId
+                cross join JuryBan b indexed by JuryBan_AccountId_Ending on
+                    b.AccountId = c.Uid and b.Ending > ?
+        )sql";
 
-    //     string sql = R"sql(
-    //         select
-    //             1
-    //         from
-    //             Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-    //             cross join JuryBan b indexed by JuryBan_AccountId_Ending
-    //                 on b.AccountId = u.Id and b.Ending > ?
-    //         where
-    //             u.Type = 100 and
-    //             u.Last = 1 and
-    //             u.String1 = ? and
-    //             u.Height > 0
-    //     )sql";
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(address, height)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
 
-    //     SqlTransaction(__func__, [&]()
-    //     {
-    //         Sql(sql)
-    //         .Bind(height, address)
-    //         .Select([&](Cursor& cursor) {
-    //             result = cursor.Step();
-    //         });
-    //     });
-
-    //     return result;
-    // }
+        return result;
+    }
 
 
     bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
@@ -657,67 +672,50 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                    -- TODO (optimization): generalize
-                    addr1 as (
+                    addrFrom as (
                         select
-                            r.String as hash,
                             r.RowId as id
                         from
                             Registry r
                         where
                             r.String = ?
                     ),
-                    addrs2 as (
+                    addrTo as (
                         select
-                            r.String as hash,
                             r.RowId as id
                         from
                             Registry r
                         where
+                            r.String != '' and
                             r.String in (select ? union select value from json_each(?))
-                    ),
-                    -- TODO (optimization): generalize
-                    sourceId as (
-                        select
-                            c.Uid as id
-                        from
-                            addr1,
-                            Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            join Chain c on
-                                c.TxId = t.RowId
-                        where
-                            t.Type in (100, 170) and
-                            t.RegId1 = addr1.id and
-                            exists (select 1 from Last l where l.TxId = t.RowId)
-                    ),
-                    targetIds as (
-                        select
-                            c.Uid as id
-                        from
-                            addrs2,
-                            Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            join Chain c on
-                                c.TxId = t.RowId
-                        where
-                            t.Type in (100, 170) and
-                            t.RegId1 = addrs2.id and
-                            exists (select 1 from Last l where l.TxId = t.RowId)
                     )
                 select 1
                 from
-                    sourceId,
-                    targetIds,
-                    BlockingLists b
-                where
-                    b.IdSource = sourceId.id and
-                    b.IdTarget = targetIds.id
+                    addrFrom,
+                    addrTo
+
+                    cross join Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        us.Type in (100, 170) and us.RegId1 = addrFrom.id
+                    cross join Chain usc on
+                        usc.TxId = us.RowId
+                    cross join Last usl on
+                        usl.TxId = us.RowId
+
+                    cross join Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        ut.Type in (100, 170) and ut.RegId1 = addrTo.id
+                    cross join Chain utc on
+                        utc.TxId = ut.RowId
+                    cross join Last utl on
+                        utl.TxId = ut.RowId
+
+                    cross join BlockingLists b on
+                        b.IdSource = usc.Uid and b.IdTarget = utc.Uid
+
                 limit 1
             )sql")
             .Bind(address, addressTo, addressesTo)
             .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                    if (auto [ok, value] = cursor.TryGetColumnInt(0); ok && value > 0)
-                        blockingExists = true;
+                blockingExists = cursor.Step();
             });
         });
 
@@ -1577,16 +1575,16 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Chain c_sc
-                                    on c_sc.TxId = c_s.RowId
-                                cross join Transactions c_c indexed by Transactions_HashId
-                                    on c_c.HashId = c_s.RegId2 and c_c.RegId1 = c.RegId1
-                                cross join First f
-                                    on f.TxId = c_c.RowId
+                                cross join Chain c_sc on
+                                    c_sc.TxId = c_s.RowId
+                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    c_c.Type in ( 200, 201, 202, 209, 210, 207 ) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
+                                cross join Last l on
+                                    l.TxId = c_c.RowId
                                 where
                                     c_s.Type = s.Type and
                                     c_s.RegId1 = s.RegId1 and
-                                    c_s.Int1 in ( 1,2,3,4,5 ) and
+                                    c_s.Int1 in ( 1, 2, 3, 4, 5 ) and
                                     c_s.Time >= s.Time - time_depth.value and
                                     c_s.Time < s.Time and
                                     c_s.RowId != s.RowId
@@ -1596,16 +1594,16 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Chain c_sc
-                                    on c_sc.TxId = c_s.RowId
-                                cross join Transactions c_c indexed by Transactions_HashId
-                                    on c_c.HashId = c_s.RegId2 and c_c.RegId1 = c.RegId1
-                                cross join First f
-                                    on f.TxId = c_c.RowId
+                                cross join Chain c_sc on
+                                    c_sc.TxId = c_s.RowId
+                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    c_c.Type in ( 204, 205, 206 ) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
+                                cross join Last l on
+                                    l.TxId = c_c.RowId
                                 where
                                     c_s.Type = s.Type and
                                     c_s.RegId1 = s.RegId1 and
-                                    c_s.Int1 in ( -1,1 ) and
+                                    c_s.Int1 in ( -1, 1) and
                                     c_s.Time >= s.Time - time_depth.value and
                                     c_s.Time < s.Time and
                                     c_s.RowId != s.RowId
@@ -1620,12 +1618,12 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Chain c_sc
-                                    on c_sc.TxId = c_s.RowId
-                                cross join Transactions c_c indexed by Transactions_HashId
-                                    on c_c.HashId = c_s.RegId2 and c_c.RegId1 = c.RegId1
-                                cross join First f
-                                    on f.TxId = c_c.RowId
+                                cross join Chain c_sc on
+                                    c_sc.TxId = c_s.RowId
+                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    c_c.Type in ( 200, 201, 202, 209, 210, 207 ) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
+                                cross join Last l on
+                                    l.TxId = c_c.RowId
                                 where
                                     c_s.Type = s.Type and
                                     c_s.RegId1 = s.RegId1 and
@@ -1639,12 +1637,12 @@ namespace PocketDb
                                 select
                                     count()
                                 from Transactions c_s indexed by Transactions_Type_RegId1_Int1_Time
-                                cross join Chain c_sc
-                                    on c_sc.TxId = c_s.RowId
-                                cross join Transactions c_c indexed by Transactions_HashId
-                                    on c_c.HashId = c_s.RegId2 and c_c.RegId1 = c.RegId1
-                                cross join First f
-                                    on f.TxId = c_c.RowId
+                                cross join Chain c_sc on
+                                    c_sc.TxId = c_s.RowId
+                                cross join Transactions c_c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    c_c.Type in ( 204, 205, 206 ) and c_c.RegId1 = c.RegId1 and c_c.RegId2 = c_s.RegId2
+                                cross join Last l on
+                                    l.TxId = c_c.RowId
                                 where
                                     c_s.Type = s.Type and
                                     c_s.RegId1 = s.RegId1 and
@@ -2031,11 +2029,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
                     cross join Last l on
-                        l.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
+                        l.TxId = t.RowId
                 where
                     t.Type in (204,205,206) and
                     t.RegId1 = str1.id
@@ -2071,11 +2069,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join Chain c indexed by Chain_Height_Uid on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (307) and
                     t.RegId1 = str1.id
@@ -2150,12 +2148,12 @@ namespace PocketDb
                     count()
                 from
                     str1,
-                    Transactions t
-                    join Chain c on
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (307) and
                     t.RegId1 = str1.id
@@ -2269,11 +2267,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (200) and
                     t.RegId1 = str1.id
@@ -2347,11 +2345,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (201) and
                     t.RegId1 = str1.id
@@ -2424,11 +2422,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join in t.RowId?
                 where
                     t.Type in (202) and
                     t.RegId1 = str1.id
@@ -2502,11 +2500,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (209) and
                     t.RegId1 = str1.id
@@ -2580,11 +2578,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (210) and
                     t.RegId1 = str1.id
@@ -2658,11 +2656,11 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
-                    cross join First f on
-                        f.TxId = c.TxId -- TODO (optimization): mb join on t.RowId?
                 where
                     t.Type in (220) and
                     t.RegId1 = str1.id
@@ -2772,7 +2770,7 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
                 where
@@ -2884,7 +2882,7 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c on
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = t.RowId and
                         c.Height >= ?
                 where
@@ -2958,7 +2956,7 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    join Chain c indexed by Chain_Height_Uid on
+                    join Chain c on
                         c.TxId = t.RowId and
                         c.Height >= ?
                 where
@@ -3708,6 +3706,39 @@ namespace PocketDb
                     not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::CountChainHeight(TxType txType, const string& address)
+    {
+        int result = -1;
+        SqlTransaction(__func__, [&]() {
+            Sql(R"sql(
+                with
+                    address as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+                select
+                    count()
+                from
+                    address,
+                    SocialRegistry s indexed by SocialRegistry_Type_AddressId
+                where
+                    s.AddressId = address.id and
+                    s.Type = ?
+            )sql")
+            .Bind(address, (int)txType)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                     cursor.CollectAll(result);

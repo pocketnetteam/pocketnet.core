@@ -165,9 +165,9 @@ namespace PocketConsensus
         }
         virtual int GetChainCount(const ArticleRef& ptx)
         {
-            return ConsensusRepoInst.CountChainArticle(
-                *ptx->GetAddress(),
-                Height - (int)GetConsensusLimit(ConsensusLimit_depth)
+            return ConsensusRepoInst.CountChainHeight(
+                *ptx->GetType(),
+                *ptx->GetAddress()
             );
         }
         virtual tuple<bool, SocialConsensusResult> ValidateEditBlock(const ArticleRef& ptx, const PocketBlockRef& block)

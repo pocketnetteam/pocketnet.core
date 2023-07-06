@@ -80,9 +80,8 @@ namespace PocketDb
 
             switch (partType)
             {
-                case 0: {
+                case 0:
                     return ParseTransaction(cursor, data);
-                }
                 case 1:
                     return ParsePayload(cursor, data);
                 case 2:
@@ -146,7 +145,7 @@ namespace PocketDb
 
             if (auto[ok, value] = cursor.TryGetColumnString(13); ok) ptx->SetBlockHash(value);
 
-            if (auto[ok, value] = cursor.TryGetColumnString(14); ok) txContextData.list = value;
+            if (auto[ok, value] = cursor.TryGetColumnString(14); ok && value != "[]") txContextData.list = value;
 
             ptx->SetHash(collectData.txHash);
             collectData.ptx = move(ptx);            
@@ -839,7 +838,7 @@ namespace PocketDb
 
     void TransactionRepository::InsertTransactionInputs(const vector<TransactionInput>& inputs, const string& txHash)
     {
-        auto stmt = Sql(R"sql(
+        auto& stmt = Sql(R"sql(
             with
                 data as (
                     select
@@ -885,7 +884,7 @@ namespace PocketDb
     
     void TransactionRepository::InsertTransactionOutputs(const vector<TransactionOutput>& outputs, const string& txHash)
     {
-        auto stmt = Sql(R"sql(
+        auto& stmt = Sql(R"sql(
             with
                 tx as (
                     select
@@ -1199,7 +1198,7 @@ namespace PocketDb
     //     optional<string> hash;
     //     SqlTransaction(__func__, [&]()
     //     {
-    //         auto stmt = Sql(sql);
+    //         auto& stmt = Sql(sql);
     //         stmt.Bind(id);
     //         if (stmt.Step())
     //             if (auto [ok, val] = stmt.TryGetColumnString(0); ok)
@@ -1220,7 +1219,7 @@ namespace PocketDb
     //     optional<int64_t> id;
     //     SqlTransaction(__func__, [&]()
     //     {
-    //         auto stmt = Sql(sql);
+    //         auto& stmt = Sql(sql);
     //         stmt.Bind(hash);
     //         if (stmt.Step())
     //             if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
@@ -1235,7 +1234,7 @@ namespace PocketDb
         if (strings.empty())
             return;
 
-        auto stmt = Sql(R"sql(
+        auto& stmt = Sql(R"sql(
             insert or ignore into Registry (String)
             values (?)
         )sql");
@@ -1250,7 +1249,7 @@ namespace PocketDb
         if (lists.empty())
             return;
 
-        auto stmt = Sql(R"sql(
+        auto& stmt = Sql(R"sql(
             insert or ignore into Registry (string)
             select value from json_each(?)
         )sql");
@@ -1263,15 +1262,17 @@ namespace PocketDb
     void TransactionRepository::InsertList(const string &list, const string& txHash)
     {
         Sql(R"sql(
-            with t as (
-                select a.RowId from Transactions a where a.HashId = (select r.RowId from Registry r where r.String = ?)
-            )
+            with
+                t as (
+                    select a.RowId from Transactions a where a.HashId = (select r.RowId from Registry r where r.String = ?)
+                )
             insert or ignore into Lists (TxId, OrderIndex, RegId)
-            select * from (
-                select t.RowId from t), 
+            select * from
+                (select t.RowId from t), 
                 (
-                    select key, -- key will be the index in array
-                    (select RowId from Registry where String = value) 
+                    select
+                        key, -- key will be the index in array
+                        (select RowId from Registry where String = value)
                     from json_each(?)
                 )
         )sql")

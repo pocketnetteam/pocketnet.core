@@ -64,6 +64,7 @@ namespace PocketConsensus
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
+
         ConsensusValidateResult Check(const CTransactionRef& tx, const ComplainRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -78,6 +79,7 @@ namespace PocketConsensus
         }
 
     protected:
+
         ConsensusValidateResult ValidateBlock(const ComplainRef& ptx, const PocketBlockRef& block) override
         {
             int count = GetChainCount(ptx);
@@ -107,6 +109,7 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
+
         ConsensusValidateResult ValidateMempool(const ComplainRef& ptx) override
         {
             // Check double complain
@@ -118,6 +121,7 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
+
         vector<string> GetAddressesForCheckRegistration(const ComplainRef& ptx) override
         {
             return {*ptx->GetAddress()};
@@ -129,6 +133,7 @@ namespace PocketConsensus
             GetConsensusLimit(ConsensusLimit_full_complain) : 
             GetConsensusLimit(ConsensusLimit_trial_complain);
         }
+
         virtual ConsensusValidateResult ValidateLimit(const ComplainRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
@@ -143,22 +148,19 @@ namespace PocketConsensus
 
             return Success;
         }
+
         virtual bool CheckBlockLimitTime(const ComplainRef& ptx, const ComplainRef& blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
+
         virtual int GetChainCount(const ComplainRef& ptx)
         {
-            return ConsensusRepoInst.CountChainComplainTime(
-                *ptx->GetAddress(),
-                *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
-            );
+            return 0;
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1124000 block
-    *******************************************************************************************************************/
+
     class ComplainConsensus_checkpoint_1124000 : public ComplainConsensus
     {
     public:
@@ -170,17 +172,15 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1180000 block
-    *******************************************************************************************************************/
-    class ComplainConsensus_checkpoint_1180000 : public ComplainConsensus_checkpoint_1124000
+
+    class ComplainConsensus_checkpoint_pip_102 : public ComplainConsensus_checkpoint_1124000
     {
     public:
-        ComplainConsensus_checkpoint_1180000() : ComplainConsensus_checkpoint_1124000() {}
+        ComplainConsensus_checkpoint_pip_102() : ComplainConsensus_checkpoint_1124000() {}
     protected:
         int GetChainCount(const ComplainRef& ptx) override
         {
-            return ConsensusRepoInst.CountChainComplainHeight(*ptx->GetAddress(), Height - (int) GetConsensusLimit(ConsensusLimit_depth));
+            return ConsensusRepoInst.CountChainHeight(*ptx->GetType(), *ptx->GetAddress());
         }
     };
 
@@ -194,7 +194,8 @@ namespace PocketConsensus
         {
             Checkpoint({       0, -1, -1, make_shared<ComplainConsensus>() });
             Checkpoint({ 1124000, -1, -1, make_shared<ComplainConsensus_checkpoint_1124000>() });
-            Checkpoint({ 1180000,  0,  0, make_shared<ComplainConsensus_checkpoint_1180000>() });
+            // TODO (aok, team): set fork height for enable this limit
+            Checkpoint({ 9999999,  0,  0, make_shared<ComplainConsensus_checkpoint_pip_102>() });
         }
     };
 

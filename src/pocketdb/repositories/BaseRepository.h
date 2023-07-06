@@ -87,9 +87,9 @@ namespace PocketDb
             }
         }
 
-        Stmt& SqlSingleton(const string& sql);
+        Stmt SqlSingleton(const string& sql);
 
-        Stmt Sql(const string& sql);
+        Stmt& Sql(const string& sql);
 
         void SetLastInsertRowId(int64_t value);
 

@@ -42,6 +42,7 @@
 #include "websocket/ws.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 using namespace PocketHelpers;
+extern std::unordered_map<std::string, int> pocketProcessed;
 
 extern std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
 extern std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;

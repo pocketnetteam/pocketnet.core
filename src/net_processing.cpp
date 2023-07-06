@@ -857,29 +857,38 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
             }
 
             // We need recheck all pocketnet data exists
-            bool block_have_data = false;
-            if (pindex->nStatus & BLOCK_HAVE_DATA)
-            {
-                block_have_data = true;
+            bool block_have_data = pindex->nStatus & BLOCK_HAVE_DATA;
+            // if (pindex->nStatus & BLOCK_HAVE_DATA)
+            // {
+            //     block_have_data = true;
 
-                CBlock block;
-                if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
-                    block_have_data = false;
+            //     CBlock block;
+            //     if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
+            //     {
+            //         block_have_data = false;
+            //         LogPrintf("FindNextBlocksToDownload Don't read block from disk %d -> %s\n", pindex->nHeight, pindex->GetBlockHash().GetHex());
+            //     }
                     
-                if (block_have_data)
-                {
-                    std::vector<std::string> txHashes;
-                    for (const auto& tx : block.vtx)
-                        if (!tx->IsCoinBase())
-                            txHashes.push_back(tx->GetHash().GetHex());
+            //     if (block_have_data)
+            //     {
+            //         std::vector<std::string> txHashes;
+            //         for (const auto& tx : block.vtx)
+            //             if (!tx->IsCoinBase())
+            //                 txHashes.push_back(tx->GetHash().GetHex());
 
-                    block_have_data = PocketServices::Accessor::ExistsTransactions(txHashes);
-                }
-            }
+            //         block_have_data = PocketServices::Accessor::ExistsTransactions(txHashes);
+            //         LogPrintf("FindNextBlocksToDownload ExistsTransactions %d -> %d\n", pindex->nHeight, block_have_data);
+            //         if (!block_have_data)
+            //             LogPrintf("FindNextBlocksToDownload Don't exists all txs in sqlite %d -> %s\n", pindex->nHeight, pindex->GetBlockHash().GetHex());
+            //     }
+            // }
+            // else
+            // {
+            //     LogPrintf("FindNextBlocksToDownload Don't BLOCK_HAVE_DATA %d -> %s\n", pindex->nHeight, pindex->GetBlockHash().GetHex());
+            // }
 
-            if (block_have_data || ::ChainActive().Contains(pindex)) {
-                if (pindex->HaveTxsDownloaded())
-                    state->pindexLastCommonBlock = pindex;
+            if ((block_have_data || ::ChainActive().Contains(pindex)) && pindex->HaveTxsDownloaded()) {
+                state->pindexLastCommonBlock = pindex;
             } else if (mapBlocksInFlight.count(pindex->GetBlockHash()) == 0) {
                 // The block is not already downloaded, and not yet in flight.
                 if (pindex->nHeight > nWindowEnd) {

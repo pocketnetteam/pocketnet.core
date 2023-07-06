@@ -186,6 +186,31 @@ namespace PocketConsensus
         }
     };
 
+    class BlockingConsensus_checkpoint_pip_101 : public BlockingConsensus_checkpoint_multiple_blocking
+    {
+    public:
+        BlockingConsensus_checkpoint_pip_101() : BlockingConsensus_checkpoint_multiple_blocking() {}
+    protected:
+        vector <string> GetAddressesForCheckRegistration(const BlockingRef& ptx) override
+        {
+            vector <string> addresses;
+
+            addresses.emplace_back(*ptx->GetAddress());
+
+            if (!IsEmpty(ptx->GetAddressTo()))
+                addresses.emplace_back(*ptx->GetAddressTo());
+
+            if (!IsEmpty(ptx->GetAddressesTo()))
+            {
+                UniValue addrs(UniValue::VARR);
+                addrs.read(*ptx->GetAddressesTo());
+                for (size_t i = 0; i < addrs.size(); ++i)
+                    addresses.emplace_back(addrs[i].get_str());
+            }
+
+            return addresses;
+        }
+    };
 
     // ----------------------------------------------------------------------------------------------
     // Factory for select actual rules version
@@ -195,7 +220,8 @@ namespace PocketConsensus
         BlockingConsensusFactory()
         {
             Checkpoint({       0,       0, -1, make_shared<BlockingConsensus>() });
-            Checkpoint({ 1873500, 1114500,  0, make_shared<BlockingConsensus_checkpoint_multiple_blocking>() });
+            Checkpoint({ 1873500, 1114500, -1, make_shared<BlockingConsensus_checkpoint_multiple_blocking>() });
+            Checkpoint({ 2360000, 1950500,  0, make_shared<BlockingConsensus_checkpoint_pip_101>() });
         }
     };
 

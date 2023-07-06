@@ -276,10 +276,10 @@ namespace PocketConsensus
     };
 
 
-    class LotteryConsensus_bip_100 : public LotteryConsensus_checkpoint_1180000
+    class LotteryConsensus_pip_100 : public LotteryConsensus_checkpoint_1180000
     {
     public:
-        LotteryConsensus_bip_100() : LotteryConsensus_checkpoint_1180000()
+        LotteryConsensus_pip_100() : LotteryConsensus_checkpoint_1180000()
         {
             Limits.Set("max_winners_counts", 5, 5, 5);
         }
@@ -318,7 +318,7 @@ namespace PocketConsensus
             Checkpoint({ 1035000,      -1, -1, make_shared<LotteryConsensus_checkpoint_1035000>() });
             Checkpoint({ 1124000,      -1, -1, make_shared<LotteryConsensus_checkpoint_1124000>() });
             Checkpoint({ 1180000,       0,  0, make_shared<LotteryConsensus_checkpoint_1180000>() });
-            Checkpoint({ 2162400, 1650652,  0, make_shared<LotteryConsensus_bip_100>() });
+            Checkpoint({ 2162400, 1650652,  0, make_shared<LotteryConsensus_pip_100>() });
         }
     };
 

@@ -40,6 +40,7 @@ namespace PocketDb
         void RestoreRatings(int height);
         void RestoreBalances(int height);
         void RestoreChain(int height);
+        void RestoreSocialRegistry(int height);
 
         // Clear all calculated data
         bool ClearDatabase();
@@ -61,21 +62,24 @@ namespace PocketDb
 
     private:
 
-        // void RollbackBlockingList(int height);
-        // void ClearBlockingList();
-
         void SetFirst(const string& txHash);
 
         // Returns blockId
         void IndexBlockData(const std::string& blockHash);
         void InsertTransactionChainData(const string& blockHash, int blockNumber, int height, const string& txHash, const optional<int64_t>& id);
 
+        void IndexSocialRegistryTx(const TransactionIndexingInfo& txInfo, int height, bool isFirst);
+        // Trims the SocialRegistry by limit and restores missing rows in case limit growth
+        void EnsureAndTrimSocialRegistry(int height);
+
         pair<optional<int64_t>, optional<int64_t>> IndexSocial(const TransactionIndexingInfo& txInfo);
+        void IndexSocialLastTx(const string& sql, const string& txHash, optional<int64_t>& id, optional<int64_t>& lastTxId);
         string IndexAccount();
         string IndexAccountSetting();
         string IndexContent();
         string IndexComment();
         string IndexBlocking();
+        void IndexBlockingList(const string& txHash);
         string IndexSubscribe();
         string IndexAccountBarteron();
 
