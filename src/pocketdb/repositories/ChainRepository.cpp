@@ -93,7 +93,7 @@ namespace PocketDb
             // After set height and mark inputs as spent we need recalculcate balances
             IndexBalances(height);
 
-            EnsureAndTrimSocialRegistry(height);
+            EnsureAndTrimSocialRegistry(height + 1); // Count for next block
 
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - IndexBlock: %.2fms\n", 0.001 * double(nTime2 - nTime1));
@@ -313,15 +313,13 @@ namespace PocketDb
 
     void ChainRepository::EnsureAndTrimSocialRegistry(int height)
     {
-        // The table is always used only by the next block to validate limits, so ensure that limits are specified for the next block, not current.
-        int nextBlockHeight = height + 1; 
-        int minHeight = nextBlockHeight - PocketConsensus::BaseConsensus::GetConsensusLimit(PocketConsensus::ConsensusLimit_depth, nextBlockHeight);
+        int minHeight = height - PocketConsensus::BaseConsensus::GetConsensusLimit(PocketConsensus::ConsensusLimit_depth, height);
         
         // Trim from upper
         Sql(R"sql(
             delete from SocialRegistry
             where
-                Height > ?
+                Height >= ?
         )sql")
         .Bind(height)
         .Run();
@@ -1568,9 +1566,7 @@ namespace PocketDb
     {
         SqlTransaction(__func__, [&]()
         {
-            // Below method ensures for specified height.
-            // Still `height` param is the block to delete ensure for `height - 1`
-            EnsureAndTrimSocialRegistry(height - 1);
+            EnsureAndTrimSocialRegistry(height);
         });
     }
 
