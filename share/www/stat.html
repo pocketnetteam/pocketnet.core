@@ -1,108 +1,123 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PocketnetCore Monitoring</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
     <style>
         body {
-            font-family: "Roboto", sans-serif;
+            font-family: 'Roboto', sans-serif;
             padding: 15px;
+            background-color: #fff;
         }
-
-        h1 {
-            text-align: center;
-        }
-
-        #update-counter {
-            float: right;
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
         }
-
-        th, td {
-            padding: 15px;
-            text-align: right;
+        tr:hover td {
+            background-color: #a2d6ff;
         }
-
         th {
-            width: 20%;
             background-color: #007bff;
             color: white;
+            text-align: left;
+            width: 20%;
         }
-
-        tr:nth-child(even) {
+        .tHead {
+            background-color: #c8dcf1;
+        }
+        td {
+            text-align: right;
+            padding: 2px 2px 2px 2px;
+            word-break: break-all;
+            font-size: 0.8em;
+        }
+        .tKey {
+            font-size: 0.7em;
+            text-align: left;
+            word-break: normal;
+            background-color: #f9f9f9;
+        }
+        #updateCounter {
+            text-align: right;
+        }
+        .tEgg {
             background-color: white;
         }
-
-        tr:nth-child(odd) {
-            background-color: #f2f2f2;
-        }
-
-        .error-message {
-            color: red;
+        .tOdd {
+            background-color: #f6fbff;
         }
     </style>
 </head>
 <body>
-    <h1>PocketnetCore Monitoring</h1>
-    <div id="update-counter"></div>
-    <table id="monitoring-table">
-        <tr>
-            <th>Section</th>
-            <th>Value</th>
-        </tr>
-    </table>
-
+    <header>
+        <h2 style='float: left;'>PocketnetCore Monitoring</h2>
+        <div style='clear: both;'></div>
+    </header>
+    <p id='updateCounter'></p>
+    <table id='monitoringTable'></table>
     <script>
-        function updateMonitoringData() {
-            fetch("http://localhost:38081/rpc/getlateststat", {
-                method: "POST",
+        var updateCounter = 0;
+        setInterval(function() {
+            document.getElementById('updateCounter').innerText = 'Last update: ' + updateCounter + ' seconds ago';
+            updateCounter++;
+        }, 1000);
+        
+        var update = function() {
+            fetch('http://localhost:38081/rpc/getlateststat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
-                    "method": "getlateststat",
-                    "params": []
+                    'method': 'getlateststat',
+                    'params': []
                 })
             })
             .then(response => {
-                if (response.status === 200) {
-                    return response.json();
-                } else {
-                    throw new Error("API request failed");
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
+                return response.json();
+            })
+            .then(json => {
+                updateCounter = 0;
+                var table = document.getElementById('monitoringTable');
+                table.innerHTML = '';
+                for (var section in json.result) {
+                    var row = table.insertRow(-1);
+                    var cell = row.insertCell(-1);
+                    cell.colSpan = 2;
+                    cell.innerText = section;
+                    cell.classList.add('tHead');
+                    var i = 0
+                    for (var key in json.result[section]) {
+                        var row = table.insertRow(-1);
+
+                        var cellKey = row.insertCell(-1);
+                        cellKey.innerText = key;
+                        cellKey.classList.add('tKey');
+                        cellKey.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
+
+                        var cellValue = row.insertCell(-1);
+                        cellValue.innerText = json.result[section][key];
+                        cellKey.classList.add('tValue');
+                        cellValue.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
+
+                        i += 1;
+                    }
                 }
             })
-            .then(data => {
-                const monitoringTable = document.getElementById("monitoring-table");
-                monitoringTable.innerHTML = "";
-
-                const result = data.result;
-                for (const section in result) {
-                    const row = document.createElement("tr");
-                    const sectionCell = document.createElement("td");
-                    sectionCell.textContent = section;
-                    row.appendChild(sectionCell);
-
-                    const valueCell = document.createElement("td");
-                    valueCell.textContent = JSON.stringify(result[section]);
-                    row.appendChild(valueCell);
-
-                    monitoringTable.appendChild(row);
-                }
-
-                const updateCounter = document.getElementById("update-counter");
-                updateCounter.textContent = "Last updated: " + new Date().toLocaleTimeString();
-            })
-            .catch(error => {
-                const errorMessage = document.createElement("p");
-                errorMessage.classList.add("error-message");
-                errorMessage.textContent = "Error: " + error.message;
-                document.body.appendChild(errorMessage);
+            .catch(function() {
+                var table = document.getElementById('monitoringTable');
+                table.innerHTML = '';
+                var row = table.insertRow(-1);
+                var cell = row.insertCell(-1);
+                cell.colSpan = 2;
+                cell.innerText = 'Error fetching data from API';
             });
         }
-
-        setInterval(updateMonitoringData, 15000);
+        setInterval(update, 15000);
+        update()
     </script>
 </body>
 </html>
