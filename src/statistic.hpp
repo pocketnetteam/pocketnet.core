@@ -224,7 +224,7 @@ namespace Statistic
             UniValue chainStat(UniValue::VOBJ);
             chainStat.pushKV("Version", FormatVersion(CLIENT_VERSION));
             chainStat.pushKV("Chain", Params().NetworkIDString());
-            chainStat.pushKV("Height-Network", pindexBestHeader ? pindexBestHeader->nHeight : -1);
+            chainStat.pushKV("Height-Network", (pindexBestHeader ? pindexBestHeader->nHeight : -1));
             chainStat.pushKV("Height-Node", ChainActive().Height());
             chainStat.pushKV("Height-Web", HeightWeb);
             double syncPercent = pindexBestHeader ? (ChainActive().Height() * 100.0 / pindexBestHeader->nHeight) : -1;
