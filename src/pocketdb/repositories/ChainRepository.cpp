@@ -1568,7 +1568,9 @@ namespace PocketDb
     {
         SqlTransaction(__func__, [&]()
         {
-            EnsureAndTrimSocialRegistry(height);
+            // Below method ensures for specified height.
+            // Still `height` param is the block to delete ensure for `height - 1`
+            EnsureAndTrimSocialRegistry(height - 1);
         });
     }
 
