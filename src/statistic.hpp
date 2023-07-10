@@ -202,7 +202,7 @@ namespace Statistic
 
             auto unique_ips = GetUniqueSourceIPsSince(since);
             auto unique_ips_count = unique_ips.size();
-            if (LogInstance().WillLogCategory(BCLog::STATDETAIL))
+            if (gArgs.GetBoolArg("-collectstat", false) || LogInstance().WillLogCategory(BCLog::STATDETAIL))
             {
                 auto top_tm = GetTopHeavyTimeSamplesSince(top_limit, since);
                 auto top_in = GetTopHeavyInputSamplesSince(top_limit, since);
@@ -224,10 +224,11 @@ namespace Statistic
             UniValue chainStat(UniValue::VOBJ);
             chainStat.pushKV("Version", FormatVersion(CLIENT_VERSION));
             chainStat.pushKV("Chain", Params().NetworkIDString());
-            chainStat.pushKV("Height", ChainActive().Height());
-            chainStat.pushKV("HeightWeb", HeightWeb);
+            chainStat.pushKV("Height-Network", pindexBestHeader ? pindexBestHeader->nHeight : -1);
+            chainStat.pushKV("Height-Node", ChainActive().Height());
+            chainStat.pushKV("Height-Web", HeightWeb);
             double syncPercent = pindexBestHeader ? (ChainActive().Height() * 100.0 / pindexBestHeader->nHeight) : -1;
-            chainStat.pushKV("SyncNetwork", boost::str(boost::format("%.2f") % syncPercent) + "%");
+            chainStat.pushKV("SyncWithNet", boost::str(boost::format("%.2f") % syncPercent) + "%");
             chainStat.pushKV("LastBlock", ChainActive().Tip()->GetBlockHash().GetHex());
             chainStat.pushKV("PeersIN", (int)node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
             chainStat.pushKV("PeersOUT", (int)node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
@@ -260,7 +261,7 @@ namespace Statistic
             result.pushKV("SQL", sqlStats);
 
             // SQL benchmark statistic
-            if (LogInstance().WillLogCategory(BCLog::STATSQLBENCH))
+            if (gArgs.GetBoolArg("-collectstat", false) || LogInstance().WillLogCategory(BCLog::STATSQLBENCH))
             {
                 result.pushKV("SQLBench", GetAvgSqlBench());
             }
@@ -272,7 +273,7 @@ namespace Statistic
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
             rpcStat.pushKV("AvgExecTime", GetAvgExecutionTimeSince(since).count());
             rpcStat.pushKV("UniqueIPs", (int)unique_ips_count);
-            if (LogInstance().WillLogCategory(BCLog::STATDETAIL))
+            if (gArgs.GetBoolArg("-collectstat", false) || LogInstance().WillLogCategory(BCLog::STATDETAIL))
             {
                 rpcStat.pushKV("UniqueIps", unique_ips_json);
                 rpcStat.pushKV("TopTime", top_tm_json);
@@ -311,9 +312,9 @@ namespace Statistic
             while (!shutdown)
             {
                 auto chunkSize = GetCurrentSystemTime() - std::chrono::milliseconds(statLoggerSleep);
-                LogPrint(BCLog::STAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize, context).write(2, 1));
-                LogPrint(BCLog::STATDETAIL, msg.c_str(), statLoggerSleep / 1000,
-                    CompileStatsAsJsonSince(chunkSize, context).write(1));
+                _latestPage = CompileStatsAsJsonSince(chunkSize, context);
+                LogPrint(BCLog::STAT, msg.c_str(), statLoggerSleep / 1000, _latestPage.write(2, 1));
+                LogPrint(BCLog::STATDETAIL, msg.c_str(), statLoggerSleep / 1000, _latestPage.write(1));
 
                 RemoveSamplesBefore(chunkSize * 2);
                 m_interrupt.sleep_for(std::chrono::milliseconds{statLoggerSleep});
@@ -322,13 +323,18 @@ namespace Statistic
 
         void SetSqlBench(const string& func, double time)
         {
-            if (!LogInstance().WillLogCategory(BCLog::STATSQLBENCH))
-                return;
+            if (gArgs.GetBoolArg("-collectstat", false) || LogInstance().WillLogCategory(BCLog::STATSQLBENCH))
+            {
+                LOCK(_sqlBenchRecordsLock);
 
-            LOCK(_sqlBenchRecordsLock);
+                _sqlBenchRecordsTimes[func] += time;
+                _sqlBenchRecordsCounts[func] += 1;
+            }
+        }
 
-            _sqlBenchRecordsTimes[func] += time;
-            _sqlBenchRecordsCounts[func] += 1;
+        UniValue LatestPage()
+        {
+            return _latestPage;
         }
 
     private:
@@ -340,6 +346,8 @@ namespace Statistic
         Mutex _sqlBenchRecordsLock;
         map<string, double> _sqlBenchRecordsTimes;
         map<string, int> _sqlBenchRecordsCounts;
+
+        UniValue _latestPage;
 
         void RemoveSamplesBefore(RequestTime time)
         {

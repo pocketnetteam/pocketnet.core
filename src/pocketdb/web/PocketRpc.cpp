@@ -126,6 +126,7 @@ static const CRPCCommand commands[] =
     {"system",         "getnodeinfo",                      &GetNodeInfo,                    {}},
     {"system",         "gettime",                          &GetTime,                        {}},
     {"system",         "getcoininfo",                      &GetCoinInfo,                    {"height"}},
+    {"system",         "getlateststat",                    &GetLatestStat,                  {}},
 
     // Transactions
     {"transaction",    "getrawtransaction",                &GetTransaction,                 {"transactions"}},

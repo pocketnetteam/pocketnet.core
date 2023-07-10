@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketnetCore Monitoring</title>
+    <style>
+        body {
+            font-family: "Roboto", sans-serif;
+            padding: 15px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #update-counter {
+            float: right;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: right;
+        }
+
+        th {
+            width: 20%;
+            background-color: #007bff;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: white;
+        }
+
+        tr:nth-child(odd) {
+            background-color: #f2f2f2;
+        }
+
+        .error-message {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>PocketnetCore Monitoring</h1>
+    <div id="update-counter"></div>
+    <table id="monitoring-table">
+        <tr>
+            <th>Section</th>
+            <th>Value</th>
+        </tr>
+    </table>
+
+    <script>
+        function updateMonitoringData() {
+            fetch("http://localhost:38081/rpc/getlateststat", {
+                method: "POST",
+                body: JSON.stringify({
+                    "method": "getlateststat",
+                    "params": []
+                })
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    return response.json();
+                } else {
+                    throw new Error("API request failed");
+                }
+            })
+            .then(data => {
+                const monitoringTable = document.getElementById("monitoring-table");
+                monitoringTable.innerHTML = "";
+
+                const result = data.result;
+                for (const section in result) {
+                    const row = document.createElement("tr");
+                    const sectionCell = document.createElement("td");
+                    sectionCell.textContent = section;
+                    row.appendChild(sectionCell);
+
+                    const valueCell = document.createElement("td");
+                    valueCell.textContent = JSON.stringify(result[section]);
+                    row.appendChild(valueCell);
+
+                    monitoringTable.appendChild(row);
+                }
+
+                const updateCounter = document.getElementById("update-counter");
+                updateCounter.textContent = "Last updated: " + new Date().toLocaleTimeString();
+            })
+            .catch(error => {
+                const errorMessage = document.createElement("p");
+                errorMessage.classList.add("error-message");
+                errorMessage.textContent = "Error: " + error.message;
+                document.body.appendChild(errorMessage);
+            });
+        }
+
+        setInterval(updateMonitoringData, 15000);
+    </script>
+</body>
+</html>
