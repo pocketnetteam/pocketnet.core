@@ -5,10 +5,6 @@
 
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import List
-
-def todict(dc):
-    return asdict(dc, dict_factory=lambda x: {k: v for (k, v) in x if v is not None})
 
 # -----------------------------------------------------------------------------------------------------------------
 
@@ -447,47 +443,7 @@ class ModVotePayload:
 
 
 # -----------------------------------------------------------------------------------------------------------------
-
-
-@dataclass
-class Payload:
-    s1: str = None
-    s2: str = None
-    s3: str = None
-    s4: str = None
-    s5: str = None
-    s6: str = None
-    s7: str = None
-    i1: int = None
-
-
-@dataclass
-class Transaction:
-    s1: str = None
-    s2: str = None
-    s3: str = None
-    s4: str = None
-    s5: str = None
-    i1: int = None
-    p: Payload = None
-
-    def Serialize(self):
-        return todict(self)
-
-
 # -----------------------------------------------------------------------------------------------------------------
-
-
-@dataclass
-class BartAccountPayload(Transaction):
-    TxType = "6272746163636f756e74"
-
-
-@dataclass
-class BartOfferPayload(Transaction):
-    TxType = "6272746f66666572"
-
-
 # -----------------------------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------

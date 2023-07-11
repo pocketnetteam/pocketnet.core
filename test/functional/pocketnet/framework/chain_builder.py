@@ -6,7 +6,6 @@ import logging
 import random
 
 from framework.helpers import (
-    generate_coinbase,
     boost_post,
     generate_account_blockings,
     generate_accounts,
@@ -20,6 +19,7 @@ from framework.helpers import (
 
 class ChainBuilder:
     ACCOUNT_NUM = 10
+    FIRST_COINBASE_BLOCKS = 1020
 
     def __init__(self, node, logger=None):
         self._node = node
