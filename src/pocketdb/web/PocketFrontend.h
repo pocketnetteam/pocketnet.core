@@ -69,7 +69,6 @@ namespace PocketWeb
         tuple<bool, shared_ptr<StaticFile>> CacheGet(const string& path);
 
         tuple<HTTPStatusCode, shared_ptr<StaticFile>> GetFile(const string& path, bool stopRecurse = false);
-
     };
 
 } // namespace PocketWeb

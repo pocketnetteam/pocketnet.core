@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PocketnetCore Monitoring</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            padding: 15px;
+            background-color: #fff;
+        }
+        table {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            border-collapse: collapse;
+        }
+        tr:hover td {
+            background-color: #a2d6ff;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            text-align: left;
+            width: 20%;
+        }
+        .tHead {
+            background-color: #c8dcf1;
+        }
+        td {
+            text-align: right;
+            padding: 2px 5px 2px 5px;
+            word-break: break-all;
+            font-size: 0.7em;
+        }
+        .tKey {
+            text-align: left;
+            word-break: normal;
+            background-color: #f9f9f9;
+        }
+        #updateCounter {
+            text-align: right;
+        }
+        .tEgg {
+            background-color: white;
+        }
+        .tOdd {
+            background-color: #f6fbff;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2 style='float: left;'>PocketnetCore Monitoring</h2>
+        <div style='clear: both;'></div>
+    </header>
+    <p id='updateCounter'></p>
+    <table id='monitoringTable'></table>
+    <script>
+        var updateCounter = 0;
+        setInterval(function() {
+            document.getElementById('updateCounter').innerText = 'Last update: ' + updateCounter + ' seconds ago';
+            updateCounter++;
+        }, 1000);
+        
+        var update = function() {
+            fetch('http://localhost:38081/rpc/getlateststat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'method': 'getlateststat',
+                    'params': []
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
+                return response.json();
+            })
+            .then(json => {
+                updateCounter = 0;
+                var table = document.getElementById('monitoringTable');
+                table.innerHTML = '';
+                for (var section in json.result) {
+                    var row = table.insertRow(-1);
+                    var cell = row.insertCell(-1);
+                    cell.colSpan = 2;
+                    cell.innerText = section;
+                    cell.classList.add('tHead');
+                    var i = 0
+                    for (var key in json.result[section]) {
+                        var row = table.insertRow(-1);
+
+                        var cellKey = row.insertCell(-1);
+                        cellKey.innerText = key;
+                        cellKey.classList.add('tKey');
+                        cellKey.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
+
+                        var cellValue = row.insertCell(-1);
+                        cellValue.innerText = json.result[section][key];
+                        cellKey.classList.add('tValue');
+                        cellValue.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
+
+                        i += 1;
+                    }
+                }
+            })
+            .catch(function() {
+                var table = document.getElementById('monitoringTable');
+                table.innerHTML = '';
+                var row = table.insertRow(-1);
+                var cell = row.insertCell(-1);
+                cell.colSpan = 2;
+                cell.innerText = 'Error fetching data from API';
+            });
+        }
+        setInterval(update, 15000);
+        update()
+    </script>
+</body>
+</html>

@@ -5,6 +5,7 @@
 #include "pocketdb/web/PocketSystemRpc.h"
 #include "rpc/blockchain.h"
 #include "rpc/util.h"
+#include "init.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -280,4 +281,25 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
+    RPCHelpMan GetLatestStat()
+    {
+        return RPCHelpMan{"getlateststat",
+                "\nReturns last page of statistic\n",
+                { },
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", 
+                    {
+                        {RPCResult::Type::NUM_TIME, "time", ""},
+                    },
+                },
+                RPCExamples{
+                    HelpExampleCli("getlateststat", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            return gStatEngineInstance.LatestPage();
+        },
+        };
+    }
+    
 }
