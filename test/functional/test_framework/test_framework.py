@@ -209,20 +209,18 @@ class PocketcoinTestFramework(metaclass=PocketcoinTestMetaClass):
         self.config = config
         fname_pocketcoind = os.path.join(
             config["environment"]["BUILDDIR"],
-            "src",
             "pocketcoind" + config["environment"]["EXEEXT"],
         )
         fname_pocketcoincli = os.path.join(
             config["environment"]["BUILDDIR"],
-            "src",
             "pocketcoin-cli" + config["environment"]["EXEEXT"],
         )
         self.options.pocketcoind = os.getenv("POCKETCOIND", default=fname_pocketcoind)
         self.options.pocketcoincli = os.getenv("POCKETCOINCLI", default=fname_pocketcoincli)
 
         os.environ['PATH'] = os.pathsep.join([
-            os.path.join(config['environment']['BUILDDIR'], 'src'),
-            os.path.join(config['environment']['BUILDDIR'], 'src', 'qt'), os.environ['PATH']
+            config['environment']['BUILDDIR'],
+            os.path.join(config['environment']['BUILDDIR'], 'qt'), os.environ['PATH']
         ])
 
         # Set up temp directory and start logging
