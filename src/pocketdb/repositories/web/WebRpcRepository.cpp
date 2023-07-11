@@ -2040,26 +2040,35 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        string sql = R"sql(
-            select
-                o.TxHash,
-                o.Number,
-                o.AddressHash,
-                o.Value,
-                o.ScriptPubKey,
-                t.Type,
-                o.TxHeight
-            from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
-            join Transactions t on t.Hash=o.TxHash
-            where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-              and o.TxHeight <= ?
-              and o.SpentHeight is null
-            order by o.TxHeight asc
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                    addr as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                    )
+                select
+                    (select String from Registry where RowId=t.HashId),
+                    o.Number,
+                    (select String from Registry where RowId=o.AddressId),
+                    o.Value,
+                    (select String from Registry where RowId=o.ScriptPubKeyId),
+                    t.Type,
+                    c.Height
+                from addr
+                join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                    o.AddressId = addr.id and not exists (select 1 from TxInputs i where i.TxId = o.TxId and i.Number = o.Number)
+                join Chain c on
+                    c.TxId = o.TxId and c.Height <= ?
+                join Transactions t on
+                    t.RowId = o.TxId
+                order by c.Height asc
+            )sql")
             .Bind(addresses, height - confirmations)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())

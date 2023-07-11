@@ -432,8 +432,10 @@ namespace PocketDb
             create index if not exists Transactions_Type_RegId1_Time on Transactions (Type, RegId1, Time);
 
             create index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
+            create index if not exists TxInputs_TxId_Number on TxInputs (TxId, Number);
 
             create index if not exists TxOutputs_TxId_Number_AddressId on TxOutputs (TxId, Number, AddressId);
+            create index if not exists TxOutputs_AddressId_TxId_Number on TxOutputs (AddressId, TxId, Number);
 
             create unique index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
 
@@ -460,6 +462,7 @@ namespace PocketDb
 
             create index if not exists SocialRegistry_Type_AddressId on SocialRegistry (Type, AddressId);
             create index if not exists SocialRegistry_Height on SocialRegistry (Height);
+
 
         )sql";
 
