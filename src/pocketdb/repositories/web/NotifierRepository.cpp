@@ -125,33 +125,46 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetBoostInfo(const string& boostHash)
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select
-                tBoost.Hash Hash,
-                tBoost.String1 boostAddress,
-                tBoost.Int1 boostAmount,
-                p.String2 as boostName,
-                p.String3 as boostAvatar,
-                tContent.String1 as contentAddress,
-                tContent.String2 as contentHash
-            from Transactions tBoost indexed by Transactions_Hash_Height
-            join Transactions tContent indexed by Transactions_Type_Last_String2_Height on tContent.String2=tBoost.String2
-                and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202, 209, 210)
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = tBoost.String1
-                and u.Type in (100) and u.Last = 1 and u.Height > 0
-            join Payload p on p.TxHash = u.Hash
-            where tBoost.Type in (208)
-              and tBoost.Hash = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select
+                    tx.hash,
+                    (select r.String from Registry r where r.RowId = tBoost.RegId1) as boostAddress,
+                    tBoost.Int1 as boostAmount,
+                    p.String2 as boostName,
+                    p.String3 as boostAvatar,
+                    (select r.String from Registry r where r.RowId = tContent.RegId1) as contentAddress,
+                    (select r.String from Registry r where r.RowId = tContent.RegId2) as contentHash
+                from
+                    tx
+                    join Transactions tBoost indexed by Transactions_HashId on
+                        tBoost.HashId = tx.id and tBoost.Type in (208)
+                    join Transactions tContent indexed by Transactions_Type_RegId2 on
+                        tContent.RegId2 = tBoost.RegId2 and tContent.Type in (200, 201, 202, 209, 210)
+                    join Last lc on
+                        lc.TxId = tContent.RowId
+                    join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and u.RegId1 = tBoost.RegId1
+                    join Last lu on
+                        lu.TxId = u.RowId
+                    join Payload p on
+                        p.TxId = u.RowId
+            )sql")
             .Bind(boostHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
