@@ -475,43 +475,58 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetFullCommentInfo(const string &commentHash)
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select
-                comment.String3 PostHash,
-                comment.String4 ParentHash,
-                comment.String5 AnswerHash,
-                comment.String2 RootHash,
-                content.String1 ContentAddress,
-                answer.String1 AnswerAddress,
-                p.String2 as commentName,
-                p.String3 as commentAvatar,
-                (
-                    select o.Value
-                    from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                    where o.TxHash = comment.Hash and o.AddressHash = content.String1 and o.AddressHash != comment.String1
-                ) as Donate
-            from Transactions comment -- sqlite_autoindex_Transactions_1 (Hash)
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = comment.String1
-            cross join Payload p on p.TxHash = u.Hash
-            cross join Transactions content -- sqlite_autoindex_Transactions_1 (Hash)
-                on content.Type in (200, 201, 202, 209, 210) and content.Hash = comment.String3
-            left join Transactions answer indexed by Transactions_Type_Last_String2_Height
-                on answer.Type in (204, 205) and answer.Last = 1 and answer.String2 = comment.String5
-            where comment.Type in (204, 205)
-              and comment.Hash = ?
-              and u.Type in (100)
-              and u.Last=1
-              and u.Height is not null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+
+                select
+                    (select r.String from Registry r where r.RowId = comment.RegId3) as PostHash,
+                    (select r.String from Registry r where r.RowId = comment.RegId4) as ParentHash,
+                    (select r.String from Registry r where r.RowId = comment.RegId5) as AnswerHash,
+                    (select r.String from Registry r where r.RowId = comment.RegId2) as RootHash,
+                    (select r.String from Registry r where r.RowId = content.RegId1) as ContentAddress,
+                    (select r.String from Registry r where r.RowId = answer.RegId1) as AnswerAddress,
+                    p.String2 as commentName,
+                    p.String3 as commentAvatar,
+                    (
+                        select
+                            o.Value
+                        from
+                            TxOutputs o indexed by TxOutputs_AddressId_TxId
+                        where
+                            o.AddressId = content.RegId1 and
+                            o.TxId = comment.RowId and
+                            o.AddressId != comment.RegId1
+                    ) as Donate
+                from
+                    tx
+                    join Transactions comment indexed by Transactions_HashId on
+                        comment.HashId = tx.id and comment.Type in (204, 205)
+                    join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and u.RegId1 = comment.RegId1
+                    join Last lu on
+                        lu.TxId = u.RowId
+                    join Payload p on
+                        p.TxId = u.RowId
+                    join Transactions content indexed by Transactions_HashId on
+                        content.HashId = comment.RegId3 and content.Type in (200, 201, 202, 209, 210)
+                    left join Transactions answer indexed by Transactions_Type_RegId2 on
+                        answer.Type in (204, 205) and answer.RegId2 = comment.RegId5
+            )sql")
             .Bind(commentHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
