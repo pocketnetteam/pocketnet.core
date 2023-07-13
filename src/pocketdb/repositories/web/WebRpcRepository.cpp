@@ -485,6 +485,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(
         const vector<string>& addresses,
         const vector<int64_t>& ids,
@@ -775,6 +776,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetLastComments(int count, int height, const string& lang)
     {
         auto func = __func__;
@@ -897,6 +899,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     map<int64_t, UniValue> WebRpcRepository::GetLastComments(const vector<int64_t>& ids, const string& address)
     {
         auto func = __func__;
@@ -1038,6 +1041,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
         auto func = __func__;
@@ -1196,6 +1200,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash)
     {
         auto result = UniValue(UniValue::VARR);
@@ -1345,6 +1350,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetPagesScores(const vector<string>& postHashes, const vector<string>& commentHashes, const string& addressHash)
     {
         auto func = __func__;
@@ -1435,6 +1441,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetPostScores(const string& postTxHash)
     {
         auto func = __func__;
@@ -1489,6 +1496,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetAddressScores(const vector<string>& postHashes, const string& address)
     {
         UniValue result(UniValue::VARR);
@@ -1544,6 +1552,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetAccountRaters(const string& address)
     {
         UniValue result(UniValue::VARR);
@@ -1634,6 +1643,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetSubscribesAddresses(
         const string& address, const vector<TxType>& types, const string& orderBy, bool orderDesc, int offset, int limit)
     {
@@ -1706,6 +1716,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetSubscribersAddresses(
         const string& address, const vector<TxType>& types, const string& orderBy, bool orderDesc, int offset, int limit)
     {
@@ -1778,6 +1789,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetBlockings(const string& address)
     {
         UniValue result(UniValue::VARR);
@@ -1805,6 +1817,7 @@ namespace PocketDb
         return result;
     }
     
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetBlockers(const string& address)
     {
         UniValue result(UniValue::VARR);
@@ -1830,6 +1843,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<string> WebRpcRepository::GetTopAccounts(int topHeight, int countOut, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, int depth,
@@ -1948,6 +1962,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetTags(const string& lang, int pageSize, int pageStart)
     {
         UniValue result(UniValue::VARR);
@@ -1987,6 +2002,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<int64_t> WebRpcRepository::GetContentIds(const vector<string>& txHashes)
     {
         vector<int64_t> result;
@@ -2017,6 +2033,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     map<string,string> WebRpcRepository::GetContentsAddresses(const vector<string>& txHashes)
     {
         map<string, string> result;
@@ -2133,6 +2150,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetAccountEarning(const string& address, int height, int depth)
     {
         UniValue result(UniValue::VARR);
@@ -2212,6 +2230,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     tuple<int, UniValue> WebRpcRepository::GetContentLanguages(int height)
     {
         int resultCount = 0;
@@ -2257,6 +2276,7 @@ namespace PocketDb
         return {resultCount, resultData};
     }
 
+    // TODO (aok, api): implement
     tuple<int, UniValue> WebRpcRepository::GetLastAddressContent(const string& address, int height, int count)
     {
         int resultCount = 0;
@@ -2338,6 +2358,7 @@ namespace PocketDb
         return {resultCount, resultData};
     }
     
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetContentsForAddress(const string& address)
     {
         auto func = __func__;
@@ -2412,6 +2433,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedRelayedContent(const string& address, int height)
     {
         vector<UniValue> result;
@@ -2456,6 +2478,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedContentsScores(const string& address, int height, int limit)
     {
         vector<UniValue> result;
@@ -2506,6 +2529,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedCommentsScores(const string& address, int height, int limit)
     {
         vector<UniValue> result;
@@ -2556,6 +2580,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     map<string, UniValue> WebRpcRepository::GetMissedTransactions(const string& address, int height, int count)
     {
         map<string, UniValue> result;
@@ -2608,6 +2633,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedCommentAnswers(const string& address, int height, int count)
     {
         vector<UniValue> result;
@@ -2661,6 +2687,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedPostComments(const string& address, const vector<string>& excludePosts,
         int height, int count)
     {
@@ -2726,6 +2753,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedSubscribers(const string& address, int height, int count)
     {
         vector<UniValue> result;
@@ -2789,6 +2817,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedBoosts(const string& address, int height, int count)
     {
         vector<UniValue> result;
@@ -2847,6 +2876,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::SearchLinks(const vector<string>& links, const vector<int>& contentTypes,
         const int nHeight, const int countOut)
     {
@@ -2892,6 +2922,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes)
     {
         UniValue result(UniValue::VARR);
@@ -2942,6 +2973,7 @@ namespace PocketDb
     // ------------------------------------------------------
     // Feeds
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang,
         const vector<int>& contentTypes, const string& address, int badReputationLimit)
     {
@@ -3024,6 +3056,7 @@ namespace PocketDb
         return rslt;
     }
 
+    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address)
     {
         auto func = __func__;
@@ -3206,6 +3239,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetCollectionsData(const vector<int64_t>& ids)
     {
         auto func = __func__;
@@ -3284,6 +3318,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetTopFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -3423,6 +3458,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetMostCommentedFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -3575,6 +3611,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -3760,6 +3797,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -3895,6 +3933,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4031,6 +4070,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4261,6 +4301,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetBoostFeed(int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4391,6 +4432,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetProfileCollections(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
                                    const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
                                    const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4585,6 +4627,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight, int countOutOfUsers, int countOutOfcontents, int badReputationLimit)
     {
         auto func = __func__;
@@ -4664,6 +4707,7 @@ namespace PocketDb
 
     // ------------------------------------------------------
 
+    // TODO (aok, api): implement
     vector<int64_t> WebRpcRepository::GetRandomContentIds(const string& lang, int count, int height)
     {
         vector<int64_t> result;
@@ -4713,6 +4757,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetContentActions(const string& postTxHash)
     {
         auto func = __func__;
@@ -7248,6 +7293,7 @@ namespace PocketDb
         return notificationResult.Serialize();
     }
 
+    // TODO (aok, api): implement
     std::vector<ShortForm> WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
     {
         // This is required because we want static bind functors for optimization so parameters can't be captured there 
@@ -8415,7 +8461,7 @@ namespace PocketDb
         return reconstructor.GetResult();
     }
 
-
+    // TODO (aok, api): implement
     std::map<std::string, std::map<ShortTxType, int>> WebRpcRepository::GetNotificationsSummary(int64_t heightMax, int64_t heightMin, const std::set<std::string>& addresses, const std::set<ShortTxType>& filters)
     {
         struct QueryParams {
@@ -8597,4 +8643,5 @@ namespace PocketDb
 
         return reconstructor.GetResult();
     }
+
 }
