@@ -377,30 +377,38 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetSubscribeAddressTo(const string &subscribeHash)
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select
-              s.String2 addressTo,
-              p.String2 as nameFrom,
-              p.String3 as avatarFrom
-            from Transactions s
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type in (100)
-               and u.Last=1
-               and u.String1 = s.String1
-               and u.Height is not null
-            cross join Payload p on p.TxHash = u.Hash
-            where s.Type in (302, 303, 304)
-              and s.Hash = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select
+                    (select r.String from Registry r where r.RowId = s.RegId2) addressTo,
+                    p.String2 as nameFrom,
+                    p.String3 as avatarFrom
+                from
+                    tx
+                    join Transactions s indexed by Transactions_HashId on
+                        s.HashId = tx.id and s.Type in (302, 303, 304)
+                    join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100) and u.RegId1 = s.RegId1
+                    join Last lu on
+                        lu.TxId = u.RowId
+                    join Payload p on
+                        p.TxId = u.RowId
+            )sql")
             .Bind(subscribeHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
