@@ -551,31 +551,45 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetPostCountFromMySubscribes(const string& address, int height)
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select count(1) as cntTotal,
-                   ifnull((case when post.Type = 200 then 1 else 0 end),0) as cntPost,
-                   ifnull((case when post.Type = 201 then 1 else 0 end),0) as cntVideo,
-                   ifnull((case when post.Type = 202 then 1 else 0 end),0) as cntArticle,
-                   ifnull((case when post.Type = 209 then 1 else 0 end),0) as cntStream,
-                   ifnull((case when post.Type = 210 then 1 else 0 end),0) as cntAudio
-            from Transactions sub
-            join Transactions post
-                on post.String1 = sub.String2 and post.Type in (200, 201, 202, 209, 210, 203) and post.Last = 1
-            where sub.Type in (302, 303)
-              and sub.Last = 1
-              and post.Height = ?
-              and sub.String1 = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(height, address)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+
+                select
+                    count() as cntTotal,
+                    sum(ifnull((case when post.Type = 200 then 1 else 0 end),0)) as cntPost,
+                    sum(ifnull((case when post.Type = 201 then 1 else 0 end),0)) as cntVideo,
+                    sum(ifnull((case when post.Type = 202 then 1 else 0 end),0)) as cntArticle,
+                    sum(ifnull((case when post.Type = 209 then 1 else 0 end),0)) as cntStream,
+                    sum(ifnull((case when post.Type = 210 then 1 else 0 end),0)) as cntAudio
+                from
+                    addr
+                    cross join Transactions sub indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        sub.Type in (302, 303) and sub.RegId1 = addr.id
+                    cross join Last lsub on
+                        lsub.TxId = sub.RowId
+                    cross join Chain cpost indexed by Chain_Height_Uid on
+                        cpost.Height = ?
+                    cross join Transactions post on
+                        post.RowId = cpost.TxId and post.Type in (200, 201, 202, 209, 210, 203) and post.RegId1 = sub.RegId2
+                    cross join Last lpost on
+                        lpost.TxId = post.RowId
+            )sql")
+            .Bind(address, height)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                 {
