@@ -20,7 +20,6 @@ namespace PocketDb
         UniValue GetBoostInfo(const string& boostHash);
         UniValue GetOriginalPostAddressByRepost(const string& repostHash);
         UniValue GetPrivateSubscribeAddressesByAddressTo(const string& addressTo);
-//        UniValue GetUserReferrerAddress(const string& userHash);  // Not used. Not planned yet. Invalid request.
         UniValue GetPostInfoAddressByScore(const string& postScoreHash);
         UniValue GetSubscribeAddressTo(const string& subscribeHash);
         UniValue GetCommentInfoAddressByScore(const string& commentScoreHash);
