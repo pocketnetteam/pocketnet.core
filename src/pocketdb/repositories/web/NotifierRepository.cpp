@@ -6,27 +6,36 @@
 
 namespace PocketDb
 {
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetAccountInfoByAddress(const string& address)
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select u.String1 as Address,
-                p.String2 as Name,
-                p.String3 as Avatar
-            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            cross join Payload p on p.TxHash = u.Hash
-            where u.Type in (100)
-              and u.Last=1
-              and u.Last=1
-              and u.Height is not null
-              and u.String1 = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String in (?)
+                )
+                select
+                    addr.hash,
+                    p.String2 as Name,
+                    p.String3 as Avatar
+                from
+                    addr
+                    join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and u.RegId1 = addr.id
+                    join Last l on
+                        l.TxId = u.RowId
+                    join Payload p on
+                        p.TxId = u.RowId
+            )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
