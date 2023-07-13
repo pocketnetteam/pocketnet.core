@@ -183,31 +183,42 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetOriginalPostAddressByRepost(const string &repostHash)
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select t.String2 as RootTxHash,
-                   t.String1 address,
-                   tRepost.String1 addressRepost,
-                   p.String2 as nameRepost,
-                   p.String3 as avatarRepost
-            from Transactions t
-            join Transactions tRepost on tRepost.String3 = t.Hash
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = tRepost.String1
-            join Payload p on p.TxHash = u.Hash
-            where tRepost.Type in (200, 201, 202, 209, 210, 203)
-              and tRepost.Hash = ?
-              and u.Type in (100)
-              and u.Last = 1
-              and u.Height is not null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select
+                    (select r.String from Registry r where r.RowId = t.RegId2) as RootTxHash,
+                    (select r.String from Registry r where r.RowId = t.RegId1) as address,
+                    (select r.String from Registry r where r.RowId = tRepost.RegId1) as addressRepost,
+                    p.String2 as nameRepost,
+                    p.String3 as avatarRepost
+                from
+                    tx
+                    join Transactions tRepost indexed by Transactions_HashId on
+                        tRepost.HashId = tx.id and tRepost.Type in (200, 201, 202, 209, 210, 203)
+                    join Transactions t indexed by Transactions_HashId on
+                        t.HashId = tRepost.RegId3
+                    join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and u.RegId1 = tRepost.RegId1
+                    join Last lu on
+                        lu.TxId = u.RowId
+                    join Payload p on
+                        p.TxId = u.RowId
+            )sql")
             .Bind(repostHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
