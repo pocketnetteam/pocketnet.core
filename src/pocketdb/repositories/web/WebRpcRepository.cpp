@@ -418,7 +418,7 @@ namespace PocketDb
                     from
                         Registry r
                     where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql(
+                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 )
                 select
                     addr.hash,
@@ -508,7 +508,7 @@ namespace PocketDb
                     from
                         Registry r
                     where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql(
+                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 )
             )sql";
         }
@@ -533,7 +533,7 @@ namespace PocketDb
                         Registry r
                             on r.RowId = t.RegId1
                     where
-                        c.Uid in (0)
+                        c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
                 )
             )sql";
         }
@@ -1927,7 +1927,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetBlockings(const string& address)
     {
         UniValue result(UniValue::VARR);
@@ -1935,12 +1934,33 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+
                 select
-                  bl.IdTarget
-                from BlockingLists bl
-                cross join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
-                cross join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
-                where us.String1 = ?
+                    bl.IdTarget
+                from
+                    addr
+                cross join
+                    Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on us.Type in (100) and us.RegId1 = addr.id
+                cross join
+                    Chain ct
+                        on ct.TxId = us.RowId
+                cross join
+                    Last lut
+                        on lut.TxId = us.RowId
+                cross join
+                    BlockingLists bl indexed by BlockingLists_IdSource_IdTarget
+                        on bl.IdSource = ct.Uid
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
