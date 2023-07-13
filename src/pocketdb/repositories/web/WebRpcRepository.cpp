@@ -485,7 +485,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(
         const vector<string>& addresses,
         const vector<int64_t>& ids,
@@ -497,51 +496,121 @@ namespace PocketDb
         if (addresses.empty() && ids.empty())
             return result;
         
-        string where;
+        string with;
         if (!addresses.empty())
-            where += " and u.String1 in (" + join(vector<string>(addresses.size(), "?"), ",") + ") ";
+        {
+            with += R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql(
+                )
+            )sql";
+        }
+
         if (!ids.empty())
-            where += " and u.Id in (" + join(vector<string>(ids.size(), "?"), ",") + ") ";
+        {
+            with += R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Chain c
+                    cross join
+                        Transactions t
+                            on t.RowId = c.TxId
+                    cross join
+                        First f
+                            on f.TxId = t.RowId
+                    cross join
+                        Registry r
+                            on r.RowId = t.RegId1
+                    where
+                        c.Uid in (0)
+                )
+            )sql";
+        }
 
         string fullProfileSql = "";
         if (!shortForm)
         {
             fullProfileSql = R"sql(
 
-                , (
-                    select json_group_array(json_object('adddress', subs.String2, 'private', case when subs.Type == 303 then 'true' else 'false' end))
-                    from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
-                      on uas.String1 = subs.String2 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
-                ) as Subscribes
-                
-                , (
-                    select json_group_array(subs.String1)
-                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
-                      on uas.String1 = subs.String1 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
-                ) as Subscribers
+                (
+                    select
+                        json_group_array(
+                            json_object(
+                                'adddress', rsubs.String,
+                                'private', case when subs.Type == 303 then 'true' else 'false' end
+                            )
+                        )
+                    from Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Last lsubs
+                        on lsubs.TxId = subs.RowId
+                    cross join Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on uas.Type = 100 and uas.RegId1 = subs.RegId2
+                    cross join Last luas
+                        on luas.TxId = uas.RowId
+                    cross join Registry rsubs
+                        on rsubs.RowId = subs.RowId
+                    where
+                        subs.Type in (302,303) and
+                        subs.RegId1 = addr.id
+                ) as Subscribes,
 
-                , (
-                    select json_group_array(ub.String1)
-                    from BlockingLists bl
-                    join Transactions ub indexed by Transactions_Type_Last_Height_Id
-                    on ub.Id = bl.IdTarget and ub.Type = 100 and ub.Last = 1 and ub.Height is not null
-                    where bl.IdSource = u.id
-                ) as Blockings
+                (
+                    select
+                        json_group_array(rsubs.String)
+                    from Transactions subs indexed by Transactions_Type_RegId2_RegId1
+                    cross join Last lsubs
+                        on lsubs.TxId = subs.RowId
+                    cross join Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on uas.Type in (100) and uas.RegId1 = subs.RegId1
+                    cross join Last luas
+                        on luas.TxId = uas.RowId
+                    cross join Registry rsubs
+                        on rsubs.RowId = subs.RegId1
+                    where
+                        subs.Type in (302,303) and
+                        subs.RegId2 = addr.id
+                ) as Subscribers,
 
-                , (
+                (
+                    select
+                        json_group_array(rub.String)
+                    from BlockingLists bl indexed by BlockingLists_IdSource_IdTarget
+                    cross join Chain cbl indexed by Chain_Uid_Height
+                        on cbl.Uid = bl.IdTarget
+                    cross join Transactions ub
+                        on ub.RowId = cbl.TxId and ub.Type = 100
+                    cross join Last lub
+                        on lub.TxId = ub.RowId
+                    cross join Registry rub
+                        on rub.RowId = ub.RegId1
+                    where
+                        bl.IdSource = cu.Uid
+                ) as Blockings,
+
+                (
                     select json_group_object(gr.Type, gr.Cnt)
                     from (
-                      select (f.Type)Type, (count())Cnt
-                        from Transactions f indexed by Transactions_Type_Last_String1_Height_Id
-                        where f.Type in (200,201,202,209,210,220,207)
-                        and f.Last = 1
-                        and f.String1 = u.String1
-                        and f.Height > 0
-                        group by f.Type
+                        select
+                            f.Type as Type,
+                            count() as Cnt
+                        from Transactions f indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        join Last lf
+                            on lf.TxId = f.RowId
+                        where
+                            f.Type in (200,201,202,209,210,220,207) and f.RegId1 = addr.id
+                        group by
+                            f.Type
                     )gr
                 ) as ContentJson
 
@@ -549,119 +618,188 @@ namespace PocketDb
         }
 
         string sql = R"sql(
+            )sql" + with + R"sql(
             select
-                  u.Hash as AccountHash
-                , u.String1 as Address
-                , u.Id
-                , u.Type
-                , ifnull(p.String2,'') as Name
-                , ifnull(p.String3,'') as Avatar
-                , ifnull(p.String7,'') as Donations
-                , ifnull(u.String2,'') as Referrer
 
-                , ifnull((
-                    select count()
-                    from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (200,201,202,209,210) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
-                ,0) as PostsCount
+                addr.hash as AccountHash,
+                (select r.String from Registry r where r.RowId = u.RegId1) as Address,
+                cu.Uid,
+                u.Type,
+                ifnull(p.String2,'') as Name,
+                ifnull(p.String3,'') as Avatar,
+                ifnull(p.String7,'') as Donations,
+                ifnull((select r.String from Registry r where r.RowId = u.RegId2),'') as Referrer,
 
-                , ifnull((
-                    select count()
-                    from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (207) and po.Last = 1 and po.Height > 0 and po.String1 = u.String1)
-                ,0) as DelCount
+                ifnull((
+                    select
+                        count()
+                    from
+                        Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join
+                        Last lpo
+                            on lpo.TxId = po.RowId
+                    where
+                        po.Type in (200,201,202,209,210) and po.RegId1 = addr.id
+                ), 0) as PostsCount,
 
-                , ifnull((
-                    select r.Value
-                    from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Type=0 and r.Id=u.Id and r.Last=1)
-                ,0) as Reputation
+                ifnull((
+                    select
+                        count()
+                    from
+                        Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join
+                        Last lpo
+                            on lpo.TxId = po.RowId
+                    where
+                        po.Type in (207) and
+                        po.RegId1 = addr.id
+                ), 0) as DelCount,
 
-                , (
-                    select count()
-                    from Transactions subs indexed by Transactions_Type_Last_String1_String2_Height
-                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
-                      on uas.String1 = subs.String2 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
-                    where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String1 = u.String1
-                ) as SubscribesCount
+                ifnull((
+                    select
+                        r.Value
+                    from
+                        Ratings r indexed by Ratings_Type_Uid_Last_Value
+                    where
+                        r.Type = 0 and
+                        r.Uid = cu.Uid and
+                        r.Last = 1
+                ), 0) as Reputation,
 
-                , (
-                    select count()
-                    from Transactions subs indexed by Transactions_Type_Last_String2_String1_Height
-                    cross join Transactions uas indexed by Transactions_Type_Last_String1_Height_Id
-                      on uas.String1 = subs.String1 and uas.Type = 100 and uas.Last = 1 and uas.Height is not null
-                    where subs.Type in (302,303) and subs.Height > 0 and subs.Last = 1 and subs.String2 = u.String1
-                ) as SubscribersCount
+                (
+                    select
+                        count()
+                    from
+                        Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join
+                        Last lsubs
+                            on lsubs.TxId = subs.RowId
+                    cross join
+                        Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on uas.Type in (100) and uas.RegId1 = subs.RegId2
+                    cross join
+                        Last luas
+                            on luas.TxId = uas.RowId
+                    where
+                        subs.Type in (302, 303) and
+                        subs.RegId1 = addr.id
+                ) as SubscribesCount,
 
-                , (
-                    select count()
-                    from BlockingLists bl
-                    where bl.IdSource = u.id
-                ) as BlockingsCount
+                (
+                    select
+                        count()
+                    from
+                        Transactions subs indexed by Transactions_Type_RegId2_RegId1
+                    cross join
+                        Last lsubs
+                            on lsubs.TxId = subs.RowId
+                    cross join
+                        Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on uas.Type in (100) and uas.RegId1 = subs.RegId1
+                    cross join
+                        Last luas
+                            on luas.TxId = uas.RowId
+                    where
+                        subs.Type in (302, 303) and
+                        subs.RegId2 = addr.id
+                ) as SubscribersCount,
 
-                , ifnull((
-                    select sum(lkr.Value)
-                    from Ratings lkr indexed by Ratings_Type_Id_Last_Height
-                    where lkr.Type in (111,112,113) and lkr.Id = u.Id and lkr.Last = 1
-                ),0) as Likers
+                (
+                    select
+                        count()
+                    from
+                        BlockingLists bl
+                    where
+                        bl.IdSource = cu.Uid
+                ) as BlockingsCount,
 
-                , ifnull(p.String6,'') as Pubkey
-                , ifnull(p.String4,'') as About
-                , ifnull(p.String1,'') as Lang
-                , ifnull(p.String5,'') as Url
-                , u.Time
+                ifnull((
+                    select
+                        sum(lkr.Value)
+                    from Ratings lkr indexed by Ratings_Type_Uid_Last_Value
+                    where
+                        lkr.Type in (111,112,113) and lkr.Uid = cu.Uid and lkr.Last = 1
+                ),0) as Likers,
 
-                , (
-                    select reg.Time
-                    from Transactions reg indexed by Transactions_Id
-                    where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1
-                ) as RegistrationDate
+                ifnull(p.String6,'') as Pubkey,
+                ifnull(p.String4,'') as About,
+                ifnull(p.String1,'') as Lang,
+                ifnull(p.String5,'') as Url,
+                u.Time,
 
-                , (
-                    select json_group_object(gr.Type, gr.Cnt)
-                    from (
-                      select (f.Int1)Type, (count())Cnt
-                      from Transactions f indexed by Transactions_Type_Last_String3_Height
-                      where f.Type in ( 410 )
-                        and f.Last = 0
-                        and f.String3 = u.String1
-                        and f.Height > 0
-                      group by f.Int1
-                    )gr
-                ) as FlagsJson
+                (
+                    select
+                        reg.Time
+                    from Transactions reg indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join First freg
+                        on freg.TxId = reg.RowId
+                    where
+                        reg.Type in (100) and
+                        reg.RegId1 = addr.id
+                ) as RegistrationDate,
 
-                , (
-                    select json_group_object(gr.Type, gr.Cnt)
-                    from (
-                      select (f.Int1)Type, (count())Cnt
-                      from Transactions f indexed by Transactions_Type_Last_String3_Height
-                      cross join (
-                        select min(fp.Height)minHeight
-                        from Transactions fp
-                        where fp.Type in (200,201,202,209,210)
-                          and fp.String1 = u.String1
-                          and fp.Hash = fp.String2
-                          and fp.Last in (0, 1)
-                          and fp.Height > 0
-                      )fp
-                      where f.Type in (410)
-                        and f.Last = 0
-                        and f.String3 = u.String1
-                        and f.Height >= fp.minHeight
-                        and f.Height <= (fp.minHeight + ?)
-                        group by f.Int1
-                    )gr
+                (
+                    select
+                        json_group_object(gr.Type, gr.Cnt)
+                    from
+                        (
+                            select
+                                (f.Int1)Type,
+                                (count())Cnt
+                            from
+                                Transactions f indexed by Transactions_Type_RegId3
+                            cross join
+                                Chain c
+                                    on c.TxId = f.RowId
+                            where
+                                f.Type in (410) and
+                                f.RegId3 = addr.id
+                            group by
+                                f.Int1
+                        )gr
+                ) as FlagsJson,
+
+                (
+                    select
+                        json_group_object(gr.Type, gr.Cnt)
+                    from
+                        (
+                            select
+                                (f.Int1)Type,
+                                (count())Cnt
+                            from
+                                Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            cross join
+                                First ffp
+                                    on ffp.TxId = fp.RowId
+                            cross join
+                                Chain cfp
+                                    on cfp.TxId = fp.RowId
+                            cross join
+                                Transactions f indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                    on f.Type in (410) and f.RegId3 = fp.RegId1
+                            cross join
+                                Chain cf
+                                    on cf.Height >= cfp.Height and cf.Height <= (cfp.Height + ?)
+                            where
+                                fp.Type in (200, 201, 202, 209, 210) and
+                                fp.RegId1 = addr.id
+                            group by
+                                f.Int1
+                        )gr
                 ) as FirstFlagsCount
 
                 )sql" + fullProfileSql + R"sql(
 
-            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            left join Payload p on p.TxHash=u.Hash
-
-            where u.Type in (100, 170)
-              and u.Last = 1
-              and u.Height is not null
-              )sql" + where + R"sql(
+            from addr
+            join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                on u.Type in (100, 170) and u.RegId1 = addr.id
+            join Last lu
+                on lu.TxId = u.RowId
+            join Chain cu
+                on cu.TxId = u.RowId
+            left join Payload p
+                on p.TxId = u.RowId
         )sql";
 
         SqlTransaction(__func__, [&]()
