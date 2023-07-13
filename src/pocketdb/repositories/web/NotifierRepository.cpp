@@ -325,31 +325,42 @@ namespace PocketDb
 //        return result;
 //    }
 
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetPostInfoAddressByScore(const string &postScoreHash)
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select score.String2 postTxHash,
-                   score.Int1 value,
-                   post.String1 postAddress,
-                   p.String2 as scoreName,
-                   p.String3 as scoreAvatar
-            from Transactions score
-            join Transactions post on post.Hash = score.String2
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = score.String1
-            join Payload p on p.TxHash = u.Hash
-            where score.Type in (300)
-              and score.Hash = ?
-              and u.Type in (100)
-              and u.Last=1
-              and u.Height is not null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select
+                    (select r.String from Registry r where r.RowId = score.RegId2) as postTxHash,
+                    score.Int1 value,
+                    (select r.String from Registry r where r.RowId = post.RegId1) as postAddress,
+                    p.String2 as scoreName,
+                    p.String3 as scoreAvatar
+                from
+                    tx
+                    join Transactions score indexed by Transactions_HashId on
+                        score.HashId = tx.id and score.Type in (300)
+                    join Transactions post on
+                        post.HashId = score.RegId2
+                    join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and u.RegId1 = score.RegId1
+                    join Last lu on
+                        lu.TxId = u.RowId
+                    join Payload p on
+                        p.TxId = u.RowId
+            )sql")
             .Bind(postScoreHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
