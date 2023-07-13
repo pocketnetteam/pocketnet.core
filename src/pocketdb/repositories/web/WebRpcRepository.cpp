@@ -404,64 +404,68 @@ namespace PocketDb
     UniValue WebRpcRepository::GetUserStatistic(const vector<string>& addresses, const int nHeight, const int depthR, const int depthC, const int cntC)
     {
         UniValue result(UniValue::VARR);
-
         if (addresses.empty())
             return  result;
 
-        string addressesWhere = join(vector<string>(addresses.size(), "?"), ",");
-
-        string sql = R"sql(
-            select
-                u.String1 as Address,
-
-                ifnull((
-                  select count(1)
-                  from Transactions ru indexed by Transactions_Type_Last_String2_Height
-                  where ru.Type in (100)
-                    and ru.Last in (0,1)
-                    and ru.Height <= ?
-                    and ru.Height > ?
-                    and ru.String2 = u.String1
-                    and ru.ROWID = (
-                      select min(ru1.ROWID)
-                      from Transactions ru1 indexed by Transactions_Id
-                      where ru1.Id = ru.Id
-                      limit 1
-                    )
-                  ),0) as ReferralsCountHist,
-
-                (
-                  select count(1)
-                  from (
-                         select c.String1
-                         from Transactions p indexed by Transactions_String1_Last_Height
-                         join Transactions c indexed by Transactions_Type_Last_String3_Height
-                            on c.Type in (204)
-                            and c.Last in (0,1)
-                            and c.String3 = p.String2
-                            and c.Height <= ?
-                            and c.Height > ?
-                            and c.Hash = c.String2
-                            and c.String1 != u.String1
-                         where p.Type in (200,201,202,209,210)
-                            and p.Last = 1
-                            and p.String1 = u.String1
-                            and p.Height > 0
-                         group by c.String1
-                         having count(*) > ?)
-                ) as CommentatorsCountHist
-
-            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            where u.Type in (100)
-              and u.Last = 1
-              and u.String1 in ( )sql" + addressesWhere + R"sql( )
-              and u.Height is not null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC, addresses)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql(
+                )
+                select
+                    addr.hash,
+
+                    ifnull((
+                        select
+                            count()
+                        from Transactions ref
+                        join First f on
+                            f.TxId = ref.RowId
+                        join Chain c on
+                            c.Height <= ? and c.Height > ?
+                        where ref.Type in (100) and
+                            ref.RegId2 = addr.id
+                    ), 0) as ReferralsCountHist,
+
+                    (
+                        select
+                            count()
+                        from (
+                            select
+                                c.RegId1
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            join Last lp on
+                                lp.TxId = p.RowId
+                            join Transactions c indexed by Transactions_Type_RegId3 on
+                                c.Type in (204) and c.RegId3 = p.RegId2 and c.RegId1 != addr.id
+                            join First fc on
+                                fc.TxId = c.RowId
+                            join Chain cc indexed by Chain_TxId_Height on
+                                cc.TxId = c.RowId and cc.Height <= ? and cc.Height > ?
+                            where
+                                p.Type in (200,201,202,209,210) and
+                                p.RegId1 = addr.id
+                            group by c.RegId1
+                            having count() > ?
+                        )
+                    ) as CommentatorsCountHist
+
+                from
+                    addr
+                    join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        t.Type in (100) and t.RegId1 = addr.id
+                    join Last l on
+                        l.TxId = t.RowId
+            )sql")
+            .Bind(addresses, nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                 {
