@@ -50,22 +50,31 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetPostLang(const string &postHash)
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select p.String1 Lang
-            from Transactions t
-            join Payload p on p.TxHash = t.Hash
-            where t.Type in (200, 201, 202, 209, 210, 203)
-              and t.Hash = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select p.String1 Lang
+                from
+                    tx
+                    join Transactions t indexed by Transactions_HashId on
+                        t.HashId = tx.id and t.Type in (200, 201, 202, 209, 210, 203)
+                    join Payload p on
+                        p.TxId = t.RowId
+            )sql")
             .Bind(postHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
