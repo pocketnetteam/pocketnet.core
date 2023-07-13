@@ -6,6 +6,7 @@
 
 namespace PocketDb
 {
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetAccountInfoByAddress(const string& address)
     {
         UniValue result(UniValue::VOBJ);
@@ -40,6 +41,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetPostLang(const string &postHash)
     {
         UniValue result(UniValue::VOBJ);
@@ -67,6 +69,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetPostInfo(const string& postHash)
     {
         UniValue result(UniValue::VOBJ);
@@ -96,6 +99,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetBoostInfo(const string& boostHash)
     {
         UniValue result(UniValue::VOBJ);
@@ -140,6 +144,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetOriginalPostAddressByRepost(const string &repostHash)
     {
         UniValue result(UniValue::VOBJ);
@@ -180,6 +185,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetPrivateSubscribeAddressesByAddressTo(const string &addressTo)
     {
         UniValue result(UniValue::VARR);
@@ -259,6 +265,7 @@ namespace PocketDb
 //        return result;
 //    }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetPostInfoAddressByScore(const string &postScoreHash)
     {
         UniValue result(UniValue::VOBJ);
@@ -299,6 +306,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetSubscribeAddressTo(const string &subscribeHash)
     {
         UniValue result(UniValue::VOBJ);
@@ -336,6 +344,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetCommentInfoAddressByScore(const string &commentScoreHash)
     {
         UniValue result(UniValue::VOBJ);
@@ -376,6 +385,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetFullCommentInfo(const string &commentHash)
     {
         UniValue result(UniValue::VOBJ);
@@ -436,6 +446,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     UniValue NotifierRepository::GetPostCountFromMySubscribes(const string& address, int height)
     {
         UniValue result(UniValue::VOBJ);
