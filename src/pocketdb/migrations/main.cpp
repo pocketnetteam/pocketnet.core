@@ -440,6 +440,7 @@ namespace PocketDb
             create unique index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
 
             create index if not exists BlockingLists_IdSource_IdTarget on BlockingLists (IdSource, IdTarget);
+            create index if not exists BlockingLists_IdTarget_IdSource on BlockingLists (IdTarget, IdSource);
 
             ------------------------------
 

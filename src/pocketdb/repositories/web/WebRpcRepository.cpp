@@ -1955,7 +1955,6 @@ namespace PocketDb
         return result;
     }
     
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetBlockers(const string& address)
     {
         UniValue result(UniValue::VARR);
@@ -1963,12 +1962,33 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+
                 select
-                  bl.IdSource
-                from BlockingLists bl
-                cross join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
-                cross join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
-                where ut.String1 = ?
+                    bl.IdSource
+                from
+                    addr
+                cross join
+                    Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on ut.Type = 100 and ut.RegId1 = addr.id
+                cross join
+                    Chain ct
+                        on ct.TxId = ut.RowId
+                cross join
+                    Last lut
+                        on lut.TxId = ut.RowId
+                cross join
+                    BlockingLists bl indexed by BlockingLists_IdTarget_IdSource
+                        on bl.IdTarget = ct.Uid
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
