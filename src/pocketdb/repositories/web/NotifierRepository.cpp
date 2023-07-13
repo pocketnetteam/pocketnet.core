@@ -235,30 +235,40 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetPrivateSubscribeAddressesByAddressTo(const string &addressTo)
     {
         UniValue result(UniValue::VARR);
 
-        string sql = R"sql(
-            select s.String1 as addressTo,
-                  p.String2 as nameFrom,
-                  p.String3 as avatarFrom
-            from Transactions s indexed by Transactions_Type_Last_String2_Height
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = s.String2
-            cross join Payload p on p.TxHash = u.Hash
-            where s.Type in (303)
-              and s.Last = 1
-              and s.Height is not null
-              and s.String2 = ?
-              and u.Type in (100)
-              and u.Last=1
-              and u.Height is not null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select
+                    (select r.String from Registry r where r.RowId = s.RegId1) as addressTo,
+                    p.String2 as nameFrom,
+                    p.String3 as avatarFrom
+                from
+                    addr
+                    join Transactions s indexed by Transactions_Type_RegId2 on
+                        s.Type in (303) and s.RegId2 = addr.id
+                    join Last ls on
+                        ls.TxId = s.RowId
+                    join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and u.RegId1 = addr.id
+                    join Last lu on
+                        lu.TxId = u.RowId
+                    join Payload p on
+                        p.TxId = u.RowId
+            )sql")
             .Bind(addressTo)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
