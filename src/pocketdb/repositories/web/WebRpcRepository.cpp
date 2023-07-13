@@ -1971,7 +1971,7 @@ namespace PocketDb
             select q.Lang, q.Value, q.cnt
             from (
                 select t.Lang, t.Value, (select count(1) from web.TagsMap tm where tm.TagId = t.Id)cnt
-                from web.Tags t indexed by Tags_Lang_Id
+                from web.Tags t indexed by Tags_Lang_Value_Id
                 where t.Lang = ?
             )q
             order by cnt desc
