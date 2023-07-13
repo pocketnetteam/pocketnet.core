@@ -423,31 +423,42 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue NotifierRepository::GetCommentInfoAddressByScore(const string &commentScoreHash)
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select
-                score.String2 commentHash,
-                score.Int1 value,
-                comment.String1 commentAddress,
-                p.String2 as scoreCommentName,
-                p.String3 as scoreCommentAvatar
-            from Transactions score
-            join Transactions comment on score.String2 = comment.Hash
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = score.String1
-            join Payload p on p.TxHash = u.Hash
-            where score.Hash = ?
-                and u.Type in (100)
-                and u.Last=1
-                and u.Height is not null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select
+                    (select r.String from Registry r where r.RowId = score.RegId2) as commentHash,
+                    score.Int1 value,
+                    (select r.String from Registry r where r.RowId = comment.RegId1) as commentAddress,
+                    p.String2 as scoreCommentName,
+                    p.String3 as scoreCommentAvatar
+                from
+                    tx
+                    join Transactions score indexed by Transactions_HashId on
+                        score.HashId = tx.id
+                    join Transactions comment indexed by Transactions_HashId on
+                        comment.HashId = score.RegId2
+                    join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and u.RegId1 = score.RegId1
+                    join Last l on
+                        l.TxId = u.RowId
+                    join Payload p on
+                        p.TxId = u.RowId
+            )sql")
             .Bind(commentScoreHash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
