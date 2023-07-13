@@ -5185,7 +5185,7 @@ namespace PocketDb
 
             from
                 address,
-                Transactions p indexed by Transactions_Type_RegId2 -- TODO (optimization): use Transactions_Type_RegId2_RegId1
+                Transactions p indexed by Transactions_Type_RegId2_RegId1 -- TODO (optimization): use Transactions_Type_RegId2_RegId1
 
                 join Chain cp on
                     cp.TxId = p.RowId
@@ -5639,7 +5639,7 @@ namespace PocketDb
                 join vTxStr sBoost on
                     sBoost.RowId = tBoost.RowId
     
-                join Transactions tContent indexed by Transactions_Type_RegId2 on
+                join Transactions tContent indexed by Transactions_Type_RegId2_RegId1 on
                     tContent.Type in (200,201,202,209,210) and
                     tContent.RegId2 = tBoost.RegId2 and
                     exists (select 1 from Last l where l.TxId = tContent.RowId)
@@ -6070,7 +6070,7 @@ namespace PocketDb
                     cross join vTxStr sa on
                         sa.RowId = a.RowId
 
-                    join Transactions c indexed by Transactions_Type_RegId2 on -- My comments
+                    join Transactions c indexed by Transactions_Type_RegId2_RegId1 on -- My comments
                         c.Type in (204, 205) and
                         c.RegId2 = a.RegId5 and
                         c.RegId1 != a.RegId1 and
@@ -6420,7 +6420,7 @@ namespace PocketDb
                         cs.TxId = s.RowId
                         and cs.Height = ?
 
-                    join Transactions c indexed by Transactions_Type_RegId2 on
+                    join Transactions c indexed by Transactions_Type_RegId2_RegId1 on
                         c.Type in (204,205) and
                         c.RegId2 = s.RegId2 and
                         exists (select 1 from Last lc where lc.TxId = c.RowId)
@@ -6523,7 +6523,7 @@ namespace PocketDb
                         cs.TxId = s.RowId
                         and cs.Height = ?
 
-                    join Transactions c indexed by Transactions_Type_RegId2 on
+                    join Transactions c indexed by Transactions_Type_RegId2_RegId1 on
                         c.Type in (200,201,202,209,210) and
                         c.RegId2 = s.RegId2 and
                         exists (select 1 from Last lc where lc.TxId = c.RowId)

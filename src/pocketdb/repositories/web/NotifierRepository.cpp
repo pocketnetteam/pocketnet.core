@@ -154,7 +154,7 @@ namespace PocketDb
                     tx
                     join Transactions tBoost indexed by Transactions_HashId on
                         tBoost.HashId = tx.id and tBoost.Type in (208)
-                    join Transactions tContent indexed by Transactions_Type_RegId2 on
+                    join Transactions tContent indexed by Transactions_Type_RegId2_RegId1 on
                         tContent.RegId2 = tBoost.RegId2 and tContent.Type in (200, 201, 202, 209, 210)
                     join Last lc on
                         lc.TxId = tContent.RowId
@@ -258,7 +258,7 @@ namespace PocketDb
                     p.String3 as avatarFrom
                 from
                     addr
-                    join Transactions s indexed by Transactions_Type_RegId2 on
+                    join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
                         s.Type in (303) and s.RegId2 = addr.id
                     join Last ls on
                         ls.TxId = s.RowId
@@ -484,7 +484,7 @@ namespace PocketDb
                         p.TxId = u.RowId
                     join Transactions content indexed by Transactions_HashId on
                         content.HashId = comment.RegId3 and content.Type in (200, 201, 202, 209, 210)
-                    left join Transactions answer indexed by Transactions_Type_RegId2 on
+                    left join Transactions answer indexed by Transactions_Type_RegId2_RegId1 on
                         answer.Type in (204, 205) and answer.RegId2 = comment.RegId5
             )sql")
             .Bind(commentHash)

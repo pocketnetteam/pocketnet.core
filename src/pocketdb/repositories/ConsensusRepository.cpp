@@ -452,7 +452,7 @@ namespace PocketDb
                     p.String7 pString7
                 from
                     str2,
-                    Transactions t indexed by Transactions_Type_RegId2
+                    Transactions t indexed by Transactions_Type_RegId2_RegId1
                     cross join vTxStr s on
                         s.RowId = t.RowId
                     join Chain c on
@@ -516,7 +516,7 @@ namespace PocketDb
                     p.String7 pString7
                 from
                     s2,
-                    Transactions t indexed by Transactions_Type_RegId2
+                    Transactions t indexed by Transactions_Type_RegId2_RegId1
                     cross join vTxStr st on
                         st.RowId = t.RowId
                     join Chain c on
@@ -581,7 +581,7 @@ namespace PocketDb
                     p.String7 pString7
                 from
                     strs2,
-                    Transactions t indexed by Transactions_Type_RegId2
+                    Transactions t indexed by Transactions_Type_RegId2_RegId1
                     cross join vTxStr s on
                         s.RowId = t.RowId
                     join Chain c on

@@ -279,7 +279,7 @@ namespace PocketDb
                 select
                     t.Type,
                     count()
-                from Transactions t indexed by Transactions_Type_RegId2
+                from Transactions t indexed by Transactions_Type_RegId2_RegId1
                 where
                     t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303) and
                     exists (select 1 from Last l where l.TxId = t.RowId)
@@ -348,7 +348,7 @@ namespace PocketDb
         std::string filtering;
         if (!filters.empty()) {
             filtering = R"sql(
-                join Transactions t indexed by Transactions_Type_RegId2 on
+                join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
                    t.RowId = c.TxId and
                    t.Type in ( )sql" + join(vector<string>(filters.size(), "?"), ",") + ")";
         }
