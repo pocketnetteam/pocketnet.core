@@ -364,20 +364,30 @@ namespace PocketDb
     {
         string result;
 
-        string sql = R"sql(
-            select p.String1
-            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-            join Payload p on p.TxHash = t.Hash
-            where t.Type in (103)
-              and t.Last = 1
-              and t.Height is not null
-              and t.String1 = ?
-            limit 1
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select
+                    p.String1
+                from
+                    addr
+                    join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        t.Type in (103) and t.RegId1 = addr.id
+                    join Last l on
+                        l.TxId = t.RowId
+                    join Payload p on
+                        p.TxId = t.RowId
+                limit 1
+            )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
