@@ -1854,38 +1854,60 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetSubscribersAddresses(
         const string& address, const vector<TxType>& types, const string& orderBy, bool orderDesc, int offset, int limit)
     {
         UniValue result(UniValue::VARR);
 
         string sql = R"sql(
+            with
+            addr as (
+                select
+                    r.RowId as id,
+                    r.String as hash
+                from
+                    Registry r
+                where
+                    r.String = ?
+            )
+
             select
-                s.String1,
+                (select r.String from Registry r where r.RowId = s.RegId1),
                 case
                     when s.Type = 303 then 1
                     else 0
                 end,
                 ifnull(r.Value,0),
-                s.Height
+                su.Height
             from
-                Transactions s indexed by Transactions_Type_Last_String2_String1_Height
-                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    on u.Type in (100, 170) and u.Last = 1 and u.String1 = s.String1 and u.Height > 0
-                left join Ratings r indexed by Ratings_Type_Id_Last_Value
-                    on r.Type = 0 and r.Id = u.Id and r.Last = 1
-            where
-                s.Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
-                s.Last = 1 and
-                s.Height > 0 and
-                s.String2 = ?
+                addr
+            cross join
+                Transactions s indexed by Transactions_Type_RegId2_RegId1
+                    on s.Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and s.RegId2 = addr.id
+            cross join
+                Last ls
+                    on ls.TxId = s.RowId
+            cross join
+                Chain su
+                    on su.TxId = s.RowId
+            cross join
+                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type in (100, 170) and u.RegId1 = s.RegId1
+            cross join
+                Last lu
+                    on lu.TxId = u.RowId
+            cross join
+                Chain cu
+                    on cu.TxId = u.RowId
+            left join
+                Ratings r indexed by Ratings_Type_Uid_Last_Value
+                    on r.Type = 0 and r.Uid = cu.Uid and r.Last = 1
         )sql";
 
         if (orderBy == "reputation")
             sql += " order by r.Value "s + (orderDesc ? " desc "s : ""s);
         if (orderBy == "height")
-            sql += " order by s.Height "s + (orderDesc ? " desc "s : ""s);
+            sql += " order by su.Height "s + (orderDesc ? " desc "s : ""s);
         
         if (limit > 0)
         {
@@ -1898,9 +1920,7 @@ namespace PocketDb
             auto& stmt = Sql(sql);
             stmt.Bind(address);
             if (limit > 0)
-            {
                 stmt.Bind(limit, offset);
-            }
 
             stmt.Select([&](Cursor& cursor) {
                 while (cursor.Step())
