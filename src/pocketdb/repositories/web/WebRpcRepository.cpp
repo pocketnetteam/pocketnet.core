@@ -2228,7 +2228,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<int64_t> WebRpcRepository::GetContentIds(const vector<string>& txHashes)
     {
         vector<int64_t> result;
@@ -2236,16 +2235,31 @@ namespace PocketDb
         if (txHashes.empty())
             return result;
 
-        string sql = R"sql(
-            select Id
-            from Transactions indexed by Transactions_Hash_Height
-            where Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
-              and Height is not null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+                )
+
+                select
+                    c.Uid
+                from
+                    tx
+                cross join
+                    Transactions t indexed by Transactions_HashId
+                        on t.HashId = tx.id
+                cross join
+                    Chain c
+                        on c.TxId = t.RowId
+            )sql")
             .Bind(txHashes)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
