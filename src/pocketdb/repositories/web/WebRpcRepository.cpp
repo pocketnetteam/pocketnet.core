@@ -1037,7 +1037,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     map<int64_t, UniValue> WebRpcRepository::GetLastComments(const vector<int64_t>& ids, const string& address)
     {
         auto func = __func__;
@@ -1046,90 +1045,99 @@ namespace PocketDb
         string sql = R"sql(
             select
                 cmnt.contentId,
-                cmnt.commentId,
+                cc.Uid                                                                      as commentId,
                 c.Type,
-                c.String2 as RootTxHash,
-                c.String3 as PostTxHash,
-                c.String1 as AddressHash,
-                (select corig.Time from Transactions corig where corig.Hash = c.String2)Time,
-                c.Time as TimeUpdate,
-                c.Height,
-                (select p.String1 from Payload p where p.TxHash = c.Hash)Message,
-                c.String4 as ParentTxHash,
-                c.String5 as AnswerTxHash,
+                (select r.String from Registry r where r.RowId = c.RegId2)                  as RootTxHash,
+                (select r.String from Registry r where r.RowId = c.RegId3)                  as PostTxHash,
+                (select r.String from Registry r where r.RowId = c.RegId1)                  as AddressHash,
+                (select corig.Time from Transactions corig where corig.HashId = c.RegId2)   as Time,
+                c.Time                                                                      as TimeUpdate,
+                cc.Height,
+                (select p.String1 from Payload p where p.TxId = c.RowId)                    as Message,
+                (select r.String from Registry r where r.RowId = c.RegId4)                  as ParentTxHash,
+                (select r.String from Registry r where r.RowId = c.RegId5)                  as AnswerTxHash,
 
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1) as ScoreUp,
+                (select count(1) from Transactions sc indexed by Transactions_Type_RegId2
+                    join Chain csc on csc.TxId = sc.RowId
+                    where sc.Type=301 and sc.RegId2 = c.RowId and sc.Int1 = 1)              as ScoreUp,
 
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
+                (select count(1) from Transactions sc indexed by Transactions_Type_RegId2
+                    join Chain csc on csc.TxId = sc.RowId
+                    where sc.Type=301 and sc.RegId2 = c.RowId and sc.Int1 = -1)             as ScoreDown,
 
-                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Id = c.Id AND r.Type=3 and r.Last=1) as Reputation,
+                (select r.Value from Ratings r indexed by Ratings_Type_Uid_Last_Height
+                    where r.Uid = c.RowId AND r.Type=3 and r.Last=1)                        as Reputation,
 
-                (select count(*) from Transactions ch indexed by Transactions_Type_Last_String4_Height
-                    where ch.Type in (204,205,206) and ch.Last = 1 and ch.Height is not null and ch.String4 = c.String2) as ChildrensCount,
+                (select count(*) from Transactions ch indexed by Transactions_Type_RegId4
+                    join Chain cch on cch.TxId = ch.RowId
+                    where ch.Type in (204,205,206) and ch.RegId4 = c.RegId2)                as ChildrensCount,
 
-                ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
-                    where scr.Type = 301 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = c.String2),0) as MyScore,
+                ifnull((select scr.Int1
+                        from Transactions scr indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        join Chain cscr on cscr.TxId = scr.RowId
+                        where scr.Type = 301
+                            and scr.RegId1 = (select RowId from Registry where String = ?)
+                            and scr.RegId2 = c.RegId2),0)                                   as MyScore,
 
                 (
                     select o.Value
-                    from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                    where o.TxHash = c.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != c.String1
-                ) as Donate
+                    from TxOutputs o
+                    where o.TxId = c.RowId
+                        and o.AddressId = cmnt.ContentAddressId
+                        and o.AddressId != c.RegId1
+                )                                                                           as Donate
 
             from (
                 select
 
-                    (t.Id)contentId,
-                    (t.String1)ContentAddressHash,
+                    c.Uid    as contentId,
+                    t.RegId1 as ContentAddressId,
 
                     -- Last comment for content record
                     (
-                        select c1.Id
-                        
-                        from Transactions c1 indexed by Transactions_Type_Last_String3_Height
+                        select c1.RowId
 
-                        cross join Transactions uac indexed by Transactions_Type_Last_String1_Height_Id
-                          on uac.String1 = c1.String1 and uac.Type = 100 and uac.Last = 1 and uac.Height is not null
+                        from Transactions c1 indexed by Transactions_Type_RegId3
+                        join Chain cc1 on cc1.TxId = c1.RowId
+                        join Last lc1 on lc1.TxId = c1.RowId
 
-                        left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                            on o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1 and o.Value > ?
+                        join Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
+                          on uac.Type = 100 and uac.RegId1 = c1.RegId1
+                        join Chain cuac on cuac.TxId = uac.RowId
+                        join Last luac on luac.TxId = uac.RowId
+
+                        left join TxOutputs o
+                            on o.TxId = c1.RowId and o.AddressId = t.RegId1 and o.AddressId != c1.RegId1 and o.Value > ?
 
                         where c1.Type in (204, 205)
-                          and c1.Last = 1
-                          and c1.Height is not null
-                          and c1.String3 = t.String2
-                          and c1.String4 is null
+                          and c1.RegId3 = t.RegId2
+                          and c1.RegId4 is null
 
-                          -- exclude commenters blocked by the author of the post 
+                          -- exclude commenters blocked by the author of the post
                           and not exists (
                             select 1
                             from BlockingLists bl
-                            join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
-                            join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
-                            where us.String1 = t.String1 and ut.String1 = c1.String1
+                            where bl.IdSource = t.RegId1 and bl.IdTarget = c1.RegId1
                           )
 
-                        order by o.Value desc, c1.Id desc
+                        order by o.Value desc, c1.RowId desc
                         limit 1
-                    )commentId
+                    )commentRowId
 
-                from Transactions t indexed by Transactions_Last_Id_Height
+                from Chain c indexed by Chain_Uid_Height
+                join Transactions t on t.RowId = c.TxId
+                join Last l on l.TxId = t.RowId
+                join Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
+                  on ua.RegId1 = t.RegId1 and ua.Type = 100
+                join Chain cua on cua.TxId = ua.RowId
+                join Last lua on lua.TxId = ua.RowId
 
-                cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
-                  on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
-
-                where t.Type in (200,201,202,209,210,207)
-                    and t.Last = 1
-                    and t.Height is not null
-                    and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+                where c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
 
             ) cmnt
 
-            join Transactions c indexed by Transactions_Last_Id_Height
-                on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.Id = cmnt.commentId
+            join Transactions c on c.RowId = cmnt.commentRowId
+            join Chain cc on cc.TxId = c.RowId
         )sql";
 
         SqlTransaction(func, [&]()
@@ -1154,16 +1162,16 @@ namespace PocketDb
 
                     if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("postid", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("timeUpd", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("block", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("time", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("timeUpd", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(8); ok) record.pushKV("block", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("msg", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("parentid", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(12); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(13); ok) record.pushKV("scoreDown", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(15); ok) record.pushKV("children", value);
                     if (auto[ok, value] = cursor.TryGetColumnInt(16); ok) record.pushKV("myScore", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(17); ok)
                     {
