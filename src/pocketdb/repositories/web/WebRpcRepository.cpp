@@ -2490,31 +2490,29 @@ namespace PocketDb
         int resultCount = 0;
         UniValue resultData(UniValue::VOBJ);
 
-        string sql = R"sql(
-            select
-                c.Type,
-                p.String1 as lang,
-                count() as cnt
-            from
-                Chain cc indexed by Chain_Height_Uid
-            cross join Transactions c
-                    on c.RowId = cc.TxId and c.Type in (200, 201, 202, 209, 210)
-            cross join
-                Last lc
-                    on lc.TxId = c.RowId
-            cross join
-                Payload p on
-                    p.TxId = c.RowId
-            where
-                cc.Height > ? and
-                cc.Uid is not null
-            group by
-                c.Type, p.String1
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                select
+                    c.Type,
+                    p.String1 as lang,
+                    count() as cnt
+                from
+                    Chain cc indexed by Chain_Height_Uid
+                cross join Transactions c
+                        on c.RowId = cc.TxId and c.Type in (200, 201, 202, 209, 210)
+                cross join
+                    Last lc
+                        on lc.TxId = c.RowId
+                cross join
+                    Payload p on
+                        p.TxId = c.RowId
+                where
+                    cc.Height > ? and
+                    cc.Uid is not null
+                group by
+                    c.Type, p.String1
+            )sql")
             .Bind(height)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
@@ -2539,27 +2537,38 @@ namespace PocketDb
         return {resultCount, resultData};
     }
 
-    // TODO (aok, api): implement
     tuple<int, UniValue> WebRpcRepository::GetLastAddressContent(const string& address, int height, int count)
     {
         int resultCount = 0;
-        UniValue resultData(UniValue::VARR);
-
-        // Get count
-        string sqlCount = R"sql(
-            select count(*)
-            from Transactions
-            where Type in (200, 201, 202, 209, 210)
-              and Last = 1
-              and Height is not null
-              and Height > ?
-              and String1 = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sqlCount)
-            .Bind(height, address)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+
+                select
+                    count()
+                from
+                    addr
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on t.Type in (200, 201, 202, 209, 210) and t.RegId1 = addr.id
+                cross join
+                    Last l
+                        on l.TxId = t.RowId
+                cross join
+                    Chain c indexed by Chain_TxId_Height
+                        on c.TxId = l.TxId and c.Height > ?
+            )sql")
+            .Bind(address, height)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                     if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
@@ -2570,32 +2579,55 @@ namespace PocketDb
         });
 
         // Try get last N records
+        UniValue resultData(UniValue::VARR);
         if (resultCount > 0)
         {
-            string sql = R"sql(
-                select t.String2 as txHash,
-                    t.Time,
-                    t.Height,
-                    t.String1 as addrFrom,
-                    p.String2 as nameFrom,
-                    p.String3 as avatarFrom
-                from Transactions t
-                cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    on u.String1 = t.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
-                cross join Payload p on p.TxHash = u.Hash
-                where t.Type in (200, 201, 202, 209, 210)
-                    and t.Last = 1
-                    and t.Height is not null
-                    and t.Height > ?
-                    and t.String1 = ?
-                order by t.Height desc
-                limit ?
-            )sql";
-
             SqlTransaction(__func__, [&]()
             {
-                Sql(sql)
-                .Bind(height, address, count)
+                Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+
+                    select
+                        (select r.String from Registry r where r.RowId = t.RegId2) as txHash,
+                        t.Time,
+                        ct.Height,
+                        addr.hash as addrFrom,
+                        p.String2 as nameFrom,
+                        p.String3 as avatarFrom
+                    from
+                        addr
+                    cross join
+                        Transactions t
+                            on t.Type in (200, 201, 202, 209, 210) and t.RegId1 = addr.id
+                    cross join
+                        Last lt
+                            on lt.TxId = t.RowId
+                    cross join
+                        Chain ct
+                            on ct.TxId = t.RowId and ct.Height > ?
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100) and u.RegId1 = t.RegId1
+                    cross join
+                        Last lu
+                            on lu.TxId = u.RowId
+                    cross join
+                        Payload p
+                            on p.TxId = u.RowId
+                    order by
+                        ct.Height desc
+                    limit ?
+                )sql")
+                .Bind(address, height, count)
                 .Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
