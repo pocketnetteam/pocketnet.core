@@ -2273,7 +2273,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     map<string,string> WebRpcRepository::GetContentsAddresses(const vector<string>& txHashes)
     {
         map<string, string> result;
@@ -2281,16 +2280,32 @@ namespace PocketDb
         if (txHashes.empty())
             return result;
 
-        string sql = R"sql(
-            select Hash, String1
-            from Transactions
-            where Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
-              and Height is not null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+                )
+
+                select
+                    tx.hash,
+                    (select r.String from Registry r where r.RowId = t.RegId1)
+                from
+                    tx
+                cross join
+                    Transactions t indexed by Transactions_HashId
+                        on t.HashId = tx.id
+                cross join
+                    Chain c
+                        on c.TxId = t.RowId
+            )sql")
             .Bind(txHashes)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
