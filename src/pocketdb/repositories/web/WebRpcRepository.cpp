@@ -2485,23 +2485,31 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     tuple<int, UniValue> WebRpcRepository::GetContentLanguages(int height)
     {
         int resultCount = 0;
         UniValue resultData(UniValue::VOBJ);
 
         string sql = R"sql(
-            select c.Type,
-                   p.String1 as lang,
-                   count(*) as cnt
-            from Transactions c
-            join Payload p on p.TxHash = c.Hash
-            where c.Type in (200, 201, 202, 209, 210)
-              and c.Last = 1
-              and c.Height is not null
-              and c.Height > ?
-            group by c.Type, p.String1
+            select
+                c.Type,
+                p.String1 as lang,
+                count() as cnt
+            from
+                Chain cc indexed by Chain_Height_Uid
+            cross join Transactions c
+                    on c.RowId = cc.TxId and c.Type in (200, 201, 202, 209, 210)
+            cross join
+                Last lc
+                    on lc.TxId = c.RowId
+            cross join
+                Payload p on
+                    p.TxId = c.RowId
+            where
+                cc.Height > ? and
+                cc.Uid is not null
+            group by
+                c.Type, p.String1
         )sql";
 
         SqlTransaction(__func__, [&]()
