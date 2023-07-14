@@ -2183,26 +2183,31 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetTags(const string& lang, int pageSize, int pageStart)
     {
         UniValue result(UniValue::VARR);
 
-        string sql = R"sql(
-            select q.Lang, q.Value, q.cnt
-            from (
-                select t.Lang, t.Value, (select count(1) from web.TagsMap tm where tm.TagId = t.Id)cnt
-                from web.Tags t indexed by Tags_Lang_Value_Id
-                where t.Lang = ?
-            )q
-            order by cnt desc
-            limit ?
-            offset ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                select
+                    t.Lang,
+                    t.Value,
+                    count() as cnt
+                from
+                    web.Tags t indexed by Tags_Lang_Value_Id
+                cross join
+                    web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                        on tm.TagId = t.Id
+                where
+                    t.Lang = ?
+                group by
+                    t.Lang, t.Value
+                order by
+                    count() desc
+                limit ?
+                offset ?
+            )sql")
             .Bind(lang, pageSize, pageStart)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
