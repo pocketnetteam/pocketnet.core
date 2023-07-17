@@ -1782,41 +1782,60 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetAddressScores(const vector<string>& postHashes, const string& address)
     {
         UniValue result(UniValue::VARR);
 
         string postWhere;
         if (!postHashes.empty())
-        {
-            postWhere += " and s.String2 in ( ";
-            postWhere += join(vector<string>(postHashes.size(), "?"), ",");
-            postWhere += " ) ";
-        }
+            postWhere += " and s.String2 in ( " + join(vector<string>(postHashes.size(), "?"), ",") + " ) ";
 
-        string sql = R"sql(
-            select
-                s.String2 as posttxid,
-                s.String1 as address,
-                up.String2 as name,
-                up.String3 as avatar,
-                ur.Value as reputation,
-                s.Int1 as value
-            from Transactions s
-            join Transactions u on u.Type in (100) and u.Height is not null and u.String1 = s.String1 and u.Last = 1
-            join Payload up on up.TxHash = u.Hash
-            left join (select ur.* from Ratings ur where ur.Type=0 and ur.Last=1) ur on ur.Id = u.Id
-            where s.Type in (300)
-                and s.String1 = ?
-                and s.Height is not null
-                )sql" + postWhere + R"sql(
-            order by s.Time desc
-        )sql";
+        string sql = ;
 
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select
+                    (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
+                    addr.hash as address,
+                    up.String2 as name,
+                    up.String3 as avatar,
+                    ur.Value as reputation,
+                    s.Int1 as value
+                from
+                    addr
+                cross join
+                    Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on s.Type in (300) and s.RegId1 = addr.id )sql" + postWhere + R"sql(
+                cross join
+                    Chain cs
+                        on cs.TxId = s.RowId
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100) and u.RegId1 = s.RegId1
+                cross join
+                    Last lu
+                        on lu.TxId = u.RowId
+                cross join
+                    Chain cu
+                        on cu.TxId = u.RowId
+                cross join
+                    Payload up
+                        on up.TxId = u.RowId
+                left join
+                    Ratings ur indexed by Ratings_Type_Uid_Last_Value
+                        on ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
+            )sql")
             .Bind(address, postHashes)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
