@@ -1577,31 +1577,48 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetPagesScores(const vector<string>& postHashes, const vector<string>& commentHashes, const string& addressHash)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (!postHashes.empty())
         {
-            string sql = R"sql(
-                select
-                    sc.String2 as ContentTxHash,
-                    sc.Int1 as MyScoreValue
-
-                from Transactions sc indexed by Transactions_Type_Last_String1_String2_Height
-
-                where sc.Type in (300)
-                  and sc.Last in (0,1)
-                  and sc.Height is not null
-                  and sc.String1 = ?
-                  and sc.String2 in ( )sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql( )
-            )sql";
-
-            SqlTransaction(func, [&]()
+            SqlTransaction(__func__, [&]()
             {
-                Sql(sql)
+                Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    tx as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql( )
+                    )
+                    select
+                        tx.hash as ContentTxHash,
+                        sc.Int1 as MyScoreValue
+
+                    from
+                        addr,
+                        tx
+                    cross join
+                        Transactions sc
+                            on sc.Type in (300) and sc.RegId1 = addr.id and sc.RegId2 = tx.id
+                    cross join
+                        Chain c
+                            on c.TxId = sc.RowId
+                )sql")
                 .Bind(addressHash, postHashes)
                 .Select([&](Cursor& cursor) {
                     while (cursor.Step())
@@ -1619,34 +1636,63 @@ namespace PocketDb
 
         if (!commentHashes.empty())
         {
-            string sql = R"sql(
-                select
-                    c.String2 as RootTxHash,
-
-                    (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                        where sc.Type in (301) and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1) as ScoreUp,
-
-                    (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                        where sc.Type in (301) and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
-
-                    (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Value where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
-
-                    msc.Int1 AS MyScore
-
-                from Transactions c indexed by Transactions_Type_Last_String2_Height
-
-                left join Transactions msc indexed by Transactions_Type_String1_String2_Height
-                    on msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1 = ?
-
-                where c.Type in (204, 205)
-                    and c.Last = 1
-                    and c.Height is not null
-                    and c.String2 in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
-            )sql";
-
             SqlTransaction(func, [&]()
             {
-                Sql(sql)
+                Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    ),
+                    tx as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
+                    )
+                    select
+                        tx.hash as RootTxHash,
+                        (
+                            select count()
+                            from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain csc on csc.TxId = sc.RowId
+                            where sc.Type in (301) and sc.RegId2 = c.HashId and sc.Int1 = 1
+                        ) as ScoreUp,
+                        (
+                            select count()
+                            from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain csc on csc.TxId = sc.RowId
+                            where sc.Type in (301) and sc.RegId2 = c.HashId and sc.Int1 = -1
+                        ) as ScoreDown,
+                        (
+                            select r.Value
+                            from Ratings r indexed by Ratings_Type_Uid_Last_Value
+                            where r.Uid = cc.Uid and r.Type = 3 and r.Last = 1
+                        ) as Reputation,
+                        msc.Int1 AS MyScore
+                    from
+                        addr,
+                        tx
+                    cross join
+                        Transactions c indexed by Transactions_Type_RegId2_RegId1
+                            on c.Type in (204, 205) and c.RegId2 = tx.id
+                    cross join
+                        Last lc
+                            on lc.TxId = c.RowId
+                    cross join
+                        Chain cc
+                            on cc.TxId = c.RowId
+                    left join Transactions msc indexed by Transactions_Type_RegId2_RegId1
+                        on msc.Type in (301) and msc.RegId2 = c.RegId2 and msc.RegId1 = addr.id and exists (select 1 from Chain cmsc where cmsc.TxId = msc.RowId)
+                )sql")
                 .Bind(addressHash, commentHashes)
                 .Select([&](Cursor& cursor) {
                     while (cursor.Step())
