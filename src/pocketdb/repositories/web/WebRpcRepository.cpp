@@ -1314,7 +1314,7 @@ namespace PocketDb
                 Chain ct
                     on ct.TxId = t.RowId
             left join Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id
+                on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
             left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
                 on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
             left join
@@ -1392,7 +1392,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash)
     {
         auto result = UniValue(UniValue::VARR);
@@ -1400,92 +1399,128 @@ namespace PocketDb
         if (cmntHashes.empty())
             return result;
 
-        auto sql = R"sql(
-            select
-
-                c.Type,
-                c.Hash,
-                c.String2 as RootTxHash,
-                c.String3 as PostTxHash,
-                c.String1 as AddressHash,
-                r.Time AS RootTime,
-                c.Time,
-                c.Height,
-                pl.String1 AS Msg,
-                c.String4 as ParentTxHash,
-                c.String5 as AnswerTxHash,
-
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.String2 and sc.Int1 = 1 and sc.Last in (0,1)) as ScoreUp,
-
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.String2 and sc.Int1 = -1 and sc.Last in (0,1)) as ScoreDown,
-
-                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
-
-                sc.Int1 as MyScore,
-
-                (
-                    select count(1)
-                    from Transactions s indexed by Transactions_Type_Last_String4_Height
-                    where s.Type in (204, 205)
-                      and s.Height is not null
-                      and s.String4 = c.String2
-                      and s.Last = 1
-                      -- exclude commenters blocked by the author of the post
-                      and not exists (
-                        select 1
-                        from BlockingLists bl
-                        join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
-                        join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
-                        where us.String1 = t.String1 and ut.String1 = s.String1
-                      )
-                ) AS ChildrenCount,
-
-                o.Value as Donate,
-
-                (
-                    select 1
-                    from BlockingLists bl
-                    join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
-                    join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
-                    where us.String1 = t.String1 and ut.String1 = c.String1
-                    limit 1
-                )Blocked
-
-            from Transactions c indexed by Transactions_Type_Last_String2_Height
-
-            join Transactions r ON c.String2 = r.Hash
-
-            join Payload pl ON pl.TxHash = c.Hash
-
-            join Transactions t indexed by Transactions_Type_Last_String2_Height
-                on t.Type in (200,201,202,209,210) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
-
-            left join Transactions sc indexed by Transactions_Type_String1_String2_Height
-                on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
-
-            left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                on o.TxHash = c.Hash and o.AddressHash = t.String1 and o.AddressHash != c.String1
-
-            where c.Type in (204, 205, 206)
-                and c.Height is not null
-                and c.Last = 1
-                and c.String2 in ( )sql" + join(vector<string>(cmntHashes.size(), "?"), ",") + R"sql( )
-
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(addressHash, cmntHashes)
+            Sql(R"sql(
+                with
+                txs as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(cmntHashes.size(), "?"), ",") + R"sql( )
+                ),
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+
+                select
+
+                    c.Type,
+                    (select r.String from Registry r where r.RowId = c.HashId),
+                    (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
+                    (select r.String from Registry r where r.RowId = c.RegId3) as PostTxHash,
+                    (select r.String from Registry r where r.RowId = c.RegId1) as AddressHash,
+                    r.Time AS RootTime,
+                    c.Time,
+                    cc.Height,
+                    pl.String1 AS Msg,
+                    (select r.String from Registry r where r.RowId = c.RegId4) as ParentTxHash,
+                    (select r.String from Registry r where r.RowId = c.RegId5) as AnswerTxHash,
+                    (
+                        select count()
+                        from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                        cross join Chain csc on csc.TxId = sc.RowId
+                        where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = 1
+                    ) as ScoreUp,
+                    (
+                        select count()
+                        from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                        cross join Chain csc on csc.TxId = sc.RowId
+                        where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = -1
+                    ) as ScoreDown,
+                    (
+                        select r.Value
+                        from Ratings r indexed by Ratings_Type_Uid_Last_Value
+                        where r.Type = 3 and r.Uid = cc.Uid and r.Last = 1
+                    ) as Reputation,
+                    sc.Int1 as MyScore,
+                    (
+                        select count()
+                        from
+                            Transactions s indexed by Transactions_Type_RegId4_RegId1
+                        cross join
+                            Last ls
+                                on ls.TxId = s.RowId
+                        cross join
+                            Chain cs
+                                on cs.TxId = s.RowId
+                        -- exclude deleted accounts
+                        cross join
+                            Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                on uac.Type = 100 and uac.RegId1 = s.RegId1
+                        cross join
+                            Last luac
+                                on luac.TxId = uac.RowId
+                        left join
+                            BlockingLists bls
+                                on bls.IdSource = ct.Uid and bls.IdTarget = cs.Uid
+                        where
+                            s.Type in (204, 205) and
+                            s.RegId4 = c.RegId2 and
+                            bls.ROWID is null
+                    ) AS ChildrenCount,
+                    o.Value as Donate,
+                    (select 1 from BlockingLists bl where bl.IdSource = ct.Uid and bl.IdTarget = cc.Uid)Blocked
+
+                from
+                    txs,
+                    addr
+                cross join
+                    Transactions c indexed by Transactions_Type_RegId2_RegId1
+                        on c.Type in (204, 205, 206) and c.RegId2 = txs.id
+                cross join
+                    Last lc
+                        on lc.TxId = c.RowId
+                cross join
+                    Chain cc
+                        on cc.TxId = c.RowId
+                cross join
+                    Transactions r indexed by Transactions_HashId
+                        on r.HashId = c.RegId2
+                cross join
+                    Payload pl
+                        on pl.TxId = c.RowId
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId2_RegId1
+                        on t.Type in (200, 201, 202, 209, 210) and t.RegId2 = c.RegId3
+                cross join
+                    Last lt
+                        on lt.TxId = t.RowId
+                cross join
+                    Chain ct
+                        on ct.TxId = t.RowId
+                left join
+                    Transactions sc indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on sc.Type in (301) and sc.RegId1 = addr.id and sc.RegId2 = c.RegId2 and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
+                left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                    on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
+            )sql")
+            .Bind(cmntHashes, addressHash)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    //auto[ok0, txHash] = cursor.TryGetColumnString(cursor, 1);
+                    auto[ok0, txHash] = cursor.TryGetColumnString(cursor, 1);
                     auto[ok1, rootTxHash] = cursor.TryGetColumnString(2);
                     record.pushKV("id", rootTxHash);
 
