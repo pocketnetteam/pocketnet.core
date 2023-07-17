@@ -1520,7 +1520,7 @@ namespace PocketDb
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    auto[ok0, txHash] = cursor.TryGetColumnString(cursor, 1);
+                    auto[ok0, txHash] = cursor.TryGetColumnString(1);
                     auto[ok1, rootTxHash] = cursor.TryGetColumnString(2);
                     record.pushKV("id", rootTxHash);
 
