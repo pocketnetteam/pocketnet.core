@@ -1714,40 +1714,53 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetPostScores(const string& postTxHash)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
-        string sql = R"sql(
-            select
-                s.String2 as ContentTxHash,
-                s.String1 as ScoreAddressHash,
-                p.String2 as AccountName,
-                p.String3 as AccountAvatar,
-                r.Value as AccountReputation,
-                s.Int1 as ScoreValue
-
-            from Transactions s indexed by Transactions_Type_Last_String2_Height
-
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = s.String1
-            
-            left join Ratings r indexed by Ratings_Type_Id_Last_Value
-                on r.Type = 0 and r.Last = 1 and r.Id = u.Id
-
-            cross join Payload p on p.TxHash = u.Hash
-
-            where s.Type in (300)
-              and s.Last in (0,1)
-              and s.Height > 0
-              and s.String2 = ?
-        )sql";
-
-        SqlTransaction(func, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                tx as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                select
+                    tx.hash as ContentTxHash,
+                    (select r.String from Registry r where r.RowId = s.RegId1) as ScoreAddressHash,
+                    p.String2 as AccountName,
+                    p.String3 as AccountAvatar,
+                    r.Value as AccountReputation,
+                    s.Int1 as ScoreValue
+                from
+                    tx
+                cross join
+                    Transactions s indexed by Transactions_Type_RegId2_RegId1
+                        on s.Type in (300) and s.RegId2 = tx.id
+                cross join
+                    Chain cs
+                        on cs.TxId = s.RowId
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100) and u.RegId1 = s.RegId1
+                cross join
+                    Last lu
+                        on lu.TxId = u.RowId
+                cross join
+                    Chain cu
+                        on cu.TxId = u.RowId
+                left join
+                    Ratings r indexed by Ratings_Type_Uid_Last_Value
+                        on r.Type = 0 and r.Last = 1 and r.Uid = cu.Uid
+                cross join
+                    Payload p
+                        on p.TxId = u.RowId
+            )sql")
             .Bind(postTxHash)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
