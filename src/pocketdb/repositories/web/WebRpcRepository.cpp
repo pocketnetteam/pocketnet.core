@@ -914,89 +914,96 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetLastComments(int count, int height, const string& lang)
     {
-        auto func = __func__;
         auto result = UniValue(UniValue::VARR);
 
-        auto sql = R"sql(
-            select
-              c.String2   as CommentTxHash,
-              p.String2   as ContentTxHash,
-              c.String1   as CommentAddress,
-              c.Time      as CommentTime,
-              c.Height    as CommentHeight,
-              pc.String1  as CommentMessage,
-              c.String4   as CommentParent,
-              c.String5   as CommentAnswer,
-
-              p.String1   as AddressContent,
-              ifnull(
-                (select String1 from Transactions where Hash = c.String4),
-              '')   as AddressCommentParent,
-              ifnull(
-                (select String1 from Transactions where Hash = c.String5),
-              '')   as AddressCommentAnswer,
-
-              (
-                select count(1)
-                from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                where sc.Type = 301 and sc.Last in (0,1) and sc.Height > 0 and sc.String2 = c.String2 and sc.Int1 = 1
-              ) as ScoreUp,
-
-              (
-                select count(1)
-                from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                where sc.Type = 301 and sc.Last in (0,1) and sc.Height > 0 and sc.String2 = c.String2 and sc.Int1 = -1
-              ) as ScoreDown,
-
-              rc.Value    as CommentRating,
-
-              (case when c.Hash != c.String2 then 1 else 0 end) as CommentEdit,
-
-              (
-                  select o.Value
-                  from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                  where o.TxHash = c.Hash and o.AddressHash = p.String1 and o.AddressHash != c.String1
-              ) as Donate
-
-            from Transactions c indexed by Transactions_Height_Id
-
-            cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
-              on ua.String1 = c.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
-
-            cross join Transactions p indexed by Transactions_Type_Last_String2_Height
-              on p.Type in (200,201,202,209,210) and p.Last = 1 and p.Height > 0 and p.String2 = c.String3
-
-            cross join Payload pp indexed by Payload_String1_TxHash
-              on pp.TxHash = p.Hash and pp.String1 = ?
-
-            cross join Payload pc
-              on pc.TxHash = c.Hash
-
-            cross join Ratings rc indexed by Ratings_Type_Id_Last_Value
-              on rc.Type = 3 and rc.Last = 1 and rc.Id = c.Id and rc.Value >= 0
-
-            where c.Type in (204,205)
-              and c.Last = 1
-              and c.Height > (? - 600)
-
-              and not exists (
-                select 1
-                from BlockingLists bl
-                join Transactions us on us.Id = bl.IdSource and us.Type = 100 and us.Last = 1 and us.Height is not null
-                join Transactions ut on ut.Id = bl.IdTarget and ut.Type = 100 and ut.Last = 1 and ut.Height is not null
-                where us.String1 = p.String1 and ut.String1 = c.String1
-              )
-
-            order by c.Height desc
-            limit ?
-        )sql";
-
-        SqlTransaction(func, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                select
+                    (select r.String from Registry r where r.RowId = t.RegId2) as CommentTxHash,
+                    (select r.String from Registry r where r.RowId = p.RegId2) as ContentTxHash,
+                    (select r.String from Registry r where r.RowId = t.RegId1) as CommentAddress,
+                    t.Time as CommentTime,
+                    c.Height as CommentHeight,
+                    pc.String1 as CommentMessage,
+                    (select r.String from Registry r where r.RowId = t.RegId4) as CommentParent,
+                    (select r.String from Registry r where r.RowId = t.RegId5) as CommentAnswer,
+                    (select r.String from Registry r where r.RowId = p.RegId1) as AddressContent,
+                    ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.HashId = t.RegId4), '') as AddressCommentParent,
+                    ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.HashId = t.RegId5), '') as AddressCommentAnswer,
+
+                    (
+                        select count()
+                        from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                        cross join Chain csc on csc.TxId = sc.RowId
+                        where sc.Type = 301 and sc.RegId2 = t.RegId2 and sc.Int1 = 1
+                    ) as ScoreUp,
+
+                    (
+                        select count()
+                        from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                        cross join Chain csc on csc.TxId = sc.RowId
+                        where sc.Type = 301 and sc.RegId2 = t.RegId2 and sc.Int1 = -1
+                    ) as ScoreDown,
+
+                    rc.Value    as CommentRating,
+
+                    (case when t.HashId != t.RegId2 then 1 else 0 end) as CommentEdit,
+
+                    (
+                        select o.Value
+                        from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                        where o.TxId = t.RowId and o.AddressId = p.RegId1 and o.AddressId != t.RegId1
+                    ) as Donate
+
+                from
+                    Chain c
+
+                cross join
+                    Transactions t
+                        on t.RowId = c.TxId and t.Type in (204, 205)
+                cross join
+                    Last lt
+                        on lt.TxId = t.RowId
+                cross join
+                    Payload pc
+                        on pc.TxId = t.RowId
+                cross join
+                    Ratings rc indexed by Ratings_Type_Uid_Last_Value
+                        on rc.Type = 3 and rc.Last = 1 and rc.Uid = c.Uid and rc.Value >= 0
+
+                cross join
+                    Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on ua.Type = 100 and ua.RegId1 = t.RegId1
+                cross join
+                    Last lua
+                        on lua.TxId = ua.RowId
+
+                cross join Transactions p indexed by Transactions_Type_RegId2_RegId1
+                on p.Type in (200, 201, 202, 209, 210) and p.RegId2 = t.RegId3
+                cross join
+                    Last lp
+                        on lp.TxId = p.RowId
+                cross join
+                    Chain cp
+                        on cp.TxId = p.RowId
+                cross join
+                    Payload pp
+                        on pp.TxId = p.RowId and pp.String1 = ?
+
+                left join
+                    BlockingLists bl
+                        on bl.IdSource = cp.Uid and bl.IdTarget = c.Uid
+
+                where
+                    c.Height > (? - 600) and
+                    bl.ROWID is null
+
+                order by c.Height desc
+                limit ?
+            )sql")
             .Bind(lang, height, count)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
