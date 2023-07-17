@@ -1007,6 +1007,7 @@ namespace PocketDb
                             Transactions f
                         join
                             Chain c on
+                                c.TxId = f.RowId and
                                 c.Height >= ?
                         where
                             f.Type = 410
@@ -1028,6 +1029,7 @@ namespace PocketDb
                             Transactions f
                         join
                             Chain c on
+                                c.TxId = f.RowId and
                                 c.Height >= ?
                         where
                             f.Type = 410
