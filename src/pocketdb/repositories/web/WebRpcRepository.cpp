@@ -1064,18 +1064,18 @@ namespace PocketDb
                 (select r.String from Registry r where r.RowId = c.RegId4)                  as ParentTxHash,
                 (select r.String from Registry r where r.RowId = c.RegId5)                  as AnswerTxHash,
 
-                (select count(1) from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                (select count() from Transactions sc indexed by Transactions_Type_RegId2_RegId1
                     join Chain csc on csc.TxId = sc.RowId
                     where sc.Type=301 and sc.RegId2 = c.RowId and sc.Int1 = 1)              as ScoreUp,
 
-                (select count(1) from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                (select count() from Transactions sc indexed by Transactions_Type_RegId2_RegId1
                     join Chain csc on csc.TxId = sc.RowId
                     where sc.Type=301 and sc.RegId2 = c.RowId and sc.Int1 = -1)             as ScoreDown,
 
                 (select r.Value from Ratings r indexed by Ratings_Type_Uid_Last_Height
                     where r.Uid = c.RowId AND r.Type=3 and r.Last=1)                        as Reputation,
 
-                (select count(*) from Transactions ch indexed by Transactions_Type_RegId4
+                (select count() from Transactions ch indexed by Transactions_Type_RegId4_RegId1
                     join Chain cch on cch.TxId = ch.RowId
                     where ch.Type in (204,205,206) and ch.RegId4 = c.RegId2)                as ChildrensCount,
 
