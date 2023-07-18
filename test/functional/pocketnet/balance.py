@@ -49,7 +49,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
         self.log.info("Send money to accounts and check balances")
 
         for acc in accounts:
-            node.sendtoaddress(address=acc.Address, amount=10, destaddress=node_address)
+            node.sendtoaddress(address=acc.Address, amount=10, destaddress=nodeAddress)
         
         node.stakeblock(1)
 
