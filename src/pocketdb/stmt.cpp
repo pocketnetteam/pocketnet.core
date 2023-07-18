@@ -110,6 +110,7 @@ namespace PocketDb
 
     void Stmt::Select(const function<void(Cursor&)>& func)
     {
+        LogPrintf("%s\n", Log());
         ResetCurrentBindIndex(); // At this point there will be no more binds
         Cursor cursor(m_stmt);
         func(cursor);
