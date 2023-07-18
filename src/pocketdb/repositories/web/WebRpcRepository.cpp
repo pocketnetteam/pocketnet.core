@@ -135,43 +135,31 @@ namespace PocketDb
         if (addresses.empty())
             return result;
 
-        string sql = R"sql(
-            with addresses as (
-                select
-                    RowId as id,
-                    String as str
-                from
-                    Registry
-                where
-                    String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-            )
-            select
-                s.String1, -- TODO (optimization): mb use addresses.str?
-                u.Time,
-                s.Hash
-            from
-                addresses,
-                Transactions u
-                join Chain cu indexed by Chain_Height_Uid on
-                    cu.TxId = u.RowId and
-                    cu.Height = (
-                        select
-                            min(uf.Height)
-                        from
-                            Chain uf indexed by Chain_Uid_Height
-                        where
-                            uf.Uid = cu.Uid
-                    )
-                join vtxStr s on
-                    s.RowId = u.RowId
-            where
-                u.Type in (100) and
-                u.RegId1 = addresses.id
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with addr as (
+                    select
+                        RowId as id,
+                        String as hash
+                    from
+                        Registry
+                    where
+                        String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    addr.hash,
+                    u.Time,
+                    (select r.String from Registry r where r.RowId = u.HashId)
+                from
+                    addr
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100) and u.RegId1 = addr.id
+                cross join
+                    First f
+                        on f.TxId = u.RowId
+            )sql")
             .Bind(addresses)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
@@ -179,8 +167,7 @@ namespace PocketDb
                     UniValue record(UniValue::VOBJ);
 
                     cursor.Collect<string>(0, record, "address");
-                    // TODO (optimization): Use int for this?
-                    cursor.Collect<string>(1, record, "time");
+                    cursor.Collect<int64_t>(1, record, "time");
                     cursor.Collect<string>(2, record, "txid");
 
                     result.push_back(record);
@@ -303,22 +290,20 @@ namespace PocketDb
                     group by
                         p.Type
                 )
-
                 select
                     u.AddressId as AddressId,
                     u.Address as Address,
                     u.Type,
-                    (select p.count from uidtxs p where p.type = 200) as PostSpent,
-                    (select p.count from uidtxs p where p.type = 201) as VideoSpent,
-                    (select p.count from uidtxs p where p.type = 202) as ArticleSpent,
-                    (select p.count from uidtxs p where p.type = 209) as StreamSpent,
-                    (select p.count from uidtxs p where p.type = 210) as AudioSpent,
-                    (select p.count from uniquetxs p where p.type = 204) as CommentSpent,
-                    (select p.count from uniquetxs p where p.type = 300) as ScoreSpent,
-                    (select p.count from uniquetxs p where p.type = 301) as ScoreCommentSpent,
-                    (select p.count from uniquetxs p where p.type = 307) as ComplainSpent,
-                    (select p.count from uniquetxs p where p.type = 410) as FlagsSpent
-
+                    ifnull((select p.count from uidtxs p where p.type = 200), 0) as PostSpent,
+                    ifnull((select p.count from uidtxs p where p.type = 201), 0) as VideoSpent,
+                    ifnull((select p.count from uidtxs p where p.type = 202), 0) as ArticleSpent,
+                    ifnull((select p.count from uidtxs p where p.type = 209), 0) as StreamSpent,
+                    ifnull((select p.count from uidtxs p where p.type = 210), 0) as AudioSpent,
+                    ifnull((select p.count from uniquetxs p where p.type = 204), 0) as CommentSpent,
+                    ifnull((select p.count from uniquetxs p where p.type = 300), 0) as ScoreSpent,
+                    ifnull((select p.count from uniquetxs p where p.type = 301), 0) as ScoreCommentSpent,
+                    ifnull((select p.count from uniquetxs p where p.type = 307), 0) as ComplainSpent,
+                    ifnull((select p.count from uniquetxs p where p.type = 410), 0) as FlagsSpent
                 from
                     u,
                     address
@@ -499,7 +484,7 @@ namespace PocketDb
         string with;
         if (!addresses.empty())
         {
-            with += R"sql(
+            with = R"sql(
                 with
                 addr as (
                     select
@@ -515,7 +500,7 @@ namespace PocketDb
 
         if (!ids.empty())
         {
-            with += R"sql(
+            with = R"sql(
                 with
                 addr as (
                     select
@@ -543,7 +528,7 @@ namespace PocketDb
         {
             fullProfileSql = R"sql(
 
-                (
+                ,(
                     select
                         json_group_array(
                             json_object(
@@ -559,13 +544,13 @@ namespace PocketDb
                     cross join Last luas
                         on luas.TxId = uas.RowId
                     cross join Registry rsubs
-                        on rsubs.RowId = subs.RowId
+                        on rsubs.RowId = subs.RegId2
                     where
-                        subs.Type in (302,303) and
+                        subs.Type in (302, 303) and
                         subs.RegId1 = addr.id
-                ) as Subscribes,
+                ) as Subscribes
 
-                (
+                ,(
                     select
                         json_group_array(rsubs.String)
                     from Transactions subs indexed by Transactions_Type_RegId2_RegId1
@@ -578,11 +563,11 @@ namespace PocketDb
                     cross join Registry rsubs
                         on rsubs.RowId = subs.RegId1
                     where
-                        subs.Type in (302,303) and
+                        subs.Type in (302, 303) and
                         subs.RegId2 = addr.id
-                ) as Subscribers,
+                ) as Subscribers
 
-                (
+                ,(
                     select
                         json_group_array(rub.String)
                     from BlockingLists bl indexed by BlockingLists_IdSource_IdTarget
@@ -596,9 +581,9 @@ namespace PocketDb
                         on rub.RowId = ub.RegId1
                     where
                         bl.IdSource = cu.Uid
-                ) as Blockings,
+                ) as Blockings
 
-                (
+                ,(
                     select json_group_object(gr.Type, gr.Cnt)
                     from (
                         select
@@ -621,7 +606,7 @@ namespace PocketDb
             )sql" + with + R"sql(
             select
 
-                addr.hash as AccountHash,
+                (select r.String from Registry r where r.RowId = u.HashId) as AccountHash,
                 (select r.String from Registry r where r.RowId = u.RegId1) as Address,
                 cu.Uid,
                 u.Type,
@@ -805,7 +790,7 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(firstFlagsDepth * 1440, addresses, ids)
+            .Bind(addresses, ids, firstFlagsDepth * 1440)
             .Select([&](Cursor& cursor) {
                 // Fetch data
                 while (cursor.Step())
@@ -1964,7 +1949,7 @@ namespace PocketDb
             )
 
             select
-                (select r.String from Registry r where r.RowId = s.RegId1),
+                (select r.String from Registry r where r.RowId = s.RegId2),
                 case
                     when s.Type = 303 then 1
                     else 0
@@ -2095,7 +2080,7 @@ namespace PocketDb
         if (orderBy == "reputation")
             sql += " order by r.Value "s + (orderDesc ? " desc "s : ""s);
         if (orderBy == "height")
-            sql += " order by su.Height "s + (orderDesc ? " desc "s : ""s);
+            sql += " order by cs.Height "s + (orderDesc ? " desc "s : ""s);
         
         if (limit > 0)
         {
