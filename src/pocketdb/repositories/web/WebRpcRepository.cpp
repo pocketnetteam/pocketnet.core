@@ -1636,7 +1636,7 @@ namespace PocketDb
 
         if (!commentHashes.empty())
         {
-            SqlTransaction(func, [&]()
+            SqlTransaction(__func__, [&]()
             {
                 Sql(R"sql(
                     with
@@ -1789,8 +1789,6 @@ namespace PocketDb
         string postWhere;
         if (!postHashes.empty())
             postWhere += " and s.String2 in ( " + join(vector<string>(postHashes.size(), "?"), ",") + " ) ";
-
-        string sql = ;
 
         SqlTransaction(__func__, [&]()
         {
