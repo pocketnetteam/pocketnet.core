@@ -886,7 +886,7 @@ namespace PocketDb
 
                 select
 
-                    f.ROWID, /* Unique id of Flag record */
+                    f.RowId, /* Unique id of Flag record */
                     cu.Uid, /* Account unique id of the content author */
                     f.Int1 /* Reason */
 

@@ -18,43 +18,52 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                    flag as (
-                        select
-                            ROWID
-                        from
-                            Transactions
-                        where
-                            Hash = ?
-                    ),
-                    juryRec as (
-                        select
-                            j.AccountId,
-                            j.Reason
-                        from
-                            Jury j,
-                            flag
-                        where
-                            j.FlagRowId = flag.ROWID
-                    ),
-                    account as (
-                        select
-                            u.String1 as AddressHash
-                        from
-                            Transactions u indexed by Transactions_Id_First,
-                            juryRec
-                        where
-                            u.Id = juryRec.AccountId and
-                            u.First = 1
-                    ),
-                    juryVerd as (
-                        select
-                            jv.Verdict
-                        from
-                            juryVerdict jv,
-                            flag
-                        where
-                            jv.FlagRowId = flag.ROWID
-                    )
+                flag as (
+                    select
+                        t.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    cross join
+                        Transactions t indexed by Transactions_HashId
+                            on t.HashId = r.RowId
+                    where
+                        r.String = ?
+                ),
+                juryRec as (
+                    select
+                        j.AccountId,
+                        j.Reason
+                    from
+                        flag
+                    cross join
+                        Jury j
+                            on j.FlagRowId = flag.id
+                ),
+                account as (
+                    select
+                        (select r.String from Registry r where r.RowId = u.RegId1) as AddressHash
+                    from
+                        juryRec
+                    cross join
+                        Chain c indexed by Chain_Uid_Height
+                            on c.Uid = juryRec.AccountId
+                    cross join
+                        First f
+                            on f.TxId = c.TxId
+                    cross join
+                        Transactions u
+                            on u.RowId = f.TxId
+                ),
+                juryVerd as (
+                    select
+                        jv.Verdict
+                    from
+                        flag
+                    cross join
+                        juryVerdict jv
+                            on jv.FlagRowId = flag.id
+                )
                 select
                     a.AddressHash,
                     j.Reason,
@@ -69,12 +78,11 @@ namespace PocketDb
                 if (cursor.Step())
                 {
                     result.pushKV("id", jury);
-                    cursor.Collect<std::string>(0, result, "address");
-                    cursor.Collect<int>(1, result, "address");
-                    if (auto [ok, value] = cursor.TryGetColumnInt(2); ok)
+                    cursor.Collect<string>(0, result, "address");
+                    cursor.Collect<int>(1, result, "reason");
+                    if (auto [ok, value] = cursor.TryGetColumnInt(2); ok && value > -1)
                     {
                         result.pushKV("verdict", value);
-
                         // TODO (aok): add object with ban information if verditc == 1
                     }
                 }
@@ -108,8 +116,8 @@ namespace PocketDb
                 {
                     UniValue rcrd(UniValue::VOBJ);
 
-                    cursor.Collect<std::string>(0, rcrd, "id");
-                    cursor.Collect<std::string>(1, rcrd, "address");
+                    cursor.Collect<string>(0, rcrd, "id");
+                    cursor.Collect<string>(1, rcrd, "address");
                     cursor.Collect<int>(2, rcrd, "reason");
                     cursor.Collect<int>(3, rcrd, "verdict");
 
@@ -129,6 +137,61 @@ namespace PocketDb
         {
             string orderBy = " order by f.Height ";
             orderBy += (pagination.Desc ? " desc " : " asc ");
+
+--------------------------
+            // Hide verdicted juries
+            string sqlVerdict = R"sql(
+                and v.Hash is null
+                and jv.FlagRowId is null
+            )sql";
+
+            // Show only if verdicted
+            if (verdict) {
+                sqlVerdict = R"sql(
+                    and (
+                        v.Hash is not null
+                        or jv.FlagRowId is not null
+                    )
+                )sql";
+            }
+
+            auto stmt = SetupSqlStatement(R"sql(
+                select
+
+                    f.Hash as FlagHash,
+                    f.Height as FlagHeight,
+                    f.Int1 as Reason,
+                    c.Id as ContentId,
+                    c.Type as ContentType,
+                    ifnull(v.Int1, -1),
+                    ifnull(jv.Verdict, -1)
+
+                from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                cross join JuryModerators jm indexed by JuryModerators_AccountId_FlagRowId
+                    on jm.AccountId = u.Id
+                cross join Transactions f
+                    on f.ROWID = jm.FlagRowId
+                cross join Transactions c
+                    on c.Hash = f.String2
+                left join Transactions v indexed by Transactions_Type_String1_String2_Height
+                    on v.Type = 420 and v.String1 = u.String1 and v.String2 = f.Hash and v.Height > 0
+                left join JuryVerdict jv
+                    on jv.FlagRowId = jm.FlagRowId
+
+                where
+                    u.Type in (100)
+                    and u.Last = 1
+                    and u.Height is not null
+                    and u.String1 = ?
+                    and f.Height <= ?
+
+                    )sql" + sqlVerdict + R"sql(
+
+                )sql" + orderBy + R"sql(
+
+                limit ? offset ?
+            )sql");
+-----------------------------
 
             Sql(R"sql(
                 select
@@ -179,15 +242,22 @@ namespace PocketDb
                 pagination.PageStart
             )
             .Select([&](Cursor& cursor) {
-                UniValue record(UniValue::VOBJ);
+                while (cursor.Step())
+                {
+                    UniValue record(UniValue::VOBJ);
 
-                cursor.Collect<std::string>(0, record, "juryid"); // TODO (aok): is it string?
-                cursor.Collect<int64_t>(1, record, "height");
-                cursor.Collect<int>(2, record, "reason");
+                    cursor.Collect<string>(0, record, "juryid");
+                    cursor.Collect<int64_t>(1, record, "height");
+                    cursor.Collect<int>(2, record, "reason");
+                    if (auto [ok, value] = cursor.TryGetColumnInt(5); ok && value > -1)
+                        record.pushKV("vote", value);
+                    if (auto [ok, value] = cursor.TryGetColumnInt(6); ok && value > -1)
+                        record.pushKV("verdict", value);
 
-                int64_t contentId; int contentType;
-                if (cursor.CollectAll(contentId, contentType)) {
-                    result.push_back(JuryContent{contentId, (TxType)contentType, record});
+                    int64_t contentId; int contentType;
+                    if (cursor.CollectAll(contentId, contentType)) {
+                        result.push_back(JuryContent{contentId, (TxType)contentType, record});
+                    }
                 }
             });
         });
