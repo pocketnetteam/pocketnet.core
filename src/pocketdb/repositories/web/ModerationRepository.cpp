@@ -228,38 +228,34 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                    flag as (
-                        select
-                            ROWID
-                        from
-                            Transactions
-                        where
-                            Hash = ?
-                    ),
-                    jurymod as (
-                        select
-                            jm.AccountId
-                        from
-                            JuryModerators jm,
-                            flag
-                        where
-                            jm.FlagRowId = flag.ROWID
-                    ),
-                    moderators as (
-                        select
-                            u.String1 as Address
-                        from
-                            Transactions u indexed by Transactions_Id_First,
-                            jurymod
-                        where
-                            u.Id = jurymod.AccountId and
-                            u.First = 1
-                    )
-
+                flag as (
+                    select
+                        t.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    cross join
+                        Transactions t indexed by Transactions_HashId
+                            on t.HashId = r.RowId
+                    where
+                        r.String = ?
+                )
                 select
-                    m.Address
+                    (select r.String from Registry r where r.RowId = u.RegId1)
                 from
-                    moderators m
+                    flag
+                cross join
+                    JuryModerators jm
+                        on jm.FlagRowId = flag.id
+                cross join
+                    Chain c indexed by Chain_Uid_Height
+                        on c.Uid = jm.AccountId
+                cross join
+                    First f
+                        on f.TxId = c.TxId
+                cross join
+                    Transactions u
+                        on u.RowId = f.TxId
             )sql")
             .Bind(jury)
             .Select([&](Cursor& cursor) {
