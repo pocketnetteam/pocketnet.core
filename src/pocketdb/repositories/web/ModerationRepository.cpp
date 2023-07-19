@@ -277,23 +277,38 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
                 select
-                    f.Hash as JuryId,
+                    (select r.String from Registry r where r.RowId = f.HashId) as JuryId,
                     f.Int1 as Reason,
                     b.Ending
                 from
-                    Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                    cross join JuryBan b indexed by JuryBan_AccountId_Ending
-                        on b.AccountId = u.Id
-                    cross join Transactions v
-                        on v.ROWID = b.VoteRowId
-                    cross join Transactions f
-                        on f.Hash = v.String2
-                where
-                    u.Type = 100 and
-                    u.Last = 1 and
-                    u.String1 = ? and
-                    u.Height > 0
+                    addr
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100) and u.RegId1 = addr.id
+                cross join
+                    Last lu
+                        on lu.TxId = u.RowId
+                cross join
+                    Chain cu
+                        on cu.TxId = u.RowId
+                cross join
+                    JuryBan b indexed by JuryBan_AccountId_Ending
+                        on b.AccountId = cu.Uid
+                cross join Transactions v
+                    on v.RowId = b.VoteRowId
+                cross join Transactions f indexed by Transactions_HashId
+                    on f.HashId = v.RegId2
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
