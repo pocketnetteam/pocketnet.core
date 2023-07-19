@@ -135,104 +135,59 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            string orderBy = " order by f.Height ";
-            orderBy += (pagination.Desc ? " desc " : " asc ");
-
---------------------------
-            // Hide verdicted juries
-            string sqlVerdict = R"sql(
-                and v.Hash is null
-                and jv.FlagRowId is null
-            )sql";
-
-            // Show only if verdicted
-            if (verdict) {
-                sqlVerdict = R"sql(
-                    and (
-                        v.Hash is not null
-                        or jv.FlagRowId is not null
-                    )
-                )sql";
-            }
-
-            auto stmt = SetupSqlStatement(R"sql(
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
                 select
 
-                    f.Hash as FlagHash,
-                    f.Height as FlagHeight,
+                    (select r.String from Registry r where r.RowId = f.HashId) as FlagHash,
+                    cf.Height as FlagHeight,
                     f.Int1 as Reason,
-                    c.Id as ContentId,
-                    c.Type as ContentType,
                     ifnull(v.Int1, -1),
-                    ifnull(jv.Verdict, -1)
-
-                from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                    ifnull(jv.Verdict, -1),
+                    cc.Uid as ContentId,
+                    c.Type as ContentType
+                from
+                    addr
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100) and u.RegId1 = addr.id
+                cross join
+                    Last lu
+                        on lu.TxId = u.RowId
+                cross join
+                    Chain cu
+                        on cu.TxId = u.RowId
                 cross join JuryModerators jm indexed by JuryModerators_AccountId_FlagRowId
-                    on jm.AccountId = u.Id
+                    on jm.AccountId = cu.Uid
                 cross join Transactions f
-                    on f.ROWID = jm.FlagRowId
-                cross join Transactions c
-                    on c.Hash = f.String2
-                left join Transactions v indexed by Transactions_Type_String1_String2_Height
-                    on v.Type = 420 and v.String1 = u.String1 and v.String2 = f.Hash and v.Height > 0
+                    on f.RowId = jm.FlagRowId
+                cross join
+                    Chain cf indexed by Chain_TxId_Height
+                        on cf.TxId = f.RowId and cf.Height <= ?
+                cross join Transactions c indexed by Transactions_HashId
+                    on c.HashId = f.RegId2
+                cross join
+                    Chain cc
+                        on cc.TxId = c.RowId
+                left join Transactions v indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on v.Type in (420) and v.RegId1 = u.RegId1 and v.RegId2 = f.HashId and exists (select 1 from Chain cv where cv.TxId = v.RowId)
                 left join JuryVerdict jv
                     on jv.FlagRowId = jm.FlagRowId
-
                 where
-                    u.Type in (100)
-                    and u.Last = 1
-                    and u.Height is not null
-                    and u.String1 = ?
-                    and f.Height <= ?
-
-                    )sql" + sqlVerdict + R"sql(
-
-                )sql" + orderBy + R"sql(
-
-                limit ? offset ?
-            )sql");
------------------------------
-
-            Sql(R"sql(
-                select
-
-                    f.Hash as FlagHash,
-                    f.Height as FlagHeight,
-                    f.Int1 as Reason,
-                    c.Id as ContentId,
-                    c.Type as ContentType
-
-                from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                cross join JuryModerators jm indexed by JuryModerators_AccountId_FlagRowId
-                    on jm.AccountId = u.Id
-                cross join Transactions f
-                    on f.ROWID = jm.FlagRowId
-                cross join Transactions c
-                    on c.Hash = f.String2
-
-                -- left join with my votes
-                -- left join with verdict
-
-                where u.Type in (100)
-                  and u.Last = 1
-                  and u.Height is not null
-                  and u.String1 = ? 
-                  and f.Height <= ?
-
-                  -- todo for filter by verdict
-
-                  and )sql" + string(verdict ? "" : "not") + R"sql( exists (
-                     select 1
-                     from Transactions v indexed by Transactions_Type_String1_String2_Height
-                     where
-                        v.Type = 420 and
-                        v.String1 = u.String1 and
-                        v.String2 = f.Hash and
-                        v.Height > 0
-                  )
-
-                )sql" + orderBy + R"sql(
-
+                    (
+                        v.HashId is )sql" + (verdict ? "not" : "") + R"sql( null )sql" + (verdict ? "or" : "and") + R"sql(
+                        jv.FlagRowId is )sql" + (verdict ? "not" : "") + R"sql( null
+                    )
+                order by cf.Height )sql" + (pagination.Desc ? " desc " : " asc ") + R"sql(
                 limit ? offset ?
             )sql")
             .Bind(
@@ -249,9 +204,9 @@ namespace PocketDb
                     cursor.Collect<string>(0, record, "juryid");
                     cursor.Collect<int64_t>(1, record, "height");
                     cursor.Collect<int>(2, record, "reason");
-                    if (auto [ok, value] = cursor.TryGetColumnInt(5); ok && value > -1)
+                    if (auto [ok, value] = cursor.TryGetColumnInt(3); ok && value > -1)
                         record.pushKV("vote", value);
-                    if (auto [ok, value] = cursor.TryGetColumnInt(6); ok && value > -1)
+                    if (auto [ok, value] = cursor.TryGetColumnInt(4); ok && value > -1)
                         record.pushKV("verdict", value);
 
                     int64_t contentId; int contentType;
