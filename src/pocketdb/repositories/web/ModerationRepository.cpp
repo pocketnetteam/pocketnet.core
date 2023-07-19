@@ -184,10 +184,10 @@ namespace PocketDb
                     on jv.FlagRowId = jm.FlagRowId
                 where
                     (
-                        v.HashId is )sql" + (verdict ? "not" : "") + R"sql( null )sql" + (verdict ? "or" : "and") + R"sql(
-                        jv.FlagRowId is )sql" + (verdict ? "not" : "") + R"sql( null
+                        v.HashId is )sql" + (verdict ? "not"s : ""s) + R"sql( null )sql" + (verdict ? "or"s : "and"s) + R"sql(
+                        jv.FlagRowId is )sql" + (verdict ? "not"s : ""s) + R"sql( null
                     )
-                order by cf.Height )sql" + (pagination.Desc ? " desc " : " asc ") + R"sql(
+                order by cf.Height )sql" + (pagination.Desc ? " desc "s : " asc "s) + R"sql(
                 limit ? offset ?
             )sql")
             .Bind(

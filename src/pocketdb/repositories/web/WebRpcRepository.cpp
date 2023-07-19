@@ -480,6 +480,8 @@ namespace PocketDb
 
         if (addresses.empty() && ids.empty())
             return result;
+        if (!addresses.empty() && !ids.empty())
+            return result;
         
         string with;
         if (!addresses.empty())
@@ -1377,17 +1379,41 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash)
+    map<string, UniValue> WebRpcRepository::GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash)
     {
-        auto result = UniValue(UniValue::VARR);
+        map<string, UniValue> result{};
 
-        if (cmntHashes.empty())
+        auto _result = GetComments(cmntHashes, {}, addressHash);
+        for (auto const& [hash, id, record] : _result)
+            result.insert_or_assign(hash, record);
+
+        return result;
+    }
+
+    map<int64_t, UniValue> WebRpcRepository::GetCommentsByIds(const vector<int64_t>& cmntIds, const string& addressHash)
+    {
+        map<int64_t, UniValue> result{};
+
+        auto _result = GetComments({}, cmntIds, addressHash);
+        for (auto const& [hash, id, record] : _result)
+            result.insert_or_assign(id, record);
+
+        return result;
+    }
+
+    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetComments(const vector<string>& cmntHashes, const vector<int64_t>& cmntIds, const string& addressHash)
+    {
+        vector<tuple<string, int64_t, UniValue>> result{};
+
+        if (cmntHashes.empty() && cmntIds.empty())
+            return result;
+        if (!cmntHashes.empty() && !cmntIds.empty())
             return result;
 
-        SqlTransaction(__func__, [&]()
+        string with;
+        if (!cmntHashes.empty())
         {
-            Sql(R"sql(
-                with
+            with = R"sql(
                 txs as (
                     select
                         r.RowId as id,
@@ -1396,7 +1422,37 @@ namespace PocketDb
                         Registry r
                     where
                         r.String in ( )sql" + join(vector<string>(cmntHashes.size(), "?"), ",") + R"sql( )
-                ),
+                )
+            )sql";
+        }
+        if (!cmntIds.empty())
+        {
+            with = R"sql(
+                txs as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Chain c
+                    cross join
+                        Transactions t
+                            on t.RowId = c.TxId
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
+                    cross join
+                        Registry r
+                            on r.RowId = t.RegId1
+                    where
+                        c.Uid in ( )sql" + join(vector<string>(cmntIds.size(), "?"), ",") + R"sql( )
+                )
+            )sql";
+        }
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
                 addr as (
                     select
                         r.RowId as id,
@@ -1405,7 +1461,8 @@ namespace PocketDb
                         Registry r
                     where
                         r.String = ?
-                )
+                ),
+                )sql" + with + R"sql(
 
                 select
 
@@ -1464,8 +1521,8 @@ namespace PocketDb
                             bls.ROWID is null
                     ) AS ChildrenCount,
                     o.Value as Donate,
-                    (select 1 from BlockingLists bl where bl.IdSource = ct.Uid and bl.IdTarget = cc.Uid)Blocked
-
+                    (select 1 from BlockingLists bl where bl.IdSource = ct.Uid and bl.IdTarget = cc.Uid)Blocked,
+                    cc.Uid
                 from
                     txs,
                     addr
@@ -1499,19 +1556,15 @@ namespace PocketDb
                 left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
                     on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
             )sql")
-            .Bind(cmntHashes, addressHash)
+            .Bind(addressHash, cmntHashes, cmntIds)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    auto[ok0, txHash] = cursor.TryGetColumnString(1);
-                    auto[ok1, rootTxHash] = cursor.TryGetColumnString(2);
-                    record.pushKV("id", rootTxHash);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
-                        record.pushKV("postid", value);
-
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok) record.pushKV("type", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("id", value);
+                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("postid", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
@@ -1531,7 +1584,8 @@ namespace PocketDb
                         record.pushKV("donation", "true");
                     }
 
-                    if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0) record.pushKV("blck", 1);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0)
+                        record.pushKV("blck", 1);
 
                     if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                     {
@@ -1554,7 +1608,9 @@ namespace PocketDb
                         }
                     }
 
-                    result.push_back(record);
+                    auto[ok_hash, hash] = cursor.TryGetColumnString(1);
+                    auto[ok_id, id] = cursor.TryGetColumnInt64(18);
+                    result.emplace_back(hash, id, record);
                 }
             });
         });

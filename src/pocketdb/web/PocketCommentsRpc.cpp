@@ -60,9 +60,17 @@ namespace PocketWeb::PocketWebRpc
         }
 
         if (!cmntHashes.empty())
-            return request.DbConnection()->WebRpcRepoInst->GetCommentsByHashes(cmntHashes, addressHash);
+        {
+            UniValue ret(UniValue::VARR);
+            auto records = request.DbConnection()->WebRpcRepoInst->GetCommentsByHashes(cmntHashes, addressHash);
+            for (auto const& [hash, record] : records)
+                ret.push_back(record);
+            return ret;
+        }
         else
+        {
             return request.DbConnection()->WebRpcRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
+        }
     },
         };
     }
