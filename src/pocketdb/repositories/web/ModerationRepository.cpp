@@ -100,16 +100,16 @@ namespace PocketDb
         {
             Sql(R"sql(
                 select
-                    f.Hash,
-                    f.String3,
+                    (select r.String from Registry r where r.RowId = f.HashId),
+                    (select r.String from Registry r where r.RowId = f.RegId3),
                     j.Reason,
                     ifnull(jv.Verdict, -1)
                 from
                     Jury j
-                    cross join Transactions f
-                        on f.ROWID = j.FlagRowId
-                    left join JuryVerdict jv
-                        on jv.FlagRowId = j.FlagRowId
+                cross join Transactions f
+                    on f.RowId = j.FlagRowId
+                left join JuryVerdict jv
+                    on jv.FlagRowId = j.FlagRowId
             )sql")
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
