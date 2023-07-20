@@ -3474,7 +3474,6 @@ namespace PocketDb
     // ------------------------------------------------------
     // Feeds
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang,
         const vector<int>& contentTypes, const string& address, int badReputationLimit)
     {
@@ -3482,28 +3481,29 @@ namespace PocketDb
         UniValue result(UniValue::VARR);
 
         string sql = R"sql(
-            select t.Id
+            select ct.Uid
 
-            from Transactions t indexed by Transactions_Type_Last_String3_Height
+            from Transactions t indexed by Transactions_Type_RegId3_RegId1
+            join Chain ct on ct.TxId = t.RowId
+            join Last lt on lt.TxId = t.RowId
 
-            join Payload p indexed by Payload_String1_TxHash
-                on p.String1 = ? and t.Hash = p.TxHash
+            join Payload p on p.TxId = t.RowId and p.String1 = ?
 
-            join Ratings r indexed by Ratings_Type_Id_Last_Value
-                on r.Type = 2 and r.Last = 1 and r.Id = t.Id and r.Value > 0
+            join Ratings r indexed by Ratings_Type_Uid_Last_Value
+                on r.Type = 2 and r.Uid=ct.Uid and r.Last=1
 
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+            join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                on u.Type in (100) and u.RegId1 = t.RegId1
+            join Chain cu on cu.TxId = u.RowId
+            join Last lu on lu.TxId = u.RowId
 
-            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
-                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+            left join Ratings ur indexed by Ratings_Type_Uid_Last_Value
+                on ur.Type = 0 and ur.Uid=cu.Uid and ur.Last=1
 
             where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-                and t.Last = 1
-                and t.Height is not null
-                and t.Height <= ?
-                and t.Height > ?
-                and t.String3 is null
+                and ct.Height <= ?
+                and ct.Height > ?
+                and t.RegId3 is null
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
