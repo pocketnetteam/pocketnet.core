@@ -1592,7 +1592,7 @@ namespace PocketDb
                             usl.TxId = us.RowId
 
                         cross join Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            ut.Type in (100, 170) and ut.RegId1 =b.RegId2 -- in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
+                            ut.Type in (100, 170) and ut.RegId1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
                         cross join Chain utc on
                             utc.TxId = ut.RowId
                         cross join Last utl on
