@@ -4120,7 +4120,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4143,35 +4142,34 @@ namespace PocketDb
 
         string contentIdWhere;
         if (topContentId > 0)
-            contentIdWhere = " and t.Id < ? ";
+            contentIdWhere = " and ct.Uid < ? ";
 
-        string accountExistence = " join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id "
-                                  " on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null ";
+        string accountExistence = " join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 "
+                                  " on u.Type in (100) and u.RegId1 = t.RegId1 "
+                                  " join Chain cu on cu.TxId = u.RowId "
+                                  " join Last lu on lu.TxId = u.RowId ";
 
         string langFilter;
         if (!lang.empty())
-            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
+            langFilter += " join Payload p on p.TxId = t.RowId and p.String1 = ? ";
 
-        string sorting = "t.Id ";
+        string sorting = "ct.Uid ";
         if (orderby == "comment")
         {
             sorting = R"sql(
                 (
                     select count()
-                    from Transactions s indexed by Transactions_Type_Last_String3_Height
+                    from Transactions s indexed by Transactions_Type_RegId3
+                    join Chain cs on cs.TxId = s.RowId
+                    join Last l on l.TxId = s.RowId
                     where s.Type in (204, 205)
-                      and s.Height is not null
-                      and s.String3 = t.String2
-                      and s.Last = 1
+                      and s.RegId3 = t.RegId2
                       -- exclude commenters blocked by the author of the post
                       and not exists (
                         select 1
-                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                        where b.Type in (305)
-                            and b.Last = 1
-                            and b.Height > 0
-                            and b.String1 = t.String1
-                            and b.String2 = s.String1
+                        from BlockingLists bl
+                        where bl.IdSource = t.RegId1
+                            and bl.IdTarget = s.RegId1
                       )
                 )
             )sql";
@@ -4180,30 +4178,31 @@ namespace PocketDb
         {
             sorting = R"sql(
                 (
-                    select count() from Transactions scr indexed by Transactions_Type_Last_String2_Height
-                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2
+                    select count() from Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                    join Chain cscr on cscr.TxId = scr.RowId
+                    where scr.Type = 300 and scr.RegId2 = t.RegId2
                 )
             )sql";
         }
         sorting += " " + ascdesc;
 
         string sql = R"sql(
-            select t.Id
-            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
+            select ct.Uid
+            from Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+            join Chain ct on ct.TxId = t.RowId
+            join Last lt on lt.TxId = t.RowId
             )sql" + accountExistence + R"sql(
             )sql" + langFilter + R"sql(
             where t.Type in )sql" + contentTypesWhere + R"sql(
-                and t.Height > 0
-                and t.Height <= ?
-                and t.Last = 1
-                and t.String1 = ?
+                and ct.Height <= ?
+                and t.RegId1 = (select RowId from Registry indexed by Registry_String where String = ?)
                 )sql" + contentIdWhere   + R"sql(
         )sql";
 
         if (!tags.empty())
         {
             sql += R"sql(
-                and t.id in (
+                and ct.Uid in (
                     select tm.ContentId
                     from web.Tags tag indexed by Tags_Lang_Value_Id
                     join web.TagsMap tm indexed by TagsMap_TagId_ContentId
@@ -4214,11 +4213,11 @@ namespace PocketDb
             )sql";
         }
 
-        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
-        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
-            sql += R"sql( and t.Id not in (
+            sql += R"sql( and ct.Uid not in (
                 select tmEx.ContentId
                 from web.Tags tagEx indexed by Tags_Lang_Value_Id
                 join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
@@ -4231,7 +4230,7 @@ namespace PocketDb
         if(!_keyword.empty())
         {
             sql += R"sql(
-                and t.id in (
+                and ct.Uid in (
                     select cm.ContentId
                     from web.Content c
                     join web.ContentMap cm on c.ROWID = cm.ROWID
