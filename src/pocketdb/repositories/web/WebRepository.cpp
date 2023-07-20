@@ -344,13 +344,12 @@ namespace PocketDb
                             c.Uid
                         from
                             Transactions t
-                            join Chain c indexed by Chain_Height_Uid on
-                                c.TxId = t.RowId and
-                                c.Height = ?
+                        cross join
+                            Chain c indexed by Chain_TxId_Height
+                                on c.TxId = t.RowId and c.Height = ?
                         where
-                            t.Type = 104
+                            t.Type in (104)
                     )
-
             )sql")
             .Bind(height)
             .Run();
@@ -365,12 +364,14 @@ namespace PocketDb
                 from
                     js,
                     Transactions t
-                    join Chain c indexed by Chain_Height_Uid on
-                        c.TxId = t.RowId and
-                        c.Height = ?
-                    join Payload p
-                        on p.TxId = t.RowId
-                    join json_each(p.String4, js.path) as pj
+                    cross join
+                        Chain c indexed by Chain_TxId_Height
+                            on c.TxId = t.RowId and c.Height = ?
+                    cross join
+                        Payload p
+                            on p.TxId = t.RowId
+                    cross join
+                        json_each(p.String4, js.path) as pj
                 where
                     t.Type = 104 and
                     json_valid(p.String4) and
@@ -394,7 +395,7 @@ namespace PocketDb
                             c.Uid
                         from
                             Transactions t
-                            join Chain c indexed by Chain_Height_Uid on
+                            join Chain c indexed by Chain_TxId_Height on
                                 c.TxId = t.RowId and
                                 c.Height = ?
                         where
@@ -415,7 +416,7 @@ namespace PocketDb
                 from
                     js,
                     Transactions t
-                    join Chain ct indexed by Chain_Height_Uid on
+                    join Chain ct indexed by Chain_TxId_Height on
                         ct.TxId = t.RowId and
                         ct.Height = ?
                     cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
