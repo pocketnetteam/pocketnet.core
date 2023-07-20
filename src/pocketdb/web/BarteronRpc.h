@@ -11,8 +11,11 @@
 namespace PocketWeb::PocketWebRpc
 {
     using namespace std;
-    using namespace PocketConsensus;
 
+    RPCHelpMan GetAccount();
+    RPCHelpMan GetOffers();
+    RPCHelpMan GetFeed();
+    RPCHelpMan GetDeals();
 
 }
 

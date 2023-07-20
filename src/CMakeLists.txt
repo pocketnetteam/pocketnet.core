@@ -1172,6 +1172,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/web/SearchRepository.cpp
         pocketdb/repositories/web/ModerationRepository.h
         pocketdb/repositories/web/ModerationRepository.cpp
+        pocketdb/repositories/web/BarteronRepository.h
+        pocketdb/repositories/web/BarteronRepository.cpp
         pocketdb/consensus/Base.h
         pocketdb/consensus/Helper.h
         pocketdb/consensus/Social.h
