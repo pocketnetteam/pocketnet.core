@@ -138,6 +138,7 @@ POCKETDB_H = \
     pocketdb/web/PocketTagsRpc.h \
     pocketdb/web/PocketRpc.h \
     pocketdb/web/ModerationRpc.h \
+    pocketdb/web/BarteronRpc.h \
     pocketdb/web/WebRpcUtils.h \
     \
     pocketdb/repositories/RowAccessor.hpp \
@@ -313,6 +314,7 @@ POCKETDB_CPP = \
     pocketdb/web/PocketTagsRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
     pocketdb/web/ModerationRpc.cpp \
+    pocketdb/web/BarteronRpc.cpp \
     pocketdb/web/WebRpcUtils.cpp \
     \
     pocketdb/models/dto/money/Default.cpp \
