@@ -1002,13 +1002,11 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
-                        -- TODO (optimization): indices
                         from
                             Transactions f
-                        join
-                            Chain c on
-                                c.TxId = f.RowId and
-                                c.Height >= ?
+                        cross join
+                            Chain c indexed by Chain_TxId_Height
+                                on c.TxId = f.RowId and c.Height >= ?
                         where
                             f.Type = 410
                     )
@@ -1024,13 +1022,11 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
-                        -- TODO (optimization): indices
                         from
                             Transactions f
-                        join
-                            Chain c on
-                                c.TxId = f.RowId and
-                                c.Height >= ?
+                        cross join
+                            Chain c indexed by Chain_TxId_Height
+                                on c.TxId = f.RowId and c.Height >= ?
                         where
                             f.Type = 410
                             
