@@ -157,7 +157,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
 
         # After create jury votes allowed after delay in 10 blocks
         # /src/pocketdb/consensus/moderation/Vote.hpp:51
-        for mod in notAssigned:
+        for mod in assigned:
             assert_raises_rpc_error(44, None, pubGenTx, mod, ModVotePayload(jury1["data"]["id"], 1))
 
         node.stakeblock(10)
@@ -171,7 +171,6 @@ class ModerationJuryTest(PocketcoinTestFramework):
         self.log.info("Test 4 - all moderators vote positive")
 
         # One vote does not pass verdict
-        # /src/pocketdb/consensus/Base.h:689 moderation_jury_vote_count
         pubGenTx(assigned[0], ModVotePayload(jury1["data"]["id"], 1))
         node.stakeblock(1)
         assert "verdict" not in node.public().getjury(jury1["data"]["id"])

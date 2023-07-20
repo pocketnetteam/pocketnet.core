@@ -918,7 +918,6 @@ namespace PocketDb
                 select
                     1
                 from
-                    hash,
                     vTx t
                     join Jury j
                         on j.FlagRowId = t.RowId
@@ -3848,41 +3847,48 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                    address as (
-                        select
-                            r.RowId as id
-                        from
-                            Registry r
-                        where
-                            r.String = ?
-                    )
-                select 1
-                from JuryModerators jm
-                where 
-                    jm.FlagRowId = (
-                        select f.RowId
-                        from vTx f
-                        where f.Hash = ?
-                    ) and
-                    jm.AccountId = (
-                        select
-                            c.Uid
-                        from
-                            address,
-                            Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            join Chain c on
-                                c.TxId = u.RowId
-                            cross join Last l on
-                                l.TxId = u.RowId
-                        where
-                            u.Type = 100 and
-                            u.RegId1 = address.id
-                    )
+                flag as (
+                    select
+                        f.RowId,
+                        c.Height
+                    from
+                        vTx f
+                    cross join
+                        Chain c
+                            on c.TxId = f.RowId
+                    where
+                        f.Hash = ?
+                ),
+                address as (
+                    select
+                        c.Uid
+                    from
+                        Registry r
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (100) and u.RegId1 = r.RowId
+                    cross join
+                        Chain c
+                            on c.TxId = u.RowId
+                    cross join
+                        Last l
+                            on l.TxId = u.RowId
+                    where
+                        r.String = ?
+                )
+                select
+                    flag.Height,
+                    address.Uid
+                from
+                    flag,
+                    address
+                cross join
+                    JuryModerators jm
+                        on jm.FlagRowId = flag.RowId and jm.AccountId = address.Uid
             )sql")
             .Bind(flagTxHash, address)
             .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                    cursor.CollectAll(result);
+                result = cursor.Step();
             });
         });
 
