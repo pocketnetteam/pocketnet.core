@@ -4816,7 +4816,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetBoostFeed(int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4831,31 +4830,34 @@ namespace PocketDb
 
         string langFilter;
         if (!lang.empty())
-            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = tc.Hash and p.String1 = ? ";
+            langFilter += " join Payload p on p.TxId = tc.RowId and p.String1 = ? ";
 
         string sql = R"sql(
             select
-                tc.Id contentId,
-                tb.String2 contentHash,
+                ctc.Uid contentId,
+                (select String from Registry where RowId = tb.RegId2) contentHash,
                 sum(tb.Int1) as sumBoost
 
-            from Transactions tb indexed by Transactions_Type_Last_String2_Height
-            join Transactions tc indexed by Transactions_Type_Last_String2_Height
-                on tc.String2 = tb.String2 and tc.Last = 1 and tc.Type in )sql" + contentTypesWhere + R"sql( and tc.Height > 0
-                --and tc.String3 is null--?????
-
+            from Transactions tb indexed by Transactions_Type_RegId2_RegId1
+            join Chain ctb on ctb.TxId = tb.RowId
+            join Last ltb on ltb.TxId = tb.RowId
+            join Transactions tc indexed by Transactions_Type_RegId2_RegId1
+                on tc.RegId2 = tb.RegId2 and tc.Type in )sql" + contentTypesWhere + R"sql(
+            join Chain ctc on ctc.TxId = tc.RowId
+            join Last ltc on ltc.TxId = tc.RowId
             )sql" + langFilter + R"sql(
 
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = tc.String1
+            join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                on u.Type in (100) and u.RegId1 = tc.RegId1
+            join Chain cu on cu.TxId = u.RowId
+            join Last lu on lu.TxId = u.RowId
 
-            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
-                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+            left join Ratings ur indexed by Ratings_Type_Uid_Last_Value
+                on ur.Type=0 and ur.Uid=cu.Uid and ur.Last=1
 
             where tb.Type = 208
-                and tb.Last in (0, 1)
-                and tb.Height <= ?
-                and tb.Height > ?
+                and ctb.Height <= ?
+                and ctb.Height > ?
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
@@ -4865,7 +4867,7 @@ namespace PocketDb
         if (!tags.empty())
         {
             sql += R"sql(
-                and tc.id in (
+                and ct.Uid in (
                     select tm.ContentId
                     from web.Tags tag indexed by Tags_Lang_Value_Id
                     join web.TagsMap tm indexed by TagsMap_TagId_ContentId
@@ -4876,11 +4878,11 @@ namespace PocketDb
             )sql";
         }
 
-        if (!txidsExcluded.empty()) sql += " and tc.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
-        if (!adrsExcluded.empty()) sql += " and tc.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
-            sql += R"sql( and tc.Id not in (
+            sql += R"sql( and ct.Uid not in (
                 select tmEx.ContentId
                 from web.Tags tagEx indexed by Tags_Lang_Value_Id
                 join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
@@ -4890,7 +4892,7 @@ namespace PocketDb
              ) )sql";
         }
 
-        sql += " group by tc.Id, tb.String2";
+        sql += " group by ctc.Uid, tb.RegId2";
         sql += " order by sum(tb.Int1) desc";
 
         // ---------------------------------------------
