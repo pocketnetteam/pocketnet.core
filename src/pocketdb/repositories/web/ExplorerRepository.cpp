@@ -19,7 +19,6 @@ namespace PocketDb
                     count(1)
                 from
                     Chain c indexed by Chain_Height_BlockId
-
                     left join Transactions t on
                         t.RowId = c.TxId
                 where
@@ -66,13 +65,13 @@ namespace PocketDb
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    std::string part, type; int count;
+                    int part, type, count;
                     if (cursor.CollectAll(part, type, count))
                     {
-                        if (result.At(part).isNull())
-                            result.pushKV(part, UniValue(UniValue::VOBJ));
+                        if (result.At(to_string(part)).isNull())
+                            result.pushKV(to_string(part), UniValue(UniValue::VOBJ));
 
-                        result.At(part).pushKV(type, count);
+                        result.At(to_string(part)).pushKV(to_string(type), count);
                     }
                 }
             });
@@ -92,18 +91,14 @@ namespace PocketDb
                     (c.Height / 60)Hour,
                     t.Type,
                     count()Count
-
                 from
                     Chain c indexed by Chain_Height_Uid
-
                     cross join Transactions t on
                         t.RowId = c.TxId and
                         t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
-
                 where
                   (c.Height / 60) < (? / 60) and
                   (c.Height / 60) >= (? / 60)
-
                 group by
                     (c.Height / 60), t.Type
             )sql")
@@ -111,15 +106,13 @@ namespace PocketDb
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    std::string part; // TODO (optimization): should it be string???
-                    std::string type; // TODO (optimization): should it be string???
-                    int count {};
+                    int part, type, count;
                     if (cursor.CollectAll(part, type, count))
                     {
-                        if (result.At(part).isNull())
-                            result.pushKV(part, UniValue(UniValue::VOBJ));
+                        if (result.At(to_string(part)).isNull())
+                            result.pushKV(to_string(part), UniValue(UniValue::VOBJ));
 
-                        result.At(part).pushKV(type, count);
+                        result.At(to_string(part)).pushKV(to_string(type), count);
                     }
                 }
             });
@@ -139,18 +132,14 @@ namespace PocketDb
                     (c.Height / 1440)Day,
                     t.Type,
                     count()Count
-
                 from
                     Chain c indexed by Chain_Height_Uid
-
                     join Transactions t on
                         t.RowId = c.TxId and
                         t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
-
                 where
                   (c.Height / 1440) < (? / 1440) and
                   (c.Height / 1440) >= (? / 1440)
-
                 group by
                     (c.Height / 1440), t.Type
             )sql")
@@ -186,16 +175,17 @@ namespace PocketDb
                         select
                             count()
                         from Transactions u1
-                        join Chain c1 on
+                        cross join Last l1 on
+                            l1.TxId = u1.RowId
+                        join Chain c1 indexed by Chain_TxId_Height on
                             c1.TxId = u1.RowId and
-                            c1.Height <= c.Height and
-                            exists (select 1 from Last l where l.TxId = c1.TxId)
+                            (c1.Height / 60) <= (c.Height / 60)
                         where
                             u1.Type in (100)
                     )cnt
                 from
                     Transactions u
-                    join Chain c indexed by Chain_Height_Uid on
+                    join Chain c indexed by Chain_TxId_Height on
                         c.TxId = u.RowId and
                         (c.Height / 60) <= (? / 60) and
                         (c.Height / 60) > (? / 60)
@@ -210,9 +200,9 @@ namespace PocketDb
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    std::string part; int count;
+                    int part, count;
                     if (cursor.CollectAll(part, count))
-                        result.pushKV(part, count);
+                        result.pushKV(to_string(part), count);
                 }
             });
         });
@@ -233,17 +223,17 @@ namespace PocketDb
                         select
                             count()
                         from Transactions u1
-                        join Chain c1 on
+                        cross join Last l1 on
+                            l1.TxId = u1.RowId
+                        join Chain c1 indexed by Chain_TxId_Height on
                             c1.TxId = u1.RowId and
-                            c1.Height <= c.Height and
-                            exists (select 1 from Last l where l.TxId = c1.TxId)
+                            (c1.Height / 1440) <= (c.Height / 1440)
                         where
                             u1.Type in (100)
                     )cnt
                 from
                     Transactions u
-                    -- TODO (optimization): is there any difference using index with "/ 1440" expression? 
-                    join Chain c indexed by Chain_Height_Uid on
+                    join Chain c indexed by Chain_TxId_Height on
                         c.TxId = u.RowId and
                         (c.Height / 1440) <= (? / 1440) and
                         (c.Height / 1440) > (? / 1440)
@@ -259,9 +249,9 @@ namespace PocketDb
             {
                 while (cursor.Step())
                 {
-                    std::string part; int count;
+                    int part, count;
                     if (cursor.CollectAll(part, count))
-                        result.pushKV(part, count);
+                        result.pushKV(to_string(part), count);
                 }
             });
         });
@@ -280,18 +270,19 @@ namespace PocketDb
                     t.Type,
                     count()
                 from Transactions t indexed by Transactions_Type_RegId2_RegId1
+                cross join Last l on
+                    l.TxId = t.RowId
                 where
-                    t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303) and
-                    exists (select 1 from Last l where l.TxId = t.RowId)
+                    t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
                 group by
                     t.Type
             )sql")
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    std::string type; int count {};
+                    int type, count;
                     if (cursor.CollectAll(type, count))
-                        result.pushKV(type, count);
+                        result.pushKV(to_string(type), count);
                 }
             });
         });
@@ -342,10 +333,10 @@ namespace PocketDb
         return infos;
     }
 
-    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize, const std::vector<TxType>& filters)
+    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize, const vector<TxType>& filters)
     {
         map<string, int> txHashes;
-        std::string filtering;
+        string filtering;
         if (!filters.empty()) {
             filtering = R"sql(
                 join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
