@@ -318,7 +318,6 @@ namespace PocketDb
         )sql");
 
         // A helper table that consists of limited txs for a period of ConsensusLimit_depth
-        // TODO (losty): maybe rename!
         _tables.emplace_back(R"sql(
             create table if not exists SocialRegistry
             (
@@ -353,34 +352,6 @@ namespace PocketDb
                         bb.Height > b.Height
                 );
         )sql");
-
-        // _views.emplace_back(R"sql(
-        //     drop view if exists vLastAccountTx;
-
-        //     create view if not exists vLastAccountTx as
-        //     select
-        //         u.Type,
-        //         u.Hash,
-        //         u.Time,
-        //         u.BlockHash,
-        //         u.BlockNum,
-        //         u.Height,
-        //         u.Last,
-        //         u.First,
-        //         u.Id,
-        //         u.String1,
-        //         u.String2,
-        //         u.String3,
-        //         u.String4,
-        //         u.String5,
-        //         u.Int1
-        //     from
-        //         Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-        //     where
-        //         u.Type in (100) and
-        //         u.Last in (1) and
-        //         u.Height > 0;
-        // )sql");
 
         _views.emplace_back(R"sql(
             drop view if exists vTx;
