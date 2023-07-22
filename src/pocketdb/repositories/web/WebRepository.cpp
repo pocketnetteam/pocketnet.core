@@ -411,7 +411,7 @@ namespace PocketDb
 
             // Add offer
             Sql(R"sql(
-                insert into BarteronOfferTags (AccountId, OfferId, Tag)
+                insert into BarteronOffers (OfferId, Tag)
                 select
                     cu.Uid as AccountId,
                     ct.Uid as OfferId,
