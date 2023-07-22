@@ -6,17 +6,21 @@
 #define SRC_RPC_BARTERON_REPOSITORY_H
 
 #include "pocketdb/repositories/BaseRepository.h"
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 namespace PocketDb
 {
     using namespace std;
+    using boost::algorithm::join;
+    using boost::adaptors::transformed;
 
     class BarteronRepository : public BaseRepository
     {
     public:
         explicit BarteronRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
-        UniValue GetAccount(const string& address);
+        vector<string> GetAccountIds(const vector<string>& addresses);
 
     };
 

@@ -6,24 +6,32 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    RPCHelpMan GetAccount()
+    RPCHelpMan GetAccounts()
     {
-        return RPCHelpMan{"getbarteronaccount",
-            "\nGet barteron account information.\n",
+        return RPCHelpMan{"getbarteronaccounts",
+            "\nGet barteron accounts information.\n",
             {
-                { "address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address hash" },
+                { "addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "Address hashes" },
             },
             RPCResult{RPCResult::Type::NONE, "", ""},
             RPCExamples{
-                HelpExampleCli("getbarteronaccount", "address") +
-                HelpExampleRpc("getbarteronaccount", "address")
+                HelpExampleCli("getbarteronaccounts", "addresses") +
+                HelpExampleRpc("getbarteronaccounts", "addresses")
             },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            RPCTypeCheck(request.params, { UniValue::VSTR });
-            auto address = request.params[0].get_str();
+            RPCTypeCheck(request.params, { UniValue::VARR });
+            auto addresses = ParseArrayAddresses(request.params[0].get_array());
+            auto addressTxHashes = request.DbConnection()->BarteronRepoInst->GetAccountIds(addresses);
+            auto txs = request.DbConnection()->TransactionRepoInst->List(addressTxHashes, true);
 
-            return request.DbConnection()->BarteronRepoInst->GetAccount(address);
+            UniValue result(UniValue::VARR);
+            for (const auto& tx : *txs)
+            {
+                result.push_back(ConstructTransaction(tx));
+            }
+
+            return result;
         }};
     }
 }

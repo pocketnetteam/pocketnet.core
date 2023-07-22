@@ -18,6 +18,9 @@ namespace PocketWeb::PocketWebRpc
 
     void ParseRequestContentTypes(const UniValue& value, vector<int>& types);
     void ParseRequestTags(const UniValue& value, vector<string>& tags);
+    vector<string> ParseArrayAddresses(const UniValue& value);
+    UniValue ConstructTransaction(const PTransactionRef& ptx);
+    
 }
 
 #endif //SRC_WEB_RPC_UTILS_H

@@ -877,6 +877,8 @@ namespace PocketDb
         )sql";
     }
     
+    // TODO (barteron): implement indexing offers uid
+
     void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount)
     {
         SqlTransaction(__func__, [&]()

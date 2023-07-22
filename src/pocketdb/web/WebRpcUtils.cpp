@@ -59,4 +59,94 @@ namespace PocketWeb::PocketWebRpc
         }
     }
 
+    vector<string> ParseArrayAddresses(const UniValue& value)
+    {
+        vector<string> addresses;
+
+        for (unsigned int idx = 0; idx < value.size(); idx++)
+        {
+            const UniValue& input = value[idx];
+            CTxDestination dest = DecodeDestination(input.get_str());
+
+            if (!IsValidDestination(dest))
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
+
+            if (find(addresses.begin(), addresses.end(), input.get_str()) == addresses.end())
+                addresses.push_back(input.get_str());
+        }
+
+        return addresses;
+    }
+
+    UniValue ConstructTransaction(const PTransactionRef& ptx)
+    {
+        // General TX information
+        UniValue utx(UniValue::VOBJ);
+        utx.pushKV("hash", *ptx->GetHash());
+        utx.pushKV("type", *ptx->GetType());
+        if (ptx->GetHeight()) utx.pushKV("height", *ptx->GetHeight());
+        if (ptx->GetBlockHash()) utx.pushKV("blockHash", *ptx->GetBlockHash());
+        utx.pushKV("time", *ptx->GetTime());
+        
+        if (ptx->GetString1()) utx.pushKV("s1", *ptx->GetString1());
+        if (ptx->GetString2()) utx.pushKV("s2", *ptx->GetString2());
+        if (ptx->GetString3()) utx.pushKV("s3", *ptx->GetString3());
+        if (ptx->GetString4()) utx.pushKV("s4", *ptx->GetString4());
+        if (ptx->GetString5()) utx.pushKV("s5", *ptx->GetString5());
+        if (ptx->GetInt1()) utx.pushKV("i1", *ptx->GetInt1());
+
+        // Inputs
+        if (ptx->Inputs().size() > 0)
+        {
+            UniValue vin(UniValue::VARR);
+            for (const auto& inp : ptx->Inputs())
+            {
+                UniValue uinp(UniValue::VOBJ);
+                uinp.pushKV("hash", *inp.GetTxHash());
+                uinp.pushKV("n", *inp.GetNumber());
+                if (inp.GetAddressHash()) uinp.pushKV("addr", *inp.GetAddressHash());
+                if (inp.GetValue()) uinp.pushKV("amount", *inp.GetValue());
+                vin.push_back(uinp);
+            }
+            utx.pushKV("vin", vin);
+        }
+
+        // Outputs
+        if (ptx->Outputs().size() > 0)
+        {
+            UniValue vout(UniValue::VARR);
+            for (const auto& out : ptx->Outputs())
+            {
+                UniValue uout(UniValue::VOBJ);
+                uout.pushKV("n", *out.GetNumber());
+                uout.pushKV("amount", *out.GetValue());
+                UniValue scriptPubKey(UniValue::VOBJ);
+                UniValue addresses(UniValue::VARR);
+                addresses.push_back(*out.GetAddressHash());
+                scriptPubKey.pushKV("addrs", addresses);
+                scriptPubKey.pushKV("hex", *out.GetScriptPubKey());
+                uout.pushKV("script", scriptPubKey);
+                if (out.GetSpentHeight()) uout.pushKV("spent", *out.GetSpentHeight());
+                vout.push_back(uout);
+            }
+
+            utx.pushKV("vout", vout);
+        }
+
+        if (ptx->GetPayload())
+        {
+            UniValue p(UniValue::VARR);
+            if (ptx->GetPayload()->GetString1()) p.pushKV("s1", *ptx->GetPayload()->GetString1());
+            if (ptx->GetPayload()->GetString2()) p.pushKV("s2", *ptx->GetPayload()->GetString2());
+            if (ptx->GetPayload()->GetString3()) p.pushKV("s3", *ptx->GetPayload()->GetString3());
+            if (ptx->GetPayload()->GetString4()) p.pushKV("s4", *ptx->GetPayload()->GetString4());
+            if (ptx->GetPayload()->GetString5()) p.pushKV("s5", *ptx->GetPayload()->GetString5());
+            if (ptx->GetPayload()->GetString6()) p.pushKV("s6", *ptx->GetPayload()->GetString6());
+            if (ptx->GetPayload()->GetString7()) p.pushKV("s7", *ptx->GetPayload()->GetString7());
+            utx.pushKV("p", p);
+        }
+
+        return utx;
+    }
+
 }

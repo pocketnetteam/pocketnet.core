@@ -6,20 +6,39 @@
 
 namespace PocketDb
 {
-    UniValue BarteronRepository::GetAccount(const string& address)
+    vector<string> BarteronRepository::GetAccountIds(const vector<string>& addresses)
     {
-        UniValue result(UniValue::VOBJ);
+        vector<string> result;
 
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                
+                with
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    (select r.String from Registry r where r.RowId = a.HashId)
+                from
+                    addr
+                cross join
+                    Transactions a
+                        on a.Type in (104) and a.RegId1 = addr.id
+                cross join
+                    Last l
+                        on l.TxId = a.RowId
             )sql")
-            .Bind(address)
+            .Bind(addresses)
             .Select([&](Cursor& cursor) {
-                if (cursor.Step())
+                while (cursor.Step())
                 {
-
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                        result.push_back(value);
                 }
             });
         });

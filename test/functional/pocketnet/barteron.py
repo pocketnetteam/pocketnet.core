@@ -57,7 +57,6 @@ class BarteronTest(PocketcoinTestFramework):
         bartAccount.s1 = builder.accounts[0].Address
         bartAccount.p = Payload()
         bartAccount.p.s4 = [1,2,3,4,5]
-        bartAccount.p.s5 = [1,2]
         pubGenTx(builder.accounts[0], bartAccount)
         node.stakeblock(1)
         
@@ -68,7 +67,6 @@ class BarteronTest(PocketcoinTestFramework):
         bartAccount.s1 = builder.accounts[0].Address
         bartAccount.p = Payload()
         bartAccount.p.s4 = 'Incorrect string - not json list'
-        bartAccount.p.s5 = 'Incorrect string - not json list'
         pubGenTx(builder.accounts[0], bartAccount)
         node.stakeblock(1)
         # ---------------------------------------------------------------------------------

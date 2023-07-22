@@ -356,7 +356,10 @@ namespace PocketDb
 
             // Add
             Sql(R"sql(
-                with js as ( select '$.t' as path )
+                with
+                js as (
+                    select '$.a' as path
+                )
                 insert into BarteronAccountTags (AccountId, Tag)
                 select
                     c.Uid,
@@ -364,14 +367,14 @@ namespace PocketDb
                 from
                     js,
                     Transactions t
-                    cross join
-                        Chain c indexed by Chain_TxId_Height
-                            on c.TxId = t.RowId and c.Height = ?
-                    cross join
-                        Payload p
-                            on p.TxId = t.RowId
-                    cross join
-                        json_each(p.String4, js.path) as pj
+                cross join
+                    Chain c indexed by Chain_TxId_Height
+                        on c.TxId = t.RowId and c.Height = ?
+                cross join
+                    Payload p
+                        on p.TxId = t.RowId
+                cross join
+                    json_each(p.String4, js.path) as pj
                 where
                     t.Type = 104 and
                     json_valid(p.String4) and
@@ -390,44 +393,91 @@ namespace PocketDb
             Sql(R"sql(
                 delete from BarteronOffers
                 where
-                    BarteronOffers.OfferId in (
+                    exists (
                         select
-                            c.Uid
+                            1
                         from
                             Transactions t
-                            join Chain c indexed by Chain_TxId_Height on
-                                c.TxId = t.RowId and
-                                c.Height = ?
+                        cross join
+                            Chain c indexed by Chain_TxId_Height
+                                on c.TxId = t.RowId and c.Height = ?
                         where
-                            t.Type = 211
+                            t.Type = 211 and
+                            c.Uid = BarteronOffers.OfferId
                     )
             )sql")
             .Bind(height)
             .Run();
 
-            // Add
+            // Add offer
             Sql(R"sql(
-                with js as ( select '$.t' as path )
-                insert into BarteronOffers (AccountId, OfferId, Tag)
+                insert into BarteronOfferTags (AccountId, OfferId, Tag)
                 select
                     cu.Uid as AccountId,
+                    ct.Uid as OfferId,
+                    json_extract(p.String4, '$.t') as Tag
+                from
+                    Transactions t
+                cross join
+                    Chain ct indexed by Chain_TxId_Height
+                        on ct.TxId = t.RowId and ct.Height = ?
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type = 104 and u.RegId1 = t.RegId1
+                cross join
+                    Last lu
+                        on lu.TxId = u.RowId
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                cross join
+                    Payload p -- primary key
+                        on p.TxId = t.RowId
+                where
+                    t.Type = 211 and
+                    json_valid(p.String4)
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Remove allowed tags
+            Sql(R"sql(
+                delete from BarteronOfferTags
+                where
+                    exists (
+                        select
+                            1
+                        from
+                            Transactions t
+                        cross join
+                            Chain c indexed by Chain_TxId_Height
+                                on c.TxId = t.RowId and c.Height = ?
+                        where
+                            t.Type = 211 and
+                            c.Uid = BarteronOfferTags.OfferId
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+            
+            // Add allowed tags
+            Sql(R"sql(
+                with js as ( select '$.a' as path )
+                insert into BarteronOfferTags (OfferId, Tag)
+                select
                     ct.Uid as OfferId,
                     pj.value as Tag
                 from
                     js,
                     Transactions t
-                    join Chain ct indexed by Chain_TxId_Height on
-                        ct.TxId = t.RowId and
-                        ct.Height = ?
-                    cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        u.Type = 100 and
-                        u.RegId1 = t.RegId1 and
-                        exists (select 1 from Last l where l.TxId = u.RowId)
-                    cross join Chain cu on
-                        cu.TxId = u.RowId
-                    cross join Payload p -- primary key
+                cross join
+                    Chain ct indexed by Chain_TxId_Height
+                        on ct.TxId = t.RowId and ct.Height = ?
+                cross join
+                    Payload p -- primary key
                         on p.TxId = t.RowId
-                    cross join json_each(p.String4, js.path) as pj
+                cross join
+                    json_each(p.String4, js.path) as pj
                 where
                     t.Type = 211 and
                     json_valid(p.String4) and
