@@ -70,11 +70,7 @@ namespace PocketDb
 
     class CheckpointRepository
     {
-    private:
-        NetworkId _network;
     public:
-        CheckpointRepository(NetworkId network);
-
         bool IsSocialCheckpoint(const string& txHash, TxType txType, int code);
         bool IsLotteryCheckpoint(int height, const string& hash);
         bool IsOpReturnCheckpoint(const string& txHash, const string& hash);
