@@ -14,56 +14,56 @@ namespace PocketDb
     using namespace std;
     using namespace PocketTx;
 
-    class CheckpointDb
+    class CheckpointSocialDb
     {
-    protected:
-        virtual void InitMain() {}
-        virtual void InitTest() {}
+    private:
+        vector<tuple<string, int, int>> _socialCheckpoints;
+        void InitMain();
+        void InitTest();
     public:
-        CheckpointDb(NetworkId network)
+        CheckpointSocialDb(NetworkId network)
         {
             if (network == NetworkId::NetworkMain)
                 InitMain();
             if (network == NetworkId::NetworkTest)
                 InitTest();
         }
-    }; // CheckpointDb
-
-    class CheckpointSocialDb : public CheckpointDb
-    {
-    private:
-        vector<tuple<string, int, int>> _socialCheckpoints;
-    protected:
-        void InitMain() override;
-        void InitTest() override;
-    public:
-        CheckpointSocialDb(NetworkId network) : CheckpointDb(network) {}
         const vector<tuple<string, int, int>>& Checkpoints() { return _socialCheckpoints; }
     }; // CheckpointSocialDb
 
 
-    class CheckpointLotteryDb : public CheckpointDb
+    class CheckpointLotteryDb
     {
     private:
         vector<tuple<int, string>> _lotteryCheckpoints;
-    protected:
-        void InitMain() override;
-        void InitTest() override;
+        void InitMain();
+        void InitTest();
     public:
-        CheckpointLotteryDb(NetworkId network) : CheckpointDb(network) {}
+        CheckpointLotteryDb(NetworkId network)
+        {
+            if (network == NetworkId::NetworkMain)
+                InitMain();
+            if (network == NetworkId::NetworkTest)
+                InitTest();
+        }
         const vector<tuple<int, string>>& Checkpoints() { return _lotteryCheckpoints; }
     }; // CheckpointLotteryDb
 
 
-    class CheckpointOpReturnDb : public CheckpointDb
+    class CheckpointOpReturnDb
     {
     private:
         vector<tuple<string, string>> _opReturnCheckpoints;
-    protected:
-        void InitMain() override;
-        void InitTest() override;
+        void InitMain();
+        void InitTest();
     public:
-        CheckpointOpReturnDb(NetworkId network) : CheckpointDb(network) {}
+        CheckpointOpReturnDb(NetworkId network)
+        {
+            if (network == NetworkId::NetworkMain)
+                InitMain();
+            if (network == NetworkId::NetworkTest)
+                InitTest();
+        }
         const vector<tuple<string, string>>& Checkpoints() { return _opReturnCheckpoints; }
     }; // CheckpointOpReturnDb
 
