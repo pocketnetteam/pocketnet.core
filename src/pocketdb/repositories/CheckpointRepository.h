@@ -5,6 +5,7 @@
 #ifndef SRC_CHECKPOINT_REPOSITORY_H
 #define SRC_CHECKPOINT_REPOSITORY_H
 
+#include <chainparams.h>
 #include <util/system.h>
 #include "pocketdb/models/base/PocketTypes.h"
 
@@ -13,41 +14,66 @@ namespace PocketDb
     using namespace std;
     using namespace PocketTx;
 
+    class CheckpointDb
+    {
+    protected:
+        virtual void InitMain() {}
+        virtual void InitTest() {}
+    public:
+        CheckpointDb(NetworkId network)
+        {
+            if (network == NetworkId::NetworkMain)
+                InitMain();
+            if (network == NetworkId::NetworkTest)
+                InitTest();
+        }
+    }; // CheckpointDb
 
-    class CheckpointSocialDb
+    class CheckpointSocialDb : public CheckpointDb
     {
     private:
         vector<tuple<string, int, int>> _socialCheckpoints;
+    protected:
+        void InitMain() override;
+        void InitTest() override;
     public:
-        CheckpointSocialDb();
+        CheckpointSocialDb(NetworkId network) : CheckpointDb(network) {}
         const vector<tuple<string, int, int>>& Checkpoints() { return _socialCheckpoints; }
     }; // CheckpointSocialDb
 
 
-    class CheckpointLotteryDb
+    class CheckpointLotteryDb : public CheckpointDb
     {
     private:
         vector<tuple<int, string>> _lotteryCheckpoints;
+    protected:
+        void InitMain() override;
+        void InitTest() override;
     public:
-        CheckpointLotteryDb();
+        CheckpointLotteryDb(NetworkId network) : CheckpointDb(network) {}
         const vector<tuple<int, string>>& Checkpoints() { return _lotteryCheckpoints; }
     }; // CheckpointLotteryDb
 
 
-    class CheckpointOpReturnDb
+    class CheckpointOpReturnDb : public CheckpointDb
     {
     private:
         vector<tuple<string, string>> _opReturnCheckpoints;
+    protected:
+        void InitMain() override;
+        void InitTest() override;
     public:
-        CheckpointOpReturnDb();
+        CheckpointOpReturnDb(NetworkId network) : CheckpointDb(network) {}
         const vector<tuple<string, string>>& Checkpoints() { return _opReturnCheckpoints; }
     }; // CheckpointOpReturnDb
 
 
     class CheckpointRepository
     {
+    private:
+        NetworkId _network;
     public:
-        CheckpointRepository() = default;
+        CheckpointRepository(NetworkId network);
 
         bool IsSocialCheckpoint(const string& txHash, TxType txType, int code);
         bool IsLotteryCheckpoint(int height, const string& hash);
