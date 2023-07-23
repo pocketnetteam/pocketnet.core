@@ -36,9 +36,10 @@ namespace PocketConsensus
                 if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
                    return {false, ConsensusResult_Failed};
 
+                // TODO (aok) : remove with fork
                 // Contents should be exists in chain
-                auto[ok, lastContents] = PocketDb::ConsensusRepoInst.GetLastContents(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
-                if(!ok || lastContents.size() != contentIds.size())
+                int count = PocketDb::ConsensusRepoInst.GetLastContentsCount(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
+                if((size_t)count != contentIds.size())
                     return {false, ConsensusResult_Failed};
             }
             else

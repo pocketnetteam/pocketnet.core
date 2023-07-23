@@ -404,17 +404,16 @@ namespace PocketDb
         return {tx != nullptr, tx};
     }
 
-    tuple<bool, vector<PTransactionRef>> ConsensusRepository::GetLastContents(const vector<string> &rootHashes,
-                                                                              const vector<TxType> &types)
+    tuple<bool, vector<PTransactionRef>> ConsensusRepository::GetLastContents(const vector<string> &rootHashes, const vector<TxType> &types)
     {
         vector<PTransactionRef> txs;
 
         SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
-                with strs2 as (
+                with tx as (
                     select
-                        r.String as string,
+                        r.String as hash,
                         r.RowId as id
                     from
                         Registry r
@@ -423,17 +422,17 @@ namespace PocketDb
                 )
                 select
                     t.Type,
-                    s.Hash,
+                    (select r.String from Registry r where r.RowId = t.HashId),
                     t.Time,
-                    iif(l.TxId, 1, 0),
+                    1,
                     c.Uid,
-                    s.String1,
-                    s.String2,
-                    s.String3,
-                    s.String4,
-                    s.String5,
+                    (select r.String from Registry r where r.RowId = t.RegId1),
+                    tx.hash,
+                    (select r.String from Registry r where r.RowId = t.RegId3),
+                    (select r.String from Registry r where r.RowId = t.RegId4),
+                    (select r.String from Registry r where r.RowId = t.RegId5),
                     t.Int1,
-                    s.Hash pHash,
+                    (select r.String from Registry r where r.RowId = t.HashId) pHash,
                     p.String1 pString1,
                     p.String2 pString2,
                     p.String3 pString3,
@@ -442,19 +441,19 @@ namespace PocketDb
                     p.String6 pString6,
                     p.String7 pString7
                 from
-                    strs2,
+                    tx
+                cross join
                     Transactions t indexed by Transactions_Type_RegId2_RegId1
-                    cross join vTxStr s on
-                        s.RowId = t.RowId
-                    join Chain c on
-                        c.TxId = t.RowId
-                    left join Payload p on
-                        t.RowId = p.TxId
-                    cross join Last l on
-                        l.TxId = t.RowId
-                where
-                    t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
-                    t.RegId2 = strs2.id
+                        on t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and t.RegId2 = tx.id
+                cross join
+                    Last l
+                        on l.TxId = t.RowId
+                cross join
+                    Chain c
+                        on c.TxId = t.RowId
+                left join
+                    Payload p
+                        on p.TxId = t.RowId
             )sql";
 
             Sql(sql)
@@ -469,6 +468,43 @@ namespace PocketDb
         });
 
         return {txs.size() != 0, txs};
+    }
+
+    int ConsensusRepository::GetLastContentsCount(const vector<string> &rootHashes, const vector<TxType> &types)
+    {
+        int result = 0;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with tx as (
+                    select
+                        r.String as hash,
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    count()
+                from
+                    tx
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId2_RegId1
+                        on t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and t.RegId2 = tx.id
+                cross join
+                    Last l
+                        on l.TxId = t.RowId
+            )sql")
+            .Bind(rootHashes, types)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
     }
 
     tuple<bool, TxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
