@@ -8,6 +8,8 @@ from enum import Enum
 
 # -----------------------------------------------------------------------------------------------------------------
 
+def AsDisct(obj):
+    return asdict(obj, dict_factory=lambda x: {k: v for (k, v) in x if v is not None})
 
 class ConsensusResult(Enum):
     Success = 0
@@ -443,6 +445,31 @@ class ModVotePayload:
 
 
 # -----------------------------------------------------------------------------------------------------------------
+
+@dataclass
+class Payload:
+    s1: str = None
+    s2: str = None
+    s3: str = None
+    s4: str = None
+    s5: str = None
+    s6: str = None
+    s7: str = None
+    i1: int = None
+
+    def Serialize(self):
+        return AsDisct(self)
+
+@dataclass
+class BartAccountPayload:
+    TxType = "6272746163636f756e74"
+
+    s1: str = None
+    p: Payload = None
+
+    def Serialize(self):
+        return AsDisct(self)
+
 # -----------------------------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------

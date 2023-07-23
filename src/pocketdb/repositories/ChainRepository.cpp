@@ -830,14 +830,11 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                    cross join
-                        Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type = 104 and b.RegId1 = a.RegId1
-                    cross join
-                        Last l
+                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on b.Type in (104, 170) and b.RegId1 = a.RegId1
+                        join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type = 104 and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -877,8 +874,6 @@ namespace PocketDb
         )sql";
     }
     
-    // TODO (barteron): implement indexing offers uid
-
     void ChainRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount)
     {
         SqlTransaction(__func__, [&]()

@@ -133,9 +133,9 @@ namespace PocketWeb::PocketWebRpc
             utx.pushKV("vout", vout);
         }
 
-        if (ptx->GetPayload())
+        if (ptx->HasPayload())
         {
-            UniValue p(UniValue::VARR);
+            UniValue p(UniValue::VOBJ);
             if (ptx->GetPayload()->GetString1()) p.pushKV("s1", *ptx->GetPayload()->GetString1());
             if (ptx->GetPayload()->GetString2()) p.pushKV("s2", *ptx->GetPayload()->GetString2());
             if (ptx->GetPayload()->GetString3()) p.pushKV("s3", *ptx->GetPayload()->GetString3());

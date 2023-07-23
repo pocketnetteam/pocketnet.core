@@ -8,6 +8,7 @@ Launch this with command from 'test/functional/pocketnet' directory
 """
 
 import sys
+import json
 import pathlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -47,7 +48,20 @@ class BarteronTest(PocketcoinTestFramework):
 
         # ---------------------------------------------------------------------------------
         # Prepare chain & accounts
-        builder.build_init()
+        builder.build_init(accounts_num=1)
+        node.stakeblock(10)
+
+        # ---------------------------------------------------------------------------------
+        self.log.info("Try register Barteron account without Bastyon account")
+
+        bartAccount = BartAccountPayload()
+        bartAccount.s1 = builder.accounts[0].Address
+        bartAccount.p = Payload()
+        bartAccount.p.s4 = json.dumps({ "a": [1,2,3,4,5] })
+        assert_raises_rpc_error(1, None, pubGenTx, builder.accounts[0], bartAccount)
+
+        # ---------------------------------------------------------------------------------
+        # Register accounts
         builder.register_accounts()
 
         # ---------------------------------------------------------------------------------
@@ -56,9 +70,11 @@ class BarteronTest(PocketcoinTestFramework):
         bartAccount = BartAccountPayload()
         bartAccount.s1 = builder.accounts[0].Address
         bartAccount.p = Payload()
-        bartAccount.p.s4 = [1,2,3,4,5]
+        bartAccount.p.s4 = json.dumps({ "a": [1,2,3,4,5] })
         pubGenTx(builder.accounts[0], bartAccount)
         node.stakeblock(1)
+
+        accc = node.public().getbarteronaccounts([builder.accounts[0].Address]) 
         
         # ---------------------------------------------------------------------------------
         self.log.info("Register Barteron account with incorrect lists")
