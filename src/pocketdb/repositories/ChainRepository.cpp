@@ -397,10 +397,9 @@ namespace PocketDb
         }
         else if (txInfo.IsSubscribe())
             IndexSocialLastTx(IndexSubscribe(), txInfo.Hash, id, lastTxId);
-        else
-            return {id, lastTxId};
-
-        
+        // Barteron
+        else if (txInfo.IsAccountBarteron())
+            IndexSocialLastTx(IndexAccountBarteron(), txInfo.Hash, id, lastTxId);
 
         return {id, lastTxId};
     }
@@ -831,10 +830,11 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type = 104 and
-                            b.RegId1 = a.RegId1
-                        join Last l
+                    cross join
+                        Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on b.Type = 104 and b.RegId1 = a.RegId1
+                    cross join
+                        Last l
                             on l.TxId = b.RowId
                     where
                         a.Type = 104 and
