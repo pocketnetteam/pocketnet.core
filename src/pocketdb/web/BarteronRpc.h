@@ -19,5 +19,4 @@ namespace PocketWeb::PocketWebRpc
 
 }
 
-
 #endif //SRC_BARTERON_RPC_H

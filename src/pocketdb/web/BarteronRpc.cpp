@@ -11,9 +11,11 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getbarteronaccounts",
             "\nGet barteron accounts information.\n",
             {
-                { "addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "Address hashes" },
+                { "addresses", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Array of address hashes" },
             },
-            RPCResult{RPCResult::Type::NONE, "", ""},
+            RPCResult{ RPCResult::Type::ARR, "", "", {
+                { RPCResult::Type::STR_HEX, "hash", "Tx hash" },
+            }},
             RPCExamples{
                 HelpExampleCli("getbarteronaccounts", "addresses") +
                 HelpExampleRpc("getbarteronaccounts", "addresses")
@@ -22,14 +24,13 @@ namespace PocketWeb::PocketWebRpc
         {
             RPCTypeCheck(request.params, { UniValue::VARR });
             auto addresses = ParseArrayAddresses(request.params[0].get_array());
+
             auto addressTxHashes = request.DbConnection()->BarteronRepoInst->GetAccountIds(addresses);
             auto txs = request.DbConnection()->TransactionRepoInst->List(addressTxHashes, true);
 
             UniValue result(UniValue::VARR);
             for (const auto& tx : *txs)
-            {
                 result.push_back(ConstructTransaction(tx));
-            }
 
             return result;
         }};
