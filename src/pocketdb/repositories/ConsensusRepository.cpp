@@ -14,7 +14,6 @@ namespace PocketDb
         
         string sql = R"sql(
             with
-
                 addressRegId as (
                     select
                         r.RowId
@@ -23,7 +22,6 @@ namespace PocketDb
                     where
                         String = ?
                 ),
-
                 mempool as (
                     select
                         count()cnt
@@ -35,8 +33,7 @@ namespace PocketDb
                         t.RegId1 = addressRegId.RowId and
                         -- include only non-chain transactions
                         not exists(select 1 from Chain c where c.TxId = t.RowId)
-                ),
-
+                )
             select
                 mempool.cnt
             from
@@ -70,7 +67,6 @@ namespace PocketDb
         
         string sql = R"sql(
             with
-
                 addressRegId as (
                     select
                         r.RowId
@@ -79,7 +75,6 @@ namespace PocketDb
                     where
                         String = ?
                 ),
-
                 rootRegId as (
                     select
                         r.RowId
@@ -88,7 +83,6 @@ namespace PocketDb
                     where
                         String = ?
                 ),
-
                 lastTx as (
                     select
                         ifnull(min(t.Type),0) type
@@ -105,7 +99,6 @@ namespace PocketDb
                         -- filter by Last
                         exists(select 1 from Last l where l.TxId = t.RowId)
                 ),
-
                 active as (
                     select
                         count()cnt
@@ -118,7 +111,6 @@ namespace PocketDb
                         -- include only chain transactions
                         exists (select 1 from Chain c where c.TxId = t.RowId)
                 ),
-
                 mempool as (
                     select
                         count()cnt
@@ -130,8 +122,7 @@ namespace PocketDb
                         t.RegId1 = addressRegId.RowId and
                         -- include only non-chain transactions
                         not exists (select 1 from Chain c where c.TxId = t.RowId)
-                ),
-
+                )
             select
                 lastTx.type,
                 active.cnt,
