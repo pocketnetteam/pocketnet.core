@@ -12,10 +12,10 @@ namespace PocketWeb::PocketWebRpc
 {
     using namespace std;
 
-    RPCHelpMan GetAccount();
-    RPCHelpMan GetOffers();
-    RPCHelpMan GetFeed();
-    RPCHelpMan GetDeals();
+    RPCHelpMan GetBarteronAccounts();
+    RPCHelpMan GetBarteronOffers();
+    RPCHelpMan GetBarteronFeed();
+    RPCHelpMan GetBarteronDeals();
 
 }
 

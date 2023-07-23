@@ -6,7 +6,7 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    RPCHelpMan GetAccounts()
+    RPCHelpMan GetBarteronAccounts()
     {
         return RPCHelpMan{"getbarteronaccounts",
             "\nGet barteron accounts information.\n",
