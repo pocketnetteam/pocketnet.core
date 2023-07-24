@@ -78,6 +78,20 @@ namespace PocketWeb::PocketWebRpc
         return addresses;
     }
 
+    vector<string> ParseArrayHashes(const UniValue& value)
+    {
+        vector<string> hashes;
+
+        for (unsigned int idx = 0; idx < value.size(); idx++)
+        {
+            const UniValue& input = value[idx];
+            if (find(hashes.begin(), hashes.end(), input.get_str()) == hashes.end())
+                hashes.push_back(input.get_str());
+        }
+
+        return hashes;
+    }
+
     UniValue ConstructTransaction(const PTransactionRef& ptx)
     {
         // General TX information

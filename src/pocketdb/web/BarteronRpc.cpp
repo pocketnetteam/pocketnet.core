@@ -35,4 +35,33 @@ namespace PocketWeb::PocketWebRpc
             return result;
         }};
     }
+    
+    RPCHelpMan GetBarteronOffers()
+    {
+        return RPCHelpMan{"getbarteronoffers",
+            "\nGet barteron offers information.\n",
+            {
+                { "hashes", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Array of tx hashes" },
+            },
+            RPCResult{ RPCResult::Type::ARR, "", "", {
+                { RPCResult::Type::STR_HEX, "hash", "Tx hash" },
+            }},
+            RPCExamples{
+                HelpExampleCli("getbarteronoffers", "hashes") +
+                HelpExampleRpc("getbarteronoffers", "hashes")
+            },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, { UniValue::VARR });
+            auto hashes = ParseArrayHashes(request.params[0].get_array());
+
+            auto txs = request.DbConnection()->TransactionRepoInst->List(hashes, true);
+
+            UniValue result(UniValue::VARR);
+            for (const auto& tx : *txs)
+                result.push_back(ConstructTransaction(tx));
+
+            return result;
+        }};
+    }
 }
