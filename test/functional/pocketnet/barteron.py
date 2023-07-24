@@ -88,7 +88,7 @@ class BarteronTest(PocketcoinTestFramework):
             node.stakeblock(1)
         
         for i, account in enumerate(builder.accounts):
-            assert json.loads(node.public().getbarteronoffersbyaddress(account.Address)[0]['p']['s4'])['t'][0] == i
+            assert json.loads(node.public().getbarteronoffersbyaddress(account.Address)[0]['p']['s4'])['t'] == i
 
         # ---------------------------------------------------------------------------------
         # todo - find deals
