@@ -48,7 +48,7 @@ class BarteronTest(PocketcoinTestFramework):
 
         # ---------------------------------------------------------------------------------
         # Prepare chain & accounts
-        builder.build_init(accounts_num=1)
+        builder.build_init(accounts_num=3, moderators_num=1)
         node.stakeblock(10)
 
         # ---------------------------------------------------------------------------------
@@ -56,36 +56,41 @@ class BarteronTest(PocketcoinTestFramework):
 
         bartAccount = BartAccountPayload()
         bartAccount.s1 = builder.accounts[0].Address
-        bartAccount.p = Payload()
-        bartAccount.p.s4 = json.dumps({ "a": [1,2,3,4,5] })
-        assert_raises_rpc_error(1, None, pubGenTx, builder.accounts[0], bartAccount)
+        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, builder.accounts[0], bartAccount)
 
         # ---------------------------------------------------------------------------------
         # Register accounts
         builder.register_accounts()
 
         # ---------------------------------------------------------------------------------
-        self.log.info("Register Barteron account")
+        self.log.info("Register Barteron accounts")
 
-        bartAccount = BartAccountPayload()
-        bartAccount.s1 = builder.accounts[0].Address
-        bartAccount.p = Payload()
-        bartAccount.p.s4 = json.dumps({ "a": [1,2,3,4,5] })
-        pubGenTx(builder.accounts[0], bartAccount)
-        node.stakeblock(1)
+        for i, account in enumerate(builder.accounts):
+            bartAccount = BartAccountPayload()
+            bartAccount.s1 = account.Address
+            bartAccount.p = Payload()
+            bartAccount.p.s4 = json.dumps({ "a": [ i ] })
+            pubGenTx(account, bartAccount)
+        node.stakeblock(5)
 
-        accc = node.public().getbarteronaccounts([builder.accounts[0].Address]) 
+        # TODO assert
+        for i, account in enumerate(builder.accounts):
+            assert json.loads(node.public().getbarteronaccounts([account.Address])[0]['p']['s4'])['a'][0] == i
         
         # ---------------------------------------------------------------------------------
-        self.log.info("Register Barteron account with incorrect lists")
+        self.log.info("Register Barteron offers")
 
-        bartAccount = BartAccountPayload()
-        bartAccount.s1 = builder.accounts[0].Address
-        bartAccount.p = Payload()
-        bartAccount.p.s4 = 'Incorrect string - not json list'
-        pubGenTx(builder.accounts[0], bartAccount)
-        node.stakeblock(1)
+        # bartAccount = BartAccountPayload()
+        # bartAccount.s1 = builder.accounts[0].Address
+        # bartAccount.p = Payload()
+        # bartAccount.p.s4 = 'Incorrect string - not json list'
+        # pubGenTx(builder.accounts[0], bartAccount)
+        # node.stakeblock(1)
+
+        # todo - create many offers
+
         # ---------------------------------------------------------------------------------
+        # todo - find deals
         
 
 if __name__ == "__main__":
