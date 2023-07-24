@@ -21,6 +21,7 @@ namespace PocketDb
         explicit BarteronRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
         vector<string> GetAccountIds(const vector<string>& addresses);
+        vector<string> GetAccountOffersIds(const string& address);
 
     };
 

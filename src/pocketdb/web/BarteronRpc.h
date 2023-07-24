@@ -13,7 +13,8 @@ namespace PocketWeb::PocketWebRpc
     using namespace std;
 
     RPCHelpMan GetBarteronAccounts();
-    RPCHelpMan GetBarteronOffers();
+    RPCHelpMan GetBarteronOffersByHashes();
+    RPCHelpMan GetBarteronOffersByAddress();
     RPCHelpMan GetBarteronFeed();
     RPCHelpMan GetBarteronDeals();
 

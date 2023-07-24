@@ -45,5 +45,45 @@ namespace PocketDb
 
         return result;
     }
+    
+    vector<string> BarteronRepository::GetAccountOffersIds(const string& address)
+    {
+        vector<string> result;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                )
+                select
+                    (select r.String from Registry r where r.RowId = o.HashId)
+                from
+                    addr
+                cross join
+                    Transactions o indexed by Transactions_Type_RegId2_RegId1
+                        on o.Type in (211) and o.RegId2 = addr.id
+                cross join
+                    Last l
+                        on l.TxId = o.RowId
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                        result.push_back(value);
+                }
+            });
+        });
+
+        return result;
+    }
 
 }
