@@ -108,8 +108,6 @@ namespace PocketConsensus
 
     };
 
-
-    // ----------------------------------------------------------------------------------------------
     // Factory for select actual rules version
     class BarteronOfferConsensusFactory : public BaseConsensusFactory<BarteronOfferConsensus>
     {

@@ -73,21 +73,22 @@ class BarteronTest(PocketcoinTestFramework):
             pubGenTx(account, bartAccount)
         node.stakeblock(5)
 
-        # TODO assert
         for i, account in enumerate(builder.accounts):
             assert json.loads(node.public().getbarteronaccounts([account.Address])[0]['p']['s4'])['a'][0] == i
         
         # ---------------------------------------------------------------------------------
         self.log.info("Register Barteron offers")
 
-        # bartAccount = BartAccountPayload()
-        # bartAccount.s1 = builder.accounts[0].Address
-        # bartAccount.p = Payload()
-        # bartAccount.p.s4 = 'Incorrect string - not json list'
-        # pubGenTx(builder.accounts[0], bartAccount)
-        # node.stakeblock(1)
-
-        # todo - create many offers
+        for i, account in enumerate(builder.accounts):
+            bartOffer = BartOfferPayload()
+            bartOffer.s1 = account.Address
+            bartOffer.p = Payload()
+            bartOffer.p.s4 = json.dumps({ "t": i, "a": [ i ] })
+            pubGenTx(account, bartOffer)
+            node.stakeblock(1)
+        
+        for i, account in enumerate(builder.accounts):
+            assert json.loads(node.public().getbarteronoffersbyaddress(account.Address)[0]['p']['s4'])['t'][0] == i
 
         # ---------------------------------------------------------------------------------
         # todo - find deals

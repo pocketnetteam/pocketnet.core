@@ -589,6 +589,8 @@ add_library(${POCKETDB}
         pocketdb/models/base/TransactionOutput.cpp
         pocketdb/models/base/SocialTransaction.h
         pocketdb/models/base/SocialTransaction.cpp
+        pocketdb/models/base/SocialEditableTransaction.h
+        pocketdb/models/base/SocialEditableTransaction.cpp
         pocketdb/models/base/Rating.h
         pocketdb/models/base/Rating.cpp
 

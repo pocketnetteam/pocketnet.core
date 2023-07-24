@@ -68,7 +68,7 @@ namespace PocketDb
                     addr
                 cross join
                     Transactions o indexed by Transactions_Type_RegId2_RegId1
-                        on o.Type in (211) and o.RegId2 = addr.id
+                        on o.Type in (211) and o.RegId1 = addr.id
                 cross join
                     Last l
                         on l.TxId = o.RowId

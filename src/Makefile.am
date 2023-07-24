@@ -208,6 +208,7 @@ POCKETDB_H = \
     pocketdb/models/base/TransactionInput.h \
     pocketdb/models/base/TransactionOutput.h \
     pocketdb/models/base/SocialTransaction.h \
+    pocketdb/models/base/SocialEditableTransaction.h \
     pocketdb/models/base/Rating.h \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/DtoModels.h \
@@ -300,6 +301,7 @@ POCKETDB_CPP = \
     pocketdb/models/base/TransactionInput.cpp \
     pocketdb/models/base/TransactionOutput.cpp \
     pocketdb/models/base/SocialTransaction.cpp \
+    pocketdb/models/base/SocialEditableTransaction.cpp \
     pocketdb/models/base/Rating.cpp \
     pocketdb/models/base/Payload.cpp \
     \

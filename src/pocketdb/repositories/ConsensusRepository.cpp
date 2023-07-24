@@ -85,46 +85,45 @@ namespace PocketDb
                 ),
                 lastTx as (
                     select
-                        ifnull(min(t.Type),0) type
+                        t.Type
                     from
                         addressRegId,
-                        rootRegId,
-                        Transactions t -- todo : index
-                    where
-                        t.Type in (211) and
-                        t.RegId1 = addressRegId.RowId and
-                        t.RegId2 = rootRegId.RowId and
-                        -- filter by chain for exclude mempool
-                        exists(select 1 from Chain c where c.TxId = t.RowId) and
-                        -- filter by Last
-                        exists(select 1 from Last l where l.TxId = t.RowId)
+                        rootRegId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (211) and t.RegId1 = addressRegId.RowId and t.RegId2 = rootRegId.RowId
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
                 ),
                 active as (
                     select
                         count()cnt
                     from
-                        addressRegId,
-                        Transactions t
-                    where
-                        t.Type in (211) and
-                        t.RegId1 = addressRegId.RowId and
-                        -- include only chain transactions
-                        exists (select 1 from Chain c where c.TxId = t.RowId)
+                        addressRegId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (211) and t.RegId1 = addressRegId.RowId
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
                 ),
                 mempool as (
                     select
                         count()cnt
                     from
-                        addressRegId,
-                        Transactions t
+                        addressRegId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (211) and t.RegId1 = addressRegId.RowId
+                    left join
+                        Chain c
+                            on c.TxId = t.RowId
                     where
-                        t.Type in (211) and
-                        t.RegId1 = addressRegId.RowId and
-                        -- include only non-chain transactions
-                        not exists (select 1 from Chain c where c.TxId = t.RowId)
+                        c.Height is null
                 )
             select
-                lastTx.type,
+                lastTx.Type,
                 active.cnt,
                 mempool.cnt
             from
