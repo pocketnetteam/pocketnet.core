@@ -103,11 +103,11 @@ namespace PocketDb
             _tags.push_back(t);
 
         string _orderBy = " ct.Height ";
-        if (args.Pagination.OrderBy == "location")
+        if (args.Page.OrderBy == "location")
             _orderBy = " pt.String6 ";
-        if (args.Pagination.OrderBy == "price")
+        if (args.Page.OrderBy == "price")
             _orderBy = " pt.Int1 ";
-        if (args.Pagination.OrderDesc)
+        if (args.Page.OrderDesc)
             _orderBy += " desc ";
         
         SqlTransaction(__func__, [&]()
@@ -163,9 +163,9 @@ namespace PocketDb
                 args.PriceMax,
                 args.PriceMin,
                 "%" + args.Search + "%",
-                args.Pagination.TopHeight,
-                args.Pagination.PageSize,
-                args.Pagination.PageStart * args.Pagination.PageSize
+                args.Page.TopHeight,
+                args.Page.PageSize,
+                args.Page.PageStart * args.Page.PageSize
             )
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())

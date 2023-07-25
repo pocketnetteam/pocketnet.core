@@ -23,7 +23,7 @@ namespace PocketDb
         int64_t PriceMax = 0;
         int64_t PriceMin = 0;
         string Search = "";
-        Pagination Pagination;
+        Pagination Page;
     };
 
     class BarteronRepository : public BaseRepository

@@ -116,7 +116,7 @@ namespace PocketWeb::PocketWebRpc
             BarteronOffersFeedDto feedArgs;
             {
                 auto args = request.params[0].get_obj();
-                feedArgs.Pagination = ParsePaginationArgs(args);
+                feedArgs.Page = ParsePaginationArgs(args);
 
                 if (auto arg = args.At("lang", true); arg.isStr())
                     feedArgs.Language = arg.get_str();
