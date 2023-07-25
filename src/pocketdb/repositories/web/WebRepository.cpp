@@ -339,7 +339,7 @@ namespace PocketDb
             Sql(R"sql(
                 delete from web.BarteronAccountTags
                 where
-                    BarteronAccountTags.AccountId in (
+                    web.BarteronAccountTags.AccountId in (
                         select
                             c.Uid
                         from
@@ -388,17 +388,20 @@ namespace PocketDb
             Sql(R"sql(
                 delete from web.BarteronOffers
                 where
-                    exists (
+                    web.BarteronOffers.ROWID in (
                         select
-                            1
+                            bo.ROWID
                         from
-                            Transactions t
+                            Chain c indexed by Chain_Height_Uid
                         cross join
-                            Chain c indexed by Chain_TxId_Height
-                                on c.TxId = t.RowId and c.Height = ?
+                            BarteronOffers bo indexed by BarteronOffers_OfferId_Tag_AccountId
+                                on bo.OfferId = c.Uid
+                        cross join
+                            Transactions t
+                                on t.RowId = c.TxId and t.Type = 211
                         where
-                            t.Type = 211 and
-                            c.Uid = BarteronOffers.OfferId
+                            c.Height = ?
+
                     )
             )sql")
             .Bind(height)
@@ -439,17 +442,20 @@ namespace PocketDb
             Sql(R"sql(
                 delete from web.BarteronOfferTags
                 where
-                    exists (
+                    web.BarteronOfferTags.ROWID in (
                         select
-                            1
+                            bot.ROWID
                         from
-                            Transactions t
+                            Chain c indexed by Chain_Height_Uid
                         cross join
-                            Chain c indexed by Chain_TxId_Height
-                                on c.TxId = t.RowId and c.Height = ?
+                            BarteronOfferTags bot
+                                on bot.OfferId = c.Uid
+                        cross join
+                            Transactions t
+                                on t.RowId = c.TxId and t.Type = 211
                         where
-                            t.Type = 211 and
-                            c.Uid = BarteronOfferTags.OfferId
+                            c.Height = ?
+
                     )
             )sql")
             .Bind(height)

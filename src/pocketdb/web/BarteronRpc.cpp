@@ -142,9 +142,12 @@ namespace PocketWeb::PocketWebRpc
             auto hashes = request.DbConnection()->BarteronRepoInst->GetFeed(feedArgs);
             auto txs = request.DbConnection()->TransactionRepoInst->List(hashes, true);
 
+            // Build result array with original sorting
             UniValue result(UniValue::VARR);
-            for (const auto& tx : *txs)
-                result.push_back(ConstructTransaction(tx));
+            for (const auto& hash : hashes)
+                for (const auto& tx : *txs)
+                    if (*tx->GetHash() == hash)
+                        result.push_back(ConstructTransaction(tx));
 
             return result;
         }};

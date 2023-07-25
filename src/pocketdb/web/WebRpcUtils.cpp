@@ -157,6 +157,7 @@ namespace PocketWeb::PocketWebRpc
             if (ptx->GetPayload()->GetString5()) p.pushKV("s5", *ptx->GetPayload()->GetString5());
             if (ptx->GetPayload()->GetString6()) p.pushKV("s6", *ptx->GetPayload()->GetString6());
             if (ptx->GetPayload()->GetString7()) p.pushKV("s7", *ptx->GetPayload()->GetString7());
+            if (ptx->GetPayload()->GetInt1()) p.pushKV("i1", *ptx->GetPayload()->GetInt1());
             utx.pushKV("p", p);
         }
 
@@ -165,7 +166,7 @@ namespace PocketWeb::PocketWebRpc
 
     Pagination ParsePaginationArgs(UniValue& args)
     {
-        Pagination pagination{ ChainActive().Height(), 0, 10, "", false };
+        Pagination pagination{ ChainActive().Height(), 0, 10, "height", true };
 
         if (auto arg = args.At("topHeight", true); arg.isNum())
             pagination.TopHeight = min(arg.get_int(), pagination.TopHeight);
@@ -177,7 +178,10 @@ namespace PocketWeb::PocketWebRpc
             pagination.PageSize = arg.get_int();
 
         if (auto arg = args.At("orderBy", true); arg.isStr())
+        {
             pagination.OrderBy = arg.get_str();
+            HtmlUtils::StringToLower(pagination.OrderBy);
+        }
 
         if (auto arg = args.At("orderDesc", true); arg.isBool())
             pagination.OrderDesc = arg.get_bool();

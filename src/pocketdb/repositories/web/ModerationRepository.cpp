@@ -194,7 +194,7 @@ namespace PocketDb
                 address,
                 pagination.TopHeight,
                 pagination.PageSize,
-                pagination.PageStart
+                pagination.PageStart * pagination.PageSize
             )
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())

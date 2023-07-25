@@ -22,7 +22,7 @@ namespace PocketConsensus
         BarteronOfferConsensus() : SocialConsensus<BarteronOffer>()
         {
             Limits.Set("payload_size", 60000, 30000, 1024);
-            Limits.Set("max_active_count", 30, 10, 5);
+            Limits.Set("max_active_count", 30, 10, 5000);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronOfferRef& ptx, const PocketBlockRef& block) override

@@ -33,6 +33,10 @@ from framework.chain_builder import ChainBuilder
 from framework.helpers import rollback_node
 from framework.models import *
 
+import random, string
+def randomword(length):
+   letters = string.ascii_lowercase
+   return ''.join(random.choice(letters) for i in range(length))
 
 class BarteronTest(PocketcoinTestFramework):
     def set_test_params(self):
@@ -69,26 +73,39 @@ class BarteronTest(PocketcoinTestFramework):
             bartAccount = BartAccountPayload()
             bartAccount.s1 = account.Address
             bartAccount.p = Payload()
-            bartAccount.p.s4 = json.dumps({ "a": [ i ] })
+            bartAccount.p.s4 = json.dumps({ "a": [ random.randint(0, 100) ], "test": "HOI" })
             pubGenTx(account, bartAccount)
         node.stakeblock(5)
 
         for i, account in enumerate(builder.accounts):
-            assert json.loads(node.public().getbarteronaccounts([account.Address])[0]['p']['s4'])['a'][0] == i
+            assert json.loads(node.public().getbarteronaccounts([account.Address])[0]['p']['s4'])['test'] == "HOI"
         
         # ---------------------------------------------------------------------------------
         self.log.info("Register Barteron offers")
 
+        lang = ['en','ru','gb']
         for i, account in enumerate(builder.accounts):
-            bartOffer = BartOfferPayload()
-            bartOffer.s1 = account.Address
-            bartOffer.p = Payload()
-            bartOffer.p.s4 = json.dumps({ "t": i, "a": [ i ] })
-            pubGenTx(account, bartOffer)
-            node.stakeblock(1)
+            for ii in range(10):
+                bartOffer = BartOfferPayload()
+                bartOffer.s1 = account.Address
+                bartOffer.p = Payload()
+                bartOffer.p.s1 = lang[random.randint(0, 2)]
+                bartOffer.p.s2 = f'Custom caption with random ({random.randint(0, 100)}) number'
+                bartOffer.p.s3 = f'Custom description with random ({random.randint(0, 100)}) number'
+                bartOffer.p.s5 = ['http://image.url.1','http://image.url.2']
+                bartOffer.p.s6 = randomword(random.randint(0, 10))
+                bartOffer.p.i1 = random.randint(0, 1000)
+                bartOffer.p.s4 = json.dumps({ "t": random.randint(0, 100), "a": [ random.randint(0, 100), random.randint(0, 100), random.randint(0, 100) ], "test": "HOI" })
+                pubGenTx(account, bartOffer)
+                node.stakeblock(1)
         
         for i, account in enumerate(builder.accounts):
-            assert json.loads(node.public().getbarteronoffersbyaddress(account.Address)[0]['p']['s4'])['t'] == i
+            assert json.loads(node.public().getbarteronoffersbyaddress(account.Address)[0]['p']['s4'])['test'] == "HOI"
+
+        # ---------------------------------------------------------------------------------
+        self.log.info("Check offers feed")
+
+        node.public().getbarteronfeed()
 
         # ---------------------------------------------------------------------------------
         # todo - find deals
