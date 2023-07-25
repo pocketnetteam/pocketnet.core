@@ -105,7 +105,7 @@ class BarteronTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Check offers feed")
 
-        node.public().getbarteronfeed()
+        node.public().getbarteronfeed({})
 
         # ---------------------------------------------------------------------------------
         # todo - find deals
