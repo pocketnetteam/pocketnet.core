@@ -337,7 +337,7 @@ namespace PocketDb
         {
             // Delete
             Sql(R"sql(
-                delete from BarteronAccountTags
+                delete from web.BarteronAccountTags
                 where
                     BarteronAccountTags.AccountId in (
                         select
@@ -356,16 +356,11 @@ namespace PocketDb
 
             // Add
             Sql(R"sql(
-                with
-                js as (
-                    select '$.a' as path
-                )
-                insert into BarteronAccountTags (AccountId, Tag)
-                select
+                insert into web.BarteronAccountTags (AccountId, Tag)
+                select distinct
                     c.Uid,
                     pj.value
                 from
-                    js,
                     Transactions t
                 cross join
                     Chain c indexed by Chain_TxId_Height
@@ -374,11 +369,11 @@ namespace PocketDb
                     Payload p
                         on p.TxId = t.RowId
                 cross join
-                    json_each(p.String4, js.path) as pj
+                    json_each(p.String4, '$.a') as pj
                 where
                     t.Type = 104 and
                     json_valid(p.String4) and
-                    json_type(p.String4, js.path) = 'array'
+                    json_type(p.String4, '$.a') = 'array'
             )sql")
             .Bind(height)
             .Run();
@@ -391,7 +386,7 @@ namespace PocketDb
         {
             // Delete
             Sql(R"sql(
-                delete from BarteronOffers
+                delete from web.BarteronOffers
                 where
                     exists (
                         select
@@ -411,7 +406,7 @@ namespace PocketDb
 
             // Add offer
             Sql(R"sql(
-                insert into BarteronOffers (AccountId, OfferId, Tag)
+                insert into web.BarteronOffers (AccountId, OfferId, Tag)
                 select
                     cu.Uid as AccountId,
                     ct.Uid as OfferId,
@@ -442,7 +437,7 @@ namespace PocketDb
 
             // Remove allowed tags
             Sql(R"sql(
-                delete from BarteronOfferTags
+                delete from web.BarteronOfferTags
                 where
                     exists (
                         select
@@ -462,13 +457,11 @@ namespace PocketDb
             
             // Add allowed tags
             Sql(R"sql(
-                with js as ( select '$.a' as path )
-                insert into BarteronOfferTags (OfferId, Tag)
-                select
+                insert into web.BarteronOfferTags (OfferId, Tag)
+                select distinct
                     ct.Uid as OfferId,
                     pj.value as Tag
                 from
-                    js,
                     Transactions t
                 cross join
                     Chain ct indexed by Chain_TxId_Height
@@ -477,11 +470,11 @@ namespace PocketDb
                     Payload p -- primary key
                         on p.TxId = t.RowId
                 cross join
-                    json_each(p.String4, js.path) as pj
+                    json_each(p.String4, '$.a') as pj
                 where
                     t.Type = 211 and
                     json_valid(p.String4) and
-                    json_type(p.String4, js.path) = 'array'
+                    json_type(p.String4, '$.a') = 'array'
             )sql")
             .Bind(height)
             .Run();
