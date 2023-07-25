@@ -86,4 +86,26 @@ namespace PocketDb
         return result;
     }
 
+    vector<string> BarteronRepository::GetFeed(const BarteronOffersFeedDto& args)
+    {
+        vector<string> result;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                -- TODO implement
+            )sql")
+            // .Bind(address)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                        result.push_back(value);
+                }
+            });
+        });
+
+        return result;
+    }
+
 }

@@ -15,6 +15,17 @@ namespace PocketDb
     using boost::algorithm::join;
     using boost::adaptors::transformed;
 
+    struct BarteronOffersFeedDto
+    {
+        string Language = "";
+        vector<int> Tags;
+        string Location = "";
+        int64_t PriceMax = 0;
+        int64_t PriceMin = 0;
+        string Search = "";
+        Pagination Pagination;
+    };
+
     class BarteronRepository : public BaseRepository
     {
     public:
@@ -22,6 +33,7 @@ namespace PocketDb
 
         vector<string> GetAccountIds(const vector<string>& addresses);
         vector<string> GetAccountOffersIds(const string& address);
+        vector<string> GetFeed(const BarteronOffersFeedDto& args);
 
     };
 

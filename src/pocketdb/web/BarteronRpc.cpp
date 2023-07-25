@@ -94,4 +94,61 @@ namespace PocketWeb::PocketWebRpc
             return result;
         }};
     }
+
+    RPCHelpMan GetBarteronFeed()
+    {
+        return RPCHelpMan{"getbarteronfeed",
+            "\nGet barteron offers feed.\n",
+            {
+                { "request", RPCArg::Type::STR, RPCArg::Optional::NO, "JSON object for filter offers" },
+            },
+            RPCResult{ RPCResult::Type::ARR, "", "", {
+                { RPCResult::Type::STR_HEX, "hash", "Tx hash" },
+            }},
+            RPCExamples{
+                HelpExampleCli("getbarteronfeed", "request") +
+                HelpExampleRpc("getbarteronfeed", "request")
+            },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, { UniValue::VOBJ });
+
+            BarteronOffersFeedDto feedArgs;
+            {
+                auto args = request.params[0].get_obj();
+                feedArgs.Pagination = ParsePaginationArgs(args);
+
+                if (auto arg = args.At("lang", true); arg.isStr())
+                    feedArgs.Language = arg.get_str();
+                    
+                if (auto arg = args.At("tags", true); arg.isArray())
+                    for (size_t i = 0; i < arg.size(); i++)
+                        if (arg[i].isNum())
+                            feedArgs.Tags.push_back(arg[i].get_int());
+                    
+                if (auto arg = args.At("location", true); arg.isStr())
+                    feedArgs.Location = arg.get_str();
+                    
+                if (auto arg = args.At("priceMax", true); arg.isNum())
+                    feedArgs.PriceMax = arg.get_int();
+                
+                if (auto arg = args.At("priceMin", true); arg.isNum())
+                    feedArgs.PriceMin = arg.get_int();
+                    
+                if (auto arg = args.At("search", true); arg.isStr())
+                    feedArgs.Search = arg.get_str();
+            }
+
+            auto hashes = request.DbConnection()->BarteronRepoInst->GetFeed(feedArgs);
+            auto txs = request.DbConnection()->TransactionRepoInst->List(hashes, true);
+
+            UniValue result(UniValue::VARR);
+            for (const auto& tx : *txs)
+                result.push_back(ConstructTransaction(tx));
+
+            return result;
+        }};
+    }
+
+
 }

@@ -187,7 +187,7 @@ namespace PocketDb
                         v.HashId is )sql" + (verdict ? "not"s : ""s) + R"sql( null )sql" + (verdict ? "or"s : "and"s) + R"sql(
                         jv.FlagRowId is )sql" + (verdict ? "not"s : ""s) + R"sql( null
                     )
-                order by cf.Height )sql" + (pagination.Desc ? " desc "s : " asc "s) + R"sql(
+                order by cf.Height )sql" + (pagination.OrderDesc ? " desc "s : " asc "s) + R"sql(
                 limit ? offset ?
             )sql")
             .Bind(

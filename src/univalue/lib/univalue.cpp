@@ -7,10 +7,18 @@
 #include <iomanip>
 #include <sstream>
 #include <stdlib.h>
+#include <locale>
 
 #include "univalue.h"
 
 const UniValue NullUniValue;
+
+static std::string toLower(std::string s)
+{        
+    for(char &c : s)
+        c = std::tolower(c);
+    return s;
+}
 
 void UniValue::clear()
 {
@@ -183,10 +191,11 @@ std::map<std::string,UniValue> UniValue::getObjMap() const
     return kv;
 }
 
-bool UniValue::findKey(const std::string& key, size_t& retIdx) const
+
+bool UniValue::findKey(const std::string& key, size_t& retIdx, bool caseInsensitive) const
 {
     for (size_t i = 0; i < keys.size(); i++) {
-        if (keys[i] == key) {
+        if (keys[i] == key || (caseInsensitive && toLower(keys[i]) == toLower(key))) {
             retIdx = i;
             return true;
         }
@@ -225,13 +234,13 @@ const UniValue& UniValue::operator[](const std::string& key) const
     return values.at(index);
 }
 
-UniValue& UniValue::At(const std::string& key)
+UniValue& UniValue::At(const std::string& key, bool caseInsensitive)
 {
     if (typ != VOBJ)
         return const_cast<UniValue&>(NullUniValue);
 
     size_t index = 0;
-    if (!findKey(key, index))
+    if (!findKey(key, index, caseInsensitive))
         return const_cast<UniValue&>(NullUniValue);
 
     return values.at(index);

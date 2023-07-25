@@ -49,7 +49,7 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[5].isStr())
                 pagination.OrderBy = request.params[5].get_str();
             if (request.params[6].isBool())
-                pagination.Desc = request.params[6].get_bool();
+                pagination.OrderDesc = request.params[6].get_bool();
 
             auto juryList = request.DbConnection()->ModerationRepoInst->GetJuryAssigned(address, verdict, pagination);
 

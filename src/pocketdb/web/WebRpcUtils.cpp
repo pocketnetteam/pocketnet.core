@@ -163,4 +163,26 @@ namespace PocketWeb::PocketWebRpc
         return utx;
     }
 
+    Pagination ParsePaginationArgs(UniValue& args)
+    {
+        Pagination pagination{ ChainActive().Height(), 0, 10, "", false };
+
+        if (auto arg = args.At("topHeight", true); arg.isNum())
+            pagination.TopHeight = min(arg.get_int(), pagination.TopHeight);
+        
+        if (auto arg = args.At("pageStart", true); arg.isNum())
+            pagination.PageStart = arg.get_int();
+
+        if (auto arg = args.At("pageSize", true); arg.isNum())
+            pagination.PageSize = arg.get_int();
+
+        if (auto arg = args.At("orderBy", true); arg.isStr())
+            pagination.OrderBy = arg.get_str();
+
+        if (auto arg = args.At("orderDesc", true); arg.isBool())
+            pagination.OrderDesc = arg.get_bool();
+
+        return pagination;
+    }
+
 }
