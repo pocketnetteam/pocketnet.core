@@ -470,6 +470,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): firstFlagsDepth disabled for optimization
     vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(
         const vector<string>& addresses,
         const vector<int64_t>& ids,
@@ -746,34 +747,41 @@ namespace PocketDb
                         )gr
                 ) as FlagsJson,
 
-                (
-                    select
-                        json_group_object(gr.Type, gr.Cnt)
-                    from
-                        (
-                            select
-                                (f.Int1)Type,
-                                (count())Cnt
-                            from
-                                Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            cross join
-                                First ffp
-                                    on ffp.TxId = fp.RowId
-                            cross join
-                                Chain cfp
-                                    on cfp.TxId = fp.RowId
-                            cross join
-                                Transactions f indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                    on f.Type in (410) and f.RegId3 = fp.RegId1
-                            cross join
-                                Chain cf
-                                    on cf.Height >= cfp.Height and cf.Height <= (cfp.Height + ?)
-                            where
-                                fp.Type in (200, 201, 202, 209, 210) and
-                                fp.RegId1 = addr.id
-                            group by
-                                f.Int1
-                        )gr
+                ,(
+                    select 0
+                --    select
+                --        json_group_object(gr.Type, gr.Cnt)
+                --    from
+                --        (
+                --            select
+                --                (f.Int1)Type,
+                --                (count())Cnt
+                --            from
+                --                Transactions f indexed by Transactions_Type_RegId3_RegId1
+                --            cross join (
+                --                select
+                --                    min(cfp.Height) as minHeight
+                --                from
+                --                    Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3
+                --                cross join
+                --                    First ffp
+                --                        on ffp.TxId = fp.RowId
+                --                cross join
+                --                    Chain cfp indexed by Chain_TxId_Height
+                --                        on cfp.TxId = fp.RowId
+                --                where
+                --                    fp.Type in (200, 201, 202, 209, 210) and
+                --                    fp.RegId1 = addr.id
+                --            )fp
+                --            cross join
+                --                Chain cf indexed by Chain_TxId_Height
+                --                    on cf.TxId = f.RowId and cf.Height >= fp.minHeight and cf.Height <= (fp.minHeight + ?)
+                --            where
+                --                f.Type in (410) and
+                --                f.RegId3 = addr.id
+                --            group by
+                --                f.Int1
+                --        )gr
                 ) as FirstFlagsCount
 
                 )sql" + fullProfileSql + R"sql(
@@ -792,7 +800,7 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(sql)
-            .Bind(addresses, ids, firstFlagsDepth * 1440)
+            .Bind(addresses, ids) // firstFlagsDepth * 1440
             .Select([&](Cursor& cursor) {
                 // Fetch data
                 while (cursor.Step())
