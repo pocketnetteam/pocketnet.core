@@ -2859,7 +2859,6 @@ namespace PocketDb
         return {resultCount, resultData};
     }
     
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetContentsForAddress(const string& address)
     {
         auto func = __func__;
@@ -2868,38 +2867,72 @@ namespace PocketDb
         if (address.empty())
             return result;
 
-        string sql = R"sql(
-            select
-
-                t.Id,
-                t.String2 as RootTxHash,
-                t.Time,
-                p.String2 as Caption,
-                p.String3 as Message,
-                p.String6 as Settings,
-                ifnull(r.Value,0) as Reputation,
-
-                (select count(*) from Transactions scr indexed by Transactions_Type_Last_String2_Height
-                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2) as ScoresCount,
-
-                ifnull((select sum(scr.Int1) from Transactions scr indexed by Transactions_Type_Last_String2_Height
-                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2),0) as ScoresSum
-
-            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-            left join Payload p on t.Hash = p.TxHash
-            left join Ratings r indexed by Ratings_Type_Id_Last_Height
-                on r.Type = 2 and r.Last = 1 and r.Id = t.Id
-
-            where t.Type in (200, 201, 202, 209, 210)
-                and t.Last = 1
-                and t.String1 = ?
-            order by t.Height desc
-            limit 50
-        )sql";
-
         SqlTransaction(func, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )
+                select
+                    ct.Uid,
+                    (select r.String from Registry r where r.RowId = t.RegId2) as RootTxHash,
+                    t.Time,
+                    p.String2 as Caption,
+                    p.String3 as Message,
+                    p.String6 as Settings,
+                    ifnull(r.Value,0) as Reputation,
+                    (
+                        select
+                            count()
+                        from
+                            Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                        cross join
+                            Chain cs
+                                on cs.TxId = scr.RowId
+                        where
+                            scr.Type in (300) and
+                            scr.RegId2 = t.RegId2
+                    ) as ScoresCount,
+
+                    ifnull((
+                        select
+                            sum(scr.Int1)
+                        from
+                            Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                        cross join
+                            Chain cs
+                                on cs.TxId = scr.RowId
+                        where
+                            scr.Type in (300) and
+                            scr.RegId2 = t.RegId2
+                    ), 0) as ScoresSum
+
+                from
+                    addr
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on t.Type in (200, 201, 202, 209, 210) and t.RegId1 = addr.id
+                cross join
+                    Last lt
+                        on lt.TxId = t.RowId
+                cross join
+                    Chain ct indexed by Chain_TxId_Height
+                        on ct.TxId = t.RowId
+                cross join
+                    Payload p
+                        on p.TxId = t.RowId
+                left join
+                    Ratings r indexed by Ratings_Type_Uid_Last_Value
+                        on r.Type = 2 and r.Last = 1 and r.Uid = ct.Uid
+                order by ct.Height desc
+                limit 50
+            )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
