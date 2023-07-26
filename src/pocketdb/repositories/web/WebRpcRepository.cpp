@@ -2967,31 +2967,46 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedRelayedContent(const string& address, int height)
     {
         vector<UniValue> result;
 
-        string sql = R"sql(
-            select
-                r.String2 as RootTxHash,
-                r.String3 as RelayTxHash,
-                r.String1 as AddressHash,
-                r.Time,
-                r.Height
-            from Transactions r
-            join Transactions p on p.Hash = r.String3 and p.String1 = ?
-            where r.Type in (200, 201, 202, 209, 210)
-              and r.Last = 1
-              and r.Height is not null
-              and r.Height > ?
-              and r.String3 is not null
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(height, address)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                ),
+                height as ( select ? as value )
+                select
+                    (select rr.String from Registry rr where rr.RowId = r.RegId2) as RootTxHash,
+                    (select rr.String from Registry rr where rr.RowId = r.RegId3) as RelayTxHash,
+                    (select rr.String from Registry rr where rr.RowId = r.RegId1) as AddressHash,
+                    r.Time,
+                    c.Height
+                from
+                    addr,
+                    height
+                cross join
+                    Chain c
+                        on c.Height > height.value
+                cross join
+                    Transactions r
+                        on r.RowId = c.TxId and r.Type in (200, 201, 202, 209, 210) and r.RegId3 is not null
+                cross join
+                    Last l
+                        on l.TxId = r.RowId
+                cross join
+                    Transactions p indexed by Transactions_HashId
+                        on p.HashId = r.RegId3 and p.Type in (200, 201) and p.RegId1 = addr.id
+            )sql")
+            .Bind(address, height)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
