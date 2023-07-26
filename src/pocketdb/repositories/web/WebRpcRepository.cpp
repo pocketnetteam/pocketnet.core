@@ -3101,39 +3101,39 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                    addr as (
-                        select
-                            RowId as id
-                        from
-                            Registry
-                        where
-                            String = ?
-                    ),
-                    height as ( select ? as value )
+                addr as (
                     select
-                        (select r.String from Registry r where r.RowId = s.RegId1) as address,
-                        (select r.String from Registry r where r.RowId = s.HashId),
-                        s.Time,
-                        (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
-                        s.Int1 as value,
-                        cs.Height
+                        RowId as id
                     from
-                        addr,
-                        height
-                    cross join
-                        Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on c.Type in (204, 205) and c.RegId1 = addr.id
-                    cross join
-                        Last lc
-                            on lc.TxId = c.RowId
-                    cross join
-                        Transactions s indexed by Transactions_Type_RegId2_RegId1
-                            on s.Type in (301) and s.RegId2 = c.RegId2
-                    cross join
-                        Chain cs
-                            on cs.TxId = s.RowId and cs.Height > height.value
-                    order by cs.Height desc
-                    limit ?
+                        Registry
+                    where
+                        String = ?
+                ),
+                height as ( select ? as value )
+                select
+                    (select r.String from Registry r where r.RowId = s.RegId1) as address,
+                    (select r.String from Registry r where r.RowId = s.HashId),
+                    s.Time,
+                    (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
+                    s.Int1 as value,
+                    cs.Height
+                from
+                    addr,
+                    height
+                cross join
+                    Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on c.Type in (204, 205) and c.RegId1 = addr.id
+                cross join
+                    Last lc
+                        on lc.TxId = c.RowId
+                cross join
+                    Transactions s indexed by Transactions_Type_RegId2_RegId1
+                        on s.Type in (301) and s.RegId2 = c.RegId2
+                cross join
+                    Chain cs
+                        on cs.TxId = s.RowId and cs.Height > height.value
+                order by cs.Height desc
+                limit ?
             )sql")
             .Bind(address, height, limit)
             .Select([&](Cursor& cursor) {
@@ -3159,29 +3159,44 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     map<string, UniValue> WebRpcRepository::GetMissedTransactions(const string& address, int height, int count)
     {
         map<string, UniValue> result;
 
-        string sql = R"sql(
-            select
-                o.TxHash,
-                t.Time,
-                o.Value,
-                o.TxHeight,
-                t.Type
-            from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
-            join Transactions t on t.Hash = o.TxHash
-            where o.AddressHash = ?
-              and o.TxHeight > ?
-            order by o.TxHeight desc
-            limit ?
-         )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                ),
+                height as ( select ? as value )
+                select
+                    (select r.String from Registry r where r.RowId = t.HashId),
+                    t.Time,
+                    o.Value,
+                    c.Height,
+                    t.Type
+                from
+                    addr,
+                    height
+                cross join
+                    TxOutputs o indexed by TxOutputs_AddressId_TxId
+                        on o.AddressId = addr.id
+                cross join
+                    Chain c indexed by Chain_TxId_Height
+                        on c.TxId = o.TxId and c.Height > height.value
+                cross join
+                    Transactions t
+                        on t.RowId = o.TxId
+                order by c.Height desc
+                limit ?
+            )sql")
             .Bind(address, height, count)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
