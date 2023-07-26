@@ -3027,34 +3027,49 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedContentsScores(const string& address, int height, int limit)
     {
         vector<UniValue> result;
 
-        string sql = R"sql(
-            select
-                s.String1 as address,
-                s.Hash,
-                s.Time,
-                s.String2 as posttxid,
-                s.Int1 as value,
-                s.Height
-            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
-            join Transactions s indexed by Transactions_Type_Last_String2_Height
-                on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height is not null and s.Height > ?
-            where c.Type in (200, 201, 202, 209, 210)
-              and c.Last = 1
-              and c.Height is not null
-              and c.String1 = ?
-            order by s.Time desc
-            limit ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(height, address, limit)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                ),
+                height as ( select ? as value )
+                select
+                    (select r.String from Registry r where r.RowId = s.RegId1) as address,
+                    (select r.String from Registry r where r.RowId = s.HashId),
+                    s.Time,
+                    (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
+                    s.Int1 as value,
+                    cs.Height
+                from
+                    addr,
+                    height
+                cross join
+                    Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on c.Type in (200, 201, 202, 209, 210) and c.RegId1 = addr.id
+                cross join
+                    Last lc
+                        on lc.TxId = c.RowId
+                cross join
+                    Transactions s indexed by Transactions_Type_RegId2_RegId1
+                        on s.Type in (300) and s.RegId2 = c.RegId2
+                cross join
+                    Chain cs
+                        on cs.TxId = s.RowId and cs.Height > height.value
+                order by cs.Height desc
+                limit ?
+            )sql")
+            .Bind(address, height, limit)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
