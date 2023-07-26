@@ -3296,42 +3296,62 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
+    // TODO (aok, api): implement excludePosts
     vector<UniValue> WebRpcRepository::GetMissedPostComments(const string& address, const vector<string>& excludePosts,
         int height, int count)
     {
         vector<UniValue> result;
 
-        string sql = R"sql(
-            select
-                c.String2 as RootTxHash,
-                c.Time,
-                c.Height,
-                c.String1 as addrFrom,
-                c.String3 as posttxid,
-                c.String4 as  parentid,
-                c.String5 as  answerid,
-                (
-                    select o.Value
-                    from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                    where o.TxHash = c.Hash and o.AddressHash = p.String1 and o.AddressHash != c.String1
-                ) as Donate
-            from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
-            join Transactions c indexed by Transactions_Type_Last_String3_Height
-                on c.Type in (204, 205) and c.Height > ? and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
-            where p.Type in (200, 201, 202, 209, 210)
-              and p.Last = 1
-              and p.Height is not null
-              and p.String1 = ?
-              and p.String2 not in ( )sql" + join(vector<string>(excludePosts.size(), "?"), ",") + R"sql( )
-            order by c.Height desc
-            limit ?
-        )sql";
+        //  and p.String2 not in ( )sql" + join(vector<string>(excludePosts.size(), "?"), ",") + R"sql( )
 
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(height, address, excludePosts, count)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                ),
+                height as ( select ? as value )
+                select
+                    (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
+                    c.Time,
+                    cc.Height,
+                    (select r.String from Registry r where r.RowId = c.RegId1) as addrFrom,
+                    (select r.String from Registry r where r.RowId = c.RegId3) as posttxid,
+                    (select r.String from Registry r where r.RowId = c.RegId4) as  parentid,
+                    (select r.String from Registry r where r.RowId = c.RegId5) as  answerid,
+                    (
+                        select o.Value
+                        from TxOutputs o indexed by TxOutputs_AddressId_TxId
+                        where o.TxId = c.RowId and o.AddressId = p.RegId1 and o.AddressId != c.RegId1
+                    ) as Donate
+                from
+                    addr,
+                    height
+                cross join
+                    Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on p.Type in (200, 201, 202, 209, 210) and p.RegId1 = addr.id 
+                cross join
+                    Last lp
+                        on lp.TxId = p.RowId
+                cross join
+                    Transactions c indexed by Transactions_Type_RegId3_RegId1
+                        on c.Type in (204, 205) and c.RegId3 = p.RegId2 and c.RegId1 != p.RegId1
+                cross join
+                    Last lc
+                        on lc.TxId = c.RowId
+                cross join
+                    Chain cc
+                        on cc.TxId = lc.TxId and cc.Height > height.value
+                order by cc.Height desc
+                limit ?
+            )sql")
+            .Bind(address, height, count) // excludePosts
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
