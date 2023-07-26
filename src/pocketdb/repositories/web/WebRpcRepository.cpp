@@ -2407,18 +2407,21 @@ namespace PocketDb
                 select
                     t.Lang,
                     t.Value,
-                    count() as cnt
-                from
-                    web.Tags t indexed by Tags_Lang_Value_Id
+                    tg.cnt
+                from (
+                    select
+                        tm.TagId id,
+                        count() as cnt
+                    from
+                        web.TagsMap tm
+                    group by
+                        tm.TagId
+                )tg
                 cross join
-                    web.TagsMap tm indexed by TagsMap_TagId_ContentId
-                        on tm.TagId = t.Id
-                where
-                    t.Lang = ?
-                group by
-                    t.Lang, t.Value
+                    web.Tags t
+                        on t.Id = tg.id and t.Lang = ?
                 order by
-                    count() desc
+                    tg.cnt desc
                 limit ?
                 offset ?
             )sql")
