@@ -3227,35 +3227,50 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedCommentAnswers(const string& address, int height, int count)
     {
         vector<UniValue> result;
 
-        string sql = R"sql(
-            select
-                a.String2 as RootTxHash,
-                a.Time,
-                a.Height,
-                a.String1 as addrFrom,
-                a.String3 as posttxid,
-                a.String4 as parentid,
-                a.String5 as answerid
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
-            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
-                on a.Type in (204, 205) and a.Height > ? and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
-            where c.Type in (204, 205)
-              and c.Last = 1
-              and c.Height is not null
-              and c.String1 = ?
-            order by a.Height desc
-            limit ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(height, address, count)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                ),
+                height as ( select ? as value )
+                select
+                    (select r.String from Registry r where r.RowId = a.RegId2) as RootTxHash,
+                    a.Time,
+                    ca.Height,
+                    (select r.String from Registry r where r.RowId = a.RegId1) as addrFrom,
+                    (select r.String from Registry r where r.RowId = a.RegId3) as posttxid,
+                    (select r.String from Registry r where r.RowId = a.RegId4) as parentid,
+                    (select r.String from Registry r where r.RowId = a.RegId5) as answerid
+                from
+                    addr,
+                    height
+                cross join
+                    Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on c.Type in (204, 205) and c.RegId1 = addr.id
+                cross join
+                    Transactions a indexed by Transactions_Type_RegId5_RegId1
+                        on a.Type in (204, 205) and a.RegId5 = c.RegId2 and a.RegId1 != c.RegId1
+                cross join
+                    Last la
+                        on la.TxId = a.RowId
+                cross join
+                    Chain ca
+                        on ca.TxId = a.RowId and ca.Height > height.value
+                order by ca.Height desc
+                limit ?
+            )sql")
+            .Bind(address, height, count)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
