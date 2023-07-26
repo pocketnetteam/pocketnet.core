@@ -153,5 +153,54 @@ namespace PocketWeb::PocketWebRpc
         }};
     }
 
+    RPCHelpMan GetBarteronDeals()
+    {
+        return RPCHelpMan{"getbarterondeals",
+            "\nGet barteron offers feed.\n",
+            {
+                { "request", RPCArg::Type::STR, RPCArg::Optional::NO, "JSON object for filter offers" },
+            },
+            RPCResult{ RPCResult::Type::ARR, "", "", {
+                { RPCResult::Type::STR_HEX, "hash", "Tx hash" },
+            }},
+            RPCExamples{
+                HelpExampleCli("getbarterondeals", "request") +
+                HelpExampleRpc("getbarterondeals", "request")
+            },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, { UniValue::VOBJ });
+
+            BarteronOffersDealDto args;
+            {
+                auto _args = request.params[0].get_obj();
+                args.Page = ParsePaginationArgs(_args);
+
+                if (auto arg = _args.At("offer", true); arg.isStr())
+                    args.Offer = arg.get_str();
+
+                if (auto arg = _args.At("address", true); arg.isStr())
+                    args.Address = arg.get_str();
+
+                if (auto arg = _args.At("location", true); arg.isNum())
+                    args.Location = arg.get_int();
+                    
+                if (auto arg = _args.At("price", true); arg.isNum())
+                    args.Price = arg.get_int();
+            }
+
+            auto hashes = request.DbConnection()->BarteronRepoInst->GetDeals(args);
+            auto txs = request.DbConnection()->TransactionRepoInst->List(hashes, true);
+
+            // Build result array with original sorting
+            UniValue result(UniValue::VARR);
+            for (const auto& hash : hashes)
+                for (const auto& tx : *txs)
+                    if (*tx->GetHash() == hash)
+                        result.push_back(ConstructTransaction(tx));
+
+            return result;
+        }};
+    }
 
 }

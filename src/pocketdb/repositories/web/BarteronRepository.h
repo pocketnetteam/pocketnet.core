@@ -17,13 +17,22 @@ namespace PocketDb
 
     struct BarteronOffersFeedDto
     {
+        Pagination Page;
         string Language = "";
         vector<int> Tags;
         string Location = "";
         int64_t PriceMax = 0;
         int64_t PriceMin = 0;
         string Search = "";
+    };
+
+    struct BarteronOffersDealDto
+    {
         Pagination Page;
+        string Offer = "";
+        string Address = "";
+        int Location = -1;
+        int Price = -1;
     };
 
     class BarteronRepository : public BaseRepository
@@ -34,6 +43,7 @@ namespace PocketDb
         vector<string> GetAccountIds(const vector<string>& addresses);
         vector<string> GetAccountOffersIds(const string& address);
         vector<string> GetFeed(const BarteronOffersFeedDto& args);
+        vector<string> GetDeals(const BarteronOffersDealDto& args);
 
     };
 

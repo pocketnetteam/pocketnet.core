@@ -144,7 +144,7 @@ static const CRPCCommand commands[] =
     {"barteron",       "getbarteronoffersbyhashes",        &GetBarteronOffersByHashes,      {"hashes"}},
     {"barteron",       "getbarteronoffersbyaddress",       &GetBarteronOffersByAddress,     {"address"}},
     {"barteron",       "getbarteronfeed",                  &GetBarteronFeed,                {}},
-    // {"barteron",       "getbarterondeals",                 &GetBarteronDeals,               {"hash"}},
+    {"barteron",       "getbarterondeals",                 &GetBarteronDeals,               {"hash"}},
     
     
 };

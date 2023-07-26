@@ -105,10 +105,14 @@ class BarteronTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Check offers feed")
 
-        node.public().getbarteronfeed({})
+        feed = node.public().getbarteronfeed({})
+        # TODO - check?
 
         # ---------------------------------------------------------------------------------
         # todo - find deals
+        self.log.info("Check offers deals")
+        for i, offer in enumerate(feed):
+            pass
         
 
 if __name__ == "__main__":
