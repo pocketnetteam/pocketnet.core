@@ -3646,7 +3646,7 @@ namespace PocketDb
         string sql = R"sql(
             select ct.Uid
 
-            from Transactions t indexed by Transactions_Type_RegId3_RegId1
+            from Transactions t --indexed by Transactions_Type_RegId3_RegId1
             join Chain ct on ct.TxId = t.RowId
             join Last lt on lt.TxId = t.RowId
 
