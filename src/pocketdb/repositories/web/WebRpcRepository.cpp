@@ -3997,7 +3997,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetTopFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4015,33 +4014,36 @@ namespace PocketDb
 
         string contentIdWhere;
         if (topContentId > 0)
-            contentIdWhere = " and t.Id < ? ";
+            contentIdWhere = " and ct.Id < ? ";
 
         string langFilter;
         if (!lang.empty())
-            langFilter += " cross join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
+            langFilter += " join Payload p on p.TxId = t.RowId and p.String1 = ? ";
 
         string sql = R"sql(
-            select t.Id
+            select ct.Uid
 
-            from Transactions t indexed by Transactions_Type_Last_Height_Id
+            from Transactions t --indexed by Transactions_Type_Last_Height_Id
+            join Chain ct indexed by Chain_Uid_Height on ct.TxId = t.RowId
+            join Last lt on lt.TxId = t.RowId
 
-            cross join Ratings cr indexed by Ratings_Type_Id_Last_Value
-                on cr.Type = 2 and cr.Last = 1 and cr.Id = t.Id and cr.Value > 0
+            join Ratings cr indexed by Ratings_Type_Uid_Last_Value
+                on cr.Type = 2 and cr.Uid=ct.Uid and cr.Last = 1 and cr.Value > 0
 
             )sql" + langFilter + R"sql(
 
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+            cross join Transactions u indexed by Transactions_Type_RegId1_Time
+                on u.Type in (100) and u.RegId1 = t.RegId1
+            join Chain cu on cu.TxId = u.RowId
+            join Last lu on lu.TxId = u.RowId
 
-            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
-                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+            left join Ratings ur indexed by Ratings_Type_Uid_Last_Value
+                on ur.Type=0 and ur.Uid=cu.Uid and ur.Last=1
 
             where t.Type in )sql" + contentTypesWhere + R"sql(
-                and t.Last = 1
                 --and t.String3 is null
-                and t.Height > ?
-                and t.Height <= ?
+                and ct.Height > ?
+                and ct.Height <= ?
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
@@ -4052,7 +4054,7 @@ namespace PocketDb
         if (!tags.empty())
         {
             sql += R"sql(
-                and t.id in (
+                and ct.Uid in (
                     select tm.ContentId
                     from web.Tags tag indexed by Tags_Lang_Value_Id
                     join web.TagsMap tm indexed by TagsMap_TagId_ContentId
@@ -4063,11 +4065,11 @@ namespace PocketDb
             )sql";
         }
 
-        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
-        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
-            sql += R"sql( and t.Id not in (
+            sql += R"sql( and ct.Uid not in (
                 select tmEx.ContentId
                 from web.Tags tagEx indexed by Tags_Lang_Value_Id
                 join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
