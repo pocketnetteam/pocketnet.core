@@ -3911,7 +3911,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetCollectionsData(const vector<int64_t>& ids)
     {
         auto func = __func__;
@@ -3920,35 +3919,43 @@ namespace PocketDb
         if (ids.empty())
             return result;
 
-        string sql = R"sql(
-            select
-                t.String2 as RootTxHash,
-                t.Id,
-                case when t.Hash != t.String2 then 'true' else null end edit,
-                t.String3 as ContentIds,
-                t.String1 as AddressHash,
-                t.Time,
-                p.String1 as Lang,
-                t.Type,
-                t.Int1 as ContentTypes,
-                p.String2 as Caption,
-                p.String3 as Image
-
-            from Transactions t indexed by Transactions_Last_Id_Height
-            cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
-                on ua.String1 = t.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
-            left join Payload p on t.Hash = p.TxHash
-            where t.Height is not null
-              and t.Last = 1
-              and t.Type = 220
-              and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-        )sql";
-
-        // Get posts
         unordered_map<int64_t, UniValue> tmpResult{};
         SqlTransaction(func, [&]()
         {
-            Sql(sql)
+            Sql(R"sql(
+                select
+                    (select r.String from Registry r where r.RowId = t.RegId2) as RootTxHash,
+                    c.Uid,
+                    case when t.HashId != t.RegId2 then 'true' else null end edit,
+                    (select r.String from Registry r where r.RowId = t.RegId3) as ContentIds,
+                    (select r.String from Registry r where r.RowId = t.RegId1) as AddressHash,
+                    t.Time,
+                    p.String1 as Lang,
+                    t.Type,
+                    t.Int1 as ContentTypes,
+                    p.String2 as Caption,
+                    p.String3 as Image
+
+                from
+                    Chain c
+                cross join
+                    Transactions t
+                        on t.RowId = c.TxId and t.Type in (220)
+                cross join
+                    Last l
+                        on l.TxId = t.RowId
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100) and u.RegId1 = t.RegId1
+                cross join
+                    Last lu
+                        on lu.TxId = u.RowId
+                left join
+                    Payload p
+                        on p.TxId = t.RowId
+                where
+                    c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+            )sql")
             .Bind(ids)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
