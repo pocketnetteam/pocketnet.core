@@ -3382,38 +3382,56 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedSubscribers(const string& address, int height, int count)
     {
         vector<UniValue> result;
 
-        string sql = R"sql(
-            select
-                subs.Type,
-                subs.Hash,
-                subs.Time,
-                subs.Height,
-                subs.String1 as addrFrom,
-                p.String2 as nameFrom,
-                p.String3 as avatarFrom
-            from Transactions subs indexed by Transactions_Type_Last_String2_Height
-             cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on subs.String1 = u.String1 and u.Type in (100)
-                    and u.Height is not null
-                    and u.Last = 1
-             cross join Payload p on p.TxHash = u.Hash
-            where subs.Type in (302, 303, 304)
-                and subs.Height > ?
-                and subs.Last = 1
-                and subs.String2 = ?
-            order by subs.Height desc
-            limit ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(height, address, count)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                ),
+                height as ( select ? as value )
+                select
+                    subs.Type,
+                    (select r.String from Registry r where r.RowId = subs.HashId),
+                    subs.Time,
+                    cs.Height,
+                    (select r.String from Registry r where r.RowId = subs.RegId1) as addrFrom,
+                    p.String2 as nameFrom,
+                    p.String3 as avatarFrom
+                from
+                    addr,
+                    height
+                cross join
+                    Transactions subs indexed by Transactions_Type_RegId2_RegId1
+                        on subs.Type in (302, 303, 304) and subs.RegId2 = addr.id
+                cross join
+                    Last ls
+                        on ls.TxId = subs.RowId
+                cross join
+                    Chain cs indexed by Chain_TxId_Height
+                        on cs.TxId = subs.RowId and cs.Height > height.value
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100) and u.RegId1 = subs.RegId1
+                cross join
+                    Last l
+                        on l.TxId = u.RowId
+                cross join
+                    Payload p
+                        on p.TxId = u.RowId
+                order by cs.Height desc
+                limit ?
+            )sql")
+            .Bind(address, height, count)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
