@@ -4479,7 +4479,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4497,35 +4496,37 @@ namespace PocketDb
 
         string contentIdWhere;
         if (topContentId > 0)
-            contentIdWhere = " and cnt.Id < ? ";
+            contentIdWhere = " and t.Id < ? ";
 
         string langFilter;
         if (!lang.empty())
-            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = cnt.Hash and p.String1 = ? ";
+            langFilter += " join Payload p on p.TxId = t.RowId and p.String1 = ? ";
 
         string sql = R"sql(
-            select cnt.Id
+            select ct.Uid
 
-            from Transactions cnt indexed by Transactions_Type_Last_String1_Height_Id
+            from Transactions t indexed by Transactions_Type_RegId1_Time
+            join Chain ct on ct.TxId = t.RowId
+            join Last lt on lt.TxId = t.RowId
 
-            cross join Transactions ua indexed by Transactions_Type_Last_String1_Height_Id
-                on ua.String1 = cnt.String1 and ua.Type = 100 and ua.Last = 1 and ua.Height is not null
+            join Transactions u indexed by Transactions_Type_RegId1_Time
+                on u.Type in (100) and u.RegId1 = t.RegId1
+            join Chain cu on cu.TxId = u.RowId
+            join Last lu on lu.TxId = u.RowId
 
             )sql" + langFilter + R"sql(
 
-            where cnt.Type in )sql" + contentTypesWhere + R"sql(
-              and cnt.Last = 1
-              and cnt.String1 in (
-                  select subs.String2
-                  from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+            where t.Type in )sql" + contentTypesWhere + R"sql(
+              and t.RegId1 in (
+                  select subs.RegId2
+                  from Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
+                  join Chain csubs on csubs.TxId = subs.RowId
+                  join Last lsubs on lsubs.TxId = subs.RowId
                   where subs.Type in (302,303)
-                    and subs.Last = 1
-                    and subs.String1 = ?
-                    and subs.Height > 0
-                    )sql" + (!addresses_extended.empty() ? (" union select value from json_each(json_array(" + join(vector<string>(addresses_extended.size(), "?"), ",") + "))") : "") + R"sql(
+                    and subs.RegId1 = (select RowId from Registry indexed by Registry_String where String = ?)
+                    )sql" + (!addresses_extended.empty() ? (" union select RowId from Registry indexed by Registry_String where String in (" + join(vector<string>(addresses_extended.size(), "?"), ",") + ")") : "") + R"sql(
               )
-              and cnt.Height > 0
-              and cnt.Height <= ?
+              and ct.Height <= ?
             
             )sql" + contentIdWhere + R"sql(
 
@@ -4534,7 +4535,7 @@ namespace PocketDb
         if (!tags.empty())
         {
             sql += R"sql(
-                and cnt.id in (
+                and ct.Uid in (
                     select tm.ContentId
                     from web.Tags tag indexed by Tags_Lang_Value_Id
                     join web.TagsMap tm indexed by TagsMap_TagId_ContentId
@@ -4545,11 +4546,11 @@ namespace PocketDb
             )sql";
         }
 
-        if (!txidsExcluded.empty()) sql += " and cnt.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
-        if (!adrsExcluded.empty()) sql += " and cnt.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
-            sql += R"sql( and cnt.Id not in (
+            sql += R"sql( and ct.Uid not in (
                 select tmEx.ContentId
                 from web.Tags tagEx indexed by Tags_Lang_Value_Id
                 join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
@@ -4559,7 +4560,7 @@ namespace PocketDb
              ) )sql";
         }
 
-        sql += " order by cnt.Id desc ";
+        sql += " order by ct.Uid desc ";
         sql += " limit ? ";
 
         // ---------------------------------------------------
