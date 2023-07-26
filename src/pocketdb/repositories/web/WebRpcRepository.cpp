@@ -3464,40 +3464,57 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<UniValue> WebRpcRepository::GetMissedBoosts(const string& address, int height, int count)
     {
         vector<UniValue> result;
 
-        string sql = R"sql(
-            select
-                tBoost.String1 as boostAddress,
-                tBoost.Hash,
-                tBoost.Time,
-                tBoost.Height,
-                tBoost.String2 as contenttxid,
-                tBoost.Int1 as boostAmount,
-                p.String2 as boostName,
-                p.String3 as boostAvatar
-            from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
-            join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
-                on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202, 209, 210)
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.String1 = tBoost.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
-            join Payload p
-                on p.TxHash = u.Hash
-            where tBoost.Type in (208)
-              and tBoost.Last in (0, 1)
-              and tBoost.Height > ?
-              and tContent.String1 = ?
-            order by tBoost.Time desc
-            limit ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(height, address, count)
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                ),
+                height as ( select ? as value )
+                select
+                    (select r.String from Registry r where r.RowId = tBoost.RegId1) as boostAddress,
+                    (select r.String from Registry r where r.RowId = tBoost.HashId),
+                    tBoost.Time,
+                    cb.Height,
+                    (select r.String from Registry r where r.RowId = tBoost.RegId2) as contenttxid,
+                    tBoost.Int1 as boostAmount,
+                    p.String2 as boostName,
+                    p.String3 as boostAvatar
+                from
+                    addr,
+                    height
+                cross join
+                    Transactions tBoost indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on tBoost.Type in (208)
+                cross join
+                    Chain cb
+                        on cb.TxId = tBoost.RowId and cb.Height > Height.value
+                cross join
+                    Transactions tContent indexed by Transactions_Type_RegId2_RegId1
+                        on tContent.Type in (200, 201, 202, 209, 210) and tContent.RegId2 = tBoost.RegId2 and tContent.RegId1 = addr.id
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on  u.Type in (100) and u.RegId1 = tBoost.RegId1
+                cross join
+                    Last lu
+                        on lu.TxId = u.RowId
+                cross join
+                    Payload p
+                        on p.TxId = u.RowId
+                order by cb.Height desc
+                limit ?
+            )sql")
+            .Bind(address, height, count)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
