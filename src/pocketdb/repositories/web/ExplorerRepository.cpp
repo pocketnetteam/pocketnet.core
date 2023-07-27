@@ -397,7 +397,7 @@ namespace PocketDb
                     Height desc, BlockNum desc
                 limit ? offset ?
             )sql")
-            .Bind(address, pageInitBlock, types.empty(), types, types.empty(), types.empty(), pageSize, pageStart)
+            .Bind(address, pageInitBlock, types.empty(), types, types.empty(), types, pageSize, pageStart)
             .Select([&](Cursor& cursor) {
                 int i = 0;
                 while (cursor.Step())
