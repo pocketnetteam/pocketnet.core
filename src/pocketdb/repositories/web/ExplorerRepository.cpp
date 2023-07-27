@@ -18,7 +18,7 @@ namespace PocketDb
                     t.Type,
                     count(1)
                 from
-                    Chain c indexed by Chain_Height_BlockId
+                    Chain c indexed by Chain_Height_Uid
                     left join Transactions t on
                         t.RowId = c.TxId
                 where
@@ -441,15 +441,16 @@ namespace PocketDb
                     where
                         r.String = ?
                 )
-                select s.Hash
+                select
+                    (select r.String from Registry r where r.RowId = t.HashId)
                 from
-                    block,
-                    Chain c
-                    
-                    cross join vTxStr s on
-                        s.RowId = c.TxId
-                where
-                    c.BlockId = block.id
+                    block
+                cross join
+                    Chain c indexed by Chain_BlockId_Height
+                        on c.BlockId = block.id
+                cross join
+                    Transactions t
+                        on t.RowId = c.TxId
                 order by
                     c.BlockNum asc
                 limit

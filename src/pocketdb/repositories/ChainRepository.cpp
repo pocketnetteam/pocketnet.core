@@ -113,9 +113,8 @@ namespace PocketDb
                         select
                             1
                         from
-                            Chain c indexed by Chain_Height_BlockId
+                            Chain c indexed by Chain_BlockId_Height
                         where
-                            c.Height = ? and
                             c.BlockId = (
                                 select
                                     r.RowId
@@ -123,14 +122,16 @@ namespace PocketDb
                                     Registry r
                                 where
                                     r.String = ?
-                            )
+                            ) and
+                            c.Height = ?
+                            
                         limit 1
                     ), 0),
                     ifnull((
                         select
                             1
                         from
-                            Chain c indexed by Chain_Height_BlockId
+                            Chain c indexed by Chain_Height_Uid
                         where
                             c.Height = ?
                         limit 1
@@ -236,7 +237,7 @@ namespace PocketDb
                         (+o.Value)val
                     from
                         height,
-                        Chain c indexed by Chain_Height_BlockId
+                        Chain c indexed by Chain_Height_Uid
                         cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                             on o.TxId = c.TxId
                     where
@@ -251,7 +252,7 @@ namespace PocketDb
                         (-o.Value)val
                     from
                         height,
-                        Chain ci indexed by Chain_Height_BlockId
+                        Chain ci indexed by Chain_Height_Uid
                         cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
                             on i.SpentTxId = ci.TxId
                         cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
@@ -1495,7 +1496,7 @@ namespace PocketDb
                             (+o.Value)val
                         from
                             height,
-                            Chain c indexed by Chain_Height_BlockId
+                            Chain c indexed by Chain_Height_Uid
                             cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                                 on o.TxId = c.TxId
                         where
@@ -1510,7 +1511,7 @@ namespace PocketDb
                             (-o.Value)val
                         from
                             height,
-                            Chain ci indexed by Chain_Height_BlockId
+                            Chain ci indexed by Chain_Height_Uid
                             cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
                                 on i.SpentTxId = ci.TxId
                             cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
@@ -1549,7 +1550,7 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                delete from Chain indexed by Chain_Height_BlockId
+                delete from Chain indexed by Chain_Height_Uid
                 where Height >= ?
             )sql")
             .Bind(height)

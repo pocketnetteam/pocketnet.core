@@ -3647,6 +3647,7 @@ namespace PocketDb
     // ------------------------------------------------------
     // Feeds
 
+    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang,
         const vector<int>& contentTypes, const string& address, int badReputationLimit)
     {
@@ -4066,6 +4067,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetTopFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4208,6 +4210,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetMostCommentedFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4365,6 +4368,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4550,6 +4554,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4687,6 +4692,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -4825,6 +4831,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -5062,6 +5069,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetBoostFeed(int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -6697,7 +6705,7 @@ namespace PocketDb
                     from
                         Transactions t
 
-                        join Chain c indexed by Chain_Height_BlockId on
+                        join Chain c indexed by Chain_TxId_Height on
                             c.TxId = t.RowId and
                             c.Height = ?
 
@@ -6841,7 +6849,7 @@ namespace PocketDb
                     cross join vTxStr sc on
                         sc.RowId = c.RowId
 
-                    join Chain ca indexed by Chain_Height_BlockId on
+                    join Chain ca indexed by Chain_TxId_Height on
                         ca.TxId = a.RowId and
                         ca.Height = ?
 
@@ -6989,7 +6997,7 @@ namespace PocketDb
 
                     from Transactions c
 
-                    join Chain cc indexed by Chain_Height_BlockId on
+                    join Chain cc indexed by Chain_TxId_Height on
                         cc.TxId = c.RowId and
                         cc.Height = ?
 
@@ -7088,7 +7096,7 @@ namespace PocketDb
                     cross join vTxStr s on
                         s.RowId = subs.RowId
 
-                    join Chain c indexed by Chain_Height_BlockId on
+                    join Chain c indexed by Chain_TxId_Height on
                         c.TxId = subs.RowId and
                         c.Height = ?
 
@@ -7179,7 +7187,7 @@ namespace PocketDb
                     cross join vTxStr ss on
                         ss.RowId = s.RowId
 
-                    join Chain cs indexed by Chain_Height_BlockId on
+                    join Chain cs indexed by Chain_TxId_Height on
                         cs.TxId = s.RowId
                         and cs.Height = ?
 
@@ -7282,7 +7290,7 @@ namespace PocketDb
                     cross join vTxStr ss on
                         ss.RowId = s.RowId
 
-                    join Chain cs indexed by Chain_Height_BlockId on
+                    join Chain cs indexed by Chain_TxId_Height on
                         cs.TxId = s.RowId
                         and cs.Height = ?
 
@@ -7385,7 +7393,7 @@ namespace PocketDb
                     cross join vTxStr sc on
                         sc.RowId = c.RowId
 
-                    join Chain cc indexed by Chain_Height_BlockId on
+                    join Chain cc indexed by Chain_TxId_Height on
                         cc.TxId = c.RowId and
                         cc.Height = ?
 
@@ -7531,7 +7539,7 @@ namespace PocketDb
                     cross join vTxStr sb on
                         sb.RowId = tBoost.RowId
 
-                    join Chain c indexed by Chain_Height_BlockId on
+                    join Chain c indexed by Chain_TxId_Height on
                         c.TxId = tBoost.RowId and
                         c.Height = ?
 
@@ -7635,7 +7643,7 @@ namespace PocketDb
                 cross join vTxStr sr on
                     sr.RowId = r.RowId
 
-                join Chain cr indexed by Chain_Height_BlockId on
+                join Chain cr indexed by Chain_TxId_Height on
                     cr.TxId = r.RowId and
                     cr.Height = ?
 
@@ -7759,7 +7767,7 @@ namespace PocketDb
                     from
                         Transactions f
 
-                        cross join Chain cf indexed by Chain_Height_BlockId on
+                        cross join Chain cf indexed by Chain_TxId_Height on
                             cf.TxId = f.RowId and
                             cf.Height = ?
 
@@ -7863,7 +7871,7 @@ namespace PocketDb
                     from
                         Transactions v
 
-                        cross join Chain cv indexed by Chain_Height_BlockId on
+                        cross join Chain cv indexed by Chain_TxId_Height on
                             cv.TxId = v.RowId and
                             cv.Height = ?
 
@@ -7973,7 +7981,7 @@ namespace PocketDb
                     from
                         Transactions f
 
-                        cross join Chain cf indexed by Chain_Height_BlockId on
+                        cross join Chain cf indexed by Chain_TxId_Height on
                             cf.TxId = f.RowId and
                             cf.Height = (? - 10)
 
