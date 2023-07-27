@@ -3197,7 +3197,7 @@ namespace PocketDb
                     addr,
                     height
                 cross join
-                    TxOutputs o indexed by TxOutputs_AddressId_TxId
+                    TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
                         on o.AddressId = addr.id
                 cross join
                     Chain c indexed by Chain_TxId_Height
@@ -3338,7 +3338,7 @@ namespace PocketDb
                     (select r.String from Registry r where r.RowId = c.RegId5) as  answerid,
                     (
                         select o.Value
-                        from TxOutputs o indexed by TxOutputs_AddressId_TxId
+                        from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
                         where o.TxId = c.RowId and o.AddressId = p.RegId1 and o.AddressId != c.RegId1
                     ) as Donate
                 from
