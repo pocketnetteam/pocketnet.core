@@ -163,12 +163,12 @@ namespace PocketDb
 
             from Transactions t
 
+            join Chain c on
+                c.TxId = t.RowId and
+                c.Height = ?
+
             join Payload p on
                 p.TxId = t.RowId
-
-            join Chain c on
-                c.TxId = p.RowId and
-                c.Height = ?
 
             where
                 t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
