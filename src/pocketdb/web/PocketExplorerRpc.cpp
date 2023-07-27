@@ -717,7 +717,7 @@ namespace PocketWeb::PocketWebRpc
             utx.At("vin").push_back(uinp);
         }
 
-        // Inputs
+        // Outputs
         utx.pushKV("vout", UniValue(UniValue::VARR));
         for (const auto& out : ptx->Outputs())
         {
