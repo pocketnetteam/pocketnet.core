@@ -3742,101 +3742,160 @@ namespace PocketDb
         if (!hashes.empty() && !ids.empty())
             throw std::runtime_error("Only one use: hashes or ids");
 
-        string indexSql = "";
-        string whereSql = "";
-
+        string _withTxs = "";
         if (!hashes.empty())
         {
-            indexSql = indexSql = R"sql( indexed by Transactions_Type_RegId2_RegId1 )sql";
-            whereSql = R"sql( and t.RegId2 in ( select RowId from Registry indexed by Registry_String where String in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( ) ) )sql";
+            _withTxs = R"sql(
+                txs as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )
+                ),
+            )sql";
         }
 
         if (!ids.empty())
         {
-            whereSql = R"sql( and c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( ) )sql";
+            _withTxs = R"sql(
+                txs as (
+                    select
+                        t.HashId as id
+                    from
+                        Chain c
+                    cross join
+                        Transactions t
+                            on t.RowId = c.TxId
+                    where c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+                ),
+            )sql";
         }
-
-        string sql = R"sql(
-            select
-                   (select String from Registry where RowId = t.HashId) as  Hash,
-                   (select String from Registry where RowId = t.RegId2) as  RootTxHash,
-                   c.Uid                                                as  Id,
-                   case when t.HashId != t.RegId2 then 'true' else null end edit,
-                   (select String from Registry where RowId = t.RegId3) as  RelayTxHash,
-                   (select String from Registry where RowId = t.RegId1) as  AddressHash,
-                   t.Time,
-                   p.String1                                            as  Lang,
-                   t.Type,
-                   p.String2                                            as  Caption,
-                   p.String3                                            as  Message,
-                   p.String7                                            as  Url,
-                   p.String4                                            as  Tags,
-                   p.String5                                            as  Images,
-                   p.String6                                            as  Settings,
-
-                   (select count()
-                    from Transactions scr indexed by Transactions_Type_RegId2_RegId1
-                    join Chain cscr on cscr.TxId = scr.RowId
-                    where scr.Type = 300
-                      and scr.RegId2 = t.RegId2)                        as  ScoresCount,
-
-                   ifnull((select sum(scr.Int1)
-                           from Transactions scr indexed by Transactions_Type_RegId2_RegId1
-                           join Chain cscr on cscr.TxId = scr.RowId
-                           where scr.Type = 300
-                             and scr.RegId2 = t.RegId2),
-                          0)                                            as  ScoresSum,
-
-                   (select count()
-                    from Transactions rep indexed by Transactions_Type_RegId3_RegId1
-                    join Chain crep on crep.TxId = rep.RowId
-                    join Last lrep on lrep.TxId = rep.RowId
-                    where rep.Type in (200, 201, 202, 209, 210)
-                      and rep.RegId3 = t.RegId2)                        as  Reposted,
-
-                   (select count()
-                    from Transactions s indexed by Transactions_Type_RegId3_RegId1
-                    join Chain cs on cs.TxId = s.RowId
-                    join Last ls on ls.TxId = s.RowId
-                    where s.Type in (204, 205)
-                      and s.RegId3 = t.RegId2
-                      -- exclude commenters blocked by the author of the post
-                      and not exists(select 1
-                                     from BlockingLists bl
-                                     where bl.IdSource = t.RegId1
-                                       and bl.IdTarget = s.RegId1))     as  CommentsCount,
-                   ifnull((select scr.Int1
-                           from Transactions scr
-                           join Chain cscr on cscr.TxId = scr.RowId
-                           where scr.Type = 300
-                             and scr.RegId1 = (select RowId from Registry where String = ?)
-                             and scr.RegId2 = t.RegId2), 0)             as  MyScore,
-
-                   (select json_group_array(json_object('h', cv.Height, 'hs',
-                                                        (select rv.String from Registry rv where rv.RowId = tv.HashId)))
-                    from Transactions tv
-                    join Chain cv on cv.TxId = tv.RowId
-                    where tv.Type = t.Type
-                      and tv.RegId2 = t.RegId2
-                      and tv.HashId != t.HashId)
-
-            from Transactions t )sql" + indexSql + R"sql(
-            join Chain c on c.TxId = t.RowId
-            join Last l
-                 on l.TxId = t.RowId
-            join Payload p
-                 on p.TxId = t.RowId
-            where t.Type in (200, 201, 202, 209, 210)
-            )sql" + whereSql + R"sql(
-        )sql";
-
+        
         // Get posts
         unordered_map<int64_t, UniValue> tmpResult{};
         vector<string> authors;
         SqlTransaction(func, [&]()
         {
-            Sql(sql)
-            .Bind(address, hashes, ids)
+            Sql(R"sql(
+                with
+                )sql" + _withTxs + R"sql(
+                addr as (
+                    select
+                        RowId as id
+                    from
+                        Registry
+                    where
+                        String = ?
+                )
+                select
+                    (select String from Registry where RowId = t.HashId) as Hash,
+                    (select String from Registry where RowId = t.RegId2) as RootTxHash,
+                    c.Uid as Id,
+                    case when t.HashId != t.RegId2 then 'true' else null end edit,
+                    (select String from Registry where RowId = t.RegId3) as RelayTxHash,
+                    (select String from Registry where RowId = t.RegId1) as AddressHash,
+                    t.Time,
+                    p.String1 as Lang,
+                    t.Type,
+                    p.String2 as Caption,
+                    p.String3 as Message,
+                    p.String7 as Url,
+                    p.String4 as Tags,
+                    p.String5 as Images,
+                    p.String6 as Settings,
+                    (
+                        select
+                            count()
+                        from Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                        cross join Chain cscr
+                            on cscr.TxId = scr.RowId
+                        where
+                            scr.Type in (300) and
+                            scr.RegId2 = t.RegId2
+                    ) as ScoresCount,
+                    ifnull((
+                        select
+                            sum(scr.Int1)
+                        from Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                        cross join Chain cscr
+                            on cscr.TxId = scr.RowId
+                        where
+                            scr.Type in (300) and
+                            scr.RegId2 = t.RegId2
+                    ), 0) as ScoresSum,
+                    (
+                        select
+                            count()
+                        from Transactions rep indexed by Transactions_Type_RegId3_RegId1
+                        join Last lrep
+                            on lrep.TxId = rep.RowId
+                        where
+                            rep.Type in (200, 201, 202, 209, 210) and
+                            rep.RegId3 = t.RegId2
+                    ) as Reposted,
+                    (
+                        select
+                            count()
+                        from Transactions c indexed by Transactions_Type_RegId3_RegId1
+                        cross join Last lc
+                            on lc.TxId = c.RowId
+                        cross join Chain cc
+                            on cc.TxId = c.RowId
+                        left join BlockingLists bl
+                            on bl.IdSource = c.Uid and bl.IdTarget = cc.Uid
+                        where
+                            c.Type in (204, 205) and
+                            c.RegId3 = t.RegId2 and
+                            bl.ROWID is null
+                    ) as CommentsCount,
+                    ifnull((
+                        select
+                            scr.Int1
+                        from
+                            Transactions scr indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        cross join Chain cscr
+                            on cscr.TxId = scr.RowId
+                        where
+                            scr.Type in (300) and
+                            scr.RegId1 = addr.id and
+                            scr.RegId2 = t.RegId2
+                    ), 0) as MyScore,
+                    (
+                        select
+                            json_group_array(
+                                json_object(
+                                    'h', cv.Height,
+                                    'hs', (select rv.String from Registry rv where rv.RowId = tv.HashId)
+                                )
+                            )
+                        from
+                            Transactions tv indexed by Transactions_Type_RegId2
+                        cross join Chain cv
+                            on cv.TxId = tv.RowId
+                        where
+                            tv.Type = t.Type and
+                            tv.RegId2 = t.RegId2 and
+                            tv.HashId != t.HashId
+                    ) as Versions
+                from
+                    txs,
+                    addr
+                cross join
+                    Transactions t indexed by Transactions_HashId
+                        on t.HashId = txs.id and t.Type in (200, 201, 202, 209, 210)
+                cross join
+                    Chain c
+                        on c.TxId = t.RowId
+                cross join
+                    Last l
+                        on l.TxId = t.RowId
+                cross join
+                    Payload p
+                        on p.TxId = t.RowId
+            )sql")
+            .Bind(hashes, ids, address)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
