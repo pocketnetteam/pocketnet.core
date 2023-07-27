@@ -4709,21 +4709,21 @@ namespace PocketDb
 
         string langFilter;
         if (!lang.empty())
-            langFilter += " join Payload p on p.TxId = t.RowId and p.String1 = ? ";
+            langFilter += " cross join Payload p on p.TxId = t.RowId and p.String1 = ? ";
 
         string sql = R"sql(
             select ct.Uid
 
-            from Transactions t indexed by Transactions_Type_RegId3_RegId1
-            join Chain ct on ct.TxId = t.RowId
-            join Last lt on lt.TxId = t.RowId
+            from Chain ct
+            cross join Transactions t on ct.TxId = t.RowId
+            cross join Last lt on lt.TxId = t.RowId
 
             )sql" + langFilter + R"sql(
 
-            join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+            cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
                 on u.Type in (100) and u.RegId1 = t.RegId1
-            join Chain cu on cu.TxId = u.RowId
-            join Last lu on lu.TxId = u.RowId
+            cross join Chain cu on cu.TxId = u.RowId
+            cross join Last lu on lu.TxId = u.RowId
 
             left join Ratings ur indexed by Ratings_Type_Uid_Last_Value
                 on ur.Type=0 and ur.Uid=cu.Uid and ur.Last=1
