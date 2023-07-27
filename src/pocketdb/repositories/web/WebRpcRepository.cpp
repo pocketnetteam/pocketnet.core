@@ -217,12 +217,14 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            with
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
                 height as (
                     select ? as val
                 ),
-                address as (
+                addr as (
                     select
                         RowId as id,
                         String as hash
@@ -230,88 +232,85 @@ namespace PocketDb
                         Registry
                     where
                         String = ?
-                ),
-                u as (
-                    select
-                        cu.Uid as AddressId,
-                        address.hash as Address,
-                        u.Type,
-                        u.RegId1,
-                        u.RowId
-
-                    from
-                        address,
-                        Transactions u
-
-                        join Chain cu on
-                            cu.TxId = u.RowId
-
-                    where
-                        u.Type in (100, 170) and
-                        u.RegId1 = address.id and
-                        exists (select 1 from Last l where l.TxId = u.RowId)
-                ),
-                uidtxs as (
-                    select
-                        count() as count,
-                        p.Type as Type
-                    from
-                        u,
-                        height,
-                        Transactions p
-                    where
-                        p.Type in (200,201,202,209,210) and
-                        p.RegId1 = u.RegId1 and
-                        (
-                            (
-                                exists(select 1 from First f where f.TxId = p.RowId) and
-                                exists(select 1 from Chain c indexed by Chain_Height_Uid where c.TxId = p.RowId and c.Height >= height.val)
-                            ) or
-                            not exists (select 1 from Chain c where c.TxId = p.RowId)
-                        )
-                    group by
-                        p.Type
-                ),
-                uniquetxs as (
-                    select
-                        count() as count,
-                        p.Type as Type
-                    from
-                        u,
-                        height,
-                        Transactions p
-                    where
-                        p.Type in (204,300,301,307,410) and
-                        p.RegId1 = u.RegId1 and
-                        (
-                            exists(select 1 from Chain c where c.TxId = p.RowId and c.Height >= height.val) or
-                            not exists(select 1 from Chain c where c.TxId = p.RowId)
-                        )
-                    group by
-                        p.Type
                 )
                 select
-                    u.AddressId as AddressId,
-                    u.Address as Address,
+                    cu.Uid as AddressId,
+                    addr.hash as Address,
                     u.Type,
-                    ifnull((select p.count from uidtxs p where p.type = 200), 0) as PostSpent,
-                    ifnull((select p.count from uidtxs p where p.type = 201), 0) as VideoSpent,
-                    ifnull((select p.count from uidtxs p where p.type = 202), 0) as ArticleSpent,
-                    ifnull((select p.count from uidtxs p where p.type = 209), 0) as StreamSpent,
-                    ifnull((select p.count from uidtxs p where p.type = 210), 0) as AudioSpent,
-                    ifnull((select p.count from uniquetxs p where p.type = 204), 0) as CommentSpent,
-                    ifnull((select p.count from uniquetxs p where p.type = 300), 0) as ScoreSpent,
-                    ifnull((select p.count from uniquetxs p where p.type = 301), 0) as ScoreCommentSpent,
-                    ifnull((select p.count from uniquetxs p where p.type = 307), 0) as ComplainSpent,
-                    ifnull((select p.count from uniquetxs p where p.type = 410), 0) as FlagsSpent
-                from
-                    u,
-                    address
-        )sql";
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(sql)
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (200) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as PostSpent,
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (201) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as VideoSpent,
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (202) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as ArticleSpent,
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (209) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as StreamSpent,
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (210) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as AudioSpent,
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (204) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as CommentSpent,
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (300) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as ScoreSpent,
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (301) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as ScoreCommentSpent,
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (307) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as ComplainSpent,
+                    (
+                        select count()
+                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                        where p.Type in (410) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                    ) as FlagsSpent
+                from
+                    height,
+                    addr
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type in (100, 170) and u.RegId1 = addr.id
+                cross join
+                    Last lu
+                        on lu.TxId = u.RowId
+                cross join
+                    Chain cu
+                        on cu.TxId = u.RowId
+            )sql")
             .Bind(heightWindow, address)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
