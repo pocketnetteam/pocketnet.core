@@ -3871,7 +3871,7 @@ namespace PocketDb
                                 )
                             )
                         from
-                            Transactions tv indexed by Transactions_Type_RegId2
+                            Transactions tv indexed by Transactions_Type_RegId2_RegId1
                         cross join Chain cv
                             on cv.TxId = tv.RowId
                         where
