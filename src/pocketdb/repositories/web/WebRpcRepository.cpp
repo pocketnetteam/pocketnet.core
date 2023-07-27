@@ -5114,7 +5114,7 @@ namespace PocketDb
         if (!tags.empty())
         {
             sql += R"sql(
-                and ct.Uid in (
+                and ctc.Uid in (
                     select tm.ContentId
                     from web.Tags tag indexed by Tags_Lang_Value_Id
                     join web.TagsMap tm indexed by TagsMap_TagId_ContentId
@@ -5129,7 +5129,7 @@ namespace PocketDb
         if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
-            sql += R"sql( and ct.Uid not in (
+            sql += R"sql( and ctc.Uid not in (
                 select tmEx.ContentId
                 from web.Tags tagEx indexed by Tags_Lang_Value_Id
                 join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
