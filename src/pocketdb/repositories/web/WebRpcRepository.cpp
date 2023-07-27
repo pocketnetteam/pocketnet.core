@@ -609,16 +609,16 @@ namespace PocketDb
             )sql" + with + R"sql(
             select
 
-                (select r.String from Registry r where r.RowId = u.HashId) as AccountHash,
-                (select r.String from Registry r where r.RowId = u.RegId1) as Address,
-                cu.Uid,
-                u.Type,
-                ifnull(p.String2,'') as Name,
-                ifnull(p.String3,'') as Avatar,
-                ifnull(p.String7,'') as Donations,
-                ifnull((select r.String from Registry r where r.RowId = u.RegId2),'') as Referrer,
+                (select r.String from Registry r where r.RowId = u.HashId) as AccountHash
+                ,(select r.String from Registry r where r.RowId = u.RegId1) as Addres
+                ,cu.Uid
+                ,u.Type
+                ,ifnull(p.String2,'') as Name
+                ,ifnull(p.String3,'') as Avatar
+                ,ifnull(p.String7,'') as Donations
+                ,ifnull((select r.String from Registry r where r.RowId = u.RegId2),'') as Referrer
 
-                ifnull((
+                ,ifnull((
                     select
                         count()
                     from
@@ -628,9 +628,9 @@ namespace PocketDb
                             on lpo.TxId = po.RowId
                     where
                         po.Type in (200,201,202,209,210) and po.RegId1 = addr.id
-                ), 0) as PostsCount,
+                ), 0) as PostsCount
 
-                ifnull((
+                ,ifnull((
                     select
                         count()
                     from
@@ -641,9 +641,9 @@ namespace PocketDb
                     where
                         po.Type in (207) and
                         po.RegId1 = addr.id
-                ), 0) as DelCount,
+                ), 0) as DelCount
 
-                ifnull((
+                ,ifnull((
                     select
                         r.Value
                     from
@@ -652,9 +652,9 @@ namespace PocketDb
                         r.Type = 0 and
                         r.Uid = cu.Uid and
                         r.Last = 1
-                ), 0) as Reputation,
+                ), 0) as Reputation
 
-                (
+                ,(
                     select
                         count()
                     from
@@ -671,9 +671,9 @@ namespace PocketDb
                     where
                         subs.Type in (302, 303) and
                         subs.RegId1 = addr.id
-                ) as SubscribesCount,
+                ) as SubscribesCount
 
-                (
+                ,(
                     select
                         count()
                     from
@@ -690,32 +690,32 @@ namespace PocketDb
                     where
                         subs.Type in (302, 303) and
                         subs.RegId2 = addr.id
-                ) as SubscribersCount,
+                ) as SubscribersCount
 
-                (
+                ,(
                     select
                         count()
                     from
                         BlockingLists bl
                     where
                         bl.IdSource = cu.Uid
-                ) as BlockingsCount,
+                ) as BlockingsCount
 
-                ifnull((
+                ,ifnull((
                     select
                         sum(lkr.Value)
                     from Ratings lkr indexed by Ratings_Type_Uid_Last_Value
                     where
                         lkr.Type in (111,112,113) and lkr.Uid = cu.Uid and lkr.Last = 1
-                ),0) as Likers,
+                ), 0) as Likers
 
-                ifnull(p.String6,'') as Pubkey,
-                ifnull(p.String4,'') as About,
-                ifnull(p.String1,'') as Lang,
-                ifnull(p.String5,'') as Url,
-                u.Time,
+                ,ifnull(p.String6,'') as Pubkey
+                ,ifnull(p.String4,'') as About
+                ,ifnull(p.String1,'') as Lang
+                ,ifnull(p.String5,'') as Url
+                ,u.Time
 
-                (
+                ,(
                     select
                         reg.Time
                     from Transactions reg indexed by Transactions_Type_RegId1_RegId2_RegId3
@@ -724,9 +724,9 @@ namespace PocketDb
                     where
                         reg.Type in (100) and
                         reg.RegId1 = addr.id
-                ) as RegistrationDate,
+                ) as RegistrationDate
 
-                (
+                ,(
                     select
                         json_group_object(gr.Type, gr.Cnt)
                     from
@@ -745,7 +745,7 @@ namespace PocketDb
                             group by
                                 f.Int1
                         )gr
-                ) as FlagsJson,
+                ) as FlagsJson
 
                 ,(
                     select 0
