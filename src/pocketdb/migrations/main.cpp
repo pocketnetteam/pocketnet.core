@@ -387,6 +387,7 @@ namespace PocketDb
 
         _indexes = R"sql(
             drop index if exists Chain_Height_BlockId;
+            drop index if exists TxInputs_TxId_Number;
 
             create index if not exists Chain_Uid_Height on Chain (Uid, Height);
             create index if not exists Chain_Height_Uid on Chain (Height, Uid);
@@ -406,7 +407,7 @@ namespace PocketDb
             create index if not exists Transactions_Type_RegId1_Time on Transactions (Type, RegId1, Time);
 
             create index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
-            create index if not exists TxInputs_TxId_Number on TxInputs (TxId, Number);
+            create index if not exists TxInputs_TxId_Number_SpentTxId on TxInputs (TxId, Number, SpentTxId);
 
             create index if not exists TxOutputs_TxId_Number_AddressId on TxOutputs (TxId, Number, AddressId);
             create index if not exists TxOutputs_AddressId_TxId_Number on TxOutputs (AddressId, TxId, Number);

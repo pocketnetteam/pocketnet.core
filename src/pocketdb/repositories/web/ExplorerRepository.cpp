@@ -333,18 +333,10 @@ namespace PocketDb
         return infos;
     }
 
-    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize, const vector<TxType>& filters)
+    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize, const vector<TxType>& types)
     {
         map<string, int> txHashes;
-        string filtering;
-        if (!filters.empty()) {
-            filtering = R"sql(
-                join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
-                   t.RowId = c.TxId and
-                   t.Type in ( )sql" + join(vector<string>(filters.size(), "?"), ",") + ")";
-        }
 
-        // TODO (optimization): optimize me
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
@@ -362,57 +354,50 @@ namespace PocketDb
 
                 -- Address in outputs
                 select distinct
-                    s.Hash,
+                    (select r.String from Registry r where r.RowId = t.HashId),
                     c.Height as Height,
                     c.BlockNum as BlockNum
                 from
                     address,
-                    height,
+                    height
+                cross join
                     TxOutputs o
-
-                    join Chain c on
-                        c.TxId = o.TxId and
-                        c.Height <= height.val
-
-                )sql" + filtering + R"sql(
-
-                    cross join vTxStr s on
-                        s.RowId = c.TxId
-                where
-                    o.AddressId = address.id
+                        on o.AddressId = address.id
+                cross join
+                    Chain c indexed by Chain_TxId_Height
+                        on c.TxId = o.TxId and c.Height <= height.val
+                cross join
+                    Transactions t
+                        on t.RowId = c.TxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
 
                 union
 
                 -- Address in inputs
                 select distinct
-                    s.Hash,
+                    (select r.String from Registry r where r.RowId = t.HashId),
                     c.Height as Height,
                     c.BlockNum as BlockNum
                 from
                     address,
-                    height,
-                    TxInputs i
-
-                    join Chain c on
-                        c.TxId = i.SpentTxId and
-                        c.Height <= height.val
-
-                )sql" + filtering + R"sql(
-
-                    join vTxStr s on
-                        s.RowId = c.TxId
-
-                    join TxOutputs o on
-                        o.TxId = i.TxId and
-                        o.Number = i.Number and
-                        o.AddressId = address.id
+                    height
+                cross join
+                    TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                        on o.AddressId = address.id
+                cross join
+                    TxInputs i indexed by TxInputs_TxId_Number_SpentTxId
+                        on i.TxId = o.TxId and i.Number = o.Number
+                cross join
+                    Chain c indexed by Chain_TxId_Height
+                        on c.TxId = i.SpentTxId and c.Height <= height.val
+                cross join
+                    Transactions t
+                        on t.RowId = c.TxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
 
                 order by
                     Height desc, BlockNum desc
-                limit
-                    ?, ?
+                limit ? offset ?
             )sql")
-            .Bind(address, pageInitBlock, filters, filters, pageStart, pageSize)
+            .Bind(address, pageInitBlock, types.empty(), types, types.empty(), types.empty(), pageSize, pageStart)
             .Select([&](Cursor& cursor) {
                 int i = 0;
                 while (cursor.Step())
@@ -470,6 +455,7 @@ namespace PocketDb
         return txHashes;
     }
     
+    // TODO (aok, api) : implement
     UniValue ExplorerRepository::GetBalanceHistory(const vector<string>& addresses, int topHeight, int count)
     {
         UniValue result(UniValue::VARR);
