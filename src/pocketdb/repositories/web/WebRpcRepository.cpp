@@ -6656,7 +6656,7 @@ namespace PocketDb
                             ))
 
                             from
-                                TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
 
                                 join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
                                     o.TxId = i.TxId and
@@ -6951,7 +6951,7 @@ namespace PocketDb
                             ))
 
                             from
-                                TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
 
                                 join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
                                     o.TxId = i.TxId and
@@ -7489,7 +7489,7 @@ namespace PocketDb
                             ))
 
                             from
-                                TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
 
                                 join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
                                     o.TxId = i.TxId and

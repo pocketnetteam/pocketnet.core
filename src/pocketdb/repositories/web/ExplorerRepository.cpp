@@ -333,42 +333,28 @@ namespace PocketDb
         return infos;
     }
 
-    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize, const vector<TxType>& types)
+    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int topHeight, int pageStart, int pageSize, const vector<TxType>& types)
     {
         map<string, int> txHashes;
 
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                with address as (
-                    select
-                        r.RowId as id
-                    from
-                        Registry r
-                    where
-                        r.String = ?
-                ),
-                height as (
-                    select ? as val
-                )
-
                 -- Address in outputs
                 select distinct
                     (select r.String from Registry r where r.RowId = t.HashId),
                     c.Height as Height,
                     c.BlockNum as BlockNum
                 from
-                    address,
-                    height
+                    Chain c indexed by Chain_Height_BlockNum
                 cross join
-                    TxOutputs o
-                        on o.AddressId = address.id
-                cross join
-                    Chain c indexed by Chain_TxId_Height
-                        on c.TxId = o.TxId and c.Height <= height.val
+                    TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                        on o.TxId = c.TxId and o.AddressId = (select r.RowId as id from Registry r where r.String = ?)
                 cross join
                     Transactions t
-                        on t.RowId = c.TxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
+                        on t.RowId = o.TxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
+                where
+                    c.Height <= ?
 
                 union
 
@@ -378,26 +364,25 @@ namespace PocketDb
                     c.Height as Height,
                     c.BlockNum as BlockNum
                 from
-                    address,
-                    height
+                    Chain c indexed by Chain_Height_BlockNum
                 cross join
                     TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-                        on o.AddressId = address.id
+                        on o.TxId = c.TxId and o.AddressId = (select r.RowId as id from Registry r where r.String = ?)
                 cross join
                     TxInputs i indexed by TxInputs_TxId_Number_SpentTxId
                         on i.TxId = o.TxId and i.Number = o.Number
                 cross join
-                    Chain c indexed by Chain_TxId_Height
-                        on c.TxId = i.SpentTxId and c.Height <= height.val
-                cross join
                     Transactions t
-                        on t.RowId = c.TxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
+                        on t.RowId = i.SpentTxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
+                where
+                    c.Height <= ?
 
                 order by
-                    Height desc, BlockNum desc
+                c.Height desc, c.BlockNum desc
+
                 limit ? offset ?
             )sql")
-            .Bind(address, pageInitBlock, types.empty(), types, types.empty(), types, pageSize, pageStart)
+            .Bind(address, types.empty(), types, topHeight, address, types.empty(), types, topHeight, pageSize, pageStart)
             .Select([&](Cursor& cursor) {
                 int i = 0;
                 while (cursor.Step())

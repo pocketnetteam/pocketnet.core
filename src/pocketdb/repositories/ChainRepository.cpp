@@ -253,7 +253,7 @@ namespace PocketDb
                     from
                         height,
                         Chain ci indexed by Chain_Height_Uid
-                        cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                        cross join TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
                             on i.SpentTxId = ci.TxId
                         cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                             on o.TxId = i.TxId and o.Number = i.Number
@@ -1512,7 +1512,7 @@ namespace PocketDb
                         from
                             height,
                             Chain ci indexed by Chain_Height_Uid
-                            cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                            cross join TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
                                 on i.SpentTxId = ci.TxId
                             cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                                 on o.TxId = i.TxId and o.Number = i.Number

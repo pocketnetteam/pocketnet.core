@@ -432,7 +432,7 @@ namespace PocketDb
             from
                 tx
                 cross join
-                    TxInputs i indexed by TxInputs_SpentTxId_TxId_Number on
+                    TxInputs i indexed by TxInputs_SpentTxId_Number_TxId on
                         i.SpentTxId = tx.RowId
                 cross join
                     Transactions t on
