@@ -92,7 +92,7 @@ namespace PocketDb
                     t.Type,
                     count()Count
                 from
-                    Chain c indexed by Chain_Height_Uid
+                    Chain c indexed by Chain_HeightByHour
                     cross join Transactions t on
                         t.RowId = c.TxId and
                         t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
@@ -133,7 +133,7 @@ namespace PocketDb
                     t.Type,
                     count()Count
                 from
-                    Chain c indexed by Chain_Height_Uid
+                    Chain c indexed by Chain_HeightByDay
                     join Transactions t on
                         t.RowId = c.TxId and
                         t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
@@ -169,32 +169,67 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                    maxHeight as ( select ? as value ),
+                    minHeight as ( select ? as value ),
+                    base as (
+                        select
+                            count() as value
+                        from
+                            minHeight,
+                            Transactions u
+                        cross join
+                            First f
+                                on f.TxId = u.RowId
+                        cross join
+                            Chain c indexed by Chain_TxId_Height on
+                                c.TxId = u.RowId and c.Height < minHeight.value
+                        where
+                            u.Type in (100)
+                    ),
+                    val as (
+                        select
+                            (c.Height / 60) as height,
+                            (
+                                select
+                                    count()
+                                from
+                                    Chain c1 indexed by Chain_HeightByHour
+                                cross join
+                                    Transactions u on
+                                        u.RowId = c1.TxId and u.Type in (100)
+                                cross join
+                                    First f
+                                        on f.TxId = u.RowId
+                                where
+                                    (c1.Height / 60) = (c.Height / 60)
+                            ) as cnt
+                        from
+                            maxHeight,
+                            minHeight,
+                            base,
+                            Chain c indexed by Chain_HeightByHour
+                        where
+                            (c.Height / 60) <= (maxHeight.value / 60) and
+                            (c.Height / 60) > (minHeight.value / 60)
+                        group by
+                            (c.Height / 60)
+                        order by
+                            (c.Height / 60) desc
+                    )
                 select
-                    (c.Height / 60),
+                    v.height,
                     (
                         select
-                            count()
-                        from Transactions u1
-                        cross join Last l1 on
-                            l1.TxId = u1.RowId
-                        join Chain c1 indexed by Chain_TxId_Height on
-                            c1.TxId = u1.RowId and
-                            (c1.Height / 60) <= (c.Height / 60)
+                            base.value + sum(v2.cnt)
+                        from
+                            val v2
                         where
-                            u1.Type in (100)
-                    )cnt
+                            v2.height <= v.height
+                    ) as cnt
                 from
-                    Transactions u
-                    join Chain c indexed by Chain_TxId_Height on
-                        c.TxId = u.RowId and
-                        (c.Height / 60) <= (? / 60) and
-                        (c.Height / 60) > (? / 60)
-                where
-                    u.Type in (3)
-                group by
-                    (c.Height / 60)
-                order by
-                    (c.Height / 60) desc
+                    base,
+                    val v
             )sql")
             .Bind(topHeight, topHeight - depth)
             .Select([&](Cursor& cursor) {
@@ -217,32 +252,67 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                    maxHeight as ( select ? as value ),
+                    minHeight as ( select ? as value ),
+                    base as (
+                        select
+                            count() as value
+                        from
+                            minHeight,
+                            Transactions u
+                        cross join
+                            First f
+                                on f.TxId = u.RowId
+                        cross join
+                            Chain c indexed by Chain_TxId_Height on
+                                c.TxId = u.RowId and c.Height < minHeight.value
+                        where
+                            u.Type in (100)
+                    ),
+                    val as (
+                        select
+                            (c.Height / 1440) as height,
+                            (
+                                select
+                                    count()
+                                from
+                                    Chain c1 indexed by Chain_HeightByDay
+                                cross join
+                                    Transactions u on
+                                        u.RowId = c1.TxId and u.Type in (100)
+                                cross join
+                                    First f
+                                        on f.TxId = u.RowId
+                                where
+                                    (c1.Height / 1440) = (c.Height / 1440)
+                            ) as cnt
+                        from
+                            maxHeight,
+                            minHeight,
+                            base,
+                            Chain c indexed by Chain_HeightByDay
+                        where
+                            (c.Height / 1440) <= (maxHeight.value / 1440) and
+                            (c.Height / 1440) > (minHeight.value / 1440)
+                        group by
+                            (c.Height / 1440)
+                        order by
+                            (c.Height / 1440) desc
+                    )
                 select
-                    (c.Height / 1440),
+                    v.height,
                     (
                         select
-                            count()
-                        from Transactions u1
-                        cross join Last l1 on
-                            l1.TxId = u1.RowId
-                        join Chain c1 indexed by Chain_TxId_Height on
-                            c1.TxId = u1.RowId and
-                            (c1.Height / 1440) <= (c.Height / 1440)
+                            base.value + sum(v2.cnt)
+                        from
+                            val v2
                         where
-                            u1.Type in (100)
-                    )cnt
+                            v2.height <= v.height
+                    ) as cnt
                 from
-                    Transactions u
-                    join Chain c indexed by Chain_TxId_Height on
-                        c.TxId = u.RowId and
-                        (c.Height / 1440) <= (? / 1440) and
-                        (c.Height / 1440) > (? / 1440)
-                where
-                    u.Type in (3)
-                group by
-                    (c.Height / 1440)
-                order by
-                    (c.Height / 1440) desc
+                    base,
+                    val v
             )sql")
             .Bind(topHeight, topHeight - depth)
             .Select([&](Cursor& cursor)

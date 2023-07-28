@@ -394,6 +394,8 @@ namespace PocketDb
             create index if not exists Chain_Height_Uid on Chain (Height, Uid);
             create index if not exists Chain_BlockId_Height on Chain (BlockId, Height);
             create index if not exists Chain_TxId_Height on Chain (TxId, Height);
+            create index if not exists Chain_HeightByDay on Chain (Height / 1440 desc);
+            create index if not exists Chain_HeightByHour on Chain (Height / 60 desc);
 
             create unique index if not exists Registry_String on Registry (String);
 
