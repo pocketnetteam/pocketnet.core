@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(sqlite VERSION 3.37.0 LANGUAGES C)
+project(sqlite VERSION 3.42.0 LANGUAGES C)
 
 include(CheckFunctionExists)
 include(CheckCSourceCompiles)
