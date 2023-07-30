@@ -176,14 +176,10 @@ namespace PocketDb
                         select
                             count() as value
                         from
-                            minHeight,
                             Transactions u
                         cross join
                             First f
                                 on f.TxId = u.RowId
-                        cross join
-                            Chain c indexed by Chain_TxId_Height on
-                                c.TxId = u.RowId and c.Height < minHeight.value
                         where
                             u.Type in (100)
                     ),
@@ -207,7 +203,6 @@ namespace PocketDb
                         from
                             maxHeight,
                             minHeight,
-                            base,
                             Chain c indexed by Chain_HeightByHour
                         where
                             (c.Height / 60) <= (maxHeight.value / 60) and
@@ -221,11 +216,11 @@ namespace PocketDb
                     v.height,
                     (
                         select
-                            base.value + sum(v2.cnt)
+                            base.value - sum(v2.cnt)
                         from
                             val v2
                         where
-                            v2.height <= v.height
+                            v2.height >= v.height
                     ) as cnt
                 from
                     base,
@@ -259,14 +254,10 @@ namespace PocketDb
                         select
                             count() as value
                         from
-                            minHeight,
                             Transactions u
                         cross join
                             First f
                                 on f.TxId = u.RowId
-                        cross join
-                            Chain c indexed by Chain_TxId_Height on
-                                c.TxId = u.RowId and c.Height < minHeight.value
                         where
                             u.Type in (100)
                     ),
@@ -290,7 +281,6 @@ namespace PocketDb
                         from
                             maxHeight,
                             minHeight,
-                            base,
                             Chain c indexed by Chain_HeightByDay
                         where
                             (c.Height / 1440) <= (maxHeight.value / 1440) and
@@ -304,11 +294,11 @@ namespace PocketDb
                     v.height,
                     (
                         select
-                            base.value + sum(v2.cnt)
+                            base.value - sum(v2.cnt)
                         from
                             val v2
                         where
-                            v2.height <= v.height
+                            v2.height >= v.height
                     ) as cnt
                 from
                     base,
