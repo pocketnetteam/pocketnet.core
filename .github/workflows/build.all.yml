@@ -17,11 +17,12 @@ on:
       depsBase:
          description: 'Base branch for use dependencies'
          required: true
-         default: '0.21'
+         default: '0.22'
          type: choice
          options:
            - '0.20'
            - '0.21'
+           - '0.22'
       tag:
         description: 'Specific tag for building'
         required: false
@@ -40,7 +41,7 @@ jobs:
       - name: Get branch name
         id: branch-name
         uses: tj-actions/branch-names@v6
-      - uses: andyoknen/pocketnetcore-build-action@v2
+      - uses: andyoknen/pocketnetcore-build-action@v3
         with:
           platform: ${{ matrix.platform }}
           branch: ${{ steps.branch-name.outputs.ref_branch }}
