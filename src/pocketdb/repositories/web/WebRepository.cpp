@@ -112,14 +112,16 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             // Insert new tags and ignore exists with unique index Lang+Value
-            auto& stmt = Sql(R"sql(
-                insert or ignore
-                into web.Tags (Lang, Value)
-                values )sql" + join(vector<string>(contentTags.size(), "(?,?)"), ",") + R"sql(
-            )sql");
             for (const auto& tag: contentTags)
-                stmt.Bind(tag.Lang, tag.Value);
-            stmt.Run();
+            {
+                Sql(R"sql(
+                    insert or ignore
+                    into web.Tags (Lang, Value, Count)
+                    values )sql" + join(vector<string>(contentTags.size(), "(?,?,0)"), ",") + R"sql(
+                )sql")
+                .Bind(tag.Lang, tag.Value)
+                .Run();
+            }
 
             // Delete exists mappings ContentId <-> TagId
             Sql(R"sql(
@@ -140,6 +142,18 @@ namespace PocketDb
                     )
                 )sql")
                 .Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang)
+                .Run();
+            }
+
+            // Update count of contents in updated tags
+            for (const auto& tag: contentTags)
+            {
+                Sql(R"sql(
+                    update Tags
+                    set Count = ifnull((select count() from TagsMap tm where tm.TagId = Tags.Id), 0)
+                    where Tags.Lang = ? and Tags.Value = ?
+                )sql")
+                .Bind(tag.Lang, tag.Value)
                 .Run();
             }
         });

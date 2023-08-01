@@ -2406,21 +2406,15 @@ namespace PocketDb
                 select
                     t.Lang,
                     t.Value,
-                    tg.cnt
-                from (
-                    select
-                        tm.TagId id,
-                        count() as cnt
-                    from
-                        web.TagsMap tm
-                    group by
-                        tm.TagId
-                )tg
-                cross join
+                    t.Count
+                from
                     web.Tags t
-                        on t.Id = tg.id and t.Lang = ?
+                where
+                    t.Lang = ?
+                group by
+                    t.Id
                 order by
-                    tg.cnt desc
+                    t.Count desc
                 limit ?
                 offset ?
             )sql")
