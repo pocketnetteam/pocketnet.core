@@ -434,6 +434,7 @@ namespace PocketDb
 
             create index if not exists Payload_String2_nocase on Payload (String2 collate nocase);
             create index if not exists Payload_String7 on Payload (String7);
+            create index if not exists Payload_String1 on Payload (String1);
 
             create index if not exists Jury_AccountId_Reason on Jury (AccountId, Reason);
             create index if not exists JuryBan_AccountId_Ending on JuryBan (AccountId, Ending);

@@ -3641,56 +3641,71 @@ namespace PocketDb
     // ------------------------------------------------------
     // Feeds
 
-    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang,
         const vector<int>& contentTypes, const string& address, int badReputationLimit)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
-
-        string sql = R"sql(
-            select ct.Uid
-
-            from Transactions t --indexed by Transactions_Type_RegId3_RegId1
-            join Chain ct on ct.TxId = t.RowId
-            join Last lt on lt.TxId = t.RowId
-
-            join Payload p on p.TxId = t.RowId and p.String1 = ?
-
-            join Ratings r indexed by Ratings_Type_Uid_Last_Value
-                on r.Type = 2 and r.Uid=ct.Uid and r.Last=1
-
-            join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                on u.Type in (100) and u.RegId1 = t.RegId1
-            join Chain cu on cu.TxId = u.RowId
-            join Last lu on lu.TxId = u.RowId
-
-            left join Ratings ur indexed by Ratings_Type_Uid_Last_Value
-                on ur.Type = 0 and ur.Uid=cu.Uid and ur.Last=1
-
-            where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-                and ct.Height <= ?
-                and ct.Height > ?
-                and t.RegId3 is null
-
-                -- Do not show posts from users with low reputation
-                and ifnull(ur.Value,0) > ?
-
-            order by r.Value desc
-            limit ?
-        )sql";
 
         vector<int64_t> ids;
         SqlTransaction(func, [&]()
         {
-            Sql(sql)
-            .Bind(lang, contentTypes, nHeight, nHeight - depth, badReputationLimit, countOut)
+            Sql(R"sql(
+                with
+                    lang as ( select ? as value)
+                select
+                    ct.Uid
+                from
+                    lang
+                cross join
+                    Chain ct indexed by Chain_Height_Uid on
+                        ct.Height <= ? and
+                        ct.Height > ?
+                cross join
+                    Transactions t on
+                        t.RowId = ct.TxId and
+                        t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                        t.RegId3 is null
+                cross join
+                    Payload p  on
+                        p.TxId = t.RowId and
+                        p.String1 = lang.value
+                cross join
+                    Last lt on
+                        lt.TxId = t.RowId
+                cross join
+                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                        r.Type = 2 and r.Uid = ct.Uid and r.Last = 1
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and u.RegId1 = t.RegId1
+                cross join
+                    Last lu on
+                        lu.TxId = u.RowId
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                left join
+                    Ratings ur indexed by Ratings_Type_Uid_Last_Value on
+                        ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
+                where
+                    -- Do not show posts from users with low reputation
+                    ifnull(ur.Value,0) > ?
+                order by
+                    r.Value desc
+                limit ?
+            )sql")
+            .Bind(
+                lang,
+                nHeight,
+                nHeight - depth,
+                contentTypes,
+                badReputationLimit,
+                countOut
+            )
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
-                {
                     if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                         ids.push_back(value);
-                }
             });
         });
 
