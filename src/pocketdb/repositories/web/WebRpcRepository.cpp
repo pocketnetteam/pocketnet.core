@@ -2280,7 +2280,7 @@ namespace PocketDb
     // TODO (aok, api): implement
     vector<string> WebRpcRepository::GetTopAccounts(int topHeight, int countOut, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, int depth,
+        const vector<string>& addrsExcluded, const vector<string>& tagsExcluded, int depth,
         int badReputationLimit)
     {
         auto func = __func__;
@@ -2337,7 +2337,7 @@ namespace PocketDb
             )sql";
         }
 
-        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!addrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ";
         if (!tagsExcluded.empty())
         {
             sql += R"sql( and t.Id not in (
@@ -2372,7 +2372,7 @@ namespace PocketDb
                     stmt.Bind(lang);
             }
 
-            stmt.Bind(adrsExcluded);
+            stmt.Bind(addrsExcluded);
 
             if (!tagsExcluded.empty())
             {
@@ -3647,7 +3647,7 @@ namespace PocketDb
         UniValue result(UniValue::VARR);
 
         vector<int64_t> ids;
-        SqlTransaction(func, [&]()
+        SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
                 with
@@ -4079,7 +4079,7 @@ namespace PocketDb
     // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetTopFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int depth, int badReputationLimit)
     {
         auto func = __func__;
@@ -4146,7 +4146,7 @@ namespace PocketDb
         }
 
         if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!addrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
             sql += R"sql( and ct.Uid not in (
@@ -4185,7 +4185,7 @@ namespace PocketDb
                     stmt.Bind(lang);
             }
 
-            stmt.Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, addrsExcluded);
 
             if (!tagsExcluded.empty())
             {
@@ -4222,7 +4222,7 @@ namespace PocketDb
     // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetMostCommentedFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int depth, int badReputationLimit)
     {
         auto func = __func__;
@@ -4289,7 +4289,7 @@ namespace PocketDb
         }
 
         if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!addrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
             sql += R"sql( and ct.Uid not in (
@@ -4343,7 +4343,7 @@ namespace PocketDb
                     stmt.Bind(lang);
             }
 
-            stmt.Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, addrsExcluded);
 
             if (!tagsExcluded.empty())
             {
@@ -4377,58 +4377,36 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
-        const string& address, const string& keyword, const string& orderby, const string& ascdesc)
+        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded, 
+        const vector<string>& addrsExcluded, const vector<string>& tagsExcluded, const string& address, const string& orderby, const string& ascdesc)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (addressFeed.empty())
             return result;
 
-        // ---------------------------------------------
-        string _keyword;
-        if(!keyword.empty())
-        {
-            _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
-        }
-
-        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
-
-        string contentIdWhere;
-        if (topContentId > 0)
-            contentIdWhere = " and ct.Uid < ? ";
-
-        string accountExistence = " join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 "
-                                  " on u.Type in (100) and u.RegId1 = t.RegId1 "
-                                  " join Chain cu on cu.TxId = u.RowId "
-                                  " join Last lu on lu.TxId = u.RowId ";
-
-        string langFilter;
-        if (!lang.empty())
-            langFilter += " join Payload p on p.TxId = t.RowId and p.String1 = ? ";
-
-        string sorting = "ct.Uid ";
+        string sorting = " ct.Uid ";
         if (orderby == "comment")
         {
             sorting = R"sql(
                 (
-                    select count()
-                    from Transactions s indexed by Transactions_Type_RegId3
-                    join Chain cs on cs.TxId = s.RowId
-                    join Last l on l.TxId = s.RowId
-                    where s.Type in (204, 205)
-                      and s.RegId3 = t.RegId2
-                      -- exclude commenters blocked by the author of the post
-                      and not exists (
-                        select 1
-                        from BlockingLists bl
-                        where bl.IdSource = t.RegId1
-                            and bl.IdTarget = s.RegId1
-                      )
+                    select
+                        count()
+                    from
+                        Transactions s indexed by Transactions_Type_RegId3_RegId1
+                    cross join
+                        Last l on
+                            l.TxId = s.RowId
+                    left join
+                        BlockingLists bl indexed by BlockingLists_IdSource_IdTarget on
+                            bl.IdSource = t.RegId1 and
+                            bl.IdTarget = s.RegId1
+                    where
+                        s.Type in (204, 205) and
+                        s.RegId3 = t.RegId2 and
+                        -- exclude commenters blocked by the author of the post
+                        bl.IdSource is null
                 )
             )sql";
         }
@@ -4436,114 +4414,97 @@ namespace PocketDb
         {
             sorting = R"sql(
                 (
-                    select count() from Transactions scr indexed by Transactions_Type_RegId2_RegId1
-                    join Chain cscr on cscr.TxId = scr.RowId
-                    where scr.Type = 300 and scr.RegId2 = t.RegId2
+                    select
+                        count()
+                    from
+                        Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                    cross join
+                        Chain cscr on
+                            cscr.TxId = scr.RowId
+                    where
+                        scr.Type in (300) and
+                        scr.RegId2 = t.RegId2
                 )
             )sql";
         }
         sorting += " " + ascdesc;
 
-        string sql = R"sql(
-            select ct.Uid
-            from Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-            join Chain ct on ct.TxId = t.RowId
-            join Last lt on lt.TxId = t.RowId
-            )sql" + accountExistence + R"sql(
-            )sql" + langFilter + R"sql(
-            where t.Type in )sql" + contentTypesWhere + R"sql(
-                and ct.Height <= ?
-                and t.RegId1 = (select RowId from Registry indexed by Registry_String where String = ?)
-                )sql" + contentIdWhere   + R"sql(
-        )sql";
-
-        if (!tags.empty())
-        {
-            sql += R"sql(
-                and ct.Uid in (
-                    select tm.ContentId
-                    from web.Tags tag indexed by Tags_Lang_Value_Id
-                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
-                        on tag.Id = tm.TagId
-                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
-                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
-                )
-            )sql";
-        }
-
-        if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!tagsExcluded.empty())
-        {
-            sql += R"sql( and ct.Uid not in (
-                select tmEx.ContentId
-                from web.Tags tagEx indexed by Tags_Lang_Value_Id
-                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
-                    on tagEx.Id=tmEx.TagId
-                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
-                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
-             ) )sql";
-        }
-
-        if(!_keyword.empty())
-        {
-            sql += R"sql(
-                and ct.Uid in (
-                    select cm.ContentId
-                    from web.Content c
-                    join web.ContentMap cm on c.ROWID = cm.ROWID
-                    where cm.FieldType in (2, 3, 4, 5)
-                        and c.Value match ?
-                )
-            )sql";
-        }
-
-        sql += R"sql( order by
-        )sql" + sorting   + R"sql(
-         limit ?
-         offset ?
-        )sql";
-
-        // ---------------------------------------------
-
         vector<int64_t> ids;
-        SqlTransaction(func, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            if (!lang.empty()) stmt.Bind(lang);
-
-            stmt.Bind(contentTypes, topHeight, addressFeed);
-
-            if (topContentId > 0)
-                stmt.Bind(topContentId);
-
-            if (!tags.empty())
-            {
-                stmt.Bind(tags);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(txidsExcluded, adrsExcluded);
-
-            if (!tagsExcluded.empty())
-            {
-                stmt.Bind(tagsExcluded);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            if (!_keyword.empty())
-                stmt.Bind(_keyword);
-
-            stmt.Bind(countOut, pageNumber * countOut);
-
-            // ---------------------------------------------
-
-            stmt.Select([&](Cursor& cursor) {
+            Sql(R"sql(
+                with
+                    height as ( select ? as value ),
+                    addr as ( select RowId as id, String as hash from Registry where String = ?),
+                    lang as ( select ? as value ),
+                    topContentId as ( select ? as value )
+                select distinct
+                    ct.Uid
+                from
+                    height,
+                    addr,
+                    lang,
+                    topContentId
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                        t.RegId1 = addr.id
+                cross join
+                    Last lt on
+                        lt.TxId = t.RowId
+                cross join
+                    Chain ct on
+                        ct.TxId = t.RowId and
+                        ct.Height <= height.value and
+                        ( ? or ct.Uid < topContentId.value )
+                cross join
+                    Payload p on
+                        p.TxId = t.RowId and
+                        ( ? or p.String1 = lang.value )
+                left join
+                    web.TagsMap tm on
+                        tm.ContentId = ct.Uid
+                left join
+                    web.Tags tg on
+                        tg.Id = tm.TagId
+                where
+                    ( ? or tg.Lang = lang.value ) and
+                    ( ? or tg.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) ) and
+                    ( ? or tg.Value not in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) ) and
+                    (
+                        ? or
+                        t.RegId2 not in (
+                            select
+                                r.RowId
+                            from
+                                Registry r
+                            where
+                                r.String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
+                        )
+                    )
+                order by )sql" + sorting + R"sql(
+                limit ?
+                offset ?
+            )sql")
+            .Bind(
+                topHeight,
+                addressFeed,
+                lang,
+                topContentId,
+                contentTypes,
+                topContentId <= 0,
+                lang.empty(),
+                lang.empty(),
+                tagsIncluded.empty(),
+                tagsIncluded,
+                tagsExcluded.empty(),
+                tagsExcluded,
+                txidsExcluded.empty(),
+                txidsExcluded,
+                countOut,
+                pageNumber * countOut
+            )
+            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
@@ -4559,14 +4520,13 @@ namespace PocketDb
             result.push_backV(contents);
         }
 
-        // Complete!
         return result;
     }
 
     // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, const vector<string>& addresses_extended)
     {
         auto func = __func__;
@@ -4632,7 +4592,7 @@ namespace PocketDb
         }
 
         if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!addrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
             sql += R"sql( and ct.Uid not in (
@@ -4667,7 +4627,7 @@ namespace PocketDb
                     stmt.Bind(lang);
             }
 
-            stmt.Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, addrsExcluded);
 
             if (!tagsExcluded.empty())
             {
@@ -4704,7 +4664,7 @@ namespace PocketDb
     // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int badReputationLimit)
     {
         auto func = __func__;
@@ -4767,7 +4727,7 @@ namespace PocketDb
         }
 
         if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!addrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
             sql += R"sql( and ct.Uid not in (
@@ -4806,7 +4766,7 @@ namespace PocketDb
                     stmt.Bind(lang);
             }
 
-            stmt.Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, addrsExcluded);
             
             if (!tagsExcluded.empty())
             {
@@ -4843,7 +4803,7 @@ namespace PocketDb
     // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int badReputationLimit)
     {
         auto func = __func__;
@@ -4926,7 +4886,7 @@ namespace PocketDb
         }
 
         if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!addrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
             sql += R"sql( and ct.Uid not in (
@@ -4961,7 +4921,7 @@ namespace PocketDb
                     stmt.Bind(lang);
             }
 
-            stmt.Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, addrsExcluded);
             
             if (!tagsExcluded.empty())
             {
@@ -5069,7 +5029,7 @@ namespace PocketDb
         if (lack > 0)
         {
             UniValue histContents = GetHistoricalFeed(lack, minPostRank, topHeight, lang, tags, contentTypes,
-                txidsExcluded, adrsExcluded, tagsExcluded, address, badReputationLimit);
+                txidsExcluded, addrsExcluded, tagsExcluded, address, badReputationLimit);
 
             result.push_backV(histContents.getValues());
         }
@@ -5081,7 +5041,7 @@ namespace PocketDb
     // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetBoostFeed(int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         int badReputationLimit)
     {
         auto func = __func__;
@@ -5142,7 +5102,7 @@ namespace PocketDb
         }
 
         if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!adrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ) ";
+        if (!addrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ) ";
         if (!tagsExcluded.empty())
         {
             sql += R"sql( and ctc.Uid not in (
@@ -5180,7 +5140,7 @@ namespace PocketDb
                     stmt.Bind(lang);
             }
 
-            stmt.Bind(txidsExcluded, adrsExcluded);
+            stmt.Bind(txidsExcluded, addrsExcluded);
 
             if (!tagsExcluded.empty())
             {
@@ -5215,7 +5175,7 @@ namespace PocketDb
     // TODO (aok, api): implement
     UniValue WebRpcRepository::GetProfileCollections(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
                                    const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
-                                   const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+                                   const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
                                    const string& address, const string& keyword, const string& orderby, const string& ascdesc)
     {
         auto func = __func__;
@@ -5307,7 +5267,7 @@ namespace PocketDb
 //        }
 
 //        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
-//        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+//        if (!addrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ";
 //        if (!tagsExcluded.empty())
 //        {
 //            sql += R"sql( and t.Id not in (
@@ -5368,8 +5328,8 @@ namespace PocketDb
 //                for (const auto& extxid: txidsExcluded)
 //                    TryBindStatementText(stmt, i++, extxid);
 
-//            if (!adrsExcluded.empty())
-//                for (const auto& exadr: adrsExcluded)
+//            if (!addrsExcluded.empty())
+//                for (const auto& exadr: addrsExcluded)
 //                    TryBindStatementText(stmt, i++, exadr);
 
 //            if (!tagsExcluded.empty())

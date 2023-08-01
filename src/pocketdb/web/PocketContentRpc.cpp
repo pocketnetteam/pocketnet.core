@@ -315,25 +315,6 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        // if (request.fHelp)
-        //     throw runtime_error(
-        //         "GetProfileFeed\n"
-        //         "topHeight           (int) - ???\n"
-        //         "topContentHash      (string, optional) - ???\n"
-        //         "countOut            (int, optional) - ???\n"
-        //         "lang                (string, optional) - ???\n"
-        //         "tags                (vector<string>, optional) - ???\n"
-        //         "contentTypes        (vector<int>, optional) - ???\n"
-        //         "txIdsExcluded       (vector<string>, optional) - ???\n"
-        //         "adrsExcluded        (vector<string>, optional) - ???\n"
-        //         "tagsExcluded        (vector<string>, optional) - ???\n"
-        //         "address             (string, optional) - ???\n"
-        //         "address_feed        (string) - ???\n"
-        //         "keyword             (string) - ???\n"
-        //         "orderby             (string) - ???\n"
-        //         "ascdesc             (string) - ???\n"
-        //     );
-
         int topHeight;
         string topContentHash;
         int countOut;
@@ -361,7 +342,8 @@ namespace PocketWeb::PocketWebRpc
             auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
             if (!ids.empty())
                 topContentId = ids[0];
-        } else if (topContentHash.empty() && request.params.size() > 1 && request.params[1].isNum())
+        }
+        else if (topContentHash.empty() && request.params.size() > 1 && request.params[1].isNum())
         {
             pageNumber = request.params[1].get_int();
         }
@@ -369,7 +351,7 @@ namespace PocketWeb::PocketWebRpc
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileFeed(
             address_feed, countOut, pageNumber, topContentId, topHeight, lang, tags, contentTypes,
-            txIdsExcluded, adrsExcluded, tagsExcluded, address, keyword, orderby, ascdesc);
+            txIdsExcluded, adrsExcluded, tagsExcluded, address, orderby, ascdesc);
 
         result.pushKV("height", topHeight);
         result.pushKV("contents", content);

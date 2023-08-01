@@ -138,9 +138,8 @@ namespace PocketDb
         int badReputationLimit);
         
         UniValue GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight, const string& lang,
-            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
-            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
-            const string& keyword, const string& orderby, const string& ascdesc);
+            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded,
+            const vector<string>& tagsExcluded, const string& address, const string& orderby, const string& ascdesc);
         
         UniValue GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
