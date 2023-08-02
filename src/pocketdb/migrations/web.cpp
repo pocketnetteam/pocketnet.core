@@ -92,8 +92,7 @@ namespace PocketDb
         //
         _indexes = R"sql(
             create unique index if not exists Tags_Lang_Value on Tags (Lang, Value);
-            create index if not exists Tags_Lang_Value_Id on Tags (Lang, Value, Id, Count);
-
+            
             create index if not exists TagsMap_TagId_ContentId on TagsMap (TagId, ContentId);
 
             create index if not exists BarteronOffers_OfferId_Tag_AccountId on BarteronOffers(OfferId, Tag, AccountId);

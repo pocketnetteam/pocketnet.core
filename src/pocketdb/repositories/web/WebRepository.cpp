@@ -107,20 +107,31 @@ namespace PocketDb
             if (find(ids.begin(), ids.end(), contentTag.ContentId) == ids.end())
                 ids.emplace_back(contentTag.ContentId);
         }
+        
+        map<string, vector<string>> tags;
+        for (auto& contentTag : contentTags)
+        {
+            
+            if (find(tags[contentTag.Lang].begin(), tags[contentTag.Lang].end(), contentTag.Value) == tags[contentTag.Lang].end())
+                tags[contentTag.Lang].push_back(contentTag.Value);
+        }
 
         // Next work in transaction
         SqlTransaction(__func__, [&]()
         {
             // Insert new tags and ignore exists with unique index Lang+Value
-            for (const auto& tag: contentTags)
+            for (const auto& lang: tags)
             {
-                Sql(R"sql(
-                    insert or ignore
-                    into web.Tags (Lang, Value, Count)
-                    values )sql" + join(vector<string>(contentTags.size(), "(?,?,0)"), ",") + R"sql(
-                )sql")
-                .Bind(tag.Lang, tag.Value)
-                .Run();
+                for (const auto& tag : lang.second)
+                {
+                    Sql(R"sql(
+                        insert or ignore
+                        into web.Tags (Lang, Value, Count)
+                        values (?, ?, 0)
+                    )sql")
+                    .Bind(lang.first, tag)
+                    .Run();
+                }
             }
 
             // Delete exists mappings ContentId <-> TagId
@@ -138,23 +149,26 @@ namespace PocketDb
                     insert or ignore
                     into web.TagsMap (ContentId, TagId) values (
                         ?,
-                        (select t.Id from web.Tags t where t.Value = ? and t.Lang = ?)
+                        (select t.Id from web.Tags t where t.Lang = ? and t.Value = ?)
                     )
                 )sql")
-                .Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang)
+                .Bind(contentTag.ContentId, contentTag.Lang, contentTag.Value)
                 .Run();
             }
 
             // Update count of contents in updated tags
-            for (const auto& tag: contentTags)
+            for (const auto& lang: tags)
             {
-                Sql(R"sql(
-                    update Tags
-                    set Count = ifnull((select count() from TagsMap tm where tm.TagId = Tags.Id), 0)
-                    where Tags.Lang = ? and Tags.Value = ?
-                )sql")
-                .Bind(tag.Lang, tag.Value)
-                .Run();
+                for (const auto& tag : lang.second)
+                {
+                    Sql(R"sql(
+                        update Tags
+                        set Count = ifnull((select count() from TagsMap tm where tm.TagId = Tags.Id), 0)
+                        where Tags.Lang = ? and Tags.Value = ?
+                    )sql")
+                    .Bind(lang.first, tag)
+                    .Run();
+                }
             }
         });
     }
