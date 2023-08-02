@@ -1003,8 +1003,9 @@ namespace PocketDb
                         from
                             Transactions f
                         cross join
-                            Chain c indexed by Chain_TxId_Height
-                                on c.TxId = f.RowId and c.Height >= ?
+                            Chain c indexed by Chain_TxId_Height on
+                                c.TxId = f.RowId and
+                                c.Height >= ?
                         where
                             f.Type = 410
                     )
@@ -1023,8 +1024,9 @@ namespace PocketDb
                         from
                             Transactions f
                         cross join
-                            Chain c indexed by Chain_TxId_Height
-                                on c.TxId = f.RowId and c.Height >= ?
+                            Chain c indexed by Chain_TxId_Height on
+                                c.TxId = f.RowId and
+                                c.Height >= ?
                         where
                             f.Type = 410
                             
