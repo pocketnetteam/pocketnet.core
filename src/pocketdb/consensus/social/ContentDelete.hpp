@@ -61,7 +61,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_ARTICLE, CONTENT_COLLECTION, BARTERON_OFFER, CONTENT_DELETE }))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_ARTICLE, BARTERON_OFFER, CONTENT_DELETE }))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())

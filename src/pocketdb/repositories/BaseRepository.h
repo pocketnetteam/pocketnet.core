@@ -25,7 +25,7 @@ namespace PocketDb
         int PageStart;
         int PageSize;
         string OrderBy;
-        bool Desc;
+        bool OrderDesc;
     };
 
     class BaseRepository

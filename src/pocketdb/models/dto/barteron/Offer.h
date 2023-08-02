@@ -5,20 +5,17 @@
 #ifndef POCKETTX_BARTERON_OFFER_H
 #define POCKETTX_BARTERON_OFFER_H
 
-#include "pocketdb/models/base/SocialTransaction.h"
+#include "pocketdb/models/base/SocialEditableTransaction.h"
 
 namespace PocketTx
 {
     using namespace std;
 
-    class BarteronOffer : public SocialTransaction
+    class BarteronOffer : public SocialEditableTransaction
     {
     public:
         BarteronOffer();
         BarteronOffer(const CTransactionRef& tx);
-
-        const optional<string>& GetRootTxHash() const;
-        void SetRootTxHash(const string& value);
         
         bool IsEdit() const;
 
@@ -30,10 +27,8 @@ namespace PocketTx
             Use p.s4 for JSON payload
             {
                 ...
-                "t": { // Tags
-                    "a": [ 1, 2, 3, .. ] // Append tags,
-                    "r": [ 4, 5, 6, .. ] // Remove tags
-                }
+                "t": 1 // General offer tag
+                "a": [ 1, 2, 3, .. ] // Allowed barter tags
                 ...
             }
         */

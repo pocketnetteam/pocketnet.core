@@ -6,6 +6,7 @@
 
 namespace PocketDb
 {
+    // TODO (aok, api): implement
     UniValue SearchRepository::SearchTags(const SearchRequest& request)
     {
         UniValue result(UniValue::VARR);
@@ -35,6 +36,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::SearchIds(const SearchRequest& request)
     {
         auto func = __func__;
@@ -97,6 +99,7 @@ namespace PocketDb
         return ids;
     }
 
+    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::SearchUsersOld(const SearchRequest& request)
     {
         vector<int64_t> result;
@@ -153,6 +156,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::SearchUsers(const string& keyword)
     {
         vector<int64_t> result;
@@ -219,6 +223,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok, api): implement
     vector<string> SearchRepository::GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
     {
         vector<string> ids;
@@ -355,6 +360,7 @@ namespace PocketDb
         return ids;
     }
 
+    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
     {
         vector<int64_t> ids;
@@ -491,6 +497,7 @@ namespace PocketDb
         return ids;
     }
 
+    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::GetRandomContentByAddress(const string& contentAddress, const vector<int>& contentTypes, const string& lang, int cntOut)
     {
         vector<int64_t> ids;
@@ -537,6 +544,7 @@ namespace PocketDb
         return ids;
     }
 
+    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::GetContentFromAddressSubscriptions(const string& address, const vector<int>& contentTypes, const string& lang, int cntOut, bool rest)
     {
         vector<int64_t> ids;

@@ -589,6 +589,8 @@ add_library(${POCKETDB}
         pocketdb/models/base/TransactionOutput.cpp
         pocketdb/models/base/SocialTransaction.h
         pocketdb/models/base/SocialTransaction.cpp
+        pocketdb/models/base/SocialEditableTransaction.h
+        pocketdb/models/base/SocialEditableTransaction.cpp
         pocketdb/models/base/Rating.h
         pocketdb/models/base/Rating.cpp
 
@@ -1128,6 +1130,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/web/WebRpcUtils.cpp
         pocketdb/web/ModerationRpc.h
         pocketdb/web/ModerationRpc.cpp
+        pocketdb/web/BarteronRpc.h
+        pocketdb/web/BarteronRpc.cpp
         pocketdb/pocketnet.h
         pocketdb/pocketnet.cpp
         pocketdb/services/WsNotifier.cpp
@@ -1170,6 +1174,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/web/SearchRepository.cpp
         pocketdb/repositories/web/ModerationRepository.h
         pocketdb/repositories/web/ModerationRepository.cpp
+        pocketdb/repositories/web/BarteronRepository.h
+        pocketdb/repositories/web/BarteronRepository.cpp
         pocketdb/consensus/Base.h
         pocketdb/consensus/Helper.h
         pocketdb/consensus/Social.h

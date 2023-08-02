@@ -107,19 +107,32 @@ namespace PocketDb
             if (find(ids.begin(), ids.end(), contentTag.ContentId) == ids.end())
                 ids.emplace_back(contentTag.ContentId);
         }
+        
+        map<string, vector<string>> tags;
+        for (auto& contentTag : contentTags)
+        {
+            
+            if (find(tags[contentTag.Lang].begin(), tags[contentTag.Lang].end(), contentTag.Value) == tags[contentTag.Lang].end())
+                tags[contentTag.Lang].push_back(contentTag.Value);
+        }
 
         // Next work in transaction
         SqlTransaction(__func__, [&]()
         {
             // Insert new tags and ignore exists with unique index Lang+Value
-            auto& stmt = Sql(R"sql(
-                insert or ignore
-                into web.Tags (Lang, Value)
-                values )sql" + join(vector<string>(contentTags.size(), "(?,?)"), ",") + R"sql(
-            )sql");
-            for (const auto& tag: contentTags)
-                stmt.Bind(tag.Lang, tag.Value);
-            stmt.Run();
+            for (const auto& lang: tags)
+            {
+                for (const auto& tag : lang.second)
+                {
+                    Sql(R"sql(
+                        insert or ignore
+                        into web.Tags (Lang, Value, Count)
+                        values (?, ?, 0)
+                    )sql")
+                    .Bind(lang.first, tag)
+                    .Run();
+                }
+            }
 
             // Delete exists mappings ContentId <-> TagId
             Sql(R"sql(
@@ -136,11 +149,26 @@ namespace PocketDb
                     insert or ignore
                     into web.TagsMap (ContentId, TagId) values (
                         ?,
-                        (select t.Id from web.Tags t where t.Value = ? and t.Lang = ?)
+                        (select t.Id from web.Tags t where t.Lang = ? and t.Value = ?)
                     )
                 )sql")
-                .Bind(contentTag.ContentId, contentTag.Value, contentTag.Lang)
+                .Bind(contentTag.ContentId, contentTag.Lang, contentTag.Value)
                 .Run();
+            }
+
+            // Update count of contents in updated tags
+            for (const auto& lang: tags)
+            {
+                for (const auto& tag : lang.second)
+                {
+                    Sql(R"sql(
+                        update Tags
+                        set Count = ifnull((select count() from TagsMap tm where tm.TagId = Tags.Id), 0)
+                        where Tags.Lang = ? and Tags.Value = ?
+                    )sql")
+                    .Bind(lang.first, tag)
+                    .Run();
+                }
             }
         });
     }
@@ -163,12 +191,12 @@ namespace PocketDb
 
             from Transactions t
 
+            join Chain c on
+                c.TxId = t.RowId and
+                c.Height = ?
+
             join Payload p on
                 p.TxId = t.RowId
-
-            join Chain c on
-                c.TxId = p.RowId and
-                c.Height = ?
 
             where
                 t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
@@ -337,44 +365,43 @@ namespace PocketDb
         {
             // Delete
             Sql(R"sql(
-                delete from BarteronAccountTags
+                delete from web.BarteronAccountTags
                 where
-                    BarteronAccountTags.AccountId in (
+                    web.BarteronAccountTags.AccountId in (
                         select
                             c.Uid
                         from
                             Transactions t
-                            join Chain c indexed by Chain_Height_Uid on
-                                c.TxId = t.RowId and
-                                c.Height = ?
+                        cross join
+                            Chain c indexed by Chain_TxId_Height
+                                on c.TxId = t.RowId and c.Height = ?
                         where
-                            t.Type = 104
+                            t.Type in (104)
                     )
-
             )sql")
             .Bind(height)
             .Run();
 
             // Add
             Sql(R"sql(
-                with js as ( select '$.t' as path )
-                insert into BarteronAccountTags (AccountId, Tag)
-                select
+                insert into web.BarteronAccountTags (AccountId, Tag)
+                select distinct
                     c.Uid,
                     pj.value
                 from
-                    js,
                     Transactions t
-                    join Chain c indexed by Chain_Height_Uid on
-                        c.TxId = t.RowId and
-                        c.Height = ?
-                    join Payload p
+                cross join
+                    Chain c indexed by Chain_TxId_Height
+                        on c.TxId = t.RowId and c.Height = ?
+                cross join
+                    Payload p
                         on p.TxId = t.RowId
-                    join json_each(p.String4, js.path) as pj
+                cross join
+                    json_each(p.String4, '$.a') as pj
                 where
                     t.Type = 104 and
                     json_valid(p.String4) and
-                    json_type(p.String4, js.path) = 'array'
+                    json_type(p.String4, '$.a') = 'array'
             )sql")
             .Bind(height)
             .Run();
@@ -387,50 +414,101 @@ namespace PocketDb
         {
             // Delete
             Sql(R"sql(
-                delete from BarteronOffers
+                delete from web.BarteronOffers
                 where
-                    BarteronOffers.OfferId in (
+                    web.BarteronOffers.ROWID in (
                         select
-                            c.Uid
+                            bo.ROWID
                         from
+                            Chain c indexed by Chain_Height_Uid
+                        cross join
+                            BarteronOffers bo indexed by BarteronOffers_OfferId_Tag_AccountId
+                                on bo.OfferId = c.Uid
+                        cross join
                             Transactions t
-                            join Chain c indexed by Chain_Height_Uid on
-                                c.TxId = t.RowId and
-                                c.Height = ?
+                                on t.RowId = c.TxId and t.Type = 211
                         where
-                            t.Type = 211
+                            c.Height = ?
+
                     )
             )sql")
             .Bind(height)
             .Run();
 
-            // Add
+            // Add offer
             Sql(R"sql(
-                with js as ( select '$.t' as path )
-                insert into BarteronOffers (AccountId, OfferId, Tag)
+                insert into web.BarteronOffers (AccountId, OfferId, Tag)
                 select
                     cu.Uid as AccountId,
                     ct.Uid as OfferId,
+                    json_extract(p.String4, '$.t') as Tag
+                from
+                    Transactions t
+                cross join
+                    Chain ct indexed by Chain_TxId_Height
+                        on ct.TxId = t.RowId and ct.Height = ?
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        on u.Type = 104 and u.RegId1 = t.RegId1
+                cross join
+                    Last lu
+                        on lu.TxId = u.RowId
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                cross join
+                    Payload p -- primary key
+                        on p.TxId = t.RowId
+                where
+                    t.Type = 211 and
+                    json_valid(p.String4)
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Remove allowed tags
+            Sql(R"sql(
+                delete from web.BarteronOfferTags
+                where
+                    web.BarteronOfferTags.ROWID in (
+                        select
+                            bot.ROWID
+                        from
+                            Chain c indexed by Chain_Height_Uid
+                        cross join
+                            BarteronOfferTags bot
+                                on bot.OfferId = c.Uid
+                        cross join
+                            Transactions t
+                                on t.RowId = c.TxId and t.Type = 211
+                        where
+                            c.Height = ?
+
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+            
+            // Add allowed tags
+            Sql(R"sql(
+                insert into web.BarteronOfferTags (OfferId, Tag)
+                select distinct
+                    ct.Uid as OfferId,
                     pj.value as Tag
                 from
-                    js,
                     Transactions t
-                    join Chain ct indexed by Chain_Height_Uid on
-                        ct.TxId = t.RowId and
-                        ct.Height = ?
-                    cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        u.Type = 100 and
-                        u.RegId1 = t.RegId1 and
-                        exists (select 1 from Last l where l.TxId = u.RowId)
-                    cross join Chain cu on
-                        cu.TxId = u.RowId
-                    cross join Payload p -- primary key
+                cross join
+                    Chain ct indexed by Chain_TxId_Height
+                        on ct.TxId = t.RowId and ct.Height = ?
+                cross join
+                    Payload p -- primary key
                         on p.TxId = t.RowId
-                    cross join json_each(p.String4, js.path) as pj
+                cross join
+                    json_each(p.String4, '$.a') as pj
                 where
                     t.Type = 211 and
                     json_valid(p.String4) and
-                    json_type(p.String4, js.path) = 'array'
+                    json_type(p.String4, '$.a') = 'array'
             )sql")
             .Bind(height)
             .Run();

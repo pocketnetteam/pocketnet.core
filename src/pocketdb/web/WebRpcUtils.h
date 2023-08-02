@@ -9,15 +9,22 @@
 #include "util/html.h"
 #include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/helpers/TransactionHelper.h"
+#include "pocketdb/repositories/BaseRepository.h"
 
 namespace PocketWeb::PocketWebRpc
 {
     using namespace std;
+    using namespace PocketDb;
     using namespace PocketTx;
     using namespace PocketHelpers;
 
     void ParseRequestContentTypes(const UniValue& value, vector<int>& types);
     void ParseRequestTags(const UniValue& value, vector<string>& tags);
+    vector<string> ParseArrayAddresses(const UniValue& value);
+    vector<string> ParseArrayHashes(const UniValue& value);
+    UniValue ConstructTransaction(const PTransactionRef& ptx);
+    Pagination ParsePaginationArgs(UniValue& args);
+    
 }
 
 #endif //SRC_WEB_RPC_UTILS_H

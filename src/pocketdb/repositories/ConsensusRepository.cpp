@@ -6,128 +6,6 @@
 
 namespace PocketDb
 {
-    ConsensusData_AccountUser ConsensusRepository::AccountUser(const string& address, int depth, const string& name)
-    {
-        #pragma region Prepare
-
-        ConsensusData_AccountUser result;
-        
-        auto _name = EscapeValue(name);
-
-        string sql = R"sql(
-            with
-                addressRegId as (
-                    select
-                        r.RowId
-                    from
-                        Registry r
-                    where
-                        String = ?
-                ),
-                lastTx as (
-                    select
-                        ifnull(min(t.Type),0) as type
-                    from
-                        addressRegId
-                        -- filter registrations & deleting transactions by address
-                        cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on t.Type in (100, 170) and t.RegId1 = addressRegId.RowId
-                        -- filter by Last (also excludes mempool)
-                        cross join Last l
-                            on l.TxId = t.RowId
-                ),
-                edits as (
-                    select
-                        count() cnt
-                    from
-                        addressRegId
-                        -- filter registrations transactions by address
-                        cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on t.Type = 100 and t.RegId1 = addressRegId.RowId
-                        -- filter by height for exclude mempool
-                        cross join Chain c
-                            on c.TxId = t.RowId and c.Height >= ?
-                ),
-                mempool as (
-                    select
-                        count()cnt
-                    from
-                        addressRegId
-                        -- filter registrations transactions and address
-                        cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on t.Type in (100, 170) and t.RegId1 = addressRegId.RowId
-                    where
-                        -- include only non-chain transactions
-                        not exists(select 1 from Chain c where c.TxId = t.RowId)
-                ),
-                duplicatesChain as (
-                    select
-                        count() cnt
-                    from
-                        addressRegId
-                        -- find all same names in payload
-                        cross join Payload p
-                            on (p.String2 like ? escape '\')
-                        cross join Transactions t
-                            on t.RowId = p.TxId and t.Type = 100 and t.RegId1 != addressRegId.RowId
-                        -- filter by Last (also excludes mempool)
-                        cross join Last l
-                            on l.TxId = t.RowId
-                ),
-                duplicatesMempool as (
-                    select
-                        count() cnt
-                    from
-                        addressRegId
-                        -- find all same names in payload
-                        cross join Payload p
-                            on (p.String2 like ? escape '\')
-                        cross join Transactions t
-                            on t.RowId = p.TxId and t.Type = 100 and t.RegId1 != addressRegId.RowId
-                        -- filter by chain for exclude mempool
-                        cross join Chain c
-                            on c.TxId = t.RowId
-                    where
-                        -- include only non-chain transactions
-                        not exists(select 1 from Chain c where c.TxId = t.RowId)
-                )
-            select
-                lastTx.type,
-                edits.cnt,
-                mempool.cnt,
-                duplicatesChain.cnt,
-                duplicatesMempool.cnt
-            from
-                lastTx,
-                edits,
-                mempool,
-                duplicatesChain,
-                duplicatesMempool
-        )sql";
-
-        #pragma endregion
-
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(sql)
-            .Bind(address, depth, _name, _name)
-            .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                {
-                    cursor.CollectAll(
-                        result.LastTxType,
-                        result.EditsCount,
-                        result.MempoolCount,
-                        result.DuplicatesChainCount,
-                        result.DuplicatesMempoolCount
-                    );
-                }
-            });
-        });
-
-        return result;
-    }
-
     ConsensusData_BarteronAccount ConsensusRepository::BarteronAccount(const string& address)
     {
         #pragma region Prepare
@@ -136,7 +14,6 @@ namespace PocketDb
         
         string sql = R"sql(
             with
-
                 addressRegId as (
                     select
                         r.RowId
@@ -145,7 +22,6 @@ namespace PocketDb
                     where
                         String = ?
                 ),
-
                 mempool as (
                     select
                         count()cnt
@@ -157,8 +33,7 @@ namespace PocketDb
                         t.RegId1 = addressRegId.RowId and
                         -- include only non-chain transactions
                         not exists(select 1 from Chain c where c.TxId = t.RowId)
-                ),
-
+                )
             select
                 mempool.cnt
             from
@@ -192,7 +67,6 @@ namespace PocketDb
         
         string sql = R"sql(
             with
-
                 addressRegId as (
                     select
                         r.RowId
@@ -201,7 +75,6 @@ namespace PocketDb
                     where
                         String = ?
                 ),
-
                 rootRegId as (
                     select
                         r.RowId
@@ -210,52 +83,47 @@ namespace PocketDb
                     where
                         String = ?
                 ),
-
                 lastTx as (
                     select
-                        ifnull(min(t.Type),0) type
+                        t.Type
                     from
                         addressRegId,
-                        rootRegId,
-                        Transactions t -- todo : index
-                    where
-                        t.Type in (211) and
-                        t.RegId1 = addressRegId.RowId and
-                        t.RegId2 = rootRegId.RowId and
-                        -- filter by chain for exclude mempool
-                        exists(select 1 from Chain c where c.TxId = t.RowId) and
-                        -- filter by Last
-                        exists(select 1 from Last l where l.TxId = t.RowId)
+                        rootRegId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (211) and t.RegId1 = addressRegId.RowId and t.RegId2 = rootRegId.RowId
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
                 ),
-
                 active as (
                     select
                         count()cnt
                     from
-                        addressRegId,
-                        Transactions t
-                    where
-                        t.Type in (211) and
-                        t.RegId1 = addressRegId.RowId and
-                        -- include only chain transactions
-                        exists (select 1 from Chain c where c.TxId = t.RowId)
+                        addressRegId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (211) and t.RegId1 = addressRegId.RowId
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
                 ),
-
                 mempool as (
                     select
                         count()cnt
                     from
-                        addressRegId,
-                        Transactions t
+                        addressRegId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (211) and t.RegId1 = addressRegId.RowId
+                    left join
+                        Chain c
+                            on c.TxId = t.RowId
                     where
-                        t.Type in (211) and
-                        t.RegId1 = addressRegId.RowId and
-                        -- include only non-chain transactions
-                        not exists (select 1 from Chain c where c.TxId = t.RowId)
-                ),
-
+                        c.Height is null
+                )
             select
-                lastTx.type,
+                lastTx.Type,
                 active.cnt,
                 mempool.cnt
             from
@@ -284,12 +152,6 @@ namespace PocketDb
 
         return result;
     }
-
-
-
-    // ------------------------------------------------------------------------------------------
-
-
 
     bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
     {
@@ -367,7 +229,6 @@ namespace PocketDb
 
         return result;
     }
-
 
     bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
     {
@@ -452,7 +313,7 @@ namespace PocketDb
                     p.String7 pString7
                 from
                     str2,
-                    Transactions t indexed by Transactions_Type_RegId2
+                    Transactions t indexed by Transactions_Type_RegId2_RegId1
                     cross join vTxStr s on
                         s.RowId = t.RowId
                     join Chain c on
@@ -516,7 +377,7 @@ namespace PocketDb
                     p.String7 pString7
                 from
                     s2,
-                    Transactions t indexed by Transactions_Type_RegId2
+                    Transactions t indexed by Transactions_Type_RegId2_RegId1
                     cross join vTxStr st on
                         st.RowId = t.RowId
                     join Chain c on
@@ -542,17 +403,16 @@ namespace PocketDb
         return {tx != nullptr, tx};
     }
 
-    tuple<bool, vector<PTransactionRef>> ConsensusRepository::GetLastContents(const vector<string> &rootHashes,
-                                                                              const vector<TxType> &types)
+    tuple<bool, vector<PTransactionRef>> ConsensusRepository::GetLastContents(const vector<string> &rootHashes, const vector<TxType> &types)
     {
         vector<PTransactionRef> txs;
 
         SqlTransaction(__func__, [&]()
         {
             string sql = R"sql(
-                with strs2 as (
+                with tx as (
                     select
-                        r.String as string,
+                        r.String as hash,
                         r.RowId as id
                     from
                         Registry r
@@ -561,17 +421,17 @@ namespace PocketDb
                 )
                 select
                     t.Type,
-                    s.Hash,
+                    (select r.String from Registry r where r.RowId = t.HashId),
                     t.Time,
-                    iif(l.TxId, 1, 0),
+                    1,
                     c.Uid,
-                    s.String1,
-                    s.String2,
-                    s.String3,
-                    s.String4,
-                    s.String5,
+                    (select r.String from Registry r where r.RowId = t.RegId1),
+                    tx.hash,
+                    (select r.String from Registry r where r.RowId = t.RegId3),
+                    (select r.String from Registry r where r.RowId = t.RegId4),
+                    (select r.String from Registry r where r.RowId = t.RegId5),
                     t.Int1,
-                    s.Hash pHash,
+                    (select r.String from Registry r where r.RowId = t.HashId) pHash,
                     p.String1 pString1,
                     p.String2 pString2,
                     p.String3 pString3,
@@ -580,19 +440,19 @@ namespace PocketDb
                     p.String6 pString6,
                     p.String7 pString7
                 from
-                    strs2,
-                    Transactions t indexed by Transactions_Type_RegId2
-                    cross join vTxStr s on
-                        s.RowId = t.RowId
-                    join Chain c on
-                        c.TxId = t.RowId
-                    left join Payload p on
-                        t.RowId = p.TxId
-                    cross join Last l on
-                        l.TxId = t.RowId
-                where
-                    t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
-                    t.RegId2 = strs2.id
+                    tx
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId2_RegId1
+                        on t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and t.RegId2 = tx.id
+                cross join
+                    Last l
+                        on l.TxId = t.RowId
+                cross join
+                    Chain c
+                        on c.TxId = t.RowId
+                left join
+                    Payload p
+                        on p.TxId = t.RowId
             )sql";
 
             Sql(sql)
@@ -607,6 +467,43 @@ namespace PocketDb
         });
 
         return {txs.size() != 0, txs};
+    }
+
+    int ConsensusRepository::GetLastContentsCount(const vector<string> &rootHashes, const vector<TxType> &types)
+    {
+        int result = 0;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with tx as (
+                    select
+                        r.String as hash,
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    count()
+                from
+                    tx
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId2_RegId1
+                        on t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and t.RegId2 = tx.id
+                cross join
+                    Last l
+                        on l.TxId = t.RowId
+            )sql")
+            .Bind(rootHashes, types)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
     }
 
     tuple<bool, TxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
@@ -918,7 +815,6 @@ namespace PocketDb
                 select
                     1
                 from
-                    hash,
                     vTx t
                     join Jury j
                         on j.FlagRowId = t.RowId
@@ -3848,41 +3744,48 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                    address as (
-                        select
-                            r.RowId as id
-                        from
-                            Registry r
-                        where
-                            r.String = ?
-                    )
-                select 1
-                from JuryModerators jm
-                where 
-                    jm.FlagRowId = (
-                        select f.RowId
-                        from vTx f
-                        where f.Hash = ?
-                    ) and
-                    jm.AccountId = (
-                        select
-                            c.Uid
-                        from
-                            address,
-                            Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            join Chain c on
-                                c.TxId = u.RowId
-                            cross join Last l on
-                                l.TxId = u.RowId
-                        where
-                            u.Type = 100 and
-                            u.RegId1 = address.id
-                    )
+                flag as (
+                    select
+                        f.RowId,
+                        c.Height
+                    from
+                        vTx f
+                    cross join
+                        Chain c
+                            on c.TxId = f.RowId
+                    where
+                        f.Hash = ?
+                ),
+                address as (
+                    select
+                        c.Uid
+                    from
+                        Registry r
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (100) and u.RegId1 = r.RowId
+                    cross join
+                        Chain c
+                            on c.TxId = u.RowId
+                    cross join
+                        Last l
+                            on l.TxId = u.RowId
+                    where
+                        r.String = ?
+                )
+                select
+                    flag.Height,
+                    address.Uid
+                from
+                    flag,
+                    address
+                cross join
+                    JuryModerators jm
+                        on jm.FlagRowId = flag.RowId and jm.AccountId = address.Uid
             )sql")
             .Bind(flagTxHash, address)
             .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                    cursor.CollectAll(result);
+                result = cursor.Step();
             });
         });
 

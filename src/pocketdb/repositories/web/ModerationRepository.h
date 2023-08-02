@@ -9,6 +9,8 @@
 
 namespace PocketDb
 {
+    using namespace std;
+
     struct JuryContent
     {
         int64_t ContentId;

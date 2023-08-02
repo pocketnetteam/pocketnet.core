@@ -45,20 +45,24 @@ class ModerationJuryTest(PocketcoinTestFramework):
         self.log.info("Generate account addresses")
         accounts = generate_accounts(node, nodeAddress, account_num=10)  # height : 1021
 
+        for acc in accounts:
+            assert node.public().getaddressinfo(acc.Address)['balance'] == 10
+
         # ---------------------------------------------------------------------------------
         self.log.info("Send money to accounts and check balances")
 
         for acc in accounts:
-            node.sendtoaddress(address=acc.Address, amount=10, destaddress=node_address)
+            node.sendtoaddress(address=acc.Address, amount=10, destaddress=nodeAddress)
         
         node.stakeblock(1)
 
-        assert node.public().getaddressinfo(nodeAddress) == ...
-
-        # TODO (aok) : implement after explorer api ready
-
+        for acc in accounts:
+            assert node.public().getaddressinfo(acc.Address)['balance'] == 20
 
         rollback_node(node, 1, self.log)  # height : 1149
+
+        for acc in accounts:
+            assert node.public().getaddressinfo(acc.Address)['balance'] == 10
 
 
 if __name__ == "__main__":

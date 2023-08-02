@@ -21,7 +21,8 @@ namespace PocketDb
             (
               Id    integer primary key,
               Lang  text not null,
-              Value text not null
+              Value text not null,
+              Count int not null
             );
         )sql");
 
@@ -62,7 +63,8 @@ namespace PocketDb
             create table if not exists BarteronAccountTags
             (
                 AccountId  int not null,
-                Tag        int not null
+                Tag        int not null,
+                primary key (Tag, AccountId)
             );
         )sql");
 
@@ -71,7 +73,17 @@ namespace PocketDb
             (
                 AccountId  int not null,
                 OfferId    int not null,
-                Tag        int not null
+                Tag        int not null,
+                primary key (Tag, OfferId, AccountId)
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists BarteronOfferTags
+            (
+                OfferId    int not null,
+                Tag        int not null,
+                primary key (OfferId, Tag)
             );
         )sql");
 
@@ -80,12 +92,10 @@ namespace PocketDb
         //
         _indexes = R"sql(
             create unique index if not exists Tags_Lang_Value on Tags (Lang, Value);
-            create index if not exists Tags_Lang_Id on Tags (Lang, Id);
-            create index if not exists Tags_Lang_Value_Id on Tags (Lang, Value, Id);
+            
             create index if not exists TagsMap_TagId_ContentId on TagsMap (TagId, ContentId);
 
-            create index if not exists BarteronAccountTags_Tag_AccountId on BarteronAccountTags (Tag, AccountId);
-            create index if not exists BarteronOffers_Tag_OfferId_AccountId on BarteronOffers (Tag, OfferId, AccountId);
+            create index if not exists BarteronOffers_OfferId_Tag_AccountId on BarteronOffers(OfferId, Tag, AccountId);
         )sql";
     }
 }

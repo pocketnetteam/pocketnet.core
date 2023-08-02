@@ -537,7 +537,8 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
     if (origit != mapTx.end())
     {
         txToRemove.insert(origit);
-    } else
+    }
+    else
     {
         // When recursively removing but origTx isn't in the mempool
         // be sure to remove any children that are in the pool. This can
@@ -1067,13 +1068,12 @@ void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPool
 
 void CTxMemPool::CleanSQLite(const std::unordered_set<std::string>& hashes, MemPoolRemovalReason reason)
 {
-    // TODO (aok): do not remove before inspect
-    // AssertLockHeld(cs);
-    // for (const auto& hash : hashes)
-    // {
-    //     PocketDb::TransRepoInst.CleanTransaction(hash);
-    //     LogPrint(BCLog::MEMPOOL, "%s: Clean SQLite mempool tx with reason %d\n", hash, (int)reason);
-    // }
+    AssertLockHeld(cs);
+    for (const auto& hash : hashes)
+    {
+        PocketDb::TransRepoInst.CleanTransaction(hash);
+        LogPrint(BCLog::MEMPOOL, "%s: Clean SQLite mempool tx with reason %d\n", hash, (int)reason);
+    }
 }
 
 int CTxMemPool::Expire(std::chrono::seconds time)

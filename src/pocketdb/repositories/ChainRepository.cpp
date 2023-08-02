@@ -113,9 +113,8 @@ namespace PocketDb
                         select
                             1
                         from
-                            Chain c indexed by Chain_Height_BlockId
+                            Chain c indexed by Chain_BlockId_Height
                         where
-                            c.Height = ? and
                             c.BlockId = (
                                 select
                                     r.RowId
@@ -123,14 +122,16 @@ namespace PocketDb
                                     Registry r
                                 where
                                     r.String = ?
-                            )
+                            ) and
+                            c.Height = ?
+                            
                         limit 1
                     ), 0),
                     ifnull((
                         select
                             1
                         from
-                            Chain c indexed by Chain_Height_BlockId
+                            Chain c indexed by Chain_Height_Uid
                         where
                             c.Height = ?
                         limit 1
@@ -236,7 +237,7 @@ namespace PocketDb
                         (+o.Value)val
                     from
                         height,
-                        Chain c indexed by Chain_Height_BlockId
+                        Chain c indexed by Chain_Height_Uid
                         cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                             on o.TxId = c.TxId
                     where
@@ -251,8 +252,8 @@ namespace PocketDb
                         (-o.Value)val
                     from
                         height,
-                        Chain ci indexed by Chain_Height_BlockId
-                        cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                        Chain ci indexed by Chain_Height_Uid
+                        cross join TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
                             on i.SpentTxId = ci.TxId
                         cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                             on o.TxId = i.TxId and o.Number = i.Number
@@ -397,10 +398,9 @@ namespace PocketDb
         }
         else if (txInfo.IsSubscribe())
             IndexSocialLastTx(IndexSubscribe(), txInfo.Hash, id, lastTxId);
-        else
-            return {id, lastTxId};
-
-        
+        // Barteron
+        else if (txInfo.IsAccountBarteron())
+            IndexSocialLastTx(IndexAccountBarteron(), txInfo.Hash, id, lastTxId);
 
         return {id, lastTxId};
     }
@@ -530,7 +530,7 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join Transactions b indexed by Transactions_Type_RegId2
+                        join Transactions b indexed by Transactions_Type_RegId2_RegId1
                             on b.Type in (200,201,202,209,210,220,207) and b.RegId2 = a.RegId2
                         join Last l -- primary key
                             on l.TxId = b.RowId
@@ -583,7 +583,7 @@ namespace PocketDb
                         b.RowId
                     from
                         Transactions a -- primary key
-                        join Transactions b indexed by Transactions_Type_RegId2
+                        join Transactions b indexed by Transactions_Type_RegId2_RegId1
                             on b.Type in (204, 205, 206) and b.RegId2 = a.RegId2
                         join Last l -- primary key
                             on l.TxId = b.RowId
@@ -832,12 +832,10 @@ namespace PocketDb
                     from
                         Transactions a -- primary key
                         join Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on b.Type = 104 and
-                            b.RegId1 = a.RegId1
-                        join Last l
+                            on b.Type in (104, 170) and b.RegId1 = a.RegId1
+                        join Last l -- primary key
                             on l.TxId = b.RowId
                     where
-                        a.Type = 104 and
                         a.RowId = (
                             select t.RowId
                             from vTx t
@@ -886,7 +884,7 @@ namespace PocketDb
 
                 select
 
-                    f.ROWID, /* Unique id of Flag record */
+                    f.RowId, /* Unique id of Flag record */
                     cu.Uid, /* Account unique id of the content author */
                     f.Int1 /* Reason */
 
@@ -930,7 +928,7 @@ namespace PocketDb
                     -- if there are X flags of the same reason for X time
                     and ? <= (
                         select count()
-                        from Transactions ff indexed by Transactions_Type_RegId3
+                        from Transactions ff indexed by Transactions_Type_RegId3_RegId1
                         cross join Chain cff
                             on cff.TxId = ff.RowId and cff.Height > ?
                         left join Last lff
@@ -1002,11 +1000,10 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
-                        -- TODO (optimization): indices
                         from
                             Transactions f
-                        join
-                            Chain c on
+                        cross join
+                            Chain c indexed by Chain_TxId_Height on
                                 c.TxId = f.RowId and
                                 c.Height >= ?
                         where
@@ -1024,11 +1021,10 @@ namespace PocketDb
                     FlagRowId in (
                         select
                             f.RowId
-                        -- TODO (optimization): indices
                         from
                             Transactions f
-                        join
-                            Chain c on
+                        cross join
+                            Chain c indexed by Chain_TxId_Height on
                                 c.TxId = f.RowId and
                                 c.Height >= ?
                         where
@@ -1502,7 +1498,7 @@ namespace PocketDb
                             (+o.Value)val
                         from
                             height,
-                            Chain c indexed by Chain_Height_BlockId
+                            Chain c indexed by Chain_Height_Uid
                             cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                                 on o.TxId = c.TxId
                         where
@@ -1517,8 +1513,8 @@ namespace PocketDb
                             (-o.Value)val
                         from
                             height,
-                            Chain ci indexed by Chain_Height_BlockId
-                            cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
+                            Chain ci indexed by Chain_Height_Uid
+                            cross join TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
                                 on i.SpentTxId = ci.TxId
                             cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
                                 on o.TxId = i.TxId and o.Number = i.Number
@@ -1556,7 +1552,7 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                delete from Chain indexed by Chain_Height_BlockId
+                delete from Chain indexed by Chain_Height_Uid
                 where Height >= ?
             )sql")
             .Bind(height)

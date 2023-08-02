@@ -30,6 +30,23 @@ namespace PocketConsensus
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
+            if(auto[contentIdsOk, contentIds] = ptx->GetContentIdsVector(); contentIdsOk)
+            {
+                // Check count of content ids
+                if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
+                   return {false, ConsensusResult_Failed};
+
+                // TODO (aok) : remove with fork
+                // Contents should be exists in chain
+                int count = PocketDb::ConsensusRepoInst.GetLastContentsCount(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
+                if((size_t)count != contentIds.size())
+                    return {false, ConsensusResult_Failed};
+            }
+            else
+            {
+                return {false, ConsensusResult_Failed};
+            }
+
             return SocialConsensus::Validate(tx, ptx, block);
         }
         
@@ -42,22 +59,6 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentTypes())) return {false, ConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentIds())) return {false, ConsensusResult_Failed};
-
-            if(auto[contentIdsOk, contentIds] = ptx->GetContentIdsVector(); !contentIdsOk)
-            {
-                return {false, ConsensusResult_Failed};
-            }
-            else
-            {
-                // Check count of content ids
-                if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
-                   return {false, ConsensusResult_Failed};
-
-                // Contents should be exists in chain
-                auto[ok, lastContents] = PocketDb::ConsensusRepoInst.GetLastContents(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
-                if(!ok || lastContents.size() != contentIds.size())
-                    return {false, ConsensusResult_Failed};
-            }
 
             return Success;
         }

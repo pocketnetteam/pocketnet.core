@@ -30,6 +30,8 @@ namespace PocketTx
             UniValue payload(UniValue::VOBJ);
 
             if (m_payload->GetTxHash()) payload.pushKV("h", *m_payload->GetTxHash());
+            else payload.pushKV("h", *GetHash());
+
             if (m_payload->GetString1()) payload.pushKV("s1", *m_payload->GetString1());
             if (m_payload->GetString2()) payload.pushKV("s2", *m_payload->GetString2());
             if (m_payload->GetString3()) payload.pushKV("s3", *m_payload->GetString3());
@@ -62,7 +64,10 @@ namespace PocketTx
         if (auto[pOk, pVal] = TryGetObj(src, "p"); pOk)
         {
             m_payload = Payload();
+            
             if (auto[ok, val] = TryGetStr(pVal, "h"); ok) m_payload->SetTxHash(val);
+            else m_payload->SetTxHash(*GetHash());
+
             if (auto[ok, val] = TryGetStr(pVal, "s1"); ok) m_payload->SetString1(val);
             if (auto[ok, val] = TryGetStr(pVal, "s2"); ok) m_payload->SetString2(val);
             if (auto[ok, val] = TryGetStr(pVal, "s3"); ok) m_payload->SetString3(val);

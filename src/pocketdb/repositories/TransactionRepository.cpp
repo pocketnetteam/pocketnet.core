@@ -417,7 +417,7 @@ namespace PocketDb
                 (
                     select r.String
                     from Registry r
-                    where r.RowId = i.TxId
+                    where r.RowId = t.HashId
                 ),
                 (
                     select a.String
@@ -431,10 +431,16 @@ namespace PocketDb
                 null
             from
                 tx
-                cross join TxInputs i indexed by TxInputs_SpentTxId_TxId_Number
-                    on i.SpentTxId = tx.RowId
-                cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-                    on o.TxId = i.TxId and o.Number = i.Number
+                cross join
+                    TxInputs i indexed by TxInputs_SpentTxId_Number_TxId on
+                        i.SpentTxId = tx.RowId
+                cross join
+                    Transactions t on
+                        t.RowId = i.TxId
+                cross join
+                    TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
+                        o.TxId = i.TxId and
+                        o.Number = i.Number
         )sql") : "") +
         
         // Outputs part

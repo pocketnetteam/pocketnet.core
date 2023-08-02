@@ -318,7 +318,6 @@ namespace PocketDb
         )sql");
 
         // A helper table that consists of limited txs for a period of ConsensusLimit_depth
-        // TODO (losty): maybe rename!
         _tables.emplace_back(R"sql(
             create table if not exists SocialRegistry
             (
@@ -354,34 +353,6 @@ namespace PocketDb
                 );
         )sql");
 
-        // _views.emplace_back(R"sql(
-        //     drop view if exists vLastAccountTx;
-
-        //     create view if not exists vLastAccountTx as
-        //     select
-        //         u.Type,
-        //         u.Hash,
-        //         u.Time,
-        //         u.BlockHash,
-        //         u.BlockNum,
-        //         u.Height,
-        //         u.Last,
-        //         u.First,
-        //         u.Id,
-        //         u.String1,
-        //         u.String2,
-        //         u.String3,
-        //         u.String4,
-        //         u.String5,
-        //         u.Int1
-        //     from
-        //         Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-        //     where
-        //         u.Type in (100) and
-        //         u.Last in (1) and
-        //         u.Height > 0;
-        // )sql");
-
         _views.emplace_back(R"sql(
             drop view if exists vTx;
             create view if not exists vTx as
@@ -415,27 +386,40 @@ namespace PocketDb
 
 
         _indexes = R"sql(
+            drop index if exists Chain_Height_BlockId;
+            drop index if exists TxInputs_TxId_Number;
+            drop index if exists TxInputs_SpentTxId_TxId_Number;
+
             create index if not exists Chain_Uid_Height on Chain (Uid, Height);
             create index if not exists Chain_Height_Uid on Chain (Height, Uid);
-            create index if not exists Chain_Height_BlockId on Chain (Height, BlockId);
+            create index if not exists Chain_Height_BlockNum on Chain (Height desc, BlockNum desc);
+            create index if not exists Chain_BlockId_Height on Chain (BlockId, Height);
             create index if not exists Chain_TxId_Height on Chain (TxId, Height);
+            create index if not exists Chain_HeightByDay on Chain (Height / 1440 desc);
+            create index if not exists Chain_HeightByHour on Chain (Height / 60 desc);
 
             create unique index if not exists Registry_String on Registry (String);
 
             create unique index if not exists Transactions_HashId on Transactions (HashId);
             create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
             create index if not exists Transactions_Type_RegId1_RegId3 on Transactions (Type, RegId1, RegId3);
-            create index if not exists Transactions_Type_RegId2 on Transactions (Type, RegId2);
-            create index if not exists Transactions_Type_RegId3 on Transactions (Type, RegId3);
+            create index if not exists Transactions_Type_RegId2_RegId1 on Transactions (Type, RegId2, RegId1);
+            create index if not exists Transactions_Type_RegId3_RegId1 on Transactions (Type, RegId3, RegId1);
             create index if not exists Transactions_Type_RegId5_RegId1 on Transactions (Type, RegId5, RegId1);
+            create index if not exists Transactions_Type_RegId4_RegId1 on Transactions (Type, RegId4, RegId1);
             create index if not exists Transactions_Type_RegId1_Int1_Time on Transactions (Type, RegId1, Int1, Time);
             create index if not exists Transactions_Type_RegId1_Time on Transactions (Type, RegId1, Time);
 
-            create index if not exists TxInputs_SpentTxId_TxId_Number on TxInputs (SpentTxId, TxId, Number);
+            create index if not exists TxInputs_SpentTxId_Number_TxId on TxInputs (SpentTxId, Number, TxId);
+            create index if not exists TxInputs_TxId_Number_SpentTxId on TxInputs (TxId, Number, SpentTxId);
 
             create index if not exists TxOutputs_TxId_Number_AddressId on TxOutputs (TxId, Number, AddressId);
+            create index if not exists TxOutputs_AddressId_TxId_Number on TxOutputs (AddressId, TxId, Number);
 
             create unique index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
+
+            create index if not exists BlockingLists_IdSource_IdTarget on BlockingLists (IdSource, IdTarget);
+            create index if not exists BlockingLists_IdTarget_IdSource on BlockingLists (IdTarget, IdSource);
 
             ------------------------------
 
@@ -450,6 +434,7 @@ namespace PocketDb
 
             create index if not exists Payload_String2_nocase on Payload (String2 collate nocase);
             create index if not exists Payload_String7 on Payload (String7);
+            create index if not exists Payload_String1 on Payload (String1);
 
             create index if not exists Jury_AccountId_Reason on Jury (AccountId, Reason);
             create index if not exists JuryBan_AccountId_Ending on JuryBan (AccountId, Ending);
@@ -460,6 +445,7 @@ namespace PocketDb
 
             create index if not exists SocialRegistry_Type_AddressId on SocialRegistry (Type, AddressId);
             create index if not exists SocialRegistry_Height on SocialRegistry (Height);
+
 
         )sql";
 

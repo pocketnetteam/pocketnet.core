@@ -73,7 +73,7 @@ public:
     std::map<std::string,UniValue> getObjMap() const;
     bool checkObject(const std::map<std::string,UniValue::VType>& memberTypes) const;
     const UniValue& operator[](const std::string& key) const;
-    UniValue& At(const std::string& key);
+    UniValue& At(const std::string& key, bool caseInsensitive = false);
     const UniValue& operator[](size_t index) const;
     UniValue& At(size_t index);
     bool exists(const std::string& key) const { size_t i; return findKey(key, i); }
@@ -163,7 +163,7 @@ private:
     std::vector<std::string> keys;
     std::vector<UniValue> values;
 
-    bool findKey(const std::string& key, size_t& retIdx) const;
+    bool findKey(const std::string& key, size_t& retIdx, bool caseInsensitive = false) const;
     void writeArray(unsigned int prettyIndent, unsigned int indentLevel, std::string& s) const;
     void writeObject(unsigned int prettyIndent, unsigned int indentLevel, std::string& s) const;
 

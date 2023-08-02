@@ -8,6 +8,7 @@ Launch this with command from 'test/functional/pocketnet' directory
 """
 
 import sys
+import json
 import pathlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -32,6 +33,10 @@ from framework.chain_builder import ChainBuilder
 from framework.helpers import rollback_node
 from framework.models import *
 
+import random, string
+def randomword(length):
+   letters = string.ascii_lowercase
+   return ''.join(random.choice(letters) for i in range(length))
 
 class BarteronTest(PocketcoinTestFramework):
     def set_test_params(self):
@@ -47,31 +52,67 @@ class BarteronTest(PocketcoinTestFramework):
 
         # ---------------------------------------------------------------------------------
         # Prepare chain & accounts
-        builder.build_init()
+        builder.build_init(accounts_num=3, moderators_num=1)
+        node.stakeblock(10)
+
+        # ---------------------------------------------------------------------------------
+        self.log.info("Try register Barteron account without Bastyon account")
+
+        bartAccount = BartAccountPayload()
+        bartAccount.s1 = builder.accounts[0].Address
+        assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, builder.accounts[0], bartAccount)
+
+        # ---------------------------------------------------------------------------------
+        # Register accounts
         builder.register_accounts()
 
         # ---------------------------------------------------------------------------------
-        self.log.info("Register Barteron account")
+        self.log.info("Register Barteron accounts")
 
-        bartAccount = BartAccountPayload()
-        bartAccount.s1 = builder.accounts[0].Address
-        bartAccount.p = Payload()
-        bartAccount.p.s4 = [1,2,3,4,5]
-        bartAccount.p.s5 = [1,2]
-        pubGenTx(builder.accounts[0], bartAccount)
-        node.stakeblock(1)
+        for i, account in enumerate(builder.accounts):
+            bartAccount = BartAccountPayload()
+            bartAccount.s1 = account.Address
+            bartAccount.p = Payload()
+            bartAccount.p.s4 = json.dumps({ "a": [ random.randint(0, 100) ], "test": "HOI" })
+            pubGenTx(account, bartAccount)
+        node.stakeblock(5)
+
+        for i, account in enumerate(builder.accounts):
+            assert json.loads(node.public().getbarteronaccounts([account.Address])[0]['p']['s4'])['test'] == "HOI"
         
         # ---------------------------------------------------------------------------------
-        self.log.info("Register Barteron account with incorrect lists")
+        self.log.info("Register Barteron offers")
 
-        bartAccount = BartAccountPayload()
-        bartAccount.s1 = builder.accounts[0].Address
-        bartAccount.p = Payload()
-        bartAccount.p.s4 = 'Incorrect string - not json list'
-        bartAccount.p.s5 = 'Incorrect string - not json list'
-        pubGenTx(builder.accounts[0], bartAccount)
-        node.stakeblock(1)
+        lang = ['en','ru','gb']
+        for i, account in enumerate(builder.accounts):
+            for ii in range(10):
+                bartOffer = BartOfferPayload()
+                bartOffer.s1 = account.Address
+                bartOffer.p = Payload()
+                bartOffer.p.s1 = lang[random.randint(0, 2)]
+                bartOffer.p.s2 = f'Custom caption with random ({random.randint(0, 100)}) number'
+                bartOffer.p.s3 = f'Custom description with random ({random.randint(0, 100)}) number'
+                bartOffer.p.s5 = ['http://image.url.1','http://image.url.2']
+                bartOffer.p.s6 = randomword(random.randint(0, 10))
+                bartOffer.p.i1 = random.randint(0, 1000)
+                bartOffer.p.s4 = json.dumps({ "t": random.randint(0, 100), "a": [ random.randint(0, 100), random.randint(0, 100), random.randint(0, 100) ], "test": "HOI" })
+                pubGenTx(account, bartOffer)
+                node.stakeblock(1)
+        
+        for i, account in enumerate(builder.accounts):
+            assert json.loads(node.public().getbarteronoffersbyaddress(account.Address)[0]['p']['s4'])['test'] == "HOI"
+
         # ---------------------------------------------------------------------------------
+        self.log.info("Check offers feed")
+
+        feed = node.public().getbarteronfeed({})
+        # TODO - check?
+
+        # ---------------------------------------------------------------------------------
+        # todo - find deals
+        self.log.info("Check offers deals")
+        for i, offer in enumerate(feed):
+            pass
         
 
 if __name__ == "__main__":

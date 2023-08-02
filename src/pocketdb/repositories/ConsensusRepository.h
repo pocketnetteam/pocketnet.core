@@ -94,35 +94,13 @@ namespace PocketDb
     public:
         explicit ConsensusRepository(SQLiteDatabase& db) : TransactionRepository(db) {}
 
-        ConsensusData_AccountUser AccountUser(const string& address, int depth, const string& name);
         ConsensusData_BarteronAccount BarteronAccount(const string& address);
         ConsensusData_BarteronOffer BarteronOffer(const string& address, const string& rootTxHash);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // --------------------------------------------------------------------
-
-
-
-
 
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);
         tuple<bool, vector<PTransactionRef>>GetLastContents(const vector<string>& rootHashes, const vector<TxType>& types);
+        int GetLastContentsCount(const vector<string> &rootHashes, const vector<TxType> &types);
         tuple<bool, TxType> GetLastAccountType(const string& address);
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
         tuple<bool, TxType> GetLastBlockingType(const string& address, const string& addressTo);

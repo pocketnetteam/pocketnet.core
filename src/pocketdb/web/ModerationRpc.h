@@ -23,5 +23,4 @@ namespace PocketWeb::PocketWebRpc
 
 }
 
-
 #endif //SRC_MODERATION_RPC_H

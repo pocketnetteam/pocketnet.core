@@ -67,7 +67,8 @@ namespace PocketDb
         UniValue GetUserStatistic(const vector<string>& addresses, const int nHeight = 0, const int depthR = 0, const int depthC = 0, const int cntC = 1);
 
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
-        UniValue GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash);
+        map<string, UniValue> GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash);
+        map<int64_t, UniValue> GetCommentsByIds(const vector<int64_t>& cmntIds, const string& addressHash);
 
         UniValue GetLastComments(int count, int height, const string& lang);
         map<int64_t, UniValue> GetLastComments(const vector<int64_t>& ids, const string& address);
@@ -137,9 +138,8 @@ namespace PocketDb
         int badReputationLimit);
         
         UniValue GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight, const string& lang,
-            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
-            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
-            const string& keyword, const string& orderby, const string& ascdesc);
+            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded,
+            const vector<string>& tagsExcluded, const string& address, const string& orderby, const string& ascdesc);
         
         UniValue GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
@@ -210,6 +210,7 @@ namespace PocketDb
         double dekayContent =  0.96;
 
         vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm, int firstFlagsDepth);
+        vector<tuple<string, int64_t, UniValue>> GetComments(const vector<string>& cmntHashes, const vector<int64_t>& cmntIds, const string& addressHash);
     };
 
     typedef shared_ptr<WebRpcRepository> WebRpcRepositoryRef;
@@ -217,4 +218,3 @@ namespace PocketDb
 } // namespace PocketDb
 
 #endif // POCKETDB_WEB_RPC_REPOSITORY_H
-

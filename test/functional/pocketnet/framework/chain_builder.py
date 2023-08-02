@@ -52,9 +52,7 @@ class ChainBuilder:
         self._accounts = generate_accounts(self._node, self.node_address, accounts_num or self.ACCOUNT_NUM)
 
         self.log.info(f"Generate {moderators_num or self.ACCOUNT_NUM} moderator addresses")
-        self._moders = generate_accounts(
-            self._node, self.node_address, moderators_num or self.ACCOUNT_NUM, is_moderator=True
-        )
+        self._moders = generate_accounts(self._node, self.node_address, moderators_num or self.ACCOUNT_NUM, is_moderator=True)
 
     def register_accounts(self):
         self.log.info("Register accounts")

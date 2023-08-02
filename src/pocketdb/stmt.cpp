@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/stmt.h"
+#include <chainparams.h>
 
 namespace PocketDb
 {
@@ -110,6 +111,9 @@ namespace PocketDb
 
     void Stmt::Select(const function<void(Cursor&)>& func)
     {
+        if (Params().NetworkID() == NetworkId::NetworkRegTest)
+            LogPrintf("%s\n", Log());
+            
         ResetCurrentBindIndex(); // At this point there will be no more binds
         Cursor cursor(m_stmt);
         func(cursor);

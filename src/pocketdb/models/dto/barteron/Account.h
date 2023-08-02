@@ -21,10 +21,7 @@ namespace PocketTx
         Use p.s4 for JSON payload
         {
             ...
-            "t": { // Tags
-                "a": [ 1, 2, 3, .. ] // Append tags,
-                "r": [ 4, 5, 6, .. ] // Remove tags
-            }
+            "a": [ 1, 2, 3, .. ] // Allowed barter tags
             ...
         }
         */

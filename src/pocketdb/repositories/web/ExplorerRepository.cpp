@@ -18,8 +18,7 @@ namespace PocketDb
                     t.Type,
                     count(1)
                 from
-                    Chain c indexed by Chain_Height_BlockId
-
+                    Chain c indexed by Chain_Height_Uid
                     left join Transactions t on
                         t.RowId = c.TxId
                 where
@@ -66,13 +65,13 @@ namespace PocketDb
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    std::string part, type; int count;
+                    int part, type, count;
                     if (cursor.CollectAll(part, type, count))
                     {
-                        if (result.At(part).isNull())
-                            result.pushKV(part, UniValue(UniValue::VOBJ));
+                        if (result.At(to_string(part)).isNull())
+                            result.pushKV(to_string(part), UniValue(UniValue::VOBJ));
 
-                        result.At(part).pushKV(type, count);
+                        result.At(to_string(part)).pushKV(to_string(type), count);
                     }
                 }
             });
@@ -92,18 +91,14 @@ namespace PocketDb
                     (c.Height / 60)Hour,
                     t.Type,
                     count()Count
-
                 from
-                    Chain c indexed by Chain_Height_Uid
-
+                    Chain c indexed by Chain_HeightByHour
                     cross join Transactions t on
                         t.RowId = c.TxId and
                         t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
-
                 where
                   (c.Height / 60) < (? / 60) and
                   (c.Height / 60) >= (? / 60)
-
                 group by
                     (c.Height / 60), t.Type
             )sql")
@@ -111,15 +106,13 @@ namespace PocketDb
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    std::string part; // TODO (optimization): should it be string???
-                    std::string type; // TODO (optimization): should it be string???
-                    int count {};
+                    int part, type, count;
                     if (cursor.CollectAll(part, type, count))
                     {
-                        if (result.At(part).isNull())
-                            result.pushKV(part, UniValue(UniValue::VOBJ));
+                        if (result.At(to_string(part)).isNull())
+                            result.pushKV(to_string(part), UniValue(UniValue::VOBJ));
 
-                        result.At(part).pushKV(type, count);
+                        result.At(to_string(part)).pushKV(to_string(type), count);
                     }
                 }
             });
@@ -139,18 +132,14 @@ namespace PocketDb
                     (c.Height / 1440)Day,
                     t.Type,
                     count()Count
-
                 from
-                    Chain c indexed by Chain_Height_Uid
-
+                    Chain c indexed by Chain_HeightByDay
                     join Transactions t on
                         t.RowId = c.TxId and
                         t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
-
                 where
                   (c.Height / 1440) < (? / 1440) and
                   (c.Height / 1440) >= (? / 1440)
-
                 group by
                     (c.Height / 1440), t.Type
             )sql")
@@ -180,39 +169,70 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                    maxHeight as ( select ? as value ),
+                    minHeight as ( select ? as value ),
+                    base as (
+                        select
+                            count() as value
+                        from
+                            Transactions u
+                        cross join
+                            First f
+                                on f.TxId = u.RowId
+                        where
+                            u.Type in (100)
+                    ),
+                    val as (
+                        select
+                            (c.Height / 60) as height,
+                            (
+                                select
+                                    count()
+                                from
+                                    Chain c1 indexed by Chain_HeightByHour
+                                cross join
+                                    Transactions u on
+                                        u.RowId = c1.TxId and u.Type in (100)
+                                cross join
+                                    First f
+                                        on f.TxId = u.RowId
+                                where
+                                    (c1.Height / 60) = (c.Height / 60)
+                            ) as cnt
+                        from
+                            maxHeight,
+                            minHeight,
+                            Chain c indexed by Chain_HeightByHour
+                        where
+                            (c.Height / 60) <= (maxHeight.value / 60) and
+                            (c.Height / 60) > (minHeight.value / 60)
+                        group by
+                            (c.Height / 60)
+                        order by
+                            (c.Height / 60) desc
+                    )
                 select
-                    (c.Height / 60),
+                    v.height,
                     (
                         select
-                            count()
-                        from Transactions u1
-                        join Chain c1 on
-                            c1.TxId = u1.RowId and
-                            c1.Height <= c.Height and
-                            exists (select 1 from Last l where l.TxId = c1.TxId)
+                            base.value - sum(v2.cnt)
+                        from
+                            val v2
                         where
-                            u1.Type in (100)
-                    )cnt
+                            v2.height >= v.height
+                    ) as cnt
                 from
-                    Transactions u
-                    join Chain c indexed by Chain_Height_Uid on
-                        c.TxId = u.RowId and
-                        (c.Height / 60) <= (? / 60) and
-                        (c.Height / 60) > (? / 60)
-                where
-                    u.Type in (3)
-                group by
-                    (c.Height / 60)
-                order by
-                    (c.Height / 60) desc
+                    base,
+                    val v
             )sql")
             .Bind(topHeight, topHeight - depth)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    std::string part; int count;
+                    int part, count;
                     if (cursor.CollectAll(part, count))
-                        result.pushKV(part, count);
+                        result.pushKV(to_string(part), count);
                 }
             });
         });
@@ -227,41 +247,71 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                    maxHeight as ( select ? as value ),
+                    minHeight as ( select ? as value ),
+                    base as (
+                        select
+                            count() as value
+                        from
+                            Transactions u
+                        cross join
+                            First f
+                                on f.TxId = u.RowId
+                        where
+                            u.Type in (100)
+                    ),
+                    val as (
+                        select
+                            (c.Height / 1440) as height,
+                            (
+                                select
+                                    count()
+                                from
+                                    Chain c1 indexed by Chain_HeightByDay
+                                cross join
+                                    Transactions u on
+                                        u.RowId = c1.TxId and u.Type in (100)
+                                cross join
+                                    First f
+                                        on f.TxId = u.RowId
+                                where
+                                    (c1.Height / 1440) = (c.Height / 1440)
+                            ) as cnt
+                        from
+                            maxHeight,
+                            minHeight,
+                            Chain c indexed by Chain_HeightByDay
+                        where
+                            (c.Height / 1440) <= (maxHeight.value / 1440) and
+                            (c.Height / 1440) > (minHeight.value / 1440)
+                        group by
+                            (c.Height / 1440)
+                        order by
+                            (c.Height / 1440) desc
+                    )
                 select
-                    (c.Height / 1440),
+                    v.height,
                     (
                         select
-                            count()
-                        from Transactions u1
-                        join Chain c1 on
-                            c1.TxId = u1.RowId and
-                            c1.Height <= c.Height and
-                            exists (select 1 from Last l where l.TxId = c1.TxId)
+                            base.value - sum(v2.cnt)
+                        from
+                            val v2
                         where
-                            u1.Type in (100)
-                    )cnt
+                            v2.height >= v.height
+                    ) as cnt
                 from
-                    Transactions u
-                    -- TODO (optimization): is there any difference using index with "/ 1440" expression? 
-                    join Chain c indexed by Chain_Height_Uid on
-                        c.TxId = u.RowId and
-                        (c.Height / 1440) <= (? / 1440) and
-                        (c.Height / 1440) > (? / 1440)
-                where
-                    u.Type in (3)
-                group by
-                    (c.Height / 1440)
-                order by
-                    (c.Height / 1440) desc
+                    base,
+                    val v
             )sql")
             .Bind(topHeight, topHeight - depth)
             .Select([&](Cursor& cursor)
             {
                 while (cursor.Step())
                 {
-                    std::string part; int count;
+                    int part, count;
                     if (cursor.CollectAll(part, count))
-                        result.pushKV(part, count);
+                        result.pushKV(to_string(part), count);
                 }
             });
         });
@@ -279,19 +329,20 @@ namespace PocketDb
                 select
                     t.Type,
                     count()
-                from Transactions t indexed by Transactions_Type_RegId2
+                from Transactions t indexed by Transactions_Type_RegId2_RegId1
+                cross join Last l on
+                    l.TxId = t.RowId
                 where
-                    t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303) and
-                    exists (select 1 from Last l where l.TxId = t.RowId)
+                    t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
                 group by
                     t.Type
             )sql")
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    std::string type; int count {};
+                    int type, count;
                     if (cursor.CollectAll(type, count))
-                        result.pushKV(type, count);
+                        result.pushKV(to_string(type), count);
                 }
             });
         });
@@ -342,86 +393,56 @@ namespace PocketDb
         return infos;
     }
 
-    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize, const std::vector<TxType>& filters)
+    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int topHeight, int pageStart, int pageSize, const vector<TxType>& types)
     {
         map<string, int> txHashes;
-        std::string filtering;
-        if (!filters.empty()) {
-            filtering = R"sql(
-                join Transactions t indexed by Transactions_Type_RegId2 on
-                   t.RowId = c.TxId and
-                   t.Type in ( )sql" + join(vector<string>(filters.size(), "?"), ",") + ")";
-        }
 
-        // TODO (optimization): optimize me
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                with address as (
-                    select
-                        r.RowId as id
-                    from
-                        Registry r
-                    where
-                        r.String = ?
-                ),
-                height as (
-                    select ? as val
-                )
-
                 -- Address in outputs
                 select distinct
-                    s.Hash,
+                    (select r.String from Registry r where r.RowId = t.HashId),
                     c.Height as Height,
                     c.BlockNum as BlockNum
                 from
-                    address,
-                    height,
-                    TxOutputs o
-
-                    join Chain c on
-                        c.TxId = o.TxId and
-                        c.Height <= height.val
-
-                )sql" + filtering + R"sql(
-
-                    cross join vTxStr s on
-                        s.RowId = c.TxId
+                    Chain c indexed by Chain_Height_BlockNum
+                cross join
+                    TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                        on o.TxId = c.TxId and o.AddressId = (select r.RowId as id from Registry r where r.String = ?)
+                cross join
+                    Transactions t
+                        on t.RowId = o.TxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
                 where
-                    o.AddressId = address.id
+                    c.Height <= ?
 
                 union
 
                 -- Address in inputs
                 select distinct
-                    s.Hash,
+                    (select r.String from Registry r where r.RowId = t.HashId),
                     c.Height as Height,
                     c.BlockNum as BlockNum
                 from
-                    address,
-                    height,
-                    TxInputs i
-
-                    join Chain c on
-                        c.TxId = i.SpentTxId and
-                        c.Height <= height.val
-
-                )sql" + filtering + R"sql(
-
-                    join vTxStr s on
-                        s.RowId = c.TxId
-
-                    join TxOutputs o on
-                        o.TxId = i.TxId and
-                        o.Number = i.Number and
-                        o.AddressId = address.id
+                    Chain c indexed by Chain_Height_BlockNum
+                cross join
+                    TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                        on o.TxId = c.TxId and o.AddressId = (select r.RowId as id from Registry r where r.String = ?)
+                cross join
+                    TxInputs i indexed by TxInputs_TxId_Number_SpentTxId
+                        on i.TxId = o.TxId and i.Number = o.Number
+                cross join
+                    Transactions t
+                        on t.RowId = i.SpentTxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
+                where
+                    c.Height <= ?
 
                 order by
-                    Height desc, BlockNum desc
-                limit
-                    ?, ?
+                c.Height desc, c.BlockNum desc
+
+                limit ? offset ?
             )sql")
-            .Bind(address, pageInitBlock, filters, filters, pageStart, pageSize)
+            .Bind(address, types.empty(), types, topHeight, address, types.empty(), types, topHeight, pageSize, pageStart)
             .Select([&](Cursor& cursor) {
                 int i = 0;
                 while (cursor.Step())
@@ -450,15 +471,16 @@ namespace PocketDb
                     where
                         r.String = ?
                 )
-                select s.Hash
+                select
+                    (select r.String from Registry r where r.RowId = t.HashId)
                 from
-                    block,
-                    Chain c
-                    
-                    cross join vTxStr s on
-                        s.RowId = c.TxId
-                where
-                    c.BlockId = block.id
+                    block
+                cross join
+                    Chain c indexed by Chain_BlockId_Height
+                        on c.BlockId = block.id
+                cross join
+                    Transactions t
+                        on t.RowId = c.TxId
                 order by
                     c.BlockNum asc
                 limit
@@ -478,6 +500,7 @@ namespace PocketDb
         return txHashes;
     }
     
+    // TODO (aok, api) : implement
     UniValue ExplorerRepository::GetBalanceHistory(const vector<string>& addresses, int topHeight, int count)
     {
         UniValue result(UniValue::VARR);

@@ -138,6 +138,7 @@ POCKETDB_H = \
     pocketdb/web/PocketTagsRpc.h \
     pocketdb/web/PocketRpc.h \
     pocketdb/web/ModerationRpc.h \
+    pocketdb/web/BarteronRpc.h \
     pocketdb/web/WebRpcUtils.h \
     \
     pocketdb/repositories/RowAccessor.hpp \
@@ -155,6 +156,7 @@ POCKETDB_H = \
     pocketdb/repositories/web/ExplorerRepository.h \
     pocketdb/repositories/web/SearchRepository.h \
     pocketdb/repositories/web/ModerationRepository.h \
+    pocketdb/repositories/web/BarteronRepository.h \
     \
     pocketdb/services/WsNotifier.h \
     pocketdb/services/b/services/Serializer.h \
@@ -206,6 +208,7 @@ POCKETDB_H = \
     pocketdb/models/base/TransactionInput.h \
     pocketdb/models/base/TransactionOutput.h \
     pocketdb/models/base/SocialTransaction.h \
+    pocketdb/models/base/SocialEditableTransaction.h \
     pocketdb/models/base/Rating.h \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/DtoModels.h \
@@ -288,6 +291,7 @@ POCKETDB_CPP = \
     pocketdb/repositories/web/ExplorerRepository.cpp \
     pocketdb/repositories/web/SearchRepository.cpp \
     pocketdb/repositories/web/ModerationRepository.cpp \
+    pocketdb/repositories/web/BarteronRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
     \
@@ -297,6 +301,7 @@ POCKETDB_CPP = \
     pocketdb/models/base/TransactionInput.cpp \
     pocketdb/models/base/TransactionOutput.cpp \
     pocketdb/models/base/SocialTransaction.cpp \
+    pocketdb/models/base/SocialEditableTransaction.cpp \
     pocketdb/models/base/Rating.cpp \
     pocketdb/models/base/Payload.cpp \
     \
@@ -313,6 +318,7 @@ POCKETDB_CPP = \
     pocketdb/web/PocketTagsRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
     pocketdb/web/ModerationRpc.cpp \
+    pocketdb/web/BarteronRpc.cpp \
     pocketdb/web/WebRpcUtils.cpp \
     \
     pocketdb/models/dto/money/Default.cpp \

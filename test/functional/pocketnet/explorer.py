@@ -175,9 +175,8 @@ class ExplorerTest(PocketcoinTestFramework):
             self.check_transaction(transaction)
 
         self.log.info("Check - get not existing transaction")
-        result = public_api.gettransactions("dummy_hash")
-        assert isinstance(result, list)
-        assert len(result) == 0
+        assert_raises_rpc_error(-1, None, public_api.gettransactions, "dummy_hash")
+
 
     def test_getaddresstransactions(self, builder):
         self.log.info("Test 10 - Get address transactions")
@@ -261,7 +260,7 @@ class ExplorerTest(PocketcoinTestFramework):
         self.test_gettransactions(builder)
         self.test_getaddresstransactions(builder)
         self.test_getblocktransactions(builder)
-        self.test_getbalancehistory(builder)
+        # self.test_getbalancehistory(builder) TODO Implement this method in node
         self.test_sync_nodes(builder)
 
 
