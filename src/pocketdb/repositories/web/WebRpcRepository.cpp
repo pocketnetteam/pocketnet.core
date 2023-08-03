@@ -1983,14 +1983,14 @@ namespace PocketDb
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok) record.pushKV("id", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("about", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("regdate", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("ratingscnt", value);
+                    cursor.Collect(record, "id", 0);
+                    cursor.Collect(record, "address", 1);
+                    cursor.Collect(record, "name", 2);
+                    cursor.Collect(record, "avatar", 3);
+                    cursor.Collect(record, "about", 4);
+                    cursor.Collect(record, "regdate", 5);
+                    cursor.Collect(record, "reputation", 6);
+                    cursor.Collect(record, "ratingscnt", 7);
 
                     result.push_back(record);
                 }
