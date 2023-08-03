@@ -1903,75 +1903,81 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetAccountRaters(const string& address)
     {
         UniValue result(UniValue::VARR);
 
-        string sql = R"sql(
-            select u.id,
-                   u.String1           address,
-                   up.String2          name,
-                   up.String3          avatar,
-                   up.String4          about,
-                   (
-                       select reg.Time
-                       from Transactions reg indexed by Transactions_Id
-                       where reg.Id = u.Id
-                         and reg.Height is not null
-                       order by reg.Height asc
-                       limit 1
-                   )                   registrationDate,
-                   ifnull(ur.Value, 0) reputation,
-                   raters.ratingsCount
-            from (
-                     select address, sum(ratingsCount) ratingsCount
-                     from (
-                              select rating.String1 address, count(1) ratingsCount
-                              from Transactions content indexed by Transactions_Type_Last_String1_String2_Height
-                              join Transactions rating indexed by Transactions_Type_Last_String2_Height
-                                on rating.String2 = content.String2
-                                    and rating.Type = 300
-                                    and rating.Last in (0, 1)
-                                    and rating.Int1 = 5
-                                    and rating.Height is not null
-                              where content.Type in (200, 201, 202, 209, 210)
-                                and content.Last in (0, 1)
-                                and content.Hash = content.String2
-                                and content.String1 = ?
-                                and content.Height is not null
-                              group by rating.String1
-
-                              union
-
-                              select rating.String1 address, count(1) ratingsCount
-                              from Transactions content indexed by Transactions_Type_Last_String1_String2_Height
-                              join Transactions rating indexed by Transactions_Type_Last_String2_Height
-                                on rating.String2 = content.String2
-                                    and rating.Type = 301
-                                    and rating.Last in (0, 1)
-                                    and rating.Int1 = 1
-                                    and rating.Height is not null
-                              where content.Type in (204)
-                                and content.Last in (0, 1)
-                                and content.Hash = content.String2
-                                and content.String1 = ?
-                                and content.Height is not null
-                              group by rating.String1
-                         )
-                     group by address
-                ) raters
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-              on u.Type = 100 and u.Last = 1 and u.String1 = raters.address and u.Height is not null
-            cross join Payload up on up.TxHash = u.Hash
-            left join Ratings ur indexed by Ratings_Type_Id_Last_Value on ur.Type = 0 and ur.Id = u.Id and ur.Last = 1
-            order by raters.ratingsCount desc
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(address, address)
+            Sql(R"sql(
+                with
+                    addr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    raters as (
+                        select
+                            r.RegId1,
+                            count() as scores
+                        from
+                            addr
+                        cross join
+                            Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                c.Type in (200, 201, 202, 204, 209, 210) and c.RegId1 = addr.id
+                        cross join
+                            First fc on
+                                fc.TxId = c.RowId
+                        cross join
+                            Transactions r indexed by Transactions_Type_RegId2_RegId1 on
+                                r.Type in (300, 301) and
+                                r.RegId2 = c.HashId and
+                                ( (r.Type = 300 and r.Int1 = 5) or (r.Type = 301 and r.Int1 = 1) )
+                        cross join
+                            Chain cr on
+                                cr.TxId = r.RowId
+                        group by
+                            r.RegId1
+                    )
+                select
+                    cru.Uid,
+                    (select String from Registry r where r.RowId = r.RegId1),
+                    pru.String2,
+                    pru.String3,
+                    pru.String4,
+                    ruf.Time,
+                    ifnull(rru.Value, 0),
+                    r.scores
+                from
+                    raters r
+                cross join
+                    Transactions ru indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        ru.Type in (100) and
+                        ru.RegId1 = r.RegId1
+                cross join
+                    Last lru on
+                        lru.TxId = ru.RowId
+                cross join
+                    First fru on
+                        fru.TxId = ru.RowId
+                cross join
+                    Transactions ruf on
+                        ruf.RowId = fru.TxId
+                cross join
+                    Chain cru on
+                        cru.TxId = ru.RowId
+                cross join
+                    Payload pru on
+                        pru.TxId = ru.RowId
+                left join
+                    Ratings rru indexed by Ratings_Type_Uid_Last_Value on
+                        rru.Type = 0 and rru.Uid = cru.Uid and rru.Last = 1
+            )sql")
+            .Bind(address)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
