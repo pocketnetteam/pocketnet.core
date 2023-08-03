@@ -735,6 +735,8 @@ namespace PocketDb
             .Bind(hash)
             .Run();
 
+            // TODO (aok, losty): Clear TxInputs table
+
             // Clear TxOutputs table
             Sql(R"sql(
                 with
