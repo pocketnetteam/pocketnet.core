@@ -5420,69 +5420,105 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight, int countOutOfUsers, int countOutOfcontents, int badReputationLimit)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
-        string addressPaginationFilter;
-        if (!addressPagination.empty())
-            addressPaginationFilter += " and String1 > ? ";
-
-        string sql = R"sql(
-            select
-                String1 address,
-                       (select json_group_array(c.String2)
-                        from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
-                        where c.Type in (200, 201, 202, 209, 210)
-                          and c.Last = 1
-                          and c.Height > 0
-                          and c.Height <= ?
-                          and c.String1 = s.String1
-                        order by c.id desc
-                        limit ?)
-
-            from Transactions s indexed by Transactions_Type_Last_String1_Height_Id
-
-            where s.Type in (302, 303)
-                and s.Last = 1
-                and s.Height <= ?
-                and s.Height > 0
-                and s.String2 = ?
-                and exists(select 1
-                           from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
-                           where c.Type in (200, 201, 202, 209, 210)
-                             and c.Last = 1
-                             and c.Height > 0
-                             and c.Height <= ?
-                             and c.String1 = s.String1
-                           limit 1)
-
-                )sql" + addressPaginationFilter + R"sql(
-
-                -- Do not show posts from users with low reputation
-                -- and ifnull(ur.Value,0) > ?
-
-                order by s.String1
-                limit ?
-            )sql";
-
-        SqlTransaction(func, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-            stmt.Bind(
+            Sql(R"sql(
+                with
+                    addr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    pageAddr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    height as (
+                        select ? as value
+                    )
+                select
+                (select r.String from Registry r where r.RowId = s.RegId1),
+                (
+                        select
+                            json_group_array(
+                                (select r.String from Registry r where r.RowId = _c.HashId)
+                            )
+                        from
+                            Transactions _c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        cross join
+                            Last _lc on
+                                _lc.TxId = _c.RowId
+                        cross join
+                            Chain _cc indexed by Chain_TxId_Height on
+                                _cc.TxId = _lc.TxId and
+                                _cc.Height <= height.value
+                        where
+                            _c.Type in (200, 201, 202, 209, 210) and
+                            _c.RegId1 = s.RegId1
+                        order by
+                            _c.RowId desc
+                        limit ?
+                    )
+                from
+                    addr,
+                    pageAddr,
+                    height
+                cross join
+                    Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                        s.Type in (302, 303) and
+                        s.RegId2 = addr.id and
+                        (? or s.RegId1 > pageAddr.id)
+                cross join
+                    Last ls on
+                        ls.TxId = s.RowId
+                cross join
+                    Chain cs indexed by Chain_TxId_Height on
+                        cs.TxId = ls.TxId and
+                        cs.Height <= height.value
+                where
+                    exists (
+                        select 1
+                        from
+                            Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        cross join
+                            Last lc on
+                                lc.TxId = c.RowId
+                        cross join
+                            Chain cc indexed by Chain_TxId_Height on
+                                cc.TxId = lc.TxId and
+                                cc.Height <= height.value
+                        where
+                            c.Type in (200, 201, 202, 209, 210) and
+                            c.RegId1 = s.RegId1
+                    )
+                    -- Do not show posts from users with low reputation
+                    -- ifnull(ur.Value,0) > ?
+                order by
+                    s.RegId1
+                limit ?
+            )sql")
+            .Bind(
+                address,
+                addressPagination.empty(),
+                addressPagination,
                 nHeight,
                 countOutOfcontents,
-                nHeight,
-                address,
-                nHeight
-            );
-            if (!addressPagination.empty())
-                stmt.Bind(addressPagination);
-            stmt.Bind(countOutOfUsers);
-
-            stmt.Select([&](Cursor& cursor) {
+                countOutOfUsers
+            )
+            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     UniValue contents(UniValue::VOBJ);
