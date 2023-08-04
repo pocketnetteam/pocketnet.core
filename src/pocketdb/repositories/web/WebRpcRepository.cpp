@@ -3620,7 +3620,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes)
     {
         UniValue result(UniValue::VARR);
@@ -3628,37 +3627,63 @@ namespace PocketDb
         if (addresses.empty())
             return result;
 
-        string sql = R"sql(
-            select
-
-              sum(s.Int1) as scrSum,
-              count(1) as scrCnt,
-              count(distinct s.String1) as countLikers
-
-            from Transactions v indexed by Transactions_Type_Last_String1_Height_Id
-
-            join Transactions s indexed by Transactions_Type_Last_String2_Height
-              on s.Type in ( 300 ) and s.Last in (0,1) and s.Height > 0 and s.String2 = v.String2
-
-            where v.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-              and v.Last = 1
-              and v.Height > 0
-              and v.String1 = ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(contentTypes, addresses[0])
+            Sql(R"sql(
+                with
+                    addr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                    ),
+                    stat as (
+                        select
+                            addr.id,
+                            sum(s.Int1) as scrSum,
+                            count() as scrCnt,
+                            count(distinct s.RegId1) as countLikers
+                        from
+                            addr
+                        cross join
+                            Transactions v indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                v.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and v.RegId1 = addr.id
+                        cross join
+                            Last lv on
+                                lv.TxId = v.RowId
+                        cross join
+                            Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                                s.Type in (300) and s.RegId2 = v.RegId2
+                        cross join
+                            Chain cs on
+                                cs.TxId = s.RowId
+                    )
+                select
+                    a.hash,
+                    ifnull(s.scrSum, 0),
+                    ifnull(s.scrCnt, 0),
+                    ifnull(s.countLikers, 0)
+                from
+                    addr a
+                left join
+                    stat s on
+                        s.id = a.id
+                group by
+                    a.hash
+            )sql")
+            .Bind(addresses, contentTypes)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
 
-                    record.pushKV("address", addresses[0]);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok) record.pushKV("scoreSum", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(1); ok) record.pushKV("scoreCnt", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("countLikers", value);
+                    cursor.Collect<string>(0, record, "address");
+                    cursor.Collect<int>(1, record, "scoreSum");
+                    cursor.Collect<int>(2, record, "scoreCnt");
+                    cursor.Collect<int>(3, record, "countLikers");
 
                     result.push_back(record);
                 }
@@ -3668,8 +3693,7 @@ namespace PocketDb
         return result;
     }
 
-    // ------------------------------------------------------
-    // Feeds
+    // ------------------------- Feeds ---------------------
 
     UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang,
         const vector<int>& contentTypes, const string& address, int badReputationLimit)
