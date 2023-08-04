@@ -1982,15 +1982,15 @@ namespace PocketDb
                 while (cursor.Step())
                 {
                     UniValue record(UniValue::VOBJ);
-
-                    cursor.Collect(record, "id", 0);
-                    cursor.Collect(record, "address", 1);
-                    cursor.Collect(record, "name", 2);
-                    cursor.Collect(record, "avatar", 3);
-                    cursor.Collect(record, "about", 4);
-                    cursor.Collect(record, "regdate", 5);
-                    cursor.Collect(record, "reputation", 6);
-                    cursor.Collect(record, "ratingscnt", 7);
+                    
+                    cursor.Collect<int>(0, record, "id");
+                    cursor.Collect<string>(1, record, "address");
+                    cursor.Collect<string>(2, record, "name");
+                    cursor.Collect<string>(3, record, "avatar");
+                    cursor.Collect<string>(4, record, "about");
+                    cursor.Collect<int64_t>(5, record, "regdate");
+                    cursor.Collect<int64_t>(6, record, "reputation");
+                    cursor.Collect<int64_t>(7, record, "ratingscnt");
 
                     result.push_back(record);
                 }
@@ -2000,8 +2000,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetSubscribesAddresses(
-        const string& address, const vector<TxType>& types, const string& orderBy, bool orderDesc, int offset, int limit)
+    UniValue WebRpcRepository::GetSubscribesAddresses(const string& address, const vector<TxType>& types, const string& orderBy, bool orderDesc, int offset, int limit)
     {
         UniValue result(UniValue::VARR);
 
@@ -2537,8 +2536,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height, int confirmations,
-        vector<pair<string, uint32_t>>& mempoolInputs)
+    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height, int confirmations, vector<pair<string, uint32_t>>& mempoolInputs)
     {
         UniValue result(UniValue::VARR);
 
@@ -2621,45 +2619,51 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetAccountEarning(const string& address, int height, int depth)
     {
         UniValue result(UniValue::VARR);
 
-        string sql = R"sql(
-            select
-                a.address,
-                ifnull(t.Type,0) as type,
-                sum(ifnull(o.Value, 0)) as amount
-            from (select ? address)a
-            left join TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
-                on o.AddressHash = a.address
-                    and o.AddressHash !=
-                    (
-                        select
-                            oi.AddressHash
-                        from TxInputs i indexed by TxInputs_SpentTxHash_TxHash_Number
-                        join TxOutputs oi indexed by sqlite_autoindex_TxOutputs_1
-                            on oi.TxHash = i.TxHash
-                                and oi.Number = i.Number
-                        where i.SpentTxHash = o.TxHash
-                        limit 1
-                    )
-                    and o.TxHeight <= ?
-                    and o.TxHeight >= ?
-            left join Transactions t indexed by sqlite_autoindex_Transactions_1
-                on t.Hash = o.TxHash
-            group by t.Type, a.address
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(
-                address,
-                height,
-                height - depth
-            )
+            Sql(R"sql(
+                with
+                    addr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String = ?
+                    )
+                select
+                    addr.hash,
+                    ifnull(t.Type, 0) as type,
+                    sum(ifnull(o.Value, 0)) as amount
+                from
+                    addr
+                cross join
+                    TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                        o.AddressId = addr.id
+                cross join
+                    Chain c on
+                        c.TxId = o.TxId and
+                        c.Height <= ? and
+                        c.Height >= ?
+                cross join
+                    Transactions t on
+                        t.RowId = c.TxId
+                cross join
+                    TxInputs i indexed by TxInputs_SpentTxId_Number_TxId on
+                        i.SpentTxId = o.TxId
+                cross join
+                    TxOutputs oi indexed by TxOutputs_TxId_Number_AddressId on
+                        oi.TxId = i.TxId and
+                        oi.Number = i.Number and
+                        oi.AddressId != o.AddressId
+                group by t.Type
+            )sql")
+            .Bind(address,height,height - depth)
             .Select([&](Cursor& cursor) {
                 int64_t amountLottery = 0;
                 int64_t amountDonation = 0;
@@ -2667,7 +2671,6 @@ namespace PocketDb
 
                 while (cursor.Step())
                 {
-//                    TryGetColumnInt(*stmt, 0); // address
                     int64_t amount = 0;
                     if (auto[ok, type] = cursor.TryGetColumnInt(1); ok)
                     {
