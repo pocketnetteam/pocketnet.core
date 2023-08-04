@@ -3566,34 +3566,42 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
-    UniValue WebRpcRepository::SearchLinks(const vector<string>& links, const vector<int>& contentTypes,
-        const int nHeight, const int countOut)
+    UniValue WebRpcRepository::SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut)
     {
         UniValue result(UniValue::VARR);
 
         if (links.empty())
             return result;
 
-        string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
-        string  linksWhere = join(vector<string>(links.size(), "?"), ",");
-
-        string sql = R"sql(
-            select t.Id
-            from Transactions t indexed by Transactions_Hash_Height
-            join Payload p indexed by Payload_String7 on p.TxHash = t.Hash
-            where t.Type in ( )sql" + contentTypesWhere + R"sql( )
-                and t.Height <= ?
-                and t.Last = 1
-                and p.String7 in ( )sql" + linksWhere + R"sql( )
-            limit ?
-        )sql";
-
         vector<int64_t> ids;
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(contentTypes, nHeight, links, countOut)
+            Sql(R"sql(
+                with
+                    height as (
+                        select ? as value
+                    )
+                select
+                    c.Uid
+                from
+                    height
+                cross join
+                    Payload p on
+                        p.String7 in ( )sql" + join(vector<string>(links.size(), "?"), ",") + R"sql( )
+                cross join
+                    Transactions t on
+                        t.RowId = p.TxId and
+                        t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                cross join
+                    Last l on
+                        l.TxId = t.RowId
+                cross join
+                    Chain c indexed by Chain_TxId_Height on
+                        c.TxId = t.RowId and
+                        c.Height <= height.value
+                limit ?
+            )sql")
+            .Bind(nHeight, links, contentTypes, countOut)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
