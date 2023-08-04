@@ -2095,8 +2095,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetSubscribersAddresses(
-        const string& address, const vector<TxType>& types, const string& orderBy, bool orderDesc, int offset, int limit)
+    UniValue WebRpcRepository::GetSubscribersAddresses(const string& address, const vector<TxType>& types, const string& orderBy, bool orderDesc, int offset, int limit)
     {
         UniValue result(UniValue::VARR);
 
@@ -3309,27 +3308,34 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement excludePosts
-    vector<UniValue> WebRpcRepository::GetMissedPostComments(const string& address, const vector<string>& excludePosts,
-        int height, int count)
+    vector<UniValue> WebRpcRepository::GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count)
     {
         vector<UniValue> result;
-
-        //  and p.String2 not in ( )sql" + join(vector<string>(excludePosts.size(), "?"), ",") + R"sql( )
 
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
                 with
-                addr as (
-                    select
-                        RowId as id
-                    from
-                        Registry
-                    where
-                        String = ?
-                ),
-                height as ( select ? as value )
+                    addr as (
+                        select
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    height as (
+                        select ? as value
+                    ),
+                    excludeContent as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String in ( )sql" + join(vector<string>(excludePosts.size(), "?"), ",") + R"sql( )
+                    )
                 select
                     (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
                     c.Time,
@@ -3347,8 +3353,9 @@ namespace PocketDb
                     addr,
                     height
                 cross join
-                    Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on p.Type in (200, 201, 202, 209, 210) and p.RegId1 = addr.id 
+                    Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        p.Type in (200, 201, 202, 209, 210) and
+                        p.RegId1 = addr.id
                 cross join
                     Last lp
                         on lp.TxId = p.RowId
@@ -3361,10 +3368,16 @@ namespace PocketDb
                 cross join
                     Chain cc
                         on cc.TxId = lc.TxId and cc.Height > height.value
-                order by cc.Height desc
+                left join
+                    excludeContent on
+                        excludeContent.id = p.RegId2
+                where
+                    excludeContent.id is null
+                order by
+                    cc.Height desc
                 limit ?
             )sql")
-            .Bind(address, height, count) // excludePosts
+            .Bind(address, height, excludePosts, count)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
