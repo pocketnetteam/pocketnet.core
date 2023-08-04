@@ -5491,118 +5491,177 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     UniValue WebRpcRepository::GetContentActions(const string& postTxHash)
     {
-        auto func = __func__;
+        UniValue result(UniValue::VOBJ);
         UniValue resultScores(UniValue::VARR);
         UniValue resultBoosts(UniValue::VARR);
         UniValue resultDonations(UniValue::VARR);
-        UniValue result(UniValue::VOBJ);
 
-        string sql = R"sql(
-            --scores
-            select
-                s.String2 as ContentTxHash,
-                s.String1 as AddressHash,
-                p.String2 as AccountName,
-                p.String3 as AccountAvatar,
-                r.Value as AccountReputation,
-                s.Int1 as ScoreValue,
-                0 as sumBoost,
-                0 as sumDonation
-            from Transactions s indexed by Transactions_Type_Last_String2_Height
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on  u.String1 = s.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
-            left join Ratings r indexed by Ratings_Type_Id_Last_Value
-                on r.Id = u.Id and r.Type = 0 and r.Last = 1
-            cross join Payload p on p.TxHash = u.Hash
-            where s.Type in (300)
-              and s.Last in (0,1)
-              and s.Height > 0
-              and s.String2 = ?
-
-            --boosts
-            union
-
-            select
-                tb.String2 as ContentTxHash,
-                tb.String1 as AddressHash,
-                p.String2 as AccountName,
-                p.String3 as AccountAvatar,
-                r.Value as AccountReputation,
-                0 as ScoreValue,
-                tb.sumBoost as sumBoost,
-                0 as sumDonation
-            from
-            (
-            select
-                b.String1,
-                b.String2,
-                sum(b.Int1) as sumBoost
-            from Transactions b indexed by Transactions_Type_Last_String2_Height
-            where b.Type in (208)
-              and b.Last in (0,1)
-              and b.Height > 0
-              and b.String2 = ?
-            group by
-                b.String1,
-                b.String2
-            )tb
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.String1 = tb.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
-            left join Ratings r indexed by Ratings_Type_Id_Last_Value
-                on r.Id = u.Id and r.Type = 0 and r.Last = 1
-            cross join Payload p on p.TxHash = u.Hash
-
-            --donations
-            union
-
-            select
-                td.String3 as ContentTxHash,
-                td.String1 as AddressHash,
-                p.String2 as AccountName,
-                p.String3 as AccountAvatar,
-                r.Value as AccountReputation,
-                0 as ScoreValue,
-                0 as sumBoost,
-                td.sumDonation as sumDonation
-            from
-            (
-            select
-                comment.String1,
-                comment.String3,
-                sum(o.Value) as sumDonation
-            from Transactions comment indexed by Transactions_Type_Last_String3_Height
-            join Transactions content indexed by Transactions_Type_Last_String2_Height
-                on content.String2 = comment.String3
-                    and content.Type in (200,201,202,209,210)
-                    and content.Last = 1
-                    and content.Height is not null
-            join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                on o.TxHash = comment.Hash
-                    and o.AddressHash = content.String1
-                    and o.AddressHash != comment.String1
-                    and o.Value > 0
-            where comment.Type in (204, 205, 206)
-                and comment.Height is not null
-                and comment.Last = 1
-                and comment.String3 = ?
-            group by
-                comment.String1,
-                comment.String3
-            )td
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.String1 = td.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
-            left join Ratings r indexed by Ratings_Type_Id_Last_Value
-                on r.Id = u.Id and r.Type = 0 and r.Last = 1
-            cross join Payload p on p.TxHash = u.Hash
-        )sql";
-
-        SqlTransaction(func, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(postTxHash, postTxHash, postTxHash)
+            Sql(R"sql(
+                --scores
+                with
+                    tx as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String = ?
+                    )
+                select
+                    tx.hash as ContentTxHash,
+                    (select r.String from Registry r where r.RowId = s.RegId1) as AddressHash,
+                    p.String2 as AccountName,
+                    p.String3 as AccountAvatar,
+                    r.Value as AccountReputation,
+                    s.Int1 as ScoreValue,
+                    0 as sumBoost,
+                    0 as sumDonation
+                from
+                    tx
+                cross join
+                    Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                        s.Type in (300) and
+                        s.RegId2 = tx.id
+                cross join
+                    Chain cs on
+                        cs.TxId = s.RowId
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and
+                        u.RegId1 = s.RegId1
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                cross join
+                    Payload p on
+                        p.TxId = u.RowId
+                left join
+                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                        r.Uid = cu.Uid and
+                        r.Type = 0 and
+                        r.Last = 1
+
+                --boosts
+                union
+
+                select
+                    b.hash as ContentTxHash,
+                    (select r.String from Registry r where r.RowId = b.RegId1) as AddressHash,
+                    p.String2 as AccountName,
+                    p.String3 as AccountAvatar,
+                    r.Value as AccountReputation,
+                    0 as ScoreValue,
+                    b.sumBoost as sumBoost,
+                    0 as sumDonation
+                from
+                    (
+                        select
+                            tx.hash,
+                            b.RegId1,
+                            b.RegId2,
+                            sum(b.Int1) as sumBoost
+                        from
+                            tx
+                        cross join
+                            Transactions b indexed by Transactions_Type_RegId2_RegId1 on
+                                b.Type in (208) and
+                                b.RegId2 = tx.id
+                        cross join
+                            Chain cb on
+                                cb.TxId = b.RowId
+                        group by
+                            b.RegId1,
+                            b.RegId2
+                    )b
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and
+                        u.RegId1 = b.RegId1
+                cross join
+                    Last lu on
+                        lu.TxId = u.RowId
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                cross join
+                    Payload p on
+                        p.TxId = u.RowId
+                left join
+                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                        r.Uid = cu.Uid and
+                        r.Type = 0 and
+                        r.Last = 1
+
+                --donations
+                union
+
+                select
+                    td.hash as ContentTxHash,
+                    (select r.String from Registry r where r.RowId = td.RegId1) as AddressHash,
+                    p.String2 as AccountName,
+                    p.String3 as AccountAvatar,
+                    r.Value as AccountReputation,
+                    0 as ScoreValue,
+                    0 as sumBoost,
+                    td.sumDonation as sumDonation
+                from
+                    (
+                        select
+                            tx.hash,
+                            c.RegId1,
+                            c.RegId3,
+                            sum(o.Value) as sumDonation
+                        from
+                            tx
+                        cross join
+                            Transactions c indexed by Transactions_Type_RegId3_RegId1 on
+                                c.Type in (204, 205, 206) and
+                                c.RegId3 = tx.id
+                        cross join
+                            Last lc on
+                                lc.TxId = c.RowId
+                        cross join
+                            Transactions p indexed by Transactions_Type_RegId2_RegId1 on
+                                p.Type in (200,201,202,209,210) and
+                                p.RegId2 = c.RegId3
+                        cross join
+                            Last lp on
+                                lp.TxId = p.RowId
+                        cross join
+                            TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                                o.AddressId = p.RegId1 and
+                                o.AddressId != c.RegId1 and
+                                o.TxId = c.RowId and
+                                o.Value > 0
+                        group by
+                            c.RegId1,
+                            c.RegId3
+                    )td
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100) and
+                        u.RegId1 = td.RegId1
+                cross join
+                    Last lu on
+                        lu.TxId = u.RowId
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                cross join
+                    Payload p on
+                        p.TxId = u.RowId
+                left join
+                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                        r.Uid = cu.Uid and
+                        r.Type = 0 and
+                        r.Last = 1
+            )sql")
+            .Bind(postTxHash)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
