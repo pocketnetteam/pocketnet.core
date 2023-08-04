@@ -5258,38 +5258,6 @@ namespace PocketDb
             langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
 
         string sorting = "t.Id ";
-//        if (orderby == "comment")
-//        {
-//            sorting = R"sql(
-//                (
-//                    select count()
-//                    from Transactions s indexed by Transactions_Type_Last_String3_Height
-//                    where s.Type in (204, 205)
-//                      and s.Height is not null
-//                      and s.String3 = t.String2
-//                      and s.Last = 1
-//                      -- exclude commenters blocked by the author of the post
-//                      and not exists (
-//                        select 1
-//                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-//                        where b.Type in (305)
-//                            and b.Last = 1
-//                            and b.Height > 0
-//                            and b.String1 = t.String1
-//                            and b.String2 = s.String1
-//                      )
-//                )
-//            )sql";
-//        }
-//        if (orderby == "score")
-//        {
-//            sorting = R"sql(
-//                (
-//                    select count() from Transactions scr indexed by Transactions_Type_Last_String2_Height
-//                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2
-//                )
-//            )sql";
-//        }
         sorting += " " + ascdesc;
 
         string sql = R"sql(
@@ -5305,47 +5273,6 @@ namespace PocketDb
                 )sql" + contentIdWhere   + R"sql(
         )sql";
 
-//        if (!tags.empty())
-//        {
-//            sql += R"sql(
-//                and t.id in (
-//                    select tm.ContentId
-//                    from web.Tags tag
-//                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
-//                        on tag.Id = tm.TagId
-//                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
-//                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
-//                )
-//            )sql";
-//        }
-
-//        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
-//        if (!addrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ";
-//        if (!tagsExcluded.empty())
-//        {
-//            sql += R"sql( and t.Id not in (
-//                select tmEx.ContentId
-//                from web.Tags tagEx
-//                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
-//                    on tagEx.Id=tmEx.TagId
-//                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
-//                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
-//             ) )sql";
-//        }
-//
-//        if(!_keyword.empty())
-//        {
-//            sql += R"sql(
-//                and t.id in (
-//                    select cm.ContentId
-//                    from web.Content c
-//                    join web.ContentMap cm on c.ROWID = cm.ROWID
-//                    where cm.FieldType in (2, 3, 4, 5)
-//                        and c.Value match ?
-//                )
-//            )sql";
-//        }
-
         sql += R"sql( order by
         )sql" + sorting   + R"sql(
          limit ?
@@ -5358,48 +5285,12 @@ namespace PocketDb
         SqlTransaction(func, [&]()
         {
             auto& stmt = Sql(sql);
-
+            
             if (!lang.empty()) stmt.Bind(lang);
-
-//            stmt->Bind(contentTypes);
-
             stmt.Bind(topHeight, addressFeed);
-
             if (topContentId > 0)
                 stmt.Bind(topContentId);
-
-//            if (!tags.empty())
-//            {
-//                for (const auto& tag: tags)
-//                    TryBindStatementText(stmt, i++, tag);
-//
-//                if (!lang.empty())
-//                    TryBindStatementText(stmt, i++, lang);
-//            }
-
-//            if (!txidsExcluded.empty())
-//                for (const auto& extxid: txidsExcluded)
-//                    TryBindStatementText(stmt, i++, extxid);
-
-//            if (!addrsExcluded.empty())
-//                for (const auto& exadr: addrsExcluded)
-//                    TryBindStatementText(stmt, i++, exadr);
-
-//            if (!tagsExcluded.empty())
-//            {
-//                for (const auto& extag: tagsExcluded)
-//                    TryBindStatementText(stmt, i++, extag);
-//
-//                if (!lang.empty())
-//                    TryBindStatementText(stmt, i++, lang);
-//            }
-
-//            if (!_keyword.empty())
-//                TryBindStatementText(stmt, i++, _keyword);
-
             stmt.Bind(countOut, pageNumber * countOut);
-
-            // ---------------------------------------------
 
             stmt.Select([&](Cursor& cursor) {
                 while (cursor.Step()) {

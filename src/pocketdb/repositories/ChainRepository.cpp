@@ -1001,13 +1001,13 @@ namespace PocketDb
                         select
                             f.RowId
                         from
-                            Transactions f
+                            Chain c
                         cross join
-                            Chain c indexed by Chain_TxId_Height on
-                                c.TxId = f.RowId and
-                                c.Height >= ?
+                            Transactions f on
+                                f.RowId = c.TxId and
+                                f.Type = 410
                         where
-                            f.Type = 410
+                            c.Height >= ?
                     )
             )sql")
             .Bind(height)
@@ -1022,14 +1022,13 @@ namespace PocketDb
                         select
                             f.RowId
                         from
-                            Transactions f
+                            Chain c
                         cross join
-                            Chain c indexed by Chain_TxId_Height on
-                                c.TxId = f.RowId and
-                                c.Height >= ?
+                            Transactions f on
+                                f.RowId = c.TxId and
+                                f.Type = 410
                         where
-                            f.Type = 410
-                            
+                            c.Height >= ?
                     )
             )sql")
             .Bind(height)
