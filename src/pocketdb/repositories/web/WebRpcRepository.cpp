@@ -5536,49 +5536,63 @@ namespace PocketDb
 
     // ------------------------------------------------------
 
-    // TODO (aok, api): implement
     vector<int64_t> WebRpcRepository::GetRandomContentIds(const string& lang, int count, int height)
     {
         vector<int64_t> result;
 
-        auto sql = R"sql(
-            select t.Id, t.String1, r.Value, p.String1
-
-            from Transactions t indexed by Transactions_Last_Id_Height
-
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type = 100 and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
-
-            cross join Ratings r indexed by Ratings_Type_Id_Last_Value
-                on r.Type = 0 and r.Last = 1 and r.Id = u.Id and r.Value > 0
-
-            cross join Payload p indexed by Payload_String1_TxHash
-                on p.TxHash = t.Hash and p.String1 = ?
-
-            where t.Last = 1
-              and t.Height > 0
-              and t.Id in (
-                select tr.Id
-                from Transactions tr indexed by Transactions_Type_Last_Height_Id
-                where tr.Type in (200,201,202,209,210)
-                  and tr.Last = 1
-                  and tr.Height > ?
-                order by random()
-                limit ?
-              )
-
-            order by random()
-            limit ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(lang, height, count * 100, count)
+            Sql(R"sql(
+                with
+                    lang as (
+                        select ? as value
+                    ),
+                    height as (
+                        select ? as value
+                    )
+                select
+                    c.Uid
+                from
+                    lang,
+                    height
+                cross join
+                    Chain c on
+                        c.Height > height.value
+                cross join
+                    Transactions t on
+                        t.RowId = c.TxId and
+                        t.Type in (200, 201, 202, 209, 210)
+                cross join
+                    Last lt on
+                        lt.TxId = t.RowId
+                cross join
+                    Payload p on
+                        t.RowId = p.TxId and
+                        p.String1 = lang.value
+
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type = 100 and
+                        u.RegId1 = t.RegId1
+                cross join
+                    Last lu on
+                        lu.TxId = u.RowId
+                cross join
+                    Chain cu on
+                        cu.TxId = lu.TxId
+                cross join
+                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                        r.Type = 0 and r.Last = 1 and r.Uid = cu.Uid and r.Value > 0
+                order by
+                    random()
+                limit ?
+            )sql")
+            .Bind(lang, height, count)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) result.push_back(value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                        result.push_back(value);
                 }
             });
         });
