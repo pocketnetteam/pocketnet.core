@@ -103,7 +103,7 @@ namespace PocketDb
     tuple<bool, bool> ChainRepository::ExistsBlock(const string& blockHash, int height)
     {
         int exists = 0;
-        int last = 1;
+        int last = 0;
 
         SqlTransaction(__func__, [&]()
         {
@@ -144,7 +144,7 @@ namespace PocketDb
             });
         });
 
-        return { exists == 1, last == 0 };
+        return { exists == 1, last == 1 };
     }
 
     void ChainRepository::IndexBlockData(const string& blockHash)
