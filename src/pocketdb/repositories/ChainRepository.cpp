@@ -102,8 +102,8 @@ namespace PocketDb
 
     tuple<bool, bool> ChainRepository::ExistsBlock(const string& blockHash, int height)
     {
-        int exists = 0;
-        int last = 0;
+        bool exists = false;
+        bool last = true;
 
         SqlTransaction(__func__, [&]()
         {
@@ -140,11 +140,17 @@ namespace PocketDb
             .Bind(height, blockHash, height + 1)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.CollectAll(exists, last);
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok && value == 1)
+                        exists = true;
+
+                    if (auto[ok, value] = cursor.TryGetColumnInt(1); ok && value == 1)
+                        last = false;
+                }
             });
         });
 
-        return { exists == 1, last == 1 };
+        return { exists, last };
     }
 
     void ChainRepository::IndexBlockData(const string& blockHash)
