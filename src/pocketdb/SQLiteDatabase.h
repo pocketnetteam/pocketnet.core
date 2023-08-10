@@ -43,7 +43,7 @@ namespace PocketDb
 
         void Init(const std::string& dbBasePath, const string& dbName, const PocketDbMigrationRef& migration = nullptr, bool drop = false);
 
-        void CreateStructure();
+        void CreateStructure(bool includeIndexes = true);
 
         void DropIndexes();
 
