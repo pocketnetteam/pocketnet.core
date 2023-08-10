@@ -23,6 +23,8 @@ namespace PocketDb
 
     void InitSQLite(fs::path path);
 
+    void MaybeMigrate0_22(const fs::path& pocketPath);
+
     class SQLiteDatabase
     {
     private:

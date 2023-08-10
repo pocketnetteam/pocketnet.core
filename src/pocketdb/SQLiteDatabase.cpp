@@ -54,6 +54,9 @@ namespace PocketDb
         auto dbBasePath = path.string();
 
         InitializeSqlite();
+
+        MaybeMigrate0_22(dbBasePath);
+
         PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDbMainMigration>();
         PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
         SQLiteDbInst.CreateStructure();
@@ -92,6 +95,59 @@ namespace PocketDb
 
         // Attach `web` db to `main` db
         SQLiteDbInst.AttachDatabase("web");
+    }
+
+    void MaybeMigrate0_22(const fs::path& pocketPath)
+    {
+        const string mainDb = "main";
+        SQLiteDatabase sqliteMainDbInst(false);
+        sqliteMainDbInst.Init(pocketPath.string(), mainDb);
+
+        MigrationRepository migRepo(sqliteMainDbInst);
+        if (!migRepo.NeedMigrate0_22())
+            return;
+
+        const string tmpDb = "newdb";
+
+        SQLiteDatabase sqliteNewDbInst(false);
+        sqliteNewDbInst.Init(pocketPath.string(), tmpDb, std::make_shared<PocketDbMainMigration>(), true);
+        sqliteNewDbInst.CreateStructure(false);
+        sqliteNewDbInst.Close();
+
+        sqliteMainDbInst.AttachDatabase(tmpDb);
+
+        migRepo.Migrate0_21__0_22();
+
+        migRepo.Destroy();
+        sqliteMainDbInst.DetachDatabase(tmpDb);
+        sqliteMainDbInst.Close();
+
+        try
+        {
+            fs::rename(pocketPath / (tmpDb + ".sqlite3"), pocketPath / (mainDb + ".sqlite3"));
+
+            const auto shmDst = pocketPath / (mainDb + ".sqlite3-shm");
+            const auto shmSrc = pocketPath / (tmpDb + ".sqlite3-shm");
+            if (fs::exists(shmDst)) {
+                fs::remove(shmDst);
+            }
+            if (fs::exists(shmSrc)) {
+                fs::rename(shmSrc, shmDst);
+            }
+
+            const auto walDst = pocketPath / (mainDb + ".sqlite3-wal");
+            const auto walSrc = pocketPath / (tmpDb + ".sqlite3-wal");
+            if (fs::exists(walDst)) {
+                fs::remove(walDst);
+            }
+            if (fs::exists(walSrc)) {
+                fs::rename(walSrc, walDst);
+            }
+        }
+        catch (const fs::filesystem_error& e)
+        {
+            throw std::runtime_error(strprintf("Failed replace original database with migration: %s", e.what()));
+        }
     }
 
     SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)
