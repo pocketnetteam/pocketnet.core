@@ -124,22 +124,24 @@ namespace PocketDb
 
         try
         {
-            fs::rename(pocketPath / (tmpDb + ".sqlite3"), pocketPath / (mainDb + ".sqlite3"));
-
             const auto shmDst = pocketPath / (mainDb + ".sqlite3-shm");
             const auto shmSrc = pocketPath / (tmpDb + ".sqlite3-shm");
+            const auto walDst = pocketPath / (mainDb + ".sqlite3-wal");
+            const auto walSrc = pocketPath / (tmpDb + ".sqlite3-wal");
+
+            if (fs::exists(walDst)) {
+                fs::remove(walDst);
+            }
             if (fs::exists(shmDst)) {
                 fs::remove(shmDst);
             }
+
+            fs::rename(pocketPath / (tmpDb + ".sqlite3"), pocketPath / (mainDb + ".sqlite3"));
+
             if (fs::exists(shmSrc)) {
                 fs::rename(shmSrc, shmDst);
             }
 
-            const auto walDst = pocketPath / (mainDb + ".sqlite3-wal");
-            const auto walSrc = pocketPath / (tmpDb + ".sqlite3-wal");
-            if (fs::exists(walDst)) {
-                fs::remove(walDst);
-            }
             if (fs::exists(walSrc)) {
                 fs::rename(walSrc, walDst);
             }
