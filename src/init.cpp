@@ -2301,6 +2301,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // Start WebSocket server
     if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
         InitWS();
+    ChainRepoInst.RestoreSocialRegistry(ChainActive().Height() + 1);
 
     gStatEngineInstance.Run(threadGroup, context);
 
