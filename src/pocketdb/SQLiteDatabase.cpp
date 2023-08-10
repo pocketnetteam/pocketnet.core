@@ -276,6 +276,9 @@ namespace PocketDb
             if (!BulkExecute(m_db_migration->PreProcessing()))
                 throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (PreProcessing)\n", __func__, m_file_path));
 
+            if (!BulkExecute(m_db_migration->RequiredIndexes()))
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (RequiredIndexes)\n", __func__, m_file_path));
+
             if (includeIndexes && !BulkExecute(m_db_migration->Indexes()))
                 throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (Indexes)\n", __func__, m_file_path));
 
