@@ -684,7 +684,6 @@ namespace PocketDb
         return ids;
     }
 
-    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::GetContentFromAddressSubscriptions(const string& address, const vector<int>& contentTypes, const string& lang, int cntOut, bool rest)
     {
         vector<int64_t> ids;
@@ -692,57 +691,80 @@ namespace PocketDb
         if (address.empty())
             return ids;
 
-        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
-
-        string langFilter = "";
-        if (!lang.empty())
-            langFilter = "cross join Payload lang on lang.TxHash = Contents.Hash and lang.String1 = ?";
-
-        string limitFilter = "= floor(? / "
-                             "(select count(s.String2) from Transactions s indexed by Transactions_Type_Last_String1_Height_Id where s.Type in (302, 303) and s.Last = 1 and s.String1 = ? and s.Height > 0)) ";
-        if (rest)
-            limitFilter = limitFilter + " + 1 limit ?";
-        else
-            limitFilter = "<" + limitFilter;
-
-        string sql = R"sql(
-            select
-                result.Id
-            from (
-                    select
-                        Contents.Id,
-                        row_number() over (partition by contents.String1 order by r.Value desc ) as rowNumber
-                    from Transactions Contents indexed by Transactions_Type_Last_String1_Height_Id
-                    cross join Ratings r on contents.Id = r.Id and r.Last = 1 and r.Type = 2
-                    )sql" + langFilter + R"sql(
-                    where Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
-                      and Contents.Last = 1
-                      and Contents.String1 in (
-                        select subscribtions.String2
-                        from Transactions subscribtions indexed by Transactions_Type_Last_String1_Height_Id
-                        where subscribtions.Type in (302, 303)
-                            and subscribtions.Last = 1
-                            and subscribtions.String1 = ?
-                            and subscribtions.Height > 0
-                      )
-                      and Contents.Height > 0
-                )result
-            where result.rowNumber
-        )sql" + limitFilter;
-
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            if (!lang.empty())
-                stmt.Bind(lang);
-
-            stmt.Bind(contentTypes, address, cntOut, address);
-
-            if (rest)
-                stmt.Bind(cntOut);
-
-            stmt.Select([&](Cursor& cursor) {
+            Sql(R"sql(
+                with
+                    addr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    content as (
+                        select
+                            cc.Uid,
+                            row_number() over (partition by c.RegId1 order by r.Value desc ) as rowNumber
+                        from
+                            addr
+                        cross join
+                            Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                s.Type in (302, 303) and
+                                s.RegId1 = addr.id
+                        cross join
+                            Last ls on
+                                ls.TxId = s.RowId
+                        cross join
+                            Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                c.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                                c.RegId1 = s.RegId2
+                        cross join
+                            Last lc on
+                                lc.TxId = c.RowId
+                        cross join
+                            Chain cc on
+                                cc.TxId = c.RowId
+                        cross join Ratings r on
+                            r.Uid = cc.Uid and
+                            r.Last = 1 and
+                            r.Type = 2
+                        cross join
+                            Payload lang on
+                                lang.TxId = c.RowId and
+                                (? or lang.String1 = ?)
+                    )
+                select
+                    content.Uid
+                from
+                    content
+                where
+                    content.rowNumber )sql" + (rest ? "=" : "<=") + R"sql(
+                        floor(10 / (
+                            select
+                                count(s.RegId2)
+                            from
+                                addr
+                            cross join
+                                Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    s.Type in (302, 303) and
+                                    s.RegId1 = addr.id
+                            cross join
+                                Last ls on
+                                    ls.TxId = s.RowId
+                        )) )sql" + (rest ? "+ 1" : "") + R"sql(
+                limit ?
+            )sql")
+            .Bind(
+                address,
+                contentTypes,
+                lang.empty(),
+                lang,
+                (rest ? cntOut : 9999)
+            )
+            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
