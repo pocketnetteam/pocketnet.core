@@ -265,7 +265,7 @@ namespace PocketDb
 
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(R"sql(
+            Sql(R"sql(
                 with
                     addr as (
                         select
@@ -429,132 +429,188 @@ namespace PocketDb
         return ids;
     }
 
-    // TODO (aok, api): implement
-    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
+    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
     {
         vector<int64_t> ids;
 
         if (contentAddress.empty())
             return ids;
 
-        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
-
-        string excludeAddressFilter = "?";
-        if (!address.empty())
-            excludeAddressFilter += ", ?";
-
-        string langFilter = "";
-        if (!lang.empty())
-            langFilter = "cross join Payload lang indexed by Payload_String1_TxHash on lang.TxHash = Contents.Hash and lang.String1 = ?";
-
         int minReputation = 300;
         int limitSubscriptions = 50;
         int limitSubscriptionsTotal = 30;
         int cntRates = 1;
 
-        string sql = R"sql(
-            select recomendations.Id
-            from (
-                 select Contents.String1,
-                        Contents.Id,
-                        --Rates.String2,
-                        count(*) count
-                 from Transactions Rates indexed by Transactions_Type_Last_String1_Height_Id
-                  cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
-                     on Contents.String2 = Rates.String2
-                         and Contents.Last = 1
-                         and Contents.Height > 0
-                         and Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
-                         and Contents.String1 not in ( )sql" + excludeAddressFilter + R"sql( )
-                  )sql" + langFilter + R"sql(
-                 where Rates.Type in (300)
-                   and Rates.Int1 = 5
-                   and Rates.Height > ?
-                   and Rates.Last in (0, 1)
-                   and Rates.String1 in
-                       (
-                       select address
-                       from (
-                            select rnk, address
-                            from (
-                                 select 1 as rnk, subscribes.String2 as address
-                                 from Transactions subscribes indexed by Transactions_String1_Last_Height
-                                  cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                                     on u.Type in (100)
-                                         and u.Last = 1 and u.Height > 0
-                                         and u.String1 = subscribes.String2
-                                  cross join Ratings r indexed by Ratings_Type_Id_Last_Value
-                                     on r.Id = u.Id
-                                         and r.Type = 0
-                                         and r.Last = 1
-                                         and r.Value > ?
-                                 where subscribes.Type in (302, 303)
-                                   and subscribes.Last = 1
-                                   and subscribes.String1 = ?
-                                   and subscribes.Height is not null
-                                 order by subscribes.Height desc
-                                 limit ?
-                                 )
-                            union
-                            select rnk, address
-                            from (
-                                 select 2 as rnk, subscribers.String1 as address
-                                 from Transactions subscribers indexed by Transactions_Type_Last_String2_Height
-                                  cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                                     on u.Type in (100)
-                                         and u.Last = 1 and u.Height > 0
-                                         and u.String1 = subscribers.String1
-                                  cross join Ratings r indexed by Ratings_Type_Id_Last_Value
-                                     on r.Id = u.Id
-                                         and r.Type = 0
-                                         and r.Last = 1
-                                         and r.Value > ?
-                                 where subscribers.Type in (302, 303)
-                                   and subscribers.Last = 1
-                                   and subscribers.String2 = ?
-                                   and subscribers.Height is not null
-                                 order by random()
-                                 limit ?
-                                 ))
-                       order by rnk
-                       limit ?
-                       )
-                 --group by Rates.String2
-                 group by Contents.Id
-                 having count(*) > ?
-                 order by count(*) desc
-                 ) recomendations
-            group by recomendations.String1
-            order by recomendations.count desc
-            limit ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(R"sql(
+                with
+                    addr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    addrs as (
+                        select
+                            id,
+                            rnk
+                        from (
+                            select
+                                1 as rnk,
+                                subscribes.RegId2 as id
+                            from
+                                addr
+                            cross join
+                                Transactions subscribes indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    subscribes.Type in (302, 303) and
+                                    subscribes.RegId1 = addr.id
+                            cross join
+                                Last lSubscribes on
+                                    lSubscribes.TxId = subscribes.RowId
+                            cross join
+                                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    u.Type in (100) and
+                                    u.RegId1 = subscribes.RegId2
+                            cross join
+                                Last lu on
+                                    lu.TxId = u.RowId
+                            cross join
+                                Chain cu on
+                                    cu.TxId = u.RowId
+                            cross join
+                                Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                                    r.Uid = cu.Uid and
+                                    r.Type = 0 and
+                                    r.Last = 1 and
+                                    r.Value > ?
+                            order by
+                                subscribes.RowId desc
+                            limit ?
+                        )
 
-            stmt.Bind(contentTypes, contentAddress);
+                        union
 
-            if (!address.empty())
-                stmt.Bind(address);
+                        select
+                            id,
+                            rnk
+                        from (
+                            select
+                                2 as rnk,
+                                subscribers.RegId1 as id
+                            from
+                                addr
+                            cross join
+                                Transactions subscribers indexed by Transactions_Type_RegId2_RegId1 on
+                                    subscribers.Type in (302, 303) and
+                                    subscribers.RegId2 = addr.id
+                            cross join
+                                Last lSubscribers on
+                                    lSubscribers.TxId = subscribers.RowId
+                            cross join
+                                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    u.Type in (100) and
+                                    u.RegId1 = subscribers.RegId1
+                            cross join
+                                Last lu on
+                                    lu.TxId = u.RowId
+                            cross join
+                                Chain cu on
+                                    cu.TxId = u.RowId
+                            cross join
+                                Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                                    r.Uid = cu.Uid and
+                                    r.Type = 0 and
+                                    r.Last = 1 and
+                                    r.Value > ?
+                            order by
+                                random()
+                            limit ?
+                        )
 
-            if (!lang.empty())
-                stmt.Bind(lang);
-
-            stmt.Bind(
-                    nHeight-depth,
-                    minReputation,
-                    contentAddress,
-                    limitSubscriptions,
-                    minReputation,
-                    contentAddress,
-                    limitSubscriptions,
-                    limitSubscriptionsTotal,
-                    cntRates,
-                    cntOut
-            );
-
-            stmt.Select([&](Cursor& cursor) {
+                        order by
+                            rnk
+                        limit ?
+                    )
+                select
+                    recomendations.Uid
+                from (
+                    select
+                        Contents.RegId1,
+                        cContents.Uid,
+                        count() as count
+                    from
+                        addrEx,
+                        addrs
+                    cross join
+                        Transactions Rates indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            Rates.Type in (300) and
+                            Rates.Int1 = 5 and
+                            Rates.RegId1 = addrs.id
+                    cross join
+                        Chain cRates on
+                            cRates.TxId = Rates.RowId
+                    cross join Transactions Contents indexed by Transactions_Type_RegId2_RegId1 on
+                            Contents.RegId2 = Rates.RegId2 and
+                            Contents.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                            (? or Contents.RegId1 not in (
+                                select
+                                    RowId as id,
+                                    String as hash
+                                from
+                                    Registry
+                                where
+                                    String = ?
+                            ))
+                    cross join
+                        Last lContents on
+                            lContents.TxId = Contents.RowId
+                    cross join
+                        Chain cContents on
+                            cContents.TxId = Contents.RowId
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type in (100) and
+                            u.RegId1 = Contents.RegId1
+                    cross join
+                        Last lu on
+                            lu.TxId = u.RowId
+                    cross join
+                        Payload lang on
+                            lang.TxId = u.RowId and
+                            (? or lang.String1 = ?)
+                    group by
+                        cContents.Uid
+                    having count() > ?
+                    order by
+                        count() desc
+                    limit ?
+                ) recomendations
+                group by
+                    recomendations.RegId1
+                order by
+                    recomendations.count desc
+                limit ?
+            )sql")
+            .Bind(
+                contentAddress,
+                minReputation,
+                limitSubscriptions,
+                minReputation,
+                limitSubscriptions,
+                limitSubscriptionsTotal,
+                contentTypes,
+                addressExclude.empty(),
+                addressExclude,
+                lang.empty(),
+                lang,
+                cntRates,
+                cntOut
+            )
+            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
