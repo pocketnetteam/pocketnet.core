@@ -64,7 +64,7 @@
         }, 1000);
         
         var update = function() {
-            fetch('http://localhost:38081/rpc/getlateststat', {
+            fetch(location.protocol + '//' + location.host.split(':')[0] + ':38081/rpc/getlateststat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
