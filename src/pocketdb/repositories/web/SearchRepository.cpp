@@ -176,7 +176,7 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                    keyword as ( select '"aok" OR aok*' as value )
+                    keyword as ( select ? as value )
                 select
                     names.*
                 from (
@@ -361,7 +361,6 @@ namespace PocketDb
                 select
                     (select String from Registry r where r.RowId = Contents.RegId1)
                 from
-                    addrEx,
                     addrs
                 cross join
                     Transactions Rates indexed by Transactions_Type_RegId1_RegId2_RegId3 on
@@ -371,10 +370,10 @@ namespace PocketDb
                 cross join
                     Chain cRates on
                         cRates.TxId = Rates.RowId
-                cross join Transactions Contents indexed by Transactions_Type_RegId2_RegId1
-                    on Contents.RegId2 = Rates.RegId2
-                        and Contents.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
-                        (1 or Contents.RegId1 not in (
+                cross join Transactions Contents indexed by Transactions_Type_RegId2_RegId1 and
+                        Contents.RegId2 = Rates.RegId2 and
+                        Contents.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                        (? or Contents.RegId1 not in (
                             select
                                 RowId
                             from
@@ -395,10 +394,11 @@ namespace PocketDb
                 cross join
                     Payload lang on
                         lang.TxId = u.RowId and
-                        (0 or lang.String1 = ?)
+                        (? or lang.String1 = ?)
                 group by
                     Contents.RegId1
-                having count() > ?
+                having
+                    count() > ?
                 order by
                     count() desc
                 limit ?
@@ -430,7 +430,8 @@ namespace PocketDb
         return ids;
     }
 
-    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
+    vector<int64_t> SearchRepository::GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& addressExclude, const vector<int>& contentTypes,
+        const string& lang, int cntOut, int nHeight, int depth)
     {
         vector<int64_t> ids;
 
@@ -544,7 +545,6 @@ namespace PocketDb
                         cContents.Uid,
                         count() as count
                     from
-                        addrEx,
                         addrs
                     cross join
                         Transactions Rates indexed by Transactions_Type_RegId1_RegId2_RegId3 on
@@ -559,8 +559,7 @@ namespace PocketDb
                             Contents.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
                             (? or Contents.RegId1 not in (
                                 select
-                                    RowId as id,
-                                    String as hash
+                                    RowId as id
                                 from
                                     Registry
                                 where

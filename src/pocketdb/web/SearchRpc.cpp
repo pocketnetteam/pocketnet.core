@@ -376,11 +376,11 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        vector<int> contentTypes;
+        vector<int> contentTypes{ 200,201,202,209,210,220 };
         if(request.params.size()>2)
             ParseRequestContentTypes(request.params[2], contentTypes);
 
-        string lang = "";
+        string lang = "en";
         if (request.params.size() > 3 && request.params[3].isStr())
             lang = request.params[3].get_str();
 
@@ -501,11 +501,11 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        vector<int> contentTypes;
+        vector<int> contentTypes{ 200,201,202,209,210,220 };
         if(request.params.size()>2)
             ParseRequestContentTypes(request.params[2], contentTypes);
 
-        string lang = "";
+        string lang = "en";
         if (request.params.size() > 3 && request.params[3].isStr())
             lang = request.params[3].get_str();
 
