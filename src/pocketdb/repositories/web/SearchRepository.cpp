@@ -251,7 +251,8 @@ namespace PocketDb
         return result;
     }
 
-    vector<string> SearchRepository::GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth)
+    vector<string> SearchRepository::GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes,
+        const string& lang, int cntOut, int nHeight, int depth)
     {
         vector<string> ids;
 
@@ -622,7 +623,6 @@ namespace PocketDb
         return ids;
     }
 
-    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::GetRandomContentByAddress(const string& contentAddress, const vector<int>& contentTypes, const string& lang, int cntOut)
     {
         vector<int64_t> ids;
@@ -630,34 +630,49 @@ namespace PocketDb
         if (contentAddress.empty())
             return ids;
 
-        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
-
-        string langFilter = "";
-        if (!lang.empty())
-            langFilter = "cross join Payload lang on lang.TxHash = Contents.Hash and lang.String1 = ?";
-
-        string sql = R"sql(
-            select Contents.Id
-            from Transactions Contents indexed by Transactions_Type_Last_String1_Height_Id
-            )sql" + langFilter + R"sql(
-            where Contents.Type in ( )sql" + contentTypesFilter + R"sql( )
-              and Contents.Last = 1
-              and Contents.String1 = ?
-              and Contents.Height > 0
-            order by random()
-            limit ?
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            if (!lang.empty())
-                stmt.Bind(lang);
-
-            stmt.Bind(contentTypes, contentAddress, cntOut);
-
-            stmt.Select([&](Cursor& cursor) {
+            Sql(R"sql(
+                with
+                    addr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String = ?
+                    )
+                select
+                    cc.Uid
+                from
+                    addr
+                cross join
+                    Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        c.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                        c.RegId1 = addr.id
+                cross join
+                    Last lc on
+                        lc.TxId = c.RowId
+                cross join
+                    Chain cc on
+                        cc.TxId = c.RowId
+                cross join
+                    Payload lang on
+                        lang.TxId = c.RowId and
+                        (? or lang.String1 = ?)
+                order by
+                    random()
+                limit ?
+            )sql")
+            .Bind(
+                contentAddress,
+                contentTypes,
+                lang.empty(),
+                lang,
+                cntOut
+            )
+            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
