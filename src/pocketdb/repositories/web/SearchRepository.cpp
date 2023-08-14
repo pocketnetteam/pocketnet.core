@@ -6,7 +6,7 @@
 
 namespace PocketDb
 {
-    // TODO (aok, api): implement
+    // TODO (aok, api): not used in PocketRpc
     UniValue SearchRepository::SearchTags(const SearchRequest& request)
     {
         UniValue result(UniValue::VARR);
@@ -36,58 +36,70 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::SearchIds(const SearchRequest& request)
     {
-        auto func = __func__;
         vector<int64_t> ids;
 
         if (request.Keyword.empty())
             return ids;
 
-        // First search request
-        string fieldTypes = join(request.FieldTypes | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
-        string txTypes = join(request.TxTypes | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
-        string heightWhere = request.TopBlock > 0 ? " and t.Height <= ? " : "";
-        string addressWhere = !request.Address.empty() ? " and t.String1 = ? " : "";
-        string keyword = "\"" + request.Keyword + "\"" + " OR " + request.Keyword + "*";
-
-        LogPrint(BCLog::RPCERROR, "Search keyword debug = `%s`\n", keyword);
-
-        string sql = R"sql(
-            select t.Id
-            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-            where t.Type in ( )sql" + txTypes + R"sql( )
-                and t.Last = 1
-                and t.Height is not null
-                )sql" + heightWhere + R"sql(
-                )sql" + addressWhere + R"sql(
-                and t.Id in (
-                    select cm.ContentId
-                    from web.Content c, web.ContentMap cm
-                    where c.ROWID = cm.ROWID
-                        and cm.FieldType in ( )sql" + fieldTypes + R"sql( )
-                        and c.Value match ?
-                    order by rank
-                    )
-            order by t.Id desc
-            limit ?
-            offset ?
-        )sql";
-        
-        SqlTransaction(func, [&]()
+        SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            if (request.TopBlock > 0)
-                stmt.Bind(request.TopBlock);
-            if (!request.Address.empty())
-                stmt.Bind(request.Address);
-            stmt.Bind(keyword);
-            stmt.Bind(request.PageSize);
-            stmt.Bind(request.PageStart);
-
-            stmt.Select([&](Cursor& cursor) {
+            Sql(R"sql(
+                with
+                    keyword as (
+                        select
+                            cm.ContentId,
+                            rank
+                        from
+                            web.Content c,
+                            web.ContentMap cm
+                        where
+                            c.ROWID = cm.ROWID and
+                            cm.FieldType in ( )sql" + join(request.FieldTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
+                            c.Value match )sql" + ("\"" + request.Keyword + "\"" + " OR " + request.Keyword + "*") + R"sql(
+                        order by
+                            rank
+                    )
+                select
+                    ct.Uid,
+                    keyword.rank
+                from
+                    keyword
+                cross join
+                    Chain ct on --indexed by Chain_Uid_Height on
+                        ct.Uid = keyword.ContentId and
+                        (? or ct.Height <= ?) -- 
+                cross join
+                    Transactions t on
+                        ct.TxId = t.RowId and
+                        t.Type in ( )sql" + join(request.TxTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
+                        (? or t.RegId1 = (
+                            select
+                                RowId as id,
+                                String as hash
+                            from
+                                Registry
+                            where
+                                String = ?
+                        ))
+                cross join
+                    Last lt on
+                        lt.TxId = t.RowId
+                order by
+                    keyword.rank desc
+                limit ?
+                offset ?
+            )sql")
+            .Bind(
+                !(request.TopBlock > 0),
+                request.TopBlock,
+                request.Address.empty(),
+                request.Address,
+                request.PageSize,
+                request.PageStart
+            )
+            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
