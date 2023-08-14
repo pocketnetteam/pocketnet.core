@@ -174,7 +174,7 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan SearchUsers()
     {
-        return RPCHelpMan{"SearchUsers",
+        return RPCHelpMan{"searchusers",
                 "\nSearch users in DB.\n",
                 {
                     // TODO (rpc): update argumants probably?

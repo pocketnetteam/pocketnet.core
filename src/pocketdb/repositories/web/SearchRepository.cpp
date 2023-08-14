@@ -111,7 +111,7 @@ namespace PocketDb
         return ids;
     }
 
-    // TODO (aok, api): implement
+    // TODO (aok, api): implement ?
     vector<int64_t> SearchRepository::SearchUsersOld(const SearchRequest& request)
     {
         vector<int64_t> result;
@@ -168,61 +168,77 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api): implement
     vector<int64_t> SearchRepository::SearchUsers(const string& keyword)
     {
         vector<int64_t> result;
 
-        string _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
-
-        string sql = R"sql(
-            select names.* from (
-                select
-                      fm.ContentId
-                    , ROW_NUMBER() OVER ( ORDER BY RANK, length(f.Value) ) as ROWNUMBER
-                    , RANK as RNK
-                    , r.Value as Rating
-                from web.Content f
-                join web.ContentMap fm on fm.ROWID = f.ROWID
-                left join Ratings r on r.Id = fm.ContentId and r.Last = 1 and r.Type = 0
-                where fm.FieldType in (?)
-                    and f.Value match ?
-                limit ?
-            ) names
-
-            union
-
-            select about.* from (
-                select
-                      fm.ContentId
-                    , ROW_NUMBER() OVER ( ORDER BY r.Value DESC) as ROWNUMBER
-                    , RANK as RNK
-                    , r.Value as Rating
-                from web.Content f
-                join web.ContentMap fm on fm.ROWID = f.ROWID
-                left join Ratings r on r.Id = fm.ContentId and r.Last = 1 and r.Type = 0
-                where fm.FieldType in (?)
-                    and f.Value match ?
-                limit ?
-            ) about
-
-            order by ROWNUMBER, RNK, Rating desc
-        )sql";
-
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
+            Sql(R"sql(
+                with
+                    keyword as ( select '"aok" OR aok*' as value )
+                select
+                    names.*
+                from (
+                    select
+                        fm.ContentId,
+                        ROW_NUMBER() OVER ( ORDER BY RANK, length(f.Value) ) as ROWNUMBER,
+                        RANK as RNK,
+                        r.Value as Rating
+                    from
+                        keyword,
+                        web.Content f
+                    cross join
+                        web.ContentMap fm on
+                            fm.ROWID = f.ROWID
+                    left join
+                        Ratings r on
+                            r.Uid = fm.ContentId and
+                            r.Last = 1 and
+                            r.Type = 0
+                    where
+                        fm.FieldType in (?) and
+                        f.Value match keyword.value
+                    limit ?
+                ) names
 
-            stmt.Bind(
+                union
+
+                select
+                    about.*
+                from (
+                    select
+                        fm.ContentId,
+                        ROW_NUMBER() OVER ( ORDER BY r.Value DESC) as ROWNUMBER,
+                        RANK as RNK,
+                        r.Value as Rating
+                    from
+                        keyword,
+                        web.Content f
+                    join
+                        web.ContentMap fm on
+                            fm.ROWID = f.ROWID
+                    left join
+                        Ratings r on
+                            r.Uid = fm.ContentId and
+                            r.Last = 1 and
+                            r.Type = 0
+                    where
+                        fm.FieldType in (?) and
+                        f.Value match keyword.value
+                    limit ?
+                ) about
+
+                order by ROWNUMBER, RNK, Rating desc
+            )sql")
+            .Bind(
+                ("\"" + keyword + "\"" + " OR " + keyword + "*"),
                 (int)ContentFieldType::ContentFieldType_AccountUserName,
-                keyword,
                 10,
                 (int)ContentFieldType::ContentFieldType_AccountUserAbout,
-                _keyword,
                 10
-            );
-
-            stmt.Select([&](Cursor& cursor) {
+            )
+            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
