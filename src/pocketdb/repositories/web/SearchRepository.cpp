@@ -552,8 +552,9 @@ namespace PocketDb
                             Rates.Int1 = 5 and
                             Rates.RegId1 = addrs.id
                     cross join
-                        Chain cRates on
-                            cRates.TxId = Rates.RowId
+                        Chain cRates indexed by Chain_TxId_Height on
+                            cRates.TxId = Rates.RowId and
+                            cRates.Height > ?
                     cross join Transactions Contents indexed by Transactions_Type_RegId2_RegId1 on
                             Contents.RegId2 = Rates.RegId2 and
                             Contents.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
@@ -587,7 +588,6 @@ namespace PocketDb
                     having count() > ?
                     order by
                         count() desc
-                    limit ?
                 ) recomendations
                 group by
                     recomendations.RegId1
@@ -602,6 +602,7 @@ namespace PocketDb
                 minReputation,
                 limitSubscriptions,
                 limitSubscriptionsTotal,
+                nHeight - depth,
                 contentTypes,
                 addressExclude.empty(),
                 addressExclude,
