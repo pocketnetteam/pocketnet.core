@@ -700,11 +700,10 @@ namespace PocketDb
                     from Registry
                     where String = ?
                 )
-            insert or ignore into BlockingLists (IdSource, IdTarget, TxId)
+            insert or ignore into BlockingLists (IdSource, IdTarget)
             select
                 usc.Uid,
-                utc.Uid,
-                b.RowId
+                utc.Uid
             from
                 tx
                 cross join Transactions b on
