@@ -36,26 +36,14 @@ namespace PocketDb
         // Precalculate address balances from TxOutputs
         void IndexBalances(int height);
 
-        void RestoreLast(int height);
-        void RestoreRatings(int height);
-        void RestoreBalances(int height);
-        void RestoreChain(int height);
-        void RestoreSocialRegistry(int height);
+        void Restore(int height);
 
         // Clear all calculated data
         bool ClearDatabase();
 
-        // Erase all calculated data great or equals block
-        void RollbackBlockingList(int height);
-
         void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount);
-        void RestoreModerationJury(int height);
-
         void IndexModerationBan(const string& voteTxHash, int votesCount, int ban1Time, int ban2Time, int ban3Time);
-        void RestoreModerationBan(int height);
-
         void IndexBadges(int height, const BadgeConditions& conditions);
-        void RestoreBadges(int height);
         
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);
@@ -82,6 +70,16 @@ namespace PocketDb
         void IndexBlockingList(const string& txHash);
         string IndexSubscribe();
         string IndexAccountBarteron();
+
+        void RestoreLast(int height);
+        void RestoreRatings(int height);
+        void RestoreBalances(int height);
+        void RestoreChain(int height);
+        void RestoreSocialRegistry(int height);
+        void RollbackBlockingList(int height);
+        void RestoreModerationJury(int height);
+        void RestoreModerationBan(int height);
+        void RestoreBadges(int height);
 
     };
 

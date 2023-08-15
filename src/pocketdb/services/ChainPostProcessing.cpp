@@ -35,18 +35,7 @@ namespace PocketServices
         try
         {
             LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", height - 1);
-            ChainRepoInst.RestoreLast(height);
-            ChainRepoInst.RestoreRatings(height);
-            ChainRepoInst.RestoreBalances(height);
-            ChainRepoInst.RollbackBlockingList(height);
-            ChainRepoInst.RestoreModerationJury(height);
-            ChainRepoInst.RestoreModerationBan(height);
-            ChainRepoInst.RestoreBadges(height);
-            ChainRepoInst.RestoreSocialRegistry(height);
-
-            // Rollback transactions must be lasted
-            ChainRepoInst.RestoreChain(height);
-
+            ChainRepoInst.Restore(height);
             return true;
         }
         catch (std::exception& ex)
