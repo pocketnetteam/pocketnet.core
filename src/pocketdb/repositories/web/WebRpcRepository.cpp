@@ -6726,7 +6726,7 @@ namespace PocketDb
                         p.String3,
                         ifnull(r.Value,0) -- TODO (losty): do we need rating if referal is always a new user?
 
-                    from Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 -- TODO (losty): not covering index
+                    from Transactions t not indexed -- Accessing by rowid
 
                     cross join vTxStr st on
                         st.RowId = t.RowId
@@ -7362,7 +7362,7 @@ namespace PocketDb
                         null,
                         pr.String2
 
-                    from Transactions c -- content for private subscribers
+                    from Transactions c not indexed -- content for private subscribers
 
                     cross join vTxStr sc on
                         sc.RowId = c.RowId
@@ -7610,7 +7610,7 @@ namespace PocketDb
                     null,
                     pp.String2
 
-                from Transactions r
+                from Transactions r not indexed
 
                 cross join vTxStr sr on
                     sr.RowId = r.RowId
