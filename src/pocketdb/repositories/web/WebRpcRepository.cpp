@@ -8419,7 +8419,7 @@ namespace PocketDb
                         cross join vTxStr sp on
                             sp.RowId = p.RowId
 
-                        join Transactions c indexed by Transactions_Type_RegId3_RegId4_RegId5_RegId1 on
+                        join Transactions c on
                             c.Type = 204 and
                             c.RegId3 = p.RegId2 and
                             c.RegId1 != p.RegId1 and
@@ -9045,7 +9045,7 @@ namespace PocketDb
 
                         left join Ratings rar indexed by Ratings_Type_Uid_Last_Height
                             on rar.Type = 0
-                            and rar.Uid = ar.Uid
+                            and rar.Uid = car.Uid
                             and rar.Last = 1
 
                     where
