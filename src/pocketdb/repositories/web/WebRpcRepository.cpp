@@ -6941,8 +6941,8 @@ namespace PocketDb
                         (
                             select json_group_array(json_object(
                                 'Value', o.Value,
-                                'AddressHash', so.AddressHash,
-                                'ScriptPubKey', so.ScriptPubKey
+                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
                             ))
 
                             from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
