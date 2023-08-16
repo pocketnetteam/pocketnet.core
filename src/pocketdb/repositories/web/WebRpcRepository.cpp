@@ -5706,24 +5706,20 @@ namespace PocketDb
     };
 
     // Method used to construct sql query and required bindings from provided selects based on filters
-    template <class QueryParams>
-    static inline auto _constructSelectsBasedOnFilters(
+    static inline string _constructSelectsBasedOnFilters(
                 const std::set<ShortTxType>& filters,
-                const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>>& selects,
+                const std::map<ShortTxType, string>& selects,
                 const std::string& header,
                 const std::string& footer, const std::string& separator = "union")
     {
         auto predicate = _choosePredicate(filters);
 
-        // Binds that should be performed to constructed query
-        std::vector<std::function<void(Stmt&, QueryParams const&)>> binds;
         // Query elemets that will be used to construct full query
         std::vector<std::string> queryElems;
         for (const auto& select: selects) {
             if (predicate(select.first)) {
-                queryElems.emplace_back(select.second.query);
+                queryElems.emplace_back(select.second);
                 queryElems.emplace_back(separator);
-                binds.emplace_back(select.second.binding);
             }
         }
 
@@ -5740,31 +5736,14 @@ namespace PocketDb
         ss << footer;
 
         // Full query and required binds in correct order
-        return std::pair { ss.str(), binds };
+        return ss.str();
     }
 
     std::vector<ShortForm> WebRpcRepository::GetActivities(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
     {
-        // This is required because we want static bind functors for optimization so parameters can't be captured there
-        struct QueryParams {
-            // Handling all by reference
-            const int64_t& heightMax;
-            const int64_t& heightMin;
-            const int64_t& blockNumMax;
-        } queryParams{heightMax, heightMin, blockNumMax};
-
-        static const auto binding = [](Stmt& stmt, QueryParams const& params) {
-            stmt.Bind(
-                params.heightMin,
-                params.heightMax,
-                params.heightMax,
-                params.blockNumMax
-            );
-        };
-
-        static const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
+        static const std::map<ShortTxType, string> selects = {
         {
-            ShortTxType::Answer, { R"sql(
+            ShortTxType::Answer, R"sql(
             -- My answers to other's comments
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
@@ -5845,7 +5824,7 @@ namespace PocketDb
                 null
 
             from
-                address,
+                params,
                 Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 -- My comments
 
                 join Chain cc on
@@ -5861,15 +5840,15 @@ namespace PocketDb
                     a.Type in (204, 205, 206) and
                     a.RegId5 = c.RegId2 and
                     a.RegId1 != c.RegId1 and
-                    a.RegId1 = address.id
+                    a.RegId1 = params.addressId
 
                 join vTxStr sa on
                     sa.RowId = a.RowId
 
                 join Chain ca on
                     ca.TxId = a.RowId and
-                    ca.Height > ? and
-                    (ca.Height < ? or (ca.Height = ? and ca.BlockNum < ?))
+                    ca.Height > params.min and
+                    (ca.Height < params.max or (ca.Height = params.max and ca.BlockNum < params.blockNum))
 
                 left join Payload pa on
                     pa.TxId = a.RowId
@@ -5891,12 +5870,11 @@ namespace PocketDb
                 c.Type in (204, 205) and
                 exists (select 1 from Last l where l.TxId = c.RowId)
 
-        )sql",
-            binding 
-        }},
+        )sql"
+        },
 
         {
-            ShortTxType::Comment, { R"sql(
+            ShortTxType::Comment, R"sql(
             -- Comments for my content
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
@@ -5977,7 +5955,7 @@ namespace PocketDb
                 null
 
             from
-                address,
+                params,
                 Transactions p indexed by Transactions_Type_RegId2_RegId1 -- TODO (optimization): use Transactions_Type_RegId2_RegId1
 
                 join Chain cp on
@@ -5992,15 +5970,15 @@ namespace PocketDb
                     c.RegId1 != p.RegId1 and
                     c.RegId4 is null and
                     c.RegId5 is null and
-                    c.RegId1 = address.id
+                    c.RegId1 = params.addressId
 
                 join vTxStr sc on
                     sc.RowId = c.RowId
 
                 join Chain cc on
                     cc.TxId = c.RowId and
-                    cc.Height > ? and
-                    (cc.Height < ? or (cc.Height = ? and cc.BlockNum < ?))
+                    cc.Height > params.min and
+                    (cc.Height < params.max or (cc.Height = params.max and cc.BlockNum < params.blockNum))
 
                 left join Payload pc on
                     pc.TxId = c.RowId
@@ -6028,12 +6006,11 @@ namespace PocketDb
                 p.Type in (200,201,202,209,210) and
                 exists (select 1 from Last l where l.TxId = p.RowId)
 
-        )sql",
-            binding
-        }},
+        )sql"
+        },
 
         {
-            ShortTxType::Subscriber, { R"sql(
+            ShortTxType::Subscriber, R"sql(
             -- Subscribers
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
@@ -6077,13 +6054,13 @@ namespace PocketDb
                 null
 
             from
-                address,
+                params,
                 Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
 
                 join Chain csubs on
                     csubs.TxId = subs.RowId and
-                    csubs.Height > ? and
-                    (csubs.Height < ? or (csubs.Height = ? and csubs.BlockNum < ?))
+                    csubs.Height > params.min and
+                    (csubs.Height < params.max or (csubs.Height = params.max and csubs.BlockNum < params.max))
 
                 join vTxStr ssubs on
                     ssubs.RowId = subs.RowId
@@ -6109,14 +6086,13 @@ namespace PocketDb
 
             where
                 subs.Type in (302, 303, 304) and
-                subs.RegId1 = address.id
+                subs.RegId1 = params.addressId
 
-        )sql",
-            binding
-        }},
+        )sql"
+        },
 
         {
-            ShortTxType::CommentScore, { R"sql(
+            ShortTxType::CommentScore, R"sql(
             -- Comment scores
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
@@ -6197,7 +6173,7 @@ namespace PocketDb
                 null
 
             from
-                address,
+                params,
                 Transactions c indexed by Transactions_Type_RegId5_RegId1 -- TODO (optimization): only (Type)
 
                 join Chain cc on
@@ -6212,12 +6188,12 @@ namespace PocketDb
                 join Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     s.Type = 301 and
                     s.RegId2 = c.RegId2 and
-                    s.RegId1 = address.id and
+                    s.RegId1 = params.addressId and
                     exists (select 1 from Last l where l.TxId = s.RowId)
 
                 join Chain cs indexed by Chain_Height_Uid on
-                    cs.Height > ? and
-                    (cs.Height < ? or (cs.Height = ? and cs.BlockNum < ?))
+                    cs.Height > params.min and
+                    (cs.Height < params.max or (cs.Height = params.max and cs.BlockNum < params.blockNum))
 
                 join vTxStr ss on
                     ss.RowId = s.RowId
@@ -6242,12 +6218,11 @@ namespace PocketDb
                 c.Type in (204,205) and
                 exists (select 1 from Last l where l.TxId = c.RowId)
 
-        )sql",
-            binding
-        }},
+        )sql"
+        },
 
         {
-            ShortTxType::ContentScore, { R"sql(
+            ShortTxType::ContentScore, R"sql(
             -- Content scores
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
@@ -6291,7 +6266,7 @@ namespace PocketDb
                 null
 
             from
-                address,
+                params,
                 Transactions c indexed by Transactions_Type_RegId5_RegId1 -- TODO (optimization): only (Type)
 
                 join Chain cc on
@@ -6306,12 +6281,12 @@ namespace PocketDb
                 join Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     s.Type = 300 and
                     s.RegId2 = c.RegId2 and
-                    s.RegId1 = address.id and
+                    s.RegId1 = params.addressId and
                     exists (select 1 from Last l where l.TxId = s.RowId)
 
                 join Chain cs indexed by Chain_Height_Uid on
-                    cs.Height > ? and
-                    (cs.Height < ? or (cs.Height = ? and cs.BlockNum < ?))
+                    cs.Height > params.min and
+                    (cs.Height < params.max or (cs.Height = params.max and cs.BlockNum < params.blockNum))
 
                 join vTxStr ss on
                     ss.RowId = s.RowId
@@ -6336,12 +6311,11 @@ namespace PocketDb
                 c.Type in (200,201,202,209,210) and
                 exists (select 1 from Last l where l.TxId = c.RowId)
 
-        )sql",
-            binding
-        }},
+        )sql"
+        },
 
         {
-            ShortTxType::Boost, { R"sql(
+            ShortTxType::Boost, R"sql(
             -- Boosts for my content
             select
                 (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
@@ -6422,12 +6396,13 @@ namespace PocketDb
                 null
 
             from
+                params,
                 Transactions tBoost indexed by Transactions_Type_RegId1_RegId2_RegId3
 
                 join Chain cBoost indexed by Chain_Height_Uid on
                     cBoost.TxId = tBoost.RowId and
-                    cBoost.Height > ? and
-                    (cBoost.Height < ? or (cBoost.Height = ? and cBoost.BlockNum < ?))
+                    cBoost.Height > params.min and
+                    (cBoost.Height < params.max or (cBoost.Height = params.max and cBoost.BlockNum < params.blockNum))
     
                 join vTxStr sBoost on
                     sBoost.RowId = tBoost.RowId
@@ -6464,15 +6439,14 @@ namespace PocketDb
 
             where
                 tBoost.Type in (208) and 
-                tBoost.RegId1 = address.id and
+                tBoost.RegId1 = params.addressId and
                 exists (select 1 from Last l where l.TxId = tBoost.RowId)
 
-        )sql",
-            binding
-        }},
+        )sql"
+        },
 
         {
-            ShortTxType::Blocking, { R"sql(
+            ShortTxType::Blocking, R"sql(
             -- My blockings and unblockings
             select
                 ('blocking')TP,
@@ -6548,56 +6522,57 @@ namespace PocketDb
                 null,
                 null
 
-            from Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
+            from
+                params,
+                Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
 
-            join Chain cb on
-                cb.TxId = b.RowId and
-                cb.Height > ? and
-                (cb.Height < ? or (cb.Height = ? and cb.BlockNum < ?))
+                join Chain cb on
+                    cb.TxId = b.RowId and
+                    cb.Height > params.min and
+                    (cb.Height < params.max or (cb.Height = params.max and cb.BlockNum < params.blockNum))
 
-            join vTxStr sb on
-                sb.RowId = b.RowId
+                join vTxStr sb on
+                    sb.RowId = b.RowId
 
-            left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                ac.RegId1 = b.RegId2 and
-                ac.Type = 100 and
-                exists (select 1 from Last l where l.TxId = ac.RowId)
+                left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    ac.RegId1 = b.RegId2 and
+                    ac.Type = 100 and
+                    exists (select 1 from Last l where l.TxId = ac.RowId)
 
-            left join vTxStr sac on
-                sac.RowId = ac.RowId
+                left join vTxStr sac on
+                    sac.RowId = ac.RowId
 
-            left join Chain cac on
-                cac.TxId = ac.RowId
+                left join Chain cac on
+                    cac.TxId = ac.RowId
 
-            left join Payload pac on
-                pac.TxId = ac.RowId
+                left join Payload pac on
+                    pac.TxId = ac.RowId
 
-            left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                rac.Type = 0 and
-                rac.Uid = cac.Uid and
-                rac.Last = 1
+                left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
+                    rac.Type = 0 and
+                    rac.Uid = cac.Uid and
+                    rac.Last = 1
 
-            where
-                b.Type in (305,306) and
-                b.RegId1 = ?
+                where
+                    b.Type in (305,306) and
+                    b.RegId1 = params.addressId
 
-        )sql",
-            binding
-        }},
+        )sql"
+        },
         };
 
         static const auto header = R"sql(
 
             -- Common 'with' for all unions
             with
-                address as (
+                params as (
                     select
-                        r.String as hash,
-                        r.RowId as id
-
+                        ? as max,
+                        ? as min,
+                        ? as blockNum,
+                        r.RowId as addressId
                     from
                         Registry r
-                    
                     where
                         r.String = ?
                 )
@@ -6611,20 +6586,14 @@ namespace PocketDb
 
         )sql";
 
-        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, header, footer);
-        auto& sql = elem1;
-        auto& binds = elem2;
+        auto sql = _constructSelectsBasedOnFilters(filters, selects, header, footer);
 
         EventsReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-            stmt.Bind(address);
-            for (const auto& bind: binds) {
-                bind(stmt, queryParams);
-            }
-
-            stmt.Select([&](Cursor& cursor) {
+            Sql(sql)
+            .Bind(heightMax, heightMin, blockNumMax, address)
+            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     reconstructor.FeedRow(cursor);
@@ -6637,21 +6606,10 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetNotifications(int64_t height, const std::set<ShortTxType>& filters)
     {
-        struct QueryParams {
-            // Handling all by reference
-            const int64_t& height;
-        } queryParams {height};
-
         // Static because it will not be changed for entire node run
-
-        static const auto heightBinder =
-            [](Stmt& stmt, QueryParams const& queryParams){
-                stmt.Bind(queryParams.height);
-            };
-
-        static const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
+        static const std::map<ShortTxType, string> selects = {
             {
-                ShortTxType::Money, { R"sql(
+                ShortTxType::Money, R"sql(
                     -- Incoming money
                     select
                         null, -- Will be filled
@@ -6736,12 +6694,11 @@ namespace PocketDb
 
                     where
                         t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
             {
-                ShortTxType::Referal, { R"sql(
+                ShortTxType::Referal, R"sql(
                     -- referals
                     select
                         st.String2,
@@ -6806,12 +6763,11 @@ namespace PocketDb
                         t.Type = 100 and
                         t.RegId2 > 0 and
                         exists (select 1 from First f where f.TxId = t.RowId) -- Only original;
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
             {
-                ShortTxType::Answer, { R"sql(
+                ShortTxType::Answer, R"sql(
                     -- Comment answers
                     select
                         sc.String1,
@@ -6942,12 +6898,11 @@ namespace PocketDb
 
                     where
                         a.Type = 204 -- only orig
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
             {
-                ShortTxType::Comment, { R"sql(
+                ShortTxType::Comment, R"sql(
                     -- Comments for my content
                     select
                         sp.String1,
@@ -7081,12 +7036,11 @@ namespace PocketDb
                         c.Type = 204 and -- only orig
                         c.RegId4 is null and
                         c.RegId5 is null
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
             {
-                ShortTxType::Subscriber, { R"sql(
+                ShortTxType::Subscriber, R"sql(
                     -- Subscribers
                     select
                         s.String2,
@@ -7157,12 +7111,11 @@ namespace PocketDb
 
                     where
                         subs.Type in (302, 303) -- Ignoring unsubscribers?
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
             {
-                ShortTxType::CommentScore, { R"sql(
+                ShortTxType::CommentScore, R"sql(
                     -- Comment scores
                     select
                         sc.String1,
@@ -7262,12 +7215,11 @@ namespace PocketDb
 
                     where
                         s.Type = 301
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
             {
-                ShortTxType::ContentScore, { R"sql(
+                ShortTxType::ContentScore, R"sql(
                     -- Content scores
                     select
                         sc.String1,
@@ -7365,12 +7317,11 @@ namespace PocketDb
 
                     where
                         s.Type = 300
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
             {
-                ShortTxType::PrivateContent, { R"sql(
+                ShortTxType::PrivateContent, R"sql(
                     -- Content from private subscribers
                     select
                         ssubs.String1,
@@ -7480,12 +7431,11 @@ namespace PocketDb
                     where
                         c.Type in (200,201,202,209,210) and
                         exists (select 1 from First f where f.TxId = c.RowId)
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
             {
-                ShortTxType::Boost, { R"sql(
+                ShortTxType::Boost, R"sql(
                     -- Boosts for my content
                     select
                         sc.String1,
@@ -7615,12 +7565,11 @@ namespace PocketDb
                     where
                         tBoost.Type in (208) and
                         exists (select 1 from Last l where l.TxId = tBoost.RowId)
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
         {
-            ShortTxType::Repost, { R"sql(
+            ShortTxType::Repost, R"sql(
                 -- Reposts
                 select
                     sp.String1,
@@ -7723,12 +7672,11 @@ namespace PocketDb
                     r.Type = 200 and
                     r.RegId3 > 0 and
                     exists (select 1 from First f where f.TxId = r.RowId) -- Only orig
-            )sql",
-                heightBinder
-            }},
+            )sql"
+            },
 
             {
-                ShortTxType::JuryAssigned, { R"sql(
+                ShortTxType::JuryAssigned, R"sql(
                     select
                         -- Notifier data
                         su.String1,
@@ -7827,12 +7775,11 @@ namespace PocketDb
 
                     where
                         f.Type = 410
-                )sql",
-                heightBinder
-            }},
+                )sql"
+            },
 
             {
-                ShortTxType::JuryVerdict, { R"sql(
+                ShortTxType::JuryVerdict, R"sql(
                     select
                         -- Notifier data
                         su.String1,
@@ -7937,12 +7884,11 @@ namespace PocketDb
 
                     where
                         v.Type = 420
-                )sql",
-                heightBinder
-            }},
+                )sql"
+            },
 
             {
-                ShortTxType::JuryModerate, { R"sql(
+                ShortTxType::JuryModerate, R"sql(
                     select
                         -- Notifier data
                         su.String1,
@@ -8058,9 +8004,8 @@ namespace PocketDb
 
                     where
                         f.Type = 410
-                )sql",
-                heightBinder
-            }}
+                )sql"
+            }
 
         };
 
@@ -8068,15 +8013,14 @@ namespace PocketDb
         
         NotificationsReconstructor reconstructor;
         for(const auto& select: selects) {
-            if (predicate(select.first)) {
-                const auto& selectData = select.second;
+            const auto& type = select.first;
+            if (predicate(type)) {
+                const auto& query = select.second;
                 SqlTransaction(__func__, [&]()
                 {
-                    auto& stmt = Sql(selectData.query);
-
-                    selectData.binding(stmt, queryParams);
-
-                    stmt.Select([&](Cursor& cursor) {
+                    Sql(query)
+                    .Bind(height)
+                    .Select([&](Cursor& cursor) {
                         while (cursor.Step())
                             reconstructor.FeedRow(cursor);
                     });
@@ -8090,18 +8034,9 @@ namespace PocketDb
     // TODO (aok, api): implement
     std::vector<ShortForm> WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
     {
-        // This is required because we want static bind functors for optimization so parameters can't be captured there 
-        struct QueryParams {
-            // Handling all by reference
-            const std::string& address;
-            const int64_t& heightMax;
-            const int64_t& heightMin;
-            const int64_t& blockNumMax;
-        } queryParams {address, heightMax, heightMin, blockNumMax};
-
-        static const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
+        static const std::map<ShortTxType, string> selects = {
             {
-                ShortTxType::Money, { R"sql(
+                ShortTxType::Money, R"sql(
                     -- Incoming money
                     select distinct
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
@@ -8214,17 +8149,12 @@ namespace PocketDb
                             st.Rowid = t.RowId
 
                     where
-                        o.AddressId = (select RowId from Registry where String = ?)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                        o.AddressId = params.addressId
+                )sql"
+            },
 
             {
-                ShortTxType::Referal, { R"sql(
+                ShortTxType::Referal, R"sql(
                     -- referals
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
@@ -8297,18 +8227,13 @@ namespace PocketDb
 
                     where
                         t.Type = 100 and
-                        t.RegId2 = (select RowId from Registry where String = ?) and
+                        t.RegId2 = params.addressId and
                         exists (select 1 from First f where f.TxId = t.RowId)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                )sql"
+            },
 
             {
-                ShortTxType::Answer, { R"sql(
+                ShortTxType::Answer, R"sql(
                     -- Comment answers
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
@@ -8404,18 +8329,13 @@ namespace PocketDb
 
                     where
                         c.Type in (204, 205) and
-                        c.RegId1 = (select RowId from Registry where String = ?) and
+                        c.RegId1 = params.addressId and
                         exists (select 1 from Last l where l.TxId = c.RowId)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                )sql"
+            },
 
             {
-                ShortTxType::Comment, { R"sql(
+                ShortTxType::Comment, R"sql(
                     -- Comments for my content
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
@@ -8543,18 +8463,13 @@ namespace PocketDb
 
                     where
                         p.Type in (200,201,202,209,210) and
-                        p.RegId1 = (select RowId from Registry where String = ?) and
+                        p.RegId1 = params.addressId and
                         exists (select 1 from Last l where l.TxId = p.RowId)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                )sql"
+            },
 
             {
-                ShortTxType::Subscriber, { R"sql(
+                ShortTxType::Subscriber, R"sql(
                     -- Subscribers
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
@@ -8627,17 +8542,12 @@ namespace PocketDb
 
                     where
                         subs.Type in (302, 303, 304) and -- Ignoring unsubscribers?
-                        subs.RegId2 = (select RowId from Registry where String = ?)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                        subs.RegId2 = params.addressId
+                )sql"
+            },
 
             {
-                ShortTxType::CommentScore, { R"sql(
+                ShortTxType::CommentScore, R"sql(
                     -- Comment scores
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
@@ -8728,17 +8638,12 @@ namespace PocketDb
 
                     where
                         c.Type in (204) and
-                        c.RegId1 = (select RowId from Registry where String = ?)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                        c.RegId1 = params.addressId
+                )sql"
+            },
 
             {
-                ShortTxType::ContentScore, { R"sql(
+                ShortTxType::ContentScore, R"sql(
                     -- Content scores
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
@@ -8829,18 +8734,13 @@ namespace PocketDb
 
                     where
                         c.Type in (200,201,202,209,210) and
-                        c.RegId1 = (select RowId from Registry where String = ?) and
+                        c.RegId1 = params.addressId and
                         exists (select 1 from First f where f.TxId = c.RowId)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                )sql"
+            },
 
             {
-                ShortTxType::PrivateContent, { R"sql(
+                ShortTxType::PrivateContent, R"sql(
                     -- Content from private subscribers
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
@@ -8926,18 +8826,13 @@ namespace PocketDb
 
                     where
                         subs.Type = 303 and
-                        subs.RegId1 = (select RowId from Registry where String = ?) and
+                        subs.RegId1 = params.addressId and
                         exists (select 1 from Last l where l.TxId = subs.RowId)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                )sql"
+            },
 
             {
-                ShortTxType::Boost, { R"sql(
+                ShortTxType::Boost, R"sql(
                     -- Boosts for my content
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
@@ -9025,7 +8920,7 @@ namespace PocketDb
 
                         join Transactions tContent indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                             tContent.Type in (200,201,202,209,210) and
-                            tContent.RegId1 = (select RowId from Registry where String = ?) and
+                            tContent.RegId1 = params.addressId and
                             tContent.RegId2 = tBoost.RegId2 and
                             exists (select 1 from Last l where l.TxId = tContent.RowId)
 
@@ -9056,16 +8951,11 @@ namespace PocketDb
 
                     where
                         tBoost.Type in (208)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                )sql"
+            },
 
             {
-                ShortTxType::Repost, { R"sql(
+                ShortTxType::Repost, R"sql(
                     -- Reposts
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
@@ -9160,18 +9050,13 @@ namespace PocketDb
 
                     where
                         p.Type = 200 and
-                        p.RegId1 = (select RowId from Registry where String = ?) and
+                        p.RegId1 = params.addressId and
                         exists (select 1 from Last l where l.TxId = p.RowId)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                )sql"
+            },
 
             {
-                ShortTxType::JuryAssigned, { R"sql(
+                ShortTxType::JuryAssigned, R"sql(
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql('),
                         -- Flag data
@@ -9252,17 +9137,12 @@ namespace PocketDb
                     where
                         f.Type = 410 and
                         -- f.Last = 0 and -- TODO (aok): is it required only for index?
-                        f.RegId3 = (select RowId from Registry where String = ?)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }},
+                        f.RegId3 = params.addressId
+                )sql"
+            },
 
             {
-                ShortTxType::JuryModerate, { R"sql(
+                ShortTxType::JuryModerate, R"sql(
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryModerate) + R"sql('),
                         -- Tx data
@@ -9370,16 +9250,10 @@ namespace PocketDb
 
                     where
                         acc.Type = 100 and
-                        acc.RegId1 = (select RowId from Registry where String = ?) and
+                        acc.RegId1 = params.addressId and
                         exists (select 1 from Last l where l.TxId = acc.RowId)
-                )sql",
-                [](Stmt& stmt, QueryParams const& queryParams) {
-                    stmt.Bind(
-                        queryParams.address
-                    );
-                }
-            }}
-
+                )sql"
+            }
         };
 
         static const auto header = R"sql(
@@ -9388,7 +9262,12 @@ namespace PocketDb
                     select
                         ? as max,
                         ? as min,
-                        ? as blockNum
+                        ? as blockNum,
+                        r.RowId as addressId
+                    from
+                        Registry r
+                    where
+                        r.String = ?
                 )
         )sql";
 
@@ -9400,24 +9279,14 @@ namespace PocketDb
 
         )sql";
         
-        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, header, footer);
-        // A bit dirty hack because structure bindings can't be captured by lambda function.
-        auto& sql = elem1;
-        auto& binds = elem2;
+        auto sql = _constructSelectsBasedOnFilters(filters, selects, header, footer);
 
         EventsReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-            
-            // Binds for header
-            stmt.Bind(heightMax, heightMin, blockNumMax);
-
-            for (const auto& bind: binds) {
-                bind(stmt, queryParams);
-            }
-
-            stmt.Select([&](Cursor& cursor) {
+            Sql(sql)
+            .Bind(heightMax, heightMin, blockNumMax, address)
+            .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
                     reconstructor.FeedRow(cursor);
@@ -9429,233 +9298,160 @@ namespace PocketDb
 
     std::map<std::string, std::map<ShortTxType, int>> WebRpcRepository::GetNotificationsSummary(int64_t heightMax, int64_t heightMin, const std::set<std::string>& addresses, const std::set<ShortTxType>& filters)
     {
-        struct QueryParams {
-            // Handling all by reference
-            const int64_t& heightMax;
-            const int64_t& heightMin;
-            const std::set<std::string>& addresses;
-        } queryParams {heightMax, heightMin, addresses};
-
-        const std::map<ShortTxType, ShortFormSqlEntry<Stmt&, QueryParams>> selects = {
+        static const std::map<ShortTxType, string> selects = {
         {
-            ShortTxType::Referal, { R"sql(
-                with
-                addr as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                )
+            ShortTxType::Referal, R"sql(
                 select
-                    ?,
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql('),
                     addr.hash
                 from
-                    addr
-                cross join    
-                    Transactions t indexed by Transactions_Type_RegId2_RegId1
-                        on t.Type in (100) and t.RegId2 = addr.id
-                cross join
-                    First f
-                        on f.TxId = t.RowId
-                cross join
-                    Chain c
-                        on c.TxId = f.TxId and c.Height between ? and ?
-            )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(queryParams.addresses, ShortTxTypeConvertor::toString(ShortTxType::Referal), queryParams.heightMin, queryParams.heightMax);
-            }
-        }},
+                    addr,
+                    params
+                    cross join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
+                        t.Type in (100) and
+                        t.RegId2 = addr.id
+                    cross join First f on
+                        f.TxId = t.RowId
+                    cross join Chain c on
+                        c.TxId = f.TxId and c.Height between params.min and params.max
+            )sql"
+        },
 
         {
-            ShortTxType::Comment, { R"sql(
-                with
-                addr as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                )
+            ShortTxType::Comment, R"sql(
                 select
-                    ?,
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql('),
                     addr.hash
                 from
-                    addr
-                cross join
-                    Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on p.Type in (200, 201, 202, 209, 210) and p.RegId1 = addr.id
-                cross join
-                    Last lp
-                        on lp.TxId = p.RowId
-                cross join
-                    Transactions c indexed by Transactions_Type_RegId3_RegId1
-                        on c.Type in (204) and c.RegId3 = p.RegId2 and c.RegId1 != p.RegId1
-                            and c.RegId4 is null and c.RegId5 is null
-                cross join
-                    Chain cc
-                        on cc.TxId = c.RowId and cc.Height between ? and ?
-            )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(queryParams.addresses, ShortTxTypeConvertor::toString(ShortTxType::Comment), queryParams.heightMin, queryParams.heightMax);
-            }
-        }},
+                    addr,
+                    params
+                cross join Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    p.Type in (200, 201, 202, 209, 210) and
+                    p.RegId1 = addr.id
+                cross join Last lp on
+                    lp.TxId = p.RowId
+                cross join Transactions c indexed by Transactions_Type_RegId3_RegId1 on
+                    c.Type in (204) and
+                    c.RegId3 = p.RegId2 and
+                    c.RegId1 != p.RegId1 and
+                    c.RegId4 is null and
+                    c.RegId5 is null
+                cross join Chain cc on
+                    cc.TxId = c.RowId and
+                    cc.Height between params.min and params.max
+            )sql"
+        },
 
         {
-            ShortTxType::Subscriber, { R"sql(
-                with
-                addr as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                )
+            ShortTxType::Subscriber, R"sql(
                 select
-                    ?,
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql('),
                     addr.hash
                 from
-                    addr
-                cross join
-                    Transactions s indexed by Transactions_Type_RegId2_RegId1
-                        on s.Type in (302, 303) and s.RegId2 = addr.id
-                cross join
-                    Chain c
-                        on c.TxId = s.RowId and c.Height between ? and ?
-            )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(queryParams.addresses, ShortTxTypeConvertor::toString(ShortTxType::Subscriber), queryParams.heightMin, queryParams.heightMax);
-            }
-        }},
+                    addr,
+                    params
+                    cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                        s.Type in (302, 303) and
+                        s.RegId2 = addr.id
+                    cross join Chain c on
+                        c.TxId = s.RowId and
+                        c.Height between params.min and params.max
+            )sql"
+        },
 
         {
-            ShortTxType::CommentScore, { R"sql(
-                with
-                addr as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                )
+            ShortTxType::CommentScore, R"sql(
                 select
-                    ?,
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql('),
                     addr.hash
                 from
-                    addr
-                cross join
-                    Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on c.Type in (204, 205) and c.RegId1 = addr.id
-                cross join
-                    Last lc
-                        on lc.TxId = c.RowId
-                cross join
-                    Transactions s indexed by Transactions_Type_RegId2_RegId1
-                        on s.Type in (301) and s.RegId2 = c.RegId2
-                cross join
-                    Chain cs
-                        on cs.TxId = s.RowId and cs.Height between ? and ?
-            )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(queryParams.addresses, ShortTxTypeConvertor::toString(ShortTxType::CommentScore), queryParams.heightMin, queryParams.heightMax);
-            }
-        }},
+                    addr,
+                    params
+                    cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        c.Type in (204, 205) and c.RegId1 = addr.id
+                    cross join Last lc on
+                        lc.TxId = c.RowId
+                    cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                        s.Type in (301) and s.RegId2 = c.RegId2
+                    cross join Chain cs on
+                        cs.TxId = s.RowId and cs.Height between params.min and params.max
+            )sql"
+        },
 
         {
-            ShortTxType::ContentScore, { R"sql(
-                with
-                addr as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                )
+            ShortTxType::ContentScore, R"sql(
                 select
-                    ?,
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql('),
                     addr.hash
                 from
-                    addr
-                cross join
-                    Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on c.Type in (200, 201, 202, 209, 210) and c.RegId1 = addr.id
-                cross join
-                    Last lc
-                        on lc.TxId = c.RowId
-                cross join
-                    Transactions s indexed by Transactions_Type_RegId2_RegId1
-                        on s.Type in (300) and s.RegId2 = c.RegId2
-                cross join
-                    Chain cs
-                        on cs.TxId = s.RowId and cs.Height between ? and ?
-            )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(queryParams.addresses, ShortTxTypeConvertor::toString(ShortTxType::ContentScore), queryParams.heightMin, queryParams.heightMax);
-            }
-        }},
+                    addr,
+                    params
+                    cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        c.Type in (200, 201, 202, 209, 210) and
+                        c.RegId1 = addr.id
+                    cross join Last lc on
+                        lc.TxId = c.RowId
+                    cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                        s.Type in (300) and
+                        s.RegId2 = c.RegId2
+                    cross join Chain cs on
+                        cs.TxId = s.RowId and
+                        cs.Height between params.min and params.max
+            )sql"
+        },
 
         {
-            ShortTxType::Repost, { R"sql(
-                with
-                addr as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                )
+            ShortTxType::Repost, R"sql(
                 select
-                    ?,
+                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql('),
                     addr.hash
                 from
-                    addr
-                cross join
-                    Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on p.Type in (200) and p.RegId1 = addr.id
-                cross join
-                    Last lp
-                        on lp.TxId = p.RowId
-                cross join
-                    Transactions r indexed by Transactions_Type_RegId3_RegId1
-                        on r.Type in (200) and r.RegId3 = p.RegId2 and r.RegId3 is not null
-                cross join
-                    First fr
-                        on fr.TxId = r.RowId
-                cross join
-                    Chain cr
-                        on cr.TxId = r.RowId and cr.Height between ? and ?
-            )sql",
-            [](Stmt& stmt, QueryParams const& queryParams) {
-                stmt.Bind(queryParams.addresses, ShortTxTypeConvertor::toString(ShortTxType::Repost), queryParams.heightMin, queryParams.heightMax);
-            }
-        }}
+                    addr,
+                    params
+                    cross join Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        p.Type in (200) and
+                        p.RegId1 = addr.id
+                    cross join Last lp on
+                        lp.TxId = p.RowId
+                    cross join Transactions r indexed by Transactions_Type_RegId3_RegId1 on
+                        r.Type in (200) and
+                        r.RegId3 = p.RegId2 and
+                        r.RegId3 is not null
+                    cross join First fr on
+                        fr.TxId = r.RowId
+                    cross join Chain cr on
+                        cr.TxId = r.RowId and
+                        cr.Height between params.min and params.max
+            )sql"
+        }
         };
+
+        static const auto header = R"sql(
+            with
+                params as (
+                    select
+                        ? as max,
+                        ? as min,
+                ),
+                addr as (
+                    select
+                        r.RowId as id,
+                        r.String as hash
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                )
+        )sql";
         
-        auto [elem1, elem2] = _constructSelectsBasedOnFilters(filters, selects, "", "union all");
-        auto& sql = elem1;
-        auto& binds = elem2;
+        auto sql = _constructSelectsBasedOnFilters(filters, selects, header, "union all");
 
         NotificationSummaryReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
         {
-            auto& stmt = Sql(sql);
-
-            for (const auto& bind: binds)
-                bind(stmt, queryParams);
-
-            stmt.Select([&](Cursor& cursor)
+            Sql(sql)
+            .Bind(heightMax, heightMin, addresses)
+            .Select([&](Cursor& cursor)
             {
                 while (cursor.Step())
                     reconstructor.FeedRow(cursor);
