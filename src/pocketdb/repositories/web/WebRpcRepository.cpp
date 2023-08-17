@@ -8136,11 +8136,11 @@ namespace PocketDb
                         params,
                         TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
 
-                        join Transactions t on
+                        join Transactions t not indexed on
                             t.RowId = o.TxId and
                             t.Type in (1,2,3)
 
-                        join Chain ct indexed by Chain_Height_BlockNum on
+                        cross join Chain ct not indexed on
                             ct.TxId = t.RowId and
                             ct.Height > params.min and
                             (ct.Height < params.max or (ct.Height = params.max and ct.BlockNum < params.blockNum))
@@ -8199,12 +8199,12 @@ namespace PocketDb
 
                     from
                         params,
-                        Transactions t indexed by Transactions_Type_RegId2_RegId1
+                        Transactions t
 
                         cross join vTxStr s on
                             s.RowId = t.RowId
 
-                        join Chain c indexed by Chain_Height_BlockNum on
+                        cross join Chain c not indexed on
                             c.TxId = t.RowId and
                             c.Height > params.min and
                             (c.Height < params.max or (c.Height = params.max and c.BlockNum < params.blockNum))
@@ -8278,7 +8278,7 @@ namespace PocketDb
 
                     from
                         params,
-                        Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        Transactions c indexed by Transactions_Type_RegId2_RegId1
 
                         cross join Chain cc on
                             cc.TxId = c.RowId
@@ -8289,7 +8289,7 @@ namespace PocketDb
                         left join Payload pc on
                             pc.TxId = c.RowId
 
-                        join Transactions a indexed by Transactions_Type_RegId5_RegId1 on
+                        cross join Transactions a indexed by Transactions_Type_RegId5_RegId1 on
                             a.Type in (204, 205) and
                             a.RegId5 = c.RegId2 and
                             a.RegId1 != c.RegId1 and
@@ -8298,7 +8298,7 @@ namespace PocketDb
                         cross join vTxStr sa on
                             sa.RowId = a.RowId
 
-                        join Chain ca indexed by Chain_Height_BlockNum on
+                        cross join Chain ca not indexed on -- TODO (losty): this is faster somehow than indexing by Height
                             ca.TxId = a.RowId and
                             ca.Height > params.min and
                             (ca.Height < params.max or (ca.Height = params.max and ca.BlockNum < params.blockNum))
@@ -8411,7 +8411,7 @@ namespace PocketDb
 
                     from
                         params,
-                        Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        Transactions p indexed by Transactions_Type_RegId2_RegId1
 
                         cross join Chain cp on
                             cp.TxId = p.RowId
@@ -8419,14 +8419,14 @@ namespace PocketDb
                         cross join vTxStr sp on
                             sp.RowId = p.RowId
 
-                        join Transactions c on
+                        join Transactions c indexed by Transactions_Type_RegId3_RegId4_RegId5 on
                             c.Type = 204 and
                             c.RegId3 = p.RegId2 and
                             c.RegId1 != p.RegId1 and
                             c.RegId4 is null and
                             c.RegId5 is null
 
-                        join Chain cc indexed by Chain_Height_BlockNum on
+                        cross join Chain cc not indexed on
                             cc.TxId = c.RowId and
                             cc.Height > params.min and
                             (cc.Height < params.max or (cc.Height = params.max and cc.BlockNum < params.blockNum))
@@ -8442,12 +8442,12 @@ namespace PocketDb
                         left join Payload pc on
                             pC.TxId = cLast.RowId
 
-                        join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                             ac.RegId1 = c.RegId1 and
                             ac.Type = 100 and
                             exists (select 1 from Last l where l.TxId = ac.RowId)
 
-                        cross join Chain cac on
+                        left join Chain cac on
                             cac.TxId = ac.RowId
 
                         left join Payload pac on
@@ -8516,7 +8516,7 @@ namespace PocketDb
                         params,
                         Transactions subs indexed by Transactions_Type_RegId2_RegId1
 
-                        join Chain c on
+                        cross join Chain c not indexed on
                             c.TxId = subs.RowId and
                             c.Height > params.min and
                             (c.Height < params.max or (c.Height = params.max and c.BlockNum < params.blockNum))
@@ -8529,7 +8529,7 @@ namespace PocketDb
                             u.RegId1 = subs.RegId1 and
                             exists (select 1 from Last l where l.TxId = u.RowId)
 
-                        cross join Chain cu on
+                        left join Chain cu on
                             cu.TxId = u.RowId
 
                         left join Payload pu on
@@ -8600,11 +8600,11 @@ namespace PocketDb
                         cross join vTxStr sc on
                             sc.RowId = c.RowId
 
-                        join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
                             s.Type = 301 and
                             s.RegId2 = c.RegId2
 
-                        join Chain cs indexed by Chain_Height_BlockNum on
+                        cross join Chain cs not indexed on
                             cs.TxId = s.RowId and
                             cs.Height > params.min and
                             (cs.Height < params.max or (cs.Height = params.max and cs.BlockNum < params.blockNum))
@@ -8620,12 +8620,12 @@ namespace PocketDb
                         left join Payload ps on
                             ps.TxId = cLast.RowId
 
-                        join Transactions acs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        left join Transactions acs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                             acs.Type = 100 and
                             acs.RegId1 = s.RegId1 and
                             exists (select 1 from Last l where l.TxId = acs.RowId)
 
-                        cross join Chain cacs on
+                        left join Chain cacs on
                             cacs.TxId = acs.RowId
 
                         left join Payload pacs on
@@ -8643,6 +8643,7 @@ namespace PocketDb
             },
 
             {
+                // TODO (losty): optimize
                 ShortTxType::ContentScore, R"sql(
                     -- Content scores
                     select
@@ -8696,11 +8697,11 @@ namespace PocketDb
                         cross join vTxStr sc on
                             sc.RowId = c.RowId
 
-                        join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
                             s.Type = 300 and
                             s.RegId2 = c.RegId2
 
-                        join Chain cs indexed by Chain_Height_BlockNum on
+                        cross join Chain cs not indexed on
                             cs.TxId = s.RowId and
                             cs.Height > params.min and
                             (cs.Height < params.max or (cs.Height = params.max and cs.BlockNum < params.blockNum))
@@ -8710,18 +8711,18 @@ namespace PocketDb
 
                         left join Transactions cLast indexed by Transactions_Type_RegId2_RegId1 on
                             cLast.Type = c.Type and
-                            cLast.RegId2 = c.RegId2 and 
+                            cLast.RegId2 = c.RegId2 and
                             exists (select 1 from Last l where l.TxId = cLast.RowId)
 
                         left join Payload pc on
                             pc.TxId = cLast.RowId
 
-                        join Transactions acs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        left join Transactions acs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                             acs.Type = 100 and
                             acs.RegId1 = s.RegId1 and
                             exists (select 1 from Last l where l.TxId = acs.RowId)
 
-                        join Chain cacs on
+                        left join Chain cacs on
                             cacs.TxId = acs.RowId
 
                         left join Payload pacs on
@@ -8734,8 +8735,7 @@ namespace PocketDb
 
                     where
                         c.Type in (200,201,202,209,210) and
-                        c.RegId1 = params.addressId and
-                        exists (select 1 from First f where f.TxId = c.RowId)
+                        c.RegId1 = params.addressId
                 )sql"
             },
 
@@ -8787,12 +8787,12 @@ namespace PocketDb
                         params,
                         Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3 -- Subscribers private
 
-                        join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on-- content for private subscribers
+                        cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on-- content for private subscribers
                             c.Type in (200,201,202,209,210) and
                             c.RegId1 = subs.RegId2 and
                             exists (select 1 from First f where f.TxId = c.RowId)
 
-                        join Chain cc indexed by Chain_Height_BlockNum on
+                        cross join Chain cc not indexed on
                             cc.TxId = c.RowId and
                             cc.Height > params.min and
                             (cc.Height < params.max or (cc.Height = params.max and cc.BlockNum < params.blockNum))
@@ -8910,7 +8910,7 @@ namespace PocketDb
                         params,
                         Transactions tBoost indexed by Transactions_Type_RegId2_RegId1
 
-                        join Chain cBoost indexed by Chain_Height_BlockNum on
+                        cross join Chain cBoost not indexed on
                             cBoost.TxId = tBoost.RowId and
                             cBoost.Height > params.min and
                             (cBoost.Height < params.max or (cBoost.Height = params.max and cBoost.BlockNum < params.blockNum))
@@ -8918,7 +8918,7 @@ namespace PocketDb
                         cross join vTxStr sBoost on
                             sBoost.RowId = tBoost.RowId
 
-                        join Transactions tContent indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        cross join Transactions tContent indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                             tContent.Type in (200,201,202,209,210) and
                             tContent.RegId1 = params.addressId and
                             tContent.RegId2 = tBoost.RegId2 and
@@ -9011,7 +9011,7 @@ namespace PocketDb
                         left join Payload pp on
                             pp.TxId = p.RowId
 
-                        join Transactions r indexed by Transactions_Type_RegId3_RegId1 on
+                        cross join Transactions r indexed by Transactions_Type_RegId3_RegId1 on
                             r.Type = 200 and
                             r.RegId3 = p.RegId2 and
                             exists (select 1 from First f where f.TxId = r.RowId)
@@ -9019,7 +9019,7 @@ namespace PocketDb
                         cross join vTxStr sr on
                             sr.RowId = r.RowId
 
-                        join Chain cr on
+                        cross join Chain cr not indexed on
                             cr.TxId = r.RowId and
                             cr.Height > params.min and
                             (cr.Height < params.max or (cr.Height = params.max and cr.BlockNum < params.blockNum))
@@ -9207,7 +9207,7 @@ namespace PocketDb
                         cross join Transactions f on
                             f.RowId = jm.FlagRowId
 
-                        join Chain cf indexed by Chain_Height_BlockNum on
+                        cross join Chain cf not indexed on
                             cf.TxId = f.RowId and
                             cf.Height > params.min and
                             (cf.Height < params.max or (cf.Height = params.max and cf.BlockNum < params.blockNum))
