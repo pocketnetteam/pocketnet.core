@@ -7670,7 +7670,6 @@ namespace PocketDb
 
                 where
                     r.Type = 200 and
-                    r.RegId3 > 0 and
                     exists (select 1 from First f where f.TxId = r.RowId) -- Only orig
             )sql"
             },
