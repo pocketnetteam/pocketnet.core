@@ -86,7 +86,7 @@ namespace PocketHelpers
 
         void FeedRow(Cursor& cursor);
 
-        std::vector<ShortForm> GetResult() const;
+        std::vector<ShortForm>& GetResult();
     private:
         ShortFormParser m_parser;
         std::vector<ShortForm> m_result;

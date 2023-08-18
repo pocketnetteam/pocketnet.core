@@ -252,7 +252,7 @@ void PocketHelpers::EventsReconstructor::FeedRow(Cursor& cursor)
     m_result.emplace_back(m_parser.ParseFull(cursor));
 }
 
-std::vector<PocketDb::ShortForm> PocketHelpers::EventsReconstructor::GetResult() const
+std::vector<PocketDb::ShortForm>& PocketHelpers::EventsReconstructor::GetResult()
 {
     return m_result;
 }

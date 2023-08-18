@@ -5706,7 +5706,7 @@ namespace PocketDb
     };
 
     // Method used to construct sql query and required bindings from provided selects based on filters
-    static inline string _constructSelectsBasedOnFilters(
+    static inline string _unionSelectsBasedOnFilters(
                 const std::set<ShortTxType>& filters,
                 const std::map<ShortTxType, string>& selects,
                 const std::string& header,
@@ -5737,6 +5737,25 @@ namespace PocketDb
 
         // Full query and required binds in correct order
         return ss.str();
+    }
+
+    // Method used to construct sql query and required bindings from provided selects based on filters
+    static inline tuple<bool, string> _constructSelectsBasedOnFilters(
+                const std::set<ShortTxType>& filters,
+                const std::pair<ShortTxType, string>& select,
+                const std::string& header)
+    {
+        auto predicate = _choosePredicate(filters);
+
+        // Query elemets that will be used to construct full query
+        if (!predicate(select.first))
+            return { false, "" };
+        
+        std::stringstream ss;
+        ss << header << select.second;
+
+        // Full query and required binds in correct order
+        return { true, ss.str() };
     }
 
     std::vector<ShortForm> WebRpcRepository::GetActivities(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
@@ -6586,7 +6605,7 @@ namespace PocketDb
 
         )sql";
 
-        auto sql = _constructSelectsBasedOnFilters(filters, selects, header, footer);
+        auto sql = _unionSelectsBasedOnFilters(filters, selects, header, footer);
 
         EventsReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
@@ -7568,7 +7587,7 @@ namespace PocketDb
             )sql"
             },
 
-        {
+            {
             ShortTxType::Repost, R"sql(
                 -- Reposts
                 select
@@ -8030,7 +8049,6 @@ namespace PocketDb
         return notificationResult.Serialize();
     }
 
-    // TODO (aok, api): implement
     std::vector<ShortForm> WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
     {
         static const std::map<ShortTxType, string> selects = {
@@ -8149,6 +8167,8 @@ namespace PocketDb
 
                     where
                         o.AddressId = params.addressId
+                    order by ct.Height desc, ct.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -8228,6 +8248,8 @@ namespace PocketDb
                         t.Type = 100 and
                         t.RegId2 = params.addressId and
                         exists (select 1 from First f where f.TxId = t.RowId)
+                    order by c.Height desc, c.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -8276,60 +8298,52 @@ namespace PocketDb
                         null
 
                     from
-                        params,
-                        Transactions c indexed by Transactions_Type_RegId2_RegId1
-
-                        cross join Chain cc on
-                            cc.TxId = c.RowId
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        left join Payload pc on
-                            pc.TxId = c.RowId
-
-                        cross join Transactions a indexed by Transactions_Type_RegId5_RegId1 on
-                            a.Type in (204, 205) and
-                            a.RegId5 = c.RegId2 and
-                            a.RegId1 != c.RegId1 and
-                            exists (select 1 from First f where f.TxId = a.RowId)
-
-                        cross join vTxStr sa on
-                            sa.RowId = a.RowId
-
-                        cross join Chain ca not indexed on -- TODO (losty): this is faster somehow than indexing by Height
-                            ca.TxId = a.RowId and
-                            ca.Height > params.min and
-                            (ca.Height < params.max or (ca.Height = params.max and ca.BlockNum < params.blockNum))
-
-                        left join Transactions aLast indexed by Transactions_Type_RegId2_RegId1 on
-                            aLast.Type in (204,205) and
-                            aLast.RegId2 = a.HashId and
-                            exists (select 1 from Last l where l.TxId = aLast.RowId)
-
-                        left join Payload pa on
-                            pa.TxId = aLast.RowId
-
-                        left join Transactions aa indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            aa.Type = 100 and
-                            aa.RegId1 = a.RegId1 and
-                            exists (select 1 from Last l where l.TxId = aa.RowId)
-
-                        left join Chain caa on
-                            caa.TxId = aa.RowId
-
-                        left join Payload paa on
-                            paa.TxId = aa.RowId
-
-                        left join Ratings ra indexed by Ratings_Type_Uid_Last_Height on
-                            ra.Type = 0 and
-                            ra.Uid = caa.Uid and
-                            ra.Last = 1
-
-                    where
+                        params
+                    cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                         c.Type in (204, 205) and
-                        c.RegId1 = params.addressId and
-                        exists (select 1 from Last l where l.TxId = c.RowId)
+                        c.RegId1 = params.addressId
+                    cross join Last lc on
+                        lc.TxId = c.RowId
+                    cross join Chain cc on
+                        cc.TxId = c.RowId
+                    cross join vTxStr sc on
+                        sc.RowId = c.RowId
+                    cross join Payload pc on
+                        pc.TxId = c.RowId
+                    cross join Transactions a indexed by Transactions_Type_RegId5_RegId1 on
+                        a.Type in (204, 205) and
+                        a.RegId5 = c.RegId2 and
+                        a.RegId1 != c.RegId1
+                    cross join First fa on
+                        fa.TxId = a.RowId
+                    cross join vTxStr sa on
+                        sa.RowId = a.RowId
+                    cross join Chain ca not indexed on
+                        ca.TxId = a.RowId and
+                        ca.Height > params.min and
+                        (ca.Height < params.max or (ca.Height = params.max and ca.BlockNum < params.blockNum))
+                    cross join Transactions aLast indexed by Transactions_Type_RegId2_RegId1 on
+                        aLast.Type in (204,205) and
+                        aLast.RegId2 = a.HashId
+                    cross join Last laLast on
+                        laLast.TxId = aLast.RowId
+                    cross join Payload pa on
+                        pa.TxId = aLast.RowId
+                    cross join Transactions aa indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        aa.Type = 100 and
+                        aa.RegId1 = a.RegId1
+                    cross join Last laa on
+                        laa.TxId = aa.RowId
+                    cross join Chain caa on
+                        caa.TxId = aa.RowId
+                    cross join Payload paa on
+                        paa.TxId = aa.RowId
+                    left join Ratings ra indexed by Ratings_Type_Uid_Last_Height on
+                        ra.Type = 0 and
+                        ra.Uid = caa.Uid and
+                        ra.Last = 1
+                    order by cc.Height desc, cc.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -8354,14 +8368,11 @@ namespace PocketDb
                                 'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
                                 'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
                             ))
-
                             from
                                 TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-
                                 join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
                                     o.TxId = i.TxId and
                                     o.Number = i.Number
-
                             where
                                 i.SpentTxId = c.RowId
                         ),
@@ -8371,10 +8382,8 @@ namespace PocketDb
                                 'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
                                 'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
                             ))
-
                             from
                                 TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-
                             where
                                 o.TxId = c.RowId
                             order by
@@ -8407,63 +8416,53 @@ namespace PocketDb
                         null,
                         null,
                         null
-
                     from
-                        params,
-                        Transactions p indexed by Transactions_Type_RegId2_RegId1
-
-                        cross join Chain cp on
-                            cp.TxId = p.RowId
-
-                        cross join vTxStr sp on
-                            sp.RowId = p.RowId
-
-                        join Transactions c indexed by Transactions_Type_RegId3_RegId4_RegId5 on
-                            c.Type = 204 and
-                            c.RegId3 = p.RegId2 and
-                            c.RegId1 != p.RegId1 and
-                            c.RegId4 is null and
-                            c.RegId5 is null
-
-                        cross join Chain cc not indexed on
-                            cc.TxId = c.RowId and
-                            cc.Height > params.min and
-                            (cc.Height < params.max or (cc.Height = params.max and cc.BlockNum < params.blockNum))
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        left join Transactions cLast indexed by Transactions_Type_RegId2_RegId1 on
-                            cLast.Type in (204,205) and
-                            cLast.RegId2 = c.HashId and
-                            exists (select 1 from Last l where l.TxId = cLast.RowId)
-
-                        left join Payload pc on
-                            pC.TxId = cLast.RowId
-
-                        left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            ac.RegId1 = c.RegId1 and
-                            ac.Type = 100 and
-                            exists (select 1 from Last l where l.TxId = ac.RowId)
-
-                        left join Chain cac on
-                            cac.TxId = ac.RowId
-
-                        left join Payload pac on
-                            pac.TxId = ac.RowId
-
-                        left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                            rac.Type = 0 and
-                            rac.Uid = cac.Uid and
-                            rac.Last = 1
-
-                        left join Payload pp on
-                            pp.TxId = p.RowId
-
-                    where
+                        params
+                    cross join Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                         p.Type in (200,201,202,209,210) and
-                        p.RegId1 = params.addressId and
-                        exists (select 1 from Last l where l.TxId = p.RowId)
+                        p.RegId1 = params.addressId
+                    cross join Last lp on
+                        lp.TxId = p.RowId
+                    cross join Chain cp on
+                        cp.TxId = p.RowId
+                    cross join vTxStr sp on
+                        sp.RowId = p.RowId
+                    cross join Transactions c indexed by Transactions_Type_RegId3_RegId1 on
+                        c.Type = 204 and
+                        c.RegId3 = p.RegId2 and
+                        c.RegId1 != p.RegId1 and
+                        c.RegId4 is null and
+                        c.RegId5 is null
+                    cross join Chain cc not indexed on
+                        cc.TxId = c.RowId and
+                        cc.Height > params.min and
+                        (cc.Height < params.max or (cc.Height = params.max and cc.BlockNum < params.blockNum))
+                    cross join vTxStr sc on
+                        sc.RowId = c.RowId
+                    cross join Transactions cLast indexed by Transactions_Type_RegId2_RegId1 on
+                        cLast.Type in (204,205) and
+                        cLast.RegId2 = c.HashId
+                    cross join Last lcLast on
+                        lcLast.TxId = cLast.RowId
+                    cross join Payload pc on
+                        pC.TxId = cLast.RowId
+                    cross join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        ac.RegId1 = c.RegId1 and
+                        ac.Type = 100
+                    cross join Last lac on
+                        lac.TxId = ac.RowId
+                    cross join Chain cac on
+                        cac.TxId = ac.RowId
+                    cross join Payload pac on
+                        pac.TxId = ac.RowId
+                    cross join Payload pp on
+                        pp.TxId = p.RowId
+                    left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
+                        rac.Type = 0 and
+                        rac.Uid = cac.Uid and
+                        rac.Last = 1
+                    order by cc.Height desc, cc.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -8530,18 +8529,17 @@ namespace PocketDb
 
                         left join Chain cu on
                             cu.TxId = u.RowId
-
                         left join Payload pu on
                             pu.TxId = u.RowId
-
                         left join Ratings ru indexed by Ratings_Type_Uid_Last_Height on
                             ru.Type = 0 and
                             ru.Uid = cu.Uid and
                             ru.Last = 1
-
                     where
                         subs.Type in (302, 303, 304) and -- Ignoring unsubscribers?
                         subs.RegId2 = params.addressId
+                    order by c.Height desc, c.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -8623,21 +8621,19 @@ namespace PocketDb
                             acs.Type = 100 and
                             acs.RegId1 = s.RegId1 and
                             exists (select 1 from Last l where l.TxId = acs.RowId)
-
                         left join Chain cacs on
                             cacs.TxId = acs.RowId
-
                         left join Payload pacs on
                             pacs.TxId = acs.RowId
-
                         left join Ratings racs indexed by Ratings_Type_Uid_Last_Height on
                             racs.Type = 0 and
                             racs.Uid = cacs.Uid and
                             racs.Last = 1
-
                     where
                         c.Type in (204) and
                         c.RegId1 = params.addressId
+                    order by cs.Height desc, cs.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -8731,10 +8727,11 @@ namespace PocketDb
                             racs.Type = 0 and
                             racs.Uid = cacs.Uid and
                             racs.Last = 1
-
                     where
                         c.Type in (200,201,202,209,210) and
                         c.RegId1 = params.addressId
+                    order by cs.Height desc, cs.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -8822,11 +8819,12 @@ namespace PocketDb
                             rac.Type = 0 and
                             rac.Uid = cac.Uid and
                             rac.Last = 1
-
                     where
                         subs.Type = 303 and
                         subs.RegId1 = params.addressId and
                         exists (select 1 from Last l where l.TxId = subs.RowId)
+                    order by cc.Height desc, cc.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -8950,6 +8948,8 @@ namespace PocketDb
 
                     where
                         tBoost.Type in (208)
+                    order by cBoost.Height desc, cBoost.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -9038,19 +9038,18 @@ namespace PocketDb
 
                         left join Chain car on
                             car.TxId = ar.RowId
-
                         left join Payload par on
                             par.TxId = ar.RowId
-
                         left join Ratings rar indexed by Ratings_Type_Uid_Last_Height
                             on rar.Type = 0
                             and rar.Uid = car.Uid
                             and rar.Last = 1
-
                     where
                         p.Type = 200 and
                         p.RegId1 = params.addressId and
                         exists (select 1 from Last l where l.TxId = p.RowId)
+                    order by cr.Height desc, cr.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -9105,38 +9104,29 @@ namespace PocketDb
                         null,
                         null,
                         null
-
                     from
-                        params,
-                        Transactions f indexed by Transactions_Type_RegId3_RegId1 -- TODO (losty): better RegId3_RegId2
-
-                        join Chain cf indexed by Chain_Height_BlockNum on
-                            cf.TxId = f.RowId and
-                            cf.Height > params.min and
-                            (cf.Height < params.max or (cf.Height = params.max and cf.BlockNum < params.blockNum))
-
-                        cross join vTxStr sf on
-                            sf.RowId = f.RowId
-
-                        cross join Jury j on
-                            j.FlagRowId = f.RowId
-
-                        cross join Transactions c indexed by Transactions_HashId on
-                            c.HashId = f.RegId2
-
-                        cross join Chain cc on
-                            cc.TxId = c.RowId
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        cross join Payload cp on
-                            cp.TxId = c.RowId
-
-                    where
+                        params
+                    cross join Transactions f indexed by Transactions_Type_RegId3_RegId1 on
                         f.Type = 410 and
-                        -- f.Last = 0 and -- TODO (aok): is it required only for index?
                         f.RegId3 = params.addressId
+                    cross join Chain cf indexed by Chain_TxId_Height on
+                        cf.TxId = f.RowId and
+                        cf.Height > params.min and
+                        (cf.Height < params.max or (cf.Height = params.max and cf.BlockNum < params.blockNum))
+                    cross join vTxStr sf on
+                        sf.RowId = f.RowId
+                    cross join Jury j on
+                        j.FlagRowId = f.RowId
+                    cross join Transactions c indexed by Transactions_HashId on
+                        c.HashId = f.RegId2
+                    cross join Chain cc on
+                        cc.TxId = c.RowId
+                    cross join vTxStr sc on
+                        sc.RowId = c.RowId
+                    cross join Payload cp on
+                        cp.TxId = c.RowId
+                    order by cf.Height desc, cf.BlockNum desc
+                    limit 10
                 )sql"
             },
 
@@ -9246,11 +9236,12 @@ namespace PocketDb
                             rnc.Type = 0 and
                             rnc.Uid = cuc.Uid and
                             rnc.Last = 1
-
                     where
                         acc.Type = 100 and
                         acc.RegId1 = params.addressId and
                         exists (select 1 from Last l where l.TxId = acc.RowId)
+                    order by cf.Height desc, cf.BlockNum desc
+                    limit 10
                 )sql"
             }
         };
@@ -9270,29 +9261,35 @@ namespace PocketDb
                 )
         )sql";
 
-        static const auto footer = R"sql(
-
-            -- Global order and limit for pagination
-            order by Height desc, BlockNum desc
-            limit 10
-
-        )sql";
-        
-        auto sql = _constructSelectsBasedOnFilters(filters, selects, header, footer);
-
         EventsReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(heightMax, heightMin, blockNumMax, address)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
+            for (const auto& reqSql : selects)
+            {
+                if (auto[ok, sql] = _constructSelectsBasedOnFilters(filters, reqSql, header); ok)
                 {
-                    reconstructor.FeedRow(cursor);
+                    Sql(sql)
+                    .Bind(
+                        heightMax,
+                        heightMin,
+                        blockNumMax,
+                        address)
+                    .Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                            reconstructor.FeedRow(cursor);
+                    });
                 }
-            });
+            }
         });
-        return reconstructor.GetResult();
+
+        auto result = reconstructor.GetResult();
+
+        std::sort(result.begin(), result.end(), [](auto& a, auto& b) {
+            return std::tie(*a.GetTxData().GetHeight(), *a.GetTxData().GetHeight()) < std::tie(*b.GetTxData().GetHeight(), *b.GetTxData().GetHeight());
+        });
+        
+        std::vector<PocketDb::ShortForm> shortResult(result.begin(), result.begin() + 10);
+        return shortResult;
     }
 
     std::map<std::string, std::map<ShortTxType, int>> WebRpcRepository::GetNotificationsSummary(int64_t heightMax, int64_t heightMin, const std::set<std::string>& addresses, const std::set<ShortTxType>& filters)
@@ -9443,7 +9440,7 @@ namespace PocketDb
                 )
         )sql";
         
-        auto sql = _constructSelectsBasedOnFilters(filters, selects, header, "union all");
+        auto sql = _unionSelectsBasedOnFilters(filters, selects, header, "union all");
 
         NotificationSummaryReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
