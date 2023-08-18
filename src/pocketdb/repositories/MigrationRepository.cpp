@@ -153,7 +153,7 @@ namespace PocketDb
                     t.RowId
                 from Transactions t
                 where
-                    t.HashId = (
+                    t.RowId = (
                         select r.RowId from Registry r where r.String in (
                             '30064229865e5f18d51725e3c3339facae0bfecd35b0e5a92e9dc1a168748439',
                             '45ad6c18c67717ab02c658e5153cbc97e3e7be9ed964739bb3a6181f89973b52',

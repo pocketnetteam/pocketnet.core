@@ -707,7 +707,7 @@ namespace PocketDb
             from
                 tx
                 cross join Transactions b on
-                    b.Type in (305) and b.HashId = tx.RowId
+                    b.Type in (305) and b.RowId = tx.RowId
                 cross join Transactions us on
                     us.Type in (100, 170) and us.RegId1 = b.RegId1
                 cross join Chain usc on
@@ -739,7 +739,7 @@ namespace PocketDb
                 from
                     tx
                     cross join Transactions b on
-                        b.Type in (306) and b.HashId = tx.RowId
+                        b.Type in (306) and b.RowId = tx.RowId
                     cross join Transactions us on
                         us.Type in (100, 170) and us.RegId1 = b.RegId1
                     cross join Chain usc on
@@ -881,7 +881,7 @@ namespace PocketDb
                     cu.Uid, /* Account unique id of the content author */
                     f.Int1 /* Reason */
 
-                from Transactions f indexed by Transactions_HashId
+                from Transactions f
 
                 cross join Chain cf
                     on cf.TxId = f.RowId
@@ -895,7 +895,7 @@ namespace PocketDb
                 cross join Chain cu on
                     cu.TxId = u.RowId
 
-                where f.HashId = (select r.RowId from Registry r where r.String = ?)
+                where f.RowId = (select r.RowId from Registry r where r.String = ?)
 
                     -- Is there no active punishment listed on the account ?
                     and not exists (
@@ -943,7 +943,7 @@ namespace PocketDb
                 insert into JuryModerators (AccountId, FlagRowId)
                 with
                   h as (
-                    select r.String as hash, r.RowId as hashid
+                    select r.String as hash, r.RowId as rowid
                     from Registry r where r.String = ?
                   ),
                   f as (
@@ -951,13 +951,13 @@ namespace PocketDb
                     from Transactions f,
                         Jury j,
                         h
-                    where f.HashId = h.hashid and j.FlagRowId = f.ROWID
+                    where f.RowId = h.rowid and j.FlagRowId = f.ROWID
                   ),
                   c as (
                     select ?/2 as cnt
                   ),
                   a as (
-                    select b.AccountId, (select r.String from Registry r where r.RowId = (select t.HashId from Transactions t where t.RowId = u.TxId)) as Hash
+                    select b.AccountId, (select r.String from Registry r where r.RowId = u.TxId) as Hash
                     from vBadges b
                     cross join Chain u on u.Uid = b.AccountId and exists (select 1 from First f where f.TxId = u.TxId)
                     where b.Badge = 3
@@ -1040,16 +1040,16 @@ namespace PocketDb
                     0
                 from
                     Transactions v
-                    cross join Transactions f indexed by Transactions_HashId
-                        on f.HashId = v.RegId2
+                    cross join Transactions f
+                        on f.RowId = v.RegId2
                     cross join Transactions vv on
                         vv.Type in (420) and -- Votes
-                        vv.RegId2 = f.HashId and -- JuryId over FlagTxHash
+                        vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
                         vv.Int1 = 0 and -- Negative verdict
                         not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
                         
                 where
-                    v.HashId = (select r.RowId from Registry r where r.String = ?)
+                    v.RowId = (select r.RowId from Registry r where r.String = ?)
             )sql")
             .Bind(voteTxHash)
             .Run();
@@ -1064,10 +1064,10 @@ namespace PocketDb
                     1
                 from
                     Transactions v
-                    cross join Transactions f indexed by Transactions_HashId
-                        on f.HashId = v.RegId2
+                    cross join Transactions f
+                        on f.RowId = v.RegId2
                 where
-                    v.HashId = (select r.RowId from Registry r where r.String = ?) and
+                    v.RowId = (select r.RowId from Registry r where r.String = ?) and
                     ? <= (
                         select
                             count()
@@ -1075,7 +1075,7 @@ namespace PocketDb
                             Transactions vv
                         where
                             vv.Type in (420) and -- Votes
-                            vv.RegId2 = f.HashId and -- JuryId over FlagTxHash
+                            vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
                             vv.Int1 = 1 and -- Positive verdict
                             not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
                     )
@@ -1101,8 +1101,8 @@ namespace PocketDb
                     Transactions v
                     join Chain cv
                         on cv.TxId = v.RowId
-                    join Transactions f indexed by Transactions_HashId
-                        on f.HashId = v.RegId2
+                    join Transactions f
+                        on f.RowId = v.RegId2
                     cross join Jury j
                         on j.FlagRowId = f.ROWID
                     cross join JuryVerdict jv
@@ -1110,7 +1110,7 @@ namespace PocketDb
                            jv.FlagRowId = j.FlagRowId and
                            jv.Verdict = 1
                 where
-                    v.HashId = (select r.RowId from Registry r where r.String = ?) and
+                    v.RowId = (select r.RowId from Registry r where r.String = ?) and
                     not exists (
                         select
                             1

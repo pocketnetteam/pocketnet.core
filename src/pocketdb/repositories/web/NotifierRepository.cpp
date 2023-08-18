@@ -70,8 +70,8 @@ namespace PocketDb
                 select p.String1 Lang
                 from
                     tx
-                    join Transactions t indexed by Transactions_HashId on
-                        t.HashId = tx.id and t.Type in (200, 201, 202, 209, 210, 203)
+                    join Transactions t
+                        t.RowId = tx.id and t.Type in (200, 201, 202, 209, 210, 203)
                     join Payload p on
                         p.TxId = t.RowId
             )sql")
@@ -109,8 +109,8 @@ namespace PocketDb
                     (select r.String from Registry r where r.RowId = t.RegId2)
                 from
                     tx
-                    join Transactions t indexed by Transactions_HashId on
-                        t.HashId = tx.id and t.Type in (200, 201, 202, 209, 210, 203)
+                    join Transactions t on
+                        t.RowId = tx.id and t.Type in (200, 201, 202, 209, 210, 203)
             )sql")
             .Bind(postHash)
             .Select([&](Cursor& cursor) {
@@ -152,8 +152,8 @@ namespace PocketDb
                     (select r.String from Registry r where r.RowId = tContent.RegId2) as contentHash
                 from
                     tx
-                    join Transactions tBoost indexed by Transactions_HashId on
-                        tBoost.HashId = tx.id and tBoost.Type in (208)
+                    join Transactions tBoost on
+                        tBoost.RowId = tx.id and tBoost.Type in (208)
                     join Transactions tContent indexed by Transactions_Type_RegId2_RegId1 on
                         tContent.RegId2 = tBoost.RegId2 and tContent.Type in (200, 201, 202, 209, 210)
                     join Last lc on
@@ -208,10 +208,10 @@ namespace PocketDb
                     p.String3 as avatarRepost
                 from
                     tx
-                    join Transactions tRepost indexed by Transactions_HashId on
-                        tRepost.HashId = tx.id and tRepost.Type in (200, 201, 202, 209, 210, 203)
-                    join Transactions t indexed by Transactions_HashId on
-                        t.HashId = tRepost.RegId3
+                    join Transactions tRepost on
+                        tRepost.RowId = tx.id and tRepost.Type in (200, 201, 202, 209, 210, 203)
+                    join Transactions t on
+                        t.RowId = tRepost.RegId3
                     join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                         u.Type in (100) and u.RegId1 = tRepost.RegId1
                     join Last lu on
@@ -310,10 +310,10 @@ namespace PocketDb
                     p.String3 as scoreAvatar
                 from
                     tx
-                    join Transactions score indexed by Transactions_HashId on
-                        score.HashId = tx.id and score.Type in (300)
+                    join Transactions score on
+                        score.RowId = tx.id and score.Type in (300)
                     join Transactions post on
-                        post.HashId = score.RegId2
+                        post.RowId = score.RegId2
                     join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                         u.Type in (100) and u.RegId1 = score.RegId1
                     join Last lu on
@@ -360,8 +360,8 @@ namespace PocketDb
                     p.String3 as avatarFrom
                 from
                     tx
-                    join Transactions s indexed by Transactions_HashId on
-                        s.HashId = tx.id and s.Type in (302, 303, 304)
+                    join Transactions s on
+                        s.RowId = tx.id and s.Type in (302, 303, 304)
                     join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
                         on u.Type in (100) and u.RegId1 = s.RegId1
                     join Last lu on
@@ -408,10 +408,10 @@ namespace PocketDb
                     p.String3 as scoreCommentAvatar
                 from
                     tx
-                    join Transactions score indexed by Transactions_HashId on
-                        score.HashId = tx.id
-                    join Transactions comment indexed by Transactions_HashId on
-                        comment.HashId = score.RegId2
+                    join Transactions score on
+                        score.RowId = tx.id
+                    join Transactions comment on
+                        comment.RowId = score.RegId2
                     join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                         u.Type in (100) and u.RegId1 = score.RegId1
                     join Last l on
@@ -474,16 +474,16 @@ namespace PocketDb
                     ) as Donate
                 from
                     tx
-                    join Transactions comment indexed by Transactions_HashId on
-                        comment.HashId = tx.id and comment.Type in (204, 205)
+                    join Transactions comment on
+                        comment.RowId = tx.id and comment.Type in (204, 205)
                     join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                         u.Type in (100) and u.RegId1 = comment.RegId1
                     join Last lu on
                         lu.TxId = u.RowId
                     join Payload p on
                         p.TxId = u.RowId
-                    join Transactions content indexed by Transactions_HashId on
-                        content.HashId = comment.RegId3 and content.Type in (200, 201, 202, 209, 210)
+                    join Transactions content on
+                        content.RowId = comment.RegId3 and content.Type in (200, 201, 202, 209, 210)
                     left join Transactions answer indexed by Transactions_Type_RegId2_RegId1 on
                         answer.Type in (204, 205) and answer.RegId2 = comment.RegId5
             )sql")

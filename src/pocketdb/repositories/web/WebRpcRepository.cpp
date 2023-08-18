@@ -150,7 +150,7 @@ namespace PocketDb
                 select
                     addr.hash,
                     u.Time,
-                    (select r.String from Registry r where r.RowId = u.HashId)
+                    (select r.String from Registry r where r.RowId = u.RowId)
                 from
                     addr
                 cross join
@@ -608,7 +608,7 @@ namespace PocketDb
             )sql" + with + R"sql(
             select
 
-                (select r.String from Registry r where r.RowId = u.HashId) as AccountHash
+                (select r.String from Registry r where r.RowId = u.RowId) as AccountHash
                 ,(select r.String from Registry r where r.RowId = u.RegId1) as Addres
                 ,cu.Uid
                 ,u.Type
@@ -925,8 +925,8 @@ namespace PocketDb
                     (select r.String from Registry r where r.RowId = t.RegId4) as CommentParent,
                     (select r.String from Registry r where r.RowId = t.RegId5) as CommentAnswer,
                     (select r.String from Registry r where r.RowId = p.RegId1) as AddressContent,
-                    ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.HashId = t.RegId4), '') as AddressCommentParent,
-                    ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.HashId = t.RegId5), '') as AddressCommentAnswer,
+                    ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.RowId = t.RegId4), '') as AddressCommentParent,
+                    ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.RowId = t.RegId5), '') as AddressCommentAnswer,
 
                     (
                         select count()
@@ -944,7 +944,7 @@ namespace PocketDb
 
                     rc.Value    as CommentRating,
 
-                    (case when t.HashId != t.RegId2 then 1 else 0 end) as CommentEdit,
+                    (case when t.RowId != t.RegId2 then 1 else 0 end) as CommentEdit,
 
                     (
                         select o.Value
@@ -1051,7 +1051,7 @@ namespace PocketDb
                 (select r.String from Registry r where r.RowId = c.RegId2)                  as RootTxHash,
                 (select r.String from Registry r where r.RowId = c.RegId3)                  as PostTxHash,
                 (select r.String from Registry r where r.RowId = c.RegId1)                  as AddressHash,
-                (select corig.Time from Transactions corig where corig.HashId = c.RegId2)   as Time,
+                (select corig.Time from Transactions corig where corig.RowId = c.RegId2)   as Time,
                 c.Time                                                                      as TimeUpdate,
                 cc.Height,
                 (select p.String1 from Payload p where p.TxId = c.RowId)                    as Message,
@@ -1220,7 +1220,7 @@ namespace PocketDb
 
             select
                 c.Type,
-                (select r.String from Registry r where r.RowId = c.HashId),
+                (select r.String from Registry r where r.RowId = c.RowId),
                 (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
                 (select r.String from Registry r where r.RowId = c.RegId3) as PostTxHash,
                 (select r.String from Registry r where r.RowId = c.RegId1) as AddressHash,
@@ -1293,8 +1293,8 @@ namespace PocketDb
                 Last lua
                     on lua.TxId = ua.RowId
             cross join
-                Transactions r indexed by Transactions_HashId
-                    on r.HashId = c.RegId2
+                Transactions r
+                    on r.RowId = c.RegId2
             cross join
                 Payload pl
                     on pl.TxId = c.RowId
@@ -1474,7 +1474,7 @@ namespace PocketDb
                 select
 
                     c.Type,
-                    (select r.String from Registry r where r.RowId = c.HashId),
+                    (select r.String from Registry r where r.RowId = c.RowId),
                     (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
                     (select r.String from Registry r where r.RowId = c.RegId3) as PostTxHash,
                     (select r.String from Registry r where r.RowId = c.RegId1) as AddressHash,
@@ -1543,8 +1543,8 @@ namespace PocketDb
                     Chain cc
                         on cc.TxId = c.RowId
                 cross join
-                    Transactions r indexed by Transactions_HashId
-                        on r.HashId = c.RegId2
+                    Transactions r
+                        on r.RowId = c.RegId2
                 cross join
                     Payload pl
                         on pl.TxId = c.RowId
@@ -1712,13 +1712,13 @@ namespace PocketDb
                             select count()
                             from Transactions sc indexed by Transactions_Type_RegId2_RegId1
                             cross join Chain csc on csc.TxId = sc.RowId
-                            where sc.Type in (301) and sc.RegId2 = c.HashId and sc.Int1 = 1
+                            where sc.Type in (301) and sc.RegId2 = c.RowId and sc.Int1 = 1
                         ) as ScoreUp,
                         (
                             select count()
                             from Transactions sc indexed by Transactions_Type_RegId2_RegId1
                             cross join Chain csc on csc.TxId = sc.RowId
-                            where sc.Type in (301) and sc.RegId2 = c.HashId and sc.Int1 = -1
+                            where sc.Type in (301) and sc.RegId2 = c.RowId and sc.Int1 = -1
                         ) as ScoreDown,
                         (
                             select r.Value
@@ -1935,7 +1935,7 @@ namespace PocketDb
                         cross join
                             Transactions r indexed by Transactions_Type_RegId2_RegId1 on
                                 r.Type in (300, 301) and
-                                r.RegId2 = c.HashId and
+                                r.RegId2 = c.RowId and
                                 ( (r.Type = 300 and r.Int1 = 5) or (r.Type = 301 and r.Int1 = 1) )
                         cross join
                             Chain cr on
@@ -2468,8 +2468,8 @@ namespace PocketDb
                 from
                     tx
                 cross join
-                    Transactions t indexed by Transactions_HashId
-                        on t.HashId = tx.id
+                    Transactions t
+                        on t.RowId = tx.id
                 cross join
                     Chain c
                         on c.TxId = t.RowId
@@ -2514,8 +2514,8 @@ namespace PocketDb
                 from
                     tx
                 cross join
-                    Transactions t indexed by Transactions_HashId
-                        on t.HashId = tx.id
+                    Transactions t
+                        on t.RowId = tx.id
                 cross join
                     Chain c
                         on c.TxId = t.RowId
@@ -2552,7 +2552,7 @@ namespace PocketDb
                             r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                     )
                 select
-                    (select String from Registry where RowId=t.HashId),
+                    (select String from Registry where RowId=t.RowId),
                     o.Number,
                     (select String from Registry where RowId=o.AddressId),
                     o.Value,
@@ -3015,8 +3015,8 @@ namespace PocketDb
                     Last l
                         on l.TxId = r.RowId
                 cross join
-                    Transactions p indexed by Transactions_HashId
-                        on p.HashId = r.RegId3 and p.Type in (200, 201) and p.RegId1 = addr.id
+                    Transactions p
+                        on p.RowId = r.RegId3 and p.Type in (200, 201) and p.RegId1 = addr.id
             )sql")
             .Bind(address, height)
             .Select([&](Cursor& cursor) {
@@ -3058,7 +3058,7 @@ namespace PocketDb
                 height as ( select ? as value )
                 select
                     (select r.String from Registry r where r.RowId = s.RegId1) as address,
-                    (select r.String from Registry r where r.RowId = s.HashId),
+                    (select r.String from Registry r where r.RowId = s.RowId),
                     s.Time,
                     (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
                     s.Int1 as value,
@@ -3124,7 +3124,7 @@ namespace PocketDb
                 height as ( select ? as value )
                 select
                     (select r.String from Registry r where r.RowId = s.RegId1) as address,
-                    (select r.String from Registry r where r.RowId = s.HashId),
+                    (select r.String from Registry r where r.RowId = s.RowId),
                     s.Time,
                     (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
                     s.Int1 as value,
@@ -3189,7 +3189,7 @@ namespace PocketDb
                 ),
                 height as ( select ? as value )
                 select
-                    (select r.String from Registry r where r.RowId = t.HashId),
+                    (select r.String from Registry r where r.RowId = t.RowId),
                     t.Time,
                     o.Value,
                     c.Height,
@@ -3427,7 +3427,7 @@ namespace PocketDb
                 height as ( select ? as value )
                 select
                     subs.Type,
-                    (select r.String from Registry r where r.RowId = subs.HashId),
+                    (select r.String from Registry r where r.RowId = subs.RowId),
                     subs.Time,
                     cs.Height,
                     (select r.String from Registry r where r.RowId = subs.RegId1) as addrFrom,
@@ -3509,7 +3509,7 @@ namespace PocketDb
                 height as ( select ? as value )
                 select
                     (select r.String from Registry r where r.RowId = tBoost.RegId1) as boostAddress,
-                    (select r.String from Registry r where r.RowId = tBoost.HashId),
+                    (select r.String from Registry r where r.RowId = tBoost.RowId),
                     tBoost.Time,
                     cb.Height,
                     (select r.String from Registry r where r.RowId = tBoost.RegId2) as contenttxid,
@@ -3825,12 +3825,9 @@ namespace PocketDb
             _withTxs = R"sql(
                 txs as (
                     select
-                        t.HashId as id
+                        c.TxId as id
                     from
                         Chain c
-                    cross join
-                        Transactions t
-                            on t.RowId = c.TxId
                     where c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
                 ),
             )sql";
@@ -3853,10 +3850,10 @@ namespace PocketDb
                         String = ?
                 )
                 select
-                    (select String from Registry where RowId = t.HashId) as Hash,
+                    (select String from Registry where RowId = t.RowId) as Hash,
                     (select String from Registry where RowId = t.RegId2) as RootTxHash,
                     c.Uid as Id,
-                    case when t.HashId != t.RegId2 then 'true' else null end edit,
+                    case when t.RowId != t.RegId2 then 'true' else null end edit,
                     (select String from Registry where RowId = t.RegId3) as RelayTxHash,
                     (select String from Registry where RowId = t.RegId1) as AddressHash,
                     t.Time,
@@ -3930,7 +3927,7 @@ namespace PocketDb
                             json_group_array(
                                 json_object(
                                     'h', cv.Height,
-                                    'hs', (select rv.String from Registry rv where rv.RowId = tv.HashId)
+                                    'hs', (select rv.String from Registry rv where rv.RowId = tv.RowId)
                                 )
                             )
                         from
@@ -3940,14 +3937,14 @@ namespace PocketDb
                         where
                             tv.Type = t.Type and
                             tv.RegId2 = t.RegId2 and
-                            tv.HashId != t.HashId
+                            tv.RowId != t.RowId
                     ) as Versions
                 from
                     txs,
                     addr
                 cross join
-                    Transactions t indexed by Transactions_HashId
-                        on t.HashId = txs.id and t.Type in (200, 201, 202, 209, 210)
+                    Transactions t
+                        on t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210)
                 cross join
                     Chain c
                         on c.TxId = t.RowId
@@ -4059,7 +4056,7 @@ namespace PocketDb
                 select
                     (select r.String from Registry r where r.RowId = t.RegId2) as RootTxHash,
                     c.Uid,
-                    case when t.HashId != t.RegId2 then 'true' else null end edit,
+                    case when t.RowId != t.RegId2 then 'true' else null end edit,
                     (select r.String from Registry r where r.RowId = t.RegId3) as ContentIds,
                     (select r.String from Registry r where r.RowId = t.RegId1) as AddressHash,
                     t.Time,
@@ -4901,7 +4898,7 @@ namespace PocketDb
 
             )sql" + langFilter + R"sql(
 
-            join Transactions torig indexed by Transactions_HashId on torig.HashId = t.RegId2
+            join Transactions torig on torig.RowId = t.RegId2
             join Chain ctorig on ctorig.TxId = torig.RowId
 
             left join Ratings pr indexed by Ratings_Type_Uid_Last_Height
@@ -5345,7 +5342,7 @@ namespace PocketDb
                 (
                         select
                             json_group_array(
-                                (select r.String from Registry r where r.RowId = _c.HashId)
+                                (select r.String from Registry r where r.RowId = _c.RowId)
                             )
                         from
                             Transactions _c indexed by Transactions_Type_RegId1_RegId2_RegId3
@@ -6709,7 +6706,7 @@ namespace PocketDb
                             c.Height = ?
 
                         join Registry r on
-                            r.RowId = t.HashId
+                            r.RowId = t.RowId
 
                     where
                         t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
@@ -7776,8 +7773,8 @@ namespace PocketDb
                         cross join Payload p
                             on p.TxId = cu.TxId
 
-                        cross join Transactions c indexed by Transactions_HashId
-                            on c.HashId = f.RegId2
+                        cross join Transactions c
+                            on c.RowId = f.RegId2
 
                         cross join Chain cc on
                             cc.TxId = c.RowId
@@ -7885,8 +7882,8 @@ namespace PocketDb
                         cross join Transactions f
                             on f.RowId = jv.FlagRowId
 
-                        cross join Transactions c indexed by Transactions_HashId on
-                            c.HashId = f.RegId2
+                        cross join Transactions c on
+                            c.RowId = f.RegId2
 
                         cross join Chain cc on
                             cc.TxId = c.RowId
@@ -7992,8 +7989,8 @@ namespace PocketDb
                             on rn.Type = 0 and rn.Uid = jm.AccountId and rn.Last = 1
 
                         -- content
-                        cross join Transactions c indexed by Transactions_HashId
-                            on c.HashId = f.RegId2
+                        cross join Transactions c
+                            on c.RowId = f.RegId2
 
                         cross join Chain cc on
                             cc.TxId = c.RowId
@@ -8324,7 +8321,7 @@ namespace PocketDb
                         (ca.Height < params.max or (ca.Height = params.max and ca.BlockNum < params.blockNum))
                     cross join Transactions aLast indexed by Transactions_Type_RegId2_RegId1 on
                         aLast.Type in (204,205) and
-                        aLast.RegId2 = a.HashId
+                        aLast.RegId2 = a.RowId
                     cross join Last laLast on
                         laLast.TxId = aLast.RowId
                     cross join Payload pa on
@@ -8441,7 +8438,7 @@ namespace PocketDb
                         sc.RowId = c.RowId
                     cross join Transactions cLast indexed by Transactions_Type_RegId2_RegId1 on
                         cLast.Type in (204,205) and
-                        cLast.RegId2 = c.HashId
+                        cLast.RegId2 = c.RowId
                     cross join Last lcLast on
                         lcLast.TxId = cLast.RowId
                     cross join Payload pc on
@@ -9117,8 +9114,8 @@ namespace PocketDb
                         sf.RowId = f.RowId
                     cross join Jury j on
                         j.FlagRowId = f.RowId
-                    cross join Transactions c indexed by Transactions_HashId on
-                        c.HashId = f.RegId2
+                    cross join Transactions c on
+                        c.RowId = f.RegId2
                     cross join Chain cc on
                         cc.TxId = c.RowId
                     cross join vTxStr sc on
@@ -9205,8 +9202,8 @@ namespace PocketDb
                             sf.RowId = f.RowId
 
                         -- content
-                        cross join Transactions c indexed by Transactions_HashId on
-                            c.HashId = f.RegId2
+                        cross join Transactions c on
+                            c.RowId = f.RegId2
 
                         cross join Chain cc on
                             cc.TxId = c.RowId
