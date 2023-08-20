@@ -9424,7 +9424,7 @@ namespace PocketDb
                 params as (
                     select
                         ? as max,
-                        ? as min,
+                        ? as min
                 ),
                 addr as (
                     select
@@ -9437,14 +9437,13 @@ namespace PocketDb
                 )
         )sql";
         
-        auto sql = _unionSelectsBasedOnFilters(filters, selects, header, "union all");
+        auto sql = _unionSelectsBasedOnFilters(filters, selects, header, "");
 
         NotificationSummaryReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
         {
             auto& stmt = Sql(sql);
             stmt.Bind(heightMax, heightMin, addresses);
-            LogPrintf("------------------------------\n%s\n------------------------------\n");
             stmt.Select([&](Cursor& cursor)
             {
                 while (cursor.Step())

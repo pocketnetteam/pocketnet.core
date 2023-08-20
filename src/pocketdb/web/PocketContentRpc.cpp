@@ -1512,7 +1512,7 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetNotificationsSummary()
     {
-        return RPCHelpMan{"GetNotificationsSummary",
+        return RPCHelpMan{"getnotificationssummary",
                         "\\n", // TODO (losty)
                         {
 
