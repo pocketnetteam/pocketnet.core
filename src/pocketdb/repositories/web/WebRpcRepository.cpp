@@ -9442,9 +9442,10 @@ namespace PocketDb
         NotificationSummaryReconstructor reconstructor;
         SqlTransaction(__func__, [&]()
         {
-            Sql(sql)
-            .Bind(heightMax, heightMin, addresses)
-            .Select([&](Cursor& cursor)
+            auto& stmt = Sql(sql);
+            stmt.Bind(heightMax, heightMin, addresses);
+            LogPrintf("------------------------------\n%s\n------------------------------\n");
+            stmt.Select([&](Cursor& cursor)
             {
                 while (cursor.Step())
                     reconstructor.FeedRow(cursor);

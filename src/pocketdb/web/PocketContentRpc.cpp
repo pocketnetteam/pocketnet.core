@@ -1536,7 +1536,7 @@ namespace PocketWeb::PocketWebRpc
             addresses.insert(addressesRaw[i].get_str());
         }
 
-        int64_t heightMax = ChainActive().Height(); // TODO (losty): deadlock here wtf
+        int64_t heightMax = ChainActiveUnsafe().Height(); // TODO (losty): deadlock here wtf
         if (request.params.size() > 1 && request.params[1].isNum()) {
             heightMax = request.params[1].get_int64();
         }
