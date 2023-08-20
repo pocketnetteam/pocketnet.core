@@ -778,7 +778,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
 
         gStatEngineInstance.AddSample(
             Statistic::RequestSample{
-                uri,
+                method,
                 req->Created,
                 start,
                 finish,
