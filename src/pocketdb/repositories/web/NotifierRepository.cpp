@@ -67,13 +67,15 @@ namespace PocketDb
                     where
                         r.String = ?
                 )
-                select p.String1 Lang
+                select
+                    p.String1 Lang
                 from
                     tx
-                    join Transactions t
-                        t.RowId = tx.id and t.Type in (200, 201, 202, 209, 210, 203)
-                    join Payload p on
-                        p.TxId = t.RowId
+                cross join Transactions t on
+                    t.RowId = tx.id and
+                    t.Type in (200, 201, 202, 209, 210, 203)
+                cross join Payload p on
+                    p.TxId = t.RowId
             )sql")
             .Bind(postHash)
             .Select([&](Cursor& cursor) {
