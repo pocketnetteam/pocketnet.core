@@ -227,6 +227,8 @@ namespace PocketDb
             select ScriptPubKey from TxOutputs
         )sql")
         .Run();
+
+        // TODO (losty): need SpentTxHash from TxInputs???
     }
 
     void MigrationRepository::FulfillLists()
@@ -235,11 +237,13 @@ namespace PocketDb
             insert into newdb.Lists
             (TxId, OrderIndex, RegId)
             select
-                t.rowid,
+                h.RowId,
                 0,
                 (select value from json_each(t.String3))
             from
                 Transactions t
+                cross join newdb.Registry h on
+                    h.String = t.Hash
             where
                 t.Type = 305 and
                 json_valid(t.String3)
@@ -253,13 +257,15 @@ namespace PocketDb
             insert into newdb.Chain
             (TxId, BlockId, BlockNum, Height, Uid)
             select
-                t.rowid,
+                h.RowId,
                 (select r.RowId from Registry r where r.String = t.BlockHash),
                 t.BlockNum,
                 t.Height,
                 t.Id
             from
                 Transactions t
+                cross join newdb.Registry h on
+                    h.String = t.Hash
             where
                 t.Height > 0
         )sql")
@@ -270,9 +276,14 @@ namespace PocketDb
     {
         Sql(R"sql(
             insert into newdb.Last (TxId)
-            select t.rowid
-            from Transactions t
-            where t.Last = 1;
+            select
+                h.RowId
+            from
+                Transactions t
+                cross join newdb.Registry h on
+                    h.String = t.Hash
+            where
+                t.Last = 1;
         )sql")
         .Run();
     }
@@ -281,9 +292,14 @@ namespace PocketDb
     {
         Sql(R"sql(
             insert into newdb.First (TxId)
-            select t.rowid
-            from Transactions t
-            where t.First = 1;
+            select
+                h.RowId
+            from
+                Transactions t
+                cross join newdb.Registry h
+                    on h.String = t.Hash
+            where
+                t.First = 1;
         )sql")
         .Run();
     }
@@ -292,11 +308,10 @@ namespace PocketDb
     {
         Sql(R"sql(
             insert into newdb.Transactions
-            (RowId, Type, HashId, Time, RegId1, RegId2, RegId3, RegId4, RegId5, Int1)
+            (RowId, Type, Time, RegId1, RegId2, RegId3, RegId4, RegId5, Int1)
             select 
-                t.rowid,
-                t.Type,
                 (select r.RowId from newdb.Registry r where r.String = t.Hash),
+                t.Type,
                 Time,
                 (select r.RowId from newdb.Registry r where r.String = t.String1),
                 (select r.RowId from newdb.Registry r where r.String = t.String2),
@@ -316,7 +331,7 @@ namespace PocketDb
             insert into newdb.TxOutputs
             (TxId, Number, AddressId, Value, ScriptPubKeyId)
             select
-                (select t.rowid from Transactions t where t.Hash = o.TxHash),
+                (select r.RowId from newdb.Registry r where r.String = o.TxHash),
                 o.Number,
                 (select r.RowId from newdb.Registry r where r.String = o.AddressHash),
                 o.Value,
@@ -366,8 +381,8 @@ namespace PocketDb
             insert or ignore into newdb.TxInputs
             (SpentTxId, TxId, Number)
             select
-                (select t.rowid from Transactions t where t.Hash = i.SpentTxHash),
-                (select t.rowid from Transactions t where t.Hash = i.TxHash),
+                (select r.RowId from newdb.Registry r where r.String = i.SpentTxHash),
+                (select r.RowId from newdb.Registry r where r.String = i.TxHash),
                 i.Number
             from
                 TxInputs i
@@ -381,7 +396,7 @@ namespace PocketDb
             insert into newdb.Payload
             (TxId, String1, String2, String3, String4 ,String5, String6, String7, Int1)
             select
-                (select t.rowid from Transactions t where t.Hash = p.TxHash),
+                (select r.RowId from newdb.Registry r where r.String = p.TxHash),
                 String1,
                 String2,
                 String3,
@@ -413,11 +428,15 @@ namespace PocketDb
             insert into newdb.Jury
             (FlagRowId, AccountId, Reason)
             select
-                FlagRowId,
-                AccountId,
+                (select r.RowId from Registry r where r.String = ft.Hash),
+                (select r.RowId from Registry r where r.String = at.Hash),
                 Reason
             from
                 Jury
+                cross join Transactions ft on
+                    ft.RowId = FlagRowId
+                cross join Transactions at on
+                    at.rowid = AccountId
         )sql")
         .Run();
 
@@ -425,11 +444,15 @@ namespace PocketDb
             insert into newdb.JuryVerdict
             (FlagRowId, VoteRowId, Verdict)
             select
-                FlagRowId,
-                VoteRowId,
+                (select r.RowId from Registry r where r.String = ft.Hash),
+                (select r.RowId from Registry r where r.String = vt.Hash),
                 Verdict
             from
                 JuryVerdict
+                cross join Transactions ft on
+                    ft.RowId = FlagRowId
+                cross join Transactions vt on
+                    vt.rowid = AccountId
         )sql")
         .Run();
 
@@ -437,10 +460,14 @@ namespace PocketDb
             insert into newdb.JuryModerators
             (FlagRowId, AccountId)
             select
-                FlagRowId,
-                AccountId
+                (select r.RowId from Registry r where r.String = ft.Hash),
+                (select r.RowId from Registry r where r.String = at.Hash)
             from
                 JuryModerators
+                cross join Transactions ft on
+                    ft.RowId = FlagRowId
+                cross join Transactions at on
+                    at.rowid = AccountId
         )sql")
         .Run();
 
@@ -448,11 +475,15 @@ namespace PocketDb
             insert into newdb.JuryBan
             (VoteRowId, AccountId, Ending)
             select
-                VoteRowId,
-                AccountId,
+                (select r.RowId from Registry r where r.String = vt.Hash),
+                (select r.RowId from Registry r where r.String = at.Hash),
                 Ending
             from
                 JuryBan
+                cross join Transactions vt on
+                    ft.RowId = FlagRowId
+                cross join Transactions at on
+                    at.rowid = AccountId
         )sql")
         .Run();
 
