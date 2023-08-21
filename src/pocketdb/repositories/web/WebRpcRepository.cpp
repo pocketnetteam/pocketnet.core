@@ -4592,7 +4592,7 @@ namespace PocketDb
 
         string contentIdWhere;
         if (topContentId > 0)
-            contentIdWhere = " and t.Id < ? ";
+            contentIdWhere = " and ct.Uid < ? ";
 
         string langFilter;
         if (!lang.empty())
@@ -4669,6 +4669,9 @@ namespace PocketDb
             if (!lang.empty()) stmt.Bind(lang);
 
             stmt.Bind(contentTypes, addressFeed, addresses_extended, topHeight);
+
+            if (topContentId > 0)
+                stmt.Bind(topContentId);
 
             if (!tags.empty())
             {
