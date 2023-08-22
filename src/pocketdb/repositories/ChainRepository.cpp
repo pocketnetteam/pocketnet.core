@@ -137,7 +137,7 @@ namespace PocketDb
                         limit 1
                     ), 0)
             )sql")
-            .Bind(height, blockHash, height + 1)
+            .Bind(blockHash, height, height + 1)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                 {
