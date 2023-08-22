@@ -48,6 +48,9 @@ namespace PocketDb
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);
 
+        // Select max height from Chain
+        int CurrentHeight();
+
     private:
 
         void SetFirst(const string& txHash);

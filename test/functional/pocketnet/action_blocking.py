@@ -23,6 +23,7 @@ from test_framework.test_framework import PocketcoinTestFramework
 from test_framework.util import assert_equal, get_rpc_proxy, rpc_url, assert_raises_rpc_error
 
 # Pocketnet framework
+from framework.helpers import rollback_node, restoreTo
 from framework.models import *
 
 
@@ -34,7 +35,6 @@ class ActionBlockingTest(PocketcoinTestFramework):
         self.extra_args = [["-debug=consensus"]]
 
     def run_test(self):
-        """Main test logic"""
         node = self.nodes[0]
         pubGenTx = node.public().generatetransaction
 
@@ -110,10 +110,32 @@ class ActionBlockingTest(PocketcoinTestFramework):
         accounts[0].blockings.pop(0)
         node.stakeblock(1)
 
-        self.log.info("Check - Blocking after unblocking")
-        accounts[0].blockings.append(pubGenTx(accounts[0], BlockingPayload(accounts[1].Address)))
-        node.stakeblock(1)
+        # (0) 
+        # self.log.info("Check - Blocking after unblocking")
+        # accounts[0].blockings.append(pubGenTx(accounts[0], BlockingPayload(accounts[1].Address)))
+        node.stakeblock(1) # height > 1054
+
+        assert len(node.public().getuserblockings(accounts[0].Address)) == 0
+
         # ---------------------------------------------------------------------------------
+
+        # (1)
+        self.log.info("x -> y false")
+        accounts[0].blockings.append(pubGenTx(accounts[0], BlockingPayload(accounts[1].Address)))
+        node.stakeblock(1) # height > 1055
+
+        # (2)
+        self.log.info("x -> y true")
+        accounts[0].blockings.append(pubGenTx(accounts[0], UnblockingPayload(accounts[1].Address)))
+        node.stakeblock(1) # height > 1056
+
+        assert len(node.public().getuserblockings(accounts[0].Address)) == 0
+
+        # (2) -> (1) -> (0)
+        h = restoreTo(node, 1054, self.log) # height > 1054
+        assert 1054 == h
+        
+        assert len(node.public().getuserblockings(accounts[0].Address)) == 0
 
 
 if __name__ == "__main__":

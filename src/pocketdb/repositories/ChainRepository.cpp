@@ -153,6 +153,27 @@ namespace PocketDb
         return { exists, last };
     }
 
+    int ChainRepository::CurrentHeight()
+    {
+        int result = -1;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select
+                    max(Height)
+                from
+                    Chain
+            )sql")
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+    
     void ChainRepository::IndexBlockData(const string& blockHash)
     {
         Sql(R"sql(
