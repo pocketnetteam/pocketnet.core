@@ -428,13 +428,13 @@ namespace PocketDb
             insert into newdb.Jury
             (FlagRowId, AccountId, Reason)
             select
-                (select r.RowId from Registry r where r.String = ft.Hash),
-                (select r.RowId from Registry r where r.String = at.Hash),
+                (select r.RowId from newdb.Registry r where r.String = ft.Hash),
+                (select r.RowId from newdb.Registry r where r.String = at.Hash),
                 Reason
             from
                 Jury
                 cross join Transactions ft on
-                    ft.RowId = FlagRowId
+                    ft.rowid = FlagRowId
                 cross join Transactions at on
                     at.rowid = AccountId
         )sql")
@@ -444,15 +444,15 @@ namespace PocketDb
             insert into newdb.JuryVerdict
             (FlagRowId, VoteRowId, Verdict)
             select
-                (select r.RowId from Registry r where r.String = ft.Hash),
-                (select r.RowId from Registry r where r.String = vt.Hash),
+                (select r.RowId from newdb.Registry r where r.String = ft.Hash),
+                (select r.RowId from newdb.Registry r where r.String = vt.Hash),
                 Verdict
             from
                 JuryVerdict
                 cross join Transactions ft on
-                    ft.RowId = FlagRowId
+                    ft.rowid = FlagRowId
                 cross join Transactions vt on
-                    vt.rowid = AccountId
+                    vt.rowid = VoteRowId
         )sql")
         .Run();
 
@@ -460,12 +460,12 @@ namespace PocketDb
             insert into newdb.JuryModerators
             (FlagRowId, AccountId)
             select
-                (select r.RowId from Registry r where r.String = ft.Hash),
-                (select r.RowId from Registry r where r.String = at.Hash)
+                (select r.RowId from newdb.Registry r where r.String = ft.Hash),
+                (select r.RowId from newdb.Registry r where r.String = at.Hash)
             from
                 JuryModerators
                 cross join Transactions ft on
-                    ft.RowId = FlagRowId
+                    ft.rowid = FlagRowId
                 cross join Transactions at on
                     at.rowid = AccountId
         )sql")
@@ -475,13 +475,13 @@ namespace PocketDb
             insert into newdb.JuryBan
             (VoteRowId, AccountId, Ending)
             select
-                (select r.RowId from Registry r where r.String = vt.Hash),
-                (select r.RowId from Registry r where r.String = at.Hash),
+                (select r.RowId from newdb.Registry r where r.String = vt.Hash),
+                (select r.RowId from newdb.Registry r where r.String = at.Hash),
                 Ending
             from
                 JuryBan
                 cross join Transactions vt on
-                    ft.RowId = FlagRowId
+                    vt.rowid = VoteRowId
                 cross join Transactions at on
                     at.rowid = AccountId
         )sql")
