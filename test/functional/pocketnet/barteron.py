@@ -81,6 +81,15 @@ class BarteronTest(PocketcoinTestFramework):
             assert json.loads(node.public().getbarteronaccounts([account.Address])[0]['p']['s4'])['test'] == "HOI"
         
         # ---------------------------------------------------------------------------------
+        self.log.info("Check accounts edit")
+        _bartAccount = BartAccountPayload()
+        _bartAccount.s1 = builder.accounts[0].Address
+        _bartAccount.p = Payload()
+        _bartAccount.p.s4 = json.dumps({ "a": [ random.randint(0, 100) ], "test": "HOI" })
+        pubGenTx(builder.accounts[0], _bartAccount)
+        node.stakeblock(1)
+        
+        # ---------------------------------------------------------------------------------
         self.log.info("Register Barteron offers")
 
         lang = ['en','ru','gb']
