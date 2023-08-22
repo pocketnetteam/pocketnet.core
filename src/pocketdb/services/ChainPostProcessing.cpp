@@ -34,8 +34,18 @@ namespace PocketServices
     {
         try
         {
-            LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", height - 1);
-            ChainRepoInst.Restore(height);
+            // Loop restore
+            int curHeight = -1;
+            do
+            {
+                curHeight = ChainRepoInst.CurrentHeight();
+
+                LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", curHeight - 1);
+                
+                ChainRepoInst.Restore(curHeight);
+            }
+            while (curHeight > height);
+
             return true;
         }
         catch (std::exception& ex)

@@ -45,6 +45,8 @@
 #include <memory>
 #include <mutex>
 
+#include "pocketdb/services/ChainPostProcessing.h"
+
 struct CUpdatedBlock
 {
     uint256 hash;
@@ -1634,7 +1636,8 @@ static RPCHelpMan restoreto()
 
             int height = request.params[0].get_int() + 1;
 
-            PocketDb::ChainRepoInst.Restore(height);
+            // PocketDb::ChainRepoInst.Restore(height);
+            PocketServices::ChainPostProcessing::Rollback(height);
 
             return PocketDb::ChainRepoInst.CurrentHeight();
         },

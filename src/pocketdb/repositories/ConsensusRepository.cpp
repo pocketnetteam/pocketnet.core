@@ -506,6 +506,7 @@ namespace PocketDb
         return result;
     }
 
+    // TODO (aok) : need fix with fork - use BlockingLists
     tuple<bool, TxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
     {
         bool blockingExists = false;
@@ -586,28 +587,14 @@ namespace PocketDb
                             r.String != '' and
                             r.String in (select ? union select value from json_each(?))
                     )
-                select 1
+                select
+                    1
                 from
                     addrFrom,
-                    addrTo
-
-                    cross join Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        us.Type in (100, 170) and us.RegId1 = addrFrom.id
-                    cross join Chain usc on
-                        usc.TxId = us.RowId
-                    cross join Last usl on
-                        usl.TxId = us.RowId
-
-                    cross join Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ut.Type in (100, 170) and ut.RegId1 = addrTo.id
-                    cross join Chain utc on
-                        utc.TxId = ut.RowId
-                    cross join Last utl on
-                        utl.TxId = ut.RowId
-
-                    cross join BlockingLists b on
-                        b.IdSource = usc.Uid and b.IdTarget = utc.Uid
-
+                    addrTo,
+                    BlockingLists b on
+                        b.IdSource = addrFrom.id and
+                        b.IdTarget = addrTo.id
                 limit 1
             )sql")
             .Bind(address, addressTo, addressesTo)
@@ -1766,7 +1753,7 @@ namespace PocketDb
                     t.Type in (305, 306) and
                     not exists (select 1 from Chain c where c.TxId = t.RowId) and
                     t.RegId1 = str1.id and
-                    (t.RegId2 = str2.id or t.RegId3 > 0 )
+                    (t.RegId2 = str2.id or t.RegId3 is not null )
             )sql")
             .Bind(address, addressTo)
             .Select([&](Cursor& cursor) {

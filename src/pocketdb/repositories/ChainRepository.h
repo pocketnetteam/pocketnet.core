@@ -63,14 +63,14 @@ namespace PocketDb
         // Trims the SocialRegistry by limit and restores missing rows in case limit growth
         void EnsureAndTrimSocialRegistry(int height);
 
-        pair<optional<int64_t>, optional<int64_t>> IndexSocial(const TransactionIndexingInfo& txInfo);
+        pair<optional<int64_t>, optional<int64_t>> IndexSocial(const TransactionIndexingInfo& txInfo, int height);
         void IndexSocialLastTx(const string& sql, const string& txHash, optional<int64_t>& id, optional<int64_t>& lastTxId);
         string IndexAccount();
         string IndexAccountSetting();
         string IndexContent();
         string IndexComment();
         string IndexBlocking();
-        void IndexBlockingList(const string& txHash);
+        void IndexBlockingList(const string& txHash, int height);
         string IndexSubscribe();
         string IndexAccountBarteron();
 

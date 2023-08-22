@@ -245,8 +245,8 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists BlockingLists
             (
-                IdSource int not null,
-                IdTarget int not null,
+                IdSource    int not null,
+                IdTarget    int not null,
                 primary key (IdSource, IdTarget)
             );
         )sql");
@@ -316,18 +316,6 @@ namespace PocketDb
             ) without rowid;
         )sql");
 
-        // A helper table that consists of limited txs for a period of ConsensusLimit_depth
-        _tables.emplace_back(R"sql(
-            create table if not exists SocialRegistry
-            (
-                AddressId int not null,
-                Type int not null,
-                Height int not null,
-                BlockNum int not null, -- TODO (losty): required only to not allow duplicates
-                primary key (Type, Height, AddressId, BlockNum)
-            ) without rowid;
-        )sql");
-
         _views.emplace_back(R"sql(
             drop view if exists vBadges;
 
@@ -350,6 +338,18 @@ namespace PocketDb
                         bb.AccountId = b.AccountId and
                         bb.Height > b.Height
                 );
+        )sql");
+
+        // A helper table that consists of limited txs for a period of ConsensusLimit_depth
+        _tables.emplace_back(R"sql(
+            create table if not exists SocialRegistry
+            (
+                AddressId int not null,
+                Type int not null,
+                Height int not null,
+                BlockNum int not null, -- TODO (losty): required only to not allow duplicates
+                primary key (Type, Height, AddressId, BlockNum)
+            ) without rowid;
         )sql");
 
         _views.emplace_back(R"sql(
@@ -417,7 +417,6 @@ namespace PocketDb
 
             create unique index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
 
-            create index if not exists BlockingLists_IdSource_IdTarget on BlockingLists (IdSource, IdTarget);
             create index if not exists BlockingLists_IdTarget_IdSource on BlockingLists (IdTarget, IdSource);
 
             ------------------------------

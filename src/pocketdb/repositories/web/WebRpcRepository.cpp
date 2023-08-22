@@ -572,17 +572,13 @@ namespace PocketDb
                 ,(
                     select
                         json_group_array(rub.String)
-                    from BlockingLists bl indexed by BlockingLists_IdSource_IdTarget
-                    cross join Chain cbl indexed by Chain_Uid_Height
-                        on cbl.Uid = bl.IdTarget
-                    cross join Transactions ub
-                        on ub.RowId = cbl.TxId and ub.Type = 100
-                    cross join Last lub
-                        on lub.TxId = ub.RowId
-                    cross join Registry rub
-                        on rub.RowId = ub.RegId1
+                    from
+                        BlockingLists bl
+                    cross join
+                        Registry rub on
+                            rub.RowId = bl.IdTarget
                     where
-                        bl.IdSource = cu.Uid
+                        bl.IdSource = u.RegId1
                 ) as Blockings
 
                 ,(
@@ -697,7 +693,7 @@ namespace PocketDb
                     from
                         BlockingLists bl
                     where
-                        bl.IdSource = cu.Uid
+                        bl.IdSource = u.RegId1
                 ) as BlockingsCount
 
                 ,ifnull((
@@ -976,7 +972,7 @@ namespace PocketDb
                         on lua.TxId = ua.RowId
 
                 cross join Transactions p indexed by Transactions_Type_RegId2_RegId1
-                on p.Type in (200, 201, 202, 209, 210) and p.RegId2 = t.RegId3
+                    on p.Type in (200, 201, 202, 209, 210) and p.RegId2 = t.RegId3
                 cross join
                     Last lp
                         on lp.TxId = p.RowId
@@ -987,13 +983,13 @@ namespace PocketDb
                     Payload pp
                         on pp.TxId = p.RowId and pp.String1 = ?
 
-                left join
-                    BlockingLists bl
-                        on bl.IdSource = cp.Uid and bl.IdTarget = c.Uid
-
                 where
                     c.Height > (? - 600) and
-                    bl.ROWID is null
+                    and not exists (
+                        select 1
+                        from BlockingLists bl
+                        where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1
+                    )
 
                 order by c.Height desc
                 limit ?
@@ -1265,13 +1261,15 @@ namespace PocketDb
                     cross join
                         Last luac
                             on luac.TxId = uac.RowId
-                    left join
-                        BlockingLists bls
-                            on bls.IdSource = ct.Uid and bls.IdTarget = cs.Uid
                     where
                         s.Type in (204, 205) and
                         s.RegId4 = c.RegId2 and
-                        bls.ROWID is null
+                        -- exclude commenters blocked by the author of the post
+                        not exists (
+                            select 1
+                            from BlockingLists bl
+                            where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
+                        )
                 ) AS ChildrenCount,
                 o.Value as Donate
             from
@@ -1311,11 +1309,13 @@ namespace PocketDb
                 on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
             left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
                 on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
-            left join
-                BlockingLists bl
-                    on bl.IdSource = ct.Uid and bl.IdTarget = cc.Uid
             where
-                bl.ROWID is null
+                -- exclude commenters blocked by the author of the post
+                not exists (
+                    select 1
+                    from BlockingLists bl
+                    where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
+                )
                 )sql" + parentWhere + R"sql(
         )sql";
 
@@ -1519,16 +1519,23 @@ namespace PocketDb
                         cross join
                             Last luac
                                 on luac.TxId = uac.RowId
-                        left join
-                            BlockingLists bls
-                                on bls.IdSource = ct.Uid and bls.IdTarget = cs.Uid
                         where
                             s.Type in (204, 205) and
                             s.RegId4 = c.RegId2 and
-                            bls.ROWID is null
+                            -- exclude commenters blocked by the author of the post
+                            not exists (
+                                select 1
+                                from BlockingLists bl
+                                where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
+                            )
                     ) AS ChildrenCount,
                     o.Value as Donate,
-                    (select 1 from BlockingLists bl where bl.IdSource = ct.Uid and bl.IdTarget = cc.Uid)Blocked,
+                    (
+                        select 1
+                        from BlockingLists bl
+                        where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
+                        limit 1
+                    )Blocked,
                     cc.Uid
                 from
                     txs,
@@ -2219,8 +2226,8 @@ namespace PocketDb
                     Last lut
                         on lut.TxId = us.RowId
                 cross join
-                    BlockingLists bl indexed by BlockingLists_IdSource_IdTarget
-                        on bl.IdSource = ct.Uid
+                    BlockingLists bl on
+                        bl.IdSource = ct.Uid
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2267,8 +2274,9 @@ namespace PocketDb
                     Last lut
                         on lut.TxId = ut.RowId
                 cross join
-                    BlockingLists bl indexed by BlockingLists_IdTarget_IdSource
-                        on bl.IdTarget = ct.Uid
+                    BlockingLists bl on
+                        bl.IdTarget = ct.Uid
+
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -3903,12 +3911,15 @@ namespace PocketDb
                             on lc.TxId = c.RowId
                         cross join Chain cc
                             on cc.TxId = c.RowId
-                        left join BlockingLists bl
-                            on bl.IdSource = c.Uid and bl.IdTarget = cc.Uid
                         where
                             c.Type in (204, 205) and
                             c.RegId3 = t.RegId2 and
-                            bl.ROWID is null
+                            -- exclude commenters blocked by the author of the post
+                            not exists (
+                                select 1
+                                from BlockingLists bl
+                                where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
+                            )
                     ) as CommentsCount,
                     ifnull((
                         select
@@ -4363,10 +4374,10 @@ namespace PocketDb
                 where s.Type in (204, 205) and s.RegId3 = t.RegId2
                     -- exclude commenters blocked by the author of the post
                     and not exists (
-                                    select 1
-                                    from BlockingLists bl
-                                    where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
-                                    )
+                        select 1
+                        from BlockingLists bl
+                        where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
+                    )
                 ) desc
         limit ?
         )sql";
@@ -4449,15 +4460,15 @@ namespace PocketDb
                     cross join
                         Last l on
                             l.TxId = s.RowId
-                    left join
-                        BlockingLists bl indexed by BlockingLists_IdSource_IdTarget on
-                            bl.IdSource = t.RegId1 and
-                            bl.IdTarget = s.RegId1
                     where
                         s.Type in (204, 205) and
                         s.RegId3 = t.RegId2 and
                         -- exclude commenters blocked by the author of the post
-                        bl.IdSource is null
+                        not exists (
+                            select 1
+                            from BlockingLists bl
+                            where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
+                        )
                 )
             )sql";
         }

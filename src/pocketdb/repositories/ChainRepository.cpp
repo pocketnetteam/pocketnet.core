@@ -58,7 +58,7 @@ namespace PocketDb
             // Each transaction is processed individually
             for (const auto& txInfo : txs)
             {
-                auto[id, lastTxId] = IndexSocial(txInfo);
+                auto[id, lastTxId] = IndexSocial(txInfo, height);
 
                 // Remove current last record for tx
                 if (lastTxId)
@@ -402,7 +402,7 @@ namespace PocketDb
         .Run();
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const TransactionIndexingInfo& txInfo)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const TransactionIndexingInfo& txInfo, int height)
     {
         optional<int64_t> id;
         optional<int64_t> lastTxId;
@@ -421,7 +421,7 @@ namespace PocketDb
         else if (txInfo.IsBlocking())
         {
             IndexSocialLastTx(IndexBlocking(), txInfo.Hash, id, lastTxId);
-            IndexBlockingList(txInfo.Hash);
+            IndexBlockingList(txInfo.Hash, height);
         }
         else if (txInfo.IsSubscribe())
             IndexSocialLastTx(IndexSubscribe(), txInfo.Hash, id, lastTxId);
@@ -712,7 +712,7 @@ namespace PocketDb
         )sql";
     }
 
-    void ChainRepository::IndexBlockingList(const string& txHash)
+    void ChainRepository::IndexBlockingList(const string& txHash, int height)
     {
         Sql(R"sql(
             with
@@ -722,25 +722,32 @@ namespace PocketDb
                     where String = ?
                 )
             insert or ignore into BlockingLists (IdSource, IdTarget)
+
             select
-                usc.Uid,
-                utc.Uid
+                b.RegId1,
+                b.RegId2
             from
                 tx
-                cross join Transactions b on
-                    b.Type in (305) and b.RowId = tx.RowId
-                cross join Transactions us on
-                    us.Type in (100, 170) and us.RegId1 = b.RegId1
-                cross join Chain usc on
-                    usc.TxId = us.RowId
-                cross join Last usl on
-                    usl.TxId = us.RowId
-                cross join Transactions ut on
-                    ut.Type in (100, 170) and ut.RegId1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
-                cross join Chain utc on
-                    utc.TxId = ut.RowId
-                cross join Last utl on
-                    utl.TxId = ut.RowId
+            cross join
+                Transactions b on
+                    b.Type in (305) and
+                    b.RowId = tx.RowId and
+                    b.RegId2 is not null
+
+            union
+            select
+                b.RegId1,
+                l.RegId
+            from
+                tx
+            cross join
+                Transactions b on
+                    b.Type in (305) and
+                    b.RowId = tx.RowId and
+                    b.RegId2 is null
+            cross join
+                Lists l on
+                    l.TxId = b.RowId
         )sql")
         .Bind(txHash)
         .Run();
@@ -759,22 +766,14 @@ namespace PocketDb
                     bl.ROWID
                 from
                     tx
-                    cross join Transactions b on
-                        b.Type in (306) and b.RowId = tx.RowId
-                    cross join Transactions us on
-                        us.Type in (100, 170) and us.RegId1 = b.RegId1
-                    cross join Chain usc on
-                        usc.TxId = us.RowId
-                    cross join Last usl on
-                        usl.TxId = us.RowId
-                    cross join Transactions ut on
-                        ut.Type in (100, 170) and ut.RegId1 = b.RegId2
-                    cross join Chain utc on
-                        utc.TxId = ut.RowId
-                    cross join Last utl on
-                        utl.TxId = ut.RowId
-                    cross join BlockingLists bl on
-                        bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid
+                cross join
+                    Transactions b on
+                        b.Type in (306) and
+                        b.RowId = tx.RowId
+                cross join
+                    BlockingLists bl on
+                        bl.IdSource = b.RegId1 and
+                        bl.IdTarget = b.RegId2
             )
         )sql")
         .Bind(txHash)
@@ -1578,65 +1577,68 @@ namespace PocketDb
     void ChainRepository::RollbackBlockingList(int height)
     {
         Sql(R"sql(
+            with
+                height as ( select ? as value )
+
             delete from BlockingLists where ROWID in
             (
-                select bl.ROWID
+                select
+                    bl.ROWID
                 from
+                    height
+                cross join
+                    Chain bc on
+                        bc.Height >= ?
+                cross join Transactions b on
+                    b.RowId = bc.TxId and
+                    b.Type in (305) and
+                    b.RegId2 is not null
+                cross join
+                    BlockingLists bl on
+                        bl.IdSource = b.RegId1 and
+                        bl.IdTarget = b.RegId2
 
-                    Chain bc
-                    cross join Transactions b on
-                        b.RowId = bc.TxId and b.Type in (305)
-
-                    cross join Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        us.Type in (100, 170) and us.RegId1 = b.RegId1
-                    cross join Chain usc on
-                        usc.TxId = us.RowId
-                    cross join Last usl on
-                        usl.TxId = us.RowId
-
-                    cross join Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ut.Type in (100, 170) and ut.RegId1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
-                    cross join Chain utc on
-                        utc.TxId = ut.RowId
-                    cross join Last utl on
-                        utl.TxId = ut.RowId
-
-                    cross join BlockingLists bl on
-                        bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid
-
-                where bc.Height >= ?
+                union
+                select
+                    bl.ROWID
+                from
+                    height
+                cross join
+                    Chain bc on
+                        bc.Height >= height.value
+                cross join Transactions b on
+                    b.RowId = bc.TxId and
+                    b.Type in (305) and
+                    b.RegId2 is null
+                cross join
+                    Lists l on
+                        l.TxId = b.RowId
+                cross join
+                    BlockingLists bl on
+                        bl.IdSource = b.RegId1 and
+                        bl.IdTarget = l.RegId
             )
         )sql")
         .Bind(height)
         .Run();
         
         Sql(R"sql(
+            with
+                height as ( select ? as value )
+
             insert or ignore into BlockingLists (IdSource, IdTarget)
             select distinct
-                usc.Uid,
-                utc.Uid
+                b.RegId1,
+                b.RegId2
             from
-
-                Chain bc
-                cross join Transactions b on
-                    b.RowId = bc.TxId and b.Type in (306)
-
-
-                cross join Transactions us on
-                    us.Type in (100, 170) and us.RegId1 = b.RegId1
-                cross join Chain usc on
-                    usc.TxId = us.RowId
-                cross join Last usl on
-                    usl.TxId = us.RowId
-
-                cross join Transactions ut on
-                    ut.Type in (100, 170) and ut.RegId1 = b.RegId2
-                cross join Chain utc on
-                    utc.TxId = ut.RowId
-                cross join Last utl on
-                    utl.TxId = ut.RowId
-
-                where bc.Height >= ?
+                height
+            cross join
+                Chain bc on
+                    bc.Height >= height.value
+            cross join
+                Transactions b on
+                    b.RowId = bc.TxId and
+                    b.Type in (306)
         )sql")
         .Bind(height)
         .Run();
