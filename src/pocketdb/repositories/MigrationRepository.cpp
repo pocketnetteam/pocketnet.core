@@ -417,10 +417,16 @@ namespace PocketDb
             insert into newdb.BlockingLists
             (IdSource, IdTarget)
             select
-                IdSource,
-                IdTarget
+                (select r.RowId from Registry r where r.String = s.String1),
+                (select r.RowId from Registry r where r.String = t.String1)
             from
                 BlockingLists
+                cross join Transactions s indexed by Transactions_Id_Last on
+                    s.Id = IdSource and 
+                    s.Last = 1
+                cross join Transactions t indexed by Transactions_Id_Last on
+                    t.Id = IdTarget and
+                    t.Last = 1
         )sql")
         .Run();
 
