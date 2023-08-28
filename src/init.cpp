@@ -945,6 +945,12 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
     if (Staker::getInstance()->getIsStaking())
         Staker::getInstance()->startWorkers(threadGroup, context, chainparams);
     #endif
+
+    // Start Web database building thread after loading chainActive
+    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
+        PocketServices::WebPostProcessorInst.Start(threadGroup);
+
+    // PocketServices::WalControllerInst.Start(threadGroup);
 }
 
 /** Sanity checks
@@ -2064,12 +2070,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
             }
         }
     }
-
-    // Start Web database building thread after loading chainActive
-    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
-        PocketServices::WebPostProcessorInst.Start(threadGroup);
-
-    // PocketServices::WalControllerInst.Start(threadGroup);
 
     // // ********************************************************* Step 7.1: start db migrations
 
