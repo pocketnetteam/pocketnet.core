@@ -655,7 +655,7 @@ namespace PocketDb
         )sql";
     }
 
-    // Not need set last for blockings - use instead BlockingLists
+    // TODO (aok): Not need set last for blockings - use instead BlockingLists
     string ChainRepository::IndexBlocking()
     {
         return R"sql(
@@ -1594,7 +1594,7 @@ namespace PocketDb
                     height
                 cross join
                     Chain bc on
-                        bc.Height >= ?
+                        bc.Height >= height.value
                 cross join Transactions b on
                     b.RowId = bc.TxId and
                     b.Type in (305) and
