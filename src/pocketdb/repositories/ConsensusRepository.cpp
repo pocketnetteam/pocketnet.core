@@ -591,7 +591,8 @@ namespace PocketDb
                     1
                 from
                     addrFrom,
-                    addrTo,
+                    addrTo
+                cross join
                     BlockingLists b on
                         b.IdSource = addrFrom.id and
                         b.IdTarget = addrTo.id

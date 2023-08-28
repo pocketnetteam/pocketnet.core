@@ -71,7 +71,7 @@ namespace PocketDb
                     .Run();
                 }
 
-                // if 'id' means that tx is social and requires last and fist to be set.
+                // if 'id' means that tx is social and requires last and first to be set.
                 // if not 'lastTxId' means that this is first tx for this id
                 if (id && !lastTxId)
                 {
@@ -218,7 +218,7 @@ namespace PocketDb
         if (id.has_value())
         {
             Sql(R"sql(
-                insert or ignore into Last
+                insert or fail into Last
                     (TxId)
                 select
                     t.RowId
@@ -314,7 +314,8 @@ namespace PocketDb
 
     void ChainRepository::IndexSocialRegistryTx(const TransactionIndexingInfo& txInfo, int height, bool isFirst)
     {
-        if (!SocialRegistryTypes::IsSatisfy(txInfo.Type, isFirst)) return;
+        if (!SocialRegistryTypes::IsSatisfy(txInfo.Type, isFirst))
+            return;
 
         Sql(R"sql(
             insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
@@ -654,6 +655,7 @@ namespace PocketDb
         )sql";
     }
 
+    // Not need set last for blockings - use instead BlockingLists
     string ChainRepository::IndexBlocking()
     {
         return R"sql(
@@ -721,7 +723,9 @@ namespace PocketDb
                     from Registry
                     where String = ?
                 )
-            insert or ignore into BlockingLists (IdSource, IdTarget)
+
+            insert or ignore into
+                BlockingLists (IdSource, IdTarget)
 
             select
                 b.RegId1,
@@ -759,22 +763,24 @@ namespace PocketDb
                     from Registry
                     where String = ?
                 )
-            delete from BlockingLists
-            where BlockingLists.ROWID in
-            (
-                select
-                    bl.ROWID
-                from
-                    tx
-                cross join
-                    Transactions b on
-                        b.Type in (306) and
-                        b.RowId = tx.RowId
-                cross join
-                    BlockingLists bl on
-                        bl.IdSource = b.RegId1 and
-                        bl.IdTarget = b.RegId2
-            )
+            delete from
+                BlockingLists
+            where
+                BlockingLists.ROWID in
+                (
+                    select
+                        bl.ROWID
+                    from
+                        tx
+                    cross join
+                        Transactions b on
+                            b.Type in (306) and
+                            b.RowId = tx.RowId
+                    cross join
+                        BlockingLists bl on
+                            bl.IdSource = b.RegId1 and
+                            bl.IdTarget = b.RegId2
+                )
         )sql")
         .Bind(txHash)
         .Run();
