@@ -118,6 +118,7 @@ endmacro()
 findpackage_event_get_lib(EVENT_LIB "event")
 # NOTE: Windows doesn't have an event_pthreads lib, but instead compiles the cxx code into the core lib
 findpackage_event_get_lib(EVENT_PTHREADS_LIB "event_pthreads")
+findpackage_event_get_lib(EVENT_EXTRA_LIB "event_openssl")
 findpackage_event_get_lib(EVENT_CORE_LIB "event_core")
 findpackage_event_get_lib(EVENT_EXTRA_LIB "event_extra")
 
