@@ -1373,6 +1373,7 @@ namespace PocketDb
                 Sql(R"sql( delete from JuryBan )sql").Run();
                 Sql(R"sql( delete from Badges )sql").Run();
                 Sql(R"sql( delete from BlockingLists )sql").Run();
+                Sql(R"sql( delete from SocialRegistry )sql").Run();
             });
 
             m_database.CreateStructure();
