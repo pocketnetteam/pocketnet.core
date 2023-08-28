@@ -7,7 +7,11 @@
 #include <httpserver.h>
 #include <interfaces/chain.h>
 
+#include <event2/bufferevent.h>
+#include <event2/bufferevent_ssl.h>
+
 #include <chainparamsbase.h>
+#include <openssl/ssl.h>
 #include <util/system.h>
 #include <util/strencodings.h>
 #include <util/translation.h>
@@ -145,6 +149,24 @@ std::string RequestMethodString(HTTPRequest::RequestMethod m)
         default:
             return "unknown";
     }
+}
+
+
+/**
+ * This callback is responsible for creating a new SSL connection
+ * and wrapping it in an OpenSSL bufferevent.  This is the way
+ * we implement an https server instead of a plain old http server.
+ */
+static struct bufferevent* bevcb (struct event_base *base, void *arg)
+{ struct bufferevent* r;
+  SSL_CTX *ctx = (SSL_CTX *) arg;
+
+  r = bufferevent_openssl_socket_new (base,
+                                      -1,
+                                      SSL_new (ctx),
+                                      BUFFEREVENT_SSL_ACCEPTING,
+                                      BEV_OPT_CLOSE_ON_FREE);
+  return r;
 }
 
 /** HTTP request callback */
@@ -394,7 +416,7 @@ bool InitHTTPServer(const util::Ref& context)
     // Additional pocketnet seocket
     if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE))
     {
-        g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
+        g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true, true);
         RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
     }
 
@@ -528,7 +550,16 @@ static void httpevent_callback_fn(evutil_socket_t, short, void *data)
         delete self;
 }
 
-HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, bool publicAccess):
+SSLContext SetupTls()
+{
+    x509 cert;
+    cert.Generate();
+    SSLContext sslCtx(std::move(cert));
+    sslCtx.Setup();
+    return sslCtx;
+}
+
+HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, bool publicAccess, bool fUseTls):
     m_http(nullptr), m_eventHTTP(nullptr), m_workQueue(nullptr), m_publicAccess(publicAccess)
 {
     /* Create a new evhttp object to handle requests. */
@@ -544,6 +575,11 @@ HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, boo
     evhttp_set_max_headers_size(m_http, MAX_HEADERS_SIZE);
     evhttp_set_max_body_size(m_http, MAX_SIZE);
     evhttp_set_gencb(m_http, http_request_cb, (void*) this);
+    if (fUseTls)
+    {
+        m_sslCtx = SetupTls();
+        evhttp_set_bevcb(m_http, bevcb, (void*)m_sslCtx->GetCtx());
+    }
     evhttp_set_allowed_methods(m_http,
         evhttp_cmd_type::EVHTTP_REQ_GET |
         evhttp_cmd_type::EVHTTP_REQ_POST |
@@ -794,8 +830,8 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
 }
 
 /** WebSocket for public API */
-HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess)
-    : HTTPSocket(base, timeout, queueDepth, publicAccess)
+HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess, bool fUseTls)
+    : HTTPSocket(base, timeout, queueDepth, publicAccess, fUseTls)
 {
     m_workPostQueue = std::make_shared<QueueLimited<std::unique_ptr<HTTPClosure>>>(queuePostDepth);
     LogPrintf("HTTP: creating work post queue of depth %d\n", queuePostDepth);
