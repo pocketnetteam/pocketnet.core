@@ -88,6 +88,8 @@ public:
     uint64_t AssumedBlockchainSize() const { return m_assumed_blockchain_size; }
     /** Minimum free space (in GB) needed for data directory when pruned; Does not include prune target*/
     uint64_t AssumedChainStateSize() const { return m_assumed_chain_state_size; }
+    int LastSocialForkActivationHeight() const { return nLastSocialForkActivationHeight; }
+    int LastSocialForkVersion() const { return nLastSocialForkVersion; }
     /** Whether it is possible to mine blocks on demand (no retargeting) */
     bool MineBlocksOnDemand() const { return consensus.fPowNoRetargeting; }
     /** Return the network string */
@@ -122,6 +124,8 @@ protected:
     bool m_is_mockable_chain;
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
+    int nLastSocialForkVersion; // CLIENT_VERSION_MAJOR * 1000000 + CLIENT_VERSION_MINOR * 10000 + CLIENT_VERSION_REVISION * 100 + CLIENT_VERSION_BUILD
+    int nLastSocialForkActivationHeight; // Height after which we can disconnect outdated forked versions
 };
 
 /**
