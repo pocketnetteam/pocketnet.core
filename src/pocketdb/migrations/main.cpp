@@ -384,6 +384,10 @@ namespace PocketDb
         )sql";
 
 
+        _requiredIndexes = R"sql(
+            create unique index if not exists Registry_String on Registry (String);
+        )sql";
+
         _indexes = R"sql(
             drop index if exists Chain_Height_BlockId;
             drop index if exists TxInputs_TxId_Number;
@@ -397,7 +401,6 @@ namespace PocketDb
             create index if not exists Chain_HeightByDay on Chain (Height / 1440 desc);
             create index if not exists Chain_HeightByHour on Chain (Height / 60 desc);
 
-            create unique index if not exists Registry_String on Registry (String);
 
             create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
             create index if not exists Transactions_Type_RegId1_RegId3 on Transactions (Type, RegId1, RegId3);

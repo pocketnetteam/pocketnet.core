@@ -23,6 +23,8 @@ namespace PocketDb
 
     void InitSQLite(fs::path path);
 
+    void MaybeMigrate0_22(const fs::path& pocketPath);
+
     class SQLiteDatabase
     {
     private:
@@ -43,7 +45,7 @@ namespace PocketDb
 
         void Init(const std::string& dbBasePath, const string& dbName, const PocketDbMigrationRef& migration = nullptr, bool drop = false);
 
-        void CreateStructure();
+        void CreateStructure(bool includeIndexes = true);
 
         void DropIndexes();
 

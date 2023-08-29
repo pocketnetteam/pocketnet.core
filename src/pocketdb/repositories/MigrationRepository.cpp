@@ -174,5 +174,381 @@ namespace PocketDb
         });
     }
 
+    bool MigrationRepository::NeedMigrate0_22()
+    {
+        // No need to migrate if there is empty db
+        return TableExists("Transactions") && !ColumnExists("Transactions", "RegId1");
+    }
+
+    void MigrationRepository::Migrate0_21__0_22()
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            FulfillRegistry();
+            FulfillChain();
+            FulfillLists();
+            FulfillLast();
+            FulfillFirst();
+            FulfillTransactions();
+            FulfillTxOutputs();
+            FulfillTxInputs();
+            FulfillBalances();
+            FulfillRatings();
+            FulfillPayload();
+            FulfillOthers();
+        });
+    }
+
+    void MigrationRepository::FulfillRegistry()
+    {
+        Sql(R"sql(
+            insert or ignore into newdb.Registry (String)
+            select Hash from Transactions
+            union
+            select BlockHash from Transactions
+            union
+            select String1 from Transactions
+            union
+            select String2 from Transactions
+            union
+            select iif(json_valid(String3), (select value from json_each(String3)), String3) from Transactions
+            union
+            select String4 from Transactions
+            union
+            select String5 from Transactions
+
+        )sql")
+        .Run();
+
+        Sql(R"sql(
+            insert or ignore into Registry (String)
+            select AddressHash from TxOutputs
+            union
+            select ScriptPubKey from TxOutputs
+        )sql")
+        .Run();
+
+        // TODO (losty): need SpentTxHash from TxInputs???
+    }
+
+    void MigrationRepository::FulfillLists()
+    {
+        Sql(R"sql(
+            insert into newdb.Lists
+            (TxId, OrderIndex, RegId)
+            select
+                h.RowId,
+                0,
+                (select value from json_each(t.String3))
+            from
+                Transactions t
+                cross join newdb.Registry h on
+                    h.String = t.Hash
+            where
+                t.Type = 305 and
+                json_valid(t.String3)
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillChain()
+    {
+        Sql(R"sql(
+            insert into newdb.Chain
+            (TxId, BlockId, BlockNum, Height, Uid)
+            select
+                h.RowId,
+                (select r.RowId from Registry r where r.String = t.BlockHash),
+                t.BlockNum,
+                t.Height,
+                t.Id
+            from
+                Transactions t
+                cross join newdb.Registry h on
+                    h.String = t.Hash
+            where
+                t.Height > 0
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillLast()
+    {
+        Sql(R"sql(
+            insert into newdb.Last (TxId)
+            select
+                h.RowId
+            from
+                Transactions t
+                cross join newdb.Registry h on
+                    h.String = t.Hash
+            where
+                t.Last = 1;
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillFirst()
+    {
+        Sql(R"sql(
+            insert into newdb.First (TxId)
+            select
+                h.RowId
+            from
+                Transactions t
+                cross join newdb.Registry h
+                    on h.String = t.Hash
+            where
+                t.First = 1;
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillTransactions()
+    {
+        Sql(R"sql(
+            insert into newdb.Transactions
+            (RowId, Type, Time, RegId1, RegId2, RegId3, RegId4, RegId5, Int1)
+            select 
+                (select r.RowId from newdb.Registry r where r.String = t.Hash),
+                t.Type,
+                Time,
+                (select r.RowId from newdb.Registry r where r.String = t.String1),
+                (select r.RowId from newdb.Registry r where r.String = t.String2),
+                iif(json_valid(t.String3), null, (select r.RowId from newdb.Registry r where r.String = t.String3)),
+                (select r.RowId from newdb.Registry r where r.String = t.String4),
+                (select r.RowId from newdb.Registry r where r.String = t.String5),
+                Int1
+            from
+                Transactions t
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillTxOutputs()
+    {
+        Sql(R"sql(
+            insert into newdb.TxOutputs
+            (TxId, Number, AddressId, Value, ScriptPubKeyId)
+            select
+                (select r.RowId from newdb.Registry r where r.String = o.TxHash),
+                o.Number,
+                (select r.RowId from newdb.Registry r where r.String = o.AddressHash),
+                o.Value,
+                (select r.RowId from newdb.Registry r where r.String = o.ScriptPubKey)
+            from
+                TxOutputs o
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillRatings()
+    {
+        Sql(R"sql(
+            insert into newdb.Ratings
+            (Type, Last, Height, Uid, Value)
+            select
+                r.Type,
+                r.Last,
+                r.Height,
+                r.Id,
+                r.Value
+            from
+                Ratings r
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillBalances()
+    {
+        Sql(R"sql(
+            insert into newdb.Balances
+            (AddressId, Value)
+            select
+                (select r.RowId from newdb.Registry r where r.String = b.AddressHash),
+                b.Value
+            from
+                Balances b
+            where
+                b.Last = 1
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillTxInputs()
+    {
+        Sql(R"sql(
+            insert or ignore into newdb.TxInputs
+            (SpentTxId, TxId, Number)
+            select
+                (select r.RowId from newdb.Registry r where r.String = i.SpentTxHash),
+                (select r.RowId from newdb.Registry r where r.String = i.TxHash),
+                i.Number
+            from
+                TxInputs i
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillPayload()
+    {
+        Sql(R"sql(
+            insert into newdb.Payload
+            (TxId, String1, String2, String3, String4 ,String5, String6, String7, Int1)
+            select
+                (select r.RowId from newdb.Registry r where r.String = p.TxHash),
+                String1,
+                String2,
+                String3,
+                String4,
+                String5,
+                String6,
+                String7,
+                Int1
+            from
+                Payload p
+        )sql")
+        .Run();
+    }
+
+    void MigrationRepository::FulfillOthers()
+    {
+        Sql(R"sql(
+            insert into newdb.BlockingLists
+            (IdSource, IdTarget)
+            select
+                (select r.RowId from Registry r where r.String = s.String1),
+                (select r.RowId from Registry r where r.String = t.String1)
+            from
+                BlockingLists
+                cross join Transactions s indexed by Transactions_Id_Last on
+                    s.Id = IdSource and 
+                    s.Last = 1
+                cross join Transactions t indexed by Transactions_Id_Last on
+                    t.Id = IdTarget and
+                    t.Last = 1
+        )sql")
+        .Run();
+
+        Sql(R"sql(
+            insert into newdb.Jury
+            (FlagRowId, AccountId, Reason)
+            select
+                (select r.RowId from newdb.Registry r where r.String = ft.Hash),
+                (select r.RowId from newdb.Registry r where r.String = at.Hash),
+                Reason
+            from
+                Jury
+                cross join Transactions ft on
+                    ft.rowid = FlagRowId
+                cross join Transactions at on
+                    at.rowid = AccountId
+        )sql")
+        .Run();
+
+        Sql(R"sql(
+            insert into newdb.JuryVerdict
+            (FlagRowId, VoteRowId, Verdict)
+            select
+                (select r.RowId from newdb.Registry r where r.String = ft.Hash),
+                (select r.RowId from newdb.Registry r where r.String = vt.Hash),
+                Verdict
+            from
+                JuryVerdict
+                cross join Transactions ft on
+                    ft.rowid = FlagRowId
+                cross join Transactions vt on
+                    vt.rowid = VoteRowId
+        )sql")
+        .Run();
+
+        Sql(R"sql(
+            insert into newdb.JuryModerators
+            (FlagRowId, AccountId)
+            select
+                (select r.RowId from newdb.Registry r where r.String = ft.Hash),
+                (select r.RowId from newdb.Registry r where r.String = at.Hash)
+            from
+                JuryModerators
+                cross join Transactions ft on
+                    ft.rowid = FlagRowId
+                cross join Transactions at on
+                    at.rowid = AccountId
+        )sql")
+        .Run();
+
+        Sql(R"sql(
+            insert into newdb.JuryBan
+            (VoteRowId, AccountId, Ending)
+            select
+                (select r.RowId from newdb.Registry r where r.String = vt.Hash),
+                (select r.RowId from newdb.Registry r where r.String = at.Hash),
+                Ending
+            from
+                JuryBan
+                cross join Transactions vt on
+                    vt.rowid = VoteRowId
+                cross join Transactions at on
+                    at.rowid = AccountId
+        )sql")
+        .Run();
+
+        Sql(R"sql(
+            insert into newdb.Badges
+            (AccountId, Badge, Cancel, Height)
+            select
+                AccountId,
+                Badge,
+                Cancel,
+                Height
+            from
+                Badges
+        )sql")
+        .Run();
+    }
+
+    bool MigrationRepository::TableExists(const string& tableName)
+    {
+        bool result = false;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select
+                    1
+                from
+                    pragma_table_info(?)
+            )sql")
+            .Bind(tableName)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
+
+        return result;
+    }
+
+    bool MigrationRepository::ColumnExists(const string& tableName, const string& columnName)
+    {
+        bool result = false;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select
+                    1
+                from
+                    pragma_table_info(?)
+                where
+                    name = ?
+            )sql")
+            .Bind(tableName, columnName)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
+
+        return result;
+    }
 } // namespace PocketDb
 
