@@ -25,8 +25,8 @@ namespace PocketDb
                     from
                         Registry r
                     cross join
-                        Transactions t indexed by Transactions_HashId
-                            on t.HashId = r.RowId
+                        Transactions t
+                            on t.RowId = r.RowId
                     where
                         r.String = ?
                 ),
@@ -100,7 +100,7 @@ namespace PocketDb
         {
             Sql(R"sql(
                 select
-                    (select r.String from Registry r where r.RowId = f.HashId),
+                    (select r.String from Registry r where r.RowId = f.RowId),
                     (select r.String from Registry r where r.RowId = f.RegId3),
                     j.Reason,
                     ifnull(jv.Verdict, -1)
@@ -148,7 +148,7 @@ namespace PocketDb
                 )
                 select
 
-                    (select r.String from Registry r where r.RowId = f.HashId) as FlagHash,
+                    (select r.String from Registry r where r.RowId = f.RowId) as FlagHash,
                     cf.Height as FlagHeight,
                     f.Int1 as Reason,
                     ifnull(v.Int1, -1),
@@ -173,18 +173,18 @@ namespace PocketDb
                 cross join
                     Chain cf indexed by Chain_TxId_Height
                         on cf.TxId = f.RowId and cf.Height <= ?
-                cross join Transactions c indexed by Transactions_HashId
-                    on c.HashId = f.RegId2
+                cross join Transactions c
+                    on c.RowId = f.RegId2
                 cross join
                     Chain cc
                         on cc.TxId = c.RowId
                 left join Transactions v indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    on v.Type in (420) and v.RegId1 = u.RegId1 and v.RegId2 = f.HashId and exists (select 1 from Chain cv where cv.TxId = v.RowId)
+                    on v.Type in (420) and v.RegId1 = u.RegId1 and v.RegId2 = f.RowId and exists (select 1 from Chain cv where cv.TxId = v.RowId)
                 left join JuryVerdict jv
                     on jv.FlagRowId = jm.FlagRowId
                 where
                     (
-                        v.HashId is )sql" + (verdict ? "not"s : ""s) + R"sql( null )sql" + (verdict ? "or"s : "and"s) + R"sql(
+                        v.RowId is )sql" + (verdict ? "not"s : ""s) + R"sql( null )sql" + (verdict ? "or"s : "and"s) + R"sql(
                         jv.FlagRowId is )sql" + (verdict ? "not"s : ""s) + R"sql( null
                     )
                 order by cf.Height )sql" + (pagination.OrderDesc ? " desc "s : " asc "s) + R"sql(
@@ -235,8 +235,8 @@ namespace PocketDb
                     from
                         Registry r
                     cross join
-                        Transactions t indexed by Transactions_HashId
-                            on t.HashId = r.RowId
+                        Transactions t
+                            on t.RowId = r.RowId
                     where
                         r.String = ?
                 )
@@ -288,7 +288,7 @@ namespace PocketDb
                         r.String = ?
                 )
                 select
-                    (select r.String from Registry r where r.RowId = f.HashId) as JuryId,
+                    (select r.String from Registry r where r.RowId = f.RowId) as JuryId,
                     f.Int1 as Reason,
                     b.Ending
                 from
@@ -307,8 +307,8 @@ namespace PocketDb
                         on b.AccountId = cu.Uid
                 cross join Transactions v
                     on v.RowId = b.VoteRowId
-                cross join Transactions f indexed by Transactions_HashId
-                    on f.HashId = v.RegId2
+                cross join Transactions f
+                    on f.RowId = v.RegId2
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {

@@ -145,6 +145,10 @@ def register_accounts(node, accounts, out_count=50, confirmations=0):
 def rollback_node(node, blocks, logger=None):
     if logger is not None:
         logger.warning(f"Rolling back node, number of blocks: {blocks}")
-
     for _ in range(blocks):
         node.invalidateblock(node.getbestblockhash())
+
+def restoreTo(node, height, logger=None):
+    if logger is not None:
+        logger.warning(f"Rolling back node to height: {height}")
+    return node.restoreto(height)

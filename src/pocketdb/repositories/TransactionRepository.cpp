@@ -250,6 +250,14 @@ namespace PocketDb
             for (const auto& output: collectData.outputs) {
                 if (output.GetAddressHash()) stringsToBeInserted.insert(*output.GetAddressHash());
                 if (output.GetScriptPubKey()) stringsToBeInserted.insert(*output.GetScriptPubKey());
+                if (output.GetTxHash()) stringsToBeInserted.insert(*output.GetTxHash());
+                if (output.GetSpentTxHash()) stringsToBeInserted.insert(*output.GetSpentTxHash());
+            }
+
+            for (const auto& input: collectData.inputs) {
+                if (input.GetSpentTxHash()) stringsToBeInserted.insert(*input.GetSpentTxHash());
+                if (input.GetTxHash()) stringsToBeInserted.insert(*input.GetTxHash());
+                if (input.GetAddressHash()) stringsToBeInserted.insert(*input.GetAddressHash());
             }
         }
 
@@ -417,7 +425,7 @@ namespace PocketDb
                 (
                     select r.String
                     from Registry r
-                    where r.RowId = t.HashId
+                    where r.RowId = t.RowId
                 ),
                 (
                     select a.String
@@ -641,8 +649,8 @@ namespace PocketDb
                     count()
                 from
                     Registry r indexed by Registry_String
-                    cross join Transactions t indexed by Transactions_HashId
-                        on t.HashId = r.RowId
+                    cross join Transactions t
+                        on t.RowId = r.RowId
                 where
                     r.String in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
             )sql")
@@ -734,6 +742,8 @@ namespace PocketDb
             )sql")
             .Bind(hash)
             .Run();
+
+            // TODO (aok, losty): Clear TxInputs table
 
             // Clear TxOutputs table
             Sql(R"sql(
@@ -848,8 +858,8 @@ namespace PocketDb
             with
                 data as (
                     select
-                        (select RowId from vTx where Hash = ?) as spentTx,
-                        (select RowId from vTx where Hash = ?) as tx,
+                        (select RowId from Registry where String = ?) as spentTx,
+                        (select RowId from Registry where String = ?) as tx,
                         ? as number
                 )
 
@@ -866,8 +876,6 @@ namespace PocketDb
             from
                 data
             where
-                data.spentTx is not null and
-                data.tx is not null and
                 not exists (
                     select 1
                     from TxInputs i
@@ -1011,16 +1019,16 @@ namespace PocketDb
         Sql(R"sql(
             with
                 h as (
-                    select RowId as HashId
+                    select RowId as TxId
                     from Registry
                     where String = ?
                 )
             insert or fail into 
                 Transactions (
+                    RowId,
                     Type,
                     Time,
                     Int1,
-                    HashId,
                     RegId1,
                     RegId2,
                     RegId3,
@@ -1028,10 +1036,10 @@ namespace PocketDb
                     RegId5
                 )
             select
+                h.TxId,
                 ?,
                 ?,
                 ?,
-                h.HashId,
                 (
                     select RowId
                     from Registry
@@ -1066,7 +1074,7 @@ namespace PocketDb
                     from
                         Transactions a
                     where
-                        a.HashId = h.HashId
+                        a.RowId = h.TxId
                 )
         )sql")
         .Bind(
@@ -1270,7 +1278,7 @@ namespace PocketDb
         Sql(R"sql(
             with
                 t as (
-                    select a.RowId from Transactions a where a.HashId = (select r.RowId from Registry r where r.String = ?)
+                    select r.RowId from Registry r where r.String = ?
                 )
             insert or ignore into Lists (TxId, OrderIndex, RegId)
             select * from

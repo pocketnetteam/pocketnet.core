@@ -772,13 +772,13 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
     }
 
     // Collect statistic data
-    if (LogInstance().WillLogCategory(BCLog::STAT))
+    if (gArgs.GetBoolArg("-collectstat", false) || LogInstance().WillLogCategory(BCLog::STAT))
     {
         auto finish = gStatEngineInstance.GetCurrentSystemTime();
 
         gStatEngineInstance.AddSample(
             Statistic::RequestSample{
-                uri,
+                method,
                 req->Created,
                 start,
                 finish,

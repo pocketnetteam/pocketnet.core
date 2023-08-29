@@ -45,6 +45,8 @@
 #include <memory>
 #include <mutex>
 
+#include "pocketdb/services/ChainPostProcessing.h"
+
 struct CUpdatedBlock
 {
     uint256 hash;
@@ -1572,41 +1574,73 @@ static RPCHelpMan preciousblock()
 
 static RPCHelpMan invalidateblock()
 {
-    return RPCHelpMan{"invalidateblock",
-                "\nPermanently marks a block as invalid, as if it violated a consensus rule.\n",
-                {
-                    {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "the hash of the block to mark as invalid"},
-                },
-                RPCResult{RPCResult::Type::NONE, "", ""},
-                RPCExamples{
-                    HelpExampleCli("invalidateblock", "\"blockhash\"")
-            + HelpExampleRpc("invalidateblock", "\"blockhash\"")
-                },
+    return RPCHelpMan{
+        "invalidateblock\n",
+        "Permanently marks a block as invalid, as if it violated a consensus rule.\n",
+        {
+            { "blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "the hash of the block to mark as invalid" },
+        },
+        RPCResult {
+            RPCResult::Type::NONE, "", ""
+        },
+        RPCExamples {
+            HelpExampleCli("invalidateblock", "\"blockhash\"") +
+            HelpExampleRpc("invalidateblock", "\"blockhash\"")
+        },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            uint256 hash(ParseHashV(request.params[0], "blockhash"));
+            BlockValidationState state;
+
+            CBlockIndex* pblockindex;
+            {
+                LOCK(cs_main);
+                pblockindex = LookupBlockIndex(hash);
+                if (!pblockindex) {
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+                }
+            }
+            InvalidateBlock(state, Params(), pblockindex);
+
+            if (state.IsValid()) {
+                ActivateBestChain(state, Params());
+            }
+
+            if (!state.IsValid()) {
+                throw JSONRPCError(RPC_DATABASE_ERROR, state.ToString());
+            }
+
+            return NullUniValue;
+        },
+    };
+}
+
+static RPCHelpMan restoreto()
 {
-    uint256 hash(ParseHashV(request.params[0], "blockhash"));
-    BlockValidationState state;
+    return RPCHelpMan{
+        "restoreto\n",
+        "Permanently restore db to height.\n",
+        {
+            { "height", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The height to which the rollback will be made" },
+        },
+        RPCResult {
+            RPCResult::Type::NONE, "", ""
+        },
+        RPCExamples {
+            HelpExampleCli("restoreto", "\"height\"") +
+            HelpExampleRpc("restoreto", "\"height\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, { UniValue::VNUM });
 
-    CBlockIndex* pblockindex;
-    {
-        LOCK(cs_main);
-        pblockindex = LookupBlockIndex(hash);
-        if (!pblockindex) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
-        }
-    }
-    InvalidateBlock(state, Params(), pblockindex);
+            int height = request.params[0].get_int() + 1;
 
-    if (state.IsValid()) {
-        ActivateBestChain(state, Params());
-    }
+            // PocketDb::ChainRepoInst.Restore(height);
+            PocketServices::ChainPostProcessing::Rollback(height);
 
-    if (!state.IsValid()) {
-        throw JSONRPCError(RPC_DATABASE_ERROR, state.ToString());
-    }
-
-    return NullUniValue;
-},
+            return PocketDb::ChainRepoInst.CurrentHeight();
+        },
     };
 }
 
@@ -2547,6 +2581,7 @@ static const CRPCCommand commands[] =
     /* Not shown in help */
     { "hidden",             "invalidateblock",        &invalidateblock,        {"blockhash"} },
     { "hidden",             "reconsiderblock",        &reconsiderblock,        {"blockhash"} },
+    { "hidden",             "restoreto",              &restoreto,              {"height"} },
     { "hidden",             "waitfornewblock",        &waitfornewblock,        {"timeout"} },
     { "hidden",             "waitforblock",           &waitforblock,           {"blockhash","timeout"} },
     { "hidden",             "waitforblockheight",     &waitforblockheight,     {"height","timeout"} },

@@ -402,7 +402,7 @@ namespace PocketDb
             Sql(R"sql(
                 -- Address in outputs
                 select distinct
-                    (select r.String from Registry r where r.RowId = t.HashId),
+                    (select r.String from Registry r where r.RowId = t.RowId),
                     c.Height as Height,
                     c.BlockNum as BlockNum
                 from
@@ -420,7 +420,7 @@ namespace PocketDb
 
                 -- Address in inputs
                 select distinct
-                    (select r.String from Registry r where r.RowId = t.HashId),
+                    (select r.String from Registry r where r.RowId = t.RowId),
                     c.Height as Height,
                     c.BlockNum as BlockNum
                 from
@@ -472,7 +472,7 @@ namespace PocketDb
                         r.String = ?
                 )
                 select
-                    (select r.String from Registry r where r.RowId = t.HashId)
+                    (select r.String from Registry r where r.RowId = t.RowId)
                 from
                     block
                 cross join

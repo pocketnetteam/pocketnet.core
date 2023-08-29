@@ -26,15 +26,12 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
-            if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
-                return {false, code};
-
             // Get all the necessary data for transaction validation
             consensusData = ConsensusRepoInst.BarteronAccount(
                 *ptx->GetAddress()
             );
 
-            return Success;
+            return SocialConsensus::Validate(tx, ptx, block);
         }
 
     protected:
@@ -43,6 +40,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateBlock(const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
             auto blockPtxs = SocialConsensus::ExtractBlockPtxs(block, ptx, { BARTERON_ACCOUNT });
+            LogPrintf("blockPtxs.size(): %d\n", blockPtxs.size());
             if (blockPtxs.size() > 0)
                 return {false, ConsensusResult_ManyTransactions};
 
@@ -51,6 +49,7 @@ namespace PocketConsensus
         
         ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
         {
+            LogPrintf("consensusData.MempoolCount: %d\n", consensusData.MempoolCount);
             return { consensusData.MempoolCount <= 0, ConsensusResult_ManyTransactions };
         }
 

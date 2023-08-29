@@ -34,18 +34,17 @@ namespace PocketServices
     {
         try
         {
-            LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", height - 1);
-            ChainRepoInst.RestoreLast(height);
-            ChainRepoInst.RestoreRatings(height);
-            ChainRepoInst.RestoreBalances(height);
-            ChainRepoInst.RollbackBlockingList(height);
-            ChainRepoInst.RestoreModerationJury(height);
-            ChainRepoInst.RestoreModerationBan(height);
-            ChainRepoInst.RestoreBadges(height);
-            ChainRepoInst.RestoreSocialRegistry(height);
+            // Loop restore
+            int curHeight = -1;
+            do
+            {
+                curHeight = ChainRepoInst.CurrentHeight();
 
-            // Rollback transactions must be lasted
-            ChainRepoInst.RestoreChain(height);
+                LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", curHeight - 1);
+                
+                ChainRepoInst.Restore(curHeight);
+            }
+            while (curHeight > height);
 
             return true;
         }

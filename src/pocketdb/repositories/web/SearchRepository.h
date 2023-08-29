@@ -33,7 +33,7 @@ namespace PocketDb
         vector<int64_t> SearchUsers(const string& keyword);
 
         vector<string> GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth = 129600 /* about 3 month */);
-        vector<int64_t> GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& address, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth = 129600 /* about 3 month */);
+        vector<int64_t> GetRecommendedContentByAddressSubscriptions(const string& contentAddress, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth = 129600 /* about 3 month */);
         vector<int64_t> GetRandomContentByAddress(const string& contentAddress, const vector<int>& contentTypes, const string& lang, int cntOut);
         vector<int64_t> GetContentFromAddressSubscriptions(const string& address, const vector<int>& contentTypes, const string& lang, int cntOut, bool rest = false);
     };

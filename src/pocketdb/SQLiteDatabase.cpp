@@ -256,7 +256,7 @@ namespace PocketDb
         try
         {
             uiInterface.InitMessage(tfm::format("Updating Pocket DB `%s` structure..", m_file_path));
-            LogPrintf("Updating Pocket DB`%s` structure..\n", m_file_path);
+            LogPrintf("Updating Pocket DB `%s` structure..\n", m_file_path);
 
             if (sqlite3_get_autocommit(m_db) == 0)
                 throw std::runtime_error(strprintf("%s: Database `%s` not opened?\n", __func__, m_file_path));

@@ -36,29 +36,20 @@ namespace PocketDb
         // Precalculate address balances from TxOutputs
         void IndexBalances(int height);
 
-        void RestoreLast(int height);
-        void RestoreRatings(int height);
-        void RestoreBalances(int height);
-        void RestoreChain(int height);
-        void RestoreSocialRegistry(int height);
+        void Restore(int height);
 
         // Clear all calculated data
         bool ClearDatabase();
 
-        // Erase all calculated data great or equals block
-        void RollbackBlockingList(int height);
-
         void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount);
-        void RestoreModerationJury(int height);
-
         void IndexModerationBan(const string& voteTxHash, int votesCount, int ban1Time, int ban2Time, int ban3Time);
-        void RestoreModerationBan(int height);
-
         void IndexBadges(int height, const BadgeConditions& conditions);
-        void RestoreBadges(int height);
         
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);
+
+        // Select max height from Chain
+        int CurrentHeight();
 
     private:
 
@@ -72,16 +63,26 @@ namespace PocketDb
         // Trims the SocialRegistry by limit and restores missing rows in case limit growth
         void EnsureAndTrimSocialRegistry(int height);
 
-        pair<optional<int64_t>, optional<int64_t>> IndexSocial(const TransactionIndexingInfo& txInfo);
+        pair<optional<int64_t>, optional<int64_t>> IndexSocial(const TransactionIndexingInfo& txInfo, int height);
         void IndexSocialLastTx(const string& sql, const string& txHash, optional<int64_t>& id, optional<int64_t>& lastTxId);
         string IndexAccount();
         string IndexAccountSetting();
         string IndexContent();
         string IndexComment();
         string IndexBlocking();
-        void IndexBlockingList(const string& txHash);
+        void IndexBlockingList(const string& txHash, int height);
         string IndexSubscribe();
         string IndexAccountBarteron();
+
+        void RestoreLast(int height);
+        void RestoreRatings(int height);
+        void RestoreBalances(int height);
+        void RestoreChain(int height);
+        void RestoreSocialRegistry(int height);
+        void RollbackBlockingList(int height);
+        void RestoreModerationJury(int height);
+        void RestoreModerationBan(int height);
+        void RestoreBadges(int height);
 
     };
 

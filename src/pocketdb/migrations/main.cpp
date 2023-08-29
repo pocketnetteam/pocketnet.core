@@ -72,9 +72,8 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Transactions
             (
-                RowId     integer primary key,
+                RowId    integer primary key, -- Id of tx hash in Registry table
                 Type      int    not null,
-                HashId    int    not null, -- Id of tx hash in Registry table
                 Time      int    not null,
 
                 -- AccountUser.ReferrerAddressId
@@ -246,8 +245,8 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists BlockingLists
             (
-                IdSource int not null,
-                IdTarget int not null,
+                IdSource    int not null,
+                IdTarget    int not null,
                 primary key (IdSource, IdTarget)
             );
         )sql");
@@ -317,18 +316,6 @@ namespace PocketDb
             ) without rowid;
         )sql");
 
-        // A helper table that consists of limited txs for a period of ConsensusLimit_depth
-        _tables.emplace_back(R"sql(
-            create table if not exists SocialRegistry
-            (
-                AddressId int not null,
-                Type int not null,
-                Height int not null,
-                BlockNum int not null, -- TODO (losty): required only to not allow duplicates
-                primary key (Type, Height, AddressId, BlockNum)
-            ) without rowid;
-        )sql");
-
         _views.emplace_back(R"sql(
             drop view if exists vBadges;
 
@@ -353,17 +340,29 @@ namespace PocketDb
                 );
         )sql");
 
+        // A helper table that consists of limited txs for a period of ConsensusLimit_depth
+        _tables.emplace_back(R"sql(
+            create table if not exists SocialRegistry
+            (
+                AddressId int not null,
+                Type int not null,
+                Height int not null,
+                BlockNum int not null, -- TODO (losty): required only to not allow duplicates
+                primary key (Type, Height, AddressId, BlockNum)
+            ) without rowid;
+        )sql");
+
         _views.emplace_back(R"sql(
             drop view if exists vTx;
             create view if not exists vTx as
             select
-                t.RowId, t.Type, t.HashId, t.Time, t.RegId1, t.RegId2, t.RegId3, t.RegId4, t.RegId5, t.Int1,
+                t.RowId, t.Type, t.Time, t.RegId1, t.RegId2, t.RegId3, t.RegId4, t.RegId5, t.Int1,
                 r.String as Hash
             from
                 Registry r indexed by Registry_String,
-                Transactions t indexed by Transactions_HashId
+                Transactions t
             where
-                t.HashId = r.RowId;
+                t.RowId = r.RowId;
         )sql");
 
         _views.emplace_back(R"sql(
@@ -371,7 +370,7 @@ namespace PocketDb
             create view if not exists vTxStr as
             select
                 t.RowId as RowId,
-                (select r.String from Registry r where r.RowId = t.HashId) as Hash,
+                (select r.String from Registry r where r.RowId = t.RowId) as Hash,
                 (select r.String from Registry r where r.RowId = t.RegId1) as String1,
                 (select r.String from Registry r where r.RowId = t.RegId2) as String2,
                 (select r.String from Registry r where r.RowId = t.RegId3) as String3,
@@ -400,7 +399,6 @@ namespace PocketDb
 
             create unique index if not exists Registry_String on Registry (String);
 
-            create unique index if not exists Transactions_HashId on Transactions (HashId);
             create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
             create index if not exists Transactions_Type_RegId1_RegId3 on Transactions (Type, RegId1, RegId3);
             create index if not exists Transactions_Type_RegId2_RegId1 on Transactions (Type, RegId2, RegId1);
@@ -409,6 +407,7 @@ namespace PocketDb
             create index if not exists Transactions_Type_RegId4_RegId1 on Transactions (Type, RegId4, RegId1);
             create index if not exists Transactions_Type_RegId1_Int1_Time on Transactions (Type, RegId1, Int1, Time);
             create index if not exists Transactions_Type_RegId1_Time on Transactions (Type, RegId1, Time);
+            create index if not exists Transactions_Type_RegId3_RegId4_RegId5 on Transactions(Type, RegId3, RegId4, RegId5);
 
             create index if not exists TxInputs_SpentTxId_Number_TxId on TxInputs (SpentTxId, Number, TxId);
             create index if not exists TxInputs_TxId_Number_SpentTxId on TxInputs (TxId, Number, SpentTxId);
@@ -418,7 +417,6 @@ namespace PocketDb
 
             create unique index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
 
-            create index if not exists BlockingLists_IdSource_IdTarget on BlockingLists (IdSource, IdTarget);
             create index if not exists BlockingLists_IdTarget_IdSource on BlockingLists (IdTarget, IdSource);
 
             ------------------------------

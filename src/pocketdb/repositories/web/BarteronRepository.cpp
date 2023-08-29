@@ -23,7 +23,7 @@ namespace PocketDb
                         String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 )
                 select
-                    (select r.String from Registry r where r.RowId = a.HashId)
+                    (select r.String from Registry r where r.RowId = a.RowId)
                 from
                     addr
                 cross join
@@ -63,7 +63,7 @@ namespace PocketDb
                         String = ?
                 )
                 select
-                    (select r.String from Registry r where r.RowId = o.HashId)
+                    (select r.String from Registry r where r.RowId = o.RowId)
                 from
                     addr
                 cross join
@@ -122,7 +122,7 @@ namespace PocketDb
                 search as (select ? as value)
 
                 select
-                    (select r.String from Registry r where r.RowId = t.HashId)
+                    (select r.String from Registry r where r.RowId = t.RowId)
                 from
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
                 cross join
@@ -201,7 +201,7 @@ namespace PocketDb
                     from
                         Registry r
                     cross join
-                        Transactions t on t.HashId = r.RowId
+                        Transactions t on t.RowId = r.RowId
                     cross join
                         Chain c on c.TxId = t.RowId
                     where r.String = ?
@@ -216,7 +216,7 @@ namespace PocketDb
                     select ? as value
                 )
                 select
-                    (select r.String from Registry r where r.RowId = to2.HashId)
+                    (select r.String from Registry r where r.RowId = to2.RowId)
                 from
                     offer,
                     addr,

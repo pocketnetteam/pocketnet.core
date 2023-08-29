@@ -58,7 +58,7 @@ namespace PocketDb
             // Each transaction is processed individually
             for (const auto& txInfo : txs)
             {
-                auto[id, lastTxId] = IndexSocial(txInfo);
+                auto[id, lastTxId] = IndexSocial(txInfo, height);
 
                 // Remove current last record for tx
                 if (lastTxId)
@@ -71,7 +71,7 @@ namespace PocketDb
                     .Run();
                 }
 
-                // if 'id' means that tx is social and requires last and fist to be set.
+                // if 'id' means that tx is social and requires last and first to be set.
                 // if not 'lastTxId' means that this is first tx for this id
                 if (id && !lastTxId)
                 {
@@ -102,8 +102,8 @@ namespace PocketDb
 
     tuple<bool, bool> ChainRepository::ExistsBlock(const string& blockHash, int height)
     {
-        int exists = 0;
-        int last = 1;
+        bool exists = false;
+        bool last = true;
 
         SqlTransaction(__func__, [&]()
         {
@@ -137,16 +137,43 @@ namespace PocketDb
                         limit 1
                     ), 0)
             )sql")
-            .Bind(height, blockHash, height + 1)
+            .Bind(blockHash, height, height + 1)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
-                    cursor.CollectAll(exists, last);
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok && value == 1)
+                        exists = true;
+
+                    if (auto[ok, value] = cursor.TryGetColumnInt(1); ok && value == 1)
+                        last = false;
+                }
             });
         });
 
-        return { exists == 1, last == 0 };
+        return { exists, last };
     }
 
+    int ChainRepository::CurrentHeight()
+    {
+        int result = -1;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select
+                    max(Height)
+                from
+                    Chain
+            )sql")
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+    
     void ChainRepository::IndexBlockData(const string& blockHash)
     {
         Sql(R"sql(
@@ -191,7 +218,7 @@ namespace PocketDb
         if (id.has_value())
         {
             Sql(R"sql(
-                insert or ignore into Last
+                insert or fail into Last
                     (TxId)
                 select
                     t.RowId
@@ -287,7 +314,8 @@ namespace PocketDb
 
     void ChainRepository::IndexSocialRegistryTx(const TransactionIndexingInfo& txInfo, int height, bool isFirst)
     {
-        if (!SocialRegistryTypes::IsSatisfy(txInfo.Type, isFirst)) return;
+        if (!SocialRegistryTypes::IsSatisfy(txInfo.Type, isFirst))
+            return;
 
         Sql(R"sql(
             insert or ignore into SocialRegistry (AddressId, Type, Height, BlockNum)
@@ -375,7 +403,7 @@ namespace PocketDb
         .Run();
     }
 
-    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const TransactionIndexingInfo& txInfo)
+    pair<optional<int64_t>, optional<int64_t>> ChainRepository::IndexSocial(const TransactionIndexingInfo& txInfo, int height)
     {
         optional<int64_t> id;
         optional<int64_t> lastTxId;
@@ -394,7 +422,7 @@ namespace PocketDb
         else if (txInfo.IsBlocking())
         {
             IndexSocialLastTx(IndexBlocking(), txInfo.Hash, id, lastTxId);
-            IndexBlockingList(txInfo.Hash);
+            IndexBlockingList(txInfo.Hash, height);
         }
         else if (txInfo.IsSubscribe())
             IndexSocialLastTx(IndexSubscribe(), txInfo.Hash, id, lastTxId);
@@ -627,6 +655,7 @@ namespace PocketDb
         )sql";
     }
 
+    // TODO (aok): Not need set last for blockings - use instead BlockingLists
     string ChainRepository::IndexBlocking()
     {
         return R"sql(
@@ -685,83 +714,73 @@ namespace PocketDb
         )sql";
     }
 
-    void ChainRepository::IndexBlockingList(const string& txHash)
+    void ChainRepository::IndexBlockingList(const string& txHash, int height)
     {
         Sql(R"sql(
             with
-                block as (
+                tx as (
                     select RowId
                     from Registry
                     where String = ?
                 )
 
-            insert or ignore into BlockingLists (IdSource, IdTarget)
+            insert or ignore into
+                BlockingLists (IdSource, IdTarget)
 
             select
-                usc.Uid,
-                utc.Uid
-
+                b.RegId1,
+                b.RegId2
             from
+                tx
+            cross join
+                Transactions b on
+                    b.Type in (305) and
+                    b.RowId = tx.RowId and
+                    b.RegId2 is not null
 
-                block
-                cross join Transactions b on
-                    b.Type in (305) and b.HashId = block.RowId
-
-                cross join Transactions us on
-                    us.Type in (100, 170) and us.RegId1 = b.RegId1
-                cross join Chain usc on
-                    usc.TxId = us.RowId
-                cross join Last usl on
-                    usl.TxId = us.RowId
-
-                cross join Transactions ut on
-                    ut.Type in (100, 170) and ut.RegId1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
-                cross join Chain utc on
-                    utc.TxId = ut.RowId
-                cross join Last utl on
-                    utl.TxId = ut.RowId
+            union
+            select
+                b.RegId1,
+                l.RegId
+            from
+                tx
+            cross join
+                Transactions b on
+                    b.Type in (305) and
+                    b.RowId = tx.RowId and
+                    b.RegId2 is null
+            cross join
+                Lists l on
+                    l.TxId = b.RowId
         )sql")
         .Bind(txHash)
         .Run();
 
         Sql(R"sql(
             with
-                block as (
+                tx as (
                     select RowId
                     from Registry
                     where String = ?
                 )
-
-            delete from BlockingLists
-                
-            where BlockingLists.ROWID in
-            (
-                select
-                    bl.ROWID
-
-                from
-
-                    block
-                    cross join Transactions b on
-                        b.Type in (306) and b.HashId = block.RowId
-
-                    cross join Transactions us on
-                        us.Type in (100, 170) and us.RegId1 = b.RegId1
-                    cross join Chain usc on
-                        usc.TxId = us.RowId
-                    cross join Last usl on
-                        usl.TxId = us.RowId
-
-                    cross join Transactions ut on
-                        ut.Type in (100, 170) and ut.RegId1 = b.RegId2
-                    cross join Chain utc on
-                        utc.TxId = ut.RowId
-                    cross join Last utl on
-                        utl.TxId = ut.RowId
-
-                    cross join BlockingLists bl on
-                        bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid
-            )
+            delete from
+                BlockingLists
+            where
+                BlockingLists.ROWID in
+                (
+                    select
+                        bl.ROWID
+                    from
+                        tx
+                    cross join
+                        Transactions b on
+                            b.Type in (306) and
+                            b.RowId = tx.RowId
+                    cross join
+                        BlockingLists bl on
+                            bl.IdSource = b.RegId1 and
+                            bl.IdTarget = b.RegId2
+                )
         )sql")
         .Bind(txHash)
         .Run();
@@ -888,7 +907,7 @@ namespace PocketDb
                     cu.Uid, /* Account unique id of the content author */
                     f.Int1 /* Reason */
 
-                from Transactions f indexed by Transactions_HashId
+                from Transactions f
 
                 cross join Chain cf
                     on cf.TxId = f.RowId
@@ -902,7 +921,7 @@ namespace PocketDb
                 cross join Chain cu on
                     cu.TxId = u.RowId
 
-                where f.HashId = (select r.RowId from Registry r where r.String = ?)
+                where f.RowId = (select r.RowId from Registry r where r.String = ?)
 
                     -- Is there no active punishment listed on the account ?
                     and not exists (
@@ -950,7 +969,7 @@ namespace PocketDb
                 insert into JuryModerators (AccountId, FlagRowId)
                 with
                   h as (
-                    select r.String as hash, r.RowId as hashid
+                    select r.String as hash, r.RowId as rowid
                     from Registry r where r.String = ?
                   ),
                   f as (
@@ -958,13 +977,13 @@ namespace PocketDb
                     from Transactions f,
                         Jury j,
                         h
-                    where f.HashId = h.hashid and j.FlagRowId = f.ROWID
+                    where f.RowId = h.rowid and j.FlagRowId = f.ROWID
                   ),
                   c as (
                     select ?/2 as cnt
                   ),
                   a as (
-                    select b.AccountId, (select r.String from Registry r where r.RowId = (select t.HashId from Transactions t where t.RowId = u.TxId)) as Hash
+                    select b.AccountId, (select r.String from Registry r where r.RowId = u.TxId) as Hash
                     from vBadges b
                     cross join Chain u on u.Uid = b.AccountId and exists (select 1 from First f where f.TxId = u.TxId)
                     where b.Badge = 3
@@ -990,51 +1009,47 @@ namespace PocketDb
 
     void ChainRepository::RestoreModerationJury(int height)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                delete
-                from
-                    Jury
-                where
-                    FlagRowId in (
-                        select
-                            f.RowId
-                        from
-                            Transactions f
-                        cross join
-                            Chain c indexed by Chain_TxId_Height on
-                                c.TxId = f.RowId and
-                                c.Height >= ?
-                        where
+        Sql(R"sql(
+            delete
+            from
+                Jury
+            where
+                FlagRowId in (
+                    select
+                        f.RowId
+                    from
+                        Chain c
+                    cross join
+                        Transactions f on
+                            f.RowId = c.TxId and
                             f.Type = 410
-                    )
-            )sql")
-            .Bind(height)
-            .Run();
+                    where
+                        c.Height >= ?
+                )
+        )sql")
+        .Bind(height)
+        .Run();
 
-            Sql(R"sql(
-                delete
-                from
-                    JuryModerators
-                where
-                    FlagRowId in (
-                        select
-                            f.RowId
-                        from
-                            Transactions f
-                        cross join
-                            Chain c indexed by Chain_TxId_Height on
-                                c.TxId = f.RowId and
-                                c.Height >= ?
-                        where
+        Sql(R"sql(
+            delete
+            from
+                JuryModerators
+            where
+                FlagRowId in (
+                    select
+                        f.RowId
+                    from
+                        Chain c
+                    cross join
+                        Transactions f on
+                            f.RowId = c.TxId and
                             f.Type = 410
-                            
-                    )
-            )sql")
-            .Bind(height)
-            .Run();
-        });
+                    where
+                        c.Height >= ?
+                )
+        )sql")
+        .Bind(height)
+        .Run();
     }
 
     void ChainRepository::IndexModerationBan(const string& voteTxHash, int votesCount, int ban1Time, int ban2Time, int ban3Time)
@@ -1051,16 +1066,16 @@ namespace PocketDb
                     0
                 from
                     Transactions v
-                    cross join Transactions f indexed by Transactions_HashId
-                        on f.HashId = v.RegId2
+                    cross join Transactions f
+                        on f.RowId = v.RegId2
                     cross join Transactions vv on
                         vv.Type in (420) and -- Votes
-                        vv.RegId2 = f.HashId and -- JuryId over FlagTxHash
+                        vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
                         vv.Int1 = 0 and -- Negative verdict
                         not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
                         
                 where
-                    v.HashId = (select r.RowId from Registry r where r.String = ?)
+                    v.RowId = (select r.RowId from Registry r where r.String = ?)
             )sql")
             .Bind(voteTxHash)
             .Run();
@@ -1075,10 +1090,10 @@ namespace PocketDb
                     1
                 from
                     Transactions v
-                    cross join Transactions f indexed by Transactions_HashId
-                        on f.HashId = v.RegId2
+                    cross join Transactions f
+                        on f.RowId = v.RegId2
                 where
-                    v.HashId = (select r.RowId from Registry r where r.String = ?) and
+                    v.RowId = (select r.RowId from Registry r where r.String = ?) and
                     ? <= (
                         select
                             count()
@@ -1086,7 +1101,7 @@ namespace PocketDb
                             Transactions vv
                         where
                             vv.Type in (420) and -- Votes
-                            vv.RegId2 = f.HashId and -- JuryId over FlagTxHash
+                            vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
                             vv.Int1 = 1 and -- Positive verdict
                             not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
                     )
@@ -1112,8 +1127,8 @@ namespace PocketDb
                     Transactions v
                     join Chain cv
                         on cv.TxId = v.RowId
-                    join Transactions f indexed by Transactions_HashId
-                        on f.HashId = v.RegId2
+                    join Transactions f
+                        on f.RowId = v.RegId2
                     cross join Jury j
                         on j.FlagRowId = f.ROWID
                     cross join JuryVerdict jv
@@ -1121,7 +1136,7 @@ namespace PocketDb
                            jv.FlagRowId = j.FlagRowId and
                            jv.Verdict = 1
                 where
-                    v.HashId = (select r.RowId from Registry r where r.String = ?) and
+                    v.RowId = (select r.RowId from Registry r where r.String = ?) and
                     not exists (
                         select
                             1
@@ -1139,50 +1154,47 @@ namespace PocketDb
 
     void ChainRepository::RestoreModerationBan(int height)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                delete
-                from
-                    JuryVerdict indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
-                where
-                    VoteRowId in (
-                        select
-                            v.RowId
-                        from
-                            Transactions v
-                        join
-                            Chain c on
-                                c.TxId = v.RowId and
-                                c.Height >= ?
-                        where
-                            v.Type = 420
-                    )
-            )sql")
-            .Bind(height)
-            .Run();
-            
-            Sql(R"sql(
-                delete
-                from
-                    JuryBan
-                where
-                    VoteRowId in (
-                        select
-                            v.RowId
-                        from
-                            Transactions v
-                        join
-                            Chain c on
-                                c.TxId = v.RowId and
-                                c.Height >= ?
-                        where
-                            v.Type = 420
-                    )
-            )sql")
-            .Bind(height)
-            .Run();
-        });
+        Sql(R"sql(
+            delete
+            from
+                JuryVerdict indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
+            where
+                VoteRowId in (
+                    select
+                        v.RowId
+                    from
+                        Transactions v
+                    join
+                        Chain c on
+                            c.TxId = v.RowId and
+                            c.Height >= ?
+                    where
+                        v.Type = 420
+                )
+        )sql")
+        .Bind(height)
+        .Run();
+        
+        Sql(R"sql(
+            delete
+            from
+                JuryBan
+            where
+                VoteRowId in (
+                    select
+                        v.RowId
+                    from
+                        Transactions v
+                    join
+                        Chain c on
+                            c.TxId = v.RowId and
+                            c.Height >= ?
+                    where
+                        v.Type = 420
+                )
+        )sql")
+        .Bind(height)
+        .Run();
     }
 
     void ChainRepository::IndexBadges(int height, const BadgeConditions& conditions)
@@ -1328,17 +1340,14 @@ namespace PocketDb
 
     void ChainRepository::RestoreBadges(int height)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                delete from
-                    Badges
-                where
-                    Height >= ?
-            )sql")
-            .Bind(height)
-            .Run();
-        });
+        Sql(R"sql(
+            delete from
+                Badges
+            where
+                Height >= ?
+        )sql")
+        .Bind(height)
+        .Run();
     }
 
     bool ChainRepository::ClearDatabase()
@@ -1364,6 +1373,7 @@ namespace PocketDb
                 Sql(R"sql( delete from JuryBan )sql").Run();
                 Sql(R"sql( delete from Badges )sql").Run();
                 Sql(R"sql( delete from BlockingLists )sql").Run();
+                Sql(R"sql( delete from SocialRegistry )sql").Run();
             });
 
             m_database.CreateStructure();
@@ -1377,265 +1387,268 @@ namespace PocketDb
         }
     }
     
-    void ChainRepository::RestoreLast(int height)
+    void ChainRepository::Restore(int height)
     {
         SqlTransaction(__func__, [&]()
         {
-            // Restore old Last transactions
-            Sql(R"sql(
-                with
-                    height as (
-                        select ? as value
-                    ),
-                    prev as (
-                        select
-                            c.Uid, max(cc.Height)maxHeight
-                        from
-                            height,
-                            Chain c indexed by Chain_Height_Uid
-                            cross join Last l -- primary key
-                                on l.TxId = c.TxId
-                            cross join Chain cc indexed by Chain_Uid_Height
-                                on cc.Uid = c.Uid and cc.Height < height.value
-                        where
-                            c.Height >= height.value
-                        group by c.Uid
-                    )
-                insert into
-                    Last (TxId)
-                select
-                    cp.TxId
-                from
-                    prev
-                    cross join Chain cp indexed by Chain_Uid_Height
-                        on cp.Uid = prev.Uid and
-                        cp.Height = prev.maxHeight
-            )sql")
-            .Bind(height)
-            .Run();
+            RestoreLast(height);
+            RestoreRatings(height);
+            RestoreBalances(height);
+            RollbackBlockingList(height);
+            RestoreModerationJury(height);
+            RestoreModerationBan(height);
+            RestoreBadges(height);
+            RestoreSocialRegistry(height);
 
-            // Delete current last records
-            Sql(R"sql(
-                delete from Last
-                where
-                    TxId in (
-                        select
-                            c.TxId
-                        from
-                            Chain c indexed by Chain_Height_Uid
-                        where
-                            c.Height >= ?
-                    )
-            )sql")
-            .Bind(height)
-            .Run();
-
-            // Remove not used First records
-            Sql(R"sql(
-                delete from First
-                where
-                    TxId in (
-                        select
-                            c.TxId
-                        from
-                            Chain c indexed by Chain_Height_Uid
-                        where
-                            c.Height >= ?
-                    )
-            )sql")
-            .Bind(height)
-            .Run();
+            // Rollback transactions must be lasted
+            RestoreChain(height);
         });
+    }
+
+    void ChainRepository::RestoreLast(int height)
+    {
+        // Restore old Last transactions
+        Sql(R"sql(
+            with
+                height as (
+                    select ? as value
+                ),
+                prev as (
+                    select
+                        c.Uid, max(cc.Height)maxHeight
+                    from
+                        height,
+                        Chain c indexed by Chain_Height_Uid
+                        cross join Last l -- primary key
+                            on l.TxId = c.TxId
+                        cross join Chain cc indexed by Chain_Uid_Height
+                            on cc.Uid = c.Uid and cc.Height < height.value
+                    where
+                        c.Height >= height.value
+                    group by c.Uid
+                )
+            insert into
+                Last (TxId)
+            select
+                cp.TxId
+            from
+                prev
+                cross join Chain cp indexed by Chain_Uid_Height
+                    on cp.Uid = prev.Uid and
+                    cp.Height = prev.maxHeight
+        )sql")
+        .Bind(height)
+        .Run();
+
+        // Delete current last records
+        Sql(R"sql(
+            delete from Last
+            where
+                TxId in (
+                    select
+                        c.TxId
+                    from
+                        Chain c indexed by Chain_Height_Uid
+                    where
+                        c.Height >= ?
+                )
+        )sql")
+        .Bind(height)
+        .Run();
+
+        // Remove not used First records
+        Sql(R"sql(
+            delete from First
+            where
+                TxId in (
+                    select
+                        c.TxId
+                    from
+                        Chain c indexed by Chain_Height_Uid
+                    where
+                        c.Height >= ?
+                )
+        )sql")
+        .Bind(height)
+        .Run();
     }
 
     void ChainRepository::RestoreRatings(int height)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            // Restore Last for deleting ratings
-            Sql(R"sql(
-                update Ratings indexed by Ratings_Type_Uid_Height_Value
-                    set Last=1
-                from (
-                    select r1.Type, r1.Uid, max(r2.Height)Height
-                    from Ratings r1 indexed by Ratings_Height_Last
-                    join Ratings r2 indexed by Ratings_Type_Uid_Last_Height on r2.Type = r1.Type and r2.Uid = r1.Uid and r2.Last = 0 and r2.Height < ?
-                    where r1.Height >= ? and r1.Last = 1
-                    group by r1.Type, r1.Uid
-                )r
-                where
-                    Ratings.Type = r.Type and
-                    Ratings.Uid = r.Uid and
-                    Ratings.Height = r.Height
-            )sql")
-            .Bind(height, height)
-            .Run();
+        // Restore Last for deleting ratings
+        Sql(R"sql(
+            update Ratings indexed by Ratings_Type_Uid_Height_Value
+                set Last=1
+            from (
+                select r1.Type, r1.Uid, max(r2.Height)Height
+                from Ratings r1 indexed by Ratings_Height_Last
+                join Ratings r2 indexed by Ratings_Type_Uid_Last_Height on r2.Type = r1.Type and r2.Uid = r1.Uid and r2.Last = 0 and r2.Height < ?
+                where r1.Height >= ? and r1.Last = 1
+                group by r1.Type, r1.Uid
+            )r
+            where
+                Ratings.Type = r.Type and
+                Ratings.Uid = r.Uid and
+                Ratings.Height = r.Height
+        )sql")
+        .Bind(height, height)
+        .Run();
 
-            // Remove ratings
-            Sql(R"sql(
-                delete from Ratings indexed by Ratings_Height_Last
-                where Height >= ?
-            )sql")
-            .Bind(height)
-            .Run();
-        });
+        // Remove ratings
+        Sql(R"sql(
+            delete from Ratings indexed by Ratings_Height_Last
+            where Height >= ?
+        )sql")
+        .Bind(height)
+        .Run();
     }
 
     void ChainRepository::RestoreBalances(int height)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    height as (
-                        select ? as value
-                    ),
-                    outs as (
-                        select
-                            o.TxId,
-                            o.Number,
-                            o.AddressId,
-                            (+o.Value)val
-                        from
-                            height,
-                            Chain c indexed by Chain_Height_Uid
-                            cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-                                on o.TxId = c.TxId
-                        where
-                            c.Height >= height.value
+        Sql(R"sql(
+            with
+                height as (
+                    select ? as value
+                ),
+                outs as (
+                    select
+                        o.TxId,
+                        o.Number,
+                        o.AddressId,
+                        (+o.Value)val
+                    from
+                        height,
+                        Chain c indexed by Chain_Height_Uid
+                        cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                            on o.TxId = c.TxId
+                    where
+                        c.Height >= height.value
 
-                        union
+                    union
 
-                        select
-                            o.TxId,
-                            o.Number,
-                            o.AddressId,
-                            (-o.Value)val
-                        from
-                            height,
-                            Chain ci indexed by Chain_Height_Uid
-                            cross join TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-                                on i.SpentTxId = ci.TxId
-                            cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-                                on o.TxId = i.TxId and o.Number = i.Number
-                        where
-                            ci.Height >= height.value
-                    ),
-                    saldo as (
-                        select
-                            outs.AddressId,
-                            sum(outs.val)Amount
-                        from
-                            outs
-                        group by
-                            outs.AddressId
-                    )
+                    select
+                        o.TxId,
+                        o.Number,
+                        o.AddressId,
+                        (-o.Value)val
+                    from
+                        height,
+                        Chain ci indexed by Chain_Height_Uid
+                        cross join TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                            on i.SpentTxId = ci.TxId
+                        cross join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                            on o.TxId = i.TxId and o.Number = i.Number
+                    where
+                        ci.Height >= height.value
+                ),
+                saldo as (
+                    select
+                        outs.AddressId,
+                        sum(outs.val)Amount
+                    from
+                        outs
+                    group by
+                        outs.AddressId
+                )
 
-                replace into Balances (AddressId, Value)
-                select
-                    saldo.AddressId,
-                    ifnull(b.Value, 0) - saldo.Amount
-                from
-                    saldo
-                    left join Balances b
-                        on b.AddressId = saldo.AddressId
-                where
-                    saldo.Amount != 0
-            )sql")
-            .Bind(height)
-            .Run();
-        });
+            replace into Balances (AddressId, Value)
+            select
+                saldo.AddressId,
+                ifnull(b.Value, 0) - saldo.Amount
+            from
+                saldo
+                left join Balances b
+                    on b.AddressId = saldo.AddressId
+            where
+                saldo.Amount != 0
+        )sql")
+        .Bind(height)
+        .Run();
     }
 
     void ChainRepository::RestoreChain(int height)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                delete from Chain indexed by Chain_Height_Uid
-                where Height >= ?
-            )sql")
-            .Bind(height)
-            .Run();
-        });
+        Sql(R"sql(
+            delete from Chain indexed by Chain_Height_Uid
+            where Height >= ?
+        )sql")
+        .Bind(height)
+        .Run();
     }
 
     void ChainRepository::RestoreSocialRegistry(int height)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            EnsureAndTrimSocialRegistry(height);
-        });
+        EnsureAndTrimSocialRegistry(height);
     }
 
     void ChainRepository::RollbackBlockingList(int height)
     {
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                delete from BlockingLists where ROWID in
-                (
-                    select bl.ROWID
-                    from
+        Sql(R"sql(
+            with
+                height as ( select ? as value )
 
-                        Chain bc
-                        cross join Transactions b on
-                            b.RowId = bc.TxId and b.Type in (305)
-
-                        cross join Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            us.Type in (100, 170) and us.RegId1 = b.RegId1
-                        cross join Chain usc on
-                            usc.TxId = us.RowId
-                        cross join Last usl on
-                            usl.TxId = us.RowId
-
-                        cross join Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            ut.Type in (100, 170) and ut.RegId1 in (select b.RegId2 union select l.RegId from Lists l where l.TxId = b.RowId)
-                        cross join Chain utc on
-                            utc.TxId = ut.RowId
-                        cross join Last utl on
-                            utl.TxId = ut.RowId
-
-                        cross join BlockingLists bl on
-                            bl.IdSource = usc.Uid and bl.IdTarget = utc.Uid
-
-                    where bc.Height >= ?
-                )
-            )sql")
-            .Bind(height)
-            .Run();
-            
-            Sql(R"sql(
-                insert or ignore into BlockingLists (IdSource, IdTarget)
-                select distinct
-                    usc.Uid,
-                    utc.Uid
+            delete from BlockingLists where ROWID in
+            (
+                select
+                    bl.ROWID
                 from
+                    height
+                cross join
+                    Chain bc on
+                        bc.Height >= height.value
+                cross join Transactions b on
+                    b.RowId = bc.TxId and
+                    b.Type in (305) and
+                    b.RegId2 is not null
+                cross join
+                    BlockingLists bl on
+                        bl.IdSource = b.RegId1 and
+                        bl.IdTarget = b.RegId2
 
-                    Chain bc
-                    cross join Transactions b on
-                        b.RowId = bc.TxId and b.Type in (306)
+                union
+                select
+                    bl.ROWID
+                from
+                    height
+                cross join
+                    Chain bc on
+                        bc.Height >= height.value
+                cross join Transactions b on
+                    b.RowId = bc.TxId and
+                    b.Type in (305) and
+                    b.RegId2 is null
+                cross join
+                    Lists l on
+                        l.TxId = b.RowId
+                cross join
+                    BlockingLists bl on
+                        bl.IdSource = b.RegId1 and
+                        bl.IdTarget = l.RegId
+            )
+        )sql")
+        .Bind(height)
+        .Run();
+        
+        Sql(R"sql(
+            with
+                height as ( select ? as value )
 
-
-                    cross join Transactions us on
-                        us.Type in (100, 170) and us.RegId1 = b.RegId1
-                    cross join Chain usc on
-                        usc.TxId = us.RowId
-                    cross join Last usl on
-                        usl.TxId = us.RowId
-
-                    cross join Transactions ut on
-                        ut.Type in (100, 170) and ut.RegId1 = b.RegId2
-                    cross join Chain utc on
-                        utc.TxId = ut.RowId
-                    cross join Last utl on
-                        utl.TxId = ut.RowId
-
-                    where bc.Height >= ?
-            )sql")
-            .Bind(height)
-            .Run();
-        });
+            insert or ignore into BlockingLists (IdSource, IdTarget)
+            select distinct
+                b.RegId1,
+                b.RegId2
+            from
+                height
+            cross join
+                Chain bc on
+                    bc.Height >= height.value
+            cross join
+                Transactions b on
+                    b.RowId = bc.TxId and
+                    b.Type in (306)
+        )sql")
+        .Bind(height)
+        .Run();
     }
 
 } // namespace PocketDb

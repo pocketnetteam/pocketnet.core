@@ -121,9 +121,20 @@ CChainState& ChainstateActive()
     return *g_chainman.m_active_chainstate;
 }
 
+CChainState& ChainstateActiveUnsafe()
+{
+    if (g_chainman.m_active_chainstate);
+    return *g_chainman.m_active_chainstate;
+}
+
 CChain& ChainActive()
 {
     LOCK(::cs_main);
+    return ::ChainstateActive().m_chain;
+}
+
+CChain& ChainActiveUnsafe()
+{
     return ::ChainstateActive().m_chain;
 }
 
