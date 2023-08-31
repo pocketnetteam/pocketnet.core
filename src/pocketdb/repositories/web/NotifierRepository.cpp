@@ -173,7 +173,7 @@ namespace PocketDb
                 {
                     if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.pushKV("hash", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(1); ok) result.pushKV("boostAddress", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) result.pushKV("boostAmount", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) result.pushKV("boostAmount", to_string(value));
                     if (auto[ok, value] = cursor.TryGetColumnString(3); ok) result.pushKV("boostName", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(4); ok) result.pushKV("boostAvatar", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(5); ok) result.pushKV("contentAddress", value);
@@ -328,7 +328,7 @@ namespace PocketDb
                 if (cursor.Step())
                 {
                     if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.pushKV("postTxHash", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) result.pushKV("value", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(1); ok) result.pushKV("value", to_string(value));
                     if (auto[ok, value] = cursor.TryGetColumnString(2); ok) result.pushKV("postAddress", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(3); ok) result.pushKV("scoreName", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(4); ok) result.pushKV("scoreAvatar", value);
@@ -426,7 +426,7 @@ namespace PocketDb
                 if (cursor.Step())
                 {
                     if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.pushKV("commentHash", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) result.pushKV("value", value);
+                    if (auto[ok, value] = cursor.TryGetColumnInt(1); ok) result.pushKV("value", to_string(value));
                     if (auto[ok, value] = cursor.TryGetColumnString(2); ok) result.pushKV("commentAddress", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(3); ok) result.pushKV("scoreCommentName", value);
                     if (auto[ok, value] = cursor.TryGetColumnString(4); ok) result.pushKV("scoreCommentAvatar", value);
