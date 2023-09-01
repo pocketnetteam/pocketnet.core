@@ -985,7 +985,7 @@ namespace PocketDb
 
                 where
                     c.Height > (? - 600) and
-                    and not exists (
+                    not exists (
                         select 1
                         from BlockingLists bl
                         where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1
