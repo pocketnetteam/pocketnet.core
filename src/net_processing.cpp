@@ -2553,6 +2553,11 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             vRecv >> LIMITED_STRING(strSubVer, MAX_SUBVERSION_LENGTH);
             cleanSubVer = SanitizeString(strSubVer);
         }
+        if (gArgs.GetBoolArg("-disconnectold", DEFAULT_DISCONNECT_OLD) && DeformatSubVersion(cleanSubVer) < Params().LastSocialForkVersion() && ChainActive().Height() > Params().LastSocialForkActivationHeight()) {
+            LogPrint(BCLog::NET, "peer=%d using outdated version %s and potentially could be forked %i; disconnecting\n", pfrom.GetId(), cleanSubVer);
+            pfrom.fDisconnect = true;
+            return;
+        }
         if (!vRecv.empty()) {
             vRecv >> nStartingHeight;
         }

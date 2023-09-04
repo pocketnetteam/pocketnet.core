@@ -2,6 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <clientversion.h>
 
 #include <tinyformat.h>
@@ -73,4 +75,30 @@ std::string FormatSubVersion(const std::string& name, int nClientVersion, const 
     }
     ss << "/";
     return ss.str();
+}
+
+int DeformatSubVersion(const std::string& subVer)
+{
+    auto colonP = subVer.find(":");
+    if (colonP == std::string::npos) return -1;
+    colonP += 1;
+    auto bracketP = subVer.find_first_of("(/", colonP);
+
+    auto str = subVer.substr(colonP, bracketP - colonP);
+    std::vector<std::string> verNumsStrs;
+    boost::split(verNumsStrs, str, boost::is_any_of("."));
+    if (verNumsStrs.size() < 2 || verNumsStrs.size() > 4) return -1;
+
+    int sum = 0;
+    try {
+        int multiplier = 1000000;
+        for (const auto& numStr: verNumsStrs) {
+            sum += std::stoi(numStr) * multiplier;
+            multiplier /= 100;
+        }
+    } catch (...) {
+        sum = -1;
+    }
+
+    return sum;
 }
