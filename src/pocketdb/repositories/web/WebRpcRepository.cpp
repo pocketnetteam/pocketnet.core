@@ -876,7 +876,7 @@ namespace PocketDb
 
                     result.emplace_back(address, id, record);
                 }
-            });
+            }, "GetAccountProfiles");
         });
 
         return result;
@@ -4267,7 +4267,7 @@ namespace PocketDb
                     auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
                     ids.push_back(contentId);
                 }
-            });
+            }, "GetTopFeed");
         });
 
         // Get content data
@@ -4425,7 +4425,7 @@ namespace PocketDb
                     auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
                     ids.push_back(contentId);
                 }
-            });
+            }, "GetMostCommentedFeed");
         });
 
         // Get content data
@@ -4572,7 +4572,7 @@ namespace PocketDb
                     if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
                         ids.push_back(value);
                 }
-            });
+            }, "GetProfileFeed");
         });
 
         // Get content data
@@ -4712,7 +4712,7 @@ namespace PocketDb
                     if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
                         ids.push_back(value);
                 }
-            });
+            }, "GetSubscribesFeed");
         });
 
         // Get content data
@@ -4851,7 +4851,7 @@ namespace PocketDb
                     auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
                     ids.push_back(contentId);
                 }
-            });
+            }, "GetHistoricalFeed");
         });
 
         // Get content data
@@ -5016,7 +5016,7 @@ namespace PocketDb
 
                     postsRanks.push_back(record);
                 }
-            });
+            }, "GetHierarchicalFeed");
         });
 
         // ---------------------------------------------
@@ -5229,7 +5229,7 @@ namespace PocketDb
                     boost.pushKV("boost", sumBoost);
                     result.push_back(boost);
                 }
-            });
+            }, "GetBoostFeed");
         });
 
         // Complete!
