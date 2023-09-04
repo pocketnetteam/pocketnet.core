@@ -112,7 +112,7 @@ namespace PocketDb
     void Stmt::Select(const function<void(Cursor&)>& func, bool log)
     {
         if (Params().NetworkID() == NetworkId::NetworkRegTest || log)
-            LogPrintf("\n----- DEBUG SQL Begin -----\n%s\n----- DEBUG SQL End -----\n", Log());
+            LogPrintf("----- DEBUG SQL Begin -----\n%s\n----- DEBUG SQL End -----\n", Log());
             
         ResetCurrentBindIndex(); // At this point there will be no more binds
         Cursor cursor(m_stmt);

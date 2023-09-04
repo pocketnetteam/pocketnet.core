@@ -43,23 +43,23 @@ namespace PocketDb
         if (request.Keyword.empty())
             return ids;
 
+        string _keyword = "\"" + request.Keyword + "\"" + " or " + request.Keyword + "*";
+
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
                 with
-                    kw as ( select ? as value ),
                     keyword as (
                         select
                             cm.ContentId,
                             rank
                         from
-                            kw,
                             web.Content c,
                             web.ContentMap cm
                         where
                             c.ROWID = cm.ROWID and
                             cm.FieldType in ( )sql" + join(request.FieldTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
-                            c.Value match kw.value
+                            c.Value match ?
                         order by
                             rank
                     )
@@ -76,10 +76,9 @@ namespace PocketDb
                     Transactions t on
                         ct.TxId = t.RowId and
                         t.Type in ( )sql" + join(request.TxTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
-                        (? or t.RegId1 = (
+                        (? or t.RegId1 in (
                             select
-                                RowId as id,
-                                String as hash
+                                RowId as id
                             from
                                 Registry
                             where
@@ -94,7 +93,7 @@ namespace PocketDb
                 offset ?
             )sql")
             .Bind(
-                ("\"" + request.Keyword + "\"" + " OR " + request.Keyword + "*"),
+                _keyword,
                 !(request.TopBlock > 0),
                 request.TopBlock,
                 request.Address.empty(),
@@ -108,7 +107,7 @@ namespace PocketDb
                     if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
                         ids.push_back(value);
                 }
-            }, true);
+            });
         });
 
         return ids;
