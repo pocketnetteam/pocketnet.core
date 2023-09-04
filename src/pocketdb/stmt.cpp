@@ -110,25 +110,11 @@ namespace PocketDb
         m_currentBindIndex = 1;
     }
 
-    void Stmt::Select(const function<void(Cursor&)>& func, string log)
+    void Stmt::Select(const function<void(Cursor&)>& func)
     {
-        int64_t nTime1 = GetTimeMicros();
-
         ResetCurrentBindIndex(); // At this point there will be no more binds
         Cursor cursor(m_stmt);
         func(cursor);
-
-        int64_t nTime2 = GetTimeMicros();
-
-        if (!log.empty())
-        {
-            LogPrintf(
-                "----- DEBUG SQL : %s : %.2fms >\n%s\n----- DEBUG SQL End -----\n",
-                log,
-                0.001 * double(nTime2 - nTime1),
-                Log()
-            );
-        }
     }
 
     // ----------------------------------------------
