@@ -1229,7 +1229,6 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
-        auto func = __func__;
         auto result = UniValue(UniValue::VARR);
 
         string parentWhere = " and c.RegId4 is null ";
@@ -2379,7 +2378,6 @@ namespace PocketDb
         const vector<string>& addrsExcluded, const vector<string>& tagsExcluded, int depth,
         int badReputationLimit)
     {
-        auto func = __func__;
         vector<string> result;
 
         if (contentTypes.empty())
@@ -4316,7 +4314,6 @@ namespace PocketDb
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int depth, int badReputationLimit)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (contentTypes.empty())
@@ -4884,6 +4881,8 @@ namespace PocketDb
                 }
 
                 stmt.Bind(countOut);
+
+                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -5023,6 +5022,8 @@ namespace PocketDb
                 }
                         
                 stmt.Bind(countOut);
+
+                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -9484,27 +9485,23 @@ namespace PocketDb
         EventsReconstructor reconstructor;
         for (const auto& reqSql : selects)
         {
-            if (auto[ok, sql] = _constructSelectsBasedOnFilters(filters, reqSql, header); ok)
-            {
-                SqlTransaction(
-                    __func__,
-                    [&]() -> Stmt& {
-                        return Sql(sql)
-                        .Bind(
-                            heightMax,
-                            heightMin,
-                            blockNumMax,
-                            address
-                        );
-                    },
-                    [&] (Stmt& stmt) {
-                        stmt.Select([&](Cursor& cursor) {
-                            while (cursor.Step())
-                                reconstructor.FeedRow(cursor);
-                        });
-                    }
-                );
-            }
+            auto[ok, sql] = _constructSelectsBasedOnFilters(filters, reqSql, header);
+            if (!ok)
+                continue;
+            
+            string _sql = sql;
+            SqlTransaction(
+                __func__,
+                [&]() -> Stmt& {
+                    return Sql(_sql).Bind(heightMax, heightMin, blockNumMax, address);
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                            reconstructor.FeedRow(cursor);
+                    });
+                }
+            );
         }
 
         auto result = reconstructor.GetResult();
@@ -9671,9 +9668,7 @@ namespace PocketDb
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                auto& stmt = Sql(sql);
-                stmt.Bind(heightMax, heightMin, addresses);
-                return stmt;
+                return Sql(sql).Bind(heightMax, heightMin, addresses);
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor)
