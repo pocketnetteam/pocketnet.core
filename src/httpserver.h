@@ -313,5 +313,6 @@ extern HTTPSocket* g_socket;
 extern HTTPSocket* g_staticSocket;
 extern HTTPSocket* g_restSocket;
 extern HTTPWebSocket* g_webSocket;
+extern HTTPWebSocket* g_webSocketHttps;
 
 #endif // POCKETCOIN_HTTPSERVER_H
