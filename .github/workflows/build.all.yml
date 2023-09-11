@@ -47,6 +47,11 @@ jobs:
           branch: ${{ steps.branch-name.outputs.ref_branch }}
           depsBase: ${{ github.event.inputs.depsBase }}
           tag: ${{ github.event.inputs.tag }}
+      - name: Check current directory
+        run: |
+          pwd
+          ls -la
+          ls -la ./out/
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:

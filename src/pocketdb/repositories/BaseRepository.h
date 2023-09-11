@@ -42,7 +42,7 @@ namespace PocketDb
         // Locked with shutdownMutex
         // Timeouted for ReadOnly connections
         template<typename T>
-        void SqlTransaction(const string& func, T sql)
+        void SqlTransaction(const string& func, T execute)
         {
             try
             {
@@ -58,7 +58,7 @@ namespace PocketDb
                     run_with_timeout(
                         [&]()
                         {
-                            sql();
+                            execute();
                         },
                         timeoutValue,
                         [&]()
@@ -70,7 +70,55 @@ namespace PocketDb
                 }
                 else
                 {
-                    sql();
+                    execute();
+                }
+                
+                if (!m_database.CommitTransaction())
+                    throw runtime_error(strprintf("%s: can't commit transaction\n", func));
+
+                int64_t nTime2 = GetTimeMicros();
+
+                BenchLog(func, 0.001 * (nTime2 - nTime1));
+            }
+            catch (const exception& ex)
+            {
+                m_database.AbortTransaction();
+                throw runtime_error(func + ": " + ex.what());
+            }
+        }
+
+        void SqlTransaction(const string& func, const function<Stmt&()>& prepare, const function<void(Stmt&)>& execute)
+        {
+            try
+            {
+                int64_t nTime1 = GetTimeMicros();
+
+                if (!m_database.BeginTransaction())
+                    throw runtime_error(strprintf("%s: can't begin transaction\n", func));
+
+                // Prepare transaction binds
+                auto& stmt = prepare();
+
+                // We are running SQL logic with timeout only for read-only connections
+                if (m_database.IsReadOnly())
+                {
+                    auto timeoutValue = chrono::seconds(gArgs.GetArg("-sqltimeout", 10));
+                    run_with_timeout(
+                        [&]()
+                        {
+                            execute(stmt);
+                        },
+                        timeoutValue,
+                        [&]()
+                        {
+                            m_database.InterruptQuery();
+                            LogPrintf("Warning! Function `%s` failed with execute timeout:\n%s\n", func, stmt.Log());
+                        }
+                    );
+                }
+                else
+                {
+                    execute(stmt);
                 }
                 
                 if (!m_database.CommitTransaction())

@@ -276,8 +276,6 @@ namespace PocketDb
 
     void WebRepository::UpsertContent(const vector<WebContent>& contentList)
     {
-        auto func = __func__;
-
         vector<int64_t> ids;
         for (auto& contentItm : contentList)
         {
@@ -349,8 +347,10 @@ namespace PocketDb
             // ---------------------------------------------------------
             int64_t nTime4 = GetTimeMicros();
 
-            LogPrint(BCLog::BENCH, "        - SqlTransaction (%s): %.2fms + %.2fms + %.2fms = %.2fms\n",
-                func,
+            LogPrint(
+                BCLog::BENCH,
+                "        - SqlTransaction (%s): %.2fms + %.2fms + %.2fms = %.2fms\n",
+                __func__,
                 0.001 * (nTime2 - nTime1),
                 0.001 * (nTime3 - nTime2),
                 0.001 * (nTime4 - nTime3),

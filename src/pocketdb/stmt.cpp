@@ -4,6 +4,7 @@
 
 #include "pocketdb/stmt.h"
 #include <chainparams.h>
+#include <util/time.h>
 
 namespace PocketDb
 {
@@ -109,11 +110,8 @@ namespace PocketDb
         m_currentBindIndex = 1;
     }
 
-    void Stmt::Select(const function<void(Cursor&)>& func, bool log)
+    void Stmt::Select(const function<void(Cursor&)>& func)
     {
-        if (Params().NetworkID() == NetworkId::NetworkRegTest || log)
-            LogPrintf("\n----- DEBUG SQL Begin -----\n%s\n----- DEBUG SQL End -----\n", Log());
-            
         ResetCurrentBindIndex(); // At this point there will be no more binds
         Cursor cursor(m_stmt);
         func(cursor);

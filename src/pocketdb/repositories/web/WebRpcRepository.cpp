@@ -12,40 +12,44 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with str1 as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with str1 as (
+                        select
+                            String as value,
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String = ?
+                    )
                     select
-                        String as value,
-                        RowId as id
+                        str1.value,
+                        c.Uid
                     from
-                        Registry
+                        str1,
+                        Transactions t
+                        join Chain c on
+                            c.TxId = t.RowId
                     where
-                        String = ?
-                )
-                select
-                    str1.value,
-                    c.Uid
-                from
-                    str1,
-                    Transactions t
-                    join Chain c on
-                        c.TxId = t.RowId
-                where
-                    t.Type in (100,170) and
-                    t.RegId1 = str1.id and
-                    exists (select 1 from Last l where l.TxId = t.RowId)
-            )sql")
-            .Bind(address)
-            .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                {
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) result.pushKV("id", value);
-                }
-            });
-        });
+                        t.Type in (100,170) and
+                        t.RegId1 = str1.id and
+                        exists (select 1 from Last l where l.TxId = t.RowId)
+                )sql")
+                .Bind(address);
+            },
+            [&](Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    if (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) result.pushKV("id", value);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -54,32 +58,36 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                select
-                    s.String1,
-                    c.Uid
-                from
-                    Transactions t
-                    join Chain c on
-                        c.TxId = t.RowId and
-                        c.Uid = ?
-                    join vTxStr s on
-                        s.RowId = t.RowId
-                where
-                    t.Type in (100,170) and
-                    exists (select 1 from Last l where l.TxId = t.RowId)
-            )sql")
-            .Bind(id)
-            .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                {
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) result.pushKV("id", value);
-                }
-            });
-        });
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select
+                        s.String1,
+                        c.Uid
+                    from
+                        Transactions t
+                        join Chain c on
+                            c.TxId = t.RowId and
+                            c.Uid = ?
+                        join vTxStr s on
+                            s.RowId = t.RowId
+                    where
+                        t.Type in (100,170) and
+                        exists (select 1 from Last l where l.TxId = t.RowId)
+                )sql")
+                .Bind(id);
+            },
+            [&](Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    if (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) result.pushKV("id", value);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -92,38 +100,42 @@ namespace PocketDb
 
         auto _name = EscapeValue(name);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                select
-                    p.String2,
-                    s.String1
-                from
-                    Payload p indexed by Payload_String2_nocase
-                    cross join Transactions u on
-                        u.RowId = p.TxId and
-                        u.Type = 100
-                    cross join vTxStr s on
-                        s.RowId = p.TxId
-                where
-                    p.String2 like ? escape '\' and
-                    -- Checking last against payload id for optimization reasons
-                    exists(select 1 from Last l where l.TxId = p.TxId)
-                limit 1
-            )sql")
-            .Bind(_name)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select
+                        p.String2,
+                        s.String1
+                    from
+                        Payload p indexed by Payload_String2_nocase
+                        cross join Transactions u on
+                            u.RowId = p.TxId and
+                            u.Type = 100
+                        cross join vTxStr s on
+                            s.RowId = p.TxId
+                    where
+                        p.String2 like ? escape '\' and
+                        -- Checking last against payload id for optimization reasons
+                        exists(select 1 from Last l where l.TxId = p.TxId)
+                    limit 1
+                )sql")
+                .Bind(_name);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                    cursor.Collect<string>(0, record, "name");
-                    cursor.Collect<string>(1, record, "address");
+                        cursor.Collect<string>(0, record, "name");
+                        cursor.Collect<string>(1, record, "address");
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -135,45 +147,49 @@ namespace PocketDb
         if (addresses.empty())
             return result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with addr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                    )
                     select
-                        RowId as id,
-                        String as hash
+                        addr.hash,
+                        u.Time,
+                        (select r.String from Registry r where r.RowId = u.RowId)
                     from
-                        Registry
-                    where
-                        String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                )
-                select
-                    addr.hash,
-                    u.Time,
-                    (select r.String from Registry r where r.RowId = u.RowId)
-                from
-                    addr
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on u.Type in (100) and u.RegId1 = addr.id
-                cross join
-                    First f
-                        on f.TxId = u.RowId
-            )sql")
-            .Bind(addresses)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+                        addr
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (100) and u.RegId1 = addr.id
+                    cross join
+                        First f
+                            on f.TxId = u.RowId
+                )sql")
+                .Bind(addresses);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                    cursor.Collect<string>(0, record, "address");
-                    cursor.Collect<int64_t>(1, record, "time");
-                    cursor.Collect<string>(2, record, "txid");
+                        cursor.Collect<string>(0, record, "address");
+                        cursor.Collect<int64_t>(1, record, "time");
+                        cursor.Collect<string>(2, record, "txid");
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -193,22 +209,26 @@ namespace PocketDb
             limit ?
         )sql";
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(sql)
-            .Bind(count)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue addr(UniValue::VOBJ);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql)
+                .Bind(count);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue addr(UniValue::VOBJ);
 
-                    cursor.Collect<string>(0, addr, "addresses");
-                    cursor.Collect<int64_t>(1, addr, "balance");
+                        cursor.Collect<string>(0, addr, "addresses");
+                        cursor.Collect<int64_t>(1, addr, "balance");
 
-                    result.push_back(addr);
-                }
-            });
-        });
+                        result.push_back(addr);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -217,129 +237,133 @@ namespace PocketDb
     {
         UniValue result(UniValue::VOBJ);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                height as (
-                    select ? as val
-                ),
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    height as (
+                        select ? as val
+                    ),
+                    addr as (
+                        select
+                            RowId as id,
+                            String as hash
+                        from
+                            Registry
+                        where
+                            String = ?
+                    )
                     select
-                        RowId as id,
-                        String as hash
+                        cu.Uid as AddressId,
+                        addr.hash as Address,
+                        u.Type,
+
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (200) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as PostSpent,
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (201) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as VideoSpent,
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (202) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as ArticleSpent,
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (209) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as StreamSpent,
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (210) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as AudioSpent,
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (204) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as CommentSpent,
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (300) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as ScoreSpent,
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (301) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as ScoreCommentSpent,
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (307) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as ComplainSpent,
+                        (
+                            select count()
+                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
+                            where p.Type in (410) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                        ) as FlagsSpent
                     from
-                        Registry
-                    where
-                        String = ?
-                )
-                select
-                    cu.Uid as AddressId,
-                    addr.hash as Address,
-                    u.Type,
+                        height,
+                        addr
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (100, 170) and u.RegId1 = addr.id
+                    cross join
+                        Last lu
+                            on lu.TxId = u.RowId
+                    cross join
+                        Chain cu
+                            on cu.TxId = u.RowId
+                )sql")
+                .Bind(heightWindow, address);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    if (cursor.Step())
+                    {
+                        int i = 0;
+                        cursor.Collect<int64_t>(i++, result, "address_id");
+                        cursor.Collect<string>(i++, result, "address");
 
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (200) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as PostSpent,
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (201) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as VideoSpent,
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (202) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as ArticleSpent,
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (209) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as StreamSpent,
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (210) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as AudioSpent,
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (204) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as CommentSpent,
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (300) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as ScoreSpent,
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (301) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as ScoreCommentSpent,
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (307) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as ComplainSpent,
-                    (
-                        select count()
-                        from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                        where p.Type in (410) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
-                    ) as FlagsSpent
-                from
-                    height,
-                    addr
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on u.Type in (100, 170) and u.RegId1 = addr.id
-                cross join
-                    Last lu
-                        on lu.TxId = u.RowId
-                cross join
-                    Chain cu
-                        on cu.TxId = u.RowId
-            )sql")
-            .Bind(heightWindow, address)
-            .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                {
-                    int i = 0;
-                    cursor.Collect<int64_t>(i++, result, "address_id");
-                    cursor.Collect<string>(i++, result, "address");
+                        bool isDeleted = false;
+                        cursor.Collect(i++, [&](int Type) {
+                            isDeleted = (Type==TxType::ACCOUNT_DELETE);
+                            if (isDeleted) result.pushKV("deleted", true);
+                        });
 
-                    bool isDeleted = false;
-                    cursor.Collect(i++, [&](int Type) {
-                        isDeleted = (Type==TxType::ACCOUNT_DELETE);
-                        if (isDeleted) result.pushKV("deleted", true);
-                    });
-
-                    if (!isDeleted) {
-                        cursor.Collect<int64_t>(i++, result, "post_spent");
-                        cursor.Collect<int64_t>(i++, result, "video_spent");
-                        cursor.Collect<int64_t>(i++, result, "article_spent");
-                        cursor.Collect<int64_t>(i++, result, "stream_spent");
-                        cursor.Collect<int64_t>(i++, result, "audio_spent");
-                        cursor.Collect<int64_t>(i++, result, "comment_spent");
-                        cursor.Collect<int64_t>(i++, result, "score_spent");
-                        cursor.Collect<int64_t>(i++, result, "comment_score_spent");
-                        cursor.Collect<int64_t>(i++, result, "complain_spent");
-                        cursor.Collect<int64_t>(i++, result, "mod_flag_spent");
+                        if (!isDeleted) {
+                            cursor.Collect<int64_t>(i++, result, "post_spent");
+                            cursor.Collect<int64_t>(i++, result, "video_spent");
+                            cursor.Collect<int64_t>(i++, result, "article_spent");
+                            cursor.Collect<int64_t>(i++, result, "stream_spent");
+                            cursor.Collect<int64_t>(i++, result, "audio_spent");
+                            cursor.Collect<int64_t>(i++, result, "comment_spent");
+                            cursor.Collect<int64_t>(i++, result, "score_spent");
+                            cursor.Collect<int64_t>(i++, result, "comment_score_spent");
+                            cursor.Collect<int64_t>(i++, result, "complain_spent");
+                            cursor.Collect<int64_t>(i++, result, "mod_flag_spent");
+                        }
                     }
-                }
-            });
-        });
+                });
+            }
+        );
 
         return result;
     }
@@ -348,39 +372,43 @@ namespace PocketDb
     {
         string result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
                     select
-                        r.RowId as id
+                        p.String1
                     from
-                        Registry r
-                    where
-                        r.String = ?
-                )
-                select
-                    p.String1
-                from
-                    addr
-                    join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        t.Type in (103) and t.RegId1 = addr.id
-                    join Last l on
-                        l.TxId = t.RowId
-                    join Payload p on
-                        p.TxId = t.RowId
-                limit 1
-            )sql")
-            .Bind(address)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
-                        result = value;
-                }
-            });
-        });
+                        addr
+                        join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            t.Type in (103) and t.RegId1 = addr.id
+                        join Last l on
+                            l.TxId = t.RowId
+                        join Payload p on
+                            p.TxId = t.RowId
+                    limit 1
+                )sql")
+                .Bind(address);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                            result = value;
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -391,80 +419,84 @@ namespace PocketDb
         if (addresses.empty())
             return  result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                    )
                     select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                )
-                select
-                    addr.hash,
+                        addr.hash,
 
-                    ifnull((
-                        select
-                            count()
-                        from Transactions ref
-                        join First f on
-                            f.TxId = ref.RowId
-                        join Chain c on
-                            c.Height <= ? and c.Height > ?
-                        where ref.Type in (100) and
-                            ref.RegId2 = addr.id
-                    ), 0) as ReferralsCountHist,
-
-                    (
-                        select
-                            count()
-                        from (
+                        ifnull((
                             select
-                                c.RegId1
-                            from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            join Last lp on
-                                lp.TxId = p.RowId
-                            join Transactions c indexed by Transactions_Type_RegId3_RegId1 on
-                                c.Type in (204) and c.RegId3 = p.RegId2 and c.RegId1 != addr.id
-                            join First fc on
-                                fc.TxId = c.RowId
-                            join Chain cc indexed by Chain_TxId_Height on
-                                cc.TxId = c.RowId and cc.Height <= ? and cc.Height > ?
-                            where
-                                p.Type in (200,201,202,209,210) and
-                                p.RegId1 = addr.id
-                            group by c.RegId1
-                            having count() > ?
-                        )
-                    ) as CommentatorsCountHist
+                                count()
+                            from Transactions ref
+                            join First f on
+                                f.TxId = ref.RowId
+                            join Chain c on
+                                c.Height <= ? and c.Height > ?
+                            where ref.Type in (100) and
+                                ref.RegId2 = addr.id
+                        ), 0) as ReferralsCountHist,
 
-                from
-                    addr
-                    join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        t.Type in (100) and t.RegId1 = addr.id
-                    join Last l on
-                        l.TxId = t.RowId
-            )sql")
-            .Bind(addresses, nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC)
-            .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-                    auto[ok0, address] = cursor.TryGetColumnString(0);
-                    auto[ok1, ReferralsCountHist] = cursor.TryGetColumnInt(1);
-                    auto[ok2, CommentatorsCountHist] = cursor.TryGetColumnInt(2);
+                        (
+                            select
+                                count()
+                            from (
+                                select
+                                    c.RegId1
+                                from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                join Last lp on
+                                    lp.TxId = p.RowId
+                                join Transactions c indexed by Transactions_Type_RegId3_RegId1 on
+                                    c.Type in (204) and c.RegId3 = p.RegId2 and c.RegId1 != addr.id
+                                join First fc on
+                                    fc.TxId = c.RowId
+                                join Chain cc indexed by Chain_TxId_Height on
+                                    cc.TxId = c.RowId and cc.Height <= ? and cc.Height > ?
+                                where
+                                    p.Type in (200,201,202,209,210) and
+                                    p.RegId1 = addr.id
+                                group by c.RegId1
+                                having count() > ?
+                            )
+                        ) as CommentatorsCountHist
 
-                    record.pushKV("address", address);
-                    record.pushKV("histreferals", ReferralsCountHist);
-                    record.pushKV("commentators", CommentatorsCountHist);
-                    result.push_back(record);
-                }
-            });
-        });
+                    from
+                        addr
+                        join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            t.Type in (100) and t.RegId1 = addr.id
+                        join Last l on
+                            l.TxId = t.RowId
+                )sql")
+                .Bind(addresses, nHeight, nHeight - depthR, nHeight, nHeight - depthC, cntC);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    if (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+                        auto[ok0, address] = cursor.TryGetColumnString(0);
+                        auto[ok1, ReferralsCountHist] = cursor.TryGetColumnInt(1);
+                        auto[ok2, CommentatorsCountHist] = cursor.TryGetColumnInt(2);
+
+                        record.pushKV("address", address);
+                        record.pushKV("histreferals", ReferralsCountHist);
+                        record.pushKV("commentators", CommentatorsCountHist);
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -792,92 +824,96 @@ namespace PocketDb
                 on p.TxId = u.RowId
         )sql";
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(sql)
-            .Bind(addresses, ids) // firstFlagsDepth * 1440
-            .Select([&](Cursor& cursor) {
-                // Fetch data
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql)
+                .Bind(addresses, ids); // firstFlagsDepth * 1440
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    // Fetch data
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                    int i = 0;
-                    auto[ok0, hash] = cursor.TryGetColumnString(i++);
-                    auto[ok1, address] = cursor.TryGetColumnString(i++);
-                    auto[ok2, id] = cursor.TryGetColumnInt64(i++);
-                    auto[ok3, Type] = cursor.TryGetColumnInt(i++);
-                    bool isDeleted = (Type==TxType::ACCOUNT_DELETE);
+                        int i = 0;
+                        auto[ok0, hash] = cursor.TryGetColumnString(i++);
+                        auto[ok1, address] = cursor.TryGetColumnString(i++);
+                        auto[ok2, id] = cursor.TryGetColumnInt64(i++);
+                        auto[ok3, Type] = cursor.TryGetColumnInt(i++);
+                        bool isDeleted = (Type==TxType::ACCOUNT_DELETE);
 
-                    record.pushKV("hash", hash);
-                    record.pushKV("address", address);
-                    record.pushKV("id", id);
-                    if (IsDeveloper(address)) record.pushKV("dev", true);
-                    if (isDeleted) record.pushKV("deleted", true);
+                        record.pushKV("hash", hash);
+                        record.pushKV("address", address);
+                        record.pushKV("id", id);
+                        if (IsDeveloper(address)) record.pushKV("dev", true);
+                        if (isDeleted) record.pushKV("deleted", true);
 
-                    if(!isDeleted) {
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("name", value);
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("i", value);
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("b", value);
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("r", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("postcnt", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("dltdcnt", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("reputation", value / 10.0);
-                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("k", value);
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("a", value);
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("l", value);
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("s", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) record.pushKV("update", value);
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) record.pushKV("regdate", value);
+                        if(!isDeleted) {
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("name", value);
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("i", value);
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("b", value);
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("r", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("postcnt", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("dltdcnt", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("reputation", value / 10.0);
+                            if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("k", value);
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("a", value);
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("l", value);
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("s", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) record.pushKV("update", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok) record.pushKV("regdate", value);
 
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
-                            UniValue flags(UniValue::VOBJ);
-                            flags.read(value);
-                            record.pushKV("flags", flags);
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                UniValue flags(UniValue::VOBJ);
+                                flags.read(value);
+                                record.pushKV("flags", flags);
+                            }
+
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                UniValue flags(UniValue::VOBJ);
+                                flags.read(value);
+                                record.pushKV("firstFlags", flags);
+                            }
+
+                            if (!shortForm) {
+
+                                if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                    UniValue subscribes(UniValue::VARR);
+                                    subscribes.read(value);
+                                    record.pushKV("subscribes", subscribes);
+                                }
+
+                                if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                    UniValue subscribes(UniValue::VARR);
+                                    subscribes.read(value);
+                                    record.pushKV("subscribers", subscribes);
+                                }
+
+                                if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                    UniValue subscribes(UniValue::VARR);
+                                    subscribes.read(value);
+                                    record.pushKV("blocking", subscribes);
+                                }
+
+                                if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                    UniValue content(UniValue::VOBJ);
+                                    content.read(value);
+                                    record.pushKV("content", content);
+                                }
+                            }
                         }
 
-                        if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
-                            UniValue flags(UniValue::VOBJ);
-                            flags.read(value);
-                            record.pushKV("firstFlags", flags);
-                        }
-
-                        if (!shortForm) {
-
-                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
-                                UniValue subscribes(UniValue::VARR);
-                                subscribes.read(value);
-                                record.pushKV("subscribes", subscribes);
-                            }
-
-                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
-                                UniValue subscribes(UniValue::VARR);
-                                subscribes.read(value);
-                                record.pushKV("subscribers", subscribes);
-                            }
-
-                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
-                                UniValue subscribes(UniValue::VARR);
-                                subscribes.read(value);
-                                record.pushKV("blocking", subscribes);
-                            }
-
-                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
-                                UniValue content(UniValue::VOBJ);
-                                content.read(value);
-                                record.pushKV("content", content);
-                            }
-                        }
+                        result.emplace_back(address, id, record);
                     }
-
-                    result.emplace_back(address, id, record);
-                }
-            });
-        });
+                });
+            }
+        );
 
         return result;
     }
@@ -908,135 +944,138 @@ namespace PocketDb
     {
         auto result = UniValue(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                select
-                    (select r.String from Registry r where r.RowId = t.RegId2) as CommentTxHash,
-                    (select r.String from Registry r where r.RowId = p.RegId2) as ContentTxHash,
-                    (select r.String from Registry r where r.RowId = t.RegId1) as CommentAddress,
-                    t.Time as CommentTime,
-                    c.Height as CommentHeight,
-                    pc.String1 as CommentMessage,
-                    (select r.String from Registry r where r.RowId = t.RegId4) as CommentParent,
-                    (select r.String from Registry r where r.RowId = t.RegId5) as CommentAnswer,
-                    (select r.String from Registry r where r.RowId = p.RegId1) as AddressContent,
-                    ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.RowId = t.RegId4), '') as AddressCommentParent,
-                    ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.RowId = t.RegId5), '') as AddressCommentAnswer,
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select
+                        (select r.String from Registry r where r.RowId = t.RegId2) as CommentTxHash,
+                        (select r.String from Registry r where r.RowId = p.RegId2) as ContentTxHash,
+                        (select r.String from Registry r where r.RowId = t.RegId1) as CommentAddress,
+                        t.Time as CommentTime,
+                        c.Height as CommentHeight,
+                        pc.String1 as CommentMessage,
+                        (select r.String from Registry r where r.RowId = t.RegId4) as CommentParent,
+                        (select r.String from Registry r where r.RowId = t.RegId5) as CommentAnswer,
+                        (select r.String from Registry r where r.RowId = p.RegId1) as AddressContent,
+                        ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.RowId = t.RegId4), '') as AddressCommentParent,
+                        ifnull((select (select r.String from Registry r where r.RowId = tt.RegId1) from Transactions tt where tt.RowId = t.RegId5), '') as AddressCommentAnswer,
 
-                    (
-                        select count()
-                        from Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                        cross join Chain csc on csc.TxId = sc.RowId
-                        where sc.Type = 301 and sc.RegId2 = t.RegId2 and sc.Int1 = 1
-                    ) as ScoreUp,
+                        (
+                            select count()
+                            from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain csc on csc.TxId = sc.RowId
+                            where sc.Type = 301 and sc.RegId2 = t.RegId2 and sc.Int1 = 1
+                        ) as ScoreUp,
 
-                    (
-                        select count()
-                        from Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                        cross join Chain csc on csc.TxId = sc.RowId
-                        where sc.Type = 301 and sc.RegId2 = t.RegId2 and sc.Int1 = -1
-                    ) as ScoreDown,
+                        (
+                            select count()
+                            from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain csc on csc.TxId = sc.RowId
+                            where sc.Type = 301 and sc.RegId2 = t.RegId2 and sc.Int1 = -1
+                        ) as ScoreDown,
 
-                    rc.Value    as CommentRating,
+                        rc.Value    as CommentRating,
 
-                    (case when t.RowId != t.RegId2 then 1 else 0 end) as CommentEdit,
+                        (case when t.RowId != t.RegId2 then 1 else 0 end) as CommentEdit,
 
-                    (
-                        select o.Value
-                        from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-                        where o.TxId = t.RowId and o.AddressId = p.RegId1 and o.AddressId != t.RegId1
-                    ) as Donate
+                        (
+                            select o.Value
+                            from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                            where o.TxId = t.RowId and o.AddressId = p.RegId1 and o.AddressId != t.RegId1
+                        ) as Donate
 
-                from
-                    Chain c
+                    from
+                        Chain c
 
-                cross join
-                    Transactions t
-                        on t.RowId = c.TxId and t.Type in (204, 205)
-                cross join
-                    Last lt
-                        on lt.TxId = t.RowId
-                cross join
-                    Payload pc
-                        on pc.TxId = t.RowId
-                cross join
-                    Ratings rc indexed by Ratings_Type_Uid_Last_Value
-                        on rc.Type = 3 and rc.Last = 1 and rc.Uid = c.Uid and rc.Value >= 0
+                    cross join
+                        Transactions t
+                            on t.RowId = c.TxId and t.Type in (204, 205)
+                    cross join
+                        Last lt
+                            on lt.TxId = t.RowId
+                    cross join
+                        Payload pc
+                            on pc.TxId = t.RowId
+                    cross join
+                        Ratings rc indexed by Ratings_Type_Uid_Last_Value
+                            on rc.Type = 3 and rc.Last = 1 and rc.Uid = c.Uid and rc.Value >= 0
 
-                cross join
-                    Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on ua.Type = 100 and ua.RegId1 = t.RegId1
-                cross join
-                    Last lua
-                        on lua.TxId = ua.RowId
+                    cross join
+                        Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on ua.Type = 100 and ua.RegId1 = t.RegId1
+                    cross join
+                        Last lua
+                            on lua.TxId = ua.RowId
 
-                cross join Transactions p indexed by Transactions_Type_RegId2_RegId1
-                    on p.Type in (200, 201, 202, 209, 210) and p.RegId2 = t.RegId3
-                cross join
-                    Last lp
-                        on lp.TxId = p.RowId
-                cross join
-                    Chain cp
-                        on cp.TxId = p.RowId
-                cross join
-                    Payload pp
-                        on pp.TxId = p.RowId and pp.String1 = ?
+                    cross join Transactions p indexed by Transactions_Type_RegId2_RegId1
+                        on p.Type in (200, 201, 202, 209, 210) and p.RegId2 = t.RegId3
+                    cross join
+                        Last lp
+                            on lp.TxId = p.RowId
+                    cross join
+                        Chain cp
+                            on cp.TxId = p.RowId
+                    cross join
+                        Payload pp
+                            on pp.TxId = p.RowId and pp.String1 = ?
 
-                where
-                    c.Height > (? - 600) and
-                    and not exists (
-                        select 1
-                        from BlockingLists bl
-                        where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1
-                    )
+                    where
+                        c.Height > (? - 600) and
+                        not exists (
+                            select 1
+                            from BlockingLists bl
+                            where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1
+                        )
 
-                order by c.Height desc
-                limit ?
-            )sql")
-            .Bind(lang, height, count)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    int i = 0;
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("id", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("postid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok)
+                    order by c.Height desc
+                    limit ?
+                )sql")
+                .Bind(lang, height, count);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
-                        record.pushKV("time", value);
-                        record.pushKV("timeUpd", value);
-                    }
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("block", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("msg", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
-                    if (auto[ok, value] = cursor.TryGetColumnString(i++); ok)
-                    {
-                        record.pushKV("donation", "true");
-                        record.pushKV("amount", value);
-                    }
+                        UniValue record(UniValue::VOBJ);
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        int i = 0;
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("id", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("postid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok)
+                        {
+                            record.pushKV("time", value);
+                            record.pushKV("timeUpd", value);
+                        }
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("block", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("msg", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("parentid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("answerid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
+                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok)
+                        {
+                            record.pushKV("donation", "true");
+                            record.pushKV("amount", value);
+                        }
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
 
     map<int64_t, UniValue> WebRpcRepository::GetLastComments(const vector<int64_t>& ids, const string& address)
     {
-        auto func = __func__;
         map<int64_t, UniValue> result;
 
         string sql = R"sql(
@@ -1137,56 +1176,59 @@ namespace PocketDb
             join Chain cc on cc.TxId = c.RowId
         )sql";
 
-        SqlTransaction(func, [&]()
-        {
-            Sql(sql)
-            .Bind(address, (int64_t)(0.5 * COIN), ids)
-            .Select([&](Cursor& cursor) {
-                // ---------------------------
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    auto[okContentId, contentId] = cursor.TryGetColumnInt(0);
-                    auto[okCommentId, commentId] = cursor.TryGetColumnInt(1);
-                    auto[okType, txType] = cursor.TryGetColumnInt(2);
-                    auto[okRoot, rootTxHash] = cursor.TryGetColumnString(3);
-
-                    record.pushKV("id", rootTxHash);
-                    record.pushKV("cid", commentId);
-                    record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
-                    record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("postid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("timeUpd", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(8); ok) record.pushKV("block", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("msg", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(12); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(13); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(15); ok) record.pushKV("children", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(16); ok) record.pushKV("myScore", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(17); ok)
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql)
+                .Bind(address, (int64_t)(0.5 * COIN), ids);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    // ---------------------------
+                    while (cursor.Step())
                     {
-                        record.pushKV("donation", "true");
-                        record.pushKV("amount", value);
+                        UniValue record(UniValue::VOBJ);
+
+                        auto[okContentId, contentId] = cursor.TryGetColumnInt(0);
+                        auto[okCommentId, commentId] = cursor.TryGetColumnInt(1);
+                        auto[okType, txType] = cursor.TryGetColumnInt(2);
+                        auto[okRoot, rootTxHash] = cursor.TryGetColumnString(3);
+
+                        record.pushKV("id", rootTxHash);
+                        record.pushKV("cid", commentId);
+                        record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
+                        record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("postid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("timeUpd", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(8); ok) record.pushKV("block", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("msg", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("parentid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("answerid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(12); ok) record.pushKV("scoreUp", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(13); ok) record.pushKV("scoreDown", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(15); ok) record.pushKV("children", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(16); ok) record.pushKV("myScore", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(17); ok)
+                        {
+                            record.pushKV("donation", "true");
+                            record.pushKV("amount", value);
+                        }
+                                        
+                        result.emplace(contentId, record);
                     }
-                                    
-                    result.emplace(contentId, record);
-                }
-            });
-        });
+                });
+            }
+        );
 
         return result;
     }
 
     UniValue WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
-        auto func = __func__;
         auto result = UniValue(UniValue::VARR);
 
         string parentWhere = " and c.RegId4 is null ";
@@ -1319,69 +1361,74 @@ namespace PocketDb
                 )sql" + parentWhere + R"sql(
         )sql";
 
-        SqlTransaction(func, [&]()
-        {
-            auto& stmt = Sql(sql);
-            stmt.Bind(postHash, addressHash);
-            if (!parentHash.empty())
-                stmt.Bind(parentHash);
-
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    //auto[ok0, txHash] = cursor.TryGetColumnString(cursor, 1);
-                    auto[ok1, rootTxHash] = cursor.TryGetColumnString(2);
-                    record.pushKV("id", rootTxHash);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
-                        record.pushKV("postid", value);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("block", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("msg", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("myScore", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(16); ok)
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
+                stmt.Bind(postHash, addressHash);
+                if (!parentHash.empty())
+                    stmt.Bind(parentHash);
+                    
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
-                        record.pushKV("amount", value);
-                        record.pushKV("donation", "true");
-                    }
+                        UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
-                    {
-                        switch (static_cast<TxType>(value))
+                        //auto[ok0, txHash] = cursor.TryGetColumnString(cursor, 1);
+                        auto[ok1, rootTxHash] = cursor.TryGetColumnString(2);
+                        record.pushKV("id", rootTxHash);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                            record.pushKV("postid", value);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("block", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("msg", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(16); ok)
                         {
-                            case PocketTx::CONTENT_COMMENT:
-                                record.pushKV("deleted", false);
-                                record.pushKV("edit", false);
-                                break;
-                            case PocketTx::CONTENT_COMMENT_EDIT:
-                                record.pushKV("deleted", false);
-                                record.pushKV("edit", true);
-                                break;
-                            case PocketTx::CONTENT_COMMENT_DELETE:
-                                record.pushKV("deleted", true);
-                                record.pushKV("edit", true);
-                                break;
-                            default:
-                                break;
+                            record.pushKV("amount", value);
+                            record.pushKV("donation", "true");
                         }
-                    }
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                        {
+                            switch (static_cast<TxType>(value))
+                            {
+                                case PocketTx::CONTENT_COMMENT:
+                                    record.pushKV("deleted", false);
+                                    record.pushKV("edit", false);
+                                    break;
+                                case PocketTx::CONTENT_COMMENT_EDIT:
+                                    record.pushKV("deleted", false);
+                                    record.pushKV("edit", true);
+                                    break;
+                                case PocketTx::CONTENT_COMMENT_DELETE:
+                                    record.pushKV("deleted", true);
+                                    record.pushKV("edit", true);
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -1456,178 +1503,182 @@ namespace PocketDb
             )sql";
         }
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String = ?
-                ),
-                )sql" + with + R"sql(
-
-                select
-
-                    c.Type,
-                    (select r.String from Registry r where r.RowId = c.RowId),
-                    (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
-                    (select r.String from Registry r where r.RowId = c.RegId3) as PostTxHash,
-                    (select r.String from Registry r where r.RowId = c.RegId1) as AddressHash,
-                    r.Time AS RootTime,
-                    c.Time,
-                    cc.Height,
-                    pl.String1 AS Msg,
-                    (select r.String from Registry r where r.RowId = c.RegId4) as ParentTxHash,
-                    (select r.String from Registry r where r.RowId = c.RegId5) as AnswerTxHash,
-                    (
-                        select count()
-                        from Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                        cross join Chain csc on csc.TxId = sc.RowId
-                        where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = 1
-                    ) as ScoreUp,
-                    (
-                        select count()
-                        from Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                        cross join Chain csc on csc.TxId = sc.RowId
-                        where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = -1
-                    ) as ScoreDown,
-                    (
-                        select r.Value
-                        from Ratings r indexed by Ratings_Type_Uid_Last_Value
-                        where r.Type = 3 and r.Uid = cc.Uid and r.Last = 1
-                    ) as Reputation,
-                    sc.Int1 as MyScore,
-                    (
-                        select count()
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
                         from
-                            Transactions s indexed by Transactions_Type_RegId4_RegId1
-                        cross join
-                            Last ls
-                                on ls.TxId = s.RowId
-                        cross join
-                            Chain cs
-                                on cs.TxId = s.RowId
-                        -- exclude deleted accounts
-                        cross join
-                            Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                on uac.Type = 100 and uac.RegId1 = s.RegId1
-                        cross join
-                            Last luac
-                                on luac.TxId = uac.RowId
+                            Registry r
                         where
-                            s.Type in (204, 205) and
-                            s.RegId4 = c.RegId2 and
-                            -- exclude commenters blocked by the author of the post
-                            not exists (
-                                select 1
-                                from BlockingLists bl
-                                where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
-                            )
-                    ) AS ChildrenCount,
-                    o.Value as Donate,
-                    (
-                        select 1
-                        from BlockingLists bl
-                        where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
-                        limit 1
-                    )Blocked,
-                    cc.Uid
-                from
-                    txs,
-                    addr
-                cross join
-                    Transactions c indexed by Transactions_Type_RegId2_RegId1
-                        on c.Type in (204, 205, 206) and c.RegId2 = txs.id
-                cross join
-                    Last lc
-                        on lc.TxId = c.RowId
-                cross join
-                    Chain cc
-                        on cc.TxId = c.RowId
-                cross join
-                    Transactions r
-                        on r.RowId = c.RegId2
-                cross join
-                    Payload pl
-                        on pl.TxId = c.RowId
-                cross join
-                    Transactions t indexed by Transactions_Type_RegId2_RegId1
-                        on t.Type in (200, 201, 202, 209, 210) and t.RegId2 = c.RegId3
-                cross join
-                    Last lt
-                        on lt.TxId = t.RowId
-                cross join
-                    Chain ct
-                        on ct.TxId = t.RowId
-                left join
-                    Transactions sc indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on sc.Type in (301) and sc.RegId1 = addr.id and sc.RegId2 = c.RegId2 and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
-                left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-                    on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
-            )sql")
-            .Bind(addressHash, cmntHashes, cmntIds)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+                            r.String = ?
+                    ),
+                    )sql" + with + R"sql(
 
-                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok) record.pushKV("type", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("id", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("postid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("block", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("msg", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("myScore", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
+                    select
 
-                    if (auto[ok, value] = cursor.TryGetColumnString(16); ok)
+                        c.Type,
+                        (select r.String from Registry r where r.RowId = c.RowId),
+                        (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
+                        (select r.String from Registry r where r.RowId = c.RegId3) as PostTxHash,
+                        (select r.String from Registry r where r.RowId = c.RegId1) as AddressHash,
+                        r.Time AS RootTime,
+                        c.Time,
+                        cc.Height,
+                        pl.String1 AS Msg,
+                        (select r.String from Registry r where r.RowId = c.RegId4) as ParentTxHash,
+                        (select r.String from Registry r where r.RowId = c.RegId5) as AnswerTxHash,
+                        (
+                            select count()
+                            from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain csc on csc.TxId = sc.RowId
+                            where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = 1
+                        ) as ScoreUp,
+                        (
+                            select count()
+                            from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain csc on csc.TxId = sc.RowId
+                            where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = -1
+                        ) as ScoreDown,
+                        (
+                            select r.Value
+                            from Ratings r indexed by Ratings_Type_Uid_Last_Value
+                            where r.Type = 3 and r.Uid = cc.Uid and r.Last = 1
+                        ) as Reputation,
+                        sc.Int1 as MyScore,
+                        (
+                            select count()
+                            from
+                                Transactions s indexed by Transactions_Type_RegId4_RegId1
+                            cross join
+                                Last ls
+                                    on ls.TxId = s.RowId
+                            cross join
+                                Chain cs
+                                    on cs.TxId = s.RowId
+                            -- exclude deleted accounts
+                            cross join
+                                Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                    on uac.Type = 100 and uac.RegId1 = s.RegId1
+                            cross join
+                                Last luac
+                                    on luac.TxId = uac.RowId
+                            where
+                                s.Type in (204, 205) and
+                                s.RegId4 = c.RegId2 and
+                                -- exclude commenters blocked by the author of the post
+                                not exists (
+                                    select 1
+                                    from BlockingLists bl
+                                    where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
+                                )
+                        ) AS ChildrenCount,
+                        o.Value as Donate,
+                        (
+                            select 1
+                            from BlockingLists bl
+                            where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
+                            limit 1
+                        )Blocked,
+                        cc.Uid
+                    from
+                        txs,
+                        addr
+                    cross join
+                        Transactions c indexed by Transactions_Type_RegId2_RegId1
+                            on c.Type in (204, 205, 206) and c.RegId2 = txs.id
+                    cross join
+                        Last lc
+                            on lc.TxId = c.RowId
+                    cross join
+                        Chain cc
+                            on cc.TxId = c.RowId
+                    cross join
+                        Transactions r
+                            on r.RowId = c.RegId2
+                    cross join
+                        Payload pl
+                            on pl.TxId = c.RowId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId2_RegId1
+                            on t.Type in (200, 201, 202, 209, 210) and t.RegId2 = c.RegId3
+                    cross join
+                        Last lt
+                            on lt.TxId = t.RowId
+                    cross join
+                        Chain ct
+                            on ct.TxId = t.RowId
+                    left join
+                        Transactions sc indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on sc.Type in (301) and sc.RegId1 = addr.id and sc.RegId2 = c.RegId2 and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
+                    left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                        on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
+                )sql")
+                .Bind(addressHash, cmntHashes, cmntIds);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
-                        record.pushKV("amount", value);
-                        record.pushKV("donation", "true");
-                    }
+                        UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0)
-                        record.pushKV("blck", 1);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok) record.pushKV("type", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("id", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("postid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("block", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("msg", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("parentid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("answerid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
 
-                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
-                    {
-                        switch (static_cast<TxType>(value))
+                        if (auto[ok, value] = cursor.TryGetColumnString(16); ok)
                         {
-                            case PocketTx::CONTENT_COMMENT:
-                                record.pushKV("deleted", false);
-                                record.pushKV("edit", false);
-                                break;
-                            case PocketTx::CONTENT_COMMENT_EDIT:
-                                record.pushKV("deleted", false);
-                                record.pushKV("edit", true);
-                                break;
-                            case PocketTx::CONTENT_COMMENT_DELETE:
-                                record.pushKV("deleted", true);
-                                record.pushKV("edit", true);
-                                break;
-                            default:
-                                break;
+                            record.pushKV("amount", value);
+                            record.pushKV("donation", "true");
                         }
-                    }
 
-                    auto[ok_hash, hash] = cursor.TryGetColumnString(1);
-                    auto[ok_id, id] = cursor.TryGetColumnInt64(18);
-                    result.emplace_back(hash, id, record);
-                }
-            });
-        });
+                        if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0)
+                            record.pushKV("blck", 1);
+
+                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                        {
+                            switch (static_cast<TxType>(value))
+                            {
+                                case PocketTx::CONTENT_COMMENT:
+                                    record.pushKV("deleted", false);
+                                    record.pushKV("edit", false);
+                                    break;
+                                case PocketTx::CONTENT_COMMENT_EDIT:
+                                    record.pushKV("deleted", false);
+                                    record.pushKV("edit", true);
+                                    break;
+                                case PocketTx::CONTENT_COMMENT_DELETE:
+                                    record.pushKV("deleted", true);
+                                    record.pushKV("edit", true);
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+
+                        auto[ok_hash, hash] = cursor.TryGetColumnString(1);
+                        auto[ok_id, id] = cursor.TryGetColumnInt64(18);
+                        result.emplace_back(hash, id, record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -1638,132 +1689,140 @@ namespace PocketDb
 
         if (!postHashes.empty())
         {
-            SqlTransaction(__func__, [&]()
-            {
-                Sql(R"sql(
-                    with
-                    addr as (
+            SqlTransaction(
+                __func__,
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        with
+                        addr as (
+                            select
+                                r.RowId as id,
+                                r.String as hash
+                            from
+                                Registry r
+                            where
+                                r.String = ?
+                        ),
+                        tx as (
+                            select
+                                r.RowId as id,
+                                r.String as hash
+                            from
+                                Registry r
+                            where
+                                r.String in ( )sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql( )
+                        )
                         select
-                            r.RowId as id,
-                            r.String as hash
+                            tx.hash as ContentTxHash,
+                            sc.Int1 as MyScoreValue
+
                         from
-                            Registry r
-                        where
-                            r.String = ?
-                    ),
-                    tx as (
-                        select
-                            r.RowId as id,
-                            r.String as hash
-                        from
-                            Registry r
-                        where
-                            r.String in ( )sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql( )
-                    )
-                    select
-                        tx.hash as ContentTxHash,
-                        sc.Int1 as MyScoreValue
+                            addr,
+                            tx
+                        cross join
+                            Transactions sc
+                                on sc.Type in (300) and sc.RegId1 = addr.id and sc.RegId2 = tx.id
+                        cross join
+                            Chain c
+                                on c.TxId = sc.RowId
+                    )sql")
+                    .Bind(addressHash, postHashes);
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            UniValue record(UniValue::VOBJ);
 
-                    from
-                        addr,
-                        tx
-                    cross join
-                        Transactions sc
-                            on sc.Type in (300) and sc.RegId1 = addr.id and sc.RegId2 = tx.id
-                    cross join
-                        Chain c
-                            on c.TxId = sc.RowId
-                )sql")
-                .Bind(addressHash, postHashes)
-                .Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                    {
-                        UniValue record(UniValue::VOBJ);
+                            if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                            if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("value", value);
 
-                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("value", value);
-
-                        result.push_back(record);
-                    }
-                });
-            });
+                            result.push_back(record);
+                        }
+                    });
+                }
+            );
         }
 
         if (!commentHashes.empty())
         {
-            SqlTransaction(__func__, [&]()
-            {
-                Sql(R"sql(
-                    with
-                    addr as (
+            SqlTransaction(
+                __func__,
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        with
+                        addr as (
+                            select
+                                r.RowId as id,
+                                r.String as hash
+                            from
+                                Registry r
+                            where
+                                r.String = ?
+                        ),
+                        tx as (
+                            select
+                                r.RowId as id,
+                                r.String as hash
+                            from
+                                Registry r
+                            where
+                                r.String in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
+                        )
                         select
-                            r.RowId as id,
-                            r.String as hash
+                            tx.hash as RootTxHash,
+                            (
+                                select count()
+                                from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                                cross join Chain csc on csc.TxId = sc.RowId
+                                where sc.Type in (301) and sc.RegId2 = c.RowId and sc.Int1 = 1
+                            ) as ScoreUp,
+                            (
+                                select count()
+                                from Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                                cross join Chain csc on csc.TxId = sc.RowId
+                                where sc.Type in (301) and sc.RegId2 = c.RowId and sc.Int1 = -1
+                            ) as ScoreDown,
+                            (
+                                select r.Value
+                                from Ratings r indexed by Ratings_Type_Uid_Last_Value
+                                where r.Uid = cc.Uid and r.Type = 3 and r.Last = 1
+                            ) as Reputation,
+                            msc.Int1 AS MyScore
                         from
-                            Registry r
-                        where
-                            r.String = ?
-                    ),
-                    tx as (
-                        select
-                            r.RowId as id,
-                            r.String as hash
-                        from
-                            Registry r
-                        where
-                            r.String in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
-                    )
-                    select
-                        tx.hash as RootTxHash,
-                        (
-                            select count()
-                            from Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                            cross join Chain csc on csc.TxId = sc.RowId
-                            where sc.Type in (301) and sc.RegId2 = c.RowId and sc.Int1 = 1
-                        ) as ScoreUp,
-                        (
-                            select count()
-                            from Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                            cross join Chain csc on csc.TxId = sc.RowId
-                            where sc.Type in (301) and sc.RegId2 = c.RowId and sc.Int1 = -1
-                        ) as ScoreDown,
-                        (
-                            select r.Value
-                            from Ratings r indexed by Ratings_Type_Uid_Last_Value
-                            where r.Uid = cc.Uid and r.Type = 3 and r.Last = 1
-                        ) as Reputation,
-                        msc.Int1 AS MyScore
-                    from
-                        addr,
-                        tx
-                    cross join
-                        Transactions c indexed by Transactions_Type_RegId2_RegId1
-                            on c.Type in (204, 205) and c.RegId2 = tx.id
-                    cross join
-                        Last lc
-                            on lc.TxId = c.RowId
-                    cross join
-                        Chain cc
-                            on cc.TxId = c.RowId
-                    left join Transactions msc indexed by Transactions_Type_RegId2_RegId1
-                        on msc.Type in (301) and msc.RegId2 = c.RegId2 and msc.RegId1 = addr.id and exists (select 1 from Chain cmsc where cmsc.TxId = msc.RowId)
-                )sql")
-                .Bind(addressHash, commentHashes)
-                .Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                    {
-                        UniValue record(UniValue::VOBJ);
+                            addr,
+                            tx
+                        cross join
+                            Transactions c indexed by Transactions_Type_RegId2_RegId1
+                                on c.Type in (204, 205) and c.RegId2 = tx.id
+                        cross join
+                            Last lc
+                                on lc.TxId = c.RowId
+                        cross join
+                            Chain cc
+                                on cc.TxId = c.RowId
+                        left join Transactions msc indexed by Transactions_Type_RegId2_RegId1
+                            on msc.Type in (301) and msc.RegId2 = c.RegId2 and msc.RegId1 = addr.id and exists (select 1 from Chain cmsc where cmsc.TxId = msc.RowId)
+                    )sql")
+                    .Bind(addressHash, commentHashes);
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            UniValue record(UniValue::VOBJ);
 
-                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("cmntid", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("reputation", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("myScore", value);
+                            if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("cmntid", value);
+                            if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
+                            if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("reputation", value);
+                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("myScore", value);
 
-                        result.push_back(record);
-                    }
-                });
-            });
+                            result.push_back(record);
+                        }
+                    });
+                }
+            );
         }
 
         return result;
@@ -1773,66 +1832,70 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                tx as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    tx as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String = ?
                     select
-                        r.RowId as id,
-                        r.String as hash
+                        tx.hash as ContentTxHash,
+                        (select r.String from Registry r where r.RowId = s.RegId1) as ScoreAddressHash,
+                        p.String2 as AccountName,
+                        p.String3 as AccountAvatar,
+                        r.Value as AccountReputation,
+                        s.Int1 as ScoreValue
                     from
-                        Registry r
-                    where
-                        r.String = ?
-                select
-                    tx.hash as ContentTxHash,
-                    (select r.String from Registry r where r.RowId = s.RegId1) as ScoreAddressHash,
-                    p.String2 as AccountName,
-                    p.String3 as AccountAvatar,
-                    r.Value as AccountReputation,
-                    s.Int1 as ScoreValue
-                from
-                    tx
-                cross join
-                    Transactions s indexed by Transactions_Type_RegId2_RegId1
-                        on s.Type in (300) and s.RegId2 = tx.id
-                cross join
-                    Chain cs
-                        on cs.TxId = s.RowId
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on u.Type in (100) and u.RegId1 = s.RegId1
-                cross join
-                    Last lu
-                        on lu.TxId = u.RowId
-                cross join
-                    Chain cu
-                        on cu.TxId = u.RowId
-                left join
-                    Ratings r indexed by Ratings_Type_Uid_Last_Value
-                        on r.Type = 0 and r.Last = 1 and r.Uid = cu.Uid
-                cross join
-                    Payload p
-                        on p.TxId = u.RowId
-            )sql")
-            .Bind(postTxHash)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+                        tx
+                    cross join
+                        Transactions s indexed by Transactions_Type_RegId2_RegId1
+                            on s.Type in (300) and s.RegId2 = tx.id
+                    cross join
+                        Chain cs
+                            on cs.TxId = s.RowId
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (100) and u.RegId1 = s.RegId1
+                    cross join
+                        Last lu
+                            on lu.TxId = u.RowId
+                    cross join
+                        Chain cu
+                            on cu.TxId = u.RowId
+                    left join
+                        Ratings r indexed by Ratings_Type_Uid_Last_Value
+                            on r.Type = 0 and r.Last = 1 and r.Uid = cu.Uid
+                    cross join
+                        Payload p
+                            on p.TxId = u.RowId
+                )sql")
+                .Bind(postTxHash);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("value", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("value", value);
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -1845,67 +1908,71 @@ namespace PocketDb
         if (!postHashes.empty())
             postWhere += " and s.String2 in ( " + join(vector<string>(postHashes.size(), "?"), ",") + " ) ";
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
                     select
-                        r.RowId as id,
-                        r.String as hash
+                        (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
+                        addr.hash as address,
+                        up.String2 as name,
+                        up.String3 as avatar,
+                        ur.Value as reputation,
+                        s.Int1 as value
                     from
-                        Registry r
-                    where
-                        r.String = ?
-                )
-                select
-                    (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
-                    addr.hash as address,
-                    up.String2 as name,
-                    up.String3 as avatar,
-                    ur.Value as reputation,
-                    s.Int1 as value
-                from
-                    addr
-                cross join
-                    Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on s.Type in (300) and s.RegId1 = addr.id )sql" + postWhere + R"sql(
-                cross join
-                    Chain cs
-                        on cs.TxId = s.RowId
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on u.Type in (100) and u.RegId1 = s.RegId1
-                cross join
-                    Last lu
-                        on lu.TxId = u.RowId
-                cross join
-                    Chain cu
-                        on cu.TxId = u.RowId
-                cross join
-                    Payload up
-                        on up.TxId = u.RowId
-                left join
-                    Ratings ur indexed by Ratings_Type_Uid_Last_Value
-                        on ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
-            )sql")
-            .Bind(address, postHashes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+                        addr
+                    cross join
+                        Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on s.Type in (300) and s.RegId1 = addr.id )sql" + postWhere + R"sql(
+                    cross join
+                        Chain cs
+                            on cs.TxId = s.RowId
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (100) and u.RegId1 = s.RegId1
+                    cross join
+                        Last lu
+                            on lu.TxId = u.RowId
+                    cross join
+                        Chain cu
+                            on cu.TxId = u.RowId
+                    cross join
+                        Payload up
+                            on up.TxId = u.RowId
+                    left join
+                        Ratings ur indexed by Ratings_Type_Uid_Last_Value
+                            on ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
+                )sql")
+                .Bind(address, postHashes);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("value", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("value", value);
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -1914,95 +1981,99 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    addr as (
-                        select
-                            RowId as id,
-                            String as hash
-                        from
-                            Registry
-                        where
-                            String = ?
-                    ),
-                    raters as (
-                        select
-                            r.RegId1,
-                            count() as scores
-                        from
-                            addr
-                        cross join
-                            Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                c.Type in (200, 201, 202, 204, 209, 210) and c.RegId1 = addr.id
-                        cross join
-                            First fc on
-                                fc.TxId = c.RowId
-                        cross join
-                            Transactions r indexed by Transactions_Type_RegId2_RegId1 on
-                                r.Type in (300, 301) and
-                                r.RegId2 = c.RowId and
-                                ( (r.Type = 300 and r.Int1 = 5) or (r.Type = 301 and r.Int1 = 1) )
-                        cross join
-                            Chain cr on
-                                cr.TxId = r.RowId
-                        group by
-                            r.RegId1
-                    )
-                select
-                    cru.Uid,
-                    (select String from Registry r where r.RowId = r.RegId1),
-                    pru.String2,
-                    pru.String3,
-                    pru.String4,
-                    ruf.Time,
-                    ifnull(rru.Value, 0),
-                    r.scores
-                from
-                    raters r
-                cross join
-                    Transactions ru indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ru.Type in (100) and
-                        ru.RegId1 = r.RegId1
-                cross join
-                    Last lru on
-                        lru.TxId = ru.RowId
-                cross join
-                    First fru on
-                        fru.TxId = ru.RowId
-                cross join
-                    Transactions ruf on
-                        ruf.RowId = fru.TxId
-                cross join
-                    Chain cru on
-                        cru.TxId = ru.RowId
-                cross join
-                    Payload pru on
-                        pru.TxId = ru.RowId
-                left join
-                    Ratings rru indexed by Ratings_Type_Uid_Last_Value on
-                        rru.Type = 0 and rru.Uid = cru.Uid and rru.Last = 1
-            )sql")
-            .Bind(address)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-                    
-                    cursor.Collect<int>(0, record, "id");
-                    cursor.Collect<string>(1, record, "address");
-                    cursor.Collect<string>(2, record, "name");
-                    cursor.Collect<string>(3, record, "avatar");
-                    cursor.Collect<string>(4, record, "about");
-                    cursor.Collect<int64_t>(5, record, "regdate");
-                    cursor.Collect<int64_t>(6, record, "reputation");
-                    cursor.Collect<int64_t>(7, record, "ratingscnt");
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addr as (
+                            select
+                                RowId as id,
+                                String as hash
+                            from
+                                Registry
+                            where
+                                String = ?
+                        ),
+                        raters as (
+                            select
+                                r.RegId1,
+                                count() as scores
+                            from
+                                addr
+                            cross join
+                                Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    c.Type in (200, 201, 202, 204, 209, 210) and c.RegId1 = addr.id
+                            cross join
+                                First fc on
+                                    fc.TxId = c.RowId
+                            cross join
+                                Transactions r indexed by Transactions_Type_RegId2_RegId1 on
+                                    r.Type in (300, 301) and
+                                    r.RegId2 = c.RowId and
+                                    ( (r.Type = 300 and r.Int1 = 5) or (r.Type = 301 and r.Int1 = 1) )
+                            cross join
+                                Chain cr on
+                                    cr.TxId = r.RowId
+                            group by
+                                r.RegId1
+                        )
+                    select
+                        cru.Uid,
+                        (select String from Registry r where r.RowId = r.RegId1),
+                        pru.String2,
+                        pru.String3,
+                        pru.String4,
+                        ruf.Time,
+                        ifnull(rru.Value, 0),
+                        r.scores
+                    from
+                        raters r
+                    cross join
+                        Transactions ru indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            ru.Type in (100) and
+                            ru.RegId1 = r.RegId1
+                    cross join
+                        Last lru on
+                            lru.TxId = ru.RowId
+                    cross join
+                        First fru on
+                            fru.TxId = ru.RowId
+                    cross join
+                        Transactions ruf on
+                            ruf.RowId = fru.TxId
+                    cross join
+                        Chain cru on
+                            cru.TxId = ru.RowId
+                    cross join
+                        Payload pru on
+                            pru.TxId = ru.RowId
+                    left join
+                        Ratings rru indexed by Ratings_Type_Uid_Last_Value on
+                            rru.Type = 0 and rru.Uid = cru.Uid and rru.Last = 1
+                )sql")
+                .Bind(address);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+                        
+                        cursor.Collect<int>(0, record, "id");
+                        cursor.Collect<string>(1, record, "address");
+                        cursor.Collect<string>(2, record, "name");
+                        cursor.Collect<string>(3, record, "avatar");
+                        cursor.Collect<string>(4, record, "about");
+                        cursor.Collect<int64_t>(5, record, "regdate");
+                        cursor.Collect<int64_t>(6, record, "reputation");
+                        cursor.Collect<int64_t>(7, record, "ratingscnt");
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -2068,36 +2139,38 @@ namespace PocketDb
             sql += " offset ? "s;
         }
         
-        SqlTransaction(__func__, [&]()
-        {
-            auto& stmt = Sql(sql);
-            stmt.Bind(address);
-            if (limit > 0)
-            {
-                stmt.Bind(limit, offset);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
+                stmt.Bind(address);
+                if (limit > 0)
+                    stmt.Bind(limit, offset);
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                            record.pushKV("adddress", value);
+
+                        if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
+                            record.pushKV("private", value);
+
+                        if (auto[ok, value] = cursor.TryGetColumnInt(2); ok)
+                            record.pushKV("reputation", value);
+
+                        if (auto[ok, value] = cursor.TryGetColumnInt(3); ok)
+                            record.pushKV("height", value);
+                
+                        result.push_back(record);
+                    }
+                });
             }
-
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
-                        record.pushKV("adddress", value);
-
-                    if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
-                        record.pushKV("private", value);
-
-                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok)
-                        record.pushKV("reputation", value);
-
-                    if (auto[ok, value] = cursor.TryGetColumnInt(3); ok)
-                        record.pushKV("height", value);
-            
-                    result.push_back(record);
-                }
-            });
-        });
+        );
 
         return result;
     }
@@ -2162,34 +2235,38 @@ namespace PocketDb
             sql += " offset ? "s;
         }
         
-        SqlTransaction(__func__, [&]()
-        {
-            auto& stmt = Sql(sql);
-            stmt.Bind(address);
-            if (limit > 0)
-                stmt.Bind(limit, offset);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
+                stmt.Bind(address);
+                if (limit > 0)
+                    stmt.Bind(limit, offset);
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                            record.pushKV("address", value);
 
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
-                        record.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
+                            record.pushKV("private", value);
 
-                    if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
-                        record.pushKV("private", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(2); ok)
+                            record.pushKV("reputation", value);
 
-                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok)
-                        record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(3); ok)
+                            record.pushKV("height", value);
 
-                    if (auto[ok, value] = cursor.TryGetColumnInt(3); ok)
-                        record.pushKV("height", value);
-
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -2198,46 +2275,48 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+
                     select
-                        r.RowId as id,
-                        r.String as hash
+                        bl.IdTarget
                     from
-                        Registry r
-                    where
-                        r.String = ?
-                )
-
-                select
-                    bl.IdTarget
-                from
-                    addr
-                cross join
-                    Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on us.Type in (100) and us.RegId1 = addr.id
-                cross join
-                    Chain ct
-                        on ct.TxId = us.RowId
-                cross join
-                    Last lut
-                        on lut.TxId = us.RowId
-                cross join
-                    BlockingLists bl on
-                        bl.IdSource = ct.Uid
-            )sql")
-            .Bind(address)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                        result.push_back(value);
-            });
-
-
-        });
+                        addr
+                    cross join
+                        Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on us.Type in (100) and us.RegId1 = addr.id
+                    cross join
+                        Chain ct
+                            on ct.TxId = us.RowId
+                    cross join
+                        Last lut
+                            on lut.TxId = us.RowId
+                    cross join
+                        BlockingLists bl on
+                            bl.IdSource = ct.Uid
+                )sql")
+                .Bind(address);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                            result.push_back(value);
+                });
+            }
+        );
 
         return result;
     }
@@ -2246,45 +2325,49 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
+
                     select
-                        r.RowId as id,
-                        r.String as hash
+                        bl.IdSource
                     from
-                        Registry r
-                    where
-                        r.String = ?
-                )
+                        addr
+                    cross join
+                        Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on ut.Type = 100 and ut.RegId1 = addr.id
+                    cross join
+                        Chain ct
+                            on ct.TxId = ut.RowId
+                    cross join
+                        Last lut
+                            on lut.TxId = ut.RowId
+                    cross join
+                        BlockingLists bl on
+                            bl.IdTarget = ct.Uid
 
-                select
-                    bl.IdSource
-                from
-                    addr
-                cross join
-                    Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on ut.Type = 100 and ut.RegId1 = addr.id
-                cross join
-                    Chain ct
-                        on ct.TxId = ut.RowId
-                cross join
-                    Last lut
-                        on lut.TxId = ut.RowId
-                cross join
-                    BlockingLists bl on
-                        bl.IdTarget = ct.Uid
-
-            )sql")
-            .Bind(address)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                        result.push_back(value);
-            });
-        });
+                )sql")
+                .Bind(address);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                            result.push_back(value);
+                });
+            }
+        );
 
         return result;
     }
@@ -2295,7 +2378,6 @@ namespace PocketDb
         const vector<string>& addrsExcluded, const vector<string>& tagsExcluded, int depth,
         int badReputationLimit)
     {
-        auto func = __func__;
         vector<string> result;
 
         if (contentTypes.empty())
@@ -2368,43 +2450,48 @@ namespace PocketDb
 
         // ---------------------------------------------
 
-        SqlTransaction(func, [&]()
-        {
-            auto& stmt = Sql(sql);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt.Bind(lang);
+                if (!lang.empty()) stmt.Bind(lang);
 
-            stmt.Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
+                stmt.Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
 
-            if (!tags.empty())
-            {
-                stmt.Bind(tags);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(addrsExcluded);
-
-            if (!tagsExcluded.empty())
-            {
-                stmt.Bind(tagsExcluded);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(countOut);
-            stmt.Select([&](Cursor& cursor) {
-                // ---------------------------------------------
-                while (cursor.Step())
+                if (!tags.empty())
                 {
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.push_back(value);
-                }
-            });
-        });
+                    stmt.Bind(tags);
 
-        // Complete!
+                    if (!lang.empty())
+                        stmt.Bind(lang);
+                }
+
+                stmt.Bind(addrsExcluded);
+
+                if (!tagsExcluded.empty())
+                {
+                    stmt.Bind(tagsExcluded);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
+                }
+
+                stmt.Bind(countOut);
+
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    // ---------------------------------------------
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) result.push_back(value);
+                    }
+                });
+            }
+        );
+
         return result;
     }
 
@@ -2412,40 +2499,44 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                select
-                    t.Lang,
-                    t.Value,
-                    t.Count
-                from
-                    web.Tags t
-                where
-                    t.Lang = ?
-                group by
-                    t.Id
-                order by
-                    t.Count desc
-                limit ?
-                offset ?
-            )sql")
-            .Bind(lang, pageSize, pageStart)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    auto[ok0, vLang] = cursor.TryGetColumnString(0);
-                    auto[ok1, vValue] = cursor.TryGetColumnString(1);
-                    auto[ok2, vCount] = cursor.TryGetColumnInt(2);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt&  {
+                return Sql(R"sql(
+                    select
+                        t.Lang,
+                        t.Value,
+                        t.Count
+                    from
+                        web.Tags t
+                    where
+                        t.Lang = ?
+                    group by
+                        t.Id
+                    order by
+                        t.Count desc
+                    limit ?
+                    offset ?
+                )sql")
+                .Bind(lang, pageSize, pageStart);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[ok0, vLang] = cursor.TryGetColumnString(0);
+                        auto[ok1, vValue] = cursor.TryGetColumnString(1);
+                        auto[ok2, vCount] = cursor.TryGetColumnInt(2);
 
-                    UniValue record(UniValue::VOBJ);
-                    record.pushKV("tag", vValue);
-                    record.pushKV("count", vCount);
+                        UniValue record(UniValue::VOBJ);
+                        record.pushKV("tag", vValue);
+                        record.pushKV("count", vCount);
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -2457,40 +2548,44 @@ namespace PocketDb
         if (txHashes.empty())
             return result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                tx as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
-                )
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt&  {
+                return Sql(R"sql(
+                    with
+                    tx as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+                    )
 
-                select
-                    c.Uid
-                from
-                    tx
-                cross join
-                    Transactions t
-                        on t.RowId = tx.id
-                cross join
-                    Chain c
-                        on c.TxId = t.RowId
-            )sql")
-            .Bind(txHashes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                        result.push_back(value);
-                }
-            });
-        });
+                    select
+                        c.Uid
+                    from
+                        tx
+                    cross join
+                        Transactions t
+                            on t.RowId = tx.id
+                    cross join
+                        Chain c
+                            on c.TxId = t.RowId
+                )sql")
+                .Bind(txHashes);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                            result.push_back(value);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -2502,43 +2597,47 @@ namespace PocketDb
         if (txHashes.empty())
             return result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                tx as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
-                )
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    tx as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+                    )
 
-                select
-                    tx.hash,
-                    (select r.String from Registry r where r.RowId = t.RegId1)
-                from
-                    tx
-                cross join
-                    Transactions t
-                        on t.RowId = tx.id
-                cross join
-                    Chain c
-                        on c.TxId = t.RowId
-            )sql")
-            .Bind(txHashes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    auto[ok0, contenthash] = cursor.TryGetColumnString(0);
-                    auto[ok1, contentaddress] = cursor.TryGetColumnString(1);
-                    if(ok0 && ok1)
-                        result.emplace(contenthash,contentaddress);
-                }
-            });
-        });
+                    select
+                        tx.hash,
+                        (select r.String from Registry r where r.RowId = t.RegId1)
+                    from
+                        tx
+                    cross join
+                        Transactions t
+                            on t.RowId = tx.id
+                    cross join
+                        Chain c
+                            on c.TxId = t.RowId
+                )sql")
+                .Bind(txHashes);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[ok0, contenthash] = cursor.TryGetColumnString(0);
+                        auto[ok1, contentaddress] = cursor.TryGetColumnString(1);
+                        if(ok0 && ok1)
+                            result.emplace(contenthash,contentaddress);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -2547,81 +2646,85 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    addr as (
-                        select
-                            r.RowId as id
-                        from
-                            Registry r
-                        where
-                            r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                    )
-                select
-                    (select String from Registry where RowId=t.RowId),
-                    o.Number,
-                    (select String from Registry where RowId=o.AddressId),
-                    o.Value,
-                    (select String from Registry where RowId=o.ScriptPubKeyId),
-                    t.Type,
-                    c.Height
-                from addr
-                join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
-                    o.AddressId = addr.id and not exists (select 1 from TxInputs i where i.TxId = o.TxId and i.Number = o.Number)
-                join Chain c on
-                    c.TxId = o.TxId and c.Height <= ?
-                join Transactions t on
-                    t.RowId = o.TxId
-                order by c.Height asc
-            )sql")
-            .Bind(addresses, height - confirmations)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addr as (
+                            select
+                                r.RowId as id
+                            from
+                                Registry r
+                            where
+                                r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                        )
+                    select
+                        (select String from Registry where RowId=t.RowId),
+                        o.Number,
+                        (select String from Registry where RowId=o.AddressId),
+                        o.Value,
+                        (select String from Registry where RowId=o.ScriptPubKeyId),
+                        t.Type,
+                        c.Height
+                    from addr
+                    join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                        o.AddressId = addr.id and not exists (select 1 from TxInputs i where i.TxId = o.TxId and i.Number = o.Number)
+                    join Chain c on
+                        c.TxId = o.TxId and c.Height <= ?
+                    join Transactions t on
+                        t.RowId = o.TxId
+                    order by c.Height asc
+                )sql")
+                .Bind(addresses, height - confirmations);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                    auto[ok0, txHash] = cursor.TryGetColumnString(0);
-                    auto[ok1, txOut] = cursor.TryGetColumnInt(1);
+                        auto[ok0, txHash] = cursor.TryGetColumnString(0);
+                        auto[ok1, txOut] = cursor.TryGetColumnInt(1);
 
-                    string _txHash = txHash;
-                    int _txOut = txOut;
-                    // Exclude outputs already used as inputs in mempool
-                    if (!ok0 || !ok1 || find_if(
-                        mempoolInputs.begin(),
-                        mempoolInputs.end(),
-                        [&](const pair<string, int>& itm)
+                        string _txHash = txHash;
+                        int _txOut = txOut;
+                        // Exclude outputs already used as inputs in mempool
+                        if (!ok0 || !ok1 || find_if(
+                            mempoolInputs.begin(),
+                            mempoolInputs.end(),
+                            [&](const pair<string, int>& itm)
+                            {
+                                return itm.first == _txHash && itm.second == _txOut;
+                            })  != mempoolInputs.end())
+                            continue;
+
+                        record.pushKV("txid", txHash);
+                        record.pushKV("vout", txOut);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(3); ok)
                         {
-                            return itm.first == _txHash && itm.second == _txOut;
-                        })  != mempoolInputs.end())
-                        continue;
+                            record.pushKV("amount", ValueFromAmount(value));
+                            record.pushKV("amountSat", value);
+                        }
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("scriptPubKey", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(5); ok)
+                        {
+                            record.pushKV("coinbase", value == 2 || value == 3);
+                            record.pushKV("pockettx", value > 3);
+                        }
+                        if (auto[ok, value] = cursor.TryGetColumnInt(6); ok)
+                        {
+                            record.pushKV("confirmations", height - value);
+                            record.pushKV("height", value);
+                        }
 
-                    record.pushKV("txid", txHash);
-                    record.pushKV("vout", txOut);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(3); ok)
-                    {
-                        record.pushKV("amount", ValueFromAmount(value));
-                        record.pushKV("amountSat", value);
+                        result.push_back(record);
                     }
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("scriptPubKey", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(5); ok)
-                    {
-                        record.pushKV("coinbase", value == 2 || value == 3);
-                        record.pushKV("pockettx", value > 3);
-                    }
-                    if (auto[ok, value] = cursor.TryGetColumnInt(6); ok)
-                    {
-                        record.pushKV("confirmations", height - value);
-                        record.pushKV("height", value);
-                    }
-
-                    result.push_back(record);
-                }
-            });
-        });
+                });
+            }
+        );
 
         return result;
     }
@@ -2630,83 +2733,87 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    addr as (
-                        select
-                            RowId as id,
-                            String as hash
-                        from
-                            Registry
-                        where
-                            String = ?
-                    )
-                select
-                    addr.hash,
-                    ifnull(t.Type, 0) as type,
-                    sum(ifnull(o.Value, 0)) as amount
-                from
-                    addr
-                cross join
-                    TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
-                        o.AddressId = addr.id
-                cross join
-                    Chain c on
-                        c.TxId = o.TxId and
-                        c.Height <= ? and
-                        c.Height >= ?
-                cross join
-                    Transactions t on
-                        t.RowId = c.TxId
-                cross join
-                    TxInputs i indexed by TxInputs_SpentTxId_Number_TxId on
-                        i.SpentTxId = o.TxId
-                cross join
-                    TxOutputs oi indexed by TxOutputs_TxId_Number_AddressId on
-                        oi.TxId = i.TxId and
-                        oi.Number = i.Number and
-                        oi.AddressId != o.AddressId
-                group by t.Type
-            )sql")
-            .Bind(address,height,height - depth)
-            .Select([&](Cursor& cursor) {
-                int64_t amountLottery = 0;
-                int64_t amountDonation = 0;
-                int64_t amountTransfer = 0;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addr as (
+                            select
+                                RowId as id,
+                                String as hash
+                            from
+                                Registry
+                            where
+                                String = ?
+                        )
+                    select
+                        addr.hash,
+                        ifnull(t.Type, 0) as type,
+                        sum(ifnull(o.Value, 0)) as amount
+                    from
+                        addr
+                    cross join
+                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                            o.AddressId = addr.id
+                    cross join
+                        Chain c on
+                            c.TxId = o.TxId and
+                            c.Height <= ? and
+                            c.Height >= ?
+                    cross join
+                        Transactions t on
+                            t.RowId = c.TxId
+                    cross join
+                        TxInputs i indexed by TxInputs_SpentTxId_Number_TxId on
+                            i.SpentTxId = o.TxId
+                    cross join
+                        TxOutputs oi indexed by TxOutputs_TxId_Number_AddressId on
+                            oi.TxId = i.TxId and
+                            oi.Number = i.Number and
+                            oi.AddressId != o.AddressId
+                    group by t.Type
+                )sql")
+                .Bind(address, height, height - depth);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    int64_t amountLottery = 0;
+                    int64_t amountDonation = 0;
+                    int64_t amountTransfer = 0;
 
-                while (cursor.Step())
-                {
-                    int64_t amount = 0;
-                    if (auto[ok, type] = cursor.TryGetColumnInt(1); ok)
+                    while (cursor.Step())
                     {
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) amount = value;
+                        int64_t amount = 0;
+                        if (auto[ok, type] = cursor.TryGetColumnInt(1); ok)
+                        {
+                            if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) amount = value;
 
-                        switch (type) {
-                            case 1:
-                                amountTransfer += amount;
-                                break;
-                            case 3:
-                                amountLottery += amount;
-                                break;
-                            case 204:
-                                amountDonation += amount;
-                                break;
-                            default:
-                                break;
+                            switch (type) {
+                                case 1:
+                                    amountTransfer += amount;
+                                    break;
+                                case 3:
+                                    amountLottery += amount;
+                                    break;
+                                case 204:
+                                    amountDonation += amount;
+                                    break;
+                                default:
+                                    break;
+                            }
                         }
                     }
-                }
 
-                UniValue record(UniValue::VOBJ);
-                record.pushKV("address", address);
-                record.pushKV("amountLottery", amountLottery);
-                record.pushKV("amountDonation", amountDonation);
-                record.pushKV("amountTransfer", amountTransfer);
-                result.push_back(record);
-            });
-        });
+                    UniValue record(UniValue::VOBJ);
+                    record.pushKV("address", address);
+                    record.pushKV("amountLottery", amountLottery);
+                    record.pushKV("amountDonation", amountDonation);
+                    record.pushKV("amountTransfer", amountTransfer);
+                    result.push_back(record);
+                });
+            }
+        );
 
         return result;
     }
@@ -2716,49 +2823,53 @@ namespace PocketDb
         int resultCount = 0;
         UniValue resultData(UniValue::VOBJ);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                select
-                    c.Type,
-                    p.String1 as lang,
-                    count() as cnt
-                from
-                    Chain cc indexed by Chain_Height_Uid
-                cross join Transactions c
-                        on c.RowId = cc.TxId and c.Type in (200, 201, 202, 209, 210)
-                cross join
-                    Last lc
-                        on lc.TxId = c.RowId
-                cross join
-                    Payload p on
-                        p.TxId = c.RowId
-                where
-                    cc.Height > ? and
-                    cc.Uid is not null
-                group by
-                    c.Type, p.String1
-            )sql")
-            .Bind(height)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    auto[okType, typeInt] = cursor.TryGetColumnInt(0);
-                    auto[okLang, lang] = cursor.TryGetColumnString(1);
-                    auto[okCount, count] = cursor.TryGetColumnInt(2);
-                    if (!okType || !okLang || !okCount)
-                        continue;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select
+                        c.Type,
+                        p.String1 as lang,
+                        count() as cnt
+                    from
+                        Chain cc indexed by Chain_Height_Uid
+                    cross join Transactions c
+                            on c.RowId = cc.TxId and c.Type in (200, 201, 202, 209, 210)
+                    cross join
+                        Last lc
+                            on lc.TxId = c.RowId
+                    cross join
+                        Payload p on
+                            p.TxId = c.RowId
+                    where
+                        cc.Height > ? and
+                        cc.Uid is not null
+                    group by
+                        c.Type, p.String1
+                )sql")
+                .Bind(height);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[okType, typeInt] = cursor.TryGetColumnInt(0);
+                        auto[okLang, lang] = cursor.TryGetColumnString(1);
+                        auto[okCount, count] = cursor.TryGetColumnInt(2);
+                        if (!okType || !okLang || !okCount)
+                            continue;
 
-                    auto type = TransactionHelper::TxStringType((TxType) typeInt);
+                        auto type = TransactionHelper::TxStringType((TxType) typeInt);
 
-                    if (resultData.At(type).isNull())
-                        resultData.pushKV(type, UniValue(UniValue::VOBJ));
+                        if (resultData.At(type).isNull())
+                            resultData.pushKV(type, UniValue(UniValue::VOBJ));
 
-                    resultData.At(type).pushKV(lang, count);
-                    resultCount += count;
-                }
-            });
-        });
+                        resultData.At(type).pushKV(lang, count);
+                        resultCount += count;
+                    }
+                });
+            }
+        );
 
         return {resultCount, resultData};
     }
@@ -2766,51 +2877,10 @@ namespace PocketDb
     tuple<int, UniValue> WebRpcRepository::GetLastAddressContent(const string& address, int height, int count)
     {
         int resultCount = 0;
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String = ?
-                )
-
-                select
-                    count()
-                from
-                    addr
-                cross join
-                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on t.Type in (200, 201, 202, 209, 210) and t.RegId1 = addr.id
-                cross join
-                    Last l
-                        on l.TxId = t.RowId
-                cross join
-                    Chain c indexed by Chain_TxId_Height
-                        on c.TxId = l.TxId and c.Height > ?
-            )sql")
-            .Bind(address, height)
-            .Select([&](Cursor& cursor) {
-                if (cursor.Step())
-                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
-                        resultCount = value;
-            });
-
-
-        });
-
-        // Try get last N records
-        UniValue resultData(UniValue::VARR);
-        if (resultCount > 0)
-        {
-            SqlTransaction(__func__, [&]()
-            {
-                Sql(R"sql(
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
                     with
                     addr as (
                         select
@@ -2823,57 +2893,104 @@ namespace PocketDb
                     )
 
                     select
-                        (select r.String from Registry r where r.RowId = t.RegId2) as txHash,
-                        t.Time,
-                        ct.Height,
-                        addr.hash as addrFrom,
-                        p.String2 as nameFrom,
-                        p.String3 as avatarFrom
+                        count()
                     from
                         addr
                     cross join
-                        Transactions t
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on t.Type in (200, 201, 202, 209, 210) and t.RegId1 = addr.id
                     cross join
-                        Last lt
-                            on lt.TxId = t.RowId
+                        Last l
+                            on l.TxId = t.RowId
                     cross join
-                        Chain ct
-                            on ct.TxId = t.RowId and ct.Height > ?
-                    cross join
-                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on u.Type in (100) and u.RegId1 = t.RegId1
-                    cross join
-                        Last lu
-                            on lu.TxId = u.RowId
-                    cross join
-                        Payload p
-                            on p.TxId = u.RowId
-                    order by
-                        ct.Height desc
-                    limit ?
+                        Chain c indexed by Chain_TxId_Height
+                            on c.TxId = l.TxId and c.Height > ?
                 )sql")
-                .Bind(address, height, count)
-                .Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                    {
-                        auto[okHash, hash] = cursor.TryGetColumnString(0);
-                        auto[okTime, time] = cursor.TryGetColumnInt64(1);
-                        auto[okHeight, block] = cursor.TryGetColumnInt(2);
-                        if (!okHash || !okTime || !okHeight)
-                            continue;
-
-                        UniValue record(UniValue::VOBJ);
-                        record.pushKV("txid", hash);
-                        record.pushKV("time", time);
-                        record.pushKV("nblock", block);
-                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("nameFrom", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
-                        resultData.push_back(record);
-                    }
+                .Bind(address, height);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    if (cursor.Step())
+                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                            resultCount = value;
                 });
-            });
+            }
+        );
+
+        // Try get last N records
+        UniValue resultData(UniValue::VARR);
+        if (resultCount > 0)
+        {
+            SqlTransaction(
+                __func__,
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        with
+                        addr as (
+                            select
+                                r.RowId as id,
+                                r.String as hash
+                            from
+                                Registry r
+                            where
+                                r.String = ?
+                        )
+
+                        select
+                            (select r.String from Registry r where r.RowId = t.RegId2) as txHash,
+                            t.Time,
+                            ct.Height,
+                            addr.hash as addrFrom,
+                            p.String2 as nameFrom,
+                            p.String3 as avatarFrom
+                        from
+                            addr
+                        cross join
+                            Transactions t
+                                on t.Type in (200, 201, 202, 209, 210) and t.RegId1 = addr.id
+                        cross join
+                            Last lt
+                                on lt.TxId = t.RowId
+                        cross join
+                            Chain ct
+                                on ct.TxId = t.RowId and ct.Height > ?
+                        cross join
+                            Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (100) and u.RegId1 = t.RegId1
+                        cross join
+                            Last lu
+                                on lu.TxId = u.RowId
+                        cross join
+                            Payload p
+                                on p.TxId = u.RowId
+                        order by
+                            ct.Height desc
+                        limit ?
+                    )sql")
+                    .Bind(address, height, count);
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            auto[okHash, hash] = cursor.TryGetColumnString(0);
+                            auto[okTime, time] = cursor.TryGetColumnInt64(1);
+                            auto[okHeight, block] = cursor.TryGetColumnInt(2);
+                            if (!okHash || !okTime || !okHeight)
+                                continue;
+
+                            UniValue record(UniValue::VOBJ);
+                            record.pushKV("txid", hash);
+                            record.pushKV("time", time);
+                            record.pushKV("nblock", block);
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("nameFrom", value);
+                            if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("avatarFrom", value);
+                            resultData.push_back(record);
+                        }
+                    });
+                }
+            );
         }
 
         return {resultCount, resultData};
@@ -2881,108 +2998,111 @@ namespace PocketDb
     
     UniValue WebRpcRepository::GetContentsForAddress(const string& address)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (address.empty())
             return result;
 
-        SqlTransaction(func, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String = ?
+                    )
                     select
-                        r.RowId as id
+                        ct.Uid,
+                        (select r.String from Registry r where r.RowId = t.RegId2) as RootTxHash,
+                        t.Time,
+                        p.String2 as Caption,
+                        p.String3 as Message,
+                        p.String6 as Settings,
+                        ifnull(r.Value,0) as Reputation,
+                        (
+                            select
+                                count()
+                            from
+                                Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                            cross join
+                                Chain cs
+                                    on cs.TxId = scr.RowId
+                            where
+                                scr.Type in (300) and
+                                scr.RegId2 = t.RegId2
+                        ) as ScoresCount,
+
+                        ifnull((
+                            select
+                                sum(scr.Int1)
+                            from
+                                Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                            cross join
+                                Chain cs
+                                    on cs.TxId = scr.RowId
+                            where
+                                scr.Type in (300) and
+                                scr.RegId2 = t.RegId2
+                        ), 0) as ScoresSum
+
                     from
-                        Registry r
-                    where
-                        r.String = ?
-                )
-                select
-                    ct.Uid,
-                    (select r.String from Registry r where r.RowId = t.RegId2) as RootTxHash,
-                    t.Time,
-                    p.String2 as Caption,
-                    p.String3 as Message,
-                    p.String6 as Settings,
-                    ifnull(r.Value,0) as Reputation,
-                    (
-                        select
-                            count()
-                        from
-                            Transactions scr indexed by Transactions_Type_RegId2_RegId1
-                        cross join
-                            Chain cs
-                                on cs.TxId = scr.RowId
-                        where
-                            scr.Type in (300) and
-                            scr.RegId2 = t.RegId2
-                    ) as ScoresCount,
+                        addr
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (200, 201, 202, 209, 210) and t.RegId1 = addr.id
+                    cross join
+                        Last lt
+                            on lt.TxId = t.RowId
+                    cross join
+                        Chain ct indexed by Chain_TxId_Height
+                            on ct.TxId = t.RowId
+                    cross join
+                        Payload p
+                            on p.TxId = t.RowId
+                    left join
+                        Ratings r indexed by Ratings_Type_Uid_Last_Value
+                            on r.Type = 2 and r.Last = 1 and r.Uid = ct.Uid
+                    order by ct.Height desc
+                    limit 50
+                )sql")
+                .Bind(address);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                    ifnull((
-                        select
-                            sum(scr.Int1)
-                        from
-                            Transactions scr indexed by Transactions_Type_RegId2_RegId1
-                        cross join
-                            Chain cs
-                                on cs.TxId = scr.RowId
-                        where
-                            scr.Type in (300) and
-                            scr.RegId2 = t.RegId2
-                    ), 0) as ScoresSum
+                        auto[ok0, id] = cursor.TryGetColumnInt64(0);
+                        auto[ok1, hash] = cursor.TryGetColumnString(1);
+                        auto[ok2, time] = cursor.TryGetColumnString(2);
+                        auto[ok3, caption] = cursor.TryGetColumnString(3);
+                        auto[ok4, message] = cursor.TryGetColumnString(4);
+                        auto[ok5, settings] = cursor.TryGetColumnString(5);
+                        auto[ok6, reputation] = cursor.TryGetColumnString(6);
+                        auto[ok7, scoreCnt] = cursor.TryGetColumnString(7);
+                        auto[ok8, scoreSum] = cursor.TryGetColumnString(8);
+                        
+                        if (ok3) record.pushKV("content", HtmlUtils::UrlDecode(caption));
+                        else record.pushKV("content", HtmlUtils::UrlDecode(message).substr(0, 100));
 
-                from
-                    addr
-                cross join
-                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on t.Type in (200, 201, 202, 209, 210) and t.RegId1 = addr.id
-                cross join
-                    Last lt
-                        on lt.TxId = t.RowId
-                cross join
-                    Chain ct indexed by Chain_TxId_Height
-                        on ct.TxId = t.RowId
-                cross join
-                    Payload p
-                        on p.TxId = t.RowId
-                left join
-                    Ratings r indexed by Ratings_Type_Uid_Last_Value
-                        on r.Type = 2 and r.Last = 1 and r.Uid = ct.Uid
-                order by ct.Height desc
-                limit 50
-            )sql")
-            .Bind(address)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+                        record.pushKV("txid", hash);
+                        record.pushKV("time", time);
+                        record.pushKV("reputation", reputation);
+                        record.pushKV("settings", settings);
+                        record.pushKV("scoreSum", scoreSum);
+                        record.pushKV("scoreCnt", scoreCnt);
 
-                    auto[ok0, id] = cursor.TryGetColumnInt64(0);
-                    auto[ok1, hash] = cursor.TryGetColumnString(1);
-                    auto[ok2, time] = cursor.TryGetColumnString(2);
-                    auto[ok3, caption] = cursor.TryGetColumnString(3);
-                    auto[ok4, message] = cursor.TryGetColumnString(4);
-                    auto[ok5, settings] = cursor.TryGetColumnString(5);
-                    auto[ok6, reputation] = cursor.TryGetColumnString(6);
-                    auto[ok7, scoreCnt] = cursor.TryGetColumnString(7);
-                    auto[ok8, scoreSum] = cursor.TryGetColumnString(8);
-                    
-                    if (ok3) record.pushKV("content", HtmlUtils::UrlDecode(caption));
-                    else record.pushKV("content", HtmlUtils::UrlDecode(message).substr(0, 100));
-
-                    record.pushKV("txid", hash);
-                    record.pushKV("time", time);
-                    record.pushKV("reputation", reputation);
-                    record.pushKV("settings", settings);
-                    record.pushKV("scoreSum", scoreSum);
-                    record.pushKV("scoreCnt", scoreCnt);
-
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -2991,339 +3111,11 @@ namespace PocketDb
     {
         vector<UniValue> result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
-                    select
-                        RowId as id
-                    from
-                        Registry
-                    where
-                        String = ?
-                ),
-                height as ( select ? as value )
-                select
-                    (select rr.String from Registry rr where rr.RowId = r.RegId2) as RootTxHash,
-                    (select rr.String from Registry rr where rr.RowId = r.RegId3) as RelayTxHash,
-                    (select rr.String from Registry rr where rr.RowId = r.RegId1) as AddressHash,
-                    r.Time,
-                    c.Height
-                from
-                    addr,
-                    height
-                cross join
-                    Chain c
-                        on c.Height > height.value
-                cross join
-                    Transactions r
-                        on r.RowId = c.TxId and r.Type in (200, 201, 202, 209, 210) and r.RegId3 is not null
-                cross join
-                    Last l
-                        on l.TxId = r.RowId
-                cross join
-                    Transactions p
-                        on p.RowId = r.RegId3 and p.Type in (200, 201) and p.RegId1 = addr.id
-            )sql")
-            .Bind(address, height)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    record.pushKV("msg", "reshare");
-                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) record.pushKV("txid", val);
-                    if (auto[ok, val] = cursor.TryGetColumnString(1); ok) record.pushKV("txidRepost", val);
-                    if (auto[ok, val] = cursor.TryGetColumnString(2); ok) record.pushKV("addrFrom", val);
-                    if (auto[ok, val] = cursor.TryGetColumnInt64(3); ok) record.pushKV("time", val);
-                    if (auto[ok, val] = cursor.TryGetColumnInt(4); ok) record.pushKV("nblock", val);
-
-                    result.push_back(record);
-                }
-            });
-        });
-
-        return result;
-    }
-
-    vector<UniValue> WebRpcRepository::GetMissedContentsScores(const string& address, int height, int limit)
-    {
-        vector<UniValue> result;
-
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
-                    select
-                        RowId as id
-                    from
-                        Registry
-                    where
-                        String = ?
-                ),
-                height as ( select ? as value )
-                select
-                    (select r.String from Registry r where r.RowId = s.RegId1) as address,
-                    (select r.String from Registry r where r.RowId = s.RowId),
-                    s.Time,
-                    (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
-                    s.Int1 as value,
-                    cs.Height
-                from
-                    addr,
-                    height
-                cross join
-                    Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on c.Type in (200, 201, 202, 209, 210) and c.RegId1 = addr.id
-                cross join
-                    Last lc
-                        on lc.TxId = c.RowId
-                cross join
-                    Transactions s indexed by Transactions_Type_RegId2_RegId1
-                        on s.Type in (300) and s.RegId2 = c.RegId2
-                cross join
-                    Chain cs
-                        on cs.TxId = s.RowId and cs.Height > height.value
-                order by cs.Height desc
-                limit ?
-            )sql")
-            .Bind(address, height, limit)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    record.pushKV("addr", address);
-                    record.pushKV("msg", "event");
-                    record.pushKV("mesType", "upvoteShare");
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
-
-                    result.push_back(record);
-                }
-            });
-        });
-
-        return result;
-    }
-
-    vector<UniValue> WebRpcRepository::GetMissedCommentsScores(const string& address, int height, int limit)
-    {
-        vector<UniValue> result;
-
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
-                    select
-                        RowId as id
-                    from
-                        Registry
-                    where
-                        String = ?
-                ),
-                height as ( select ? as value )
-                select
-                    (select r.String from Registry r where r.RowId = s.RegId1) as address,
-                    (select r.String from Registry r where r.RowId = s.RowId),
-                    s.Time,
-                    (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
-                    s.Int1 as value,
-                    cs.Height
-                from
-                    addr,
-                    height
-                cross join
-                    Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on c.Type in (204, 205) and c.RegId1 = addr.id
-                cross join
-                    Last lc
-                        on lc.TxId = c.RowId
-                cross join
-                    Transactions s indexed by Transactions_Type_RegId2_RegId1
-                        on s.Type in (301) and s.RegId2 = c.RegId2
-                cross join
-                    Chain cs
-                        on cs.TxId = s.RowId and cs.Height > height.value
-                order by cs.Height desc
-                limit ?
-            )sql")
-            .Bind(address, height, limit)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    record.pushKV("addr", address);
-                    record.pushKV("msg", "event");
-                    record.pushKV("mesType", "cScore");
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("commentid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
-
-                    result.push_back(record);
-                }
-            });
-        });
-
-        return result;
-    }
-
-    map<string, UniValue> WebRpcRepository::GetMissedTransactions(const string& address, int height, int count)
-    {
-        map<string, UniValue> result;
-
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
-                    select
-                        RowId as id
-                    from
-                        Registry
-                    where
-                        String = ?
-                ),
-                height as ( select ? as value )
-                select
-                    (select r.String from Registry r where r.RowId = t.RowId),
-                    t.Time,
-                    o.Value,
-                    c.Height,
-                    t.Type
-                from
-                    addr,
-                    height
-                cross join
-                    TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-                        on o.AddressId = addr.id
-                cross join
-                    Chain c indexed by Chain_TxId_Height
-                        on c.TxId = o.TxId and c.Height > height.value
-                cross join
-                    Transactions t
-                        on t.RowId = o.TxId
-                order by c.Height desc
-                limit ?
-            )sql")
-            .Bind(address, height, count)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    auto[okTxHash, txHash] = cursor.TryGetColumnString(0);
-                    if (!okTxHash) continue;
-
-                    UniValue record(UniValue::VOBJ);
-                    record.pushKV("txid", txHash);
-                    record.pushKV("addr", address);
-                    record.pushKV("msg", "transaction");
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("amount", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-
-                    if (auto[ok, value] = cursor.TryGetColumnInt(4); ok)
-                    {
-                        auto stringType = TransactionHelper::TxStringType((TxType) value);
-                        if (!stringType.empty())
-                            record.pushKV("type", stringType);
-                    }
-
-                    result.emplace(txHash, record);
-                }
-            });
-        });
-
-        return result;
-    }
-
-    vector<UniValue> WebRpcRepository::GetMissedCommentAnswers(const string& address, int height, int count)
-    {
-        vector<UniValue> result;
-
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
-                    select
-                        RowId as id
-                    from
-                        Registry
-                    where
-                        String = ?
-                ),
-                height as ( select ? as value )
-                select
-                    (select r.String from Registry r where r.RowId = a.RegId2) as RootTxHash,
-                    a.Time,
-                    ca.Height,
-                    (select r.String from Registry r where r.RowId = a.RegId1) as addrFrom,
-                    (select r.String from Registry r where r.RowId = a.RegId3) as posttxid,
-                    (select r.String from Registry r where r.RowId = a.RegId4) as parentid,
-                    (select r.String from Registry r where r.RowId = a.RegId5) as answerid
-                from
-                    addr,
-                    height
-                cross join
-                    Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on c.Type in (204, 205) and c.RegId1 = addr.id
-                cross join
-                    Transactions a indexed by Transactions_Type_RegId5_RegId1
-                        on a.Type in (204, 205) and a.RegId5 = c.RegId2 and a.RegId1 != c.RegId1
-                cross join
-                    Last la
-                        on la.TxId = a.RowId
-                cross join
-                    Chain ca
-                        on ca.TxId = a.RowId and ca.Height > height.value
-                order by ca.Height desc
-                limit ?
-            )sql")
-            .Bind(address, height, count)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    record.pushKV("addr", address);
-                    record.pushKV("msg", "comment");
-                    record.pushKV("mesType", "answer");
-                    record.pushKV("reason", "answer");
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("answerid", value);
-
-                    result.push_back(record);
-                }
-            });
-        });
-
-        return result;
-    }
-
-    vector<UniValue> WebRpcRepository::GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count)
-    {
-        vector<UniValue> result;
-
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
                     addr as (
                         select
                             RowId as id
@@ -3332,86 +3124,438 @@ namespace PocketDb
                         where
                             String = ?
                     ),
-                    height as (
-                        select ? as value
-                    ),
-                    excludeContent as (
+                    height as ( select ? as value )
+                    select
+                        (select rr.String from Registry rr where rr.RowId = r.RegId2) as RootTxHash,
+                        (select rr.String from Registry rr where rr.RowId = r.RegId3) as RelayTxHash,
+                        (select rr.String from Registry rr where rr.RowId = r.RegId1) as AddressHash,
+                        r.Time,
+                        c.Height
+                    from
+                        addr,
+                        height
+                    cross join
+                        Chain c
+                            on c.Height > height.value
+                    cross join
+                        Transactions r
+                            on r.RowId = c.TxId and r.Type in (200, 201, 202, 209, 210) and r.RegId3 is not null
+                    cross join
+                        Last l
+                            on l.TxId = r.RowId
+                    cross join
+                        Transactions p
+                            on p.RowId = r.RegId3 and p.Type in (200, 201) and p.RegId1 = addr.id
+                )sql")
+                .Bind(address, height);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+
+                        record.pushKV("msg", "reshare");
+                        if (auto[ok, val] = cursor.TryGetColumnString(0); ok) record.pushKV("txid", val);
+                        if (auto[ok, val] = cursor.TryGetColumnString(1); ok) record.pushKV("txidRepost", val);
+                        if (auto[ok, val] = cursor.TryGetColumnString(2); ok) record.pushKV("addrFrom", val);
+                        if (auto[ok, val] = cursor.TryGetColumnInt64(3); ok) record.pushKV("time", val);
+                        if (auto[ok, val] = cursor.TryGetColumnInt(4); ok) record.pushKV("nblock", val);
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    vector<UniValue> WebRpcRepository::GetMissedContentsScores(const string& address, int height, int limit)
+    {
+        vector<UniValue> result;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
                         select
-                            RowId as id,
-                            String as hash
+                            RowId as id
                         from
                             Registry
                         where
-                            String in ( )sql" + join(vector<string>(excludePosts.size(), "?"), ",") + R"sql( )
-                    )
-                select
-                    (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
-                    c.Time,
-                    cc.Height,
-                    (select r.String from Registry r where r.RowId = c.RegId1) as addrFrom,
-                    (select r.String from Registry r where r.RowId = c.RegId3) as posttxid,
-                    (select r.String from Registry r where r.RowId = c.RegId4) as  parentid,
-                    (select r.String from Registry r where r.RowId = c.RegId5) as  answerid,
-                    (
-                        select o.Value
-                        from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-                        where o.TxId = c.RowId and o.AddressId = p.RegId1 and o.AddressId != c.RegId1
-                    ) as Donate
-                from
-                    addr,
-                    height
-                cross join
-                    Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        p.Type in (200, 201, 202, 209, 210) and
-                        p.RegId1 = addr.id
-                cross join
-                    Last lp
-                        on lp.TxId = p.RowId
-                cross join
-                    Transactions c indexed by Transactions_Type_RegId3_RegId1
-                        on c.Type in (204, 205) and c.RegId3 = p.RegId2 and c.RegId1 != p.RegId1
-                cross join
-                    Last lc
-                        on lc.TxId = c.RowId
-                cross join
-                    Chain cc
-                        on cc.TxId = lc.TxId and cc.Height > height.value
-                left join
-                    excludeContent on
-                        excludeContent.id = p.RegId2
-                where
-                    excludeContent.id is null
-                order by
-                    cc.Height desc
-                limit ?
-            )sql")
-            .Bind(address, height, excludePosts, count)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    record.pushKV("addr", address);
-                    record.pushKV("msg", "comment");
-                    record.pushKV("mesType", "post");
-                    record.pushKV("reason", "post");
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("parentid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("answerid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok)
+                            String = ?
+                    ),
+                    height as ( select ? as value )
+                    select
+                        (select r.String from Registry r where r.RowId = s.RegId1) as address,
+                        (select r.String from Registry r where r.RowId = s.RowId),
+                        s.Time,
+                        (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
+                        s.Int1 as value,
+                        cs.Height
+                    from
+                        addr,
+                        height
+                    cross join
+                        Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on c.Type in (200, 201, 202, 209, 210) and c.RegId1 = addr.id
+                    cross join
+                        Last lc
+                            on lc.TxId = c.RowId
+                    cross join
+                        Transactions s indexed by Transactions_Type_RegId2_RegId1
+                            on s.Type in (300) and s.RegId2 = c.RegId2
+                    cross join
+                        Chain cs
+                            on cs.TxId = s.RowId and cs.Height > height.value
+                    order by cs.Height desc
+                    limit ?
+                )sql")
+                .Bind(address, height, limit);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
-                        record.pushKV("donation", "true");
-                        record.pushKV("amount", value);
-                    }
+                        UniValue record(UniValue::VOBJ);
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        record.pushKV("addr", address);
+                        record.pushKV("msg", "event");
+                        record.pushKV("mesType", "upvoteShare");
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("posttxid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    vector<UniValue> WebRpcRepository::GetMissedCommentsScores(const string& address, int height, int limit)
+    {
+        vector<UniValue> result;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    height as ( select ? as value )
+                    select
+                        (select r.String from Registry r where r.RowId = s.RegId1) as address,
+                        (select r.String from Registry r where r.RowId = s.RowId),
+                        s.Time,
+                        (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
+                        s.Int1 as value,
+                        cs.Height
+                    from
+                        addr,
+                        height
+                    cross join
+                        Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on c.Type in (204, 205) and c.RegId1 = addr.id
+                    cross join
+                        Last lc
+                            on lc.TxId = c.RowId
+                    cross join
+                        Transactions s indexed by Transactions_Type_RegId2_RegId1
+                            on s.Type in (301) and s.RegId2 = c.RegId2
+                    cross join
+                        Chain cs
+                            on cs.TxId = s.RowId and cs.Height > height.value
+                    order by cs.Height desc
+                    limit ?
+                )sql")
+                .Bind(address, height, limit);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+
+                        record.pushKV("addr", address);
+                        record.pushKV("msg", "event");
+                        record.pushKV("mesType", "cScore");
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("commentid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("upvoteVal", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(5); ok) record.pushKV("nblock", value);
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    map<string, UniValue> WebRpcRepository::GetMissedTransactions(const string& address, int height, int count)
+    {
+        map<string, UniValue> result;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    height as ( select ? as value )
+                    select
+                        (select r.String from Registry r where r.RowId = t.RowId),
+                        t.Time,
+                        o.Value,
+                        c.Height,
+                        t.Type
+                    from
+                        addr,
+                        height
+                    cross join
+                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                            on o.AddressId = addr.id
+                    cross join
+                        Chain c indexed by Chain_TxId_Height
+                            on c.TxId = o.TxId and c.Height > height.value
+                    cross join
+                        Transactions t
+                            on t.RowId = o.TxId
+                    order by c.Height desc
+                    limit ?
+                )sql")
+                .Bind(address, height, count);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[okTxHash, txHash] = cursor.TryGetColumnString(0);
+                        if (!okTxHash) continue;
+
+                        UniValue record(UniValue::VOBJ);
+                        record.pushKV("txid", txHash);
+                        record.pushKV("addr", address);
+                        record.pushKV("msg", "transaction");
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("amount", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+
+                        if (auto[ok, value] = cursor.TryGetColumnInt(4); ok)
+                        {
+                            auto stringType = TransactionHelper::TxStringType((TxType) value);
+                            if (!stringType.empty())
+                                record.pushKV("type", stringType);
+                        }
+
+                        result.emplace(txHash, record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    vector<UniValue> WebRpcRepository::GetMissedCommentAnswers(const string& address, int height, int count)
+    {
+        vector<UniValue> result;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    height as ( select ? as value )
+                    select
+                        (select r.String from Registry r where r.RowId = a.RegId2) as RootTxHash,
+                        a.Time,
+                        ca.Height,
+                        (select r.String from Registry r where r.RowId = a.RegId1) as addrFrom,
+                        (select r.String from Registry r where r.RowId = a.RegId3) as posttxid,
+                        (select r.String from Registry r where r.RowId = a.RegId4) as parentid,
+                        (select r.String from Registry r where r.RowId = a.RegId5) as answerid
+                    from
+                        addr,
+                        height
+                    cross join
+                        Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on c.Type in (204, 205) and c.RegId1 = addr.id
+                    cross join
+                        Transactions a indexed by Transactions_Type_RegId5_RegId1
+                            on a.Type in (204, 205) and a.RegId5 = c.RegId2 and a.RegId1 != c.RegId1
+                    cross join
+                        Last la
+                            on la.TxId = a.RowId
+                    cross join
+                        Chain ca
+                            on ca.TxId = a.RowId and ca.Height > height.value
+                    order by ca.Height desc
+                    limit ?
+                )sql")
+                .Bind(address, height, count);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+
+                        record.pushKV("addr", address);
+                        record.pushKV("msg", "comment");
+                        record.pushKV("mesType", "answer");
+                        record.pushKV("reason", "answer");
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("txid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("answerid", value);
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    vector<UniValue> WebRpcRepository::GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count)
+    {
+        vector<UniValue> result;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addr as (
+                            select
+                                RowId as id
+                            from
+                                Registry
+                            where
+                                String = ?
+                        ),
+                        height as (
+                            select ? as value
+                        ),
+                        excludeContent as (
+                            select
+                                RowId as id,
+                                String as hash
+                            from
+                                Registry
+                            where
+                                String in ( )sql" + join(vector<string>(excludePosts.size(), "?"), ",") + R"sql( )
+                        )
+                    select
+                        (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
+                        c.Time,
+                        cc.Height,
+                        (select r.String from Registry r where r.RowId = c.RegId1) as addrFrom,
+                        (select r.String from Registry r where r.RowId = c.RegId3) as posttxid,
+                        (select r.String from Registry r where r.RowId = c.RegId4) as  parentid,
+                        (select r.String from Registry r where r.RowId = c.RegId5) as  answerid,
+                        (
+                            select o.Value
+                            from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                            where o.TxId = c.RowId and o.AddressId = p.RegId1 and o.AddressId != c.RegId1
+                        ) as Donate
+                    from
+                        addr,
+                        height
+                    cross join
+                        Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            p.Type in (200, 201, 202, 209, 210) and
+                            p.RegId1 = addr.id
+                    cross join
+                        Last lp
+                            on lp.TxId = p.RowId
+                    cross join
+                        Transactions c indexed by Transactions_Type_RegId3_RegId1
+                            on c.Type in (204, 205) and c.RegId3 = p.RegId2 and c.RegId1 != p.RegId1
+                    cross join
+                        Last lc
+                            on lc.TxId = c.RowId
+                    cross join
+                        Chain cc
+                            on cc.TxId = lc.TxId and cc.Height > height.value
+                    left join
+                        excludeContent on
+                            excludeContent.id = p.RegId2
+                    where
+                        excludeContent.id is null
+                    order by
+                        cc.Height desc
+                    limit ?
+                )sql")
+                .Bind(address, height, excludePosts, count);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+
+                        record.pushKV("addr", address);
+                        record.pushKV("msg", "comment");
+                        record.pushKV("mesType", "post");
+                        record.pushKV("reason", "post");
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("txid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("nblock", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("addrFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("parentid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("answerid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(7); ok)
+                        {
+                            record.pushKV("donation", "true");
+                            record.pushKV("amount", value);
+                        }
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -3420,80 +3564,84 @@ namespace PocketDb
     {
         vector<UniValue> result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    height as ( select ? as value )
                     select
-                        RowId as id
+                        subs.Type,
+                        (select r.String from Registry r where r.RowId = subs.RowId),
+                        subs.Time,
+                        cs.Height,
+                        (select r.String from Registry r where r.RowId = subs.RegId1) as addrFrom,
+                        p.String2 as nameFrom,
+                        p.String3 as avatarFrom
                     from
-                        Registry
-                    where
-                        String = ?
-                ),
-                height as ( select ? as value )
-                select
-                    subs.Type,
-                    (select r.String from Registry r where r.RowId = subs.RowId),
-                    subs.Time,
-                    cs.Height,
-                    (select r.String from Registry r where r.RowId = subs.RegId1) as addrFrom,
-                    p.String2 as nameFrom,
-                    p.String3 as avatarFrom
-                from
-                    addr,
-                    height
-                cross join
-                    Transactions subs indexed by Transactions_Type_RegId2_RegId1
-                        on subs.Type in (302, 303, 304) and subs.RegId2 = addr.id
-                cross join
-                    Last ls
-                        on ls.TxId = subs.RowId
-                cross join
-                    Chain cs indexed by Chain_TxId_Height
-                        on cs.TxId = subs.RowId and cs.Height > height.value
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on u.Type in (100) and u.RegId1 = subs.RegId1
-                cross join
-                    Last l
-                        on l.TxId = u.RowId
-                cross join
-                    Payload p
-                        on p.TxId = u.RowId
-                order by cs.Height desc
-                limit ?
-            )sql")
-            .Bind(address, height, count)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    record.pushKV("addr", address);
-                    record.pushKV("msg", "event");
-                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                        addr,
+                        height
+                    cross join
+                        Transactions subs indexed by Transactions_Type_RegId2_RegId1
+                            on subs.Type in (302, 303, 304) and subs.RegId2 = addr.id
+                    cross join
+                        Last ls
+                            on ls.TxId = subs.RowId
+                    cross join
+                        Chain cs indexed by Chain_TxId_Height
+                            on cs.TxId = subs.RowId and cs.Height > height.value
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (100) and u.RegId1 = subs.RegId1
+                    cross join
+                        Last l
+                            on l.TxId = u.RowId
+                    cross join
+                        Payload p
+                            on p.TxId = u.RowId
+                    order by cs.Height desc
+                    limit ?
+                )sql")
+                .Bind(address, height, count);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
-                        switch (value)
-                        {
-                            case 302: record.pushKV("mesType", "subscribe"); break;
-                            case 303: record.pushKV("mesType", "subscribePrivate"); break;
-                            case 304: record.pushKV("mesType", "unsubscribe"); break;
-                            default: record.pushKV("mesType", "unknown"); break;
-                        }
-                    }
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("nameFrom", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("avatarFrom", value);
+                        UniValue record(UniValue::VOBJ);
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        record.pushKV("addr", address);
+                        record.pushKV("msg", "event");
+                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                        {
+                            switch (value)
+                            {
+                                case 302: record.pushKV("mesType", "subscribe"); break;
+                                case 303: record.pushKV("mesType", "subscribePrivate"); break;
+                                case 304: record.pushKV("mesType", "unsubscribe"); break;
+                                default: record.pushKV("mesType", "unknown"); break;
+                            }
+                        }
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("addrFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("nameFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("avatarFrom", value);
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -3502,74 +3650,78 @@ namespace PocketDb
     {
         vector<UniValue> result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String = ?
+                    ),
+                    height as ( select ? as value )
                     select
-                        RowId as id
+                        (select r.String from Registry r where r.RowId = tBoost.RegId1) as boostAddress,
+                        (select r.String from Registry r where r.RowId = tBoost.RowId),
+                        tBoost.Time,
+                        cb.Height,
+                        (select r.String from Registry r where r.RowId = tBoost.RegId2) as contenttxid,
+                        tBoost.Int1 as boostAmount,
+                        p.String2 as boostName,
+                        p.String3 as boostAvatar
                     from
-                        Registry
-                    where
-                        String = ?
-                ),
-                height as ( select ? as value )
-                select
-                    (select r.String from Registry r where r.RowId = tBoost.RegId1) as boostAddress,
-                    (select r.String from Registry r where r.RowId = tBoost.RowId),
-                    tBoost.Time,
-                    cb.Height,
-                    (select r.String from Registry r where r.RowId = tBoost.RegId2) as contenttxid,
-                    tBoost.Int1 as boostAmount,
-                    p.String2 as boostName,
-                    p.String3 as boostAvatar
-                from
-                    addr,
-                    height
-                cross join
-                    Transactions tBoost indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on tBoost.Type in (208)
-                cross join
-                    Chain cb
-                        on cb.TxId = tBoost.RowId and cb.Height > Height.value
-                cross join
-                    Transactions tContent indexed by Transactions_Type_RegId2_RegId1
-                        on tContent.Type in (200, 201, 202, 209, 210) and tContent.RegId2 = tBoost.RegId2 and tContent.RegId1 = addr.id
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on  u.Type in (100) and u.RegId1 = tBoost.RegId1
-                cross join
-                    Last lu
-                        on lu.TxId = u.RowId
-                cross join
-                    Payload p
-                        on p.TxId = u.RowId
-                order by cb.Height desc
-                limit ?
-            )sql")
-            .Bind(address, height, count)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+                        addr,
+                        height
+                    cross join
+                        Transactions tBoost indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on tBoost.Type in (208)
+                    cross join
+                        Chain cb
+                            on cb.TxId = tBoost.RowId and cb.Height > Height.value
+                    cross join
+                        Transactions tContent indexed by Transactions_Type_RegId2_RegId1
+                            on tContent.Type in (200, 201, 202, 209, 210) and tContent.RegId2 = tBoost.RegId2 and tContent.RegId1 = addr.id
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on  u.Type in (100) and u.RegId1 = tBoost.RegId1
+                    cross join
+                        Last lu
+                            on lu.TxId = u.RowId
+                    cross join
+                        Payload p
+                            on p.TxId = u.RowId
+                    order by cb.Height desc
+                    limit ?
+                )sql")
+                .Bind(address, height, count);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                    record.pushKV("addr", address);
-                    record.pushKV("msg", "event");
-                    record.pushKV("mesType", "contentBoost");
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("boostAmount", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("nameFrom", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("avatarFrom", value);
+                        record.pushKV("addr", address);
+                        record.pushKV("msg", "event");
+                        record.pushKV("mesType", "contentBoost");
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("addrFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("nblock", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("boostAmount", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("nameFrom", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("avatarFrom", value);
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -3582,42 +3734,46 @@ namespace PocketDb
             return result;
 
         vector<int64_t> ids;
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    height as (
-                        select ? as value
-                    )
-                select
-                    c.Uid
-                from
-                    height
-                cross join
-                    Payload p on
-                        p.String7 in ( )sql" + join(vector<string>(links.size(), "?"), ",") + R"sql( )
-                cross join
-                    Transactions t on
-                        t.RowId = p.TxId and
-                        t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-                cross join
-                    Last l on
-                        l.TxId = t.RowId
-                cross join
-                    Chain c indexed by Chain_TxId_Height on
-                        c.TxId = t.RowId and
-                        c.Height <= height.value
-                limit ?
-            )sql")
-            .Bind(nHeight, links, contentTypes, countOut)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                        ids.push_back(value);
-                }
-            });
-        });
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        height as (
+                            select ? as value
+                        )
+                    select
+                        c.Uid
+                    from
+                        height
+                    cross join
+                        Payload p on
+                            p.String7 in ( )sql" + join(vector<string>(links.size(), "?"), ",") + R"sql( )
+                    cross join
+                        Transactions t on
+                            t.RowId = p.TxId and
+                            t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                    cross join
+                        Last l on
+                            l.TxId = t.RowId
+                    cross join
+                        Chain c indexed by Chain_TxId_Height on
+                            c.TxId = t.RowId and
+                            c.Height <= height.value
+                    limit ?
+                )sql")
+                .Bind(nHeight, links, contentTypes, countOut);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                            ids.push_back(value);
+                    }
+                });
+            }
+        );
 
         if (ids.empty())
             return result;
@@ -3635,68 +3791,72 @@ namespace PocketDb
         if (addresses.empty())
             return result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    addr as (
-                        select
-                            RowId as id,
-                            String as hash
-                        from
-                            Registry
-                        where
-                            String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                    ),
-                    stat as (
-                        select
-                            addr.id,
-                            sum(s.Int1) as scrSum,
-                            count() as scrCnt,
-                            count(distinct s.RegId1) as countLikers
-                        from
-                            addr
-                        cross join
-                            Transactions v indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                v.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and v.RegId1 = addr.id
-                        cross join
-                            Last lv on
-                                lv.TxId = v.RowId
-                        cross join
-                            Transactions s indexed by Transactions_Type_RegId2_RegId1 on
-                                s.Type in (300) and s.RegId2 = v.RegId2
-                        cross join
-                            Chain cs on
-                                cs.TxId = s.RowId
-                    )
-                select
-                    a.hash,
-                    ifnull(s.scrSum, 0),
-                    ifnull(s.scrCnt, 0),
-                    ifnull(s.countLikers, 0)
-                from
-                    addr a
-                left join
-                    stat s on
-                        s.id = a.id
-                group by
-                    a.hash
-            )sql")
-            .Bind(addresses, contentTypes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addr as (
+                            select
+                                RowId as id,
+                                String as hash
+                            from
+                                Registry
+                            where
+                                String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                        ),
+                        stat as (
+                            select
+                                addr.id,
+                                sum(s.Int1) as scrSum,
+                                count() as scrCnt,
+                                count(distinct s.RegId1) as countLikers
+                            from
+                                addr
+                            cross join
+                                Transactions v indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    v.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and v.RegId1 = addr.id
+                            cross join
+                                Last lv on
+                                    lv.TxId = v.RowId
+                            cross join
+                                Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                                    s.Type in (300) and s.RegId2 = v.RegId2
+                            cross join
+                                Chain cs on
+                                    cs.TxId = s.RowId
+                        )
+                    select
+                        a.hash,
+                        ifnull(s.scrSum, 0),
+                        ifnull(s.scrCnt, 0),
+                        ifnull(s.countLikers, 0)
+                    from
+                        addr a
+                    left join
+                        stat s on
+                            s.id = a.id
+                    group by
+                        a.hash
+                )sql")
+                .Bind(addresses, contentTypes);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
 
-                    cursor.Collect<string>(0, record, "address");
-                    cursor.Collect<int>(1, record, "scoreSum");
-                    cursor.Collect<int>(2, record, "scoreCnt");
-                    cursor.Collect<int>(3, record, "countLikers");
+                        cursor.Collect<string>(0, record, "address");
+                        cursor.Collect<int>(1, record, "scoreSum");
+                        cursor.Collect<int>(2, record, "scoreCnt");
+                        cursor.Collect<int>(3, record, "countLikers");
 
-                    result.push_back(record);
-                }
-            });
-        });
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -3709,67 +3869,71 @@ namespace PocketDb
         UniValue result(UniValue::VARR);
 
         vector<int64_t> ids;
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    lang as ( select ? as value)
-                select
-                    ct.Uid
-                from
-                    lang
-                cross join
-                    Chain ct indexed by Chain_Height_Uid on
-                        ct.Height <= ? and
-                        ct.Height > ?
-                cross join
-                    Transactions t on
-                        t.RowId = ct.TxId and
-                        t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
-                        t.RegId3 is null
-                cross join
-                    Payload p  on
-                        p.TxId = t.RowId and
-                        p.String1 = lang.value
-                cross join
-                    Last lt on
-                        lt.TxId = t.RowId
-                cross join
-                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
-                        r.Type = 2 and r.Uid = ct.Uid and r.Last = 1
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        u.Type in (100) and u.RegId1 = t.RegId1
-                cross join
-                    Last lu on
-                        lu.TxId = u.RowId
-                cross join
-                    Chain cu on
-                        cu.TxId = u.RowId
-                left join
-                    Ratings ur indexed by Ratings_Type_Uid_Last_Value on
-                        ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
-                where
-                    -- Do not show posts from users with low reputation
-                    ifnull(ur.Value,0) > ?
-                order by
-                    r.Value desc
-                limit ?
-            )sql")
-            .Bind(
-                lang,
-                nHeight,
-                nHeight - depth,
-                contentTypes,
-                badReputationLimit,
-                countOut
-            )
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
-                        ids.push_back(value);
-            });
-        });
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        lang as ( select ? as value)
+                    select
+                        ct.Uid
+                    from
+                        lang
+                    cross join
+                        Chain ct indexed by Chain_Height_Uid on
+                            ct.Height <= ? and
+                            ct.Height > ?
+                    cross join
+                        Transactions t on
+                            t.RowId = ct.TxId and
+                            t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                            t.RegId3 is null
+                    cross join
+                        Payload p  on
+                            p.TxId = t.RowId and
+                            p.String1 = lang.value
+                    cross join
+                        Last lt on
+                            lt.TxId = t.RowId
+                    cross join
+                        Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                            r.Type = 2 and r.Uid = ct.Uid and r.Last = 1
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type in (100) and u.RegId1 = t.RegId1
+                    cross join
+                        Last lu on
+                            lu.TxId = u.RowId
+                    cross join
+                        Chain cu on
+                            cu.TxId = u.RowId
+                    left join
+                        Ratings ur indexed by Ratings_Type_Uid_Last_Value on
+                            ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
+                    where
+                        -- Do not show posts from users with low reputation
+                        ifnull(ur.Value,0) > ?
+                    order by
+                        r.Value desc
+                    limit ?
+                )sql")
+                .Bind(
+                    lang,
+                    nHeight,
+                    nHeight - depth,
+                    contentTypes,
+                    badReputationLimit,
+                    countOut
+                );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                            ids.push_back(value);
+                });
+            }
+        );
 
         if (ids.empty())
             return result;
@@ -3804,7 +3968,6 @@ namespace PocketDb
 
     vector<UniValue> WebRpcRepository::GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address)
     {
-        auto func = __func__;
         vector<UniValue> result{};
 
         if (hashes.empty() && ids.empty())
@@ -3844,193 +4007,197 @@ namespace PocketDb
         // Get posts
         unordered_map<int64_t, UniValue> tmpResult{};
         vector<string> authors;
-        SqlTransaction(func, [&]()
-        {
-            Sql(R"sql(
-                with
-                )sql" + _withTxs + R"sql(
-                addr as (
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    )sql" + _withTxs + R"sql(
+                    addr as (
+                        select
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String = ?
+                    )
                     select
-                        RowId as id
-                    from
-                        Registry
-                    where
-                        String = ?
-                )
-                select
-                    (select String from Registry where RowId = t.RowId) as Hash,
-                    (select String from Registry where RowId = t.RegId2) as RootTxHash,
-                    c.Uid as Id,
-                    case when t.RowId != t.RegId2 then 'true' else null end edit,
-                    (select String from Registry where RowId = t.RegId3) as RelayTxHash,
-                    (select String from Registry where RowId = t.RegId1) as AddressHash,
-                    t.Time,
-                    p.String1 as Lang,
-                    t.Type,
-                    p.String2 as Caption,
-                    p.String3 as Message,
-                    p.String7 as Url,
-                    p.String4 as Tags,
-                    p.String5 as Images,
-                    p.String6 as Settings,
-                    (
-                        select
-                            count()
-                        from Transactions scr indexed by Transactions_Type_RegId2_RegId1
-                        cross join Chain cscr
-                            on cscr.TxId = scr.RowId
-                        where
-                            scr.Type in (300) and
-                            scr.RegId2 = t.RegId2
-                    ) as ScoresCount,
-                    ifnull((
-                        select
-                            sum(scr.Int1)
-                        from Transactions scr indexed by Transactions_Type_RegId2_RegId1
-                        cross join Chain cscr
-                            on cscr.TxId = scr.RowId
-                        where
-                            scr.Type in (300) and
-                            scr.RegId2 = t.RegId2
-                    ), 0) as ScoresSum,
-                    (
-                        select
-                            count()
-                        from Transactions rep indexed by Transactions_Type_RegId3_RegId1
-                        join Last lrep
-                            on lrep.TxId = rep.RowId
-                        where
-                            rep.Type in (200, 201, 202, 209, 210) and
-                            rep.RegId3 = t.RegId2
-                    ) as Reposted,
-                    (
-                        select
-                            count()
-                        from Transactions c indexed by Transactions_Type_RegId3_RegId1
-                        cross join Last lc
-                            on lc.TxId = c.RowId
-                        cross join Chain cc
-                            on cc.TxId = c.RowId
-                        where
-                            c.Type in (204, 205) and
-                            c.RegId3 = t.RegId2 and
-                            -- exclude commenters blocked by the author of the post
-                            not exists (
-                                select 1
-                                from BlockingLists bl
-                                where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
-                            )
-                    ) as CommentsCount,
-                    ifnull((
-                        select
-                            scr.Int1
-                        from
-                            Transactions scr indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        cross join Chain cscr
-                            on cscr.TxId = scr.RowId
-                        where
-                            scr.Type in (300) and
-                            scr.RegId1 = addr.id and
-                            scr.RegId2 = t.RegId2
-                    ), 0) as MyScore,
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'h', cv.Height,
-                                    'hs', (select rv.String from Registry rv where rv.RowId = tv.RowId)
+                        (select String from Registry where RowId = t.RowId) as Hash,
+                        (select String from Registry where RowId = t.RegId2) as RootTxHash,
+                        c.Uid as Id,
+                        case when t.RowId != t.RegId2 then 'true' else null end edit,
+                        (select String from Registry where RowId = t.RegId3) as RelayTxHash,
+                        (select String from Registry where RowId = t.RegId1) as AddressHash,
+                        t.Time,
+                        p.String1 as Lang,
+                        t.Type,
+                        p.String2 as Caption,
+                        p.String3 as Message,
+                        p.String7 as Url,
+                        p.String4 as Tags,
+                        p.String5 as Images,
+                        p.String6 as Settings,
+                        (
+                            select
+                                count()
+                            from Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain cscr
+                                on cscr.TxId = scr.RowId
+                            where
+                                scr.Type in (300) and
+                                scr.RegId2 = t.RegId2
+                        ) as ScoresCount,
+                        ifnull((
+                            select
+                                sum(scr.Int1)
+                            from Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain cscr
+                                on cscr.TxId = scr.RowId
+                            where
+                                scr.Type in (300) and
+                                scr.RegId2 = t.RegId2
+                        ), 0) as ScoresSum,
+                        (
+                            select
+                                count()
+                            from Transactions rep indexed by Transactions_Type_RegId3_RegId1
+                            join Last lrep
+                                on lrep.TxId = rep.RowId
+                            where
+                                rep.Type in (200, 201, 202, 209, 210) and
+                                rep.RegId3 = t.RegId2
+                        ) as Reposted,
+                        (
+                            select
+                                count()
+                            from Transactions c indexed by Transactions_Type_RegId3_RegId1
+                            cross join Last lc
+                                on lc.TxId = c.RowId
+                            cross join Chain cc
+                                on cc.TxId = c.RowId
+                            where
+                                c.Type in (204, 205) and
+                                c.RegId3 = t.RegId2 and
+                                -- exclude commenters blocked by the author of the post
+                                not exists (
+                                    select 1
+                                    from BlockingLists bl
+                                    where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
                                 )
-                            )
-                        from
-                            Transactions tv indexed by Transactions_Type_RegId2_RegId1
-                        cross join Chain cv
-                            on cv.TxId = tv.RowId
-                        where
-                            tv.Type = t.Type and
-                            tv.RegId2 = t.RegId2 and
-                            tv.RowId != t.RowId
-                    ) as Versions
-                from
-                    txs,
-                    addr
-                cross join
-                    Transactions t
-                        on t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210)
-                cross join
-                    Chain c
-                        on c.TxId = t.RowId
-                cross join
-                    Last l
-                        on l.TxId = t.RowId
-                cross join
-                    Payload p
-                        on p.TxId = t.RowId
-            )sql")
-            .Bind(hashes, ids, address)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    int ii = 0;
-                    UniValue record(UniValue::VOBJ);
+                        ) as CommentsCount,
+                        ifnull((
+                            select
+                                scr.Int1
+                            from
+                                Transactions scr indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            cross join Chain cscr
+                                on cscr.TxId = scr.RowId
+                            where
+                                scr.Type in (300) and
+                                scr.RegId1 = addr.id and
+                                scr.RegId2 = t.RegId2
+                        ), 0) as MyScore,
+                        (
+                            select
+                                json_group_array(
+                                    json_object(
+                                        'h', cv.Height,
+                                        'hs', (select rv.String from Registry rv where rv.RowId = tv.RowId)
+                                    )
+                                )
+                            from
+                                Transactions tv indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain cv
+                                on cv.TxId = tv.RowId
+                            where
+                                tv.Type = t.Type and
+                                tv.RegId2 = t.RegId2 and
+                                tv.RowId != t.RowId
+                        ) as Versions
+                    from
+                        txs,
+                        addr
+                    cross join
+                        Transactions t
+                            on t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210)
+                    cross join
+                        Chain c
+                            on c.TxId = t.RowId
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
+                    cross join
+                        Payload p
+                            on p.TxId = t.RowId
+                )sql")
+                .Bind(hashes, ids, address);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int ii = 0;
+                        UniValue record(UniValue::VOBJ);
 
-                    cursor.Collect<string>(ii++, record, "hash");
-                    cursor.Collect<string>(ii++, record, "txid");
-                    int64_t id;
-                    if (!cursor.Collect(ii++, id)) {
-                        continue; // TODO (aok): error
+                        cursor.Collect<string>(ii++, record, "hash");
+                        cursor.Collect<string>(ii++, record, "txid");
+                        int64_t id;
+                        if (!cursor.Collect(ii++, id)) {
+                            continue; // TODO (aok): error
+                        }
+                        record.pushKV("id", id);
+                        cursor.Collect<string>(ii++, record, "edit");
+                        cursor.Collect<string>(ii++, record, "repost");
+                        cursor.Collect(ii++, [&](const string& value) {
+                            authors.emplace_back(value);
+                            record.pushKV("address", value);
+                        });
+                        cursor.Collect<int64_t>(ii++, record, "time"); // TODO (aok): is it str?
+                        cursor.Collect<string>(ii++, record, "l");
+
+                        cursor.Collect(ii++, [&](int value) {
+                            record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
+                            if ((TxType)value == CONTENT_DELETE)
+                                record.pushKV("deleted", "true");
+                        });
+                        cursor.Collect<string>(ii++, record, "c");
+                        cursor.Collect<string>(ii++, record, "m");
+                        cursor.Collect<string>(ii++, record, "u");
+
+                        cursor.Collect(ii++, [&](const string& value) {
+                            UniValue t(UniValue::VARR);
+                            t.read(value);
+                            record.pushKV("t", t);
+                        });
+
+                        cursor.Collect(ii++, [&](const string& value) {
+                            UniValue ii(UniValue::VARR);
+                            ii.read(value);
+                            record.pushKV("i", ii);
+                        });
+
+                        cursor.Collect(ii++, [&](const string& value) {
+                            UniValue s(UniValue::VOBJ);
+                            s.read(value);
+                            record.pushKV("s", s);
+                        });
+
+                        cursor.Collect<int>(ii++, record, "scoreCnt");
+                        cursor.Collect<int>(ii++, record, "scoreSum");
+                        cursor.Collect<int>(ii++, record, "reposted");
+                        cursor.Collect<int>(ii++, record, "comments");
+                        cursor.Collect<int>(ii++, record, "myVal");
+                        cursor.Collect(ii++, [&](const string& value) {
+                            UniValue ii(UniValue::VARR);
+                            ii.read(value);
+                            record.pushKV("versions", ii);
+                        });
+
+                        tmpResult[id] = record;                
                     }
-                    record.pushKV("id", id);
-                    cursor.Collect<string>(ii++, record, "edit");
-                    cursor.Collect<string>(ii++, record, "repost");
-                    cursor.Collect(ii++, [&](const string& value) {
-                        authors.emplace_back(value);
-                        record.pushKV("address", value);
-                    });
-                    cursor.Collect<int64_t>(ii++, record, "time"); // TODO (aok): is it str?
-                    cursor.Collect<string>(ii++, record, "l");
-
-                    cursor.Collect(ii++, [&](int value) {
-                        record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
-                        if ((TxType)value == CONTENT_DELETE)
-                            record.pushKV("deleted", "true");
-                    });
-                    cursor.Collect<string>(ii++, record, "c");
-                    cursor.Collect<string>(ii++, record, "m");
-                    cursor.Collect<string>(ii++, record, "u");
-
-                    cursor.Collect(ii++, [&](const string& value) {
-                        UniValue t(UniValue::VARR);
-                        t.read(value);
-                        record.pushKV("t", t);
-                    });
-
-                    cursor.Collect(ii++, [&](const string& value) {
-                        UniValue ii(UniValue::VARR);
-                        ii.read(value);
-                        record.pushKV("i", ii);
-                    });
-
-                    cursor.Collect(ii++, [&](const string& value) {
-                        UniValue s(UniValue::VOBJ);
-                        s.read(value);
-                        record.pushKV("s", s);
-                    });
-
-                    cursor.Collect<int>(ii++, record, "scoreCnt");
-                    cursor.Collect<int>(ii++, record, "scoreSum");
-                    cursor.Collect<int>(ii++, record, "reposted");
-                    cursor.Collect<int>(ii++, record, "comments");
-                    cursor.Collect<int>(ii++, record, "myVal");
-                    cursor.Collect(ii++, [&](const string& value) {
-                        UniValue ii(UniValue::VARR);
-                        ii.read(value);
-                        record.pushKV("versions", ii);
-                    });
-
-                    tmpResult[id] = record;                
-                }
-            });
-        });
+                });
+            }
+        );
 
         // ---------------------------------------------
         // Get last comments for all posts
@@ -4054,81 +4221,84 @@ namespace PocketDb
 
     vector<UniValue> WebRpcRepository::GetCollectionsData(const vector<int64_t>& ids)
     {
-        auto func = __func__;
         vector<UniValue> result{};
 
         if (ids.empty())
             return result;
 
         unordered_map<int64_t, UniValue> tmpResult{};
-        SqlTransaction(func, [&]()
-        {
-            Sql(R"sql(
-                select
-                    (select r.String from Registry r where r.RowId = t.RegId2) as RootTxHash,
-                    c.Uid,
-                    case when t.RowId != t.RegId2 then 'true' else null end edit,
-                    (select r.String from Registry r where r.RowId = t.RegId3) as ContentIds,
-                    (select r.String from Registry r where r.RowId = t.RegId1) as AddressHash,
-                    t.Time,
-                    p.String1 as Lang,
-                    t.Type,
-                    t.Int1 as ContentTypes,
-                    p.String2 as Caption,
-                    p.String3 as Image
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select
+                        (select r.String from Registry r where r.RowId = t.RegId2) as RootTxHash,
+                        c.Uid,
+                        case when t.RowId != t.RegId2 then 'true' else null end edit,
+                        (select r.String from Registry r where r.RowId = t.RegId3) as ContentIds,
+                        (select r.String from Registry r where r.RowId = t.RegId1) as AddressHash,
+                        t.Time,
+                        p.String1 as Lang,
+                        t.Type,
+                        t.Int1 as ContentTypes,
+                        p.String2 as Caption,
+                        p.String3 as Image
 
-                from
-                    Chain c
-                cross join
-                    Transactions t
-                        on t.RowId = c.TxId and t.Type in (220)
-                cross join
-                    Last l
-                        on l.TxId = t.RowId
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on u.Type in (100) and u.RegId1 = t.RegId1
-                cross join
-                    Last lu
-                        on lu.TxId = u.RowId
-                left join
-                    Payload p
-                        on p.TxId = t.RowId
-                where
-                    c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-            )sql")
-            .Bind(ids)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-
-                    auto[okHash, txHash] = cursor.TryGetColumnString(0);
-                    auto[okId, txId] = cursor.TryGetColumnInt64(1);
-                    record.pushKV("txid", txHash);
-                    record.pushKV("id", txId);
-
-                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("edit", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("contentIds", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                    from
+                        Chain c
+                    cross join
+                        Transactions t
+                            on t.RowId = c.TxId and t.Type in (220)
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (100) and u.RegId1 = t.RegId1
+                    cross join
+                        Last lu
+                            on lu.TxId = u.RowId
+                    left join
+                        Payload p
+                            on p.TxId = t.RowId
+                    where
+                        c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+                )sql")
+                .Bind(ids);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
-                        record.pushKV("address", value);
+                        UniValue record(UniValue::VOBJ);
+
+                        auto[okHash, txHash] = cursor.TryGetColumnString(0);
+                        auto[okId, txId] = cursor.TryGetColumnInt64(1);
+                        record.pushKV("txid", txHash);
+                        record.pushKV("id", txId);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("edit", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("contentIds", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                        {
+                            record.pushKV("address", value);
+                        }
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("l", value); // lang
+                        if (auto[ok, value] = cursor.TryGetColumnInt(7); ok)
+                        {
+                            record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
+                            if ((TxType)value == CONTENT_DELETE)
+                                record.pushKV("deleted", "true");
+                        }
+                        if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("contentTypes", value); // caption
+                        if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("c", value); // caption
+                        if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("i", value); // image
+                        tmpResult[txId] = record;
                     }
-                    if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("l", value); // lang
-                    if (auto[ok, value] = cursor.TryGetColumnInt(7); ok)
-                    {
-                        record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
-                        if ((TxType)value == CONTENT_DELETE)
-                            record.pushKV("deleted", "true");
-                    }
-                    if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("contentTypes", value); // caption
-                    if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("c", value); // caption
-                    if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("i", value); // image
-                    tmpResult[txId] = record;
-                }
-            });
-        });
+                });
+            }
+        );
 
         // ---------------------------------------------
         // Place in result data with source sorting
@@ -4144,7 +4314,6 @@ namespace PocketDb
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int depth, int badReputationLimit)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (contentTypes.empty())
@@ -4228,47 +4397,50 @@ namespace PocketDb
 
         vector<int64_t> ids;
 
-        SqlTransaction(func, [&]()
-        {
-            auto& stmt = Sql(sql);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt.Bind(lang);
+                if (!lang.empty()) stmt.Bind(lang);
 
-            stmt.Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
+                stmt.Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
 
-            if (topContentId > 0)
-                stmt.Bind(topContentId);
+                if (topContentId > 0)
+                    stmt.Bind(topContentId);
 
-            if (!tags.empty())
-            {
-                stmt.Bind(tags);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(txidsExcluded, addrsExcluded);
-
-            if (!tagsExcluded.empty())
-            {
-                stmt.Bind(tagsExcluded);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(countOut);
-
-            // ---------------------------------------------
-
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step())
+                if (!tags.empty())
                 {
-                    auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
-                    ids.push_back(contentId);
+                    stmt.Bind(tags);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
                 }
-            });
-        });
+
+                stmt.Bind(txidsExcluded, addrsExcluded);
+
+                if (!tagsExcluded.empty())
+                {
+                    stmt.Bind(tagsExcluded);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
+                }
+
+                stmt.Bind(countOut);
+
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
+                        ids.push_back(contentId);
+                    }
+                });
+            }
+        );
 
         // Get content data
         if (!ids.empty())
@@ -4287,7 +4459,6 @@ namespace PocketDb
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int depth, int badReputationLimit)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (contentTypes.empty())
@@ -4386,47 +4557,50 @@ namespace PocketDb
 
         vector<int64_t> ids;
 
-        SqlTransaction(func, [&]()
-        {
-            auto& stmt = Sql(sql);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt.Bind(lang);
+                if (!lang.empty()) stmt.Bind(lang);
 
-            stmt.Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
+                stmt.Bind(contentTypes, topHeight - depth, topHeight, badReputationLimit);
 
-            // if (topContentId > 0)
-            //     stmt.TryBindStatementInt64(i++, topContentId);
+                // if (topContentId > 0)
+                //     stmt.TryBindStatementInt64(i++, topContentId);
 
-            if (!tags.empty())
-            {
-                stmt.Bind(tags);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(txidsExcluded, addrsExcluded);
-
-            if (!tagsExcluded.empty())
-            {
-                stmt.Bind(tagsExcluded);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(countOut);
-
-            // ---------------------------------------------
-
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step())
+                if (!tags.empty())
                 {
-                    auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
-                    ids.push_back(contentId);
+                    stmt.Bind(tags);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
                 }
-            });
-        });
+
+                stmt.Bind(txidsExcluded, addrsExcluded);
+
+                if (!tagsExcluded.empty())
+                {
+                    stmt.Bind(tagsExcluded);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
+                }
+
+                stmt.Bind(countOut);
+
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
+                        ids.push_back(contentId);
+                    }
+                });
+            }
+        );
 
         // Get content data
         if (!ids.empty())
@@ -4492,88 +4666,92 @@ namespace PocketDb
         sorting += " " + ascdesc;
 
         vector<int64_t> ids;
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    height as ( select ? as value ),
-                    addr as ( select RowId as id, String as hash from Registry where String = ?),
-                    lang as ( select ? as value ),
-                    topContentId as ( select ? as value )
-                select distinct
-                    ct.Uid
-                from
-                    height,
-                    addr,
-                    lang,
-                    topContentId
-                cross join
-                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
-                        t.RegId1 = addr.id
-                cross join
-                    Last lt on
-                        lt.TxId = t.RowId
-                cross join
-                    Chain ct on
-                        ct.TxId = t.RowId and
-                        ct.Height <= height.value and
-                        ( ? or ct.Uid < topContentId.value )
-                cross join
-                    Payload p on
-                        p.TxId = t.RowId and
-                        ( ? or p.String1 = lang.value )
-                left join
-                    web.TagsMap tm on
-                        tm.ContentId = ct.Uid
-                left join
-                    web.Tags tg on
-                        tg.Id = tm.TagId
-                where
-                    ( ? or tg.Lang = lang.value ) and
-                    ( ? or tg.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) ) and
-                    ( ? or tg.Value not in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) ) and
-                    (
-                        ? or
-                        t.RegId2 not in (
-                            select
-                                r.RowId
-                            from
-                                Registry r
-                            where
-                                r.String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        height as ( select ? as value ),
+                        addr as ( select RowId as id, String as hash from Registry where String = ?),
+                        lang as ( select ? as value ),
+                        topContentId as ( select ? as value )
+                    select distinct
+                        ct.Uid
+                    from
+                        height,
+                        addr,
+                        lang,
+                        topContentId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                            t.RegId1 = addr.id
+                    cross join
+                        Last lt on
+                            lt.TxId = t.RowId
+                    cross join
+                        Chain ct on
+                            ct.TxId = t.RowId and
+                            ct.Height <= height.value and
+                            ( ? or ct.Uid < topContentId.value )
+                    cross join
+                        Payload p on
+                            p.TxId = t.RowId and
+                            ( ? or p.String1 = lang.value )
+                    left join
+                        web.TagsMap tm on
+                            tm.ContentId = ct.Uid
+                    left join
+                        web.Tags tg on
+                            tg.Id = tm.TagId
+                    where
+                        ( ? or tg.Lang = lang.value ) and
+                        ( ? or tg.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) ) and
+                        ( ? or tg.Value not in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) ) and
+                        (
+                            ? or
+                            t.RegId2 not in (
+                                select
+                                    r.RowId
+                                from
+                                    Registry r
+                                where
+                                    r.String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
+                            )
                         )
-                    )
-                order by )sql" + sorting + R"sql(
-                limit ?
-                offset ?
-            )sql")
-            .Bind(
-                topHeight,
-                addressFeed,
-                lang,
-                topContentId,
-                contentTypes,
-                topContentId <= 0,
-                lang.empty(),
-                lang.empty(),
-                tagsIncluded.empty(),
-                tagsIncluded,
-                tagsExcluded.empty(),
-                tagsExcluded,
-                txidsExcluded.empty(),
-                txidsExcluded,
-                countOut,
-                pageNumber * countOut
-            )
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                        ids.push_back(value);
-                }
-            });
-        });
+                    order by )sql" + sorting + R"sql(
+                    limit ?
+                    offset ?
+                )sql")
+                .Bind(
+                    topHeight,
+                    addressFeed,
+                    lang,
+                    topContentId,
+                    contentTypes,
+                    topContentId <= 0,
+                    lang.empty(),
+                    lang.empty(),
+                    tagsIncluded.empty(),
+                    tagsIncluded,
+                    tagsExcluded.empty(),
+                    tagsExcluded,
+                    txidsExcluded.empty(),
+                    txidsExcluded,
+                    countOut,
+                    pageNumber * countOut
+                );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                            ids.push_back(value);
+                    }
+                });
+            }
+        );
 
         // Get content data
         if (!ids.empty())
@@ -4591,7 +4769,6 @@ namespace PocketDb
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, const vector<string>& addresses_extended)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (addressFeed.empty())
@@ -4673,47 +4850,50 @@ namespace PocketDb
         // ---------------------------------------------------
 
         vector<int64_t> ids;
-        SqlTransaction(func, [&]()
-        {
-            auto& stmt = Sql(sql);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt.Bind(lang);
+                if (!lang.empty()) stmt.Bind(lang);
 
-            stmt.Bind(contentTypes, addressFeed, addresses_extended, topHeight);
+                stmt.Bind(contentTypes, addressFeed, addresses_extended, topHeight);
 
-            if (topContentId > 0)
-                stmt.Bind(topContentId);
+                if (topContentId > 0)
+                    stmt.Bind(topContentId);
 
-            if (!tags.empty())
-            {
-                stmt.Bind(tags);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(txidsExcluded, addrsExcluded);
-
-            if (!tagsExcluded.empty())
-            {
-                stmt.Bind(tagsExcluded);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(countOut);
-
-            // ---------------------------------------------
-
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step())
+                if (!tags.empty())
                 {
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                        ids.push_back(value);
+                    stmt.Bind(tags);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
                 }
-            });
-        });
+
+                stmt.Bind(txidsExcluded, addrsExcluded);
+
+                if (!tagsExcluded.empty())
+                {
+                    stmt.Bind(tagsExcluded);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
+                }
+
+                stmt.Bind(countOut);
+
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                            ids.push_back(value);
+                    }
+                });
+            }
+        );
 
         // Get content data
         if (!ids.empty())
@@ -4732,7 +4912,6 @@ namespace PocketDb
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int badReputationLimit)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (contentTypes.empty())
@@ -4812,47 +4991,50 @@ namespace PocketDb
 
         vector<int64_t> ids;
 
-        SqlTransaction(func, [&]()
-        {
-            auto& stmt = Sql(sql);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
 
-            if (!lang.empty()) stmt.Bind(lang);
+                if (!lang.empty()) stmt.Bind(lang);
 
-            stmt.Bind(contentTypes, topHeight, badReputationLimit);
+                stmt.Bind(contentTypes, topHeight, badReputationLimit);
 
-            if (topContentId > 0)
-                stmt.Bind(topContentId);
+                if (topContentId > 0)
+                    stmt.Bind(topContentId);
 
-            if (!tags.empty())
-            {
-                stmt.Bind(tags);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(txidsExcluded, addrsExcluded);
-            
-            if (!tagsExcluded.empty())
-            {
-                stmt.Bind(tagsExcluded);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-                    
-            stmt.Bind(countOut);
-
-            // ---------------------------------------------
-
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step())
+                if (!tags.empty())
                 {
-                    auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
-                    ids.push_back(contentId);
+                    stmt.Bind(tags);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
                 }
-            });
-        });
+
+                stmt.Bind(txidsExcluded, addrsExcluded);
+                
+                if (!tagsExcluded.empty())
+                {
+                    stmt.Bind(tagsExcluded);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
+                }
+                        
+                stmt.Bind(countOut);
+
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
+                        ids.push_back(contentId);
+                    }
+                });
+            }
+        );
 
         // Get content data
         if (!ids.empty())
@@ -4870,7 +5052,6 @@ namespace PocketDb
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int badReputationLimit)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         // ---------------------------------------------
@@ -4967,57 +5148,60 @@ namespace PocketDb
         vector<HierarchicalRecord> postsRanks;
         double dekay = (contentTypes.size() == 1 && contentTypes[0] == CONTENT_VIDEO) ? dekayVideo : dekayContent;
 
-        SqlTransaction(func, [&]()
-        {
-            auto& stmt = Sql(sql);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
 
-            stmt.Bind(contentTypes, durationBlocksForPrevPosts, cntPrevPosts);
-            
-            if (!lang.empty()) stmt.Bind(lang);
+                stmt.Bind(contentTypes, durationBlocksForPrevPosts, cntPrevPosts);
+                
+                if (!lang.empty()) stmt.Bind(lang);
 
-            stmt.Bind(contentTypes, topHeight, topHeight - cntBlocksForResult, badReputationLimit);
+                stmt.Bind(contentTypes, topHeight, topHeight - cntBlocksForResult, badReputationLimit);
 
-            if (!tags.empty())
-            {
-                stmt.Bind(tags);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(txidsExcluded, addrsExcluded);
-            
-            if (!tagsExcluded.empty())
-            {
-                stmt.Bind(tagsExcluded);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            // ---------------------------------------------
-
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step())
+                if (!tags.empty())
                 {
-                    HierarchicalRecord record{};
+                    stmt.Bind(tags);
 
-                    int64_t contentId;
-                    int contentRating, accountRating, contentOrigHeight, contentScores;
-
-                    cursor.CollectAll(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
-
-                    record.Id = contentId;
-                    record.LAST5 = 1.0 * contentScores;
-                    record.UREP = accountRating;
-                    record.PREP = contentRating;
-                    record.DREP = pow(dekayRep, (topHeight - contentOrigHeight));
-                    record.DPOST = pow(dekay, (topHeight - contentOrigHeight));
-
-                    postsRanks.push_back(record);
+                    if (!lang.empty())
+                        stmt.Bind(lang);
                 }
-            });
-        });
+
+                stmt.Bind(txidsExcluded, addrsExcluded);
+                
+                if (!tagsExcluded.empty())
+                {
+                    stmt.Bind(tagsExcluded);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
+                }
+
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        HierarchicalRecord record{};
+
+                        int64_t contentId;
+                        int contentRating, accountRating, contentOrigHeight, contentScores;
+
+                        cursor.CollectAll(contentId, contentRating, accountRating, contentOrigHeight, contentScores);
+
+                        record.Id = contentId;
+                        record.LAST5 = 1.0 * contentScores;
+                        record.UREP = accountRating;
+                        record.PREP = contentRating;
+                        record.DREP = pow(dekayRep, (topHeight - contentOrigHeight));
+                        record.DPOST = pow(dekay, (topHeight - contentOrigHeight));
+
+                        postsRanks.push_back(record);
+                    }
+                });
+            }
+        );
 
         // ---------------------------------------------
         // Calculate content ratings
@@ -5108,7 +5292,6 @@ namespace PocketDb
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         int badReputationLimit)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         // --------------------------------------------
@@ -5186,53 +5369,55 @@ namespace PocketDb
 
         vector<int64_t> ids;
 
-        SqlTransaction(func, [&]()
-        {
-            auto& stmt = Sql(sql);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
 
-            stmt.Bind(contentTypes);
+                stmt.Bind(contentTypes);
 
-            if (!lang.empty()) stmt.Bind(lang);
+                if (!lang.empty()) stmt.Bind(lang);
 
-            stmt.Bind(topHeight, topHeight - cntBlocksForResult, badReputationLimit);
+                stmt.Bind(topHeight, topHeight - cntBlocksForResult, badReputationLimit);
 
-            if (!tags.empty())
-            {
-                stmt.Bind(tags);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            stmt.Bind(txidsExcluded, addrsExcluded);
-
-            if (!tagsExcluded.empty())
-            {
-                stmt.Bind(tagsExcluded);
-
-                if (!lang.empty())
-                    stmt.Bind(lang);
-            }
-
-            // ---------------------------------------------
-
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step())
+                if (!tags.empty())
                 {
-                    int64_t contentId, sumBoost;
-                    std::string contentHash;
-                    cursor.CollectAll(contentId, contentHash, sumBoost);
+                    stmt.Bind(tags);
 
-                    UniValue boost(UniValue::VOBJ);
-                    boost.pushKV("id", contentId);
-                    boost.pushKV("txid", contentHash);
-                    boost.pushKV("boost", sumBoost);
-                    result.push_back(boost);
+                    if (!lang.empty())
+                        stmt.Bind(lang);
                 }
-            });
-        });
 
-        // Complete!
+                stmt.Bind(txidsExcluded, addrsExcluded);
+
+                if (!tagsExcluded.empty())
+                {
+                    stmt.Bind(tagsExcluded);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
+                }
+
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int64_t contentId, sumBoost;
+                        std::string contentHash;
+                        cursor.CollectAll(contentId, contentHash, sumBoost);
+
+                        UniValue boost(UniValue::VOBJ);
+                        boost.pushKV("id", contentId);
+                        boost.pushKV("txid", contentHash);
+                        boost.pushKV("boost", sumBoost);
+                        result.push_back(boost);
+                    }
+                });
+            }
+        );
+
         return result;
     }
 
@@ -5242,7 +5427,6 @@ namespace PocketDb
                                    const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
                                    const string& address, const string& keyword, const string& orderby, const string& ascdesc)
     {
-        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (addressFeed.empty())
@@ -5293,23 +5477,28 @@ namespace PocketDb
         // ---------------------------------------------
 
         vector<int64_t> ids;
-        SqlTransaction(func, [&]()
-        {
-            auto& stmt = Sql(sql);
-            
-            if (!lang.empty()) stmt.Bind(lang);
-            stmt.Bind(topHeight, addressFeed);
-            if (topContentId > 0)
-                stmt.Bind(topContentId);
-            stmt.Bind(countOut, pageNumber * countOut);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
+                
+                if (!lang.empty()) stmt.Bind(lang);
+                stmt.Bind(topHeight, addressFeed);
+                if (topContentId > 0)
+                    stmt.Bind(topContentId);
+                stmt.Bind(countOut, pageNumber * countOut);
 
-            stmt.Select([&](Cursor& cursor) {
-                while (cursor.Step()) {
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                        ids.push_back(value);
-                }
-            });
-        });
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                            ids.push_back(value);
+                    }
+                });
+            }
+        );
 
         // Get content data
         if (!ids.empty())
@@ -5326,112 +5515,116 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    addr as (
-                        select
-                            RowId as id,
-                            String as hash
-                        from
-                            Registry
-                        where
-                            String = ?
-                    ),
-                    pageAddr as (
-                        select
-                            RowId as id,
-                            String as hash
-                        from
-                            Registry
-                        where
-                            String = ?
-                    ),
-                    height as (
-                        select ? as value
-                    )
-                select
-                (select r.String from Registry r where r.RowId = s.RegId1),
-                (
-                        select
-                            json_group_array(
-                                (select r.String from Registry r where r.RowId = _c.RowId)
-                            )
-                        from
-                            Transactions _c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        cross join
-                            Last _lc on
-                                _lc.TxId = _c.RowId
-                        cross join
-                            Chain _cc indexed by Chain_TxId_Height on
-                                _cc.TxId = _lc.TxId and
-                                _cc.Height <= height.value
-                        where
-                            _c.Type in (200, 201, 202, 209, 210) and
-                            _c.RegId1 = s.RegId1
-                        order by
-                            _c.RowId desc
-                        limit ?
-                    )
-                from
-                    addr,
-                    pageAddr,
-                    height
-                cross join
-                    Transactions s indexed by Transactions_Type_RegId2_RegId1 on
-                        s.Type in (302, 303) and
-                        s.RegId2 = addr.id and
-                        (? or s.RegId1 > pageAddr.id)
-                cross join
-                    Last ls on
-                        ls.TxId = s.RowId
-                cross join
-                    Chain cs indexed by Chain_TxId_Height on
-                        cs.TxId = ls.TxId and
-                        cs.Height <= height.value
-                where
-                    exists (
-                        select 1
-                        from
-                            Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        cross join
-                            Last lc on
-                                lc.TxId = c.RowId
-                        cross join
-                            Chain cc indexed by Chain_TxId_Height on
-                                cc.TxId = lc.TxId and
-                                cc.Height <= height.value
-                        where
-                            c.Type in (200, 201, 202, 209, 210) and
-                            c.RegId1 = s.RegId1
-                    )
-                    -- Do not show posts from users with low reputation
-                    -- ifnull(ur.Value,0) > ?
-                order by
-                    s.RegId1
-                limit ?
-            )sql")
-            .Bind(
-                address,
-                addressPagination.empty(),
-                addressPagination,
-                nHeight,
-                countOutOfcontents,
-                countOutOfUsers
-            )
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue contents(UniValue::VOBJ);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addr as (
+                            select
+                                RowId as id,
+                                String as hash
+                            from
+                                Registry
+                            where
+                                String = ?
+                        ),
+                        pageAddr as (
+                            select
+                                RowId as id,
+                                String as hash
+                            from
+                                Registry
+                            where
+                                String = ?
+                        ),
+                        height as (
+                            select ? as value
+                        )
+                    select
+                    (select r.String from Registry r where r.RowId = s.RegId1),
+                    (
+                            select
+                                json_group_array(
+                                    (select r.String from Registry r where r.RowId = _c.RowId)
+                                )
+                            from
+                                Transactions _c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            cross join
+                                Last _lc on
+                                    _lc.TxId = _c.RowId
+                            cross join
+                                Chain _cc indexed by Chain_TxId_Height on
+                                    _cc.TxId = _lc.TxId and
+                                    _cc.Height <= height.value
+                            where
+                                _c.Type in (200, 201, 202, 209, 210) and
+                                _c.RegId1 = s.RegId1
+                            order by
+                                _c.RowId desc
+                            limit ?
+                        )
+                    from
+                        addr,
+                        pageAddr,
+                        height
+                    cross join
+                        Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                            s.Type in (302, 303) and
+                            s.RegId2 = addr.id and
+                            (? or s.RegId1 > pageAddr.id)
+                    cross join
+                        Last ls on
+                            ls.TxId = s.RowId
+                    cross join
+                        Chain cs indexed by Chain_TxId_Height on
+                            cs.TxId = ls.TxId and
+                            cs.Height <= height.value
+                    where
+                        exists (
+                            select 1
+                            from
+                                Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            cross join
+                                Last lc on
+                                    lc.TxId = c.RowId
+                            cross join
+                                Chain cc indexed by Chain_TxId_Height on
+                                    cc.TxId = lc.TxId and
+                                    cc.Height <= height.value
+                            where
+                                c.Type in (200, 201, 202, 209, 210) and
+                                c.RegId1 = s.RegId1
+                        )
+                        -- Do not show posts from users with low reputation
+                        -- ifnull(ur.Value,0) > ?
+                    order by
+                        s.RegId1
+                    limit ?
+                )sql")
+                .Bind(
+                    address,
+                    addressPagination.empty(),
+                    addressPagination,
+                    nHeight,
+                    countOutOfcontents,
+                    countOutOfUsers
+                );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue contents(UniValue::VOBJ);
 
-                    cursor.Collect<string>(0, contents, "address");
-                    cursor.Collect<string>(1, contents, "txids");
+                        cursor.Collect<string>(0, contents, "address");
+                        cursor.Collect<string>(1, contents, "txids");
 
-                    result.push_back(contents);
-                }
-            });
-        });
+                        result.push_back(contents);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -5442,62 +5635,66 @@ namespace PocketDb
     {
         vector<int64_t> result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    lang as (
-                        select ? as value
-                    ),
-                    height as (
-                        select ? as value
-                    )
-                select
-                    c.Uid
-                from
-                    lang,
-                    height
-                cross join
-                    Chain c on
-                        c.Height > height.value
-                cross join
-                    Transactions t on
-                        t.RowId = c.TxId and
-                        t.Type in (200, 201, 202, 209, 210)
-                cross join
-                    Last lt on
-                        lt.TxId = t.RowId
-                cross join
-                    Payload p on
-                        t.RowId = p.TxId and
-                        p.String1 = lang.value
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        lang as (
+                            select ? as value
+                        ),
+                        height as (
+                            select ? as value
+                        )
+                    select
+                        c.Uid
+                    from
+                        lang,
+                        height
+                    cross join
+                        Chain c on
+                            c.Height > height.value
+                    cross join
+                        Transactions t on
+                            t.RowId = c.TxId and
+                            t.Type in (200, 201, 202, 209, 210)
+                    cross join
+                        Last lt on
+                            lt.TxId = t.RowId
+                    cross join
+                        Payload p on
+                            t.RowId = p.TxId and
+                            p.String1 = lang.value
 
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        u.Type = 100 and
-                        u.RegId1 = t.RegId1
-                cross join
-                    Last lu on
-                        lu.TxId = u.RowId
-                cross join
-                    Chain cu on
-                        cu.TxId = lu.TxId
-                cross join
-                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
-                        r.Type = 0 and r.Last = 1 and r.Uid = cu.Uid and r.Value > 0
-                order by
-                    random()
-                limit ?
-            )sql")
-            .Bind(lang, height, count)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                        result.push_back(value);
-                }
-            });
-        });
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type = 100 and
+                            u.RegId1 = t.RegId1
+                    cross join
+                        Last lu on
+                            lu.TxId = u.RowId
+                    cross join
+                        Chain cu on
+                            cu.TxId = lu.TxId
+                    cross join
+                        Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                            r.Type = 0 and r.Last = 1 and r.Uid = cu.Uid and r.Value > 0
+                    order by
+                        random()
+                    limit ?
+                )sql")
+                .Bind(lang, height, count);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                            result.push_back(value);
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -5509,194 +5706,198 @@ namespace PocketDb
         UniValue resultBoosts(UniValue::VARR);
         UniValue resultDonations(UniValue::VARR);
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                --scores
-                with
-                    tx as (
-                        select
-                            RowId as id,
-                            String as hash
-                        from
-                            Registry
-                        where
-                            String = ?
-                    )
-                select
-                    tx.hash as ContentTxHash,
-                    (select r.String from Registry r where r.RowId = s.RegId1) as AddressHash,
-                    p.String2 as AccountName,
-                    p.String3 as AccountAvatar,
-                    r.Value as AccountReputation,
-                    s.Int1 as ScoreValue,
-                    0 as sumBoost,
-                    0 as sumDonation
-                from
-                    tx
-                cross join
-                    Transactions s indexed by Transactions_Type_RegId2_RegId1 on
-                        s.Type in (300) and
-                        s.RegId2 = tx.id
-                cross join
-                    Chain cs on
-                        cs.TxId = s.RowId
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        u.Type in (100) and
-                        u.RegId1 = s.RegId1
-                cross join
-                    Chain cu on
-                        cu.TxId = u.RowId
-                cross join
-                    Payload p on
-                        p.TxId = u.RowId
-                left join
-                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
-                        r.Uid = cu.Uid and
-                        r.Type = 0 and
-                        r.Last = 1
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    --scores
+                    with
+                        tx as (
+                            select
+                                RowId as id,
+                                String as hash
+                            from
+                                Registry
+                            where
+                                String = ?
+                        )
+                    select
+                        tx.hash as ContentTxHash,
+                        (select r.String from Registry r where r.RowId = s.RegId1) as AddressHash,
+                        p.String2 as AccountName,
+                        p.String3 as AccountAvatar,
+                        r.Value as AccountReputation,
+                        s.Int1 as ScoreValue,
+                        0 as sumBoost,
+                        0 as sumDonation
+                    from
+                        tx
+                    cross join
+                        Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                            s.Type in (300) and
+                            s.RegId2 = tx.id
+                    cross join
+                        Chain cs on
+                            cs.TxId = s.RowId
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type in (100) and
+                            u.RegId1 = s.RegId1
+                    cross join
+                        Chain cu on
+                            cu.TxId = u.RowId
+                    cross join
+                        Payload p on
+                            p.TxId = u.RowId
+                    left join
+                        Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                            r.Uid = cu.Uid and
+                            r.Type = 0 and
+                            r.Last = 1
 
-                --boosts
-                union
+                    --boosts
+                    union
 
-                select
-                    b.hash as ContentTxHash,
-                    (select r.String from Registry r where r.RowId = b.RegId1) as AddressHash,
-                    p.String2 as AccountName,
-                    p.String3 as AccountAvatar,
-                    r.Value as AccountReputation,
-                    0 as ScoreValue,
-                    b.sumBoost as sumBoost,
-                    0 as sumDonation
-                from
-                    (
-                        select
-                            tx.hash,
-                            b.RegId1,
-                            b.RegId2,
-                            sum(b.Int1) as sumBoost
-                        from
-                            tx
-                        cross join
-                            Transactions b indexed by Transactions_Type_RegId2_RegId1 on
-                                b.Type in (208) and
-                                b.RegId2 = tx.id
-                        cross join
-                            Chain cb on
-                                cb.TxId = b.RowId
-                        group by
-                            b.RegId1,
-                            b.RegId2
-                    )b
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        u.Type in (100) and
-                        u.RegId1 = b.RegId1
-                cross join
-                    Last lu on
-                        lu.TxId = u.RowId
-                cross join
-                    Chain cu on
-                        cu.TxId = u.RowId
-                cross join
-                    Payload p on
-                        p.TxId = u.RowId
-                left join
-                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
-                        r.Uid = cu.Uid and
-                        r.Type = 0 and
-                        r.Last = 1
+                    select
+                        b.hash as ContentTxHash,
+                        (select r.String from Registry r where r.RowId = b.RegId1) as AddressHash,
+                        p.String2 as AccountName,
+                        p.String3 as AccountAvatar,
+                        r.Value as AccountReputation,
+                        0 as ScoreValue,
+                        b.sumBoost as sumBoost,
+                        0 as sumDonation
+                    from
+                        (
+                            select
+                                tx.hash,
+                                b.RegId1,
+                                b.RegId2,
+                                sum(b.Int1) as sumBoost
+                            from
+                                tx
+                            cross join
+                                Transactions b indexed by Transactions_Type_RegId2_RegId1 on
+                                    b.Type in (208) and
+                                    b.RegId2 = tx.id
+                            cross join
+                                Chain cb on
+                                    cb.TxId = b.RowId
+                            group by
+                                b.RegId1,
+                                b.RegId2
+                        )b
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type in (100) and
+                            u.RegId1 = b.RegId1
+                    cross join
+                        Last lu on
+                            lu.TxId = u.RowId
+                    cross join
+                        Chain cu on
+                            cu.TxId = u.RowId
+                    cross join
+                        Payload p on
+                            p.TxId = u.RowId
+                    left join
+                        Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                            r.Uid = cu.Uid and
+                            r.Type = 0 and
+                            r.Last = 1
 
-                --donations
-                union
+                    --donations
+                    union
 
-                select
-                    td.hash as ContentTxHash,
-                    (select r.String from Registry r where r.RowId = td.RegId1) as AddressHash,
-                    p.String2 as AccountName,
-                    p.String3 as AccountAvatar,
-                    r.Value as AccountReputation,
-                    0 as ScoreValue,
-                    0 as sumBoost,
-                    td.sumDonation as sumDonation
-                from
-                    (
-                        select
-                            tx.hash,
-                            c.RegId1,
-                            c.RegId3,
-                            sum(o.Value) as sumDonation
-                        from
-                            tx
-                        cross join
-                            Transactions c indexed by Transactions_Type_RegId3_RegId1 on
-                                c.Type in (204, 205, 206) and
-                                c.RegId3 = tx.id
-                        cross join
-                            Last lc on
-                                lc.TxId = c.RowId
-                        cross join
-                            Transactions p indexed by Transactions_Type_RegId2_RegId1 on
-                                p.Type in (200,201,202,209,210) and
-                                p.RegId2 = c.RegId3
-                        cross join
-                            Last lp on
-                                lp.TxId = p.RowId
-                        cross join
-                            TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
-                                o.AddressId = p.RegId1 and
-                                o.AddressId != c.RegId1 and
-                                o.TxId = c.RowId and
-                                o.Value > 0
-                        group by
-                            c.RegId1,
-                            c.RegId3
-                    )td
-                cross join
-                    Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        u.Type in (100) and
-                        u.RegId1 = td.RegId1
-                cross join
-                    Last lu on
-                        lu.TxId = u.RowId
-                cross join
-                    Chain cu on
-                        cu.TxId = u.RowId
-                cross join
-                    Payload p on
-                        p.TxId = u.RowId
-                left join
-                    Ratings r indexed by Ratings_Type_Uid_Last_Value on
-                        r.Uid = cu.Uid and
-                        r.Type = 0 and
-                        r.Last = 1
-            )sql")
-            .Bind(postTxHash)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    UniValue record(UniValue::VOBJ);
-                    if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                    if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("reputation", value);
-                    if (auto[ok, value] = cursor.TryGetColumnInt(5); ok && value > 0) {
-                        record.pushKV("value", value);
-                        resultScores.push_back(record);
+                    select
+                        td.hash as ContentTxHash,
+                        (select r.String from Registry r where r.RowId = td.RegId1) as AddressHash,
+                        p.String2 as AccountName,
+                        p.String3 as AccountAvatar,
+                        r.Value as AccountReputation,
+                        0 as ScoreValue,
+                        0 as sumBoost,
+                        td.sumDonation as sumDonation
+                    from
+                        (
+                            select
+                                tx.hash,
+                                c.RegId1,
+                                c.RegId3,
+                                sum(o.Value) as sumDonation
+                            from
+                                tx
+                            cross join
+                                Transactions c indexed by Transactions_Type_RegId3_RegId1 on
+                                    c.Type in (204, 205, 206) and
+                                    c.RegId3 = tx.id
+                            cross join
+                                Last lc on
+                                    lc.TxId = c.RowId
+                            cross join
+                                Transactions p indexed by Transactions_Type_RegId2_RegId1 on
+                                    p.Type in (200,201,202,209,210) and
+                                    p.RegId2 = c.RegId3
+                            cross join
+                                Last lp on
+                                    lp.TxId = p.RowId
+                            cross join
+                                TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                                    o.AddressId = p.RegId1 and
+                                    o.AddressId != c.RegId1 and
+                                    o.TxId = c.RowId and
+                                    o.Value > 0
+                            group by
+                                c.RegId1,
+                                c.RegId3
+                        )td
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type in (100) and
+                            u.RegId1 = td.RegId1
+                    cross join
+                        Last lu on
+                            lu.TxId = u.RowId
+                    cross join
+                        Chain cu on
+                            cu.TxId = u.RowId
+                    cross join
+                        Payload p on
+                            p.TxId = u.RowId
+                    left join
+                        Ratings r indexed by Ratings_Type_Uid_Last_Value on
+                            r.Uid = cu.Uid and
+                            r.Type = 0 and
+                            r.Last = 1
+                )sql")
+                .Bind(postTxHash);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(5); ok && value > 0) {
+                            record.pushKV("value", value);
+                            resultScores.push_back(record);
+                        }
+                        if (auto[ok, value] = cursor.TryGetColumnInt(6); ok && value > 0) {
+                            record.pushKV("value", value);
+                            resultBoosts.push_back(record);
+                        }
+                        if (auto[ok, value] = cursor.TryGetColumnInt(7); ok && value > 0) {
+                            record.pushKV("value", value);
+                            resultDonations.push_back(record);
+                        }
                     }
-                    if (auto[ok, value] = cursor.TryGetColumnInt(6); ok && value > 0) {
-                        record.pushKV("value", value);
-                        resultBoosts.push_back(record);
-                    }
-                    if (auto[ok, value] = cursor.TryGetColumnInt(7); ok && value > 0) {
-                        record.pushKV("value", value);
-                        resultDonations.push_back(record);
-                    }
-                }
-            });
-        });
+                });
+            }
+        );
 
         result.pushKV("scores",resultScores);
         result.pushKV("boosts",resultBoosts);
@@ -6619,17 +6820,21 @@ namespace PocketDb
         auto sql = _unionSelectsBasedOnFilters(filters, selects, header, footer);
 
         EventsReconstructor reconstructor;
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(sql)
-            .Bind(heightMax, heightMin, blockNumMax, address)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    reconstructor.FeedRow(cursor);
-                }
-            });
-        });
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql)
+                .Bind(heightMax, heightMin, blockNumMax, address);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        reconstructor.FeedRow(cursor);
+                    }
+                });
+            }
+        );
 
         return reconstructor.GetResult();
     }
@@ -8045,15 +8250,20 @@ namespace PocketDb
             const auto& type = select.first;
             if (predicate(type)) {
                 const auto& query = select.second;
-                SqlTransaction(__func__, [&]()
-                {
-                    Sql(query)
-                    .Bind(height)
-                    .Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                            reconstructor.FeedRow(cursor);
-                    });
-                });
+
+                SqlTransaction(
+                    __func__,
+                    [&]() -> Stmt& {
+                        return Sql(query)
+                            .Bind(height);
+                    },
+                    [&] (Stmt& stmt) {
+                        stmt.Select([&](Cursor& cursor) {
+                            while (cursor.Step())
+                                reconstructor.FeedRow(cursor);
+                        });
+                    }
+                );
             }
         }
         auto notificationResult = reconstructor.GetResult();
@@ -9273,25 +9483,26 @@ namespace PocketDb
         )sql";
 
         EventsReconstructor reconstructor;
-        SqlTransaction(__func__, [&]()
+        for (const auto& reqSql : selects)
         {
-            for (const auto& reqSql : selects)
-            {
-                if (auto[ok, sql] = _constructSelectsBasedOnFilters(filters, reqSql, header); ok)
-                {
-                    Sql(sql)
-                    .Bind(
-                        heightMax,
-                        heightMin,
-                        blockNumMax,
-                        address)
-                    .Select([&](Cursor& cursor) {
+            auto[ok, sql] = _constructSelectsBasedOnFilters(filters, reqSql, header);
+            if (!ok)
+                continue;
+            
+            string _sql = sql;
+            SqlTransaction(
+                __func__,
+                [&]() -> Stmt& {
+                    return Sql(_sql).Bind(heightMax, heightMin, blockNumMax, address);
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
                         while (cursor.Step())
                             reconstructor.FeedRow(cursor);
                     });
                 }
-            }
-        });
+            );
+        }
 
         auto result = reconstructor.GetResult();
 
@@ -9454,16 +9665,19 @@ namespace PocketDb
         auto sql = _unionSelectsBasedOnFilters(filters, selects, header, "");
 
         NotificationSummaryReconstructor reconstructor;
-        SqlTransaction(__func__, [&]()
-        {
-            auto& stmt = Sql(sql);
-            stmt.Bind(heightMax, heightMin, addresses);
-            stmt.Select([&](Cursor& cursor)
-            {
-                while (cursor.Step())
-                    reconstructor.FeedRow(cursor);
-            });
-        });
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql).Bind(heightMax, heightMin, addresses);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor)
+                {
+                    while (cursor.Step())
+                        reconstructor.FeedRow(cursor);
+                });
+            }
+        );
 
         return reconstructor.GetResult();
     }
