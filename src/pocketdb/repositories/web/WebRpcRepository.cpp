@@ -809,7 +809,17 @@ namespace PocketDb
                 --            group by
                 --                f.Int1
                 --        )gr
-                ) as FirstFlagsCount
+                ) as FirstFlagsCount,
+
+                (
+                    select
+                        count()
+                    from
+                        Transactions t indexed by Transactions_Type_RegId1_Time
+                    where
+                        t.Type in (100,103,170,207,200,201,202,209,210,220,204,205,206,208,300,301,302,303,304,305,306,307,400,401,402,403,404,405,410,420,104,211) and
+                        t.RegId1 = addr.id
+                ) as ActionsCount
 
                 )sql" + fullProfileSql + R"sql(
 
@@ -880,6 +890,9 @@ namespace PocketDb
                                 flags.read(value);
                                 record.pushKV("firstFlags", flags);
                             }
+
+                            if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok)
+                                record.pushKV("actions", value);
 
                             if (!shortForm) {
 
