@@ -293,7 +293,7 @@ public:
     /** Unregister handler for prefix */
     void UnregisterHTTPHandler(const std::string& prefix, bool exactMatch);
 
-    bool HTTPReq(HTTPRequest* req, const util::Ref& context,  CRPCTable& table);
+    static bool HTTPReq(HTTPRequest* req, const util::Ref& context,  CRPCTable& table);
 };
 
 class HTTPWebSocket: public HTTPSocket
