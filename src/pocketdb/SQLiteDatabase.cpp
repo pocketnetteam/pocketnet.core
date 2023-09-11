@@ -129,22 +129,25 @@ namespace PocketDb
             const auto walDst = pocketPath / (mainDb + ".sqlite3-wal");
             const auto walSrc = pocketPath / (tmpDb + ".sqlite3-wal");
 
-            if (fs::exists(walDst)) {
+            if (fs::exists(walDst))
                 fs::remove(walDst);
-            }
-            if (fs::exists(shmDst)) {
+            if (fs::exists(shmDst))
                 fs::remove(shmDst);
-            }
 
             fs::rename(pocketPath / (tmpDb + ".sqlite3"), pocketPath / (mainDb + ".sqlite3"));
 
-            if (fs::exists(shmSrc)) {
+            if (fs::exists(shmSrc))
                 fs::rename(shmSrc, shmDst);
-            }
-
-            if (fs::exists(walSrc)) {
+            if (fs::exists(walSrc))
                 fs::rename(walSrc, walDst);
-            }
+
+            // After migration 0.21 -> 0.22 web database need recreating
+            const auto webShm = pocketPath / ("web.sqlite3-shm");
+            const auto webWal = pocketPath / ("web.sqlite3-wal");
+            const auto webDb = pocketPath / ("web.sqlite3");
+            if (fs::exists(webShm)) fs::remove(webShm);
+            if (fs::exists(webWal)) fs::remove(webWal);
+            if (fs::exists(webDb)) fs::remove(webDb);
         }
         catch (const fs::filesystem_error& e)
         {
