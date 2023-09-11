@@ -83,6 +83,7 @@ static std::vector<CSubNet> rpc_allow_subnets;
 //! HTTP socket objects to handle requests on different routes
 HTTPSocket *g_socket;
 HTTPWebSocket *g_webSocket;
+HTTPWebSocket *g_webSocketHttps;
 HTTPSocket *g_staticSocket;
 HTTPSocket *g_restSocket;
 
@@ -278,6 +279,7 @@ static bool HTTPBindAddresses()
 {
     int securePort = gArgs.GetArg("-rpcport", BaseParams().RPCPort());
     int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
+    int publicTlsPort = gArgs.GetArg("-publictlsrpcport", BaseParams().PublicTlsRPCPort());
     int staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
     int restPort = gArgs.GetArg("-restport", BaseParams().RestPort());
     int bindAddresses = 0;
@@ -319,6 +321,11 @@ static bool HTTPBindAddresses()
     {
         g_webSocket->BindAddress("::", publicPort);
         g_webSocket->BindAddress("0.0.0.0", publicPort);
+        if (g_webSocketHttps)
+        {
+            g_webSocketHttps->BindAddress("::", publicTlsPort);
+            g_webSocketHttps->BindAddress("0.0.0.0", publicTlsPort);
+        }
     }
     if (g_staticSocket)
     {
@@ -416,8 +423,9 @@ bool InitHTTPServer(const util::Ref& context)
     // Additional pocketnet seocket
     if (gArgs.GetBoolArg("-api", DEFAULT_API_ENABLE))
     {
-        g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true, true);
+        g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
         RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
+        g_webSocketHttps = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true, /* tls */ true);
     }
 
     if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE))
@@ -478,6 +486,10 @@ void StartHTTPServer()
     {
         g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
         LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
+        if (g_webSocketHttps)
+        {
+            g_webSocketHttps->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
+        }
     }
     if (g_staticSocket)
     {
@@ -496,6 +508,7 @@ void InterruptHTTPServer()
     LogPrint(BCLog::HTTP, "Interrupting HTTP server\n");
     if (g_socket) g_socket->InterruptHTTPSocket();
     if (g_webSocket) g_webSocket->InterruptHTTPSocket();
+    if (g_webSocketHttps) g_webSocketHttps->InterruptHTTPSocket();
     if (g_staticSocket) g_staticSocket->InterruptHTTPSocket();
     if (g_restSocket) g_restSocket->InterruptHTTPSocket();
 }
@@ -507,6 +520,7 @@ void StopHTTPServer()
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
     if (g_socket) g_socket->StopHTTPSocket();
     if (g_webSocket) g_webSocket->StopHTTPSocket();
+    if (g_webSocketHttps) g_webSocketHttps->StopHTTPSocket();
     if (g_staticSocket) g_staticSocket->StopHTTPSocket();
     if (g_restSocket) g_restSocket->StopHTTPSocket();
 
@@ -521,6 +535,9 @@ void StopHTTPServer()
 
     delete g_webSocket;
     g_webSocket = nullptr;
+
+    delete g_webSocketHttps;
+    g_webSocketHttps = nullptr;
 
     delete g_staticSocket;
     g_staticSocket = nullptr;

@@ -163,6 +163,12 @@ bool StartHTTPRPC(const util::Ref& context)
         g_webSocket->RegisterHTTPHandler("/post/", false, postAnonymousHandler, g_webSocket->m_workPostQueue);
         auto anonymousHandler = [&context](HTTPRequest* req, const std::string&) { return HTTPSocket::HTTPReq(req, context, g_webSocket->m_table_rpc); };
         g_webSocket->RegisterHTTPHandler("/", false, anonymousHandler, g_webSocket->m_workQueue);
+
+        if (g_webSocketHttps)
+        {
+            g_webSocketHttps->RegisterHTTPHandler("/post/", false, postAnonymousHandler, /* sharing same queue with http */ g_webSocket->m_workPostQueue);
+            g_webSocketHttps->RegisterHTTPHandler("/", false, anonymousHandler, g_webSocket->m_workQueue);
+        }
     }
 
     struct event_base* eventBase = EventBase();
@@ -193,6 +199,11 @@ void StopHTTPRPC()
     {
         g_webSocket->UnregisterHTTPHandler("/post/", false);
         g_webSocket->UnregisterHTTPHandler("/", false);
+        if (g_webSocketHttps)
+        {
+            g_webSocketHttps->UnregisterHTTPHandler("/post/", false);
+            g_webSocketHttps->UnregisterHTTPHandler("/", false);
+        }
     }
 
     if (httpRPCTimerInterface) {
