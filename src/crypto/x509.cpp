@@ -25,12 +25,8 @@ void x509::Generate()
     X509_set_pubkey(m_cert, m_pkey);
 
     auto name = X509_get_subject_name(m_cert);
-    X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC,
-        (unsigned char*)"CA", -1, -1, 0);
-    X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC,
-        (unsigned char*)"MyCompany Inc.", -1, -1, 0);
     X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
-        (unsigned char*)"localhost", -1, -1, 0);
+        (unsigned char*)"Pocketnet node", -1, -1, 0);
     X509_set_issuer_name(m_cert, name);
     X509_sign(m_cert, m_pkey, EVP_sha256());
 }
