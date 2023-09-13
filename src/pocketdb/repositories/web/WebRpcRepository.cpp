@@ -5299,7 +5299,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetBoostFeed(int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
@@ -5307,111 +5306,107 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        // --------------------------------------------
-
-        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
-
-        string langFilter;
-        if (!lang.empty())
-            langFilter += " join Payload p on p.TxId = tc.RowId and p.String1 = ? ";
-
         string sql = R"sql(
+            with
+                heightMin as ( select ? as value ),
+                heightMax as ( select ? as value ),
+                lang as ( select ? as value ),
+                minReputation as ( select ? as value )
             select
                 ctc.Uid contentId,
                 (select String from Registry where RowId = tb.RegId2) contentHash,
-                sum(tb.Int1) as sumBoost
-
-            from Transactions tb indexed by Transactions_Type_RegId2_RegId1
-            join Chain ctb on ctb.TxId = tb.RowId
-            join Last ltb on ltb.TxId = tb.RowId
-            join Transactions tc indexed by Transactions_Type_RegId2_RegId1
-                on tc.RegId2 = tb.RegId2 and tc.Type in )sql" + contentTypesWhere + R"sql(
-            join Chain ctc on ctc.TxId = tc.RowId
-            join Last ltc on ltc.TxId = tc.RowId
-            )sql" + langFilter + R"sql(
-
-            join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                on u.Type in (100) and u.RegId1 = tc.RegId1
-            join Chain cu on cu.TxId = u.RowId
-            join Last lu on lu.TxId = u.RowId
-
-            left join Ratings ur indexed by Ratings_Type_Uid_Last_Value
-                on ur.Type=0 and ur.Uid=cu.Uid and ur.Last=1
-
-            where tb.Type = 208
-                and ctb.Height <= ?
-                and ctb.Height > ?
-
+                sum(tb.Int1) as sumBoost,
+                json_group_array(tag.Value) as _tags
+            from
+                heightMin,
+                heightMax,
+                lang,
+                minReputation,
+                Transactions tb indexed by Transactions_Type_RegId2_RegId1
+            cross join
+                Chain ctb on
+                    ctb.TxId = tb.RowId and
+                    ctb.Height > heightMin.value and
+                    ctb.Height <= heightMax.value
+            cross join
+                Transactions tc indexed by Transactions_Type_RegId2_RegId1 on
+                    tc.RegId2 = tb.RegId2 and
+                    tc.Type in  ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+            cross join
+                Last ltc on
+                    ltc.TxId = tc.RowId
+            cross join
+                Chain ctc on
+                    ctc.TxId = tc.RowId
+            cross join
+                web.TagsMap tm on
+                    tm.ContentId = ctc.Uid
+            cross join
+                web.Tags tag on
+                    tag.Id = tm.TagId and
+                    ( ? or tag.Lang = lang.value )
+            cross join
+                Payload p on
+                    p.TxId = tc.RowId and
+                    p.String1 = lang.value
+            cross join
+                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    u.Type in (100) and
+                    u.RegId1 = tc.RegId1
+            cross join
+                Chain cu on
+                    cu.TxId = u.RowId
+            cross join
+                Last lu on
+                    lu.TxId = u.RowId
+            left join
+                Ratings ur indexed by Ratings_Type_Uid_Last_Value on
+                    ur.Type = 0 and
+                    ur.Uid = cu.Uid and
+                    ur.Last = 1
+            where
+                tb.Type in ( 208 )
                 -- Do not show posts from users with low reputation
-                and ifnull(ur.Value,0) > ?
-
-                )sql";
-
-        if (!tags.empty())
-        {
-            sql += R"sql(
-                and ctc.Uid in (
-                    select tm.ContentId
-                    from web.Tags tag
-                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
-                        on tag.Id = tm.TagId
-                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
-                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+                and ifnull(ur.Value, 0) > minReputation.value
+                and tc.RegId2 not in (
+                    select RowId
+                    from Registry
+                    where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
                 )
-            )sql";
-        }
-
-        if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!addrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!tagsExcluded.empty())
-        {
-            sql += R"sql( and ctc.Uid not in (
-                select tmEx.ContentId
-                from web.Tags tagEx
-                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
-                    on tagEx.Id=tmEx.TagId
-                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
-                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
-             ) )sql";
-        }
-
-        sql += " group by ctc.Uid, tb.RegId2";
-        sql += " order by sum(tb.Int1) desc";
-
-        // ---------------------------------------------
-
-        vector<int64_t> ids;
+                and tc.RegId1 not in (
+                    select RowId
+                    from Registry
+                    where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
+                )
+            group by
+                ctc.Uid,
+                tb.RegId2
+            having
+                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 1 ) and
+                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 0 )
+            order by
+                sum(tb.Int1) desc
+        )sql";
 
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                auto& stmt = Sql(sql);
-
-                stmt.Bind(contentTypes);
-
-                if (!lang.empty()) stmt.Bind(lang);
-
-                stmt.Bind(topHeight, topHeight - cntBlocksForResult, badReputationLimit);
-
-                if (!tags.empty())
-                {
-                    stmt.Bind(tags);
-
-                    if (!lang.empty())
-                        stmt.Bind(lang);
-                }
-
-                stmt.Bind(txidsExcluded, addrsExcluded);
-
-                if (!tagsExcluded.empty())
-                {
-                    stmt.Bind(tagsExcluded);
-
-                    if (!lang.empty())
-                        stmt.Bind(lang);
-                }
-
-                return stmt;
+                return
+                    Sql(sql)
+                    .Bind(
+                        topHeight - cntBlocksForResult,
+                        topHeight,
+                        lang,
+                        -500,
+                        contentTypes,
+                        lang.empty(),
+                        txidsExcluded,
+                        addrsExcluded,
+                        tags.empty(),
+                        tags,
+                        tagsExcluded.empty(),
+                        tagsExcluded
+                    );
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
