@@ -520,6 +520,7 @@ namespace PocketDb
         {
             with = R"sql(
                 with
+                firstFlagsDepth as ( select (? * 1440) as value ),
                 addr as (
                     select
                         r.RowId as id,
@@ -536,6 +537,7 @@ namespace PocketDb
         {
             with = R"sql(
                 with
+                firstFlagsDepth as ( select (? * 1440) as value ),
                 addr as (
                     select
                         r.RowId as id,
@@ -775,40 +777,39 @@ namespace PocketDb
                 ) as FlagsJson
 
                 ,(
-                    select 0
-                --    select
-                --        json_group_object(gr.Type, gr.Cnt)
-                --    from
-                --        (
-                --            select
-                --                (f.Int1)Type,
-                --                (count())Cnt
-                --            from
-                --                Transactions f indexed by Transactions_Type_RegId3_RegId1
-                --            cross join (
-                --                select
-                --                    min(cfp.Height) as minHeight
-                --                from
-                --                    Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3
-                --                cross join
-                --                    First ffp
-                --                        on ffp.TxId = fp.RowId
-                --                cross join
-                --                    Chain cfp indexed by Chain_TxId_Height
-                --                        on cfp.TxId = fp.RowId
-                --                where
-                --                    fp.Type in (200, 201, 202, 209, 210) and
-                --                    fp.RegId1 = addr.id
-                --            )fp
-                --            cross join
-                --                Chain cf indexed by Chain_TxId_Height
-                --                    on cf.TxId = f.RowId and cf.Height >= fp.minHeight and cf.Height <= (fp.minHeight + ?)
-                --            where
-                --                f.Type in (410) and
-                --                f.RegId3 = addr.id
-                --            group by
-                --                f.Int1
-                --        )gr
+                    select
+                        json_group_object(gr.Type, gr.Cnt)
+                    from
+                        (
+                            select
+                                (f.Int1)Type,
+                                (count())Cnt
+                            from
+                                Transactions f indexed by Transactions_Type_RegId3_RegId1
+                            cross join (
+                                select
+                                    min(cfp.Height) as minHeight
+                                from
+                                    Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                cross join
+                                    First ffp
+                                        on ffp.TxId = fp.RowId
+                                cross join
+                                    Chain cfp indexed by Chain_TxId_Height
+                                        on cfp.TxId = fp.RowId
+                                where
+                                    fp.Type in (200, 201, 202, 209, 210) and
+                                    fp.RegId1 = addr.id
+                            )fp
+                            cross join
+                                Chain cf indexed by Chain_TxId_Height
+                                    on cf.TxId = f.RowId and cf.Height >= fp.minHeight and cf.Height <= (fp.minHeight + firstFlagsDepth.value)
+                            where
+                                f.Type in (410) and
+                                f.RegId3 = addr.id
+                            group by
+                                f.Int1
+                        )gr
                 ) as FirstFlagsCount,
 
                 (
@@ -823,14 +824,14 @@ namespace PocketDb
 
                 )sql" + fullProfileSql + R"sql(
 
-            from addr
-            join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+            from addr, firstFlagsDepth
+            cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
                 on u.Type in (100, 170) and u.RegId1 = addr.id
-            join Last lu
+            cross join Last lu
                 on lu.TxId = u.RowId
-            join Chain cu
+            cross join Chain cu
                 on cu.TxId = u.RowId
-            left join Payload p
+            cross join Payload p
                 on p.TxId = u.RowId
         )sql";
 
@@ -838,7 +839,7 @@ namespace PocketDb
             __func__,
             [&]() -> Stmt& {
                 return Sql(sql)
-                .Bind(addresses, ids); // firstFlagsDepth * 1440
+                .Bind(firstFlagsDepth, addresses, ids);
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -5014,12 +5015,12 @@ namespace PocketDb
                 ( ? or ct.Uid < topContentId.value ) and
                 -- Do not show posts from users with low reputation
                 ifnull(ur.Value, 0) > minReputation.value and
-                tc.RegId2 not in (
+                t.RegId2 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
                 ) and
-                tc.RegId1 not in (
+                t.RegId1 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
