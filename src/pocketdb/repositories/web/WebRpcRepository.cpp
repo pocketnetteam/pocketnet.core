@@ -4919,131 +4919,149 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int badReputationLimit)
     {
         UniValue result(UniValue::VARR);
+        vector<int64_t> ids;
 
-        if (contentTypes.empty())
+        if (contentTypes.empty() || lang.empty())
             return result;
 
-        // --------------------------------------------
-
-        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
-
-        string contentIdWhere;
-        if (topContentId > 0)
-            contentIdWhere = " and ct.Uid < ? ";
-
-        string langFilter;
-        if (!lang.empty())
-            langFilter += " cross join Payload p on p.TxId = t.RowId and p.String1 = ? ";
-
         string sql = R"sql(
-            select ct.Uid
+            with
+                height as ( select ? as value ),
+                topContentId as ( select ? as value ),
+                lang as ( select ? as value ),
+                minReputation as ( select ? as value )
 
-            from Chain ct
-            cross join Transactions t on ct.TxId = t.RowId
-            cross join Last lt on lt.TxId = t.RowId
+            select
+                ct.Uid
+            )sql" +
 
-            )sql" + langFilter + R"sql(
+            // Generate from for specific language
+            (
+                lang == "ru" || lang == "en"
+                ?
+                    R"sql(
+                        from
+                            Chain ct indexed by Chain_Uid_Height,
+                            topContentId,
+                            height,
+                            lang,
+                            minReputation
+                        cross join
+                            Transactions t on
+                                t.RowId = ct.TxId and
+                                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                                t.RegId3 is null
+                        cross join
+                            Last lt on
+                                lt.TxId = t.RowId
+                        cross join
+                            Payload p indexed by Payload_String1 on
+                                p.TxId = t.RowId and p.String1 = lang.value
+                    )sql"
+                :
+                    R"sql(
+                        from
+                            topContentId,
+                            height,
+                            lang,
+                            minReputation
+                        cross join Payload p indexed by Payload_String1 on
+                            p.String1 = lang.value
+                        cross join
+                            Transactions t on
+                                t.RowId = p.TxId and
+                                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                                t.RegId3 is null
+                        cross join
+                            Last lt on
+                                lt.TxId = t.RowId
+                        cross join
+                            Chain ct on
+                                ct.TxId = t.RowId
+                    )sql"
+            )
 
-            cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                on u.Type in (100) and u.RegId1 = t.RegId1
-            cross join Chain cu on cu.TxId = u.RowId
-            cross join Last lu on lu.TxId = u.RowId
-
-            left join Ratings ur indexed by Ratings_Type_Uid_Last_Value
-                on ur.Type=0 and ur.Uid=cu.Uid and ur.Last=1
-
-            where t.Type in )sql" + contentTypesWhere + R"sql(
-                and t.RegId3 is null
-                and ct.Height <= ?
-
+            + R"sql(
+            cross join
+                web.TagsMap tm on
+                    tm.ContentId = ct.Uid
+            cross join
+                web.Tags tag on
+                    tag.Id = tm.TagId and
+                    tag.Lang = lang.value
+            cross join
+                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    u.Type in (100) and u.RegId1 = t.RegId1
+            cross join
+                Last lu on
+                    lu.TxId = u.RowId
+            cross join
+                Chain cu on
+                    cu.TxId = u.RowId
+            left join
+                Ratings ur indexed by Ratings_Type_Uid_Last_Value on
+                    ur.Type = 0 and
+                    ur.Uid = cu.Uid and
+                    ur.Last = 1
+            where
+                ct.Height <= height.value and
+                ( ? or ct.Uid < topContentId.value ) and
                 -- Do not show posts from users with low reputation
-                and ifnull(ur.Value,0) > ?
-
-                )sql" + contentIdWhere + R"sql(
-        )sql";
-
-        if (!tags.empty())
-        {
-            sql += R"sql(
-                and ct.Uid in (
-                    select tm.ContentId
-                    from web.Tags tag
-                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
-                        on tag.Id = tm.TagId
-                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
-                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+                ifnull(ur.Value, 0) > minReputation.value and
+                tc.RegId2 not in (
+                    select RowId
+                    from Registry
+                    where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
+                ) and
+                tc.RegId1 not in (
+                    select RowId
+                    from Registry
+                    where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
                 )
-            )sql";
-        }
 
-        if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!addrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!tagsExcluded.empty())
-        {
-            sql += R"sql( and ct.Uid not in (
-                select tmEx.ContentId
-                from web.Tags tagEx
-                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
-                    on tagEx.Id=tmEx.TagId
-                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
-                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
-             ) )sql";
-        }
-
-        sql += " order by ct.Uid desc ";
-        sql += " limit ? ";
-
-        // ---------------------------------------------
-
-        vector<int64_t> ids;
+            group by
+                ct.Uid
+            having
+                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 1 ) and
+                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 0 )
+            order by
+                ct.Uid desc
+            limit ?
+        )sql";
 
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                auto& stmt = Sql(sql);
-
-                if (!lang.empty()) stmt.Bind(lang);
-
-                stmt.Bind(contentTypes, topHeight, badReputationLimit);
-
-                if (topContentId > 0)
-                    stmt.Bind(topContentId);
-
-                if (!tags.empty())
-                {
-                    stmt.Bind(tags);
-
-                    if (!lang.empty())
-                        stmt.Bind(lang);
-                }
-
-                stmt.Bind(txidsExcluded, addrsExcluded);
-                
-                if (!tagsExcluded.empty())
-                {
-                    stmt.Bind(tagsExcluded);
-
-                    if (!lang.empty())
-                        stmt.Bind(lang);
-                }
-                        
-                stmt.Bind(countOut);
-
-                return stmt;
+                return
+                    Sql(sql)
+                    .Bind(
+                        topHeight,
+                        topContentId,
+                        lang,
+                        badReputationLimit,
+                        contentTypes,
+                        topContentId <= 0,
+                        txidsExcluded,
+                        addrsExcluded,
+                        tags.empty(),
+                        tags,
+                        tagsExcluded.empty(),
+                        tagsExcluded,
+                        countOut
+                    );
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
-                        auto[ok0, contentId] = cursor.TryGetColumnInt64(0);
-                        ids.push_back(contentId);
+                        if (auto[ok, contentId] = cursor.TryGetColumnInt64(0); ok)
+                            ids.push_back(contentId);
                     }
                 });
             }
