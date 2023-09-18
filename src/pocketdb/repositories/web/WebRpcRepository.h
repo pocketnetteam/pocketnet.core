@@ -210,6 +210,8 @@ namespace PocketDb
         double dekayContent =  0.96;
 
         vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm, int firstFlagsDepth);
+        string GetAccountProfilesSqlFull();
+        string GetAccountProfilesSqlShort();
         vector<tuple<string, int64_t, UniValue>> GetComments(const vector<string>& cmntHashes, const vector<int64_t>& cmntIds, const string& addressHash);
     };
 
