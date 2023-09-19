@@ -84,10 +84,7 @@ namespace PocketServices
         webRepoInst->UpsertBarteronOffers(currHeight);
 
         if (currHeight % 60 == 0)
-        {
             webRepoInst->CollectAccountStatistic();
-            LogPrintf("Debug CollectAccountStatistic: %d\n", currHeight);
-        }
 
         webRepoInst->SetCurrentHeight(currHeight);
         return true;

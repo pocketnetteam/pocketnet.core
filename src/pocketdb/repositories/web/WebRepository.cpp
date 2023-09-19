@@ -519,6 +519,11 @@ namespace PocketDb
     {
         SqlTransaction(__func__, [&]()
         {
+            // Clear all before insert new
+            Sql(R"sql(
+                delete from web.AccountStatistic
+            )sql").Run();
+
             // PostsCount
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
