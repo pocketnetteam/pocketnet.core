@@ -876,7 +876,7 @@ pocketcoin_bin_ldadd = \
   $(LIBSECP256K1) \
   $(LIBSQLITE3)
 
-pocketcoin_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
+pocketcoin_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_OPENSSL_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
 
 pocketcoind_SOURCES = $(pocketcoin_daemon_sources)
 pocketcoind_CPPFLAGS = $(pocketcoin_bin_cppflags)
