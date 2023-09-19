@@ -205,7 +205,8 @@ FUZZ_SUITE_LD_COMMON = \
  $(LIBMEMENV) \
  $(LIBSECP256K1) \
  $(EVENT_LIBS) \
- $(EVENT_PTHREADS_LIBS)
+ $(EVENT_PTHREADS_LIBS) \
+ $(EVENT_OPENSSL_LIBS)
 
 # test_pocketcoin binary #
 # Disabled tests:
@@ -340,7 +341,10 @@ test_test_pocketcoin_LDADD += \
   $(LIBSECP256K1) \
   $(EVENT_LIBS) \
   $(EVENT_PTHREADS_LIBS) \
-  $(LIBSQLITE3)
+  $(EVENT_OPENSSL_LIBS) \
+  $(LIBSQLITE3) \
+  $(CRYPTO_LIBS) \
+  $(SSL_LIBS)
 
 test_test_pocketcoin_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
