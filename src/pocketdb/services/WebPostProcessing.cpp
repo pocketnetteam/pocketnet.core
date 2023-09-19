@@ -83,7 +83,7 @@ namespace PocketServices
         webRepoInst->UpsertBarteronAccounts(currHeight);
         webRepoInst->UpsertBarteronOffers(currHeight);
 
-        if (currHeight % 60 == 0)
+        if (currHeight % 60 == 0 && (ChainActive().Height() - currHeight) < 60)
             webRepoInst->CollectAccountStatistic();
 
         webRepoInst->SetCurrentHeight(currHeight);

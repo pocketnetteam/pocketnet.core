@@ -517,14 +517,17 @@ namespace PocketDb
 
     void WebRepository::CollectAccountStatistic()
     {
+        // Clear all before insert new
         SqlTransaction(__func__, [&]()
         {
-            // Clear all before insert new
             Sql(R"sql(
                 delete from web.AccountStatistic
             )sql").Run();
+        });
 
-            // PostsCount
+        // PostsCount
+        SqlTransaction(__func__, [&]()
+        {
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -548,8 +551,11 @@ namespace PocketDb
                 group by
                     t.RegId1
             )sql").Run();
+        });
 
-            // DelCount
+        // DelCount
+        SqlTransaction(__func__, [&]()
+        {
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -573,8 +579,11 @@ namespace PocketDb
                 group by
                     t.RegId1
             )sql").Run();
+        });
 
-            // SubscribesCount
+        // SubscribesCount
+        SqlTransaction(__func__, [&]()
+        {
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -604,8 +613,11 @@ namespace PocketDb
                 group by
                     t.RegId1
             )sql").Run();
+        });
             
-            // SubscribersCount
+        // SubscribersCount
+        SqlTransaction(__func__, [&]()
+        {
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -635,8 +647,11 @@ namespace PocketDb
                 group by
                     t.RegId1
             )sql").Run();
+        });
 
-            // FlagsJson
+        // FlagsJson
+        SqlTransaction(__func__, [&]()
+        {
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -668,8 +683,11 @@ namespace PocketDb
                 group by
                     gr.AccId
             )sql").Run();
+        });
 
-            // FirstFlagsCount
+        // FirstFlagsCount
+        SqlTransaction(__func__, [&]()
+        {
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -717,8 +735,11 @@ namespace PocketDb
                 group by
                     gr.AccRegId
             )sql").Run();
+        });
 
-            // ActionsCount
+        // ActionsCount
+        SqlTransaction(__func__, [&]()
+        {
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -732,8 +753,11 @@ namespace PocketDb
                 group by
                     t.RegId1
             )sql").Run();
+        });
 
-            // Last 5 Contents
+        // Last 5 Contents
+        SqlTransaction(__func__, [&]()
+        {
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
