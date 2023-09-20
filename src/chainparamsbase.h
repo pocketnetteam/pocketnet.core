@@ -32,16 +32,18 @@ public:
     uint16_t StaticRPCPort() const { return m_static_rpc_port; }
     uint16_t RestPort() const { return m_rest_port; }
     uint16_t WsPort() const { return m_ws_port; }
+    uint16_t WssPort() const { return m_wss_port; }
     uint16_t OnionServiceTargetPort() const { return m_onion_service_target_port; }
 
     CBaseChainParams() = delete;
-    CBaseChainParams(const std::string& data_dir, uint16_t rpc_port, uint16_t rpc_pub_port, uint16_t rpc_pub_tls_port, uint16_t rpc_static_port, uint16_t rest_port, uint16_t ws_port, uint16_t onion_service_target_port) :
+    CBaseChainParams(const std::string& data_dir, uint16_t rpc_port, uint16_t rpc_pub_port, uint16_t rpc_pub_tls_port, uint16_t rpc_static_port, uint16_t rest_port, uint16_t ws_port, uint16_t wss_port, uint16_t onion_service_target_port) :
                                                                                     m_rpc_port(rpc_port),
                                                                                     m_public_rpc_port(rpc_pub_port),
                                                                                     m_public_tls_rpc_port(rpc_pub_tls_port),
                                                                                     m_static_rpc_port(rpc_static_port),
                                                                                     m_rest_port(rest_port),
                                                                                     m_ws_port(ws_port),
+                                                                                    m_wss_port(wss_port),
                                                                                     m_onion_service_target_port(onion_service_target_port),
                                                                                     strDataDir(data_dir) {}
 
@@ -52,6 +54,7 @@ private:
     const uint16_t m_static_rpc_port;
     const uint16_t m_rest_port;
     const uint16_t m_ws_port;
+    const uint16_t m_wss_port;
     const uint16_t m_onion_service_target_port;
     std::string strDataDir;
 };
