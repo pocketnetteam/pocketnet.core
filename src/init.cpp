@@ -1459,7 +1459,7 @@ static void StartWS()
 
     auto& ws = server.endpoint["^/ws/?$"];
     ws.on_message = [](std::shared_ptr<WsServer::Connection> connection,
-        std::shared_ptr<WsServer::InMessage> in_message)
+        std::shared_ptr<SimpleWeb::InMessage> in_message)
     {
         UniValue val;
         auto out_message = in_message->string();

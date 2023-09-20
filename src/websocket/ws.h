@@ -58,56 +58,63 @@ namespace SimpleWeb {
   template <class socket_type>
   class SocketServer;
 
+  /// The buffer is not consumed during send operations.
+  /// Do not alter while sending.
+  class OutMessage : public std::ostream {
+    template<class> friend class SocketServerBase;
+
+    asio::streambuf streambuf;
+
+  public:
+    OutMessage() noexcept : std::ostream(&streambuf) {}
+
+    /// Returns the size of the buffer
+    std::size_t size() const noexcept {
+      return streambuf.size();
+    }
+  };
+
+  class InMessage : public std::istream {
+    template<class> friend class SocketServerBase;
+
+  public:
+    unsigned char fin_rsv_opcode;
+    std::size_t size() noexcept {
+      return length;
+    }
+
+    /// Convenience function to return std::string. The stream buffer is consumed.
+    std::string string() noexcept {
+      try {
+        std::string str;
+        auto size = streambuf.size();
+        str.resize(size);
+        read(&str[0], static_cast<std::streamsize>(size));
+        return str;
+      }
+      catch(...) {
+        return std::string();
+      }
+    }
+
+  private:
+    InMessage() noexcept : std::istream(&streambuf), length(0) {}
+    InMessage(unsigned char fin_rsv_opcode, std::size_t length) noexcept : std::istream(&streambuf), fin_rsv_opcode(fin_rsv_opcode), length(length) {}
+    std::size_t length;
+    asio::streambuf streambuf;
+  };
+
+  class IWSConnection
+  {
+  public:
+    virtual void send(const std::shared_ptr<OutMessage> &out_message, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) = 0;
+    virtual void send(string_view out_message_str, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) = 0;
+  };
+
   template <class socket_type>
   class SocketServerBase {
   public:
-    class InMessage : public std::istream {
-      friend class SocketServerBase<socket_type>;
-
-    public:
-      unsigned char fin_rsv_opcode;
-      std::size_t size() noexcept {
-        return length;
-      }
-
-      /// Convenience function to return std::string. The stream buffer is consumed.
-      std::string string() noexcept {
-        try {
-          std::string str;
-          auto size = streambuf.size();
-          str.resize(size);
-          read(&str[0], static_cast<std::streamsize>(size));
-          return str;
-        }
-        catch(...) {
-          return std::string();
-        }
-      }
-
-    private:
-      InMessage() noexcept : std::istream(&streambuf), length(0) {}
-      InMessage(unsigned char fin_rsv_opcode, std::size_t length) noexcept : std::istream(&streambuf), fin_rsv_opcode(fin_rsv_opcode), length(length) {}
-      std::size_t length;
-      asio::streambuf streambuf;
-    };
-
-    /// The buffer is not consumed during send operations.
-    /// Do not alter while sending.
-    class OutMessage : public std::ostream {
-      friend class SocketServerBase<socket_type>;
-
-      asio::streambuf streambuf;
-
-    public:
-      OutMessage() noexcept : std::ostream(&streambuf) {}
-
-      /// Returns the size of the buffer
-      std::size_t size() const noexcept {
-        return streambuf.size();
-      }
-    };
-
-    class Connection : public std::enable_shared_from_this<Connection> {
+    class Connection : public IWSConnection, public std::enable_shared_from_this<Connection> {
       friend class SocketServerBase<socket_type>;
       friend class SocketServer<socket_type>;
 
@@ -276,7 +283,7 @@ namespace SimpleWeb {
     public:
       /// fin_rsv_opcode: 129=one fragment, text, 130=one fragment, binary, 136=close connection.
       /// See http://tools.ietf.org/html/rfc6455#section-5.2 for more information.
-      void send(const std::shared_ptr<OutMessage> &out_message, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) {
+      void send(const std::shared_ptr<OutMessage> &out_message, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) override {
         cancel_timeout();
         set_timeout();
 
@@ -314,7 +321,7 @@ namespace SimpleWeb {
       /// Convenience function for sending a string.
       /// fin_rsv_opcode: 129=one fragment, text, 130=one fragment, binary, 136=close connection.
       /// See http://tools.ietf.org/html/rfc6455#section-5.2 for more information.
-      void send(string_view out_message_str, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) {
+      void send(string_view out_message_str, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) override {
         auto out_message = std::make_shared<OutMessage>();
         out_message->write(out_message_str.data(), static_cast<std::streamsize>(out_message_str.size()));
         send(out_message, callback, fin_rsv_opcode);
@@ -881,7 +888,7 @@ namespace SimpleWeb {
 
 // Struct for connecting users
 struct WSUser {
-    std::shared_ptr<SimpleWeb::SocketServer<SimpleWeb::WS>::Connection> Connection;
+    std::shared_ptr<SimpleWeb::IWSConnection> Connection;
     std::string Address;
     int Block;
     std::string Ip;
