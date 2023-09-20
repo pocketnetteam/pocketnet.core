@@ -258,7 +258,7 @@ namespace PocketDb
             auto t13 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t13 - t12);
 
-            LogPrintf("Total migrating time: %is", t13 - t1);
+            LogPrintf("Total migrating time: %is\n", t13 - t1);
         });
     }
 
