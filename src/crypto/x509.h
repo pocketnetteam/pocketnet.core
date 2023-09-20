@@ -40,6 +40,7 @@ public:
     SSLContext& operator=(SSLContext const&) = delete;
 
     bool Setup();
+    static bool Setup(x509& cert, SSL_CTX* ctx);
     SSL_CTX* GetCtx();
 
 private:

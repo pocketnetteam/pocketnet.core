@@ -71,18 +71,23 @@ SSLContext::~SSLContext()
     SSL_CTX_free(m_ctx);
 }
 
-bool SSLContext::Setup()
+bool SSLContext::Setup(x509& cert, SSL_CTX* ctx)
 {
-    if (1 != SSL_CTX_use_certificate(m_ctx, m_cert.GetCert()))
+    if (1 != SSL_CTX_use_certificate(ctx, cert.GetCert()))
         return false;
 
-    if (1 != SSL_CTX_use_PrivateKey(m_ctx, m_cert.GetPKey()))
+    if (1 != SSL_CTX_use_PrivateKey(ctx, cert.GetPKey()))
         return false;
 
-    if (1 != SSL_CTX_check_private_key(m_ctx))
+    if (1 != SSL_CTX_check_private_key(ctx))
         return false;
 
     return true;
+}
+
+bool SSLContext::Setup()
+{
+    return Setup(m_cert, m_ctx);
 }
 
 SSLContext::SSLContext(SSLContext&& other)
