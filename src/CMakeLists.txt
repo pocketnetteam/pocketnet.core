@@ -1010,6 +1010,8 @@ add_library(${POCKETCOIN_SERVER}
         websocket/ws.cpp
         websocket/notifyprocessor.h
         websocket/notifyprocessor.cpp
+        websocket/wshandlerprovider.h
+        websocket/wshandlerprovider.cpp
         validation.h
         validation.cpp
         validationinterface.h

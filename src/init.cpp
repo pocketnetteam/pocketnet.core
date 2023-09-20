@@ -69,6 +69,7 @@
 #include <walletinitinterface.h>
 
 #include <websocket/ws.h>
+#include <websocket/wshandlerprovider.h>
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/services/ChainPostProcessing.h"
@@ -1459,80 +1460,12 @@ static void StartWS()
     server.config.port = gArgs.GetArg("-wsport", BaseParams().WsPort());
 
     auto& ws = server.endpoint["^/ws/?$"];
-    ws.on_message = [](std::shared_ptr<WsServer::Connection> connection,
-        std::shared_ptr<SimpleWeb::InMessage> in_message)
-    {
-        UniValue val;
-        auto out_message = in_message->string();
+    ws.on_message = WsHandlerProvider::on_message();
+    ws.on_close = WsHandlerProvider::on_close();
+    ws.on_error = WsHandlerProvider::on_error();
+    server.start();
+}
 
-        if (out_message == "0") // Ping/Pong
-        {
-            connection->send("1", [](const SimpleWeb::error_code& ec) {});
-        }
-        else if (val.read(out_message)) // Messages with data
-        {
-            try
-            {
-                std::vector<std::string> keys = val.getKeys();
-                if (std::find(keys.begin(), keys.end(), "addr") != keys.end())
-                {
-                    std::string _addr = val["addr"].get_str();
-
-                    int block = ChainActive().Height();
-                    if (std::find(keys.begin(), keys.end(), "block") != keys.end()) block = val["block"].get_int();
-
-                    std::string ip = connection->remote_endpoint_address();
-                    bool service = std::find(keys.begin(), keys.end(), "service") != keys.end();
-
-                    int mainPort = 8899;
-                    if (std::find(keys.begin(), keys.end(), "mainport") != keys.end())
-                        mainPort = val["mainport"].get_int();
-
-                    int wssPort = 8099;
-                    if (std::find(keys.begin(), keys.end(), "wssport") != keys.end())
-                        wssPort = val["wssport"].get_int();
-
-                    if (std::find(keys.begin(), keys.end(), "nonce") != keys.end())
-                    {
-                        WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
-                        WSConnections->insert_or_assign(connection->ID(), wsUser);
-                    }
-                    else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
-                    {
-                        if (val["msg"].get_str() == "unsubscribe")
-                        {
-                            WSConnections->erase(connection->ID());
-                        }
-                    }
-                }
-            }
-            catch (const std::exception &e)
-            {
-                UniValue m(UniValue::VOBJ);
-                m.pushKV("result", "error");
-                m.pushKV("error", e.what());
-                connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
-            }
-        }
-    };
-
-    ws.on_open = [](std::shared_ptr<WsServer::Connection> connection)
-    {
-//        cout << "Server: Opened connection " << connection.get() << endl;
-//        boost::lock_guard<boost::mutex> guard(WSMutex);
-//        if ((std::find(WSConnections.begin(), WSConnections.end(), connection) == WSConnections.end()))
-//            WSConnections.push_back(connection);
-    };
-
-    ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/)
-    {
-        WSConnections->erase(connection->ID());
-    };
-
-    ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec)
-    {
-        WSConnections->erase(connection->ID());
-    };
 
     server.start();
 }

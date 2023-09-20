@@ -539,6 +539,7 @@ POCKETCOIN_CORE_H = \
     zmq/zmqutil.h \
     websocket/ws.h \
     websocket/notifyprocessor.h \
+    websocket/wshandlerprovider.h \
     $(POCKETDB_H)
 
 
@@ -611,6 +612,7 @@ libpocketcoin_server_a_SOURCES = \
     versionbits.cpp \
     websocket/ws.cpp \
     websocket/notifyprocessor.cpp \
+    websocket/wshandlerprovider.cpp \
     $(POCKETDB_CPP) \
     $(POCKETCOIN_CORE_H)
 

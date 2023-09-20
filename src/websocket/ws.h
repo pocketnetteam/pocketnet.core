@@ -113,6 +113,9 @@ namespace SimpleWeb {
   public:
     virtual void send(const std::shared_ptr<OutMessage> &out_message, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) = 0;
     virtual void send(string_view out_message_str, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) = 0;
+    virtual std::string remote_endpoint_address() noexcept = 0;
+    virtual unsigned short remote_endpoint_port() noexcept = 0;
+    virtual std::string ID() = 0;
   };
 
   template <class socket_type>
@@ -134,7 +137,7 @@ namespace SimpleWeb {
 
       asio::ip::tcp::endpoint remote_endpoint;
 
-      std::string remote_endpoint_address() noexcept {
+      std::string remote_endpoint_address() noexcept override {
         try {
           return remote_endpoint.address().to_string();
         }
@@ -143,11 +146,11 @@ namespace SimpleWeb {
         }
       }
 
-      unsigned short remote_endpoint_port() noexcept {
+      unsigned short remote_endpoint_port() noexcept override {
         return remote_endpoint.port();
       }
 
-	  std::string ID() {
+	  std::string ID() override {
 		  auto header_it = header.find("Sec-WebSocket-Key");
 		  if (header_it != header.end()) {
 			  return header_it->second;
