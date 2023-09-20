@@ -644,6 +644,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-rpcpassword=<pw>", "Password for JSON-RPC connections", ArgsManager::ALLOW_ANY | ArgsManager::SENSITIVE, OptionsCategory::RPC);
     argsman.AddArg("-rpcport=<port>", strprintf("Listen for JSON-RPC connections on <port> (default: %u, testnet: %u, signet: %u, regtest: %u)", defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort(), signetBaseParams->RPCPort(), regtestBaseParams->RPCPort()), ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::RPC);
     argsman.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->WsPort(), testnetBaseParams->WsPort(), regtestBaseParams->WsPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-wssport=<port>", strprintf("Listen for WebSocket Secure connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->WssPort(), testnetBaseParams->WssPort(), regtestBaseParams->WssPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-publicrpcport=<port>", strprintf("Listen for public JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->PublicRPCPort(), testnetBaseParams->PublicRPCPort(), regtestBaseParams->PublicRPCPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-staticrpcport=<port>", strprintf("Listen for static JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->StaticRPCPort(), testnetBaseParams->StaticRPCPort(), regtestBaseParams->StaticRPCPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-restport=<port>", strprintf("Listen for static REST connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->RestPort(), testnetBaseParams->RestPort(), regtestBaseParams->RestPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
@@ -1453,6 +1454,7 @@ bool AppInitLockDataDirectory()
 }
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
+using WssServer = SimpleWeb::SocketServer<SimpleWeb::WSS>;
 static void StartWS()
 {
     WsServer server;
@@ -1465,8 +1467,17 @@ static void StartWS()
     server.start();
 }
 
+static void StartWSS()
+{
+    WssServer server;
+    server.config.port = gArgs.GetArg("-wssport", BaseParams().WssPort());
 
+    auto& ws = server.endpoint["^/ws/?$"];
+    ws.on_message = WsHandlerProvider::on_message();
+    ws.on_close = WsHandlerProvider::on_close();
+    ws.on_error = WsHandlerProvider::on_error();
     server.start();
+
 }
 
 static void InitWS()
@@ -1478,6 +1489,8 @@ static void InitWS()
     notifyClientsThread->Start("notifyClientsThread");
     std::thread server_thread(&StartWS);
     server_thread.detach();
+    std::thread serversecure_thread(&StartWSS);
+    serversecure_thread.detach();
 }
 
 bool AppInitInterfaces(NodeContext& node)
