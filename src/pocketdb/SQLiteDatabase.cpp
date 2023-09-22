@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/SQLiteDatabase.h"
+#include "pocketdb/migrations/old_minimal.h"
 #include "util/system.h"
 #include "pocketdb/pocketnet.h"
 #include "util/translation.h"
@@ -101,11 +102,13 @@ namespace PocketDb
     {
         const string mainDb = "main";
         SQLiteDatabase sqliteMainDbInst(false);
-        sqliteMainDbInst.Init(pocketPath.string(), mainDb);
+        sqliteMainDbInst.Init(pocketPath.string(), mainDb, std::make_shared<PocketDbOldMinimalMigration>());
 
         MigrationRepository migRepo(sqliteMainDbInst);
         if (!migRepo.NeedMigrate0_22())
             return;
+
+        sqliteMainDbInst.CreateStructure();
 
         const string tmpDb = "newdb";
 

@@ -184,18 +184,81 @@ namespace PocketDb
     {
         SqlTransaction(__func__, [&]()
         {
+            auto t1 = GetSystemTimeInSeconds();
+            LogPrintf("Fulfilling Registry...\n");
+
             FulfillRegistry();
+
+            auto t2 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t2 - t1);
+            LogPrintf("Fulfilling Chain...\n");
+
             FulfillChain();
+
+            auto t3 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t3 - t2);
+            LogPrintf("Fulfilling Lists...\n");
+
             FulfillLists();
+
+            auto t4 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t4 - t3);
+            LogPrintf("Fulfilling Last...\n");
+
             FulfillLast();
+
+            auto t5 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t5 - t4);
+            LogPrintf("Fulfilling First...\n");
+
             FulfillFirst();
+
+            auto t6 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t6 - t5);
+            LogPrintf("Fulfilling Transactions...\n");
+
             FulfillTransactions();
+
+            auto t7 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t7 - t6);
+            LogPrintf("Fulfilling TxOutputs...\n");
+
             FulfillTxOutputs();
+
+            auto t8 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t8 - t7);
+            LogPrintf("Fulfilling TxInputs...\n");
+
             FulfillTxInputs();
+
+            auto t9 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t9 - t8);
+            LogPrintf("Fulfilling Balances...\n");
+
             FulfillBalances();
+
+            auto t10 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t10 - t9);
+            LogPrintf("Fulfilling Ratings...\n");
+
             FulfillRatings();
+
+            auto t11 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t11 - t10);
+            LogPrintf("Fulfilling Payload...\n");
+
             FulfillPayload();
+
+            auto t12 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t12 - t11);
+            LogPrintf("Fulfilling other tables (BlockingLists, Jury, Badgets)...\n");
+
             FulfillOthers();
+
+            auto t13 = GetSystemTimeInSeconds();
+            LogPrintf("took %i seconds\n", t13 - t12);
+
+            LogPrintf("Total migrating time: %is\n", t13 - t1);
         });
     }
 
