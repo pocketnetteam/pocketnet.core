@@ -3032,30 +3032,6 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
     }
 }
 
-void CChainState::PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type,
-    std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields)
-{
-    UniValue msg(UniValue::VOBJ);
-    msg.pushKV("addr", addrTo);
-    msg.pushKV("msg", msg_type);
-    msg.pushKV("txid", txid);
-    msg.pushKV("time", txtime);
-
-    for (auto& it : cFields)
-    {
-        msg.pushKV(it.first, it.second);
-    }
-
-    if (messages.find(addrTo) == messages.end())
-    {
-        std::vector<UniValue> _list;
-        messages.insert(std::make_pair(addrTo, _list));
-    }
-
-    messages[addrTo].push_back(msg);
-}
-
-
 /**
  * Return the tip of the chain with the most work in it, that isn't
  * known to be invalid (it's however far from certain to be valid).

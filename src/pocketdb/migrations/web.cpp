@@ -87,6 +87,16 @@ namespace PocketDb
             );
         )sql");
 
+        _tables.emplace_back(R"sql(
+            create table if not exists AccountStatistic
+            (
+                AccountRegId int not null,
+                Type int not null,
+                Data any not null,
+                primary key (AccountRegId, Type, Data)
+            );
+        )sql");
+
         //
         // INDEXES
         //
