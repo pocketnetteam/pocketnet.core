@@ -2363,17 +2363,8 @@ namespace PocketDb
                     from
                         addr
                     cross join
-                        Transactions us indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on us.Type in (100) and us.RegId1 = addr.id
-                    cross join
-                        Chain ct
-                            on ct.TxId = us.RowId
-                    cross join
-                        Last lut
-                            on lut.TxId = us.RowId
-                    cross join
                         BlockingLists bl on
-                            bl.IdSource = ct.Uid
+                            bl.IdSource = addr.id
                 )sql")
                 .Bind(address);
             },
@@ -2413,17 +2404,8 @@ namespace PocketDb
                     from
                         addr
                     cross join
-                        Transactions ut indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on ut.Type = 100 and ut.RegId1 = addr.id
-                    cross join
-                        Chain ct
-                            on ct.TxId = ut.RowId
-                    cross join
-                        Last lut
-                            on lut.TxId = ut.RowId
-                    cross join
                         BlockingLists bl on
-                            bl.IdTarget = ct.Uid
+                            bl.IdTarget = addr.id
 
                 )sql")
                 .Bind(address);
