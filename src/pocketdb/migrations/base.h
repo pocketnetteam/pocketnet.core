@@ -20,6 +20,7 @@ namespace PocketDb
         vector<string> _views;
         string _preProcessing;
         string _indexes;
+        string _requiredIndexes;
         string _postProcessing;
 
     public:
@@ -30,6 +31,7 @@ namespace PocketDb
         vector<string>& Views() { return _views; }
         string& PreProcessing() { return _preProcessing; }
         string& Indexes() { return _indexes; }
+        string& RequiredIndexes() { return _requiredIndexes; }
         string& PostProcessing() { return _postProcessing; }
     };
 

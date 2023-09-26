@@ -29,7 +29,8 @@ namespace PocketTx
     {
         string data;
 
-        data += GetString1() ? *GetString1() : "";
+        data += GetAddress() ? *GetAddress() : "";
+        data += GetRootTxHash() && *GetRootTxHash() != *GetHash() ? *GetRootTxHash() : "";
         data += GetString3() ? *GetString3() : "";
         data += GetString4() ? *GetString4() : "";
         data += GetString5() ? *GetString5() : "";

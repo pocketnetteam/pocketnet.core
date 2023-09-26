@@ -118,6 +118,7 @@ POCKETDB_H = \
     pocketdb/migrations/base.h \
     pocketdb/migrations/main.h \
     pocketdb/migrations/web.h \
+    pocketdb/migrations/old_minimal.h \
     \
     pocketdb/helpers/PocketnetHelper.h \
     pocketdb/helpers/TransactionHelper.h \
@@ -264,6 +265,7 @@ POCKETDB_CPP = \
     \
     pocketdb/migrations/main.cpp \
     pocketdb/migrations/web.cpp \
+    pocketdb/migrations/old_minimal.cpp \
     \
     pocketdb/helpers/TransactionHelper.cpp \
     pocketdb/helpers/ShortFormRepositoryHelper.cpp \

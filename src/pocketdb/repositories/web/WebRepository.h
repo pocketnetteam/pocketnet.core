@@ -39,6 +39,8 @@ namespace PocketDb
 
         void UpsertBarteronAccounts(int height);
         void UpsertBarteronOffers(int height);
+
+        void CollectAccountStatistic();
     };
 
     typedef shared_ptr<WebRepository> WebRepositoryRef;

@@ -118,6 +118,8 @@ class ActionBlockingTest(PocketcoinTestFramework):
         assert len(node.public().getuserblockings(accounts[0].Address)) == 0
 
         # ---------------------------------------------------------------------------------
+        # проверка что после отката мультиблокс таблица заполнена правило при наличии 2х и более транзакций
+        # бана/разбана за период отката
 
         # (1)
         self.log.info("x -> y false")
@@ -136,6 +138,12 @@ class ActionBlockingTest(PocketcoinTestFramework):
         assert 1054 == h
         
         assert len(node.public().getuserblockings(accounts[0].Address)) == 0
+
+        # ---------------------------------------------------------------------------------
+
+        # proveryaem korrektnost otkata esli uzer bil zaregistrirovan za period otkata
+        
+
 
 
 if __name__ == "__main__":

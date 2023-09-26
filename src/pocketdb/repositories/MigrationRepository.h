@@ -27,10 +27,26 @@ namespace PocketDb
         // TODO (optimization): rename
         void AddTransactionFirstField();
 
+        bool NeedMigrate0_22();
+        void Migrate0_21__0_22();
     protected:
+        void FulfillRegistry();
+        void FulfillChain();
+        void FulfillLists();
+        void FulfillFirst();
+        void FulfillLast();
+        void FulfillTransactions();
+        void FulfillTxOutputs();
+        void FulfillRatings();
+        void FulfillBalances();
+        void FulfillTxInputs();
+        void FulfillPayload();
+        void FulfillOthers();
 
         bool CheckNeedCreateBlockingList();
 
+        bool TableExists(const string& tableName);
+        bool ColumnExists(const string& tableName, const string& columnName);
     };
 
     typedef std::shared_ptr<MigrationRepository> MigrationRepositoryRef;

@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/SQLiteDatabase.h"
+#include "pocketdb/migrations/old_minimal.h"
 #include "util/system.h"
 #include "pocketdb/pocketnet.h"
 #include "util/translation.h"
@@ -54,6 +55,9 @@ namespace PocketDb
         auto dbBasePath = path.string();
 
         InitializeSqlite();
+
+        MaybeMigrate0_22(dbBasePath);
+
         PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDbMainMigration>();
         PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
         SQLiteDbInst.CreateStructure();
@@ -92,6 +96,66 @@ namespace PocketDb
 
         // Attach `web` db to `main` db
         SQLiteDbInst.AttachDatabase("web");
+    }
+
+    void MaybeMigrate0_22(const fs::path& pocketPath)
+    {
+        const string mainDb = "main";
+        SQLiteDatabase sqliteMainDbInst(false);
+        sqliteMainDbInst.Init(pocketPath.string(), mainDb, std::make_shared<PocketDbOldMinimalMigration>());
+
+        MigrationRepository migRepo(sqliteMainDbInst);
+        if (!migRepo.NeedMigrate0_22())
+            return;
+
+        sqliteMainDbInst.CreateStructure();
+
+        const string tmpDb = "newdb";
+
+        SQLiteDatabase sqliteNewDbInst(false);
+        sqliteNewDbInst.Init(pocketPath.string(), tmpDb, std::make_shared<PocketDbMainMigration>(), true);
+        sqliteNewDbInst.CreateStructure(false);
+        sqliteNewDbInst.Close();
+
+        sqliteMainDbInst.AttachDatabase(tmpDb);
+
+        migRepo.Migrate0_21__0_22();
+
+        migRepo.Destroy();
+        sqliteMainDbInst.DetachDatabase(tmpDb);
+        sqliteMainDbInst.Close();
+
+        try
+        {
+            const auto shmDst = pocketPath / (mainDb + ".sqlite3-shm");
+            const auto shmSrc = pocketPath / (tmpDb + ".sqlite3-shm");
+            const auto walDst = pocketPath / (mainDb + ".sqlite3-wal");
+            const auto walSrc = pocketPath / (tmpDb + ".sqlite3-wal");
+
+            if (fs::exists(walDst))
+                fs::remove(walDst);
+            if (fs::exists(shmDst))
+                fs::remove(shmDst);
+
+            fs::rename(pocketPath / (tmpDb + ".sqlite3"), pocketPath / (mainDb + ".sqlite3"));
+
+            if (fs::exists(shmSrc))
+                fs::rename(shmSrc, shmDst);
+            if (fs::exists(walSrc))
+                fs::rename(walSrc, walDst);
+
+            // After migration 0.21 -> 0.22 web database need recreating
+            const auto webShm = pocketPath / ("web.sqlite3-shm");
+            const auto webWal = pocketPath / ("web.sqlite3-wal");
+            const auto webDb = pocketPath / ("web.sqlite3");
+            if (fs::exists(webShm)) fs::remove(webShm);
+            if (fs::exists(webWal)) fs::remove(webWal);
+            if (fs::exists(webDb)) fs::remove(webDb);
+        }
+        catch (const fs::filesystem_error& e)
+        {
+            throw std::runtime_error(strprintf("Failed replace original database with migration: %s", e.what()));
+        }
     }
 
     SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)
@@ -249,7 +313,7 @@ namespace PocketDb
         }
     }
 
-    void SQLiteDatabase::CreateStructure()
+    void SQLiteDatabase::CreateStructure(bool includeIndexes)
     {
         assert(m_db && m_db_migration);
 
@@ -276,7 +340,10 @@ namespace PocketDb
             if (!BulkExecute(m_db_migration->PreProcessing()))
                 throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (PreProcessing)\n", __func__, m_file_path));
 
-            if (!BulkExecute(m_db_migration->Indexes()))
+            if (!BulkExecute(m_db_migration->RequiredIndexes()))
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (RequiredIndexes)\n", __func__, m_file_path));
+
+            if (includeIndexes && !BulkExecute(m_db_migration->Indexes()))
                 throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (Indexes)\n", __func__, m_file_path));
 
             if (!BulkExecute(m_db_migration->PostProcessing()))
