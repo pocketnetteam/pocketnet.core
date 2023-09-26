@@ -186,6 +186,8 @@ namespace PocketDb
     {
         vector<int64_t> result;
 
+        string _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
+
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
@@ -247,7 +249,7 @@ namespace PocketDb
                     order by ROWNUMBER, RNK, Rating desc
                 )sql")
                 .Bind(
-                    ("\"" + keyword + "\"" + " OR " + keyword + "*"),
+                    _keyword,
                     (int)ContentFieldType::ContentFieldType_AccountUserName,
                     10,
                     (int)ContentFieldType::ContentFieldType_AccountUserAbout,
