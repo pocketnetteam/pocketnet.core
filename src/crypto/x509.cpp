@@ -6,7 +6,7 @@
 
 
 x509::x509()
-    : m_pkey(EVP_RSA_gen(2048)),
+    : m_pkey(EVP_PKEY_new()),
       m_cert(X509_new())
 {
 }
@@ -19,6 +19,10 @@ x509::~x509()
 
 void x509::Generate()
 {
+    // Change to EVP_RSA_gen(2048) after switching to OpenSSL 3.x.x
+    auto rsa = RSA_generate_key(2048, RSA_F4, nullptr, nullptr);
+    EVP_PKEY_assign_RSA(m_pkey, rsa);
+
     ASN1_INTEGER_set(X509_get_serialNumber(m_cert), 1);
     X509_gmtime_adj(X509_get_notBefore(m_cert), 0);
     X509_gmtime_adj(X509_get_notAfter(m_cert), 31536000L);
