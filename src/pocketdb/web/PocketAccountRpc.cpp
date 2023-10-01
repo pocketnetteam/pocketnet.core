@@ -712,6 +712,7 @@ namespace PocketWeb::PocketWebRpc
                 "\nReturn blocked accounts list\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"useaddresses", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Use addresses instead numbers"},
                 },
                 {
                     // TODO (rpc): provide return description
@@ -727,7 +728,16 @@ namespace PocketWeb::PocketWebRpc
 
         string address = request.params[0].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetBlockings(address);
+        bool useAddresses = false;
+        if (request.params.size() > 1)
+        {
+            if (request.params[1].isBool())
+                useAddresses = request.params[1].get_bool();
+            else if (request.params[1].isNum())
+                useAddresses = (request.params[1].get_int() == 1);
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->GetBlockings(address, useAddresses);
     },
         };
     }
@@ -738,6 +748,7 @@ namespace PocketWeb::PocketWebRpc
                 "\nReturns a list of accounts that have blocked the specified address\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"useaddresses", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Use addresses instead numbers"},
                 },
                 {
                     // TODO (rpc): provide return description
@@ -752,7 +763,17 @@ namespace PocketWeb::PocketWebRpc
         RPCTypeCheck(request.params, {UniValue::VSTR});
 
         string address = request.params[0].get_str();
-        return request.DbConnection()->WebRpcRepoInst->GetBlockers(address);
+
+        bool useAddresses = false;
+        if (request.params.size() > 1)
+        {
+            if (request.params[1].isBool())
+                useAddresses = request.params[1].get_bool();
+            else if (request.params[1].isNum())
+                useAddresses = (request.params[1].get_int() == 1);
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->GetBlockers(address, useAddresses);
     },
         };
     }
