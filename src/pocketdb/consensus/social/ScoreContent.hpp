@@ -255,9 +255,7 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1324655 block
-    *******************************************************************************************************************/
+    // Disable 1-2 scores for trial users
     class ScoreContentConsensus_checkpoint_1324655 : public ScoreContentConsensus_checkpoint_1180000
     {
     public:
@@ -289,6 +287,18 @@ namespace PocketConsensus
         }
     };
 
+    // Disable 1-2-3 scores for trial users
+    class ScoreContentConsensus_checkpoint_pip_103 : public ScoreContentConsensus_checkpoint_disable_for_blocked
+    {
+    public:
+        ScoreContentConsensus_checkpoint_pip_103() : ScoreContentConsensus_checkpoint_disable_for_blocked() {}
+    protected:
+        bool ValidateLowReputation(const ScoreContentRef& ptx, AccountMode mode) override
+        {
+            return mode != AccountMode_Trial || *ptx->GetValue() > 3;
+        }
+    };
+
 
     // ----------------------------------------------------------------------------------------------
     // Factory for select actual rules version
@@ -297,13 +307,14 @@ namespace PocketConsensus
     public:
         ScoreContentConsensusFactory()
         {
-            Checkpoint({       0,     -1, -1, make_shared<ScoreContentConsensus>() });
-            Checkpoint({  430000,     -1, -1, make_shared<ScoreContentConsensus_checkpoint_430000>() });
-            Checkpoint({  514184,     -1, -1, make_shared<ScoreContentConsensus_checkpoint_514184>() });
-            Checkpoint({ 1124000,     -1, -1, make_shared<ScoreContentConsensus_checkpoint_1124000>() });
-            Checkpoint({ 1180000,      0, -1, make_shared<ScoreContentConsensus_checkpoint_1180000>() });
-            Checkpoint({ 1324655,  65000, -1, make_shared<ScoreContentConsensus_checkpoint_1324655>() });
-            Checkpoint({ 1757000, 953000,  0, make_shared<ScoreContentConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({       0,      -1, -1, make_shared<ScoreContentConsensus>() });
+            Checkpoint({  430000,      -1, -1, make_shared<ScoreContentConsensus_checkpoint_430000>() });
+            Checkpoint({  514184,      -1, -1, make_shared<ScoreContentConsensus_checkpoint_514184>() });
+            Checkpoint({ 1124000,      -1, -1, make_shared<ScoreContentConsensus_checkpoint_1124000>() });
+            Checkpoint({ 1180000,       0, -1, make_shared<ScoreContentConsensus_checkpoint_1180000>() });
+            Checkpoint({ 1324655,   65000, -1, make_shared<ScoreContentConsensus_checkpoint_1324655>() });
+            Checkpoint({ 1757000,  953000, -1, make_shared<ScoreContentConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({ 2516000, 2267333,  0, make_shared<ScoreContentConsensus_checkpoint_pip_103>() });
         }
     };
 
