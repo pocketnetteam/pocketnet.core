@@ -2339,7 +2339,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetBlockings(const string& address)
+    UniValue WebRpcRepository::GetBlockings(const string& address, bool useAddresses)
     {
         UniValue result(UniValue::VARR);
 
@@ -2359,20 +2359,33 @@ namespace PocketDb
                     )
 
                     select
-                        bl.IdTarget
+                        bl.IdTarget,
+                        r.String
                     from
                         addr
                     cross join
                         BlockingLists bl on
                             bl.IdSource = addr.id
+                    cross join
+                        Registry r on
+                            r.RowId = bl.IdTarget
                 )sql")
                 .Bind(address);
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                            result.push_back(value);
+                    while (cursor.Step()) {
+                        if (useAddresses) {
+                            if (auto[ok, value] = cursor.TryGetColumnString(1); ok) {
+                                result.push_back(value);
+                            }
+                        }
+                        else {
+                            if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) {
+                                result.push_back(value);
+                            }
+                        }
+                    }
                 });
             }
         );
@@ -2380,7 +2393,7 @@ namespace PocketDb
         return result;
     }
     
-    UniValue WebRpcRepository::GetBlockers(const string& address)
+    UniValue WebRpcRepository::GetBlockers(const string& address, bool useAddresses)
     {
         UniValue result(UniValue::VARR);
 
@@ -2400,21 +2413,33 @@ namespace PocketDb
                     )
 
                     select
-                        bl.IdSource
+                        bl.IdSource,
+                        r.String
                     from
                         addr
                     cross join
                         BlockingLists bl on
                             bl.IdTarget = addr.id
-
+                    cross join
+                        Registry r on
+                            r.RowId = bl.IdSource
                 )sql")
                 .Bind(address);
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                            result.push_back(value);
+                    while (cursor.Step()) {
+                        if (useAddresses) {
+                            if (auto[ok, value] = cursor.TryGetColumnString(1); ok) {
+                                result.push_back(value);
+                            }
+                        }
+                        else {
+                            if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) {
+                                result.push_back(value);
+                            }
+                        }
+                    }
                 });
             }
         );

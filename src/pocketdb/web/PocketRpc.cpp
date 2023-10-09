@@ -96,8 +96,8 @@ static const CRPCCommand commands[] =
     {"accounts",        "getuserstatistic",                 &GetAccountStatistic,            {"address", "height", "depth"}},
     {"accounts",        "getusersubscribes",                &GetAccountSubscribes,           {"address", "orderby", "orderdesc", "offset", "limit"}},
     {"accounts",        "getusersubscribers",               &GetAccountSubscribers,          {"address", "orderby", "orderdesc", "offset", "limit"}},
-    {"accounts",        "getuserblockings",                 &GetAccountBlockings,            {"address"}},
-    {"accounts",        "getuserblockers",                  &GetAccountBlockers,             {"address"}},
+    {"accounts",        "getuserblockings",                 &GetAccountBlockings,            {"address","useaddresses"}},
+    {"accounts",        "getuserblockers",                  &GetAccountBlockers,             {"address","useaddresses"}},
     {"accounts",        "gettopaccounts",                   &GetTopAccounts,                 {"topHeight","countOut","lang","tags","contentTypes","adrsExcluded","tagsExcluded","depth"}},
 
     // Scores
