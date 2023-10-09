@@ -539,6 +539,7 @@ POCKETCOIN_CORE_H = \
     zmq/zmqutil.h \
     websocket/ws.h \
     websocket/notifyprocessor.h \
+    websocket/wshandlerprovider.h \
     $(POCKETDB_H)
 
 
@@ -611,6 +612,7 @@ libpocketcoin_server_a_SOURCES = \
     versionbits.cpp \
     websocket/ws.cpp \
     websocket/notifyprocessor.cpp \
+    websocket/wshandlerprovider.cpp \
     $(POCKETDB_CPP) \
     $(POCKETCOIN_CORE_H)
 
@@ -697,7 +699,9 @@ crypto_libpocketcoin_crypto_base_a_SOURCES = \
   crypto/sha512.cpp \
   crypto/sha512.h \
   crypto/siphash.cpp \
-  crypto/siphash.h
+  crypto/siphash.h \
+  crypto/x509.h \
+  crypto/x509.cpp
 
 if USE_ASM
 crypto_libpocketcoin_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp
@@ -876,7 +880,7 @@ pocketcoin_bin_ldadd = \
   $(LIBSECP256K1) \
   $(LIBSQLITE3)
 
-pocketcoin_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
+pocketcoin_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_OPENSSL_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
 
 pocketcoind_SOURCES = $(pocketcoin_daemon_sources)
 pocketcoind_CPPFLAGS = $(pocketcoin_bin_cppflags)

@@ -7,7 +7,11 @@
 #include <httpserver.h>
 #include <interfaces/chain.h>
 
+#include <event2/bufferevent.h>
+#include <event2/bufferevent_ssl.h>
+
 #include <chainparamsbase.h>
+#include <openssl/ssl.h>
 #include <util/system.h>
 #include <util/strencodings.h>
 #include <util/translation.h>
@@ -79,6 +83,7 @@ static std::vector<CSubNet> rpc_allow_subnets;
 //! HTTP socket objects to handle requests on different routes
 HTTPSocket *g_socket;
 HTTPWebSocket *g_webSocket;
+HTTPWebSocket *g_webSocketHttps;
 HTTPSocket *g_staticSocket;
 HTTPSocket *g_restSocket;
 
@@ -145,6 +150,24 @@ std::string RequestMethodString(HTTPRequest::RequestMethod m)
         default:
             return "unknown";
     }
+}
+
+
+/**
+ * This callback is responsible for creating a new SSL connection
+ * and wrapping it in an OpenSSL bufferevent.  This is the way
+ * we implement an https server instead of a plain old http server.
+ */
+static struct bufferevent* bevcb (struct event_base *base, void *arg)
+{ struct bufferevent* r;
+  SSL_CTX *ctx = (SSL_CTX *) arg;
+
+  r = bufferevent_openssl_socket_new (base,
+                                      -1,
+                                      SSL_new (ctx),
+                                      BUFFEREVENT_SSL_ACCEPTING,
+                                      BEV_OPT_CLOSE_ON_FREE);
+  return r;
 }
 
 /** HTTP request callback */
@@ -256,6 +279,7 @@ static bool HTTPBindAddresses()
 {
     int securePort = gArgs.GetArg("-rpcport", BaseParams().RPCPort());
     int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
+    int publicTlsPort = gArgs.GetArg("-publictlsrpcport", BaseParams().PublicTlsRPCPort());
     int staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
     int restPort = gArgs.GetArg("-restport", BaseParams().RestPort());
     int bindAddresses = 0;
@@ -297,6 +321,11 @@ static bool HTTPBindAddresses()
     {
         g_webSocket->BindAddress("::", publicPort);
         g_webSocket->BindAddress("0.0.0.0", publicPort);
+        if (g_webSocketHttps)
+        {
+            g_webSocketHttps->BindAddress("::", publicTlsPort);
+            g_webSocketHttps->BindAddress("0.0.0.0", publicTlsPort);
+        }
     }
     if (g_staticSocket)
     {
@@ -396,6 +425,7 @@ bool InitHTTPServer(const util::Ref& context)
     {
         g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
         RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
+        g_webSocketHttps = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true, /* tls */ true);
     }
 
     if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE))
@@ -456,6 +486,10 @@ void StartHTTPServer()
     {
         g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
         LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
+        if (g_webSocketHttps)
+        {
+            g_webSocketHttps->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
+        }
     }
     if (g_staticSocket)
     {
@@ -474,6 +508,7 @@ void InterruptHTTPServer()
     LogPrint(BCLog::HTTP, "Interrupting HTTP server\n");
     if (g_socket) g_socket->InterruptHTTPSocket();
     if (g_webSocket) g_webSocket->InterruptHTTPSocket();
+    if (g_webSocketHttps) g_webSocketHttps->InterruptHTTPSocket();
     if (g_staticSocket) g_staticSocket->InterruptHTTPSocket();
     if (g_restSocket) g_restSocket->InterruptHTTPSocket();
 }
@@ -485,6 +520,7 @@ void StopHTTPServer()
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
     if (g_socket) g_socket->StopHTTPSocket();
     if (g_webSocket) g_webSocket->StopHTTPSocket();
+    if (g_webSocketHttps) g_webSocketHttps->StopHTTPSocket();
     if (g_staticSocket) g_staticSocket->StopHTTPSocket();
     if (g_restSocket) g_restSocket->StopHTTPSocket();
 
@@ -499,6 +535,9 @@ void StopHTTPServer()
 
     delete g_webSocket;
     g_webSocket = nullptr;
+
+    delete g_webSocketHttps;
+    g_webSocketHttps = nullptr;
 
     delete g_staticSocket;
     g_staticSocket = nullptr;
@@ -528,7 +567,16 @@ static void httpevent_callback_fn(evutil_socket_t, short, void *data)
         delete self;
 }
 
-HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, bool publicAccess):
+SSLContext SetupTls()
+{
+    x509 cert;
+    cert.Generate();
+    SSLContext sslCtx(std::move(cert));
+    sslCtx.Setup();
+    return sslCtx;
+}
+
+HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, bool publicAccess, bool fUseTls):
     m_http(nullptr), m_eventHTTP(nullptr), m_workQueue(nullptr), m_publicAccess(publicAccess)
 {
     /* Create a new evhttp object to handle requests. */
@@ -544,6 +592,11 @@ HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, boo
     evhttp_set_max_headers_size(m_http, MAX_HEADERS_SIZE);
     evhttp_set_max_body_size(m_http, MAX_SIZE);
     evhttp_set_gencb(m_http, http_request_cb, (void*) this);
+    if (fUseTls)
+    {
+        m_sslCtx = SetupTls();
+        evhttp_set_bevcb(m_http, bevcb, (void*)m_sslCtx->GetCtx());
+    }
     evhttp_set_allowed_methods(m_http,
         evhttp_cmd_type::EVHTTP_REQ_GET |
         evhttp_cmd_type::EVHTTP_REQ_POST |
@@ -794,8 +847,8 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
 }
 
 /** WebSocket for public API */
-HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess)
-    : HTTPSocket(base, timeout, queueDepth, publicAccess)
+HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess, bool fUseTls)
+    : HTTPSocket(base, timeout, queueDepth, publicAccess, fUseTls)
 {
     m_workPostQueue = std::make_shared<QueueLimited<std::unique_ptr<HTTPClosure>>>(queuePostDepth);
     LogPrintf("HTTP: creating work post queue of depth %d\n", queuePostDepth);

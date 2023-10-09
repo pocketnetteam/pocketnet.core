@@ -89,17 +89,7 @@ static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUserna
     return multiUserAuthorized(strUserPass);
 }
 
-static bool HTTPReq_JSONRPC_Anonymous(const util::Ref& context, HTTPRequest* req)
-{
-    return g_webSocket->HTTPReq(req, context, g_webSocket->m_table_rpc);
-}
-
-static bool HTTPReq_JSONRPC_Post_Anonymous(const util::Ref& context, HTTPRequest* req)
-{
-    return g_webSocket->HTTPReq(req, context, g_webSocket->m_table_post_rpc);
-}
-
-static bool HTTPReq_JSONRPC(const util::Ref& context, HTTPRequest* req)
+static bool AuthorizeRequest(HTTPRequest* req)
 {
     auto peerAddr = req->GetPeer().ToString();
     // Check authorization
@@ -126,7 +116,7 @@ static bool HTTPReq_JSONRPC(const util::Ref& context, HTTPRequest* req)
         return false;
     }
 
-    return g_socket->HTTPReq(req, context, g_socket->m_table_rpc);
+    return true;
 }
 
 static bool InitRPCAuthentication()
@@ -154,7 +144,13 @@ bool StartHTTPRPC(const util::Ref& context)
 
     if (g_socket)
     {
-        auto handler = [&context](HTTPRequest* req, const std::string&) { return HTTPReq_JSONRPC(context, req); };
+        auto handler = [&context](HTTPRequest* req, const std::string&) {
+            if (!AuthorizeRequest(req)) {
+                return false;
+            }
+            return HTTPSocket::HTTPReq(req, context, g_socket->m_table_rpc);
+        };
+
         g_socket->RegisterHTTPHandler("/", true, handler, g_socket->m_workQueue);
 
         if (g_wallet_init_interface.HasWalletSupport())
@@ -163,10 +159,16 @@ bool StartHTTPRPC(const util::Ref& context)
 
     if (g_webSocket)
     {
-        auto postAnonymousHandler = [&context](HTTPRequest* req, const std::string&) { return HTTPReq_JSONRPC_Post_Anonymous(context, req); };
+        auto postAnonymousHandler = [&context](HTTPRequest* req, const std::string&) { return HTTPSocket::HTTPReq(req, context, g_webSocket->m_table_post_rpc); };
         g_webSocket->RegisterHTTPHandler("/post/", false, postAnonymousHandler, g_webSocket->m_workPostQueue);
-        auto anonymousHandler = [&context](HTTPRequest* req, const std::string&) { return HTTPReq_JSONRPC_Anonymous(context, req); };
+        auto anonymousHandler = [&context](HTTPRequest* req, const std::string&) { return HTTPSocket::HTTPReq(req, context, g_webSocket->m_table_rpc); };
         g_webSocket->RegisterHTTPHandler("/", false, anonymousHandler, g_webSocket->m_workQueue);
+
+        if (g_webSocketHttps)
+        {
+            g_webSocketHttps->RegisterHTTPHandler("/post/", false, postAnonymousHandler, /* sharing same queue with http */ g_webSocket->m_workPostQueue);
+            g_webSocketHttps->RegisterHTTPHandler("/", false, anonymousHandler, g_webSocket->m_workQueue);
+        }
     }
 
     struct event_base* eventBase = EventBase();
@@ -197,6 +199,11 @@ void StopHTTPRPC()
     {
         g_webSocket->UnregisterHTTPHandler("/post/", false);
         g_webSocket->UnregisterHTTPHandler("/", false);
+        if (g_webSocketHttps)
+        {
+            g_webSocketHttps->UnregisterHTTPHandler("/post/", false);
+            g_webSocketHttps->UnregisterHTTPHandler("/", false);
+        }
     }
 
     if (httpRPCTimerInterface) {

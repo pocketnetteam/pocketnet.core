@@ -14,9 +14,12 @@
 #include <thread>
 #include <unordered_set>
 
+#include<crypto/x509.h>
+
 #ifdef USE_STANDALONE_ASIO
 #include <asio.hpp>
 #include <asio/steady_timer.hpp>
+#include <asio/ssl.hpp>
 namespace SimpleWeb {
   using error_code = std::error_code;
   using errc = std::errc;
@@ -25,6 +28,7 @@ namespace SimpleWeb {
 #else
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/ssl.hpp>
 namespace SimpleWeb {
   namespace asio = boost::asio;
   using error_code = boost::system::error_code;
@@ -58,56 +62,66 @@ namespace SimpleWeb {
   template <class socket_type>
   class SocketServer;
 
+  /// The buffer is not consumed during send operations.
+  /// Do not alter while sending.
+  class OutMessage : public std::ostream {
+    template<class> friend class SocketServerBase;
+
+    asio::streambuf streambuf;
+
+  public:
+    OutMessage() noexcept : std::ostream(&streambuf) {}
+
+    /// Returns the size of the buffer
+    std::size_t size() const noexcept {
+      return streambuf.size();
+    }
+  };
+
+  class InMessage : public std::istream {
+    template<class> friend class SocketServerBase;
+
+  public:
+    unsigned char fin_rsv_opcode;
+    std::size_t size() noexcept {
+      return length;
+    }
+
+    /// Convenience function to return std::string. The stream buffer is consumed.
+    std::string string() noexcept {
+      try {
+        std::string str;
+        auto size = streambuf.size();
+        str.resize(size);
+        read(&str[0], static_cast<std::streamsize>(size));
+        return str;
+      }
+      catch(...) {
+        return std::string();
+      }
+    }
+
+  private:
+    InMessage() noexcept : std::istream(&streambuf), length(0) {}
+    InMessage(unsigned char fin_rsv_opcode, std::size_t length) noexcept : std::istream(&streambuf), fin_rsv_opcode(fin_rsv_opcode), length(length) {}
+    std::size_t length;
+    asio::streambuf streambuf;
+  };
+
+  class IWSConnection
+  {
+  public:
+    virtual void send(const std::shared_ptr<OutMessage> &out_message, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) = 0;
+    virtual void send(string_view out_message_str, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) = 0;
+    virtual std::string remote_endpoint_address() noexcept = 0;
+    virtual unsigned short remote_endpoint_port() noexcept = 0;
+    virtual std::string ID() = 0;
+  };
+
   template <class socket_type>
   class SocketServerBase {
   public:
-    class InMessage : public std::istream {
-      friend class SocketServerBase<socket_type>;
-
-    public:
-      unsigned char fin_rsv_opcode;
-      std::size_t size() noexcept {
-        return length;
-      }
-
-      /// Convenience function to return std::string. The stream buffer is consumed.
-      std::string string() noexcept {
-        try {
-          std::string str;
-          auto size = streambuf.size();
-          str.resize(size);
-          read(&str[0], static_cast<std::streamsize>(size));
-          return str;
-        }
-        catch(...) {
-          return std::string();
-        }
-      }
-
-    private:
-      InMessage() noexcept : std::istream(&streambuf), length(0) {}
-      InMessage(unsigned char fin_rsv_opcode, std::size_t length) noexcept : std::istream(&streambuf), fin_rsv_opcode(fin_rsv_opcode), length(length) {}
-      std::size_t length;
-      asio::streambuf streambuf;
-    };
-
-    /// The buffer is not consumed during send operations.
-    /// Do not alter while sending.
-    class OutMessage : public std::ostream {
-      friend class SocketServerBase<socket_type>;
-
-      asio::streambuf streambuf;
-
-    public:
-      OutMessage() noexcept : std::ostream(&streambuf) {}
-
-      /// Returns the size of the buffer
-      std::size_t size() const noexcept {
-        return streambuf.size();
-      }
-    };
-
-    class Connection : public std::enable_shared_from_this<Connection> {
+    class Connection : public IWSConnection, public std::enable_shared_from_this<Connection> {
       friend class SocketServerBase<socket_type>;
       friend class SocketServer<socket_type>;
 
@@ -123,7 +137,7 @@ namespace SimpleWeb {
 
       asio::ip::tcp::endpoint remote_endpoint;
 
-      std::string remote_endpoint_address() noexcept {
+      std::string remote_endpoint_address() noexcept override {
         try {
           return remote_endpoint.address().to_string();
         }
@@ -132,11 +146,11 @@ namespace SimpleWeb {
         }
       }
 
-      unsigned short remote_endpoint_port() noexcept {
+      unsigned short remote_endpoint_port() noexcept override {
         return remote_endpoint.port();
       }
 
-	  std::string ID() {
+	  std::string ID() override {
 		  auto header_it = header.find("Sec-WebSocket-Key");
 		  if (header_it != header.end()) {
 			  return header_it->second;
@@ -276,7 +290,7 @@ namespace SimpleWeb {
     public:
       /// fin_rsv_opcode: 129=one fragment, text, 130=one fragment, binary, 136=close connection.
       /// See http://tools.ietf.org/html/rfc6455#section-5.2 for more information.
-      void send(const std::shared_ptr<OutMessage> &out_message, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) {
+      void send(const std::shared_ptr<OutMessage> &out_message, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) override {
         cancel_timeout();
         set_timeout();
 
@@ -314,7 +328,7 @@ namespace SimpleWeb {
       /// Convenience function for sending a string.
       /// fin_rsv_opcode: 129=one fragment, text, 130=one fragment, binary, 136=close connection.
       /// See http://tools.ietf.org/html/rfc6455#section-5.2 for more information.
-      void send(string_view out_message_str, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) {
+      void send(string_view out_message_str, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) override {
         auto out_message = std::make_shared<OutMessage>();
         out_message->write(out_message_str.data(), static_cast<std::streamsize>(out_message_str.size()));
         send(out_message, callback, fin_rsv_opcode);
@@ -876,12 +890,70 @@ namespace SimpleWeb {
       });
     }
   };
+
+  using WSS = asio::ssl::stream<asio::ip::tcp::socket>;
+
+  template <>
+  class SocketServer<WSS> : public SocketServerBase<WSS> {
+    bool set_session_id_context = false;
+
+  public:
+    SocketServer()
+        : SocketServerBase<WSS>(443), context(asio::ssl::context::tlsv12) {
+      cert.Generate();
+      if (!SSLContext::Setup(cert, context.native_handle())) {
+        throw std::runtime_error("Failed to setup TLS for WebSocket connections");
+      }
+    }
+
+  protected:
+    asio::ssl::context context;
+    x509 cert;
+
+    void after_bind() override {
+      if(set_session_id_context) {
+        // Creating session_id_context from address:port but reversed due to small SSL_MAX_SSL_SESSION_ID_LENGTH
+        auto session_id_context = std::to_string(acceptor->local_endpoint().port()) + ':';
+        session_id_context.append(config.address.rbegin(), config.address.rend());
+        SSL_CTX_set_session_id_context(context.native_handle(), reinterpret_cast<const unsigned char *>(session_id_context.data()),
+                                       std::min<std::size_t>(session_id_context.size(), SSL_MAX_SSL_SESSION_ID_LENGTH));
+      }
+    }
+
+    void accept() override {
+      std::shared_ptr<Connection> connection(new Connection(handler_runner, config.timeout_idle, *io_service, context));
+
+      acceptor->async_accept(connection->socket->lowest_layer(), [this, connection](const error_code &ec) {
+        auto lock = connection->handler_runner->continue_lock();
+        if(!lock)
+          return;
+        // Immediately start accepting a new connection (if io_service hasn't been stopped)
+        if(ec != asio::error::operation_aborted)
+          accept();
+
+        if(!ec) {
+          asio::ip::tcp::no_delay option(true);
+          connection->socket->lowest_layer().set_option(option);
+
+          connection->set_timeout(config.timeout_request);
+          connection->socket->async_handshake(asio::ssl::stream_base::server, [this, connection](const error_code &ec) {
+            auto lock = connection->handler_runner->continue_lock();
+            if(!lock)
+              return;
+            connection->cancel_timeout();
+            if(!ec)
+              read_handshake(connection);
+          });
+        }
+      });
+    }
+  };
 } // namespace SimpleWeb
 
 
 // Struct for connecting users
 struct WSUser {
-    std::shared_ptr<SimpleWeb::SocketServer<SimpleWeb::WS>::Connection> Connection;
+    std::shared_ptr<SimpleWeb::IWSConnection> Connection;
     std::string Address;
     int Block;
     std::string Ip;

@@ -16,6 +16,7 @@
 #include <event2/util.h>
 #include <event2/keyvalq_struct.h>
 #include <support/events.h>
+#include "crypto/x509.h"
 #include "rpc/server.h"
 #include "init.h"
 #include "pocketdb/SQLiteConnection.h"
@@ -253,12 +254,13 @@ private:
     struct evhttp* m_eventHTTP;
     std::vector<evhttp_bound_socket*> m_boundSockets;
     std::vector<std::shared_ptr<QueueEventLoopThread<std::unique_ptr<HTTPClosure>>>> m_thread_http_workers;
+    std::optional<SSLContext> m_sslCtx;
 
 protected:
     void StartThreads(const std::string name, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection);
 
 public:
-    HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
+    HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess, bool fUseTls = false);
     ~HTTPSocket();
 
     /** Sets the need to check the request source. For public APIs,
@@ -291,7 +293,7 @@ public:
     /** Unregister handler for prefix */
     void UnregisterHTTPHandler(const std::string& prefix, bool exactMatch);
 
-    bool HTTPReq(HTTPRequest* req, const util::Ref& context,  CRPCTable& table);
+    static bool HTTPReq(HTTPRequest* req, const util::Ref& context,  CRPCTable& table);
 };
 
 class HTTPWebSocket: public HTTPSocket
@@ -300,7 +302,7 @@ public:
     CRPCTable m_table_post_rpc;
     std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> m_workPostQueue;
 
-    HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess);
+    HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess, bool fUseTls = false);
     ~HTTPWebSocket();
     void StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection);
     void StopHTTPSocket();
@@ -311,5 +313,6 @@ extern HTTPSocket* g_socket;
 extern HTTPSocket* g_staticSocket;
 extern HTTPSocket* g_restSocket;
 extern HTTPWebSocket* g_webSocket;
+extern HTTPWebSocket* g_webSocketHttps;
 
 #endif // POCKETCOIN_HTTPSERVER_H

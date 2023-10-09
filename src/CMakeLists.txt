@@ -828,6 +828,8 @@ add_library(${POCKETCOIN_CRYPTO}
         crypto/siphash.h
         crypto/siphash.cpp
         crypto/aes.cpp
+        crypto/x509.h
+        crypto/x509.cpp
         uint256.h
         uint256.cpp
         hash.h
@@ -1008,6 +1010,8 @@ add_library(${POCKETCOIN_SERVER}
         websocket/ws.cpp
         websocket/notifyprocessor.h
         websocket/notifyprocessor.cpp
+        websocket/wshandlerprovider.h
+        websocket/wshandlerprovider.cpp
         validation.h
         validation.cpp
         validationinterface.h
@@ -1212,7 +1216,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/barteron/Account.hpp
         pocketdb/consensus/Helper.cpp
         )
-    target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} ${POCKET_UTIL} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
+    target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} ${POCKET_UTIL} Event::event ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue leveldb)
 target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -1306,7 +1310,7 @@ endif ()
 
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
-target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event sqlite3 univalue secp256k1 leveldb)
+target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto OpenSSL::SSL ${CRYPT32} Event::event sqlite3 univalue secp256k1 leveldb)
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 
 add_library(libpocketcoin_cli rpc/client.h rpc/client.cpp)
