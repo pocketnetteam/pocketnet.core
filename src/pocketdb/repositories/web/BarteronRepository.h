@@ -35,12 +35,18 @@ namespace PocketDb
         int Price = -1;
     };
 
+    struct BarteronAccountAdditionalInfo
+    {
+        int64_t RegDate;
+    };
+
     class BarteronRepository : public BaseRepository
     {
     public:
         explicit BarteronRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
         vector<string> GetAccountIds(const vector<string>& addresses);
+        map<string, BarteronAccountAdditionalInfo> GetAccountsAdditionalInfo(const vector<string>& txids);
         vector<string> GetAccountOffersIds(const string& address);
         vector<string> GetFeed(const BarteronOffersFeedDto& args);
         vector<string> GetDeals(const BarteronOffersDealDto& args);

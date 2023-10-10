@@ -49,6 +49,50 @@ namespace PocketDb
 
         return result;
     }
+
+    map<string, BarteronAccountAdditionalInfo> BarteronRepository::GetAccountsAdditionalInfo(const vector<string>& txids)
+    {
+        map<string, BarteronAccountAdditionalInfo> result;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                data as (
+                    select
+                        t.RegId1 as addrid,
+                        t.Hash as txid
+                    from
+                        vTx t
+                    where
+                        t.Hash in ( )sql" + join(vector<string>(txids.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    data.txid,
+                    t.Time
+                from
+                    data,
+                    Transactions t
+                    cross join First f on
+                        f.TxId = t.RowId
+                where
+                    t.Type = 104 and
+                    t.RegId1 = data.addrid
+            )sql")
+            .Bind(txids)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    string txid;
+                    int64_t regdate;
+                    if (cursor.CollectAll(txid, regdate)) {
+                        result.insert({std::move(txid), {regdate}});
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
     
     vector<string> BarteronRepository::GetAccountOffersIds(const string& address)
     {

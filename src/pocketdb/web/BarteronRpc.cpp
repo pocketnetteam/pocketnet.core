@@ -27,10 +27,18 @@ namespace PocketWeb::PocketWebRpc
 
             auto addressTxHashes = request.DbConnection()->BarteronRepoInst->GetAccountIds(addresses);
             auto txs = request.DbConnection()->TransactionRepoInst->List(addressTxHashes, true);
+            auto additionalData = request.DbConnection()->BarteronRepoInst->GetAccountsAdditionalInfo(addressTxHashes);
 
             UniValue result(UniValue::VARR);
-            for (const auto& tx : *txs)
-                result.push_back(ConstructTransaction(tx));
+            for (const auto& tx : *txs) {
+                auto txData = ConstructTransaction(tx);
+                if (auto itr = additionalData.find(*tx->GetHash()); itr != additionalData.end()) {
+                    UniValue addData(UniValue::VOBJ);
+                    addData.pushKV("regdate", itr->second.RegDate);
+                    txData.pushKV("additional", addData);
+                }
+                result.push_back(txData);
+            }
 
             return result;
         }};
