@@ -440,10 +440,12 @@ namespace PocketDb
                             select
                                 count()
                             from Transactions ref
-                            join First f on
+                            cross join First f on
                                 f.TxId = ref.RowId
-                            join Chain c on
-                                c.Height <= ? and c.Height > ?
+                            cross join Chain c on
+                                c.TxId = ref.RowId and
+                                c.Height <= ? and
+                                c.Height > ?
                             where ref.Type in (100) and
                                 ref.RegId2 = addr.id
                         ), 0) as ReferralsCountHist,
@@ -455,13 +457,13 @@ namespace PocketDb
                                 select
                                     c.RegId1
                                 from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                join Last lp on
+                                cross join Last lp on
                                     lp.TxId = p.RowId
-                                join Transactions c indexed by Transactions_Type_RegId3_RegId1 on
+                                cross join Transactions c indexed by Transactions_Type_RegId3_RegId1 on
                                     c.Type in (204) and c.RegId3 = p.RegId2 and c.RegId1 != addr.id
-                                join First fc on
+                                cross join First fc on
                                     fc.TxId = c.RowId
-                                join Chain cc indexed by Chain_TxId_Height on
+                                cross join Chain cc indexed by Chain_TxId_Height on
                                     cc.TxId = c.RowId and cc.Height <= ? and cc.Height > ?
                                 where
                                     p.Type in (200,201,202,209,210) and
