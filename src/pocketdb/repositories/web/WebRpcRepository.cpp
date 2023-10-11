@@ -4237,18 +4237,14 @@ namespace PocketDb
 
                         cursor.Collect<string>(ii++, record, "hash");
                         cursor.Collect<string>(ii++, record, "txid");
-                        int64_t id;
-                        if (!cursor.Collect(ii++, id)) {
-                            continue; // TODO (aok): error
-                        }
-                        record.pushKV("id", id);
+                        cursor.Collect<int64_t>(ii++, record, "id");
                         cursor.Collect<string>(ii++, record, "edit");
                         cursor.Collect<string>(ii++, record, "repost");
                         cursor.Collect(ii++, [&](const string& value) {
                             authors.emplace_back(value);
                             record.pushKV("address", value);
                         });
-                        cursor.Collect<int64_t>(ii++, record, "time"); // TODO (aok): is it str?
+                        cursor.Collect<int64_t>(ii++, record, "time");
                         cursor.Collect<string>(ii++, record, "l");
 
                         cursor.Collect(ii++, [&](int value) {
@@ -5976,7 +5972,7 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("reputation", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt(5); ok && value > 0) {
                             record.pushKV("value", value);
                             resultScores.push_back(record);
