@@ -2361,13 +2361,23 @@ namespace PocketDb
                     )
 
                     select
-                        bl.IdTarget,
+                        c.Uid,
                         r.String
                     from
                         addr
                     cross join
                         BlockingLists bl on
                             bl.IdSource = addr.id
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            t.Type in (100) and
+                            t.RegId1 = bl.IdTarget
+                    cross join
+                        First f on
+                            f.TxId = t.RowId
+                    cross join
+                        Chain c on
+                            c.TxId = t.RowId
                     cross join
                         Registry r on
                             r.RowId = bl.IdTarget
@@ -2415,13 +2425,23 @@ namespace PocketDb
                     )
 
                     select
-                        bl.IdSource,
+                        c.Uid,
                         r.String
                     from
                         addr
                     cross join
                         BlockingLists bl on
                             bl.IdTarget = addr.id
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            t.Type in (100) and
+                            t.RegId1 = bl.IdSource
+                    cross join
+                        First f on
+                            f.TxId = t.RowId
+                    cross join
+                        Chain c on
+                            c.TxId = t.RowId
                     cross join
                         Registry r on
                             r.RowId = bl.IdSource
