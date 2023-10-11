@@ -4237,7 +4237,12 @@ namespace PocketDb
 
                         cursor.Collect<string>(ii++, record, "hash");
                         cursor.Collect<string>(ii++, record, "txid");
-                        cursor.Collect<int64_t>(ii++, record, "id");
+                        
+                        int64_t id;
+                        if (!cursor.Collect(ii++, id))
+                            continue;
+                        record.pushKV("id", id);
+
                         cursor.Collect<string>(ii++, record, "edit");
                         cursor.Collect<string>(ii++, record, "repost");
                         cursor.Collect(ii++, [&](const string& value) {
