@@ -1447,7 +1447,6 @@ namespace PocketDb
                     {
                         UniValue record(UniValue::VOBJ);
 
-                        //auto[ok0, txHash] = cursor.TryGetColumnString(cursor, 1);
                         auto[ok1, rootTxHash] = cursor.TryGetColumnString(2);
                         record.pushKV("id", rootTxHash);
 
@@ -1455,21 +1454,21 @@ namespace PocketDb
                             record.pushKV("postid", value);
 
                         if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("block", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("time", to_string(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("timeUpd", to_string(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("block", to_string(value));
                         if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("msg", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("parentid", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("myScore", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(11); ok) record.pushKV("scoreUp", to_string(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(12); ok) record.pushKV("scoreDown", to_string(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(13); ok) record.pushKV("reputation", to_string(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(14); ok) record.pushKV("myScore", to_string(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(15); ok) record.pushKV("children", to_string(value));
 
-                        if (auto[ok, value] = cursor.TryGetColumnString(16); ok)
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(16); ok)
                         {
-                            record.pushKV("amount", value);
+                            record.pushKV("amount", to_string(value));
                             record.pushKV("donation", "true");
                         }
 
