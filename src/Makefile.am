@@ -956,7 +956,7 @@ if GLIBC_BACK_COMPAT
 endif
 
 libpocketcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
-libpocketcoinconsensus_la_LIBADD = $(LIBSECP256K1)
+libpocketcoinconsensus_la_LIBADD = $(LIBSECP256K1) $(SSL_LIBS) $(CRYPTO_LIBS)
 libpocketcoinconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_POCKETCOIN_INTERNAL
 libpocketcoinconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 

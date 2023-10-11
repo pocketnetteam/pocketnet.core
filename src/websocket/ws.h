@@ -1,6 +1,8 @@
 #ifndef SERVER_WS_HPP
 #define SERVER_WS_HPP
 
+#include "compat.h"
+
 #include <websocket/crypto.h>
 #include <websocket/utility.h>
 
