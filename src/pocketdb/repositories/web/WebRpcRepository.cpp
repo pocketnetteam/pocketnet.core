@@ -3766,7 +3766,28 @@ namespace PocketDb
                         tBoost.Time,
                         cb.Height,
                         (select r.String from Registry r where r.RowId = tBoost.RegId2) as contenttxid,
-                        tBoost.Int1 as boostAmount,
+                        (
+                            (
+                                select
+                                    sum(io.Value)
+                                from
+                                    TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                                cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId on
+                                    io.TxId = i.TxId and
+                                    io.Number = i.Number
+                                where
+                                    i.SpentTxId = tBoost.RowId
+                            )
+                            -
+                            (
+                                select
+                                    sum(o.Value)
+                                from
+                                    TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                                where
+                                    o.TxId = tBoost.RowId
+                            )
+                        ) as boostAmount,
                         p.String2 as boostName,
                         p.String3 as boostAvatar
                     from
