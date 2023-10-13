@@ -5911,7 +5911,28 @@ namespace PocketDb
                                 tx.hash,
                                 b.RegId1,
                                 b.RegId2,
-                                sum(b.Int1) as sumBoost
+                                sum(
+                                    (
+                                        select
+                                            sum(io.Value)
+                                        from
+                                            TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                                        cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId on
+                                            io.TxId = i.TxId and
+                                            io.Number = i.Number
+                                        where
+                                            i.SpentTxId = b.RowId
+                                    )
+                                    -
+                                    (
+                                        select
+                                            sum(o.Value)
+                                        from
+                                            TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                                        where
+                                            o.TxId = b.RowId
+                                    )
+                                ) as sumBoost
                             from
                                 tx
                             cross join
