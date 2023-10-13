@@ -417,11 +417,16 @@ namespace PocketWeb::PocketWebRpc
         //         nMaximumCount = options["maximumCount"].get_int64();
         // }
 
+        int64_t nTime1 = GetTimeMicros();
+
         const auto& node = EnsureNodeContext(request.context);
         // Get exclude inputs already used in mempool
         vector<pair<string, uint32_t>> mempoolInputs;
         CHECK_NONFATAL(node.mempool);
         node.mempool->GetAllInputs(mempoolInputs);
+
+        int64_t nTime2 = GetTimeMicros();
+        LogPrintf("DEBUG - txunspent 1: %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
 
         // Get unspents from DB
         int height = ::ChainActiveUnsafe().Height();

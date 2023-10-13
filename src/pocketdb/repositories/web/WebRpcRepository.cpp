@@ -2778,6 +2778,8 @@ namespace PocketDb
                 stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
+                        int64_t nTime1 = GetTimeMicros();
+
                         UniValue record(UniValue::VOBJ);
 
                         auto[ok0, txHash] = cursor.TryGetColumnString(0);
@@ -2817,6 +2819,9 @@ namespace PocketDb
                         }
 
                         result.push_back(record);
+
+                        int64_t nTime2 = GetTimeMicros();
+                        LogPrintf("DEBUG - txunspent inner: %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
                     }
                 });
             }
