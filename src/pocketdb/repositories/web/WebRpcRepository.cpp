@@ -5424,7 +5424,28 @@ namespace PocketDb
             select
                 ctc.Uid contentId,
                 (select String from Registry where RowId = tb.RegId2) contentHash,
-                sum(tb.Int1) as sumBoost,
+                sum(
+                    (
+                        select
+                            sum(io.Value)
+                        from
+                            TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                        cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId on
+                            io.TxId = i.TxId and
+                            io.Number = i.Number
+                        where
+                            i.SpentTxId = tb.RowId
+                    )
+                    -
+                    (
+                        select
+                            sum(o.Value)
+                        from
+                            TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                        where
+                            o.TxId = tb.RowId
+                    )
+                ) as sumBoost,
                 json_group_array(tag.Value) as _tags
             from
                 heightMin,
