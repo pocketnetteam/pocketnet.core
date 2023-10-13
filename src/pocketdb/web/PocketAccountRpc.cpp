@@ -425,7 +425,7 @@ namespace PocketWeb::PocketWebRpc
 
         // Get unspents from DB
         int height = ::ChainActiveUnsafe().Height();
-        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, , 0, mempoolInputs);
+        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, height, 0, mempoolInputs);
     },
         };
     }
