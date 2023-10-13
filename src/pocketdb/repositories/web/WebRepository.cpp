@@ -517,6 +517,8 @@ namespace PocketDb
 
     void WebRepository::CollectAccountStatistic()
     {
+        int64_t nTime1 = GetTimeMicros();
+
         // Clear all before insert new
         SqlTransaction(__func__, [&]()
         {
@@ -524,6 +526,9 @@ namespace PocketDb
                 delete from web.AccountStatistic
             )sql").Run();
         });
+
+        int64_t nTime2 = GetTimeMicros();
+        LogPrintf("CollectAccountStatistic: Delete %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
 
         // PostsCount
         SqlTransaction(__func__, [&]()
@@ -553,6 +558,9 @@ namespace PocketDb
             )sql").Run();
         });
 
+        int64_t nTime3 = GetTimeMicros();
+        LogPrintf("CollectAccountStatistic: PostsCount %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
+
         // DelCount
         SqlTransaction(__func__, [&]()
         {
@@ -580,6 +588,9 @@ namespace PocketDb
                     t.RegId1
             )sql").Run();
         });
+
+        int64_t nTime4 = GetTimeMicros();
+        LogPrintf("CollectAccountStatistic: DelCount %.2fms\n", 0.001 * (double)(nTime4 - nTime3));
 
         // SubscribesCount
         SqlTransaction(__func__, [&]()
@@ -614,6 +625,9 @@ namespace PocketDb
                     t.RegId1
             )sql").Run();
         });
+
+        int64_t nTime5 = GetTimeMicros();
+        LogPrintf("CollectAccountStatistic: SubscribesCount %.2fms\n", 0.001 * (double)(nTime5 - nTime4));
             
         // SubscribersCount
         SqlTransaction(__func__, [&]()
@@ -648,6 +662,9 @@ namespace PocketDb
                     t.RegId1
             )sql").Run();
         });
+
+        int64_t nTime6 = GetTimeMicros();
+        LogPrintf("CollectAccountStatistic: SubscribersCount %.2fms\n", 0.001 * (double)(nTime6 - nTime5));
 
         // FlagsJson
         SqlTransaction(__func__, [&]()
@@ -684,6 +701,9 @@ namespace PocketDb
                     gr.AccId
             )sql").Run();
         });
+
+        int64_t nTime7 = GetTimeMicros();
+        LogPrintf("CollectAccountStatistic: FlagsJson %.2fms\n", 0.001 * (double)(nTime7 - nTime6));
 
         // FirstFlagsCount
         SqlTransaction(__func__, [&]()
@@ -737,6 +757,9 @@ namespace PocketDb
             )sql").Run();
         });
 
+        int64_t nTime8 = GetTimeMicros();
+        LogPrintf("CollectAccountStatistic: FirstFlagsCount %.2fms\n", 0.001 * (double)(nTime8 - nTime7));
+
         // ActionsCount
         SqlTransaction(__func__, [&]()
         {
@@ -754,6 +777,9 @@ namespace PocketDb
                     t.RegId1
             )sql").Run();
         });
+
+        int64_t nTime9 = GetTimeMicros();
+        LogPrintf("CollectAccountStatistic: ActionsCount %.2fms\n", 0.001 * (double)(nTime9 - nTime8));
 
         // Last 5 Contents
         SqlTransaction(__func__, [&]()
@@ -797,6 +823,9 @@ namespace PocketDb
                     t.Type in (100)
             )sql").Run();
         });
+
+        int64_t nTime10 = GetTimeMicros();
+        LogPrintf("CollectAccountStatistic: Last 5 Contents %.2fms\n", 0.001 * (double)(nTime10 - nTime9));
     }
 
 }
