@@ -1914,6 +1914,7 @@ namespace PocketDb
                             Registry r
                         where
                             r.String = ?
+                    )
                     select
                         tx.hash as ContentTxHash,
                         (select r.String from Registry r where r.RowId = s.RegId1) as ScoreAddressHash,
@@ -1957,8 +1958,8 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("reputation", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("value", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("value", value);
 
                         result.push_back(record);
                     }
