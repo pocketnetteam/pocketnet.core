@@ -517,22 +517,15 @@ namespace PocketDb
 
     void WebRepository::CollectAccountStatistic()
     {
-        int64_t nTime1 = GetTimeMicros();
-
-        // Clear all before insert new
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                delete from web.AccountStatistic
-            )sql").Run();
-        });
-
         int64_t nTime2 = GetTimeMicros();
-        LogPrintf("CollectAccountStatistic: Delete %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
 
         // PostsCount
         SqlTransaction(__func__, [&]()
         {
+            Sql(R"sql(
+                delete from web.AccountStatistic where Type = 1
+            )sql").Run();
+
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -565,6 +558,10 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                delete from web.AccountStatistic where Type = 2
+            )sql").Run();
+
+            Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
                     t.RegId1,
@@ -595,6 +592,10 @@ namespace PocketDb
         // SubscribesCount
         SqlTransaction(__func__, [&]()
         {
+            Sql(R"sql(
+                delete from web.AccountStatistic where Type = 3
+            )sql").Run();
+
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -633,6 +634,10 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                delete from web.AccountStatistic where Type = 4
+            )sql").Run();
+
+            Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
                     t.RegId1,
@@ -670,6 +675,10 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                delete from web.AccountStatistic where Type = 5
+            )sql").Run();
+
+            Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
                     gr.AccId,
@@ -705,9 +714,14 @@ namespace PocketDb
         int64_t nTime7 = GetTimeMicros();
         LogPrintf("CollectAccountStatistic: FlagsJson %.2fms\n", 0.001 * (double)(nTime7 - nTime6));
 
+        // TODO - need optimization or remove this parameter
         // FirstFlagsCount
         SqlTransaction(__func__, [&]()
         {
+            Sql(R"sql(
+                delete from web.AccountStatistic where Type = 6
+            )sql").Run();
+
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
@@ -764,6 +778,10 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                delete from web.AccountStatistic where Type = 7
+            )sql").Run();
+
+            Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
                     t.RegId1,
@@ -784,6 +802,10 @@ namespace PocketDb
         // Last 5 Contents
         SqlTransaction(__func__, [&]()
         {
+            Sql(R"sql(
+                delete from web.AccountStatistic where Type = 8
+            )sql").Run();
+
             Sql(R"sql(
                 insert into web.AccountStatistic (AccountRegId, Type, Data)
                 select
