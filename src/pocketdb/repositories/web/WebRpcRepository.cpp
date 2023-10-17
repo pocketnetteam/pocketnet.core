@@ -9817,9 +9817,6 @@ namespace PocketDb
                 )
         )sql";
 
-        LogPrintf("%s\n", header);
-        LogPrintf("%d\n", addresses.size());
-        
         auto sql = _unionSelectsBasedOnFilters(filters, selects, header, "");
 
         NotificationSummaryReconstructor reconstructor;
@@ -9834,8 +9831,7 @@ namespace PocketDb
                     while (cursor.Step())
                         reconstructor.FeedRow(cursor);
                 });
-            },
-            true
+            }
         );
 
         return reconstructor.GetResult();

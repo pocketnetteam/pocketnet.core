@@ -57,7 +57,7 @@ class ExplorerTest(PocketcoinTestFramework):
 
         values = list(result.values())[0]
         assert values["1"] == 6
-        assert values["100"] == 6
+        assert values["100"] == 12
         assert values["200"] == 1
         assert values["204"] == 1
         assert values["300"] == 1
@@ -70,7 +70,7 @@ class ExplorerTest(PocketcoinTestFramework):
 
         result = public_api.getstatisticbyhours()
         assert isinstance(result, dict)
-        assert len(result) == 0
+        assert result == {'17': {'1': 6, '100': 12}}
 
     def test_getstatisticbydays(self, builder):
         self.log.info("Test 3 - Get statistic by days")
@@ -78,7 +78,7 @@ class ExplorerTest(PocketcoinTestFramework):
 
         result = public_api.getstatisticbydays()
         assert isinstance(result, dict)
-        assert len(result) == 0
+        assert result == {}
 
     def test_getstatisticcontentbyhours(self, builder):
         self.log.info("Test 4 - Get statistic content by hours")
@@ -86,15 +86,16 @@ class ExplorerTest(PocketcoinTestFramework):
 
         result = public_api.getstatisticcontentbyhours()
         assert isinstance(result, dict)
-        assert result == {"17": 6}
+        assert result['17'] == 6
+        assert result['18'] == 6
 
     def test_getstatisticcontentbydays(self, builder):
         self.log.info("Test 5 - Get statistic content by days")
         public_api = builder.node.public()
 
-        result = public_api.getstatisticcontentbyhours()
+        result = public_api.getstatisticcontentbydays()
         assert isinstance(result, dict)
-        assert result == {"17": 6}
+        assert result['0'] == 6
 
     def test_getaddressinfo(self, builder):
         self.log.info("Test 6 - Get address info")
@@ -186,7 +187,7 @@ class ExplorerTest(PocketcoinTestFramework):
         self.log.info("Check - get address transactions")
         result = public_api.getaddresstransactions(account.Address)
         assert isinstance(result, list)
-        assert len(result) == 6
+        assert len(result) == 7
 
         for transaction in result:
             self.check_transaction(transaction)
@@ -246,6 +247,7 @@ class ExplorerTest(PocketcoinTestFramework):
         node = self.nodes[0]
         builder = ChainBuilder(node, self.log)
         builder.build_init(accounts_num=5, moderators_num=1)
+        builder.register_accounts()
         builder.register_accounts()
 
         self.set_up(builder)
