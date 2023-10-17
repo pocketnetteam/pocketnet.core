@@ -1530,10 +1530,10 @@ namespace PocketWeb::PocketWebRpc
         RPCTypeCheck(request.params, {UniValue::VARR});
 
 
-        std::set<std::string> addresses;
+        std::vector<std::string> addresses;
         auto addressesRaw = request.params[0].get_array();
         for (int i = 0; i < addressesRaw.size(); i++) {
-            addresses.insert(addressesRaw[i].get_str());
+            addresses.emplace_back(addressesRaw[i].get_str());
         }
 
         int64_t heightMax = ChainActiveUnsafe().Height(); // TODO (losty): deadlock here wtf
