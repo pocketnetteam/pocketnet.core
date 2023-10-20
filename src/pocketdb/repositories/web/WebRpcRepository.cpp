@@ -1304,6 +1304,173 @@ namespace PocketDb
         return result;
     }
 
+    vector<string> WebRpcRepository::GetContentComments(const vector<string>& contentHashes)
+    {
+        vector<string> result;
+        result.reserve(contentHashes.size());
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                cnt as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    r.String
+                from
+                    cnt,
+                    Transactions t
+                    cross join Last l on
+                        l.TxId = t.RowId
+                    cross join Registry r on
+                        r.RowId = t.RowId
+                where
+                    t.Type in (204,205,206) and
+                    t.RegId2 = cnt.id
+            )sql")
+            .Bind(contentHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
+
+    vector<string> WebRpcRepository::GetContentScores(const vector<string>& contentHashes)
+    {
+        vector<string> result;
+        result.reserve(contentHashes.size());
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                cnt as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    r.String
+                from
+                    cnt,
+                    Transactions t
+                    cross join Registry r on
+                        r.RowId = t.RowId
+                where
+                    t.Type = 300 and
+                    t.RegId2 = cnt.id
+            )sql")
+            .Bind(contentHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
+    vector<string> WebRpcRepository::GetCommentScores(const vector<string>& commentHashes)
+    {
+        vector<string> result;
+        result.reserve(commentHashes.size());
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                cnt as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    r.String
+                from
+                    cnt,
+                    Transactions t
+                    cross join Registry r on
+                        r.RowId = t.RowId
+                where
+                    t.Type = 301 and
+                    t.RegId2 = cnt.id
+            )sql")
+            .Bind(commentHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
+
+    vector<string> WebRpcRepository::GetAccounts(const vector<string>& txHashes)
+    {
+        vector<string> result;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                addr as (
+                    select
+                        t.RegId1 as id
+                    from
+                        vTx t
+                    where
+                        t.Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    r.String
+                from
+                    addr,
+                    Transactions t
+                    cross join Registry r on
+                        r.RowId = t.RegId1
+                    cross join Last l on
+                        l.TxId = t.RowId
+                where
+                    t.Type in (100, 104) and
+                    t.RegId1 = addr.id
+            )sql")
+            .Bind(txHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+
+        });
+
+        return result;
+    }
+
     UniValue WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
         auto result = UniValue(UniValue::VARR);

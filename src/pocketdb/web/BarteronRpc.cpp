@@ -103,6 +103,18 @@ namespace PocketWeb::PocketWebRpc
         }};
     }
 
+    UniValue _list_tx_to_uni(TransactionRepository& repo, const vector<string> ids)
+    {
+        auto txs = repo.List(ids, true);
+        UniValue arr(UniValue::VARR);
+
+        for (const auto& tx: *txs) {
+            arr.push_back(ConstructTransaction(tx));
+        }
+
+        return arr;
+    }
+
     RPCHelpMan GetBarteronFeed()
     {
         return RPCHelpMan{"getbarteronfeed",
@@ -147,15 +159,33 @@ namespace PocketWeb::PocketWebRpc
                     feedArgs.Search = arg.get_str();
             }
 
-            auto hashes = request.DbConnection()->BarteronRepoInst->GetFeed(feedArgs);
-            auto txs = request.DbConnection()->TransactionRepoInst->List(hashes, true);
+            auto offerIds = request.DbConnection()->BarteronRepoInst->GetFeed(feedArgs);
+            auto offerScoreIds = request.DbConnection()->WebRpcRepoInst->GetContentScores(offerIds);
+            auto commentIds = request.DbConnection()->WebRpcRepoInst->GetContentComments(offerIds);
+            auto commentScoreIds = request.DbConnection()->WebRpcRepoInst->GetCommentScores(commentIds);
+
+            vector<string> allTxs;
+            copy(offerIds.begin(), offerIds.end(), back_inserter(allTxs));
+            copy(offerScoreIds.begin(), offerScoreIds.end(), back_inserter(allTxs));
+            copy(commentIds.begin(), commentIds.end(), back_inserter(allTxs));
+            copy(commentScoreIds.begin(), commentScoreIds.end(), back_inserter(allTxs));
+            auto addressesIds = request.DbConnection()->WebRpcRepoInst->GetAccounts(allTxs);
 
             // Build result array with original sorting
-            UniValue result(UniValue::VARR);
-            for (const auto& hash : hashes)
-                for (const auto& tx : *txs)
-                    if (*tx->GetHash() == hash)
-                        result.push_back(ConstructTransaction(tx));
+            UniValue result(UniValue::VOBJ);
+
+            UniValue offersUni(UniValue::VARR);
+            auto offers = request.DbConnection()->TransactionRepoInst->List(offerIds, true);
+            for (const auto& hash : offerIds)
+                for (const auto& offer : *offers)
+                    if (*offer->GetHash() == hash)
+                        offersUni.push_back(ConstructTransaction(offer));
+
+            result.pushKV("offers", offersUni);
+
+            result.pushKV("offerScores", _list_tx_to_uni(*request.DbConnection()->TransactionRepoInst, offerScoreIds));
+            result.pushKV("comments", _list_tx_to_uni(*request.DbConnection()->TransactionRepoInst, commentIds));
+            result.pushKV("commentScoreIds", _list_tx_to_uni(*request.DbConnection()->TransactionRepoInst, commentScoreIds));
 
             return result;
         }};

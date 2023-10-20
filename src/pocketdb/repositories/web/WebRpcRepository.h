@@ -66,6 +66,11 @@ namespace PocketDb
 
         UniValue GetUserStatistic(const vector<string>& addresses, const int nHeight = 0, const int depthR = 0, const int depthC = 0, const int cntC = 1);
 
+        vector<string> GetContentComments(const vector<string>& contentHashes);
+        vector<string> GetContentScores(const vector<string>& contentHashes);
+        vector<string> GetCommentScores(const vector<string>& commentHashes);
+        // Get account tx id for signer of specified transactions (using RegId1)
+        vector<string> GetAccounts(const vector<string>& txHashes);
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
         map<string, UniValue> GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash);
         map<int64_t, UniValue> GetCommentsByIds(const vector<int64_t>& cmntIds, const string& addressHash);
