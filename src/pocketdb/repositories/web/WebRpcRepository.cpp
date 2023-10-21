@@ -1315,7 +1315,7 @@ namespace PocketDb
                 with
                 cnt as (
                     select
-                        r.RowId as id
+                        cast (r.RowId as int) as id -- TODO (losty): wtf why cast is necessary???
                     from
                         Registry r
                     where
@@ -1358,7 +1358,7 @@ namespace PocketDb
                 with
                 cnt as (
                     select
-                        r.RowId as id
+                        cast (r.RowId as int) as id -- TODO (losty): wtf why cast is necessary???
                     from
                         Registry r
                     where
@@ -1398,7 +1398,7 @@ namespace PocketDb
                 with
                 cnt as (
                     select
-                        r.RowId as id
+                        cast (r.RowId as int) as id -- TODO (losty): wtf why cast is necessary???
                     from
                         Registry r
                     where
@@ -1438,7 +1438,7 @@ namespace PocketDb
                 with
                 addr as (
                     select
-                        t.RegId1 as id
+                        cast(t.RegId1 as int) as id -- TODO (losty): wtf why cast is necessary???
                     from
                         vTx t
                     where
