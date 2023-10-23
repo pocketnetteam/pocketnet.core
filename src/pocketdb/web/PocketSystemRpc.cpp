@@ -244,40 +244,40 @@ namespace PocketWeb::PocketWebRpc
                     HelpExampleRpc("getcoininfo", "1231")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-    {
-        int height = ChainActive().Height();
-        if (request.params.size() > 0 && request.params[0].isNum())
-            height = request.params[0].get_int();
+        {
+            int height = ChainActive().Height();
+            if (request.params.size() > 0 && request.params[0].isNum())
+                height = request.params[0].get_int();
 
-        int first75 = 3750000;
-        int halvblocks = 2'100'000;
-        double emission = 0;
-        int nratio = height / halvblocks;
-        double mult;
+            int first75 = 3750000;
+            int halvblocks = 2'100'000;
+            double emission = 0;
+            int nratio = height / halvblocks;
+            double mult;
 
-        for (int i = 0; i <= nratio; ++i) {
-            mult = 5. / pow(2., static_cast<double>(i));
-            if (i < nratio || nratio == 0) {
-                if (i == 0 && height < 75'000)
-                    emission += height * 50;
-                else if (i == 0) {
-                    emission += first75 + (std::min(height, halvblocks) - 75000) * 5;
-                } else {
-                    emission += 2'100'000 * mult;
+            for (int i = 0; i <= nratio; ++i) {
+                mult = 5. / pow(2., static_cast<double>(i));
+                if (i < nratio || nratio == 0) {
+                    if (i == 0 && height < 75'000)
+                        emission += height * 50;
+                    else if (i == 0) {
+                        emission += first75 + (std::min(height, halvblocks) - 75000) * 5;
+                    } else {
+                        emission += 2'100'000 * mult;
+                    }
+                }
+
+                if (i == nratio && nratio != 0) {
+                    emission += (height % halvblocks) * mult;
                 }
             }
 
-            if (i == nratio && nratio != 0) {
-                emission += (height % halvblocks) * mult;
-            }
-        }
-
-        UniValue result(UniValue::VOBJ);
-        result.pushKV("emission", emission);
-        result.pushKV("height", height);
-        
-        return result;
-    },
+            UniValue result(UniValue::VOBJ);
+            result.pushKV("emission", emission);
+            result.pushKV("height", height);
+            
+            return result;
+        },
         };
     }
 
@@ -302,4 +302,34 @@ namespace PocketWeb::PocketWebRpc
         };
     }
     
+    RPCHelpMan GetPosDifficulty()
+    {
+        return RPCHelpMan{
+            "getposdifficulty",
+            "\nReturns proof of stake difficulty for selected height\n",
+            {
+                {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "Heihgt (Default: current height)"},
+            },
+            RPCResult{
+                RPCResult::Type::NUM, "", "PoS difficulty for selected height"
+            },
+            RPCExamples{
+                HelpExampleCli("getposdifficulty", "")
+            },
+            [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+            {
+                int64_t height = ChainActiveUnsafe().Height();
+                if (request.params.size() > 0 && request.params[0].isNum()) {
+                    height = request.params[0].get_int();
+                }
+                
+                auto blockIndex = ChainActiveUnsafe().Tip();
+                if (blockIndex->nHeight > height)
+                    blockIndex = ChainActiveUnsafe()[height];
+
+                return GetPosDifficulty(blockIndex);
+            }
+        };
+    }
+
 }
