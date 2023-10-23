@@ -6308,10 +6308,9 @@ namespace PocketDb
                                     'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
                                 )
                             )
-
+                            
                         from
                             TxOutputs o
-
                         where
                             o.TxId = c.RowId
                         order by
@@ -6348,10 +6347,10 @@ namespace PocketDb
                 from
                     params,
                     Transactions c indexed by Transactions_Type_RegId4_RegId1 -- TODO (optimization): not covering index
-
+                    
                     cross join vTxStr sc on
                         sc.RowId = c.RowId
-
+                        
                     cross join Chain cc on
                         cc.TxId = c.RowId and
                         cc.Height > params.min and
@@ -6574,7 +6573,7 @@ namespace PocketDb
 
                     cross join vTxStr ss on
                         ss.RowId = s.RowId
-
+                        
                     cross join Transactions c indexed by Transactions_Type_RegId2_RegId1 on
                         c.Type in (204,205) and
                         c.RegId2 = s.RegId2 and
