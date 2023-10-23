@@ -311,7 +311,10 @@ namespace PocketWeb::PocketWebRpc
                 {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "Heihgt (Default: current height)"},
             },
             RPCResult{
-                RPCResult::Type::NUM, "", "PoS difficulty for selected height"
+                RPCResult::Type::OBJ, "", "", {
+                    { RPCResult::Type::NUM, "Height", ""},
+                    { RPCResult::Type::NUM, "Difficulty", ""}
+                }
             },
             RPCExamples{
                 HelpExampleCli("getposdifficulty", "")
@@ -327,7 +330,11 @@ namespace PocketWeb::PocketWebRpc
                 if (blockIndex->nHeight > height)
                     blockIndex = ChainActiveUnsafe()[height];
 
-                return GetPosDifficulty(blockIndex);
+                UniValue result(UniValue::VOBJ);
+                result.pushKV("Height", blockIndex->nHeight);
+                result.pushKV("Difficulty", GetPosDifficulty(blockIndex));
+
+                return result;
             }
         };
     }
