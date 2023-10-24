@@ -301,10 +301,11 @@ namespace PocketDb
             (TxId, OrderIndex, RegId)
             select
                 h.RowId,
-                0,
-                (select value from json_each(t.String3))
+                j.key,
+                (select r.RowId from Registry r where r.String = j.value)
             from
-                Transactions t
+                Transactions t,
+                json_each(t.String3) j
                 cross join newdb.Registry h on
                     h.String = t.Hash
             where
