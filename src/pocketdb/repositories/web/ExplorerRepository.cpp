@@ -233,11 +233,11 @@ namespace PocketDb
                         v.height,
                         (
                             select
-                                base.value - sum(v2.cnt)
+                                ifnull(base.value - sum(v2.cnt), base.value)
                             from
                                 val v2
                             where
-                                v2.height >= v.height
+                                v2.height > v.height
                         ) as cnt
                     from
                         base,
@@ -254,7 +254,8 @@ namespace PocketDb
                             result.pushKV(to_string(part), count);
                     }
                 });
-            }
+            },
+            true
         );
 
         return result;
@@ -315,11 +316,11 @@ namespace PocketDb
                         v.height,
                         (
                             select
-                                base.value - sum(v2.cnt)
+                                ifnull(base.value - sum(v2.cnt), base.value)
                             from
                                 val v2
                             where
-                                v2.height >= v.height
+                                v2.height > v.height
                         ) as cnt
                     from
                         base,

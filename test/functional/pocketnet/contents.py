@@ -91,8 +91,8 @@ class ContentTest(PocketcoinTestFramework):
         assert post["m"] == "Hasta la vista"
         assert post["comments"] == 0
         assert post["lastComment"] is None
-        assert post["scoreCnt"] == "0"
-        assert post["scoreSum"] == "0"
+        assert post["scoreCnt"] == 0
+        assert post["scoreSum"] == 0
         assert post["i"] == ["fancy_image"]
         assert post["l"] == "es"
         assert post["t"] == ["society"]
@@ -116,8 +116,8 @@ class ContentTest(PocketcoinTestFramework):
 
         post = data[0]
         assert post["comments"] == 2
-        assert post["scoreCnt"] == "2"
-        assert post["scoreSum"] == "8"
+        assert post["scoreCnt"] == 2
+        assert post["scoreSum"] == 8
         assert isinstance(post["lastComment"], dict)
         assert post["lastComment"]["msg"] == "second comment"
 
@@ -173,7 +173,7 @@ class ContentTest(PocketcoinTestFramework):
             assert boost["address"] in [builder.accounts[0].Address, builder.moderators[0].Address]
             assert boost["value"] == 1
             if boost["address"] == builder.moderators[0].Address:
-                assert boost["reputation"] == "20"
+                assert boost["reputation"] == 20
             else:
                 assert boost.get("reputation") is None
 

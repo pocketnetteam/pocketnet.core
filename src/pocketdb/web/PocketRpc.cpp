@@ -127,7 +127,8 @@ static const CRPCCommand commands[] =
     {"system",         "gettime",                          &GetTime,                        {}},
     {"system",         "getcoininfo",                      &GetCoinInfo,                    {"height"}},
     {"system",         "getlateststat",                    &GetLatestStat,                  {}},
-
+    {"system",         "getposdifficulty",                 &GetPosDifficulty,               {"height"}},
+    
     // Transactions
     {"transaction",    "getrawtransaction",                &GetTransaction,                 {"transactions"}},
     {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },

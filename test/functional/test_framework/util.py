@@ -359,6 +359,7 @@ def initialize_datadir(dirname, n, chain):
         f.write("rpcport=" + str(rpc_port(n)) + "\n")
         f.write("publicrpcport=" + str(rpc_port(n+PORT_RANGE)) + "\n")
         f.write("wsport=" + str(rpc_port(n+PORT_RANGE*2)) + "\n")
+        f.write("wssport=" + str(rpc_port(n+PORT_RANGE*3)) + "\n")
         f.write("fallbackfee=0.0002\n")
         f.write("server=1\n")
         f.write("keypool=1\n")

@@ -27,16 +27,13 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const CollectionRef& ptx, const PocketBlockRef& block) override
         {
-            if (ptx->IsEdit())
-                return ValidateEdit(ptx);
-
             if(auto[contentIdsOk, contentIds] = ptx->GetContentIdsVector(); contentIdsOk)
             {
                 // Check count of content ids
                 if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
                    return {false, ConsensusResult_Failed};
 
-                // TODO (aok) : remove with fork
+                // TODO (aok) : remove with fork ???
                 // Contents should be exists in chain
                 int count = PocketDb::ConsensusRepoInst.GetLastContentsCount(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
                 if((size_t)count != contentIds.size())
@@ -47,6 +44,10 @@ namespace PocketConsensus
                 return {false, ConsensusResult_Failed};
             }
 
+            if (ptx->IsEdit())
+                return ValidateEdit(ptx);
+
+            // TODO (aok) : firstly check base validation and after check edit
             return SocialConsensus::Validate(tx, ptx, block);
         }
         

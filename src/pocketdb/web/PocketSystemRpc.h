@@ -17,6 +17,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetPeerInfo();
     RPCHelpMan GetNodeInfo();
     RPCHelpMan GetLatestStat();
+    RPCHelpMan GetPosDifficulty();
 }
 
 #endif //SRC_POCKETSYSTEMRPC_H

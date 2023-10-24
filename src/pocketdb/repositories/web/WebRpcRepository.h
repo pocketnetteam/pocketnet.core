@@ -199,7 +199,7 @@ namespace PocketDb
         std::vector<ShortForm> GetActivities(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters);
 
         // TODO (losty): convert return type to class of smth. + docs
-        std::map<std::string, std::map<ShortTxType, int>> GetNotificationsSummary(int64_t heightMax, int64_t heightMin, const std::set<std::string>& addresses, const std::set<ShortTxType>& filters);
+        std::map<std::string, std::map<ShortTxType, int>> GetNotificationsSummary(int64_t heightMax, int64_t heightMin, const std::vector<std::string>& addresses, const std::set<ShortTxType>& filters);
 
     private:
         int cntBlocksForResult = 300;
