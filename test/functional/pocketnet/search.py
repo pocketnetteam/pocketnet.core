@@ -10,6 +10,7 @@ test_runner.py
 
 import sys
 import pathlib
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
@@ -158,6 +159,7 @@ class SearchTest(PocketcoinTestFramework):
 
         self.set_up(builder)
         self.test_sync_nodes(builder)
+        time.sleep(10)
         self.test_post_search()
         self.test_user_search(builder)
         self.test_searchlinks(builder)
