@@ -46,7 +46,7 @@ namespace PocketDb
         if (request.Keyword.empty())
             return ids;
 
-        string _keyword = "\"" + request.Keyword + "\"" + " or " + request.Keyword + "*";
+        string _keyword = "\"" + request.Keyword + "\"" + " OR " + request.Keyword + "*";
 
         SqlTransaction(
             __func__,

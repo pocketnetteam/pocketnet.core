@@ -74,26 +74,29 @@ namespace PocketDb
                 p.Type in (200, 201, 202, 209, 210)
         )sql";
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(sql)
-            .Bind(height)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    auto[okId, id] = cursor.TryGetColumnInt64(0);
-                    if (!okId) continue;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql).Bind(height);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[okId, id] = cursor.TryGetColumnInt64(0);
+                        if (!okId) continue;
 
-                    auto[okLang, lang] = cursor.TryGetColumnString(1);
-                    if (!okLang) continue;
+                        auto[okLang, lang] = cursor.TryGetColumnString(1);
+                        if (!okLang) continue;
 
-                    auto[okValue, value] = cursor.TryGetColumnString(2);
-                    if (!okValue) continue;
+                        auto[okValue, value] = cursor.TryGetColumnString(2);
+                        if (!okValue) continue;
 
-                    result.emplace_back(WebTag(id, lang, value));
-                }
-            });
-        });
+                        result.emplace_back(WebTag(id, lang, value));
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -200,76 +203,79 @@ namespace PocketDb
 
             where
                 t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
-       )sql";
+        )sql";
        
-       SqlTransaction(__func__, [&]()
-       {
-           Sql(sql)
-           .Bind(height)
-           .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    auto[okType, type] = cursor.TryGetColumnInt(0);
-                    auto[okId, id] = cursor.TryGetColumnInt64(1);
-                    if (!okType || !okId)
-                        continue;
-
-                    switch ((TxType)type)
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql).Bind(height);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
-                    case ACCOUNT_USER:
+                        auto[okType, type] = cursor.TryGetColumnInt(0);
+                        auto[okId, id] = cursor.TryGetColumnInt64(1);
+                        if (!okType || !okId)
+                            continue;
 
-                        if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
+                        switch ((TxType)type)
+                        {
+                        case ACCOUNT_USER:
 
-                        if (auto[ok, string4] = cursor.TryGetColumnString(5); ok)    
-                            result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
+                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
 
-                        // if (auto[ok, string5] = cursor.TryGetColumnString(6); ok)
-                        //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
+                            if (auto[ok, string4] = cursor.TryGetColumnString(5); ok)    
+                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
 
-                        break;
-                    case CONTENT_POST:
+                            // if (auto[ok, string5] = cursor.TryGetColumnString(6); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
 
-                        if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
+                            break;
+                        case CONTENT_POST:
+
+                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
+                            
+                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
+
+                            // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
+
+                            break;
+                        case CONTENT_VIDEO:
+
+                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
+
+                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
+
+                            // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
+
+                            break;
                         
-                        if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
+                        // TODO (aok): parse JSON for indexing
+                        // case CONTENT_ARTICLE:
 
-                        // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
-                        //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
+                        // case CONTENT_COMMENT:
+                        // case CONTENT_COMMENT_EDIT:
 
-                        break;
-                    case CONTENT_VIDEO:
+                            // TODO (aok): implement extract message from JSON
+                            // if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 
-                        if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
-
-                        if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
-
-                        // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
-                        //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
-
-                        break;
-                    
-                    // TODO (aok): parse JSON for indexing
-                    // case CONTENT_ARTICLE:
-
-                    // case CONTENT_COMMENT:
-                    // case CONTENT_COMMENT_EDIT:
-
-                        // TODO (aok): implement extract message from JSON
-                        // if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
-                        //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
-
-                        // break;
-                    default:
-                        break;
+                            // break;
+                        default:
+                            break;
+                        }
                     }
-                }
-           });
-       });
+                });
+            }
+        );
 
         return result;
     }
