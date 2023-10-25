@@ -152,7 +152,7 @@ namespace PocketWeb::PocketWebRpc
             };
 
             // Search
-            auto ids = request.DbConnection()->SearchRepoInst->SearchUsersOld(searchRequest);
+            auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest.Keyword);
             
             // Get accounts data
             auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);

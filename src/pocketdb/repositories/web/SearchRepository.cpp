@@ -120,68 +120,6 @@ namespace PocketDb
         return ids;
     }
 
-    // TODO (aok, api): implement ?
-    vector<int64_t> SearchRepository::SearchUsersOld(const SearchRequest& request)
-    {
-        vector<int64_t> result;
-
-        string heightWhere = request.TopBlock > 0 ? " and t.Height <= ? " : "";
-        string keyword = "\"" + request.Keyword + "\"" + " OR " + request.Keyword + "*";
-
-        string sql = R"sql(
-            select
-                t.Id
-
-            from web.Content f
-
-            join web.ContentMap fm on fm.ROWID = f.ROWID
-
-            cross join Transactions t indexed by Transactions_Last_Id_Height
-                on t.Id = fm.ContentId
-
-            cross join Payload p on p.TxHash=t.Hash
-
-            where t.Last = 1
-                and t.Type = 100
-                and t.Height is not null
-                )sql" + heightWhere + R"sql(
-                and fm.FieldType in ( )sql" + join(vector<string>(request.FieldTypes.size(), "?"), ",") + R"sql( )
-                and f.Value match ?
-        )sql";
-
-        if (request.OrderByRank)
-            sql += " order by rank, t.Id ";
-
-        sql += " limit ? ";
-        sql += " offset ? ";
-
-        SqlTransaction(
-            __func__,
-            [&]() -> Stmt& {
-                auto& stmt = Sql(sql);
-
-                if (request.TopBlock > 0)
-                    stmt.Bind(request.TopBlock);
-                stmt.Bind(request.FieldTypes);
-                stmt.Bind(keyword);
-                stmt.Bind(request.PageSize);
-                stmt.Bind(request.PageStart);
-
-                return stmt;
-            },
-            [&] (Stmt& stmt) {
-                stmt.Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                    {
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) result.push_back(value);
-                    }
-                });
-            }
-        );
-
-        return result;
-    }
-
     vector<int64_t> SearchRepository::SearchUsers(const string& keyword)
     {
         vector<int64_t> result;
