@@ -74,7 +74,7 @@ class ScoresTest(PocketcoinTestFramework):
             assert score["address"] in [builder.accounts[1].Address, builder.accounts[2].Address]
             assert score["name"] in ["user1", "user2"]
             assert score["posttxid"] == post_id
-            assert score["value"] in ["4", "5"]
+            assert score["value"] in [4, 5]
 
     def test_getpagescores(self, builder):
         self.log.info("Test 3 - Getting page scores")
@@ -95,12 +95,12 @@ class ScoresTest(PocketcoinTestFramework):
 
         for score in scores:
             assert score["cmntid"] in comments
-            assert score["scoreDown"] == "0"
+            assert score["scoreDown"] == 0
             if score["cmntid"] == comments[0]:
-                assert score["scoreUp"] == "1"
-                assert score["reputation"] == "1"
+                assert score["scoreUp"] == 1
+                assert score["reputation"] == 1
             else:
-                assert score["scoreUp"] == "0"
+                assert score["scoreUp"] == 0
                 assert "reputation" not in score
 
     def test_getaccountraters(self, builder):

@@ -1125,9 +1125,9 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressContent", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressCommentParent", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("addressCommentAnswer", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("scoreUp", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("scoreDown", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("scoreUp", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("scoreDown", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("reputation", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
                         if (auto[ok, value] = cursor.TryGetColumnString(i++); ok)
                         {
@@ -1804,7 +1804,7 @@ namespace PocketDb
                             UniValue record(UniValue::VOBJ);
 
                             if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                            if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("value", value);
+                            if (auto[ok, value] = cursor.TryGetColumnInt(1); ok) record.pushKV("value", value);
 
                             result.push_back(record);
                         }
@@ -1882,10 +1882,10 @@ namespace PocketDb
                             UniValue record(UniValue::VOBJ);
 
                             if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("cmntid", value);
-                            if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("scoreUp", value);
-                            if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("scoreDown", value);
-                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("reputation", value);
-                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("myScore", value);
+                            if (auto[ok, value] = cursor.TryGetColumnInt(1); ok) record.pushKV("scoreUp", value);
+                            if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("scoreDown", value);
+                            if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("reputation", value);
+                            if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("myScore", value);
 
                             result.push_back(record);
                         }
@@ -1958,8 +1958,8 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("value", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(5); ok) record.pushKV("value", value);
 
                         result.push_back(record);
                     }
@@ -1974,10 +1974,6 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        string postWhere;
-        if (!postHashes.empty())
-            postWhere += " and s.String2 in ( " + join(vector<string>(postHashes.size(), "?"), ",") + " ) ";
-
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
@@ -1991,6 +1987,15 @@ namespace PocketDb
                             Registry r
                         where
                             r.String = ?
+                    ),
+                    posts as (
+                        select
+                            r.RowId as id,
+                            r.String as hash
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql( )
                     )
                     select
                         (select r.String from Registry r where r.RowId = s.RegId2) as posttxid,
@@ -2000,10 +2005,11 @@ namespace PocketDb
                         ur.Value as reputation,
                         s.Int1 as value
                     from
-                        addr
+                        addr,
+                        posts
                     cross join
                         Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on s.Type in (300) and s.RegId1 = addr.id )sql" + postWhere + R"sql(
+                            on s.Type in (300) and s.RegId1 = addr.id and ( ? or s.RegId2 = posts.id )
                     cross join
                         Chain cs
                             on cs.TxId = s.RowId
@@ -2023,7 +2029,7 @@ namespace PocketDb
                         Ratings ur indexed by Ratings_Type_Uid_Last_Value
                             on ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
                 )sql")
-                .Bind(address, postHashes);
+                .Bind(address, postHashes, postHashes.empty());
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -2035,8 +2041,8 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("address", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("name", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("avatar", value);
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(4); ok) record.pushKV("reputation", value);
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("value", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(5); ok) record.pushKV("value", value);
 
                         result.push_back(record);
                     }
