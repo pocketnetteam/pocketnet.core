@@ -28,7 +28,7 @@ namespace PocketWeb::PocketWebRpc
         }
 
         lang = "en";
-        if (request.params.size() > 3 && request.params[3].isStr())
+        if (request.params.size() > 3 && request.params[3].isStr() && !request.params[3].get_str().empty())
             lang = request.params[3].get_str();
 
         // tags

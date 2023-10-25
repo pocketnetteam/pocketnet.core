@@ -10,6 +10,7 @@ test_runner.py
 
 import sys
 import pathlib
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
@@ -156,9 +157,7 @@ class FeedTest(PocketcoinTestFramework):
         self.log.info(f"Check - Number of posts in top feed after post likes: {len(contents)}")
         assert len(contents) == 2
 
-        for content, author_id, score in zip(
-            contents, [builder.accounts[2].Address, builder.accounts[1].Address], ["9", "5"]
-        ):
+        for content, author_id, score in zip(contents, [builder.accounts[2].Address, builder.accounts[1].Address], [9, 5]):
             assert content["address"] == author_id
             assert content["scoreSum"] == score
 
@@ -181,7 +180,7 @@ class FeedTest(PocketcoinTestFramework):
         assert len(contents) == 2
 
         for content, author_id, score, comments in zip(
-            contents, [builder.accounts[1].Address, builder.accounts[2].Address], ["5", "9"], [3, 0]
+            contents, [builder.accounts[1].Address, builder.accounts[2].Address], [5, 9], [3, 0]
         ):
             assert content["address"] == author_id
             assert content["scoreSum"] == score
@@ -210,7 +209,7 @@ class FeedTest(PocketcoinTestFramework):
         builder.build_init(accounts_num=3, moderators_num=1)
         builder.register_accounts()
         self.generate_posts(builder)
-
+        time.sleep(10)
         self.test_historical_feed(builder)
         self.test_hierarchical_feed(builder)
         self.test_profile_feed(builder)

@@ -5100,10 +5100,10 @@ namespace PocketDb
             )
 
             + R"sql(
-            cross join
+            left join
                 web.TagsMap tm on
                     tm.ContentId = ct.Uid
-            cross join
+            left join
                 web.Tags tag on
                     tag.Id = tm.TagId and
                     tag.Lang = lang.value
@@ -5234,11 +5234,10 @@ namespace PocketDb
             cross join
                 Chain ctorig on
                     ctorig.TxId = torig.RowId
-
-            cross join
+            left join
                 web.TagsMap tm on
                     tm.ContentId = ct.Uid
-            cross join
+            left join
                 web.Tags tag on
                     tag.Id = tm.TagId and
                     tag.Lang = lang.value
@@ -5475,10 +5474,10 @@ namespace PocketDb
             cross join
                 Chain ctc on
                     ctc.TxId = tc.RowId
-            cross join
+            left join
                 web.TagsMap tm on
                     tm.ContentId = ctc.Uid
-            cross join
+            left join
                 web.Tags tag on
                     tag.Id = tm.TagId and
                     ( ? or tag.Lang = lang.value )
