@@ -27,8 +27,8 @@ namespace PocketWeb::PocketWebRpc
             countOut = std::min(countOut, 20);
         }
 
-        lang = "en";
-        if (request.params.size() > 3 && request.params[3].isStr() && !request.params[3].get_str().empty())
+        lang = "";
+        if (request.params.size() > 3 && request.params[3].isStr())
             lang = request.params[3].get_str();
 
         // tags
