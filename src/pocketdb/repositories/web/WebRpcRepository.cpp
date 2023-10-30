@@ -4146,7 +4146,6 @@ namespace PocketDb
                             String = ?
                     )
                     select
-                        t.RowId,
                         (select String from Registry where RowId = t.RowId) as Hash,
                         (select String from Registry where RowId = t.RegId2) as RootTxHash,
                         c.Uid as Id,
@@ -4264,7 +4263,6 @@ namespace PocketDb
                         int ii = 0;
                         UniValue record(UniValue::VOBJ);
 
-                        cursor.Collect<int64_t>(ii++, record, "rowid");
                         cursor.Collect<string>(ii++, record, "hash");
                         cursor.Collect<string>(ii++, record, "txid");
                         
@@ -5045,7 +5043,11 @@ namespace PocketDb
         if (contentTypes.empty())
             return result;
 
-        int64_t topContentRowId = topContentId <= 0 ? std::numeric_limits<std::int64_t>::max() : topContentId;
+        string skipPaginationSql = "";
+        if (topContentId > 0)
+        {
+            skipPaginationSql = R"sql( and t.RowId < (select max(cc.TxId) from Chain cc where cc.Uid = ?) )sql";
+        }
 
         string tagsIncludedSql = "";
         if (!tagsIncluded.empty())
@@ -5120,11 +5122,11 @@ namespace PocketDb
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
                 t.RegId3 is null and
 
-                -- Skip ids for pagination
-                t.RowId < ? and
-
                 -- Do not show posts from users with low reputation
-                ifnull(ur.Value,0) > ? and
+                ifnull(ur.Value,0) > ?
+
+                -- Skip ids for pagination
+                )sql" + skipPaginationSql + R"sql(
 
                 -- Exclude posts
                 t.RegId2 not in (
@@ -5157,11 +5159,21 @@ namespace PocketDb
                     lang,
                     0,
                     topHeight,
-                    contentTypes,
-                    topContentRowId,
+                    contentTypes
+                );
+
+                if (topContentId > 0)
+                {
+                    stmt.Bind(
+                        topContentId
+                    );
+                }
+                
+                stmt.Bind(
                     badReputationLimit,
                     txidsExcluded,
-                    addrsExcluded);
+                    addrsExcluded
+                );
 
                 if (!tagsIncluded.empty())
                 {
