@@ -4146,6 +4146,7 @@ namespace PocketDb
                             String = ?
                     )
                     select
+                        t.RowId,
                         (select String from Registry where RowId = t.RowId) as Hash,
                         (select String from Registry where RowId = t.RegId2) as RootTxHash,
                         c.Uid as Id,
@@ -4263,6 +4264,7 @@ namespace PocketDb
                         int ii = 0;
                         UniValue record(UniValue::VOBJ);
 
+                        cursor.Collect<int64_t>(ii++, record, "rowid");
                         cursor.Collect<string>(ii++, record, "hash");
                         cursor.Collect<string>(ii++, record, "txid");
                         
@@ -4875,7 +4877,8 @@ namespace PocketDb
                             ids.push_back(value);
                     }
                 });
-            }
+            },
+            true
         );
 
         // Get content data
@@ -4890,7 +4893,7 @@ namespace PocketDb
 
     // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, const vector<string>& addresses_extended)
     {
@@ -4941,7 +4944,7 @@ namespace PocketDb
 
         )sql";
 
-        if (!tags.empty())
+        if (!tagsIncluded.empty())
         {
             sql += R"sql(
                 and ct.Uid in (
@@ -4949,7 +4952,7 @@ namespace PocketDb
                     from web.Tags tag
                     join web.TagsMap tm indexed by TagsMap_TagId_ContentId
                         on tag.Id = tm.TagId
-                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                    where tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( )
                         )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
                 )
             )sql";
@@ -4987,9 +4990,9 @@ namespace PocketDb
                 if (topContentId > 0)
                     stmt.Bind(topContentId);
 
-                if (!tags.empty())
+                if (!tagsIncluded.empty())
                 {
-                    stmt.Bind(tags);
+                    stmt.Bind(tagsIncluded);
 
                     if (!lang.empty())
                         stmt.Bind(lang);
@@ -5032,81 +5035,73 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int badReputationLimit)
     {
         UniValue result(UniValue::VARR);
         vector<int64_t> ids;
 
-        if (contentTypes.empty() || lang.empty())
+        if (contentTypes.empty())
             return result;
 
-        string sql = R"sql(
-            with
-                height as ( select ? as value ),
-                topContentId as ( select ? as value ),
-                lang as ( select ? as value ),
-                minReputation as ( select ? as value )
+        int64_t topContentRowId = topContentId <= 0 ? std::numeric_limits<std::int64_t>::max() : topContentId;
 
+        string tagsIncludedSql = "";
+        if (!tagsIncluded.empty())
+        {
+            tagsIncludedSql = R"sql(
+                and t.RowId in (
+                    select
+                        tm.ContentId
+                    from
+                        web.Tags tag indexed by Tags_Lang_Value_Id
+                    join
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId on
+                            tm.TagId = tag.Id
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                )
+            )sql";
+        }
+
+        string tagsExcludedSql = "";
+        if (!tagsExcluded.empty())
+        {
+            tagsExcludedSql = R"sql(
+                and t.RowId not in (
+                    select
+                        tm.ContentId
+                    from
+                        web.Tags tag indexed by Tags_Lang_Value_Id
+                    join
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId on
+                            tm.TagId = tag.Id
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                )
+            )sql";
+        }
+
+        string sql = R"sql(
             select
                 ct.Uid
-            )sql" +
-
-            // Generate from for specific language
-            (
-                lang == "ru" || lang == "en"
-                ?
-                    R"sql(
-                        from
-                            Chain ct indexed by Chain_Uid_Height,
-                            topContentId,
-                            height,
-                            lang,
-                            minReputation
-                        cross join
-                            Transactions t on
-                                t.RowId = ct.TxId and
-                                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
-                                t.RegId3 is null
-                        cross join
-                            Last lt on
-                                lt.TxId = t.RowId
-                        cross join
-                            Payload p indexed by Payload_String1 on
-                                p.TxId = t.RowId and p.String1 = lang.value
-                    )sql"
-                :
-                    R"sql(
-                        from
-                            topContentId,
-                            height,
-                            lang,
-                            minReputation
-                        cross join Payload p indexed by Payload_String1 on
-                            p.String1 = lang.value
-                        cross join
-                            Transactions t on
-                                t.RowId = p.TxId and
-                                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
-                                t.RegId3 is null
-                        cross join
-                            Last lt on
-                                lt.TxId = t.RowId
-                        cross join
-                            Chain ct on
-                                ct.TxId = t.RowId
-                    )sql"
-            )
-
-            + R"sql(
-            left join
-                web.TagsMap tm on
-                    tm.ContentId = ct.Uid
-            left join
-                web.Tags tag on
-                    tag.Id = tm.TagId and
-                    tag.Lang = lang.value
+            from
+                Transactions t indexed by Transactions_RowId_desc_Type
+            cross join
+                Payload p on
+                    p.TxId = t.RowId and
+                    ( ? or p.String1 = ? )
+            cross join
+                Last lt on
+                    lt.TxId = t.RowId
+            cross join
+                Chain ct indexed by Chain_TxId_Height on
+                    ct.TxId = t.RowId and
+                    ct.Height > ? and
+                    ct.Height <= ?
             cross join
                 Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     u.Type in (100) and u.RegId1 = t.RegId1
@@ -5122,51 +5117,75 @@ namespace PocketDb
                     ur.Uid = cu.Uid and
                     ur.Last = 1
             where
-                ct.Height <= height.value and
-                ( ? or ct.Uid < topContentId.value ) and
+                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                t.RegId3 is null and
+
+                -- Skip ids for pagination
+                t.RowId < ? and
+
                 -- Do not show posts from users with low reputation
-                ifnull(ur.Value, 0) > minReputation.value and
+                ifnull(ur.Value,0) > ? and
+
+                -- Exclude posts
                 t.RegId2 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
                 ) and
+
+                -- Exclude autors
                 t.RegId1 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
                 )
 
-            group by
-                ct.Uid
-            having
-                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 1 ) and
-                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 0 )
-            order by
-                ct.Uid desc
+                )sql" + tagsIncludedSql + R"sql(
+
+                )sql" + tagsExcludedSql + R"sql(
+
             limit ?
         )sql";
 
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                return
-                    Sql(sql)
-                    .Bind(
-                        topHeight,
-                        topContentId,
-                        lang,
-                        badReputationLimit,
-                        contentTypes,
-                        topContentId <= 0,
-                        txidsExcluded,
-                        addrsExcluded,
-                        tags.empty(),
-                        tags,
-                        tagsExcluded.empty(),
-                        tagsExcluded,
-                        countOut
+                auto& stmt = Sql(sql);
+
+                stmt.Bind(
+                    lang.empty(),
+                    lang,
+                    0,
+                    topHeight,
+                    contentTypes,
+                    topContentRowId,
+                    badReputationLimit,
+                    txidsExcluded,
+                    addrsExcluded);
+
+                if (!tagsIncluded.empty())
+                {
+                    stmt.Bind(
+                        tagsIncluded,
+                        lang.empty(),
+                        lang
                     );
+                }
+
+                if (!tagsExcluded.empty())
+                {
+                    stmt.Bind(
+                        tagsExcluded,
+                        lang.empty(),
+                        lang
+                    );
+                }
+
+                stmt.Bind(
+                    countOut
+                );
+
+                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -5655,7 +5674,8 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight, int countOutOfUsers, int countOutOfcontents, int badReputationLimit)
+    UniValue WebRpcRepository::GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight,
+        int countOutOfUsers, int countOutOfcontents, int badReputationLimit)
     {
         UniValue result(UniValue::VARR);
 

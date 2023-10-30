@@ -51,27 +51,30 @@ namespace PocketDb
         vector<WebTag> result;
 
         string sql = R"sql(
-            select distinct
-                c.Uid,
+            with
+                height as ( select ? as value )
+            select
+                distinct
+                p.RowId,
                 pp.String1,
                 json_each.value
-
-            from Transactions p
-
-            join Payload pp on
-                pp.TxId = p.RowId
-
-            join json_each(pp.String4)
-
-            join Chain c on
-                c.TxId = p.RowId and
-                c.Height = ?
-
-            join Last l on
-                l.TxId = p.RowId
-
-            where
-                p.Type in (200, 201, 202, 209, 210)
+            from
+                height
+            cross join
+                Chain c on
+                    c.Height = height.value
+            cross join
+                Transactions p on
+                    p.RowId = c.TxId and
+                    p.Type in (200, 201, 202, 209, 210)
+            cross join
+                Last l on
+                    l.TxId = p.RowId
+            cross join
+                Payload pp on
+                    pp.TxId = p.RowId
+            cross join
+                json_each(pp.String4)
         )sql";
 
         SqlTransaction(
@@ -181,9 +184,11 @@ namespace PocketDb
         vector<WebContent> result;
 
         string sql = R"sql(
+            with
+                height as ( select ? as value )
             select
                 t.Type,
-                c.Uid,
+                t.RowId,
                 p.String1,
                 p.String2,
                 p.String3,
@@ -191,18 +196,18 @@ namespace PocketDb
                 p.String5,
                 p.String6,
                 p.String7
-
-            from Transactions t
-
-            join Chain c on
-                c.TxId = t.RowId and
-                c.Height = ?
-
-            join Payload p on
-                p.TxId = t.RowId
-
-            where
-                t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
+            from
+                height
+            cross join
+                Chain c on
+                    c.Height = height.value
+            cross join
+                Transactions t on
+                    t.RowId = c.TxId and
+                    t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
+            cross join
+                Payload p on
+                    p.TxId = t.RowId
         )sql";
        
         SqlTransaction(
