@@ -5129,16 +5129,32 @@ namespace PocketDb
 
                 -- Exclude posts
                 and t.RegId2 not in (
-                    select RowId
-                    from Registry
-                    where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
                 )
 
-                -- Exclude autors
+                -- Exclude authors
                 and t.RegId1 not in (
-                    select RowId
-                    from Registry
-                    where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
+                )
+
+                -- Skip blocked authors
+                and t.RegId1 not in (
+                    select
+                        bl.IdTarget
+                    from
+                        BlockingLists bl
+                    where
+                        bl.IdSource = ( select r.RowId from Registry r where r.String = ? )
                 )
 
                 )sql" + tagsIncludedSql + R"sql(
@@ -5171,7 +5187,8 @@ namespace PocketDb
                 
                 stmt.Bind(
                     txidsExcluded,
-                    addrsExcluded
+                    addrsExcluded,
+                    address
                 );
 
                 if (!tagsIncluded.empty())
