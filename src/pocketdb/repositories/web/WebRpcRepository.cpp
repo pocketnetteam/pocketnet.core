@@ -4888,7 +4888,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (aok, api) : optimization
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
         const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
@@ -4901,76 +4900,148 @@ namespace PocketDb
 
         // ---------------------------------------------------
 
-        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
-
-        string contentIdWhere;
+        string skipPaginationSql = "";
         if (topContentId > 0)
-            contentIdWhere = " and ct.Uid < ? ";
+        {
+            skipPaginationSql = R"sql( and t.RowId < (select max(cc.TxId) from Chain cc where cc.Uid = ?) )sql";
+        }
 
-        string langFilter;
-        if (!lang.empty())
-            langFilter += " join Payload p on p.TxId = t.RowId and p.String1 = ? ";
+        // ---------------------------------------------------
 
-        string sql = R"sql(
-            select ct.Uid
-
-            from Transactions t indexed by Transactions_Type_RegId1_Time
-            join Chain ct on ct.TxId = t.RowId
-            join Last lt on lt.TxId = t.RowId
-
-            join Transactions u indexed by Transactions_Type_RegId1_Time
-                on u.Type in (100) and u.RegId1 = t.RegId1
-            join Chain cu on cu.TxId = u.RowId
-            join Last lu on lu.TxId = u.RowId
-
-            )sql" + langFilter + R"sql(
-
-            where t.Type in )sql" + contentTypesWhere + R"sql(
-              and t.RegId1 in (
-                  select subs.RegId2
-                  from Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
-                  join Chain csubs on csubs.TxId = subs.RowId
-                  join Last lsubs on lsubs.TxId = subs.RowId
-                  where subs.Type in (302,303)
-                    and subs.RegId1 = (select RowId from Registry indexed by Registry_String where String = ?)
-                    )sql" + (!addresses_extended.empty() ? (" union select RowId from Registry indexed by Registry_String where String in (" + join(vector<string>(addresses_extended.size(), "?"), ",") + ")") : "") + R"sql(
-              )
-              and ct.Height <= ?
-            
-            )sql" + contentIdWhere + R"sql(
-
-        )sql";
-
+        string tagsIncludedSql = "";
         if (!tagsIncluded.empty())
         {
-            sql += R"sql(
-                and ct.Uid in (
-                    select tm.ContentId
-                    from web.Tags tag
-                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
-                        on tag.Id = tm.TagId
-                    where tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( )
-                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+            tagsIncludedSql = R"sql(
+                and t.RowId in (
+                    select
+                        tm.ContentId
+                    from
+                        web.Tags tag indexed by Tags_Lang_Value_Id
+                    join
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId on
+                            tm.TagId = tag.Id
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
                 )
             )sql";
         }
 
-        if (!txidsExcluded.empty()) sql += " and t.RegId2 not in ( select RowId from Registry where String in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ) ";
-        if (!addrsExcluded.empty()) sql += " and t.RegId1 not in ( select RowId from Registry where String in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ) ";
+        // ---------------------------------------------------
+
+        string tagsExcludedSql = "";
         if (!tagsExcluded.empty())
         {
-            sql += R"sql( and ct.Uid not in (
-                select tmEx.ContentId
-                from web.Tags tagEx
-                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
-                    on tagEx.Id=tmEx.TagId
-                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
-                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
-             ) )sql";
+            tagsExcludedSql = R"sql(
+                and t.RowId not in (
+                    select
+                        tm.ContentId
+                    from
+                        web.Tags tag indexed by Tags_Lang_Value_Id
+                    join
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId on
+                            tm.TagId = tag.Id
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                )
+            )sql";
         }
 
-        sql += " order by ct.Uid desc ";
-        sql += " limit ? ";
+        // ---------------------------------------------------
+
+        string sql = R"sql(
+            select
+                ct.Uid
+            from
+                Transactions t indexed by Transactions_RowId_desc_Type
+            cross join
+                Payload p on
+                    p.TxId = t.RowId and
+                    ( ? or p.String1 = ? )
+            cross join
+                Last lt on
+                    lt.TxId = t.RowId
+            cross join
+                Chain ct indexed by Chain_TxId_Height on
+                    ct.TxId = t.RowId and
+                    ct.Height > ? and
+                    ct.Height <= ?
+            cross join
+                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    u.Type in (100) and u.RegId1 = t.RegId1
+            cross join
+                Last lu on
+                    lu.TxId = u.RowId
+            where
+                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                and t.RegId3 is null
+
+                -- Skip ids for pagination
+                )sql" + skipPaginationSql + R"sql(
+
+                -- Include authors only in subscribes
+                and t.RegId1 in (
+                    select
+                        s.RegId2
+                    from
+                        Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join
+                        Chain cs on
+                            cs.TxId = s.RowId
+                    cross join
+                        Last ls on
+                            ls.TxId = s.RowId
+                    where
+                        s.Type in (302, 303) and
+                        s.RegId1 = (select RowId from Registry where String = ?)
+
+                    union
+
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(addresses_extended.size(), "?"), ",") + R"sql( )
+                )
+
+                -- Exclude posts
+                and t.RegId2 not in (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
+                )
+
+                -- Exclude authors
+                and t.RegId1 not in (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
+                )
+
+                -- Skip blocked authors
+                and t.RegId1 not in (
+                    select
+                        bl.IdTarget
+                    from
+                        BlockingLists bl
+                    where
+                        bl.IdSource = ( select r.RowId from Registry r where r.String = ? )
+                )
+
+                )sql" + tagsIncludedSql + R"sql(
+
+                )sql" + tagsExcludedSql + R"sql(
+
+            limit ?
+        )sql";
 
         // ---------------------------------------------------
 
@@ -4980,32 +5051,50 @@ namespace PocketDb
             [&]() -> Stmt& {
                 auto& stmt = Sql(sql);
 
-                if (!lang.empty()) stmt.Bind(lang);
-
-                stmt.Bind(contentTypes, addressFeed, addresses_extended, topHeight);
+                stmt.Bind(
+                    lang.empty(),
+                    lang,
+                    0,
+                    topHeight,
+                    contentTypes
+                );
 
                 if (topContentId > 0)
-                    stmt.Bind(topContentId);
+                {
+                    stmt.Bind(
+                        topContentId
+                    );
+                }
+                
+                stmt.Bind(
+                    addressFeed,
+                    addresses_extended,
+                    txidsExcluded,
+                    addrsExcluded,
+                    address
+                );
 
                 if (!tagsIncluded.empty())
                 {
-                    stmt.Bind(tagsIncluded);
-
-                    if (!lang.empty())
-                        stmt.Bind(lang);
+                    stmt.Bind(
+                        tagsIncluded,
+                        lang.empty(),
+                        lang
+                    );
                 }
-
-                stmt.Bind(txidsExcluded, addrsExcluded);
 
                 if (!tagsExcluded.empty())
                 {
-                    stmt.Bind(tagsExcluded);
-
-                    if (!lang.empty())
-                        stmt.Bind(lang);
+                    stmt.Bind(
+                        tagsExcluded,
+                        lang.empty(),
+                        lang
+                    );
                 }
 
-                stmt.Bind(countOut);
+                stmt.Bind(
+                    countOut
+                );
 
                 return stmt;
             },
@@ -5039,14 +5128,15 @@ namespace PocketDb
         UniValue result(UniValue::VARR);
         vector<int64_t> ids;
 
-        if (contentTypes.empty())
-            return result;
+        // ---------------------------------------------------
 
         string skipPaginationSql = "";
         if (topContentId > 0)
         {
             skipPaginationSql = R"sql( and t.RowId < (select max(cc.TxId) from Chain cc where cc.Uid = ?) )sql";
         }
+
+        // ---------------------------------------------------
 
         string tagsIncludedSql = "";
         if (!tagsIncluded.empty())
@@ -5067,6 +5157,8 @@ namespace PocketDb
             )sql";
         }
 
+        // ---------------------------------------------------
+
         string tagsExcludedSql = "";
         if (!tagsExcluded.empty())
         {
@@ -5085,6 +5177,8 @@ namespace PocketDb
                 )
             )sql";
         }
+
+        // ---------------------------------------------------
 
         string sql = R"sql(
             select
@@ -5163,6 +5257,8 @@ namespace PocketDb
 
             limit ?
         )sql";
+
+        // ---------------------------------------------------
 
         SqlTransaction(
             __func__,
