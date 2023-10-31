@@ -5237,98 +5237,138 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int badReputationLimit)
     {
         UniValue result(UniValue::VARR);
 
+        string tagsIncludedSql = "";
+        if (!tagsIncluded.empty())
+        {
+            tagsIncludedSql = R"sql(
+                and t.RowId in (
+                    select
+                        tm.ContentId
+                    from
+                        web.Tags tag indexed by Tags_Lang_Value_Id
+                    join
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId on
+                            tm.TagId = tag.Id
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                )
+            )sql";
+        }
+
+        string tagsExcludedSql = "";
+        if (!tagsExcluded.empty())
+        {
+            tagsExcludedSql = R"sql(
+                and t.RowId not in (
+                    select
+                        tm.ContentId
+                    from
+                        web.Tags tag indexed by Tags_Lang_Value_Id
+                    join
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId on
+                            tm.TagId = tag.Id
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                )
+            )sql";
+        }
+
         string sql = R"sql(
-            with
-                heightMin as ( select ? as value ),
-                heightMax as ( select ? as value ),
-                lang as ( select ? as value ),
-                minReputation as ( select ? as value )
             select
-                (ct.Uid)ContentId,
+                ct.Uid,
                 ifnull(pr.Value, 0) as ContentRating,
                 ifnull(ur.Value, 0) as AccountRating,
                 ctorig.Height,
                 ifnull((select Data from AccountStatistic a where a.AccountRegId = t.RegId1 and a.Type = 8), 0) as SumRatingsLast5Contents
             from
-                heightMin,
-                heightMax,
-                lang,
-                minReputation
+                Transactions t indexed by Transactions_RowId_desc_Type
             cross join
-                Chain ct indexed by Chain_Height_Uid on
-                    ct.Height > heightMin.value and
-                    ct.Height <= heightMax.value
-            cross join
-                Transactions t on
-                    t.RowId = ct.TxId and
-                    t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
-                    t.RegId3 is null
+                Payload p on
+                    p.TxId = t.RowId and
+                    ( ? or p.String1 = ? )
             cross join
                 Last lt on
                     lt.TxId = t.RowId
             cross join
-                Payload p indexed by Payload_String1 on
-                    p.TxId = t.RowId and p.String1 = lang.value
+                Chain ct indexed by Chain_TxId_Height on
+                    ct.TxId = t.RowId and
+                    ct.Height > ? and
+                    ct.Height <= ?
             cross join
                 Transactions torig on
                     torig.RowId = t.RegId2
             cross join
                 Chain ctorig on
                     ctorig.TxId = torig.RowId
-            left join
-                web.TagsMap tm on
-                    tm.ContentId = ct.Uid
-            left join
-                web.Tags tag on
-                    tag.Id = tm.TagId and
-                    tag.Lang = lang.value
             cross join
                 Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                    u.Type in (100) and
-                    u.RegId1 = t.RegId1
-            cross join
-                Chain cu on
-                    cu.TxId = u.RowId
+                    u.Type in (100) and u.RegId1 = t.RegId1
             cross join
                 Last lu on
                     lu.TxId = u.RowId
-
+            cross join
+                Chain cu on
+                    cu.TxId = u.RowId
             left join
                 Ratings pr indexed by Ratings_Type_Uid_Last_Height on
                     pr.Type = 2 and
-                    pr.Last = 1 and
-                    pr.Uid = ct.Uid
+                    pr.Uid = ct.Uid and
+                    pr.Last = 1
             left join
                 Ratings ur indexed by Ratings_Type_Uid_Last_Value on
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
-
             where
+                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                and t.RegId3 is null
+
                 -- Do not show posts from users with low reputation
-                ifnull(ur.Value, 0) > minReputation.value and
-                t.RegId2 not in (
-                    select RowId
-                    from Registry
-                    where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
-                ) and
-                t.RegId1 not in (
-                    select RowId
-                    from Registry
-                    where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
+                and ifnull(ur.Value,0) > ?
+
+                -- Exclude posts
+                and t.RegId2 not in (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
                 )
 
-            group by
-                ct.Uid
-            having
-                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 1 ) and
-                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 0 )
+                -- Exclude authors
+                and t.RegId1 not in (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
+                )
+
+                -- Skip blocked authors
+                and t.RegId1 not in (
+                    select
+                        bl.IdTarget
+                    from
+                        BlockingLists bl
+                    where
+                        bl.IdSource = ( select r.RowId from Registry r where r.String = ? )
+                )
+
+                )sql" + tagsIncludedSql + R"sql(
+
+                )sql" + tagsExcludedSql + R"sql(
+
+            limit ?
         )sql";
 
         // ---------------------------------------------
@@ -5338,21 +5378,46 @@ namespace PocketDb
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                return
-                    Sql(sql)
-                    .Bind(
-                        topHeight - cntBlocksForResult,
-                        topHeight,
-                        lang,
-                        badReputationLimit,
-                        contentTypes,
-                        txidsExcluded,
-                        addrsExcluded,
-                        tags.empty(),
-                        tags,
-                        tagsExcluded.empty(),
-                        tagsExcluded
+                auto& stmt = Sql(sql);
+
+                stmt.Bind(
+                    lang.empty(),
+                    lang,
+                    topHeight - cntBlocksForResult,
+                    topHeight,
+                    contentTypes,
+                    badReputationLimit
+                );
+
+                stmt.Bind(
+                    txidsExcluded,
+                    addrsExcluded,
+                    address
+                );
+
+                if (!tagsIncluded.empty())
+                {
+                    stmt.Bind(
+                        tagsIncluded,
+                        lang.empty(),
+                        lang
                     );
+                }
+
+                if (!tagsExcluded.empty())
+                {
+                    stmt.Bind(
+                        tagsExcluded,
+                        lang.empty(),
+                        lang
+                    );
+                }
+
+                stmt.Bind(
+                    countOut
+                );
+
+                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -5383,24 +5448,23 @@ namespace PocketDb
         int nElements = postsRanks.size();
         for (auto& iPostRank : postsRanks)
         {
-            // double _LAST5R = 0;
+            double _LAST5R = 0;
             double _UREPR = 0;
             double _PREPR = 0;
 
-            double boost = 0;
             if (nElements > 1)
             {
                 for (auto jPostRank : postsRanks)
                 {
-                    // if (iPostRank.LAST5 > jPostRank.LAST5)
-                    //     _LAST5R += 1;
+                    if (iPostRank.LAST5 > jPostRank.LAST5)
+                        _LAST5R += 1;
                     if (iPostRank.UREP > jPostRank.UREP)
                         _UREPR += 1;
                     if (iPostRank.PREP > jPostRank.PREP)
                         _PREPR += 1;
                 }
 
-                // iPostRank.LAST5R = 1.0 * (_LAST5R * 100) / (nElements - 1);
+                iPostRank.LAST5R = 1.0 * (_LAST5R * 100) / (nElements - 1);
                 iPostRank.UREPR = min(iPostRank.UREP, 1.0 * (_UREPR * 100) / (nElements - 1)) * (iPostRank.UREP < 0 ? 2.0 : 1.0);
                 iPostRank.PREPR = min(iPostRank.PREP, 1.0 * (_PREPR * 100) / (nElements - 1)) * (iPostRank.PREP < 0 ? 2.0 : 1.0);
             }
@@ -5411,7 +5475,7 @@ namespace PocketDb
                 iPostRank.PREPR = 100;
             }
 
-            iPostRank.POSTRF = 0.4 * (/* 0.75 * (iPostRank.LAST5R + boost) + */ 0.25 * iPostRank.UREPR) * iPostRank.DREP + 0.6 * iPostRank.PREPR * iPostRank.DPOST;
+            iPostRank.POSTRF = 0.4 * (0.75 * iPostRank.LAST5R + 0.25 * iPostRank.UREPR) * iPostRank.DREP + 0.6 * iPostRank.PREPR * iPostRank.DPOST;
         }
 
         // Sort results
@@ -5451,7 +5515,7 @@ namespace PocketDb
         int lack = countOut - (int)resultIds.size();
         if (lack > 0)
         {
-            UniValue histContents = GetHistoricalFeed(lack, minPostRank, topHeight, lang, tags, contentTypes,
+            UniValue histContents = GetHistoricalFeed(lack, minPostRank, topHeight, lang, tagsIncluded, contentTypes,
                 txidsExcluded, addrsExcluded, tagsExcluded, address, badReputationLimit);
 
             result.push_backV(histContents.getValues());
