@@ -5119,24 +5119,24 @@ namespace PocketDb
                     ur.Uid = cu.Uid and
                     ur.Last = 1
             where
-                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
-                t.RegId3 is null and
+                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                and t.RegId3 is null
 
                 -- Do not show posts from users with low reputation
-                ifnull(ur.Value,0) > ?
+                and ifnull(ur.Value,0) > ?
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
 
                 -- Exclude posts
-                t.RegId2 not in (
+                and t.RegId2 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
-                ) and
+                )
 
                 -- Exclude autors
-                t.RegId1 not in (
+                and t.RegId1 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
