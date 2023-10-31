@@ -4875,8 +4875,7 @@ namespace PocketDb
                             ids.push_back(value);
                     }
                 });
-            },
-            true
+            }
         );
 
         // Get content data
@@ -5207,8 +5206,7 @@ namespace PocketDb
                             ids.push_back(contentId);
                     }
                 });
-            },
-            true
+            }
         );
 
         // Get content data
