@@ -5159,7 +5159,8 @@ namespace PocketDb
                     lang,
                     0,
                     topHeight,
-                    contentTypes
+                    contentTypes,
+                    badReputationLimit
                 );
 
                 if (topContentId > 0)
@@ -5170,7 +5171,6 @@ namespace PocketDb
                 }
                 
                 stmt.Bind(
-                    badReputationLimit,
                     txidsExcluded,
                     addrsExcluded
                 );
@@ -5207,7 +5207,8 @@ namespace PocketDb
                             ids.push_back(contentId);
                     }
                 });
-            }
+            },
+            true
         );
 
         // Get content data
