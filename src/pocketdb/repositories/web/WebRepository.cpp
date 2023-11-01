@@ -188,7 +188,7 @@ namespace PocketDb
                 height as ( select ? as value )
             select
                 t.Type,
-                t.RowId,
+                c.Uid,
                 p.String1,
                 p.String2,
                 p.String3,
