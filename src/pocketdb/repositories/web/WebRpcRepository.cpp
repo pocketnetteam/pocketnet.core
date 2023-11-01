@@ -1281,7 +1281,7 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnInt(13); ok) record.pushKV("scoreDown", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("reputation", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt(15); ok) record.pushKV("children", value);
-                        if (auto[ok, value] = cursor.TryGetColumnInt(16); ok) record.pushKV("myScore", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(16); ok && !address.empty()) record.pushKV("myScore", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(17); ok)
                         {
                             record.pushKV("donation", "true");
@@ -1355,7 +1355,7 @@ namespace PocketDb
                     from Ratings r indexed by Ratings_Type_Uid_Last_Value
                     where r.Type = 3 and r.Uid = cc.Uid and r.Last = 1
                 ) as Reputation,
-                sc.Int1 as MyScore,
+                ifnull(sc.Int1, 0) as MyScore,
                 (
                     select count()
                     from
@@ -1463,7 +1463,7 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnInt64(11); ok) record.pushKV("scoreUp", to_string(value));
                         if (auto[ok, value] = cursor.TryGetColumnInt64(12); ok) record.pushKV("scoreDown", to_string(value));
                         if (auto[ok, value] = cursor.TryGetColumnInt64(13); ok) record.pushKV("reputation", to_string(value));
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(14); ok) record.pushKV("myScore", to_string(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(14); ok && !addressHash.empty()) record.pushKV("myScore", to_string(value));
                         if (auto[ok, value] = cursor.TryGetColumnInt64(15); ok) record.pushKV("children", to_string(value));
 
                         if (auto[ok, value] = cursor.TryGetColumnInt64(16); ok)
@@ -1618,7 +1618,7 @@ namespace PocketDb
                             from Ratings r indexed by Ratings_Type_Uid_Last_Value
                             where r.Type = 3 and r.Uid = cc.Uid and r.Last = 1
                         ) as Reputation,
-                        sc.Int1 as MyScore,
+                        ifnull(sc.Int1, 0) as MyScore,
                         (
                             select count()
                             from
@@ -1708,7 +1708,7 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("myScore", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(14); ok && !addressHash.empty()) record.pushKV("myScore", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
 
                         if (auto[ok, value] = cursor.TryGetColumnString(16); ok)
@@ -1783,7 +1783,7 @@ namespace PocketDb
                         )
                         select
                             tx.hash as ContentTxHash,
-                            sc.Int1 as MyScoreValue
+                            ifnull(sc.Int1, 0) as MyScoreValue
 
                         from
                             addr,
@@ -1804,7 +1804,7 @@ namespace PocketDb
                             UniValue record(UniValue::VOBJ);
 
                             if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("posttxid", value);
-                            if (auto[ok, value] = cursor.TryGetColumnInt(1); ok) record.pushKV("value", value);
+                            if (auto[ok, value] = cursor.TryGetColumnInt(1); ok && !addressHash.empty()) record.pushKV("value", value);
 
                             result.push_back(record);
                         }
@@ -1857,7 +1857,7 @@ namespace PocketDb
                                 from Ratings r indexed by Ratings_Type_Uid_Last_Value
                                 where r.Uid = cc.Uid and r.Type = 3 and r.Last = 1
                             ) as Reputation,
-                            msc.Int1 AS MyScore
+                            ifnull(msc.Int1, 0) AS MyScore
                         from
                             addr,
                             tx
@@ -1885,7 +1885,7 @@ namespace PocketDb
                             if (auto[ok, value] = cursor.TryGetColumnInt(1); ok) record.pushKV("scoreUp", value);
                             if (auto[ok, value] = cursor.TryGetColumnInt(2); ok) record.pushKV("scoreDown", value);
                             if (auto[ok, value] = cursor.TryGetColumnInt(3); ok) record.pushKV("reputation", value);
-                            if (auto[ok, value] = cursor.TryGetColumnInt(4); ok) record.pushKV("myScore", value);
+                            if (auto[ok, value] = cursor.TryGetColumnInt(4); ok && !addressHash.empty()) record.pushKV("myScore", value);
 
                             result.push_back(record);
                         }
@@ -4128,9 +4128,11 @@ namespace PocketDb
             )sql";
         }
         
-        // Get posts
+        // --------------------------------------
+
         unordered_map<int64_t, UniValue> tmpResult{};
         vector<string> authors;
+
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
@@ -4254,7 +4256,11 @@ namespace PocketDb
                         Payload p
                             on p.TxId = t.RowId
                 )sql")
-                .Bind(hashes, ids, address);
+                .Bind(
+                    hashes,
+                    ids,
+                    address
+                );
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -4311,7 +4317,12 @@ namespace PocketDb
                         cursor.Collect<int>(ii++, record, "scoreSum");
                         cursor.Collect<int>(ii++, record, "reposted");
                         cursor.Collect<int>(ii++, record, "comments");
-                        cursor.Collect<int>(ii++, record, "myVal");
+
+                        if (!address.empty())
+                            cursor.Collect<int>(ii++, record, "myVal");
+                        else
+                            ii++;
+
                         cursor.Collect(ii++, [&](const string& value) {
                             UniValue ii(UniValue::VARR);
                             ii.read(value);
