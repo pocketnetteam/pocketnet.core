@@ -4895,7 +4895,58 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        if (addressFeed.empty())
+        // Select RowId for top subscribes
+        vector<int64_t> subsIds;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return
+                    Sql(R"sql(
+                        select
+                            q.RegId2
+                        from (
+                            select
+                                distinct
+                                s.RegId2
+                            from
+                                Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            cross join
+                                Last ls on
+                                    ls.TxId = s.RowId
+                            where
+                                s.Type in (302, 303) and
+                                s.RegId1 = (select RowId from Registry where String = ?)
+                            order by
+                                s.RowId desc
+                            limit 100
+                        )q
+
+                        union
+
+                        select
+                            r.RowId
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(addresses_extended.size(), "?"), ",") + R"sql( )
+                    )sql")
+                    .Bind(
+                        addressFeed,
+                        addresses_extended
+                    );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        cursor.Collect(0, [&](int64_t val) {
+                            subsIds.push_back(val);
+                        });                            
+                    }
+                });
+            }
+        );
+
+        if (subsIds.empty())
             return result;
 
         // ---------------------------------------------------
@@ -4965,7 +5016,6 @@ namespace PocketDb
             cross join
                 Chain ct indexed by Chain_TxId_Height on
                     ct.TxId = t.RowId and
-                    ct.Height > ? and
                     ct.Height <= ?
             cross join
                 Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
@@ -4981,30 +5031,7 @@ namespace PocketDb
                 )sql" + skipPaginationSql + R"sql(
 
                 -- Include authors only in subscribes
-                and t.RegId1 in (
-                    select
-                        s.RegId2
-                    from
-                        Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join
-                        Chain cs on
-                            cs.TxId = s.RowId
-                    cross join
-                        Last ls on
-                            ls.TxId = s.RowId
-                    where
-                        s.Type in (302, 303) and
-                        s.RegId1 = (select RowId from Registry where String = ?)
-
-                    union
-
-                    select
-                        r.RowId
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(addresses_extended.size(), "?"), ",") + R"sql( )
-                )
+                and t.RegId1 in ( )sql" + join(vector<string>(subsIds.size(), "?"), ",") + R"sql( )
 
                 -- Exclude posts
                 and t.RegId2 not in (
@@ -5054,7 +5081,6 @@ namespace PocketDb
                 stmt.Bind(
                     lang.empty(),
                     lang,
-                    0,
                     topHeight,
                     contentTypes
                 );
@@ -5067,8 +5093,7 @@ namespace PocketDb
                 }
                 
                 stmt.Bind(
-                    addressFeed,
-                    addresses_extended,
+                    subsIds,
                     txidsExcluded,
                     addrsExcluded,
                     address
@@ -5385,7 +5410,12 @@ namespace PocketDb
                 ctorig.Height,
                 ifnull((select Data from AccountStatistic a where a.AccountRegId = t.RegId1 and a.Type = 8), 0) as SumRatingsLast5Contents
             from
-                Transactions t indexed by Transactions_RowId_desc_Type
+                Chain ct indexed by Chain_Height_Uid
+            cross join
+                Transactions t on
+                    t.RowId = ct.TxId and
+                    t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
+                    t.RegId3 is null
             cross join
                 Payload p on
                     p.TxId = t.RowId and
@@ -5393,11 +5423,6 @@ namespace PocketDb
             cross join
                 Last lt on
                     lt.TxId = t.RowId
-            cross join
-                Chain ct indexed by Chain_TxId_Height on
-                    ct.TxId = t.RowId and
-                    ct.Height > ? and
-                    ct.Height <= ?
             cross join
                 Transactions torig on
                     torig.RowId = t.RegId2
@@ -5424,8 +5449,8 @@ namespace PocketDb
                     ur.Uid = cu.Uid and
                     ur.Last = 1
             where
-                t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-                and t.RegId3 is null
+                ct.Height > ?
+                and ct.Height <= ?
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
@@ -5463,8 +5488,6 @@ namespace PocketDb
                 )sql" + tagsIncludedSql + R"sql(
 
                 )sql" + tagsExcludedSql + R"sql(
-
-            limit ?
         )sql";
 
         // ---------------------------------------------
@@ -5477,15 +5500,12 @@ namespace PocketDb
                 auto& stmt = Sql(sql);
 
                 stmt.Bind(
+                    contentTypes,
                     lang.empty(),
                     lang,
                     topHeight - cntBlocksForResult,
                     topHeight,
-                    contentTypes,
-                    badReputationLimit
-                );
-
-                stmt.Bind(
+                    badReputationLimit,
                     txidsExcluded,
                     addrsExcluded,
                     address
@@ -5508,10 +5528,6 @@ namespace PocketDb
                         lang
                     );
                 }
-
-                stmt.Bind(
-                    countOut
-                );
 
                 return stmt;
             },
@@ -5540,6 +5556,7 @@ namespace PocketDb
         );
 
         // ---------------------------------------------
+
         // Calculate content ratings
         int nElements = postsRanks.size();
         for (auto& iPostRank : postsRanks)

@@ -1072,6 +1072,7 @@ namespace PocketWeb::PocketWebRpc
                         }
                     },
                     {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /*TODO (rpc): arg description*/},
+                    {"address_feed", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /*TODO (rpc): arg description*/},
                     {"addresses_extended", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
                         {
                             {"address_extended", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}   
