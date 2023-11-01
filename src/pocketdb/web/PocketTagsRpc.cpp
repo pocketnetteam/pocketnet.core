@@ -28,14 +28,13 @@ namespace PocketWeb::PocketWebRpc
                 "gettags\n"
                 "\nReturn N top used tags for language\n");
 
+        int pageStart = 0;
+        if (request.params.size() > 0)
+            ParseInt32(request.params[0].get_str(), &pageStart);
+
         int pageSize = 50;
         if (request.params.size() > 1)
-            if (!ParseInt32(request.params[1].get_str(), &pageSize))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
-
-        int pageStart = 0;
-        // if (request.params.size() > 2)
-        //     ParseInt32(request.params[2].get_str(), &pageStart);
+            ParseInt32(request.params[1].get_str(), &pageSize);
 
         string lang = "en";
         if (request.params.size() > 3) {

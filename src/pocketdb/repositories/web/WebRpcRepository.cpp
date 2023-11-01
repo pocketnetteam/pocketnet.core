@@ -2607,15 +2607,12 @@ namespace PocketDb
             [&]() -> Stmt&  {
                 return Sql(R"sql(
                     select
-                        t.Lang,
                         t.Value,
                         t.Count
                     from
                         web.Tags t
                     where
                         t.Lang = ?
-                    group by
-                        t.Id
                     order by
                         t.Count desc
                     limit ?
@@ -2627,13 +2624,10 @@ namespace PocketDb
                 stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
-                        auto[ok0, vLang] = cursor.TryGetColumnString(0);
-                        auto[ok1, vValue] = cursor.TryGetColumnString(1);
-                        auto[ok2, vCount] = cursor.TryGetColumnInt(2);
-
                         UniValue record(UniValue::VOBJ);
-                        record.pushKV("tag", vValue);
-                        record.pushKV("count", vCount);
+                        
+                        cursor.Collect<string>(0, record, "tag");
+                        cursor.Collect<int>(1, record, "count");
 
                         result.push_back(record);
                     }
