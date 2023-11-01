@@ -495,30 +495,30 @@ namespace PocketDb
                                     random()
                                 limit ?
                             )
-
                             order by
                                 rnk
                             limit ?
                         )
                     select
-                        recomendations.Uid
+                        cContents.Uid
                     from (
                         select
+                            Contents.RowId,
                             Contents.RegId1,
-                            cContents.Uid,
                             count() as count
                         from
                             addrs
                         cross join
-                            Transactions Rates indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            Transactions Rates indexed by Transactions_Type_RegId1_Int1_Time on
                                 Rates.Type in (300) and
-                                Rates.Int1 = 5 and
-                                Rates.RegId1 = addrs.id
+                                Rates.RegId1 = addrs.id and
+                                Rates.Int1 = 5
                         cross join
                             Chain cRates indexed by Chain_TxId_Height on
                                 cRates.TxId = Rates.RowId and
                                 cRates.Height > ?
-                        cross join Transactions Contents indexed by Transactions_Type_RegId2_RegId1 on
+                        cross join
+                            Transactions Contents indexed by Transactions_Type_RegId2_RegId1 on
                                 Contents.RegId2 = Rates.RegId2 and
                                 Contents.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
                                 (? or Contents.RegId1 not in (
@@ -532,26 +532,26 @@ namespace PocketDb
                         cross join
                             Last lContents on
                                 lContents.TxId = Contents.RowId
-                        cross join
-                            Chain cContents on
-                                cContents.TxId = Contents.RowId
-                        cross join
-                            Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                u.Type in (100) and
-                                u.RegId1 = Contents.RegId1
-                        cross join
-                            Last lu on
-                                lu.TxId = u.RowId
-                        cross join
-                            Payload lang on
-                                lang.TxId = u.RowId and
-                                (? or lang.String1 = ?)
                         group by
-                            cContents.Uid
+                            Contents.RowId
                         having count() > ?
                         order by
                             count() desc
                     ) recomendations
+                    cross join
+                        Chain cContents on
+                            cContents.TxId = recomendations.RowId
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type in (100) and
+                            u.RegId1 = recomendations.RegId1
+                    cross join
+                        Last lu on
+                            lu.TxId = u.RowId
+                    cross join
+                        Payload lang on
+                            lang.TxId = u.RowId and
+                            (? or lang.String1 = ?)
                     group by
                         recomendations.RegId1
                     order by
@@ -569,9 +569,9 @@ namespace PocketDb
                     contentTypes,
                     addressExclude.empty(),
                     addressExclude,
+                    cntRates,
                     lang.empty(),
                     lang,
-                    cntRates,
                     cntOut
                 );
             },
