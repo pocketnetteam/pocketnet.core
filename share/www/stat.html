@@ -15,6 +15,9 @@
             margin: auto;
             border-collapse: collapse;
         }
+        header {
+            margin-bottom: 2.3em;
+        }
         tr:hover td {
             background-color: #a2d6ff;
         }
@@ -38,6 +41,8 @@
             word-break: normal;
             background-color: #f9f9f9;
         }
+        .tValueSql {
+        }
         #updateCounter {
             text-align: right;
         }
@@ -51,17 +56,29 @@
 </head>
 <body>
     <header>
-        <h2 style='float: left;'>PocketnetCore Monitoring</h2>
-        <div style='clear: both;'></div>
+        <div style='float: left;'>PocketnetCore Monitoring</div>
+        <div id='updateCounter' style='float: right;'></div>
     </header>
-    <p id='updateCounter'></p>
-    <table id='monitoringTable'></table>
+    
+    <div id='monitoringTablesBox'>
+        <table class="monitoringTable"></table>
+    </div>
+    
     <script>
         var updateCounter = 0;
+        
         setInterval(function() {
             document.getElementById('updateCounter').innerText = 'Last update: ' + updateCounter + ' seconds ago';
             updateCounter++;
         }, 1000);
+
+        var box = document.getElementById('monitoringTablesBox');
+
+        var cleanBox = function() {
+            document.querySelectorAll('.monitoringTable').forEach(function(t) {
+                t.remove();
+            });
+        }
         
         var update = function() {
             fetch(location.protocol + '//' + location.host.split(':')[0] + ':38081/rpc/getlateststat', {
@@ -82,42 +99,70 @@
             })
             .then(json => {
                 updateCounter = 0;
-                var table = document.getElementById('monitoringTable');
-                table.innerHTML = '';
-                for (var section in json.result) {
-                    var row = table.insertRow(-1);
-                    var cell = row.insertCell(-1);
-                    cell.colSpan = 2;
-                    cell.innerText = section;
-                    cell.classList.add('tHead');
-                    var i = 0
-                    for (var key in json.result[section]) {
-                        var row = table.insertRow(-1);
+                cleanBox();
+                
+                for (let section in json.result) {
+                    if (section == 'RPC')
+                        continue;
 
-                        var cellKey = row.insertCell(-1);
+                    // New table
+                    let table = document.createElement("table");
+                    table.classList.add('monitoringTable')
+                    box.appendChild(table)
+
+                    // Header
+                    let row = table.insertRow(-1);
+                    let cellHead = row.insertCell(-1);
+                    cellHead.innerText = section;
+                    cellHead.classList.add('tHead');
+                    cellHead.colSpan = 2;
+
+                    if (section == 'SQLBench')
+                        cellHead.colSpan = 5;
+
+                    // Rows
+                    let i = 0
+                    let sectionVals = json.result[section]
+                    for (let key in sectionVals) {
+                        let row = table.insertRow(-1);
+
+                        // Row header
+                        let cellKey = row.insertCell(-1);
                         cellKey.innerText = key;
                         cellKey.classList.add('tKey');
                         cellKey.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
 
-                        var cellValue = row.insertCell(-1);
-                        cellValue.innerText = json.result[section][key];
-                        cellKey.classList.add('tValue');
-                        cellValue.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
+                        // Row
+                        if (section == 'SQLBench') {
+                            // For SQLBench need more columns
+                            let vals = sectionVals[key].split(' / ');
+                            for (let val in vals) {
+                                let cellValue = row.insertCell(-1);
+                                cellValue.innerText = vals[val];
+                                cellValue.classList.add('tValue');
+                                cellValue.classList.add('tValueSql');
+                                cellValue.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
+                            }
+                        } else {
+                            // Simple row
+                            let cellValue = row.insertCell(-1);
+                            cellValue.innerText = sectionVals[key];
+                            cellValue.classList.add('tValue');
+                            cellValue.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
+                        }
 
                         i += 1;
                     }
                 }
             })
             .catch(function() {
-                var table = document.getElementById('monitoringTable');
-                table.innerHTML = '';
-                var row = table.insertRow(-1);
-                var cell = row.insertCell(-1);
-                cell.colSpan = 2;
-                cell.innerText = 'Error fetching data from API';
+                cleanBox();
+                let errSpan = document.createElement("div");
+                errSpan.classList.add('error')
+                errSpan.innerText = 'Error fetching data from API';
             });
         }
-        setInterval(update, 15000);
+        // setInterval(update, 15000);
         update()
     </script>
 </body>
