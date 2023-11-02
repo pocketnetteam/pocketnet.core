@@ -57,6 +57,17 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
 
+int SocialForks::GetLastAcceptedSubVersion(int height) const
+{
+    // TODO (losty): optimize
+    auto res = m_forkPoints.end();
+    for (auto itr = m_forkPoints.begin(); itr != m_forkPoints.end(); itr++) {
+        if (itr->GetHeight(Params().NetworkID()) < height)
+            res = itr;
+    }
+    return res != m_forkPoints.end() ? res->GetVersion() : 0;
+}
+
 /**
  * Main network
  */
@@ -136,8 +147,6 @@ public:
         m_assumed_blockchain_size = 50; // 50 is ok for now
         m_assumed_chain_state_size = 0; // We do not use prune
                                         //
-        nLastSocialForkVersion = 210300;
-        nLastSocialForkActivationHeight = 2360000;
 
         genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();

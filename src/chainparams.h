@@ -50,6 +50,62 @@ enum NetworkId
     NetworkRegTest
 };
 
+// TODO (losty): this is kinda duplicate of pocketdb/consensus/Base.h::ConsensusCheckpoint
+// consider to use something like generalized fork registry (named forks perhaps?) to use them here as well as in Base.h
+class ForkPoint
+{
+public:
+    ForkPoint(int cleanSubversion, int main_height, int test_height, int reg_height)
+        : m_cleanSubVersion(cleanSubversion),
+          m_main_height(main_height),
+          m_test_height(test_height),
+          m_reg_height(reg_height)
+    {
+        assert(m_cleanSubVersion > 0);
+    }
+
+    int GetHeight(NetworkId network) const
+    {
+        switch (network) {
+            case NetworkId::NetworkMain: {
+                return m_main_height;
+            }
+            case NetworkId::NetworkTest: {
+                return m_test_height;
+            }
+            case NetworkId::NetworkRegTest: {
+                return m_reg_height;
+            }
+        }
+    }
+
+    int GetVersion() const
+    {
+        return m_cleanSubVersion;
+    }
+
+private:
+    const int m_cleanSubVersion;
+    const int m_main_height;
+    const int m_test_height;
+    const int m_reg_height;
+};
+
+class SocialForks
+{
+public:
+    SocialForks() = default;
+    SocialForks(std::vector<ForkPoint> forkPoints)
+        : m_forkPoints(std::move(forkPoints))
+    {}
+
+    // cleanSubversion = CLIENT_VERSION_MAJOR * 1000000 + CLIENT_VERSION_MINOR * 10000 + CLIENT_VERSION_REVISION * 100 + CLIENT_VERSION_BUILD
+    int GetLastAcceptedSubVersion(int height) const;
+
+private:
+    std::vector<ForkPoint> m_forkPoints;
+};
+
 /**
  * CChainParams defines various tweakable parameters of a given instance of the
  * Pocketcoin system. There are three: the main network on which people trade goods
@@ -88,8 +144,7 @@ public:
     uint64_t AssumedBlockchainSize() const { return m_assumed_blockchain_size; }
     /** Minimum free space (in GB) needed for data directory when pruned; Does not include prune target*/
     uint64_t AssumedChainStateSize() const { return m_assumed_chain_state_size; }
-    int LastSocialForkActivationHeight() const { return nLastSocialForkActivationHeight; }
-    int LastSocialForkVersion() const { return nLastSocialForkVersion; }
+    const SocialForks& Forks() const { return socialForks; }
     /** Whether it is possible to mine blocks on demand (no retargeting) */
     bool MineBlocksOnDemand() const { return consensus.fPowNoRetargeting; }
     /** Return the network string */
@@ -124,8 +179,11 @@ protected:
     bool m_is_mockable_chain;
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
-    int nLastSocialForkVersion; // CLIENT_VERSION_MAJOR * 1000000 + CLIENT_VERSION_MINOR * 10000 + CLIENT_VERSION_REVISION * 100 + CLIENT_VERSION_BUILD
-    int nLastSocialForkActivationHeight; // Height after which we can disconnect outdated forked versions
+    SocialForks socialForks = {{
+        // TODO (release): fulfill
+        {210300 /* 0.21.3 */, 2360000, 1950500, 0},
+        {220000 /* 0.22 */, 2800000, 2500000, 0} // TODO (losty): fix
+    }};
 };
 
 /**
