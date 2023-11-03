@@ -25,6 +25,12 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const ArticleRef& ptx, const PocketBlockRef& block) override
         {
+            // Base validation with calling block or mempool check
+            if (!block) {
+                if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                    return {false, baseValidateCode};
+            }
+
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
