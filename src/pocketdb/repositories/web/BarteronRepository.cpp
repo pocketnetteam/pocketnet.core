@@ -239,29 +239,21 @@ namespace PocketDb
     {
         vector<string> result;
 
-        // string _orderBy = " ct.Height ";
-        // if (args.Page.OrderBy == "location")
-        //     _orderBy = " pt.String6 ";
-        // if (args.Page.OrderBy == "price")
-        //     _orderBy = " pt.Int1 ";
-        // if (args.Page.OrderDesc)
-        //     _orderBy += " desc ";
+        string _orderBy = " co2.Height ";
+        if (args.Page.OrderBy == "location")
+            _orderBy = " po2.String6 ";
+        if (args.Page.OrderBy == "price")
+            _orderBy = " po2.Int1 ";
+        if (args.Page.OrderDesc)
+            _orderBy += " desc ";
         
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                    offer as (
-                        select
-                            c.Uid as value
-                        from
-                            Registry r
-                        cross join
-                            Transactions t on t.RowId = r.RowId
-                        cross join
-                            Chain c on c.TxId = t.RowId
-                        where r.String = ?
+                    sourceTag as (
+                        select ? as value
                     ),
                     addr as (
                         select ? as value
@@ -272,29 +264,30 @@ namespace PocketDb
                     loc as (
                         select ? as value
                     )
-                    select
+                    select distinct
                         (select r.String from Registry r where r.RowId = to2.RowId)
                     from
-                        offer,
+                        sourceTag,
                         addr,
                         price,
                         loc
 
                     -- Source offer
-                    cross join
-                        BarteronOffers o1 indexed by BarteronOffers_OfferId_Tag_AccountId
-                            on o1.OfferId = offer.value
-                    cross join
-                        BarteronOfferTags t1 -- autoindex OfferId_Tag
-                            on t1.OfferId = o1.OfferId
+                    -- cross join
+                    --     BarteronOffers o1 indexed by BarteronOffers_OfferId_Tag_AccountId
+                    --         on o1.OfferId = offer.value
+                    -- cross join
+                    --     BarteronOfferTags t1 -- autoindex OfferId_Tag
+                    --         on t1.OfferId = o1.OfferId
 
                     -- Offer potencial for deal
                     cross join
                         BarteronOffers o2 -- autoindex Tag_OfferId_AccountId
-                            on o2.Tag = t1.Tag and o2.OfferId != t1.OfferId and o2.AccountId != o1.AccountId
+                            on (? or o2.Tag in ( )sql" + join(vector<string>(args.TargetTags.size(), "?"), ",") + R"sql( )) -- TODO (losty): shouldn't belong to user that asks for deals -- and o2.OfferId != t1.OfferId and o2.AccountId != o1.AccountId
                     cross join
-                        BarteronOfferTags t2 -- autoindex OfferId_Tag
-                            on t2.OfferId = o2.OfferId and t2.Tag = o1.Tag
+                        BarteronOfferTags t2 on -- autoindex OfferId_Tag
+                            t2.OfferId = o2.OfferId
+                            and (? or t2.Tag = sourceTag.value)
 
                     -- Offer potencial account
                     cross join Chain cu2 indexed by Chain_Uid_Height on cu2.Uid = o2.AccountId
@@ -303,29 +296,38 @@ namespace PocketDb
                     cross join Registry ru2 on ru2.RowId = u2.RegId1
 
                     -- Filter found deals by another conditions
-                    cross join Chain c1 on c1.Uid = o1.OfferId
-                    cross join Last l1 on l1.TxId = c1.TxId
-                    cross join Payload p1 on p1.TxId = l1.TxId
+                    -- cross join Chain c1 on c1.Uid = o1.OfferId
+                    -- cross join Last l1 on l1.TxId = c1.TxId
+                    -- cross join Payload p1 on p1.TxId = l1.TxId
                     cross join Chain co2 on co2.Uid = o2.OfferId
                     cross join Transactions to2 on to2.RowId = co2.TxId
                     cross join Last lo2 on lo2.TxId = co2.TxId
                     cross join Payload po2 on po2.TxId = lo2.TxId
 
                     where
-                        ( ? or abs(po2.Int1 - p1.Int1) < price.value ) and
-                        ( ? or substr(po2.String6, 1, loc.value) like substr(p1.String6, 1, loc.value) ) and
-                        ( ? or ru2.String = addr.value )
+                        ( ? or po2.Int1 < price.value ) and
+                        -- ( ? or substr(po2.String6, 1, loc.value) like substr(p1.String6, 1, loc.value) ) and -- TODO (losty): what to do with this?
+                        ( ? or ru2.String = addr.value ) and
+                        cu2.Height <= ?
 
-                    limit 5 -- todo add pagination ?
+                    order by
+                        )sql" + _orderBy + R"sql(
+                    limit ? offset ?
                 )sql")
                 .Bind(
-                    args.Offer,
+                    args.SourceTag.value_or(-1),
                     args.Address,
                     args.Price,
                     args.Location,
+                    args.TargetTags.empty(),
+                    args.TargetTags,
+                    !args.SourceTag.has_value(),
                     (args.Price < 0),
-                    (args.Location < 0),
-                    (args.Address.empty())
+                    // (args.Location < 0),
+                    (args.Address.empty()),
+                    args.Page.TopHeight,
+                    args.Page.PageSize,
+                    args.Page.PageStart * args.Page.PageSize
                 );
             },
             [&] (Stmt& stmt) {

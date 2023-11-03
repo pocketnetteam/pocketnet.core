@@ -29,7 +29,8 @@ namespace PocketDb
     struct BarteronOffersDealDto
     {
         Pagination Page;
-        string Offer = "";
+        optional<int> SourceTag;
+        vector<int> TargetTags;
         string Address = "";
         int Location = -1;
         int Price = -1;
