@@ -6,7 +6,7 @@
     <style>
         body {
             font-family: 'Roboto', sans-serif;
-            padding: 15px;
+            margin: 0px;
             background-color: #fff;
         }
         table {
@@ -16,7 +16,9 @@
             border-collapse: collapse;
         }
         header {
-            margin-bottom: 2.3em;
+            margin: auto;
+            width: 800px;
+            padding: 1.5em;
         }
         tr:hover td {
             background-color: #a2d6ff;
@@ -65,6 +67,38 @@
     </div>
     
     <script>
+
+        // ------------------------------------
+        
+        function isObject(object) {
+            return object != null && typeof object === 'object';
+        }
+        
+        function deepEqual(object1, object2) {
+            if (!isObject(object1) || !isObject(object2))
+                return false;
+            
+            const keys1 = Object.keys(object1);
+            const keys2 = Object.keys(object2);
+        
+            if (keys1.length !== keys2.length) {
+                return false;
+            }
+        
+            for (const key of keys1) {
+                const val1 = object1[key];
+                const val2 = object2[key];
+                const areObjects = isObject(val1) && isObject(val2);
+                if (areObjects && !deepEqual(val1, val2) || !areObjects && val1 !== val2) {
+                    return false;
+                }
+            }
+        
+            return true;
+        }
+
+        // ------------------------------------
+
         var updateCounter = 0;
         
         setInterval(function() {
@@ -72,12 +106,94 @@
             updateCounter++;
         }, 1000);
 
+        // ------------------------------------
+
+        var sqlBench = {}
+
         var box = document.getElementById('monitoringTablesBox');
 
         var cleanBox = function() {
             document.querySelectorAll('.monitoringTable').forEach(function(t) {
                 t.remove();
             });
+        }
+
+        var drawTable = function(section, colSpan=2) {
+            // New table
+            let table = document.createElement("table");
+            table.classList.add('monitoringTable')
+            box.appendChild(table)
+
+            // Header
+            let row = table.insertRow(-1);
+            let cellHead = row.insertCell(-1);
+            cellHead.innerText = section;
+            cellHead.classList.add('tHead');
+            cellHead.colSpan = colSpan;
+
+            return table
+        }
+
+        var drawRowHeader = function(row, text, odd) {
+            let cellKey = row.insertCell(-1);
+            cellKey.innerText = text;
+            cellKey.classList.add('tKey');
+            cellKey.classList.add(odd ? 'tOdd' : 'tEgg');
+        }
+
+        var drawRowCell = function(row, text, odd) {
+            let cellValue = row.insertCell(-1);
+            cellValue.innerText = text;
+            cellValue.classList.add('tValue');
+            cellValue.classList.add(odd ? 'tOdd' : 'tEgg');
+        }
+
+        var lastSqlBenchData;
+        var drawSQLBench = function(data) {
+            if (!deepEqual(lastSqlBenchData, data)) {
+                lastSqlBenchData = data;
+                
+                for (let key in lastSqlBenchData) {
+                    let vals = data[key].split(' / ');
+    
+                    if (!sqlBench[key]) {
+                        sqlBench[key] = {
+                            'avg': 0,
+                            'sum': 0,
+                            'cnt': 0,
+                        };
+                    }
+    
+                    sqlBench[key]['sum'] += Number(vals[1].replace('ms', ''))
+                    sqlBench[key]['cnt'] += Number(vals[2])
+                    sqlBench[key]['avg'] += sqlBench[key]['sum'] / sqlBench[key]['cnt']
+                }
+            }
+
+            let _sqlBench = [];
+            for (let key in sqlBench) {
+                _sqlBench.push({
+                    'key': key,
+                    'data': sqlBench[key]
+                });
+            }
+            _sqlBench.sort((a, b) => b.data.sum - a.data.sum);
+
+            // Table & Header
+            let table = drawTable('SQLBench', 5);
+
+            // Rows
+            let odd = true;
+            for (let r in _sqlBench) {
+                let row = table.insertRow(-1);
+                row.classList.add('tRowSql');
+
+                drawRowHeader(row, _sqlBench[r].key, odd, 5);
+                drawRowCell(row, _sqlBench[r].data['avg'].toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 }), odd);
+                drawRowCell(row, _sqlBench[r].data['sum'].toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 }), odd);
+                drawRowCell(row, _sqlBench[r].data['cnt'].toLocaleString(undefined, { maximumFractionDigits: 0 }), odd);
+                odd = !odd;
+            }
         }
         
         var update = function() {
@@ -105,53 +221,21 @@
                     if (section == 'RPC')
                         continue;
 
-                    // New table
-                    let table = document.createElement("table");
-                    table.classList.add('monitoringTable')
-                    box.appendChild(table)
+                    if (section == 'SQLBench') {
+                        drawSQLBench(json.result[section]);
+                        continue;
+                    }
 
-                    // Header
-                    let row = table.insertRow(-1);
-                    let cellHead = row.insertCell(-1);
-                    cellHead.innerText = section;
-                    cellHead.classList.add('tHead');
-                    cellHead.colSpan = 2;
-
-                    if (section == 'SQLBench')
-                        cellHead.colSpan = 5;
+                    // Table & Header
+                    let table = drawTable(section);                    
 
                     // Rows
-                    let i = 0
-                    let sectionVals = json.result[section]
-                    for (let key in sectionVals) {
+                    let odd = true;
+                    for (let key in json.result[section]) {
                         let row = table.insertRow(-1);
-
-                        // Row header
-                        let cellKey = row.insertCell(-1);
-                        cellKey.innerText = key;
-                        cellKey.classList.add('tKey');
-                        cellKey.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
-
-                        // Row
-                        if (section == 'SQLBench') {
-                            // For SQLBench need more columns
-                            let vals = sectionVals[key].split(' / ');
-                            for (let val in vals) {
-                                let cellValue = row.insertCell(-1);
-                                cellValue.innerText = vals[val];
-                                cellValue.classList.add('tValue');
-                                cellValue.classList.add('tValueSql');
-                                cellValue.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
-                            }
-                        } else {
-                            // Simple row
-                            let cellValue = row.insertCell(-1);
-                            cellValue.innerText = sectionVals[key];
-                            cellValue.classList.add('tValue');
-                            cellValue.classList.add(i % 2 == 0 ? 'tOdd' : 'tEgg');
-                        }
-
-                        i += 1;
+                        drawRowHeader(row, key, odd);
+                        drawRowCell(row, json.result[section][key], odd);
+                        odd = !odd;
                     }
                 }
             })
@@ -162,7 +246,7 @@
                 errSpan.innerText = 'Error fetching data from API';
             });
         }
-        // setInterval(update, 15000);
+        setInterval(update, 15000);
         update()
     </script>
 </body>
