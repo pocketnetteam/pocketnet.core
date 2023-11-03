@@ -218,21 +218,46 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual ConsensusValidateResult ValidateBlocking(const string& contentAddress, const CollectionRef& ptx)
+    };
+
+    // Fix general validating
+    class CollectionConsensus_checkpoint_tmp_fix : public CollectionConsensus
+    {
+    public:
+        CollectionConsensus_checkpoint_tmp_fix() : CollectionConsensus() {}
+
+        tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const CollectionRef& ptx, const PocketBlockRef& block) override
         {
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+
+            if(auto[contentIdsOk, contentIds] = ptx->GetContentIdsVector(); contentIdsOk)
+            {
+                // Check count of content ids
+                if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
+                   return {false, ConsensusResult_Failed};
+            }
+            else
+            {
+                return {false, ConsensusResult_Failed};
+            }
+
+            if (ptx->IsEdit())
+                return ValidateEdit(ptx);
+
             return Success;
         }
     };
 
 
-    // ----------------------------------------------------------------------------------------------
-    // Factory for select actual rules version
     class CollectionConsensusFactory : public BaseConsensusFactory<CollectionConsensus>
     {
     public:
         CollectionConsensusFactory()
         {
             Checkpoint({ 2162400, 1531000, 0, make_shared<CollectionConsensus>() });
+            Checkpoint({ 2552000, 2280000, 0, make_shared<CollectionConsensus_checkpoint_tmp_fix>() });
         }
     };
 

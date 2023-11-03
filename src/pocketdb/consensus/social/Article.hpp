@@ -14,9 +14,6 @@ namespace PocketConsensus
     typedef shared_ptr<Article> ArticleRef;
     typedef shared_ptr<Content> ContentRef;
 
-    /*******************************************************************************************************************
-    *  Article consensus base class
-    *******************************************************************************************************************/
     class ArticleConsensus : public SocialConsensus<Article>
     {
     public:
@@ -208,15 +205,33 @@ namespace PocketConsensus
         }
     };
     
+    // Fix general validating
+    class ArticleConsensus_checkpoint_tmp_fix : public ArticleConsensus
+    {
+    public:
+        ArticleConsensus_checkpoint_tmp_fix() : ArticleConsensus() {}
+        
+        tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const ArticleRef& ptx, const PocketBlockRef& block) override
+        {
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                return {false, baseValidateCode};
 
-    // ----------------------------------------------------------------------------------------------
-    // Factory for select actual rules version
+            if (ptx->IsEdit())
+                return ValidateEdit(ptx);
+
+            return Success;
+        }
+    };
+
+
     class ArticleConsensusFactory : public BaseConsensusFactory<ArticleConsensus>
     {
     public:
         ArticleConsensusFactory()
         {
-            Checkpoint({ 0, 0, 0, make_shared<ArticleConsensus>() });
+            Checkpoint({       0,       0, -1, make_shared<ArticleConsensus>() });
+            Checkpoint({ 2552000, 2280000,  0, make_shared<ArticleConsensus_checkpoint_tmp_fix>() });
         }
     };
 

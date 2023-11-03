@@ -213,14 +213,32 @@ namespace PocketConsensus
         }
     };
 
-    // ----------------------------------------------------------------------------------------------
-    // Factory for select actual rules version
+    // Fix general validating
+    class VideoConsensus_checkpoint_tmp_fix : public VideoConsensus
+    {
+    public:
+        VideoConsensus_checkpoint_tmp_fix() : VideoConsensus() {}
+        
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const VideoRef& ptx, const PocketBlockRef& block) override
+        {
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+
+            if (ptx->IsEdit())
+                return ValidateEdit(ptx);
+
+            return Success;
+        }
+    };
+
     class VideoConsensusFactory : public BaseConsensusFactory<VideoConsensus>
     {
     public:
         VideoConsensusFactory()
         {
-            Checkpoint({ 0, 0, 0, make_shared<VideoConsensus>() });
+            Checkpoint({       0,       0, -1, make_shared<VideoConsensus>() });
+            Checkpoint({ 2552000, 2280000,  0, make_shared<VideoConsensus_checkpoint_tmp_fix>() });
         }
     };
 

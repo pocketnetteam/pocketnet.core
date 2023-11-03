@@ -87,7 +87,6 @@ namespace PocketConsensus
             if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
 
             // Check limits
-            // TODO (aok): remove when all consensus classes support Result
             if (block)
                 return ValidateBlock(ptx, block);
             else

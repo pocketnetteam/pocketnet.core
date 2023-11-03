@@ -12,10 +12,7 @@
 namespace PocketConsensus
 {
     typedef shared_ptr<Audio> AudioRef;
-
-    /*******************************************************************************************************************
-    *  Audio consensus base class
-    *******************************************************************************************************************/
+    
     class AudioConsensus : public SocialConsensus<Audio>
     {
     public:
@@ -210,16 +207,34 @@ namespace PocketConsensus
             return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_audio_depth);
         }
     };
+    
+    // Fix general validating
+    class AudioConsensus_checkpoint_tmp_fix : public AudioConsensus
+    {
+    public:
+        AudioConsensus_checkpoint_tmp_fix() : AudioConsensus() {}
+        
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const AudioRef& ptx, const PocketBlockRef& block) override
+        {
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+
+            if (ptx->IsEdit())
+                return ValidateEdit(ptx);
+
+            return Success;
+        }
+    };
 
 
-    // ----------------------------------------------------------------------------------------------
-    // Factory for select actual rules version
     class AudioConsensusFactory : public BaseConsensusFactory<AudioConsensus>
     {
     public:
         AudioConsensusFactory()
         {
-            Checkpoint({ 2068000, 1449600, 0, make_shared<AudioConsensus>() });
+            Checkpoint({       0,       0, -1, make_shared<AudioConsensus>() });
+            Checkpoint({ 2552000, 2280000,  0, make_shared<AudioConsensus_checkpoint_tmp_fix>() });
         }
     };
 
