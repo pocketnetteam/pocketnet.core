@@ -1053,6 +1053,7 @@ namespace PocketDb
                             select o.Value
                             from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
                             where o.TxId = t.RowId and o.AddressId = p.RegId1 and o.AddressId != t.RegId1
+                            limit 1
                         ) as Donate
 
                     from
@@ -1129,7 +1130,7 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("scoreDown", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("reputation", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("edit", value == 1);
-                        if (auto[ok, value] = cursor.TryGetColumnString(i++); ok)
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(i++); ok)
                         {
                             record.pushKV("donation", "true");
                             record.pushKV("amount", value);
@@ -1178,20 +1179,26 @@ namespace PocketDb
                     join Chain cch on cch.TxId = ch.RowId
                     where ch.Type in (204,205,206) and ch.RegId4 = c.RegId2)                as ChildrensCount,
 
-                ifnull((select scr.Int1
-                        from Transactions scr indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        join Chain cscr on cscr.TxId = scr.RowId
-                        where scr.Type = 301
-                            and scr.RegId1 = (select RowId from Registry where String = ?)
-                            and scr.RegId2 = c.RegId2),0)                                   as MyScore,
+                ifnull((
+                    select scr.Int1
+                    from Transactions scr indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Chain cscr on cscr.TxId = scr.RowId
+                    where scr.Type = 301
+                        and scr.RegId1 = (select RowId from Registry where String = ?)
+                        and scr.RegId2 = c.RegId2
+                ), 0) as MyScore,
 
                 (
-                    select o.Value
-                    from TxOutputs o
-                    where o.TxId = c.RowId
-                        and o.AddressId = cmnt.ContentAddressId
-                        and o.AddressId != c.RegId1
-                )                                                                           as Donate
+                    select
+                        o.Value
+                    from
+                        TxOutputs o
+                    where
+                        o.TxId = c.RowId and
+                        o.AddressId = cmnt.ContentAddressId and
+                        o.AddressId != c.RegId1
+                    limit 1
+                ) as Donate
 
             from (
                 select
@@ -1282,7 +1289,7 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(14); ok) record.pushKV("reputation", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt(15); ok) record.pushKV("children", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt(16); ok && !address.empty()) record.pushKV("myScore", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(17); ok)
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(17); ok)
                         {
                             record.pushKV("donation", "true");
                             record.pushKV("amount", value);
@@ -1699,19 +1706,19 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("id", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("postid", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("time", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("timeUpd", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(7); ok) record.pushKV("block", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("time", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("timeUpd", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("block", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("msg", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("parentid", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(11); ok) record.pushKV("scoreUp", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(12); ok) record.pushKV("scoreDown", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(13); ok) record.pushKV("reputation", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(14); ok && !addressHash.empty()) record.pushKV("myScore", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(15); ok) record.pushKV("children", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(11); ok) record.pushKV("scoreUp", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(12); ok) record.pushKV("scoreDown", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(13); ok) record.pushKV("reputation", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(14); ok && !addressHash.empty()) record.pushKV("myScore", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(15); ok) record.pushKV("children", value);
 
-                        if (auto[ok, value] = cursor.TryGetColumnString(16); ok)
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(16); ok)
                         {
                             record.pushKV("amount", value);
                             record.pushKV("donation", "true");
@@ -3642,7 +3649,7 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("posttxid", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(5); ok) record.pushKV("parentid", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(6); ok) record.pushKV("answerid", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(7); ok)
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok)
                         {
                             record.pushKV("donation", "true");
                             record.pushKV("amount", value);
