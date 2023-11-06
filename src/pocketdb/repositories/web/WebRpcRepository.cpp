@@ -1475,7 +1475,7 @@ namespace PocketDb
 
                         if (auto[ok, value] = cursor.TryGetColumnInt64(16); ok)
                         {
-                            record.pushKV("amount", to_string(value));
+                            record.pushKV("amount", value);
                             record.pushKV("donation", "true");
                         }
 
