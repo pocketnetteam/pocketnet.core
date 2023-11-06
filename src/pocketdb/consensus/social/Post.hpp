@@ -13,12 +13,6 @@ namespace PocketConsensus
     typedef shared_ptr<Post> PostRef;
     typedef shared_ptr<Content> ContentRef;
 
-    // TODO (aok) (v0.21.0): extract base class Content for Post, Video and ContentDelete
-    // Also split Post & Video for extract PostEdit & VideoEdit transactions with base class ContentEdit
-
-    /*******************************************************************************************************************
-    *  Post consensus base class
-    *******************************************************************************************************************/
     class PostConsensus : public SocialConsensus<Post>
     {
     public:
@@ -28,8 +22,14 @@ namespace PocketConsensus
             Limits.Set("payload_size", 60000, 60000, 60000);
         }
 
-        tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PostRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const PostRef& ptx, const PocketBlockRef& block) override
         {
+            // Base validation with calling block or mempool check
+            if (!block) {
+                if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                    return {false, baseValidateCode};
+            }
+
             // Check if this post relay another
             if (!IsEmpty(ptx->GetRelayTxHash()))
             {
@@ -58,7 +58,7 @@ namespace PocketConsensus
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
-        tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PostRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const PostRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
@@ -76,7 +76,7 @@ namespace PocketConsensus
             return mode >= AccountMode_Full ? GetConsensusLimit(ConsensusLimit_full_post) : GetConsensusLimit(ConsensusLimit_trial_post);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateBlock(const PostRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const PostRef& ptx, const PocketBlockRef& block) override
         {
             // Edit posts
             if (ptx->IsEdit())
@@ -111,7 +111,7 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
-        tuple<bool, SocialConsensusResult> ValidateMempool(const PostRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const PostRef& ptx) override
         {
             // Edit posts
             if (ptx->IsEdit())
@@ -133,7 +133,7 @@ namespace PocketConsensus
             return {*ptx->GetAddress()};
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEdit(const PostRef& ptx)
+        virtual ConsensusValidateResult ValidateEdit(const PostRef& ptx)
         {
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
@@ -164,7 +164,7 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const PostRef& ptx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const PostRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
@@ -192,7 +192,7 @@ namespace PocketConsensus
                 *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
             );
         }
-        virtual tuple<bool, SocialConsensusResult> ValidateEditBlock(const PostRef& ptx, const PocketBlockRef& block)
+        virtual ConsensusValidateResult ValidateEditBlock(const PostRef& ptx, const PocketBlockRef& block)
         {
             // Double edit in block not allowed
             for (auto& blockTx : *block)
@@ -212,7 +212,7 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-        virtual tuple<bool, SocialConsensusResult> ValidateEditMempool(const PostRef& ptx)
+        virtual ConsensusValidateResult ValidateEditMempool(const PostRef& ptx)
         {
             if (ConsensusRepoInst.CountMempoolPostEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
                 return {false, ConsensusResult_DoubleContentEdit};
@@ -220,7 +220,7 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const PostRef& ptx)
+        virtual ConsensusValidateResult ValidateEditOneLimit(const PostRef& ptx)
         {
             int count = ConsensusRepoInst.CountChainPostEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_post_edit_count))
@@ -234,9 +234,6 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1124000 block
-    *******************************************************************************************************************/
     class PostConsensus_checkpoint_1124000 : public PostConsensus
     {
     public:
@@ -248,9 +245,6 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1180000 block
-    *******************************************************************************************************************/
     class PostConsensus_checkpoint_1180000 : public PostConsensus_checkpoint_1124000
     {
     public:
@@ -295,18 +289,58 @@ namespace PocketConsensus
         }
     };
 
+    // Fix general validating
+    class PostConsensus_checkpoint_tmp_fix : public PostConsensus_checkpoint_disable_for_blocked
+    {
+    public:
+        PostConsensus_checkpoint_tmp_fix() : PostConsensus_checkpoint_disable_for_blocked() {}
+        
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const PostRef& ptx, const PocketBlockRef& block) override
+        {
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                return {false, baseValidateCode};
 
-    // ----------------------------------------------------------------------------------------------
-    // Factory for select actual rules version
+            // Check if this post relay another
+            if (!IsEmpty(ptx->GetRelayTxHash()))
+            {
+                auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(
+                    *ptx->GetRelayTxHash(),
+                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE }
+                );
+
+                if (!relayOk && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), ConsensusResult_RelayContentNotFound))
+                    return {false, ConsensusResult_RelayContentNotFound};
+
+                if (relayOk)
+                {
+                    // Repost deleted content not allowed
+                    if (*relayTx->GetType() == CONTENT_DELETE)
+                        return {false, ConsensusResult_RepostDeletedContent};
+
+                    // Check Blocking
+                    if (auto[ok, result] = ValidateBlocking(*relayTx->GetString1(), ptx); !ok)
+                        return {false, result};
+                }
+            }
+
+            if (ptx->IsEdit())
+                return ValidateEdit(ptx);
+
+            return Success;
+        }
+    };
+
     class PostConsensusFactory : public BaseConsensusFactory<PostConsensus>
     {
     public:
         PostConsensusFactory()
         {
-            Checkpoint({       0,     -1, -1, make_shared<PostConsensus>() });
-            Checkpoint({ 1124000,     -1, -1, make_shared<PostConsensus_checkpoint_1124000>() });
-            Checkpoint({ 1180000,     -1, -1, make_shared<PostConsensus_checkpoint_1180000>() });
-            Checkpoint({ 1757000, 953000,  0, make_shared<PostConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({       0,      -1, -1, make_shared<PostConsensus>() });
+            Checkpoint({ 1124000,      -1, -1, make_shared<PostConsensus_checkpoint_1124000>() });
+            Checkpoint({ 1180000,       0, -1, make_shared<PostConsensus_checkpoint_1180000>() });
+            Checkpoint({ 1757000,  953000, -1, make_shared<PostConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({ 2552000, 2280000,  0, make_shared<PostConsensus_checkpoint_tmp_fix>() });
         }
     };
 

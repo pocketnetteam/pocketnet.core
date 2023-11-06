@@ -61,7 +61,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_ARTICLE, BARTERON_OFFER, CONTENT_DELETE }))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, BARTERON_OFFER, CONTENT_DELETE }))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())
@@ -87,15 +87,38 @@ namespace PocketConsensus
         }
     };
 
+    // Include collections
+    class ContentDeleteConsensus_checkpoint_tmp_fix : public ContentDeleteConsensus
+    {
+    public:
+        ContentDeleteConsensus_checkpoint_tmp_fix() : ContentDeleteConsensus() {}
+    protected:
+        ConsensusValidateResult ValidateBlock(const ContentDeleteRef& ptx, const PocketBlockRef& block) override
+        {
+            for (auto& blockTx : *block)
+            {
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COLLECTION, BARTERON_OFFER, CONTENT_DELETE }))
+                    continue;
 
-    // ----------------------------------------------------------------------------------------------
-    // Factory for select actual rules version
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                // TODO (aok): convert to content base class
+                if (*ptx->GetRootTxHash() == *blockTx->GetString2())
+                    return {false, ConsensusResult_ContentDeleteDouble};
+            }
+
+            return Success;
+        }
+    };
+
     class ContentDeleteConsensusFactory : public BaseConsensusFactory<ContentDeleteConsensus>
     {
     public:
         ContentDeleteConsensusFactory()
         {
-            Checkpoint({ 0, 0, 0, make_shared<ContentDeleteConsensus>() });
+            Checkpoint({       0,       0, 0, make_shared<ContentDeleteConsensus>() });
+            Checkpoint({ 2552000, 2280000, 0, make_shared<ContentDeleteConsensus_checkpoint_tmp_fix>() });
         }
     };
 

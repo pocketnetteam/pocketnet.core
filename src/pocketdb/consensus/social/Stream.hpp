@@ -13,9 +13,6 @@ namespace PocketConsensus
 {
     typedef shared_ptr<Stream> StreamRef;
 
-    /*******************************************************************************************************************
-    *  Stream consensus base class
-    *******************************************************************************************************************/
     class StreamConsensus : public SocialConsensus<Stream>
     {
     public:
@@ -27,6 +24,12 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const StreamRef& ptx, const PocketBlockRef& block) override
         {
+            // Base validation with calling block or mempool check
+            if (!block) {
+                if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                    return {false, baseValidateCode};
+            }
+
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
@@ -210,15 +213,33 @@ namespace PocketConsensus
         }
     };
 
+    // Fix general validating
+    class StreamConsensus_checkpoint_tmp_fix : public StreamConsensus
+    {
+    public:
+        StreamConsensus_checkpoint_tmp_fix() : StreamConsensus() {}
+        
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const StreamRef& ptx, const PocketBlockRef& block) override
+        {
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                return {false, baseValidateCode};
 
-    // ----------------------------------------------------------------------------------------------
-    // Factory for select actual rules version
+            if (ptx->IsEdit())
+                return ValidateEdit(ptx);
+
+            return Success;
+        }
+    };
+
+
     class StreamConsensusFactory : public BaseConsensusFactory<StreamConsensus>
     {
     public:
         StreamConsensusFactory()
         {
-            Checkpoint({ 2162400, 1531000, 0, make_shared<StreamConsensus>() });
+            Checkpoint({       0,       0, -1, make_shared<StreamConsensus>() });
+            Checkpoint({ 2552000, 2280000,  0, make_shared<StreamConsensus_checkpoint_tmp_fix>() });
         }
     };
 
