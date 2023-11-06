@@ -306,8 +306,9 @@ namespace PocketDb
 
                     where
                         ( ? or po2.Int1 < price.value ) and
-                        -- ( ? or substr(po2.String6, 1, loc.value) like substr(p1.String6, 1, loc.value) ) and -- TODO (losty): what to do with this?
+                        ( ? or po2.String6 like loc.value) and -- TODO (losty): maybe use: 'substr(po2.String6, 1, loc.size()) = loc' instead if 'like' ???
                         ( ? or ru2.String = addr.value ) and
+                        ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
                         cu2.Height <= ?
 
                     order by
@@ -323,8 +324,10 @@ namespace PocketDb
                     args.TargetTags,
                     !args.SourceTag.has_value(),
                     (args.Price < 0),
-                    // (args.Location < 0),
-                    (args.Address.empty()),
+                    args.Location.empty(),
+                    args.Address.empty(),
+                    args.ExcludeAddresses.empty(),
+                    args.ExcludeAddresses,
                     args.Page.TopHeight,
                     args.Page.PageSize,
                     args.Page.PageStart * args.Page.PageSize

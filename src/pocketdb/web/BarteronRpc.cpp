@@ -224,8 +224,12 @@ namespace PocketWeb::PocketWebRpc
                 if (auto arg = _args.At("address", true); arg.isStr())
                     args.Address = arg.get_str();
 
-                if (auto arg = _args.At("location", true); arg.isNum())
-                    args.Location = arg.get_int();
+                if (auto arg = _args.At("location", true); arg.isStr())
+                    args.Location = arg.get_str();
+
+                if (auto arg = _args.At("excludeaddresses", true); arg.isArray())
+                    for (int i = 0; i < arg.size(); i++)
+                        args.ExcludeAddresses.emplace_back(arg[i].get_str());
 
                 if (auto arg = _args.At("price", true); arg.isNum())
                     args.Price = arg.get_int();

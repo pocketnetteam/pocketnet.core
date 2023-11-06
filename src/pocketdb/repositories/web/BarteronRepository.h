@@ -32,7 +32,8 @@ namespace PocketDb
         optional<int> SourceTag;
         vector<int> TargetTags;
         string Address = "";
-        int Location = -1;
+        vector<string> ExcludeAddresses;
+        string Location = "";
         int Price = -1;
     };
 
