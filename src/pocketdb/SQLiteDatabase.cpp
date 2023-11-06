@@ -10,8 +10,6 @@
 #include "validation.h"
 #include <node/ui_interface.h>
 
-// #include "pocketdb/services/Serializer.h"
-
 namespace PocketDb
 {
     static void ErrorLogCallback(void* arg, int code, const char* msg)
@@ -72,21 +70,6 @@ namespace PocketDb
 
         LogPrintf("SQLite database version: %d\n", SystemRepoInst.GetDbVersion());
 
-        // Execute migration scripts
-        if (gArgs.GetArg("-reindex", 0) == 0)
-        {
-            // TODO (aok, losty) : Change for migration 021 -> 0.22
-            // if (!MigrationRepoInst.CreateBlockingList())
-            // {
-            //     LogPrintf("SQLDB Migration: CreateBlockingList completed.\n");
-            //     StartShutdown();
-            //     return;
-            // }
-            
-            // Any necessary logic for database modification
-            // MigrationRepoInst.AddTransactionFirstField();
-        }
-
         // Open, create structure and close `web` db
         PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();
         SQLiteDatabase sqliteDbWebInst(false);
@@ -105,22 +88,31 @@ namespace PocketDb
         sqliteMainDbInst.Init(pocketPath.string(), mainDb, std::make_shared<PocketDbOldMinimalMigration>());
 
         MigrationRepository migRepo(sqliteMainDbInst);
-        if (!migRepo.NeedMigrate0_22())
-            return;
 
+        // Destroy repository and close connection with database if migration not needed
+        if (!migRepo.NeedMigrate0_22()) {
+            migRepo.Destroy();
+            sqliteMainDbInst.Close();
+            return;
+        }
+
+        // Initialize current database
         sqliteMainDbInst.CreateStructure();
 
+        // Create temporary database
         const string tmpDb = "newdb";
-
         SQLiteDatabase sqliteNewDbInst(false);
         sqliteNewDbInst.Init(pocketPath.string(), tmpDb, std::make_shared<PocketDbMainMigration>(), true);
         sqliteNewDbInst.CreateStructure(false);
         sqliteNewDbInst.Close();
 
+        // Attach temporary database for migration
         sqliteMainDbInst.AttachDatabase(tmpDb);
 
+        // Migration process
         migRepo.Migrate0_21__0_22();
 
+        // Destroy repository and close connection with database
         migRepo.Destroy();
         sqliteMainDbInst.DetachDatabase(tmpDb);
         sqliteMainDbInst.Close();
