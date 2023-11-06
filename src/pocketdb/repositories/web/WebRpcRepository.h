@@ -128,12 +128,12 @@ namespace PocketDb
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
 
         UniValue GetTopFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-        const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+        const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
         int badReputationLimit);
 
         UniValue GetMostCommentedFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-        const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+        const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
         int badReputationLimit);
         
@@ -142,21 +142,21 @@ namespace PocketDb
             const vector<string>& tagsExcluded, const string& address, const string& orderby, const string& ascdesc);
         
         UniValue GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, const vector<string>& addresses_extended);
 
         UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
             int badReputationLimit);
 
         UniValue GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
             int badReputationLimit);
 
         UniValue GetBoostFeed(int topHeight, const string& lang,
-            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
             int badReputationLimit);
 

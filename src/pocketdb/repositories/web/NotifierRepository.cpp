@@ -510,6 +510,7 @@ namespace PocketDb
                                 o.AddressId = content.RegId1 and
                                 o.TxId = comment.RowId and
                                 o.AddressId != comment.RegId1
+                            limit 1
                         ) as Donate
                     from
                         tx
@@ -540,7 +541,7 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(5); ok) result.pushKV("answerAddress", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(6); ok) result.pushKV("commentName", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(7); ok) result.pushKV("commentAvatar", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(8); ok)
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(8); ok)
                         {
                             result.pushKV("donation", "true");
                             result.pushKV("amount", value);

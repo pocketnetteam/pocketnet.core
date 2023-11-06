@@ -364,7 +364,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     if (response.exists("donation"))
                     {
                         cFields.emplace("donation", "true");
-                        cFields.emplace("amount", response["amount"].get_str());
+                        cFields.emplace("amount", response["amount"].get_int64());
                     }
 
                     PrepareWSMessage(messages, "event", response["postAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);

@@ -29,7 +29,6 @@ namespace PocketDb
         UniValue SearchTags(const SearchRequest& request);
         vector<int64_t> SearchIds(const SearchRequest& request);
 
-        vector<int64_t> SearchUsersOld(const SearchRequest& request);
         vector<int64_t> SearchUsers(const string& keyword);
 
         vector<string> GetRecommendedAccountByAddressSubscriptions(const string& address, string& addressExclude, const vector<int>& contentTypes, const string& lang, int cntOut, int nHeight, int depth = 129600 /* about 3 month */);

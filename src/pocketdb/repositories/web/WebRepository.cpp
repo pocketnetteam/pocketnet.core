@@ -51,49 +51,55 @@ namespace PocketDb
         vector<WebTag> result;
 
         string sql = R"sql(
-            select distinct
-                c.Uid,
+            with
+                height as ( select ? as value )
+            select
+                distinct
+                p.RowId,
                 pp.String1,
                 json_each.value
-
-            from Transactions p
-
-            join Payload pp on
-                pp.TxId = p.RowId
-
-            join json_each(pp.String4)
-
-            join Chain c on
-                c.TxId = p.RowId and
-                c.Height = ?
-
-            join Last l on
-                l.TxId = p.RowId
-
-            where
-                p.Type in (200, 201, 202, 209, 210)
+            from
+                height
+            cross join
+                Chain c on
+                    c.Height = height.value
+            cross join
+                Transactions p on
+                    p.RowId = c.TxId and
+                    p.Type in (200, 201, 202, 209, 210)
+            cross join
+                Last l on
+                    l.TxId = p.RowId
+            cross join
+                Payload pp on
+                    pp.TxId = p.RowId
+            cross join
+                json_each(pp.String4)
         )sql";
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(sql)
-            .Bind(height)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    auto[okId, id] = cursor.TryGetColumnInt64(0);
-                    if (!okId) continue;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql).Bind(height);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[okId, id] = cursor.TryGetColumnInt64(0);
+                        if (!okId) continue;
 
-                    auto[okLang, lang] = cursor.TryGetColumnString(1);
-                    if (!okLang) continue;
+                        auto[okLang, lang] = cursor.TryGetColumnString(1);
+                        if (!okLang) continue;
 
-                    auto[okValue, value] = cursor.TryGetColumnString(2);
-                    if (!okValue) continue;
+                        auto[okValue, value] = cursor.TryGetColumnString(2);
+                        if (!okValue) continue;
 
-                    result.emplace_back(WebTag(id, lang, value));
-                }
-            });
-        });
+                        result.emplace_back(WebTag(id, lang, value));
+                    }
+                });
+            }
+        );
 
         return result;
     }
@@ -178,6 +184,8 @@ namespace PocketDb
         vector<WebContent> result;
 
         string sql = R"sql(
+            with
+                height as ( select ? as value )
             select
                 t.Type,
                 c.Uid,
@@ -188,88 +196,91 @@ namespace PocketDb
                 p.String5,
                 p.String6,
                 p.String7
-
-            from Transactions t
-
-            join Chain c on
-                c.TxId = t.RowId and
-                c.Height = ?
-
-            join Payload p on
-                p.TxId = t.RowId
-
-            where
-                t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
-       )sql";
+            from
+                height
+            cross join
+                Chain c on
+                    c.Height = height.value
+            cross join
+                Transactions t on
+                    t.RowId = c.TxId and
+                    t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
+            cross join
+                Payload p on
+                    p.TxId = t.RowId
+        )sql";
        
-       SqlTransaction(__func__, [&]()
-       {
-           Sql(sql)
-           .Bind(height)
-           .Select([&](Cursor& cursor) {
-                while (cursor.Step())
-                {
-                    auto[okType, type] = cursor.TryGetColumnInt(0);
-                    auto[okId, id] = cursor.TryGetColumnInt64(1);
-                    if (!okType || !okId)
-                        continue;
-
-                    switch ((TxType)type)
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql).Bind(height);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
                     {
-                    case ACCOUNT_USER:
+                        auto[okType, type] = cursor.TryGetColumnInt(0);
+                        auto[okId, id] = cursor.TryGetColumnInt64(1);
+                        if (!okType || !okId)
+                            continue;
 
-                        if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
+                        switch ((TxType)type)
+                        {
+                        case ACCOUNT_USER:
 
-                        if (auto[ok, string4] = cursor.TryGetColumnString(5); ok)    
-                            result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
+                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
 
-                        // if (auto[ok, string5] = cursor.TryGetColumnString(6); ok)
-                        //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
+                            if (auto[ok, string4] = cursor.TryGetColumnString(5); ok)    
+                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
 
-                        break;
-                    case CONTENT_POST:
+                            // if (auto[ok, string5] = cursor.TryGetColumnString(6); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
 
-                        if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
+                            break;
+                        case CONTENT_POST:
+
+                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
+                            
+                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
+
+                            // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
+
+                            break;
+                        case CONTENT_VIDEO:
+
+                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
+
+                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
+
+                            // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
+
+                            break;
                         
-                        if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
+                        // TODO (aok): parse JSON for indexing
+                        // case CONTENT_ARTICLE:
 
-                        // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
-                        //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
+                        // case CONTENT_COMMENT:
+                        // case CONTENT_COMMENT_EDIT:
 
-                        break;
-                    case CONTENT_VIDEO:
+                            // TODO (aok): implement extract message from JSON
+                            // if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 
-                        if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
-
-                        if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                            result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
-
-                        // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
-                        //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
-
-                        break;
-                    
-                    // TODO (aok): parse JSON for indexing
-                    // case CONTENT_ARTICLE:
-
-                    // case CONTENT_COMMENT:
-                    // case CONTENT_COMMENT_EDIT:
-
-                        // TODO (aok): implement extract message from JSON
-                        // if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
-                        //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
-
-                        // break;
-                    default:
-                        break;
+                            // break;
+                        default:
+                            break;
+                        }
                     }
-                }
-           });
-       });
+                });
+            }
+        );
 
         return result;
     }
@@ -517,8 +528,6 @@ namespace PocketDb
 
     void WebRepository::CollectAccountStatistic()
     {
-        int64_t nTime2 = GetTimeMicros();
-
         // PostsCount
         SqlTransaction(__func__, [&]()
         {
@@ -551,9 +560,6 @@ namespace PocketDb
             )sql").Run();
         });
 
-        int64_t nTime3 = GetTimeMicros();
-        LogPrintf("CollectAccountStatistic: PostsCount %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
-
         // DelCount
         SqlTransaction(__func__, [&]()
         {
@@ -585,9 +591,6 @@ namespace PocketDb
                     t.RegId1
             )sql").Run();
         });
-
-        int64_t nTime4 = GetTimeMicros();
-        LogPrintf("CollectAccountStatistic: DelCount %.2fms\n", 0.001 * (double)(nTime4 - nTime3));
 
         // SubscribesCount
         SqlTransaction(__func__, [&]()
@@ -627,9 +630,6 @@ namespace PocketDb
             )sql").Run();
         });
 
-        int64_t nTime5 = GetTimeMicros();
-        LogPrintf("CollectAccountStatistic: SubscribesCount %.2fms\n", 0.001 * (double)(nTime5 - nTime4));
-            
         // SubscribersCount
         SqlTransaction(__func__, [&]()
         {
@@ -667,9 +667,6 @@ namespace PocketDb
                     t.RegId1
             )sql").Run();
         });
-
-        int64_t nTime6 = GetTimeMicros();
-        LogPrintf("CollectAccountStatistic: SubscribersCount %.2fms\n", 0.001 * (double)(nTime6 - nTime5));
 
         // FlagsJson
         SqlTransaction(__func__, [&]()
@@ -711,10 +708,6 @@ namespace PocketDb
             )sql").Run();
         });
 
-        int64_t nTime7 = GetTimeMicros();
-        LogPrintf("CollectAccountStatistic: FlagsJson %.2fms\n", 0.001 * (double)(nTime7 - nTime6));
-
-        // TODO - need optimization or remove this parameter
         // FirstFlagsCount
         SqlTransaction(__func__, [&]()
         {
@@ -771,9 +764,6 @@ namespace PocketDb
             )sql").Run();
         });
 
-        int64_t nTime8 = GetTimeMicros();
-        LogPrintf("CollectAccountStatistic: FirstFlagsCount %.2fms\n", 0.001 * (double)(nTime8 - nTime7));
-
         // ActionsCount
         SqlTransaction(__func__, [&]()
         {
@@ -795,9 +785,6 @@ namespace PocketDb
                     t.RegId1
             )sql").Run();
         });
-
-        int64_t nTime9 = GetTimeMicros();
-        LogPrintf("CollectAccountStatistic: ActionsCount %.2fms\n", 0.001 * (double)(nTime9 - nTime8));
 
         // Last 5 Contents
         SqlTransaction(__func__, [&]()
@@ -845,9 +832,6 @@ namespace PocketDb
                     t.Type in (100)
             )sql").Run();
         });
-
-        int64_t nTime10 = GetTimeMicros();
-        LogPrintf("CollectAccountStatistic: Last 5 Contents %.2fms\n", 0.001 * (double)(nTime10 - nTime9));
     }
 
 }

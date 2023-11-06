@@ -152,7 +152,7 @@ namespace PocketWeb::PocketWebRpc
             };
 
             // Search
-            auto ids = request.DbConnection()->SearchRepoInst->SearchUsersOld(searchRequest);
+            auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest.Keyword);
             
             // Get accounts data
             auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
@@ -324,129 +324,139 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetRecommendedContentByAddress()
     {
-        return RPCHelpMan{"GetRecommendedContentByAddress",
-                          "\n\n", // TODO (rpc): provide description
-                          {
-                                  // TODO (rpc): args
-                          },
-                          {
-                                  // TODO (rpc): provide return description
-                          },
-                          RPCExamples{
-                                  // TODO (team): examples
-                                  HelpExampleCli("GetRecommendedContentByAddress", "") +
-                                  HelpExampleRpc("GetRecommendedContentByAddress", "")
-                          },
-    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-    {
-        // if (request.fHelp)
-        //     throw runtime_error(
-        //         "getrecommendedcontentbyaddress \"address\", \"addressExclude\", \"contenttypes\", \"lang\", count\n"
-        //         "\nContents recommendations by content address.\n"
-        //         "\nArguments:\n"
-        //         "1. \"address\" (string) Address for recommendations\n"
-        //         "2. \"addressExclude\" (string, optional) Address for exclude from recommendations\n"
-        //         "3. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/videos/articles\n"
-        //         "3. \"lang\" (string, optional) Language for recommendations\n"
-        //         "4. \"countRec\" (int, optional) Number of recommendations records. Default 15\n"
-        //         "5. \"countOthers\" (int, optional) Number of other contents from address. Default equal countRec\n"
-        //         "6. \"countSubs\" (int, optional) Number of contents from address subscriptions. Default equal countRec\n"
-        //     );
+        return RPCHelpMan{
+            "getrecommendedcontentbyaddress",
+            "\n\n", // TODO (rpc): provide description
+            {
+                // TODO (rpc): args
+            },
+            {
+                // TODO (rpc): provide return description
+            },
+            RPCExamples{
+                // TODO (team): examples
+                HelpExampleCli("GetRecommendedContentByAddress", "") +
+                HelpExampleRpc("GetRecommendedContentByAddress", "")
+            },
+            [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+            {
+                // if (request.fHelp)
+                //     throw runtime_error(
+                //         "getrecommendedcontentbyaddress \"address\", \"addressExclude\", \"contenttypes\", \"lang\", count\n"
+                //         "\nContents recommendations by content address.\n"
+                //         "\nArguments:\n"
+                //         "0. \"address\" (string) Address for recommendations\n"
+                //         "1. \"addressExclude\" (string, optional) Address for exclude from recommendations\n"
+                //         "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/videos/articles\n"
+                //         "3. \"lang\" (string, optional) Language for recommendations\n"
+                //         "4. \"countRec\" (int, optional) Number of recommendations records. Default 15\n"
+                //         "5. \"countOthers\" (int, optional) Number of other contents from address. Default equal countRec\n"
+                //         "6. \"countSubs\" (int, optional) Number of contents from address subscriptions. Default equal countRec\n"
+                //         "7. \"depth\" (int, optional) Number of blocks search\n"
+                //     );
 
-        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-        string address = "";
-        if (request.params.size() > 0 && request.params[0].isStr()) {
-            address = request.params[0].get_str();
+                RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+                string address = "";
+                if (request.params.size() > 0 && request.params[0].isStr()) {
+                    address = request.params[0].get_str();
 
-            if(!address.empty()) {
-                CTxDestination dest = DecodeDestination(address);
-                if (!IsValidDestination(dest))
-                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + address);
-            }
-        }
+                    if(!address.empty()) {
+                        CTxDestination dest = DecodeDestination(address);
+                        if (!IsValidDestination(dest))
+                            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + address);
+                    }
+                }
 
-        string addressExclude = "";
-        if (request.params.size() > 1 && request.params[1].isStr()) {
-            addressExclude = request.params[1].get_str();
+                string addressExclude = "";
+                if (request.params.size() > 1 && request.params[1].isStr()) {
+                    addressExclude = request.params[1].get_str();
 
-            if(!addressExclude.empty()) {
-                CTxDestination dest = DecodeDestination(addressExclude);
-                if (!IsValidDestination(dest))
-                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + addressExclude);
-            }
-        }
+                    if(!addressExclude.empty()) {
+                        CTxDestination dest = DecodeDestination(addressExclude);
+                        if (!IsValidDestination(dest))
+                            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid address: ") + addressExclude);
+                    }
+                }
 
-        vector<int> contentTypes{ 200,201,202,209,210,220 };
-        if(request.params.size()>2)
-            ParseRequestContentTypes(request.params[2], contentTypes);
+                vector<int> contentTypes{ 200,201,202,209,210,220 };
+                if(request.params.size()>2)
+                    ParseRequestContentTypes(request.params[2], contentTypes);
 
-        string lang = "en";
-        if (request.params.size() > 3 && request.params[3].isStr())
-            lang = request.params[3].get_str();
+                string lang = "en";
+                if (request.params.size() > 3 && request.params[3].isStr())
+                    lang = request.params[3].get_str();
 
-        int cntRec = 15;
-        if (request.params.size() > 4 && request.params[4].isNum())
-            cntRec = request.params[4].get_int();
-        cntRec = std::min(cntRec, 30);
+                int cntRec = 15;
+                if (request.params.size() > 4 && request.params[4].isNum())
+                    cntRec = request.params[4].get_int();
+                cntRec = std::min(cntRec, 30);
 
-        int cntOthers = cntRec;
-        if (request.params.size() > 5 && request.params[5].isNum())
-            cntOthers = request.params[5].get_int();
-        cntOthers = std::min(cntOthers, 30);
+                int cntOthers = cntRec;
+                if (request.params.size() > 5 && request.params[5].isNum())
+                    cntOthers = request.params[5].get_int();
+                cntOthers = std::min(cntOthers, 30);
 
-        int cntSubs = cntRec;
-        if (request.params.size() > 6 && request.params[6].isNum())
-            cntSubs = request.params[6].get_int();
-        cntSubs = std::min(cntSubs, 30);
+                int cntSubs = cntRec;
+                if (request.params.size() > 6 && request.params[6].isNum())
+                    cntSubs = request.params[6].get_int();
+                cntSubs = std::min(cntSubs, 30);
 
-        int nHeight = ChainActive().Height();
-        // if (request.params.size() > 5 && request.params[5].isNum() && request.params[5].get_int() > 0)
-        //     nHeight = request.params[5].get_int();
+                int nHeight = ChainActive().Height();
+                // if (request.params.size() > 5 && request.params[5].isNum() && request.params[5].get_int() > 0)
+                //     nHeight = request.params[5].get_int();
 
-        int depth = (60 * 24 * 30 * 3); //about 3 month as default
-        if (request.params.size() > 7 && request.params[7].isNum())
-            depth = request.params[7].get_int();
-        depth = std::min(depth, (60 * 24 * 30 * 3)); // not greater than about 3 month
+                int depth = (60 * 24 * 30 * 3); //about 3 month as default
+                if (request.params.size() > 7 && request.params[7].isNum())
+                    depth = request.params[7].get_int();
+                depth = std::min(depth, (60 * 24 * 30 * 3)); // not greater than about 3 month
 
-        UniValue resultContent(UniValue::VARR);
-        auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntRec, nHeight, depth);
-        if (!ids.empty())
-        {
-            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
-            resultContent.push_backV(contents);
-        }
+                UniValue resultContent(UniValue::VARR);
+                auto ids = request.DbConnection()->SearchRepoInst->GetRecommendedContentByAddressSubscriptions(address, addressExclude, contentTypes, lang, cntRec, nHeight, depth);
+                // if (!ids.empty())
+                // {
+                //     auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
+                //     resultContent.push_backV(contents);
+                // }
 
-        if (cntOthers > 0) {
-            ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOthers);
-            if (!ids.empty()) {
-                auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
-                resultContent.push_backV(contents);
-            }
-        }
+                if (cntOthers > 0) {
+                    auto _ids = request.DbConnection()->SearchRepoInst->GetRandomContentByAddress(address, contentTypes, lang, cntOthers);
+                    ids.insert(std::end(ids), std::begin(_ids), std::end(_ids));
+                    // if (!ids.empty()) {
+                    //     auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
+                    //     resultContent.push_backV(contents);
+                    // }
+                }
 
-        if (cntSubs > 0) {
-            ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, false);
-            if (!ids.empty()) {
-                auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
-                resultContent.push_backV(contents);
-            }
+                if (cntSubs > 0) {
+                    auto _ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, false);
+                    ids.insert(std::end(ids), std::begin(_ids), std::end(_ids));
+                    // if (!ids.empty()) {
+                    //     auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
+                    //     resultContent.push_backV(contents);
+                    // }
 
-            if (ids.size() < cntSubs) {
-                int restCntSubs = cntSubs - ids.size();
-                ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, true);
+                    if ((int)_ids.size() < cntSubs) {
+                        int restCntSubs = cntSubs - _ids.size();
+                        auto __ids = request.DbConnection()->SearchRepoInst->GetContentFromAddressSubscriptions(address, contentTypes, lang, cntSubs, true);
+                        if (!__ids.empty()) {
+                            restCntSubs = std::min(restCntSubs, static_cast<int>(__ids.size()));
+                            __ids = {__ids.begin(), __ids.begin() + restCntSubs};
+                            ids.insert(std::end(ids), std::begin(__ids), std::end(__ids));
+                            // auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
+                            // resultContent.push_backV(contents);
+                        }
+                    }
+                }
+
                 if (!ids.empty()) {
-                    restCntSubs = std::min(restCntSubs, static_cast<int>(ids.size()));
-                    ids = {ids.begin(), ids.begin() + restCntSubs};
                     auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
                     resultContent.push_backV(contents);
                 }
-            }
-        }
 
-        UniValue result(UniValue::VOBJ);
-        result.pushKV("contents", resultContent);
-        return result;
-    },
+                UniValue result(UniValue::VOBJ);
+                result.pushKV("contents", resultContent);
+                return result;
+            },
         };
     }
 

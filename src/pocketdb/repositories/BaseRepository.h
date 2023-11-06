@@ -99,7 +99,7 @@ namespace PocketDb
                 // Prepare transaction binds
                 auto& stmt = prepare();
 
-                if (logForce)
+                if (logForce || gArgs.GetChainName() == CBaseChainParams::REGTEST)
                     LogPrintf("Debug logging sql query for `%s`:\n%s\n", func, stmt.Log());
 
                 // We are running SQL logic with timeout only for read-only connections

@@ -46,7 +46,7 @@ namespace PocketDb
         if (request.Keyword.empty())
             return ids;
 
-        string _keyword = "\"" + request.Keyword + "\"" + " or " + request.Keyword + "*";
+        string _keyword = "\"" + request.Keyword + "\"" + " OR " + request.Keyword + "*";
 
         SqlTransaction(
             __func__,
@@ -118,68 +118,6 @@ namespace PocketDb
         );
 
         return ids;
-    }
-
-    // TODO (aok, api): implement ?
-    vector<int64_t> SearchRepository::SearchUsersOld(const SearchRequest& request)
-    {
-        vector<int64_t> result;
-
-        string heightWhere = request.TopBlock > 0 ? " and t.Height <= ? " : "";
-        string keyword = "\"" + request.Keyword + "\"" + " OR " + request.Keyword + "*";
-
-        string sql = R"sql(
-            select
-                t.Id
-
-            from web.Content f
-
-            join web.ContentMap fm on fm.ROWID = f.ROWID
-
-            cross join Transactions t indexed by Transactions_Last_Id_Height
-                on t.Id = fm.ContentId
-
-            cross join Payload p on p.TxHash=t.Hash
-
-            where t.Last = 1
-                and t.Type = 100
-                and t.Height is not null
-                )sql" + heightWhere + R"sql(
-                and fm.FieldType in ( )sql" + join(vector<string>(request.FieldTypes.size(), "?"), ",") + R"sql( )
-                and f.Value match ?
-        )sql";
-
-        if (request.OrderByRank)
-            sql += " order by rank, t.Id ";
-
-        sql += " limit ? ";
-        sql += " offset ? ";
-
-        SqlTransaction(
-            __func__,
-            [&]() -> Stmt& {
-                auto& stmt = Sql(sql);
-
-                if (request.TopBlock > 0)
-                    stmt.Bind(request.TopBlock);
-                stmt.Bind(request.FieldTypes);
-                stmt.Bind(keyword);
-                stmt.Bind(request.PageSize);
-                stmt.Bind(request.PageStart);
-
-                return stmt;
-            },
-            [&] (Stmt& stmt) {
-                stmt.Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                    {
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) result.push_back(value);
-                    }
-                });
-            }
-        );
-
-        return result;
     }
 
     vector<int64_t> SearchRepository::SearchUsers(const string& keyword)
@@ -557,30 +495,30 @@ namespace PocketDb
                                     random()
                                 limit ?
                             )
-
                             order by
                                 rnk
                             limit ?
                         )
                     select
-                        recomendations.Uid
+                        cContents.Uid
                     from (
                         select
+                            Contents.RowId,
                             Contents.RegId1,
-                            cContents.Uid,
                             count() as count
                         from
                             addrs
                         cross join
-                            Transactions Rates indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            Transactions Rates indexed by Transactions_Type_RegId1_Int1_Time on
                                 Rates.Type in (300) and
-                                Rates.Int1 = 5 and
-                                Rates.RegId1 = addrs.id
+                                Rates.RegId1 = addrs.id and
+                                Rates.Int1 = 5
                         cross join
                             Chain cRates indexed by Chain_TxId_Height on
                                 cRates.TxId = Rates.RowId and
                                 cRates.Height > ?
-                        cross join Transactions Contents indexed by Transactions_Type_RegId2_RegId1 on
+                        cross join
+                            Transactions Contents indexed by Transactions_Type_RegId2_RegId1 on
                                 Contents.RegId2 = Rates.RegId2 and
                                 Contents.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( ) and
                                 (? or Contents.RegId1 not in (
@@ -594,26 +532,26 @@ namespace PocketDb
                         cross join
                             Last lContents on
                                 lContents.TxId = Contents.RowId
-                        cross join
-                            Chain cContents on
-                                cContents.TxId = Contents.RowId
-                        cross join
-                            Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                u.Type in (100) and
-                                u.RegId1 = Contents.RegId1
-                        cross join
-                            Last lu on
-                                lu.TxId = u.RowId
-                        cross join
-                            Payload lang on
-                                lang.TxId = u.RowId and
-                                (? or lang.String1 = ?)
                         group by
-                            cContents.Uid
+                            Contents.RowId
                         having count() > ?
                         order by
                             count() desc
                     ) recomendations
+                    cross join
+                        Chain cContents on
+                            cContents.TxId = recomendations.RowId
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type in (100) and
+                            u.RegId1 = recomendations.RegId1
+                    cross join
+                        Last lu on
+                            lu.TxId = u.RowId
+                    cross join
+                        Payload lang on
+                            lang.TxId = u.RowId and
+                            (? or lang.String1 = ?)
                     group by
                         recomendations.RegId1
                     order by
@@ -631,9 +569,9 @@ namespace PocketDb
                     contentTypes,
                     addressExclude.empty(),
                     addressExclude,
+                    cntRates,
                     lang.empty(),
                     lang,
-                    cntRates,
                     cntOut
                 );
             },
