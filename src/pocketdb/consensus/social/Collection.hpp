@@ -241,6 +241,11 @@ namespace PocketConsensus
                 // Check count of content ids
                 if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
                    return {false, ConsensusResult_Failed};
+
+                // Contents should be exists in chain
+                int count = PocketDb::ConsensusRepoInst.GetLastContentsCount(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
+                if((size_t)count != contentIds.size())
+                    return {false, ConsensusResult_Failed};
             }
             else
             {
