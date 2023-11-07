@@ -214,15 +214,17 @@ namespace PocketWeb::PocketWebRpc
                 auto _args = request.params[0].get_obj();
                 args.Page = ParsePaginationArgs(_args);
 
-                if (auto arg = _args.At("tags", true); arg.isArray())
+                if (auto arg = _args.At("theirtags", true); arg.isArray())
                     for (int i = 0; i < arg.size(); i++)
-                        args.TargetTags.emplace_back(arg[i].get_int());
+                        args.TheirTags.emplace_back(arg[i].get_int());
 
-                if (auto arg = _args.At("sourcetag", true); arg.isNum())
-                    args.SourceTag = arg.get_int();
+                if (auto arg = _args.At("mytags", true); arg.isArray())
+                    for (int i = 0; i < arg.size(); i++)
+                        args.MyTags.emplace_back(arg[i].get_int());
 
-                if (auto arg = _args.At("address", true); arg.isStr())
-                    args.Address = arg.get_str();
+                if (auto arg = _args.At("addresses", true); arg.isArray())
+                    for (int i = 0; i < arg.size(); i++)
+                        args.Addresses.emplace_back(arg[i].get_str());
 
                 if (auto arg = _args.At("location", true); arg.isStr())
                     args.Location = arg.get_str();

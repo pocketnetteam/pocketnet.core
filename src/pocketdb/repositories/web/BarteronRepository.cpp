@@ -252,12 +252,6 @@ namespace PocketDb
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                    sourceTag as (
-                        select ? as value
-                    ),
-                    addr as (
-                        select ? as value
-                    ),
                     price as (
                         select ? as value
                     ),
@@ -267,8 +261,6 @@ namespace PocketDb
                     select distinct
                         (select r.String from Registry r where r.RowId = to2.RowId)
                     from
-                        sourceTag,
-                        addr,
                         price,
                         loc
 
@@ -283,11 +275,11 @@ namespace PocketDb
                     -- Offer potencial for deal
                     cross join
                         BarteronOffers o2 -- autoindex Tag_OfferId_AccountId
-                            on (? or o2.Tag in ( )sql" + join(vector<string>(args.TargetTags.size(), "?"), ",") + R"sql( )) -- TODO (losty): shouldn't belong to user that asks for deals -- and o2.OfferId != t1.OfferId and o2.AccountId != o1.AccountId
+                            on (? or o2.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( )) -- TODO (losty): shouldn't belong to user that asks for deals -- and o2.OfferId != t1.OfferId and o2.AccountId != o1.AccountId
                     cross join
                         BarteronOfferTags t2 on -- autoindex OfferId_Tag
                             t2.OfferId = o2.OfferId
-                            and (? or t2.Tag = sourceTag.value)
+                            and (? or t2.Tag in ( )sql" + join(vector<string>(args.MyTags.size(), "?"), ",") + R"sql( ))
 
                     -- Offer potencial account
                     cross join Chain cu2 indexed by Chain_Uid_Height on cu2.Uid = o2.AccountId
@@ -305,9 +297,9 @@ namespace PocketDb
                     cross join Payload po2 on po2.TxId = lo2.TxId
 
                     where
-                        ( ? or po2.Int1 < price.value ) and
+                        ( ? or po2.Int1 <= price.value ) and
                         ( ? or po2.String6 like loc.value) and -- TODO (losty): maybe use: 'substr(po2.String6, 1, loc.size()) = loc' instead if 'like' ???
-                        ( ? or ru2.String = addr.value ) and
+                        ( ? or ru2.String in ( )sql" + join(vector<string>(args.Addresses.size(), "?"), ",") + R"sql( ) ) and
                         ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
                         cu2.Height <= ?
 
@@ -316,16 +308,16 @@ namespace PocketDb
                     limit ? offset ?
                 )sql")
                 .Bind(
-                    args.SourceTag.value_or(-1),
-                    args.Address,
                     args.Price,
                     args.Location,
-                    args.TargetTags.empty(),
-                    args.TargetTags,
-                    !args.SourceTag.has_value(),
+                    args.TheirTags.empty(),
+                    args.TheirTags,
+                    args.MyTags.empty(),
+                    args.MyTags,
                     (args.Price < 0),
                     args.Location.empty(),
-                    args.Address.empty(),
+                    args.Addresses.empty(),
+                    args.Addresses,
                     args.ExcludeAddresses.empty(),
                     args.ExcludeAddresses,
                     args.Page.TopHeight,
