@@ -332,7 +332,7 @@ namespace PocketDb
                 SetLastInsertRowId(0);
 
                 Sql(R"sql(
-                    insert or ignore into ContentMap (ContentId, FieldType) values (?,?)
+                    insert or ignore into web.ContentMap (ContentId, FieldType) values (?,?)
                 )sql")
                 .Bind(contentItm.ContentId, (int)contentItm.FieldType)
                 .Run();
