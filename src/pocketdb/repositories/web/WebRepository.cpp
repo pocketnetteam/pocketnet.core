@@ -529,309 +529,493 @@ namespace PocketDb
     void WebRepository::CollectAccountStatistic()
     {
         // PostsCount
-        SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                delete from web.AccountStatistic where Type = 1
-            )sql").Run();
+            unordered_map<int64_t, int64_t> _map;
+            SqlTransaction(
+                "CollectAccountStatistic_PostsCount_Get",
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        select
+                            t.RegId1,
+                            count()
+                        from
+                            Transactions t
+                        cross join
+                            Last l on
+                                l.TxId = t.RowId
+                        cross join
+                            Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                po.Type in (200,201,202,209,210) and
+                                po.RegId1 = t.RegId1
+                        cross join
+                            Last lpo
+                                on lpo.TxId = po.RowId
+                        where
+                            t.Type = 100
+                        group by
+                            t.RegId1
+                    )sql");
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            int64_t regId1, count;
+                            if (cursor.CollectAll(regId1, count))
+                                _map.emplace(regId1, count);
+                        }
+                    });
+                }
+            );
 
-            Sql(R"sql(
-                insert into web.AccountStatistic (AccountRegId, Type, Data)
-                select
-                    t.RegId1,
-                    1,
-                    count()
-                from
-                    Transactions t
-                cross join
-                    Last l on
-                        l.TxId = t.RowId
-                cross join
-                    Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        po.Type in (200,201,202,209,210) and
-                        po.RegId1 = t.RegId1
-                cross join
-                    Last lpo
-                        on lpo.TxId = po.RowId
-                where
-                    t.Type = 100
-                group by
-                    t.RegId1
-            )sql").Run();
-        });
+            SqlTransaction("CollectAccountStatistic_PostsCount_Set", [&]()
+            {
+                Sql(R"sql(
+                    delete from web.AccountStatistic where Type = 1
+                )sql").Run();
+
+                for (auto& x : _map) {
+                    Sql(R"sql(
+                        insert into web.AccountStatistic (AccountRegId, Type, Data)
+                        values (?, 1, ?)
+                    )sql").Bind(x.first, x.second).Run();
+                }
+            });
+        }
 
         // DelCount
-        SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                delete from web.AccountStatistic where Type = 2
-            )sql").Run();
+            unordered_map<int64_t, int64_t> _map;
+            SqlTransaction(
+                "CollectAccountStatistic_DelCount_Get",
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        select
+                            t.RegId1,
+                            count()
+                        from
+                            Transactions t
+                        cross join
+                            Last l on
+                                l.TxId = t.RowId
+                        cross join
+                            Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                po.Type in (207) and
+                                po.RegId1 = t.RegId1
+                        cross join
+                            Last lpo
+                                on lpo.TxId = po.RowId
+                        where
+                            t.Type = 100
+                        group by
+                            t.RegId1
+                    )sql");
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            int64_t regId1, count;
+                            if (cursor.CollectAll(regId1, count))
+                                _map.emplace(regId1, count);
+                        }
+                    });
+                }
+            );
 
-            Sql(R"sql(
-                insert into web.AccountStatistic (AccountRegId, Type, Data)
-                select
-                    t.RegId1,
-                    2,
-                    count()
-                from
-                    Transactions t
-                cross join
-                    Last l on
-                        l.TxId = t.RowId
-                cross join
-                    Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        po.Type in (207) and
-                        po.RegId1 = t.RegId1
-                cross join
-                    Last lpo
-                        on lpo.TxId = po.RowId
-                where
-                    t.Type = 100
-                group by
-                    t.RegId1
-            )sql").Run();
-        });
+            SqlTransaction("CollectAccountStatistic_DelCount_Set", [&]()
+            {
+                Sql(R"sql(
+                    delete from web.AccountStatistic where Type = 2
+                )sql").Run();
+
+                for (auto& x : _map) {
+                    Sql(R"sql(
+                        insert into web.AccountStatistic (AccountRegId, Type, Data)
+                        values (?, 2, ?)
+                    )sql").Bind(x.first, x.second).Run();
+                }
+            });
+        }
 
         // SubscribesCount
-        SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                delete from web.AccountStatistic where Type = 3
-            )sql").Run();
+            unordered_map<int64_t, int64_t> _map;
+            SqlTransaction(
+                "CollectAccountStatistic_SubscribesCount_Get",
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        select
+                            t.RegId1,
+                            count()
+                        from
+                            Transactions t
+                        cross join
+                            Last l on
+                                l.TxId = t.RowId
+                        cross join
+                            Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                subs.Type in (302, 303) and
+                                subs.RegId1 = t.RegId1
+                        cross join
+                            Last lsubs
+                                on lsubs.TxId = subs.RowId
+                        cross join
+                            Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                on uas.Type in (100) and uas.RegId1 = subs.RegId2
+                        cross join
+                            Last luas
+                                on luas.TxId = uas.RowId
+                        where
+                            t.Type = 100
+                        group by
+                            t.RegId1
+                    )sql");
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            int64_t regId1, count;
+                            if (cursor.CollectAll(regId1, count))
+                                _map.emplace(regId1, count);
+                        }
+                    });
+                }
+            );
 
-            Sql(R"sql(
-                insert into web.AccountStatistic (AccountRegId, Type, Data)
-                select
-                    t.RegId1,
-                    3,
-                    count()
-                from
-                    Transactions t
-                cross join
-                    Last l on
-                        l.TxId = t.RowId
-                cross join
-                    Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        subs.Type in (302, 303) and
-                        subs.RegId1 = t.RegId1
-                cross join
-                    Last lsubs
-                        on lsubs.TxId = subs.RowId
-                cross join
-                    Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on uas.Type in (100) and uas.RegId1 = subs.RegId2
-                cross join
-                    Last luas
-                        on luas.TxId = uas.RowId
-                where
-                    t.Type = 100
-                group by
-                    t.RegId1
-            )sql").Run();
-        });
+            SqlTransaction("CollectAccountStatistic_SubscribesCount_Set", [&]()
+            {
+                Sql(R"sql(
+                    delete from web.AccountStatistic where Type = 3
+                )sql").Run();
+
+                for (auto& x : _map) {
+                    Sql(R"sql(
+                        insert into web.AccountStatistic (AccountRegId, Type, Data)
+                        values (?, 3, ?)
+                    )sql").Bind(x.first, x.second).Run();
+                }
+            });
+        }
 
         // SubscribersCount
-        SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                delete from web.AccountStatistic where Type = 4
-            )sql").Run();
+            unordered_map<int64_t, int64_t> _map;
+            SqlTransaction(
+                "CollectAccountStatistic_SubscribersCount_Get",
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        select
+                            t.RegId1,
+                            count()
+                        from
+                            Transactions t
+                        cross join
+                            Last l on
+                                l.TxId = t.RowId
+                        cross join
+                            Transactions subs indexed by Transactions_Type_RegId2_RegId1 on
+                                subs.Type in (302, 303) and
+                                subs.RegId2 = t.RegId1
+                        cross join
+                            Last lsubs
+                                on lsubs.TxId = subs.RowId
+                        cross join
+                            Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                on uas.Type in (100) and uas.RegId1 = subs.RegId1
+                        cross join
+                            Last luas
+                                on luas.TxId = uas.RowId
+                        where
+                            t.Type = 100
+                        group by
+                            t.RegId1
+                    )sql");
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            int64_t regId1, count;
+                            if (cursor.CollectAll(regId1, count))
+                                _map.emplace(regId1, count);
+                        }
+                    });
+                }
+            );
 
-            Sql(R"sql(
-                insert into web.AccountStatistic (AccountRegId, Type, Data)
-                select
-                    t.RegId1,
-                    4,
-                    count()
-                from
-                    Transactions t
-                cross join
-                    Last l on
-                        l.TxId = t.RowId
-                cross join
-                    Transactions subs indexed by Transactions_Type_RegId2_RegId1 on
-                        subs.Type in (302, 303) and
-                        subs.RegId2 = t.RegId1
-                cross join
-                    Last lsubs
-                        on lsubs.TxId = subs.RowId
-                cross join
-                    Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        on uas.Type in (100) and uas.RegId1 = subs.RegId1
-                cross join
-                    Last luas
-                        on luas.TxId = uas.RowId
-                where
-                    t.Type = 100
-                group by
-                    t.RegId1
-            )sql").Run();
-        });
+            SqlTransaction("CollectAccountStatistic_SubscribersCount_Set", [&]()
+            {
+                Sql(R"sql(
+                    delete from web.AccountStatistic where Type = 4
+                )sql").Run();
+
+                for (auto& x : _map) {
+                    Sql(R"sql(
+                        insert into web.AccountStatistic (AccountRegId, Type, Data)
+                        values (?, 4, ?)
+                    )sql").Bind(x.first, x.second).Run();
+                }
+            });
+        }
 
         // FlagsJson
-        SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                delete from web.AccountStatistic where Type = 5
-            )sql").Run();
+            unordered_map<int64_t, int64_t> _map;
+            SqlTransaction(
+                "CollectAccountStatistic_FlagsJson_Get",
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        select
+                            gr.AccId,
+                            json_group_object(gr.Type, gr.Cnt)
+                        from (
+                            select
+                                t.RegId1 as AccId,
+                                f.Int1 as Type,
+                                count() as Cnt
+                            from
+                                Transactions t
+                            cross join
+                                Last l on
+                                    l.TxId = t.RowId
+                            cross join
+                                Transactions f indexed by Transactions_Type_RegId3_RegId1 on
+                                    f.Type in (410) and
+                                    f.RegId3 = t.RegId1
+                            cross join
+                                Chain c on
+                                    c.TxId = f.RowId
+                            where
+                                t.Type = 100
+                            group by
+                                t.RegId1, f.Int1
+                        )gr
+                        group by
+                            gr.AccId
+                    )sql");
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            int64_t regId1, count;
+                            if (cursor.CollectAll(regId1, count))
+                                _map.emplace(regId1, count);
+                        }
+                    });
+                }
+            );
 
-            Sql(R"sql(
-                insert into web.AccountStatistic (AccountRegId, Type, Data)
-                select
-                    gr.AccId,
-                    5,
-                    json_group_object(gr.Type, gr.Cnt)
-                from (
-                    select
-                        t.RegId1 as AccId,
-                        f.Int1 as Type,
-                        count() as Cnt
-                    from
-                        Transactions t
-                    cross join
-                        Last l on
-                            l.TxId = t.RowId
-                    cross join
-                        Transactions f indexed by Transactions_Type_RegId3_RegId1 on
-                            f.Type in (410) and
-                            f.RegId3 = t.RegId1
-                    cross join
-                        Chain c on
-                            c.TxId = f.RowId
-                    where
-                        t.Type = 100
-                    group by
-                        t.RegId1, f.Int1
-                )gr
-                group by
-                    gr.AccId
-            )sql").Run();
-        });
+            SqlTransaction("CollectAccountStatistic_FlagsJson_Set", [&]()
+            {
+                Sql(R"sql(
+                    delete from web.AccountStatistic where Type = 5
+                )sql").Run();
+
+                for (auto& x : _map) {
+                    Sql(R"sql(
+                        insert into web.AccountStatistic (AccountRegId, Type, Data)
+                        values (?, 5, ?)
+                    )sql").Bind(x.first, x.second).Run();
+                }
+            });
+        }
 
         // FirstFlagsCount
-        SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                delete from web.AccountStatistic where Type = 6
-            )sql").Run();
-
-            Sql(R"sql(
-                insert into web.AccountStatistic (AccountRegId, Type, Data)
-                select
-                    gr.AccRegId,
-                    6,
-                    json_group_object(gr.Type, gr.Cnt)
-                from (
-                    select
-                        gr.AccRegId,
-                        gr.Type,
-                        count() as Cnt
-                    from (
+            unordered_map<int64_t, int64_t> _map;
+            SqlTransaction(
+                "CollectAccountStatistic_FirstFlagsCount_Get",
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
                         select
-                            f.RegId3 as AccRegId,
-                            f.Int1 as Type,
-                            cf.Height,
-                            min(cfp.Height) as minHeight
-                        from
-                            Transactions f indexed by Transactions_Type_RegId3_RegId1
-                        cross join
-                            Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                fp.Type in (200, 201, 202, 209, 210) and
-                                fp.RegId1 = f.RegId3
-                        cross join
-                            First ffp
-                                on ffp.TxId = fp.RowId
-                        cross join
-                            Chain cfp indexed by Chain_TxId_Height
-                                on cfp.TxId = fp.RowId
-                        cross join
-                            Chain cf indexed by Chain_TxId_Height
-                                on cf.TxId = f.RowId
-                        where
-                            f.Type in (410)
+                            gr.AccRegId,
+                            json_group_object(gr.Type, gr.Cnt)
+                        from (
+                            select
+                                gr.AccRegId,
+                                gr.Type,
+                                count() as Cnt
+                            from (
+                                select
+                                    f.RegId3 as AccRegId,
+                                    f.Int1 as Type,
+                                    cf.Height,
+                                    min(cfp.Height) as minHeight
+                                from
+                                    Transactions f indexed by Transactions_Type_RegId3_RegId1
+                                cross join
+                                    Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                        fp.Type in (200, 201, 202, 209, 210) and
+                                        fp.RegId1 = f.RegId3
+                                cross join
+                                    First ffp
+                                        on ffp.TxId = fp.RowId
+                                cross join
+                                    Chain cfp indexed by Chain_TxId_Height
+                                        on cfp.TxId = fp.RowId
+                                cross join
+                                    Chain cf indexed by Chain_TxId_Height
+                                        on cf.TxId = f.RowId
+                                where
+                                    f.Type in (410)
+                                group by
+                                    f.RegId3, f.Int1
+                            )gr
+                            where
+                                gr.Height >= gr.minHeight and
+                                gr.Height <= (gr.minHeight + (14 * 1440))
+                            group by
+                                gr.AccRegId,
+                                gr.Type
+                        )gr
                         group by
-                            f.RegId3, f.Int1
-                    )gr
-                    where
-                        gr.Height >= gr.minHeight and
-                        gr.Height <= (gr.minHeight + (14 * 1440))
-                    group by
-                        gr.AccRegId,
-                        gr.Type
-                )gr
-                group by
-                    gr.AccRegId
-            )sql").Run();
-        });
+                            gr.AccRegId
+                    )sql");
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            int64_t regId1, count;
+                            if (cursor.CollectAll(regId1, count))
+                                _map.emplace(regId1, count);
+                        }
+                    });
+                }
+            );
+
+            SqlTransaction("CollectAccountStatistic_FirstFlagsCount_Set", [&]()
+            {
+                Sql(R"sql(
+                    delete from web.AccountStatistic where Type = 6
+                )sql").Run();
+
+                for (auto& x : _map) {
+                    Sql(R"sql(
+                        insert into web.AccountStatistic (AccountRegId, Type, Data)
+                        values (?, 6, ?)
+                    )sql").Bind(x.first, x.second).Run();
+                }
+            });
+        }
 
         // ActionsCount
-        SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                delete from web.AccountStatistic where Type = 7
-            )sql").Run();
+            unordered_map<int64_t, int64_t> _map;
+            SqlTransaction(
+                "CollectAccountStatistic_ActionsCount_Get",
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        select
+                            t.RegId1,
+                            count()
+                        from
+                            Transactions t
+                        where
+                            t.Type >= 100
+                        group by
+                            t.RegId1
+                    )sql");
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            int64_t regId1, count;
+                            if (cursor.CollectAll(regId1, count))
+                                _map.emplace(regId1, count);
+                        }
+                    });
+                }
+            );
 
-            Sql(R"sql(
-                insert into web.AccountStatistic (AccountRegId, Type, Data)
-                select
-                    t.RegId1,
-                    7,
-                    count()
-                from
-                    Transactions t
-                where
-                    t.Type >= 100
-                group by
-                    t.RegId1
-            )sql").Run();
-        });
+            SqlTransaction("CollectAccountStatistic_ActionsCount_Set", [&]()
+            {
+                Sql(R"sql(
+                    delete from web.AccountStatistic where Type = 7
+                )sql").Run();
+
+                for (auto& x : _map) {
+                    Sql(R"sql(
+                        insert into web.AccountStatistic (AccountRegId, Type, Data)
+                        values (?, 7, ?)
+                    )sql").Bind(x.first, x.second).Run();
+                }
+            });
+        }
 
         // Last 5 Contents
-        SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                delete from web.AccountStatistic where Type = 8
-            )sql").Run();
+            unordered_map<int64_t, int64_t> _map;
+            SqlTransaction(
+                "CollectAccountStatistic_Last5Content_Get",
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        select
+                            t.RegId1,
+                            ifnull((
+                                select sum(ifnull(ptr.Value,0))
+                                from (
+                                    select cpt.Uid
+                                    from Transactions pt indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                    join Chain cpt on cpt.TxId = pt.RowId
+                                    join Last lpt on lpt.TxId = pt.RowId
+                                    where pt.Type in ( 200,201,202,209,210,211 )
+                                        and pt.RegId1 = t.RegId1
+                                        and cpt.Height < ctml.Height
+                                        and cpt.Height > (ctml.Height - 43200)
+                                    order by cpt.Height desc
+                                    limit 5
+                                )q
+                                left join Ratings ptr indexed by Ratings_Type_Uid_Last_Height
+                                    on ptr.Type = 2 and ptr.Uid = q.Uid and ptr.Last = 1
+                            ), 0)SumRating
+                        from
+                            Transactions t
+                        cross join
+                            Last l on
+                                l.TxId = t.RowId
+                        cross join
+                            Transactions tm on
+                                tm.Type in ( 200,201,202,209,210,211 ) and
+                                tm.RegId1 = t.RegId1 and
+                                tm.RowId = (select max(tml.RowId) from Transactions tml where tml.Type in ( 200,201,202,209,210,211 ) and tml.RegId1 = t.RegId1)
+                        cross join
+                            Chain ctml on
+                                ctml.TxId = tm.RowId
+                        where
+                            t.Type in (100)
+                    )sql");
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                        {
+                            int64_t regId1, count;
+                            if (cursor.CollectAll(regId1, count))
+                                _map.emplace(regId1, count);
+                        }
+                    });
+                }
+            );
 
-            Sql(R"sql(
-                insert into web.AccountStatistic (AccountRegId, Type, Data)
-                select
-                    t.RegId1,
-                    8,
-                    ifnull((
-                        select sum(ifnull(ptr.Value,0))
-                        from (
-                            select cpt.Uid
-                            from Transactions pt indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            join Chain cpt on cpt.TxId = pt.RowId
-                            join Last lpt on lpt.TxId = pt.RowId
-                            where pt.Type in ( 200,201,202,209,210,211 )
-                                and pt.RegId1 = t.RegId1
-                                and cpt.Height < ctml.Height
-                                and cpt.Height > (ctml.Height - 43200)
-                            order by cpt.Height desc
-                            limit 5
-                        )q
-                        left join Ratings ptr indexed by Ratings_Type_Uid_Last_Height
-                            on ptr.Type = 2 and ptr.Uid = q.Uid and ptr.Last = 1
-                    ), 0)SumRating
-                from
-                    Transactions t
-                cross join
-                    Last l on
-                        l.TxId = t.RowId
-                cross join
-                    Transactions tm on
-                        tm.Type in ( 200,201,202,209,210,211 ) and
-                        tm.RegId1 = t.RegId1 and
-                        tm.RowId = (select max(tml.RowId) from Transactions tml where tml.Type in ( 200,201,202,209,210,211 ) and tml.RegId1 = t.RegId1)
-                cross join
-                    Chain ctml on
-                        ctml.TxId = tm.RowId
-                where
-                    t.Type in (100)
-            )sql").Run();
-        });
+            SqlTransaction("CollectAccountStatistic_Last5Content_Set", [&]()
+            {
+                Sql(R"sql(
+                    delete from web.AccountStatistic where Type = 8
+                )sql").Run();
+
+                for (auto& x : _map) {
+                    Sql(R"sql(
+                        insert into web.AccountStatistic (AccountRegId, Type, Data)
+                        values (?, 8, ?)
+                    )sql").Bind(x.first, x.second).Run();
+                }
+            });
+        }
     }
 
 }
