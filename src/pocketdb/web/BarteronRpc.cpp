@@ -7,7 +7,7 @@
 namespace PocketWeb::PocketWebRpc
 {
     // accTxIds required just for optimizations. Remove it if necessary and collect ids from txs param
-    static UniValue _serialize_txs_with_additional_info(const vector<PTransactionRef>& txs, BarteronRepository& bRepo)
+    static UniValue _serialize_account_txs_with_additional_info(const vector<PTransactionRef>& txs, BarteronRepository& bRepo)
     {
         vector<string> txIds;
         for (const auto& tx: txs) {
@@ -51,7 +51,7 @@ namespace PocketWeb::PocketWebRpc
             auto addressTxHashes = request.DbConnection()->BarteronRepoInst->GetAccountIds(addresses);
 
             auto txs = request.DbConnection()->TransactionRepoInst->List(addressTxHashes, true);
-            return _serialize_txs_with_additional_info(*txs, *request.DbConnection()->BarteronRepoInst);
+            return _serialize_account_txs_with_additional_info(*txs, *request.DbConnection()->BarteronRepoInst);
         }};
     }
     
@@ -326,7 +326,7 @@ namespace PocketWeb::PocketWebRpc
                 txs->reserve(txs->size() + barteronAccTxs->size());
                 copy(barteronAccTxs->begin(), barteronAccTxs->end(), back_inserter(*txs));
 
-                result.pushKV("accounts", _serialize_txs_with_additional_info(*txs, *request.DbConnection()->BarteronRepoInst));
+                result.pushKV("accounts", _serialize_account_txs_with_additional_info(*txs, *request.DbConnection()->BarteronRepoInst));
             }
 
             return result;
