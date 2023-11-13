@@ -61,9 +61,12 @@ namespace PocketDb
                 data as (
                     select
                         t.RegId1 as addrid,
-                        t.Hash as txid
+                        t.Hash as txid,
+                        c.Id as id
                     from
                         vTx t
+                        cross join Chain c on
+                            c.TxId - t.RowId
                     where
                         t.Hash in ( )sql" + join(vector<string>(txids.size(), "?"), ",") + R"sql( )
                 )
@@ -73,10 +76,12 @@ namespace PocketDb
                 from
                     data,
                     Transactions t
+                    cross join Chain c on
+                        c.TxId = t.RowId and
+                        c.Id = data.id
                     cross join First f on
                         f.TxId = t.RowId
                 where
-                    t.Type = 104 and
                     t.RegId1 = data.addrid
             )sql")
             .Bind(txids)
