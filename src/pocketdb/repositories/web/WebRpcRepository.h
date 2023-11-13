@@ -71,6 +71,7 @@ namespace PocketDb
         vector<string> GetCommentScores(const vector<string>& commentHashes);
         // Get account tx id for signer of specified transactions (using RegId1)
         vector<string> GetAddresses(const vector<string>& txHashes);
+        vector<string> GetAccountsIds(const vector<string>& addresses);
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
         map<string, UniValue> GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash);
         map<int64_t, UniValue> GetCommentsByIds(const vector<int64_t>& cmntIds, const string& addressHash);

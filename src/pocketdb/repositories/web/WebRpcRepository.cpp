@@ -1458,6 +1458,51 @@ namespace PocketDb
         return result;
     }
 
+    vector<string> WebRpcRepository::GetAccountsIds(const vector<string>& addresses)
+    {
+
+        vector<string> result;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                    )
+                    select
+                        (select r.String from Registry r where r.RowId = a.RowId)
+                    from
+                        addr
+                    cross join
+                        Transactions a
+                            on a.Type in (100) and a.RegId1 = addr.id
+                    cross join
+                        Last l
+                            on l.TxId = a.RowId
+                )sql")
+                .Bind(addresses);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                            result.push_back(value);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
     UniValue WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
         auto result = UniValue(UniValue::VARR);
