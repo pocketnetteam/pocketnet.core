@@ -283,20 +283,20 @@ namespace PocketWeb::PocketWebRpc
             auto _args = request.params[0].get_obj();
 
             vector<string> offerIds;
-            bool includeLikes = false, includeComments = false, includeCommentLikes = false, includeAccounts = false;
+            bool includeScores = false, includeComments = false, includeCommentScores = false, includeAccounts = false;
 
             if (auto arg = _args.At("offerids", true); arg.isArray())
                 for (int i = 0; i < arg.size(); i++)
                     offerIds.emplace_back(arg[i].get_str());
 
-            if (auto arg = _args.At("includelikes", true); arg.isBool())
-                includeLikes = arg.get_bool();
+            if (auto arg = _args.At("includescores", true); arg.isBool())
+                includeScores = arg.get_bool();
 
             if (auto arg = _args.At("includecomments", true); arg.isBool())
                 includeComments = arg.get_bool();
 
-            if (auto arg = _args.At("includecommenlikes", true); arg.isBool())
-                includeCommentLikes = arg.get_bool();
+            if (auto arg = _args.At("includecommentscores", true); arg.isBool())
+                includeCommentScores = arg.get_bool();
 
             if (auto arg = _args.At("includeaccounts", true); arg.isBool())
                 includeAccounts = arg.get_bool();
@@ -304,7 +304,7 @@ namespace PocketWeb::PocketWebRpc
             vector<string> allTxs = offerIds;
             UniValue result(UniValue::VOBJ);
 
-            if (includeLikes) {
+            if (includeScores) {
                 auto offerScoreIds = request.DbConnection()->WebRpcRepoInst->GetContentScores(offerIds);
                 result.pushKV("offerScores", _list_tx_to_uni(*request.DbConnection()->TransactionRepoInst, offerScoreIds));
                 if (includeAccounts) copy(offerScoreIds.begin(), offerScoreIds.end(), back_inserter(allTxs));
@@ -314,9 +314,9 @@ namespace PocketWeb::PocketWebRpc
                 result.pushKV("comments", _list_tx_to_uni(*request.DbConnection()->TransactionRepoInst, commentIds));
                 if (includeAccounts) copy(commentIds.begin(), commentIds.end(), back_inserter(allTxs));
 
-                if (includeCommentLikes) {
+                if (includeCommentScores) {
                     auto commentScoreIds = request.DbConnection()->WebRpcRepoInst->GetCommentScores(commentIds);
-                    result.pushKV("commentScoreIds", _list_tx_to_uni(*request.DbConnection()->TransactionRepoInst, commentScoreIds));
+                    result.pushKV("commentScores", _list_tx_to_uni(*request.DbConnection()->TransactionRepoInst, commentScoreIds));
                     if (includeAccounts) copy(commentScoreIds.begin(), commentScoreIds.end(), back_inserter(allTxs));
                 }
             }
