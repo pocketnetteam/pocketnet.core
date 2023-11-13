@@ -169,7 +169,7 @@ namespace PocketWeb::PocketWebRpc
             copy(offerScoreIds.begin(), offerScoreIds.end(), back_inserter(allTxs));
             copy(commentIds.begin(), commentIds.end(), back_inserter(allTxs));
             copy(commentScoreIds.begin(), commentScoreIds.end(), back_inserter(allTxs));
-            auto addressesIds = request.DbConnection()->WebRpcRepoInst->GetAccounts(allTxs);
+            auto addressesIds = request.DbConnection()->WebRpcRepoInst->GetAddresses(allTxs);
 
             // Build result array with original sorting
             UniValue result(UniValue::VOBJ);
