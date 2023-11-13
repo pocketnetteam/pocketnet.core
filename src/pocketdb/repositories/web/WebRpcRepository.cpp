@@ -1428,34 +1428,21 @@ namespace PocketDb
         return result;
     }
 
-    vector<string> WebRpcRepository::GetAccounts(const vector<string>& txHashes)
+    vector<string> WebRpcRepository::GetAddresses(const vector<string>& txHashes)
     {
         vector<string> result;
 
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
-                with
-                addr as (
-                    select
-                        cast(t.RegId1 as int) as id -- TODO (losty): wtf why cast is necessary???
-                    from
-                        vTx t
-                    where
-                        t.Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
-                )
-                select
+                select distinct
                     r.String
                 from
-                    addr,
-                    Transactions t
+                    vTx t
                     cross join Registry r on
                         r.RowId = t.RegId1
-                    cross join Last l on
-                        l.TxId = t.RowId
                 where
-                    t.Type in (100, 104) and
-                    t.RegId1 = addr.id
+                    t.Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
             )sql")
             .Bind(txHashes)
             .Select([&](Cursor& cursor) {
