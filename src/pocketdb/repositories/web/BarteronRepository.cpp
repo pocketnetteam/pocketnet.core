@@ -60,13 +60,12 @@ namespace PocketDb
                 with
                 data as (
                     select
-                        t.RegId1 as addrid,
                         t.Hash as txid,
                         c.Uid as uid
                     from
                         vTx t
                         cross join Chain c on
-                            c.TxId - t.RowId
+                            c.TxId = t.RowId
                     where
                         t.Hash in ( )sql" + join(vector<string>(txids.size(), "?"), ",") + R"sql( )
                 )
@@ -74,15 +73,13 @@ namespace PocketDb
                     data.txid,
                     t.Time
                 from
-                    data,
-                    Transactions t
+                    data
                     cross join Chain c on
-                        c.TxId = t.RowId and
                         c.Uid = data.uid
                     cross join First f on
-                        f.TxId = t.RowId
-                where
-                    t.RegId1 = data.addrid
+                        f.TxId = c.TxId
+                    cross join Transactions t on
+                        t.RowId = c.TxId
             )sql")
             .Bind(txids)
             .Select([&](Cursor& cursor) {
