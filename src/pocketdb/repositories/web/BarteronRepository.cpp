@@ -62,7 +62,7 @@ namespace PocketDb
                     select
                         t.RegId1 as addrid,
                         t.Hash as txid,
-                        c.Id as id
+                        c.Uid as uid
                     from
                         vTx t
                         cross join Chain c on
@@ -78,7 +78,7 @@ namespace PocketDb
                     Transactions t
                     cross join Chain c on
                         c.TxId = t.RowId and
-                        c.Id = data.id
+                        c.Uid = data.uid
                     cross join First f on
                         f.TxId = t.RowId
                 where
