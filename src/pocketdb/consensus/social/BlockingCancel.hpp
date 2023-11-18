@@ -169,7 +169,7 @@ namespace PocketConsensus
         {
             Checkpoint({       0,       0, -1, make_shared<BlockingCancelConsensus>() });
             Checkpoint({ 1873500, 1114500,  0, make_shared<BlockingCancelConsensus_checkpoint_multiple_blocking>() });
-            Checkpoint({ 2552000, 2280000,  0, make_shared<BlockingCancelConsensus_checkpoint_pip104>() });
+            Checkpoint({ 2552000, 2340000,  0, make_shared<BlockingCancelConsensus_checkpoint_pip104>() });
         }
     };
 
