@@ -148,6 +148,17 @@ namespace PocketConsensus
         }
     };
 
+    class BlockingCancelConsensus_checkpoint_pip104 : public BlockingCancelConsensus_checkpoint_multiple_blocking
+    {
+    public:
+        BlockingCancelConsensus_checkpoint_pip104() : BlockingCancelConsensus_checkpoint_multiple_blocking() {}
+    protected:
+        vector<string> GetAddressesForCheckRegistration(const BlockingCancelRef& ptx) override
+        {
+            return {*ptx->GetAddress()};
+        }
+    };
+
 
     // ----------------------------------------------------------------------------------------------
     // Factory for select actual rules version
@@ -158,6 +169,7 @@ namespace PocketConsensus
         {
             Checkpoint({       0,       0, -1, make_shared<BlockingCancelConsensus>() });
             Checkpoint({ 1873500, 1114500,  0, make_shared<BlockingCancelConsensus_checkpoint_multiple_blocking>() });
+            Checkpoint({ 2552000, 2280000,  0, make_shared<BlockingCancelConsensus_checkpoint_pip104>() });
         }
     };
 
