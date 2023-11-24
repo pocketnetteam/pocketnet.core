@@ -9,7 +9,7 @@
 PACKAGE_NAME=@PACKAGE_NAME@
 PACKAGE_BUGREPORT=@PACKAGE_BUGREPORT@
 SRCDIR=@abs_top_srcdir@
-BUILDDIR=@abs_top_builddir@
+BUILDDIR=@abs_top_builddir@/src
 EXEEXT=@EXEEXT@
 RPCAUTH=@abs_top_srcdir@/share/rpcauth/rpcauth.py
 

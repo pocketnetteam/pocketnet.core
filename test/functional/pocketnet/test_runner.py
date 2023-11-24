@@ -109,11 +109,14 @@ def run_tests():
 
     print_results(results, 30, (int(time.time() - start_time)))
 
+    return results
+
 
 def main():
     setup_logging()
-    run_tests()
-
+    results = run_tests()
+    if len([r for r in results if r.status == "Failed"]) > 0:
+        raise Exception("Some tests failed")
 
 if __name__ == "__main__":
     main()

@@ -96,15 +96,25 @@ namespace PocketConsensus
         }
     };
 
+    class SubscribeCancelConsensus_checkpoint_pip104 : public SubscribeCancelConsensus
+    {
+    public:
+        SubscribeCancelConsensus_checkpoint_pip104() : SubscribeCancelConsensus() {}
+    protected:
+        vector<string> GetAddressesForCheckRegistration(const SubscribeCancelRef& ptx) override
+        {
+            return {*ptx->GetAddress()};
+        }
+    };
 
-    // ----------------------------------------------------------------------------------------------
-    // Factory for select actual rules version
+
     class SubscribeCancelConsensusFactory : public BaseConsensusFactory<SubscribeCancelConsensus>
     {
     public:
         SubscribeCancelConsensusFactory()
         {
-            Checkpoint({ 0, 0, 0, make_shared<SubscribeCancelConsensus>() });
+            Checkpoint({       0,       0, -1, make_shared<SubscribeCancelConsensus>() });
+            Checkpoint({ 2552000, 2340000,  0, make_shared<SubscribeCancelConsensus_checkpoint_pip104>() });
         }
     };
 
