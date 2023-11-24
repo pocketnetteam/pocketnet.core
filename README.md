@@ -65,7 +65,45 @@ $ docker run -d \
     -v /var/pocketnet/.data:/home/pocketcoin/.pocketcoin \
     pocketnetteam/pocketnet.core:latest
 ```
-Control
+### docker-compose (recommended)
+Sample `docker-compose.yml`:
+```
+version: "3"
+services:
+  pocketnet.core:
+    container_name: pocketnet.core
+    image: pocketnetteam/pocketnet.core:latest
+    restart: on-failure
+    stop_grace_period: 10m
+    # Increasing the number of available file descriptors
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    # Create a Volume for the Blockchain database directory
+    volumes:
+      - ~/.pocketcoin:/home/pocketcore/.pocketcoin 
+    ports:
+      # To accept connections from other network nodes
+      - 37070:37070
+      # Manage node. Be careful - port 37071 opens access to your node and wallet
+      - 37071:37071
+      # To accept HTTP POST requests along the path 127.0.0.1:38081/public/
+      - 38081:38081
+      # For the ability to establish a WebSocket connection to a node to support notifications
+      - 8087:8087
+    logging:
+      driver: "local"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+Run via docker-compose:
+```shell
+$ docker-compose up -d
+```
+
+### Control by single command
 ```shell
 $ docker ps --format '{{.ID}}\t{{.Names}}\t{{.Image}}'
 ea7759a47250    pocketnet.main      pocketnetteam/pocketnet.core:latest
