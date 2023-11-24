@@ -74,18 +74,18 @@ $ docker run -d \
 ### docker-compose (recommended)
 Sample `docker-compose.yml`:
 ```
-version: '3.7'
+version: "3"
 services:
   pocketnet.core:
     container_name: pocketnet.core
     image: pocketnetteam/pocketnet.core:latest
     restart: on-failure
-    stop_grace_period: 1m30s
+    stop_grace_period: 10m
     # Increasing the number of available file descriptors
     ulimits:
       nofile:
-        soft: "65536"
-        hard: "65536"
+        soft: 65536
+        hard: 65536
     # Create a Volume for the Blockchain database directory
     volumes:
       - ~/.pocketcoin:/home/pocketcore/.pocketcoin 
