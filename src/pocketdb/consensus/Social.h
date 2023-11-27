@@ -82,7 +82,7 @@ namespace PocketConsensus
             Result(ConsensusResult_AccountBanned, [&]()
             {
                 // This code disables the prohibition of transactions for accounts banned by the moderation system.
-                if (Params().NetworkID() == NetworkId::NetworkMain && Height >= 2552000)
+                if (Params().NetworkID() == NetworkId::NetworkMain && Height >= 2583000)
                     return false;
 
                 if (Params().NetworkID() == NetworkId::NetworkTest && Height >= 2280000)

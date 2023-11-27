@@ -114,7 +114,7 @@ namespace PocketConsensus
         SubscribeCancelConsensusFactory()
         {
             Checkpoint({       0,       0, -1, make_shared<SubscribeCancelConsensus>() });
-            Checkpoint({ 2552000, 2340000,  0, make_shared<SubscribeCancelConsensus_checkpoint_pip104>() });
+            Checkpoint({ 2583000, 2340000,  0, make_shared<SubscribeCancelConsensus_checkpoint_pip104>() });
         }
     };
 

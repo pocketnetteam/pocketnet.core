@@ -182,7 +182,7 @@ protected:
     SocialForks socialForks = {{
         // TODO (release): check (may be fulfill with earlier forks)
         {210300 /* 0.21.3 */, 2360000, 1950500, 0},
-        {220000 /* 0.22 */, 2552000, 2267333, 0}
+        {220000 /* 0.22 */, 2583000, 2267333, 0}
     }};
 };
 
