@@ -81,11 +81,14 @@ namespace PocketConsensus
             // Check active account ban
             Result(ConsensusResult_AccountBanned, [&]()
             {
-                if (mainnet && Height >= 2552000)
+                // This code disables the prohibition of transactions for accounts banned by the moderation system.
+                if (Params().NetworkID() == NetworkId::NetworkMain && Height >= 2552000)
                     return false;
-                if (testnet && Height >= 2280000)
+
+                if (Params().NetworkID() == NetworkId::NetworkTest && Height >= 2280000)
                     return false;
-                if (regtest)
+
+                if (Params().NetworkID() == NetworkId::NetworkRegTest)
                     return false;
                     
                 return PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height);
