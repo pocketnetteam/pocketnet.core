@@ -333,4 +333,82 @@ namespace PocketWeb::PocketWebRpc
         }};
     }
 
+    RPCHelpMan GetBarteronComplexDeals()
+    {
+        return RPCHelpMan{"getbarterondeals",
+            "\nGet barteron offers feed.\n",
+            {
+                { "request", RPCArg::Type::STR, RPCArg::Optional::NO, "JSON object for filter offers" },
+            },
+            RPCResult{ RPCResult::Type::ARR, "", "", {
+                { RPCResult::Type::STR_HEX, "hash", "Tx hash" },
+            }},
+            RPCExamples{
+                HelpExampleCli("getbarterondeals", "request") +
+                HelpExampleRpc("getbarterondeals", "request")
+            },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, { UniValue::VOBJ });
+
+            BarteronOffersComplexDealDto args;
+            {
+                auto _args = request.params[0].get_obj();
+                args.Page = ParsePaginationArgs(_args);
+
+                if (auto arg = _args.At("theirtags", true); arg.isArray())
+                    for (int i = 0; i < arg.size(); i++)
+                        args.TheirTags.emplace_back(arg[i].get_int());
+
+                if (auto arg = _args.At("mytag", true); arg.isNum())
+                        args.MyTag = arg.get_int();
+
+                if (auto arg = _args.At("excludeaddresses", true); arg.isArray())
+                    for (int i = 0; i < arg.size(); i++)
+                        args.ExcludeAddresses.emplace_back(arg[i].get_str());
+
+                if (args.MyTag == 0 || args.TheirTags.empty()) {
+                    // TODO (losty): error
+                }
+            }
+
+            auto deals = request.DbConnection()->BarteronRepoInst->GetComplexDeal(args);
+
+            vector<string> hashes;
+            hashes.reserve(deals.size() * 2); // pseudo optimization
+            for (const auto& [k, v]: deals) {
+                hashes.reserve(v.size() + 1);
+                hashes.emplace_back(k);
+                copy(v.begin(), v.end(), back_inserter(hashes));
+            }
+            auto txs = request.DbConnection()->TransactionRepoInst->List(hashes, true);
+
+            map<string, PTransactionRef> m;
+            for (const auto& tx: *txs) {
+                m.emplace(*tx->GetHash(), tx);
+            }
+
+            // Build result array with original sorting
+            UniValue result(UniValue::VARR);
+            for (const auto& [target, intermediates]: deals) {
+                if (auto tx = m.find(target); tx != m.end()) {
+                    UniValue o(UniValue::VOBJ);
+                    o.pushKV("target", ConstructTransaction(tx->second));
+
+                    UniValue inters(UniValue::VARR);
+                    for (const auto& inter: intermediates) {
+                        if (auto tx = m.find(inter); tx != m.end()) {
+                            inters.push_back(ConstructTransaction(tx->second));
+                        }
+                    }
+                    o.pushKV("intermediates", inters);
+
+                    result.push_back(o);
+                }
+            }
+
+            return result;
+        }};
+    }
+
 }

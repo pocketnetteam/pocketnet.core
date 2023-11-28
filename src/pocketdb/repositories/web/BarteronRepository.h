@@ -42,6 +42,14 @@ namespace PocketDb
         int64_t RegDate;
     };
 
+    struct BarteronOffersComplexDealDto
+    {
+        Pagination Page;
+        int64_t MyTag = 0;
+        vector<int64_t> TheirTags;
+        vector<string> ExcludeAddresses;
+    };
+
     class BarteronRepository : public BaseRepository
     {
     public:
@@ -52,7 +60,7 @@ namespace PocketDb
         vector<string> GetAccountOffersIds(const string& address);
         vector<string> GetFeed(const BarteronOffersFeedDto& args);
         vector<string> GetDeals(const BarteronOffersDealDto& args);
-
+        map<string, vector<string>> GetComplexDeal(const BarteronOffersComplexDealDto& args);
     };
 
     typedef std::shared_ptr<BarteronRepository> BarteronRepositoryRef;

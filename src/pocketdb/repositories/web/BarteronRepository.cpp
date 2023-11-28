@@ -341,4 +341,62 @@ namespace PocketDb
         return result;
     }
 
+    map<string, vector<string>> BarteronRepository::GetComplexDeal(const BarteronOffersComplexDealDto& args)
+    {
+        map<string, vector<string>> result;
+        SqlTransaction(
+            __func__,
+            [&]() {
+                return Sql(
+                    R"sql(
+                        select
+                            (select r.String from Registry r where r.RowId = tx1.RowId),
+                            (select r.String from Registry r where r.RowId = tx2.RowId)
+                        from
+                            BarteronOffers o1
+                            cross join BarteronOfferTags t1 on
+                                t1.OfferId = o1.OfferId
+
+                            cross join BarteronOffers o2 on
+                                o2.Tag = t1.Tag
+                            cross join BarteronOfferTags t2 on
+                                t2.OfferId = o2.OfferId and
+                                t2.Tag = ?
+
+                            cross join Chain c1 on
+                                c1.Uid = o1.OfferId
+                            cross join Transactions tx1 on
+                                tx1.RowId = c1.TxId and
+                                (? or tx1.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
+
+                            cross join Chain c2 on
+                                c2.Uid = o2.OfferId
+                            cross join Transactions tx2 on
+                                tx2.RowId = c2.TxId and
+                                (? or tx2.RegId2 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
+                        where
+                            o1.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( )
+                    )sql"
+                )
+                .Bind(
+                    args.MyTag,
+                    args.ExcludeAddresses.empty(),
+                    args.ExcludeAddresses,
+                    args.ExcludeAddresses.empty(),
+                    args.ExcludeAddresses,
+                    args.TheirTags
+                )
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        string target, intermediate;
+                        if (cursor.CollectAll(target, intermediate)) {
+                            result[target].emplace_back(intermediate);
+                        }
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
 }

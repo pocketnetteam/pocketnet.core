@@ -18,7 +18,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetBarteronFeed();
     RPCHelpMan GetBarteronDeals();
     RPCHelpMan GetBarteronOffersDetails();
-
+    RPCHelpMan GetBarteronComplexDeals();
 }
 
 #endif //SRC_BARTERON_RPC_H
