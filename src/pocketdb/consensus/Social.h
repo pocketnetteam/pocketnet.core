@@ -40,7 +40,6 @@ namespace PocketConsensus
         {
             Result(ConsensusResult_NotRegistered, [&]()
             {
-                // TODO (aok): optimize algorithm
                 // Account must be registered
                 vector<string> addressesForCheck;
                 vector<string> addresses = GetAddressesForCheckRegistration(ptx);
@@ -77,14 +76,24 @@ namespace PocketConsensus
                 // Check registrations in DB
                 return (!addressesForCheck.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck));
             });
-            if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
+            if (ResultCode != ConsensusResult_Success) return {false, ResultCode};
 
-            // // Check active account ban
+            // Check active account ban
             Result(ConsensusResult_AccountBanned, [&]()
             {
+                // This code disables the prohibition of transactions for accounts banned by the moderation system.
+                if (Params().NetworkID() == NetworkId::NetworkMain && Height >= 2583000)
+                    return false;
+
+                if (Params().NetworkID() == NetworkId::NetworkTest && Height >= 2280000)
+                    return false;
+
+                if (Params().NetworkID() == NetworkId::NetworkRegTest)
+                    return false;
+                    
                 return PocketDb::ConsensusRepoInst.ExistsAccountBan(*ptx->GetString1(), Height);
             });
-            if (ResultCode != ConsensusResult_Success) return {false, ResultCode}; // TODO (aok): remove when all consensus classes support Result
+            if (ResultCode != ConsensusResult_Success) return {false, ResultCode};
 
             // Check limits
             if (block)
@@ -138,7 +147,6 @@ namespace PocketConsensus
         }
         
         // Get addresses from transaction for check registration
-        // TODO (aok): remove after all consensus classes realized check registration and ban
         virtual vector<string> GetAddressesForCheckRegistration(const TRef& ptx)
         {
             return { *ptx->GetAddress() };

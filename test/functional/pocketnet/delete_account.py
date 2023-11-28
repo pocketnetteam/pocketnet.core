@@ -289,8 +289,13 @@ class AccountDeleteTest(PocketcoinTestFramework):
             accounts[0],
             UnsubscribePayload(accounts[1].Address),
         )
-        # TODO : fix
-        # assert_raises_rpc_error(ConsensusResult.NotRegistered, None, pubGenTx, accounts[0], BlockingPayload(accounts[1].Address))
+        assert_raises_rpc_error(
+            ConsensusResult.NotRegistered,
+            None,
+            pubGenTx,
+            accounts[0],
+            BlockingPayload(accounts[1].Address)
+        )
         assert_raises_rpc_error(
             ConsensusResult.NotRegistered,
             None,
@@ -353,17 +358,12 @@ class AccountDeleteTest(PocketcoinTestFramework):
             accounts[5],
             SubscribePrivatePayload(accounts[0].Address),
         )
-        assert_raises_rpc_error(
-            ConsensusResult.NotRegistered,
-            None,
-            pubGenTx,
+        # Now unsubscribe deleted accounts allowed
+        pubGenTx(
             accounts[1],
             UnsubscribePayload(accounts[0].Address),
         )
-        assert_raises_rpc_error(
-            ConsensusResult.NotRegistered,
-            None,
-            pubGenTx,
+        pubGenTx(
             accounts[2],
             UnsubscribePayload(accounts[0].Address),
         )
@@ -375,10 +375,9 @@ class AccountDeleteTest(PocketcoinTestFramework):
             accounts[1],
             BlockingPayload(accounts[0].Address),
         )
-        assert_raises_rpc_error(
-            ConsensusResult.NotRegistered,
-            None,
-            pubGenTx,
+
+        # Now unblocking deleted accounts allowed
+        pubGenTx(
             accounts[3],
             UnblockingPayload(accounts[0].Address),
         )

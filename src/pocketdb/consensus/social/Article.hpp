@@ -237,7 +237,7 @@ namespace PocketConsensus
         ArticleConsensusFactory()
         {
             Checkpoint({       0,       0, -1, make_shared<ArticleConsensus>() });
-            Checkpoint({ 2552000, 2280000,  0, make_shared<ArticleConsensus_checkpoint_tmp_fix>() });
+            Checkpoint({ 2583000, 2280000,  0, make_shared<ArticleConsensus_checkpoint_tmp_fix>() });
         }
     };
 

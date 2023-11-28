@@ -340,7 +340,7 @@ namespace PocketConsensus
             Checkpoint({ 1124000,      -1, -1, make_shared<PostConsensus_checkpoint_1124000>() });
             Checkpoint({ 1180000,       0, -1, make_shared<PostConsensus_checkpoint_1180000>() });
             Checkpoint({ 1757000,  953000, -1, make_shared<PostConsensus_checkpoint_disable_for_blocked>() });
-            Checkpoint({ 2552000, 2280000,  0, make_shared<PostConsensus_checkpoint_tmp_fix>() });
+            Checkpoint({ 2583000, 2280000,  0, make_shared<PostConsensus_checkpoint_tmp_fix>() });
         }
     };
 

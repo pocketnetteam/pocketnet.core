@@ -187,10 +187,10 @@ class ModerationJuryTest(PocketcoinTestFramework):
         assert node.public().getbans(jury1["account"].Address)[0]["ending"] == 1176
 
         # ---------------------------------------------------------------------------------
-        self.log.info("Test 5 - banned account can not create pocketnet transactions")
-        assert_raises_rpc_error(68, None, pubGenTx, jury1["account"], AccountPayload(jury1["account"].Name))
-        assert_raises_rpc_error(68, None, pubGenTx, jury1["account"], ContentPostPayload())
-
+        self.log.info("Test 5 - banned account can create pocketnet transactions")
+        pubGenTx(jury1["account"], AccountPayload(jury1["account"].Name))
+        pubGenTx(jury1["account"], ContentPostPayload())
+        node.stakeblock(1)
 
 if __name__ == "__main__":
     ModerationJuryTest().main()

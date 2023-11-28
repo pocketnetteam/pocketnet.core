@@ -56,7 +56,7 @@ class ContentDeleteTest(PocketcoinTestFramework):
             None,
             pubGenTx,
             accounts[0],
-            editPost(),
+            editPost
         )
 
         node.stakeblock(1)

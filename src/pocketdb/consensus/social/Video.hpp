@@ -244,7 +244,7 @@ namespace PocketConsensus
         VideoConsensusFactory()
         {
             Checkpoint({       0,       0, -1, make_shared<VideoConsensus>() });
-            Checkpoint({ 2552000, 2280000,  0, make_shared<VideoConsensus_checkpoint_tmp_fix>() });
+            Checkpoint({ 2583000, 2280000,  0, make_shared<VideoConsensus_checkpoint_tmp_fix>() });
         }
     };
 

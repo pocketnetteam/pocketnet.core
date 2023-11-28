@@ -254,8 +254,7 @@ namespace PocketDb
                             result.pushKV(to_string(part), count);
                     }
                 });
-            },
-            true
+            }
         );
 
         return result;

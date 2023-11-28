@@ -241,6 +241,11 @@ namespace PocketConsensus
                 // Check count of content ids
                 if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
                    return {false, ConsensusResult_Failed};
+
+                // Contents should be exists in chain
+                int count = PocketDb::ConsensusRepoInst.GetLastContentsCount(contentIds, { PocketTx::TxType(*ptx->GetContentTypes()) });
+                if((size_t)count != contentIds.size())
+                    return {false, ConsensusResult_Failed};
             }
             else
             {
@@ -261,7 +266,7 @@ namespace PocketConsensus
         CollectionConsensusFactory()
         {
             Checkpoint({ 2162400, 1531000, 0, make_shared<CollectionConsensus>() });
-            Checkpoint({ 2552000, 2280000, 0, make_shared<CollectionConsensus_checkpoint_tmp_fix>() });
+            Checkpoint({ 2583000, 2280000, 0, make_shared<CollectionConsensus_checkpoint_tmp_fix>() });
         }
     };
 
