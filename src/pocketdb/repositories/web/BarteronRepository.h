@@ -48,6 +48,7 @@ namespace PocketDb
         int64_t MyTag = 0;
         vector<int64_t> TheirTags;
         vector<string> ExcludeAddresses;
+        string Location;
     };
 
     class BarteronRepository : public BaseRepository

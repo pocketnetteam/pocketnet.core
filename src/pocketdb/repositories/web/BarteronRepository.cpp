@@ -349,11 +349,17 @@ namespace PocketDb
             [&]() {
                 return Sql(
                     R"sql(
+                        with
+                            loc as (
+                                select ? as value
+                            )
                         select
                             (select r.String from Registry r where r.RowId = tx1.RowId),
                             (select r.String from Registry r where r.RowId = tx2.RowId)
                         from
-                            BarteronOffers o1
+                            loc
+                            cross join BarteronOffers o1 on
+                                o1.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( )
                             cross join BarteronOfferTags t1 on
                                 t1.OfferId = o1.OfferId
 
@@ -368,23 +374,29 @@ namespace PocketDb
                             cross join Transactions tx1 on
                                 tx1.RowId = c1.TxId and
                                 (? or tx1.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
+                            cross join Payload p1 on
+                                p1.TxId = c1.TxId
 
                             cross join Chain c2 on
                                 c2.Uid = o2.OfferId
                             cross join Transactions tx2 on
                                 tx2.RowId = c2.TxId and
                                 (? or tx2.RegId2 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
+                            cross join Payload p2 on
+                                p2.TxId = c2.TxId
                         where
-                            o1.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( )
+                            (? or (p1.String6 like loc.value and p2.String6 like loc.value))
                     )sql"
                 )
                 .Bind(
+                    args.Location,
+                    args.TheirTags,
                     args.MyTag,
                     args.ExcludeAddresses.empty(),
                     args.ExcludeAddresses,
                     args.ExcludeAddresses.empty(),
                     args.ExcludeAddresses,
-                    args.TheirTags
+                    !args.Location.empty()
                 )
                 .Select([&](Cursor& cursor) {
                     while (cursor.Step()) {
