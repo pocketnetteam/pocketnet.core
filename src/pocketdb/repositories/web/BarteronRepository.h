@@ -40,6 +40,7 @@ namespace PocketDb
     struct BarteronAccountAdditionalInfo
     {
         int64_t RegDate;
+        int Rating;
     };
 
     struct BarteronOffersComplexDealDto

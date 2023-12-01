@@ -61,33 +61,60 @@ namespace PocketDb
                 data as (
                     select
                         t.Hash as txid,
-                        c.Uid as uid
+                        c.Uid as uid,
+                        t.RegId1 as addrid
                     from
                         vTx t
                         cross join Chain c on
                             c.TxId = t.RowId
                     where
                         t.Hash in ( )sql" + join(vector<string>(txids.size(), "?"), ",") + R"sql( )
+                ),
+                regdate as (
+                    select
+                        t.Time as val
+                    from
+                        data
+                        cross join Chain c indexed by Chain_Uid_Height on
+                            c.Uid = data.uid
+                        cross join First f on
+                            f.TxId = c.TxId
+                        cross join Transactions t on
+                            t.RowId = c.TxId
+                ),
+                rating as (
+                    select
+                        cast (ifnull(avg(s.Int1), 0) * 10 as integer) as val
+                    from
+                        data,
+                        Transactions o indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                            s.Type = 300 and
+                            s.RegId2 = o.RegId2 and
+                            s.RegId1 != addrid
+                        cross join Chain c on -- chain only
+                            c.TxId = s.RowId
+                    where
+                        o.Type = 211 and
+                        o.RegId1 = addrid
                 )
                 select
                     data.txid,
-                    t.Time
+                    regdate.val,
+                    rating.val
                 from
-                    data
-                    cross join Chain c on
-                        c.Uid = data.uid
-                    cross join First f on
-                        f.TxId = c.TxId
-                    cross join Transactions t on
-                        t.RowId = c.TxId
+                    data,
+                    regdate,
+                    rating
             )sql")
             .Bind(txids)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step()) {
                     string txid;
                     int64_t regdate;
-                    if (cursor.CollectAll(txid, regdate)) {
-                        result.insert({std::move(txid), {regdate}});
+                    int rating;
+                    if (cursor.CollectAll(txid, regdate, rating)) {
+                        result.insert({std::move(txid), {regdate, rating}});
                     }
                 }
             });

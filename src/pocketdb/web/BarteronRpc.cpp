@@ -21,6 +21,7 @@ namespace PocketWeb::PocketWebRpc
             if (auto itr = additionalData.find(*tx->GetHash()); itr != additionalData.end()) {
                 UniValue addData(UniValue::VOBJ);
                 addData.pushKV("regdate", itr->second.RegDate);
+                addData.pushKV("rating", itr->second.Rating);
                 txData.pushKV("additional", addData);
             }
             result.push_back(txData);
