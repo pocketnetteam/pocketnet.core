@@ -379,6 +379,9 @@ namespace PocketDb
                         with
                             loc as (
                                 select ? as value
+                            ),
+                            mytag as (
+                                select ? as value
                             )
                         select
                             (select r.String from Registry r where r.RowId = tx1.RowId),
@@ -386,7 +389,8 @@ namespace PocketDb
                         from
                             loc
                             cross join BarteronOffers o1 on
-                                o1.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( )
+                                o1.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( ) and
+                                not exists (select 1 from BarteronOfferTags tt where tt.OfferId = o1.OfferId and tt.Tag = mytag.value)
                             cross join BarteronOfferTags t1 on
                                 t1.OfferId = o1.OfferId
 
@@ -394,7 +398,7 @@ namespace PocketDb
                                 o2.Tag = t1.Tag
                             cross join BarteronOfferTags t2 on
                                 t2.OfferId = o2.OfferId and
-                                t2.Tag = ?
+                                t2.Tag = mytag.value
 
                             cross join Chain c1 on
                                 c1.Uid = o1.OfferId
@@ -417,8 +421,8 @@ namespace PocketDb
                 )
                 .Bind(
                     args.Location,
-                    args.TheirTags,
                     args.MyTag,
+                    args.TheirTags,
                     args.ExcludeAddresses.empty(),
                     args.ExcludeAddresses,
                     args.ExcludeAddresses.empty(),
