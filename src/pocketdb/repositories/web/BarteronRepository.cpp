@@ -387,7 +387,8 @@ namespace PocketDb
                             (select r.String from Registry r where r.RowId = tx1.RowId),
                             (select r.String from Registry r where r.RowId = tx2.RowId)
                         from
-                            loc
+                            loc,
+                            mytag
                             cross join BarteronOffers o1 on
                                 o1.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( ) and
                                 not exists (select 1 from BarteronOfferTags tt where tt.OfferId = o1.OfferId and tt.Tag = mytag.value)
