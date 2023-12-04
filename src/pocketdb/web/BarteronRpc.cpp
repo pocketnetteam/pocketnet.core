@@ -368,6 +368,9 @@ namespace PocketWeb::PocketWebRpc
                     for (int i = 0; i < arg.size(); i++)
                         args.ExcludeAddresses.emplace_back(arg[i].get_str());
 
+                if (auto arg = _args.At("location", true); arg.isStr())
+                        args.Location = arg.get_str();
+
                 if (args.MyTag == 0 || args.TheirTags.empty()) {
                     // TODO (losty): error
                 }
