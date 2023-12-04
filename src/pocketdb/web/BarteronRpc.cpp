@@ -336,8 +336,8 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetBarteronComplexDeals()
     {
-        return RPCHelpMan{"getbarterondeals",
-            "\nGet barteron offers feed.\n",
+        return RPCHelpMan{"getbarteroncomplexdeals",
+            "\nGet barteron complex (3-side deals).\n",
             {
                 { "request", RPCArg::Type::STR, RPCArg::Optional::NO, "JSON object for filter offers" },
             },
@@ -345,8 +345,8 @@ namespace PocketWeb::PocketWebRpc
                 { RPCResult::Type::STR_HEX, "hash", "Tx hash" },
             }},
             RPCExamples{
-                HelpExampleCli("getbarterondeals", "request") +
-                HelpExampleRpc("getbarterondeals", "request")
+                HelpExampleCli("getbarteroncomplexdeals", "request") +
+                HelpExampleRpc("getbarteroncomplexdeals", "request")
             },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
