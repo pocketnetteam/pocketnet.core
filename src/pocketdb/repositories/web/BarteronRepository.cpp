@@ -413,7 +413,7 @@ namespace PocketDb
                                 c2.Uid = o2.OfferId
                             cross join Transactions tx2 on
                                 tx2.RowId = c2.TxId and
-                                (? or tx2.RegId2 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
+                                (? or tx2.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
                             cross join Payload p2 on
                                 p2.TxId = c2.TxId
                         where
