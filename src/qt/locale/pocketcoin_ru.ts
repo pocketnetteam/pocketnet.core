@@ -4102,5 +4102,54 @@ Go to File &gt; Open Wallet to load a wallet.
         <source>Done loading</source>
         <translation>Загрузка завершена</translation>
     </message>
+    <message>
+        <source>Migration: Fulfilling Registry (1 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы Registry (1 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling Chain (2 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы Chain (2 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling Lists (3 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы Lists (3 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling Last (4 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы Last (4 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling First(5 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы First (5 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling Transactions (6 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы Transactions (6 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling TxOutputs (7 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы TxOutputs (7 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling TxInputs (8 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы TxInputs (8 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling Balances (9 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы Balances (9 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling Ratings (10 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы Ratings (10 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling Payload (11 of 12)...</source>
+        <translation>Миграция: Заполнение таблицы Payload (11 из 12)...</translation>
+    </message>
+    <message>
+        <source>Migration: Fulfilling other tables (BlockingLists, Jury, Badgets) (12 of 12)...</source>
+        <translation>Миграция: Заполнение вспомогательных таблиц (12 из 12)...</translation>
+    </message>
+
 </context>
 </TS>
