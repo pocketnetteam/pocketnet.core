@@ -187,73 +187,73 @@ namespace PocketDb
         SqlTransaction(__func__, [&]()
         {
             auto t1 = GetSystemTimeInSeconds();
-            uiInterface.InitMessage("Migration: Fulfilling Registry (1 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling Registry (1 of 12)...").translated);
 
             FulfillRegistry();
 
             auto t2 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t2 - t1);
-            uiInterface.InitMessage("Migration: Fulfilling Chain (2 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling Chain (2 of 12)...").translated);
 
             FulfillChain();
 
             auto t3 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t3 - t2);
-            uiInterface.InitMessage("Migration: Fulfilling Lists (3 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling Lists (3 of 12)...").translated);
 
             FulfillLists();
 
             auto t4 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t4 - t3);
-            uiInterface.InitMessage("Migration: Fulfilling Last (4 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling Last (4 of 12)...").translated);
 
             FulfillLast();
 
             auto t5 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t5 - t4);
-            uiInterface.InitMessage("Migration: Fulfilling First(5 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling First(5 of 12)...").translated);
 
             FulfillFirst();
 
             auto t6 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t6 - t5);
-            uiInterface.InitMessage("Migration: Fulfilling Transactions (6 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling Transactions (6 of 12)...").translated);
 
             FulfillTransactions();
 
             auto t7 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t7 - t6);
-            uiInterface.InitMessage("Migration: Fulfilling TxOutputs (7 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling TxOutputs (7 of 12)...").translated);
 
             FulfillTxOutputs();
 
             auto t8 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t8 - t7);
-            uiInterface.InitMessage("Migration: Fulfilling TxInputs (8 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling TxInputs (8 of 12)...").translated);
 
             FulfillTxInputs();
 
             auto t9 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t9 - t8);
-            uiInterface.InitMessage("Migration: Fulfilling Balances (9 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling Balances (9 of 12)...").translated);
 
             FulfillBalances();
 
             auto t10 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t10 - t9);
-            uiInterface.InitMessage("Migration: Fulfilling Ratings (10 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling Ratings (10 of 12)...").translated);
 
             FulfillRatings();
 
             auto t11 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t11 - t10);
-            uiInterface.InitMessage("Migration: Fulfilling Payload (11 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling Payload (11 of 12)...").translated);
 
             FulfillPayload();
 
             auto t12 = GetSystemTimeInSeconds();
             LogPrintf("took %i seconds\n", t12 - t11);
-            uiInterface.InitMessage("Migration: Fulfilling other tables (BlockingLists, Jury, Badgets) (12 of 12)...");
+            uiInterface.InitMessage(_("Migration: Fulfilling other tables (BlockingLists, Jury, Badgets) (12 of 12)...").translated);
 
             FulfillOthers();
 
