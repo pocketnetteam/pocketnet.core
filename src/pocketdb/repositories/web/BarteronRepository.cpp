@@ -423,7 +423,7 @@ namespace PocketDb
                     args.ExcludeAddresses,
                     args.ExcludeAddresses.empty(),
                     args.ExcludeAddresses,
-                    !args.Location.empty()
+                    args.Location.empty()
                 )
                 .Select([&](Cursor& cursor) {
                     while (cursor.Step()) {
