@@ -6,7 +6,6 @@
 #define SRC_POCKETACCOUNTRPC_H
 
 #include "rpc/server.h"
-// #include "rpc/rawtransaction.h"
 #include "pocketdb/web/WebRpcUtils.h"
 #include "pocketdb/consensus/Reputation.h"
 

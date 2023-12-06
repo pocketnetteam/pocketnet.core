@@ -917,10 +917,7 @@ static bool get_static_web(const util::Ref& context, HTTPRequest* req, const std
     return RESTERR(req, HTTP_NOT_FOUND, "");
 }
 
-
-
-static bool rest_blockhash_by_height(const util::Ref& context, HTTPRequest* req,
-                       const std::string& str_uri_part)
+static bool rest_blockhash_by_height(const util::Ref& context, HTTPRequest* req, const std::string& str_uri_part)
 {
     if (!CheckWarmup(req)) return false;
     std::string height_str;
@@ -940,28 +937,55 @@ static bool rest_blockhash_by_height(const util::Ref& context, HTTPRequest* req,
         pblockindex = ::ChainActive()[blockheight];
     }
     switch (rf) {
-    case RetFormat::BINARY: {
-        CDataStream ss_blockhash(SER_NETWORK, PROTOCOL_VERSION);
-        ss_blockhash << pblockindex->GetBlockHash();
-        req->WriteHeader("Content-Type", "application/octet-stream");
-        req->WriteReply(HTTP_OK, ss_blockhash.str());
-        return true;
+        case RetFormat::BINARY: {
+            CDataStream ss_blockhash(SER_NETWORK, PROTOCOL_VERSION);
+            ss_blockhash << pblockindex->GetBlockHash();
+            req->WriteHeader("Content-Type", "application/octet-stream");
+            req->WriteReply(HTTP_OK, ss_blockhash.str());
+            return true;
+        }
+        case RetFormat::HEX: {
+            req->WriteHeader("Content-Type", "text/plain");
+            req->WriteReply(HTTP_OK, pblockindex->GetBlockHash().GetHex() + "\n");
+            return true;
+        }
+        case RetFormat::JSON: {
+            req->WriteHeader("Content-Type", "application/json");
+            UniValue resp = UniValue(UniValue::VOBJ);
+            resp.pushKV("blockhash", pblockindex->GetBlockHash().GetHex());
+            req->WriteReply(HTTP_OK, resp.write() + "\n");
+            return true;
+        }
+        default: {
+            return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: " + AvailableDataFormatsString() + ")");
+        }
     }
-    case RetFormat::HEX: {
-        req->WriteHeader("Content-Type", "text/plain");
-        req->WriteReply(HTTP_OK, pblockindex->GetBlockHash().GetHex() + "\n");
-        return true;
+}
+
+static bool rest_topaddresses(const util::Ref& context, HTTPRequest* req, const std::string& str_uri_part)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    std::string count_str;
+    const RetFormat rf = ParseDataFormat(count_str, str_uri_part);
+    boost::replace_all(count_str, "/", "");
+
+    int32_t count = -1; // Initialization done only to prevent valgrind false positive, see https://github.com/bitcoin/bitcoin/pull/18785
+    if (!ParseInt32(count_str, &count) || count < 0 || count > 1000) {
+        return RESTERR(req, HTTP_BAD_REQUEST, "Invalid count: " + SanitizeString(count_str));
     }
-    case RetFormat::JSON: {
-        req->WriteHeader("Content-Type", "application/json");
-        UniValue resp = UniValue(UniValue::VOBJ);
-        resp.pushKV("blockhash", pblockindex->GetBlockHash().GetHex());
-        req->WriteReply(HTTP_OK, resp.write() + "\n");
-        return true;
-    }
-    default: {
-        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: " + AvailableDataFormatsString() + ")");
-    }
+
+    switch (rf) {
+        case RetFormat::JSON: {
+            req->WriteHeader("Content-Type", "application/json");
+            auto resp = req->DbConnection()->WebRpcRepoInst->GetTopAddresses(count);
+            req->WriteReply(HTTP_OK, resp.write() + "\n");
+            return true;
+        }
+        default: {
+            return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: " + AvailableDataFormatsString() + ")");
+        }
     }
 }
 
@@ -982,6 +1006,7 @@ static const struct
     {"/rest/blockhashbyheight/", rest_blockhash_by_height},
     {"/rest/blockhash",          rest_blockhash},
     {"/rest/emission",           rest_emission},
+    {"/rest/topaddresses",       rest_topaddresses},
 };
 
 void StartREST(const util::Ref& context)
