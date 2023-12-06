@@ -75,10 +75,9 @@ namespace PocketWeb::PocketWebRpc
 
         // Private subscribers news
         auto privateSubscribes = request.DbConnection()->WebRpcRepoInst->GetSubscribesAddresses({ address }, { ACTION_SUBSCRIBE_PRIVATE });
-        UniValue subs = privateSubscribes[address];
-        for (size_t i = 0; i < subs.size(); i++)
+        for (size_t i = 0; i < privateSubscribes.size(); i++)
         {
-            UniValue sub = subs[i];
+            UniValue sub = privateSubscribes[i];
             string subAddress = sub["adddress"].get_str();
             if (auto[subCount, subData] = request.DbConnection()->WebRpcRepoInst->GetLastAddressContent(subAddress, blockNumber, 1); subCount > 0)
             {
