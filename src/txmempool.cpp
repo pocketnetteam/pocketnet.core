@@ -1081,9 +1081,10 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     AssertLockHeld(cs);
     indexed_transaction_set::index<entry_time>::type::iterator it = mapTx.get<entry_time>().begin();
     setEntries toremove;
-    while (it != mapTx.get<entry_time>().end() && it->GetTime() < time)
-    {
-        toremove.insert(mapTx.project<0>(it));
+    while (it != mapTx.get<entry_time>().end() && it->GetTime() < time) {
+        if (it->GetTx().nLockTime == 0) {
+            toremove.insert(mapTx.project<0>(it));
+        }
         it++;
     }
 

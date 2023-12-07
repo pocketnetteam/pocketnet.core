@@ -237,6 +237,11 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[7].isNum())
             confirmations = request.params[7].get_int64();
 
+        UniValue locktime(UniValue::VNUM);
+        locktime = NullUniValue;
+        if (request.params[8].isNum())
+            locktime = request.params[8];
+
         // Build template for transaction
         shared_ptr<Transaction> _ptx = PocketHelpers::TransactionHelper::CreateInstance(txType);
         if (!_ptx) throw JSONRPCError(RPC_PARSE_ERROR, "Failed create pocketnet transaction payload");
@@ -286,7 +291,7 @@ namespace PocketWeb::PocketWebRpc
         auto _opReturn = CScript() << OP_RETURN << ParseHex(txTypeHex) << ParseHex(_ptx->BuildHash());
         if (contentAddressValue != "") _opReturn = _opReturn << ParseHex(HexStr(contentAddressValue));
         CTxOut _dataOut(0, _opReturn);
-        CMutableTransaction mTx = ConstructPocketnetTransaction(_inputs, _dataOut, _outputs, NullUniValue, NullUniValue);
+        CMutableTransaction mTx = ConstructPocketnetTransaction(_inputs, _dataOut, _outputs, locktime, NullUniValue);
 
         // Decode private keys
         FillableSigningProvider keystore; // TODO (losty-critical): CBasicKeyStore removed.

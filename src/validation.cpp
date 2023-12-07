@@ -633,7 +633,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     if (!CheckFinalTx(tx, STANDARD_LOCKTIME_VERIFY_FLAGS))
     {
         TxType txType = TransactionHelper::ParseType(ptx);
-        if(!TransactionHelper::IsIn(txType, vector<TxType>{TxType::CONTENT_POST, TxType::CONTENT_VIDEO, TxType::CONTENT_ARTICLE, TxType::CONTENT_STREAM, TxType::CONTENT_AUDIO}))
+        if(!TransactionHelper::IsIn(txType, vector<TxType>{TxType::CONTENT_POST, TxType::CONTENT_VIDEO, TxType::CONTENT_ARTICLE, TxType::CONTENT_STREAM, TxType::CONTENT_AUDIO, TxType::CONTENT_COLLECTION, TxType::BOOST_CONTENT}))
             return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "non-final");
     }
 
@@ -5627,36 +5627,36 @@ bool LoadMempool(CTxMemPool& pool)
                 pool.PrioritiseTransaction(tx->GetHash(), amountdelta);
             }
             TxValidationState state;
-            if (nTime > nNow - nExpiryTimeout) {
-                std::shared_ptr<Transaction> pocketTx;
-                if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx))
-                    state.Invalid(TxValidationResult::TX_POCKET_SQLITE, "not found in sqlite db");
-                
-                if (state.IsValid()) {
-                    LOCK(cs_main);
-                    AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pocketTx, nTime,
-                                               nullptr /* plTxnReplaced */, false /* bypass_limits */,
-                                               false /* test_accept */);
-                }
+            if (tx->nLockTime == 0) {
+                if (nTime > nNow - nExpiryTimeout) {
+                    std::shared_ptr<Transaction> pocketTx;
+                    if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx))
+                        state.Invalid(TxValidationResult::TX_POCKET_SQLITE, "not found in sqlite db");
 
-                if (state.IsValid()) {
-                    ++count;
-                } else {
-                    // mempool may contain the transaction already, e.g. from
-                    // wallet(s) having loaded it while we were processing
-                    // mempool transactions; consider these as valid, instead of
-                    // failed, but mark them as 'already there'
-                    if (pool.exists(tx->GetHash())) {
-                        ++already_there;
-                    } else {
-                        ++failed;
-                        expiredHashes.emplace(tx->GetHash().GetHex());
+                    if (state.IsValid()) {
+                        LOCK(cs_main);
+                        AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pocketTx, nTime,
+                                                   nullptr /* plTxnReplaced */, false /* bypass_limits */,
+                                                   false /* test_accept */);
                     }
+
+                    if (state.IsValid()) {
+                        ++count;
+                    } else {
+                        // mempool may contain the transaction already, e.g. from
+                        // wallet(s) having loaded it while we were processing
+                        // mempool transactions; consider these as valid, instead of
+                        // failed, but mark them as 'already there'
+                        if (pool.exists(tx->GetHash())) {
+                            ++already_there;
+                        } else {
+                            ++failed;
+                            expiredHashes.emplace(tx->GetHash().GetHex());
+                        }
+                    }
+                } else {
+                    expiredHashes.emplace(tx->GetHash().GetHex());
                 }
-            }
-            else
-            {
-                expiredHashes.emplace(tx->GetHash().GetHex());
             }
             if (ShutdownRequested())
                 return false;
