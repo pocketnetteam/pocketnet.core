@@ -327,7 +327,7 @@ namespace PocketDb
 
                     where
                         ( ? or po2.Int1 <= price.value ) and
-                        ( ? or po2.String6 like loc.value) and -- TODO (losty): maybe use: 'substr(po2.String6, 1, loc.size()) = loc' instead if 'like' ???
+                        ( ? or po2.String6 is null or po2.String6 like loc.value) and -- TODO (losty): maybe use: 'substr(po2.String6, 1, loc.size()) = loc' instead if 'like' ???
                         ( ? or ru2.String in ( )sql" + join(vector<string>(args.Addresses.size(), "?"), ",") + R"sql( ) ) and
                         ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
                         cu2.Height <= ?
@@ -417,7 +417,7 @@ namespace PocketDb
                             cross join Payload p2 on
                                 p2.TxId = c2.TxId
                         where
-                            (? or (p1.String6 like loc.value and p2.String6 like loc.value))
+                            (? or ((p1.String6 is null or p1.String6 like loc.value) and (p2.String6 is null or p2.String6 like loc.value)))
                     )sql"
                 )
                 .Bind(
