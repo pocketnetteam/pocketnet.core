@@ -5627,36 +5627,46 @@ bool LoadMempool(CTxMemPool& pool)
                 pool.PrioritiseTransaction(tx->GetHash(), amountdelta);
             }
             TxValidationState state;
-            if (tx->nLockTime == 0) {
-                if (nTime > nNow - nExpiryTimeout) {
-                    std::shared_ptr<Transaction> pocketTx;
-                    if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx))
-                        state.Invalid(TxValidationResult::TX_POCKET_SQLITE, "not found in sqlite db");
-
-                    if (state.IsValid()) {
-                        LOCK(cs_main);
-                        AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pocketTx, nTime,
-                                                   nullptr /* plTxnReplaced */, false /* bypass_limits */,
-                                                   false /* test_accept */);
-                    }
-
-                    if (state.IsValid()) {
-                        ++count;
-                    } else {
-                        // mempool may contain the transaction already, e.g. from
-                        // wallet(s) having loaded it while we were processing
-                        // mempool transactions; consider these as valid, instead of
-                        // failed, but mark them as 'already there'
-                        if (pool.exists(tx->GetHash())) {
-                            ++already_there;
-                        } else {
-                            ++failed;
-                            expiredHashes.emplace(tx->GetHash().GetHex());
-                        }
-                    }
-                } else {
-                    expiredHashes.emplace(tx->GetHash().GetHex());
+            int64_t txTime = nTime;
+            if (tx->nLockTime != 0)
+            {
+                if (tx->nLockTime > LOCKTIME_THRESHOLD)
+                {
+                    txTime = tx->nLockTime;
                 }
+                else if (tx->nLockTime > ChainActive().Height())
+                {
+                    txTime = ChainActive().Tip()->nTime + ((tx->nLockTime - ChainActive().Height()) * Params().GetConsensus().nPowTargetSpacing);
+                }
+            }
+            if (txTime > nNow - nExpiryTimeout) {
+                std::shared_ptr<Transaction> pocketTx;
+                if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx))
+                    state.Invalid(TxValidationResult::TX_POCKET_SQLITE, "not found in sqlite db");
+
+                if (state.IsValid()) {
+                    LOCK(cs_main);
+                    AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pocketTx, txTime,
+                                               nullptr /* plTxnReplaced */, false /* bypass_limits */,
+                                               false /* test_accept */);
+                }
+
+                if (state.IsValid()) {
+                    ++count;
+                } else {
+                    // mempool may contain the transaction already, e.g. from
+                    // wallet(s) having loaded it while we were processing
+                    // mempool transactions; consider these as valid, instead of
+                    // failed, but mark them as 'already there'
+                    if (pool.exists(tx->GetHash())) {
+                        ++already_there;
+                    } else {
+                        ++failed;
+                        expiredHashes.emplace(tx->GetHash().GetHex());
+                    }
+                }
+            } else {
+                expiredHashes.emplace(tx->GetHash().GetHex());
             }
             if (ShutdownRequested())
                 return false;
