@@ -282,7 +282,9 @@ namespace PocketDb
                 return Sql(R"sql(
                     with
                     price as (
-                        select ? as value
+                        select
+                            ? as min,
+                            ? as max
                     ),
                     loc as (
                         select ? as value
@@ -326,7 +328,8 @@ namespace PocketDb
                     cross join Payload po2 on po2.TxId = lo2.TxId
 
                     where
-                        ( ? or po2.Int1 <= price.value ) and
+                        ( ? or po2.Int1 >= price.min ) and
+                        ( ? or po2.Int1 <= price.max ) and
                         ( ? or po2.String6 is null or po2.String6 like loc.value) and -- TODO (losty): maybe use: 'substr(po2.String6, 1, loc.size()) = loc' instead if 'like' ???
                         ( ? or ru2.String in ( )sql" + join(vector<string>(args.Addresses.size(), "?"), ",") + R"sql( ) ) and
                         ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
@@ -337,13 +340,15 @@ namespace PocketDb
                     limit ? offset ?
                 )sql")
                 .Bind(
-                    args.Price,
+                    args.PriceMin,
+                    args.PriceMax,
                     args.Location,
                     args.TheirTags.empty(),
                     args.TheirTags,
                     args.MyTags.empty(),
                     args.MyTags,
-                    (args.Price < 0),
+                    (args.PriceMin < 0),
+                    (args.PriceMax < 0),
                     args.Location.empty(),
                     args.Addresses.empty(),
                     args.Addresses,

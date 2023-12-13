@@ -227,8 +227,11 @@ namespace PocketWeb::PocketWebRpc
                     for (int i = 0; i < arg.size(); i++)
                         args.ExcludeAddresses.emplace_back(arg[i].get_str());
 
-                if (auto arg = _args.At("price", true); arg.isNum())
-                    args.Price = arg.get_int();
+                if (auto arg = _args.At("pricemin", true); arg.isNum())
+                    args.PriceMin = arg.get_int();
+
+                if (auto arg = _args.At("pricemax", true); arg.isNum())
+                    args.PriceMax = arg.get_int();
             }
 
             auto hashes = request.DbConnection()->BarteronRepoInst->GetDeals(args);

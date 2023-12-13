@@ -34,7 +34,8 @@ namespace PocketDb
         vector<string> Addresses;
         vector<string> ExcludeAddresses;
         string Location = "";
-        int Price = -1;
+        int PriceMin = -1;
+        int PriceMax = -1;
     };
 
     struct BarteronAccountAdditionalInfo
