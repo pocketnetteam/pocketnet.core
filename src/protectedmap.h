@@ -10,25 +10,37 @@ template<class Key, class Value>
 class ProtectedMap
 {
 public:
-    auto insert_or_assign(const Key& key, const Value& value)
+    bool insert_or_assign(const Key& key, const Value& value)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_map.insert_or_assign(key, value);
+        return m_map.insert_or_assign(key, value).second;
     }
 
-    auto insert_or_assign(const Key& key, Value&& value)
+    bool insert_or_assign(const Key& key, Value&& value)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_map.insert_or_assign(key, std::forward<Value>(value));
+        return m_map.insert_or_assign(key, std::forward<Value>(value)).second;
     }
 
-    auto erase(const Key& key)
+    bool insert(const Key& key, Value&& value)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        return m_map.erase(key);
+        return m_map.insert({key, std::forward<Value>(value)}).second;
+    }
+    
+    bool insert(const Key& key, const Value& value)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_map.insert({key, value}).second;
     }
 
-    auto empty()
+    void erase(const Key& key)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_map.erase(key);
+    }
+
+    bool empty()
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_map.empty();
@@ -46,6 +58,30 @@ public:
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_map.size();
+    }
+
+    bool has(const Key& key)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_map.find(key) != m_map.end();
+    }
+
+    bool exec_for_elem(const Key& key, const std::function<void(const Value& value)>& func)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto itr = m_map.find(key);
+        if (itr == m_map.end()) {
+            return false;
+        }
+
+        func(itr->second);
+        return true;
+    }
+
+    void clear()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_map.clear();
     }
 
 protected:

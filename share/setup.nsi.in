@@ -70,12 +70,12 @@ ShowUninstDetails show
 Section -Main SEC0000
     SetOutPath $INSTDIR
     SetOverwrite on
-    File @abs_top_srcdir@/release/@POCKETCOIN_GUI_NAME@@EXEEXT@
+    File @abs_top_builddir@/release/@POCKETCOIN_GUI_NAME@@EXEEXT@
     File /oname=Readme.txt @abs_top_srcdir@/doc/README_windows.txt
     File /oname=LICENSE @abs_top_srcdir@/LICENSE
     SetOutPath $INSTDIR\daemon
-    File @abs_top_srcdir@/release/@POCKETCOIN_DAEMON_NAME@@EXEEXT@
-    File @abs_top_srcdir@/release/@POCKETCOIN_CLI_NAME@@EXEEXT@
+    File @abs_top_builddir@/release/@POCKETCOIN_DAEMON_NAME@@EXEEXT@
+    File @abs_top_builddir@/release/@POCKETCOIN_CLI_NAME@@EXEEXT@
     SetOutPath $INSTDIR
     WriteRegStr HKCU "${REGKEY}" Path $INSTDIR
     WriteRegStr HKCU "${REGKEY}\Components" Main 1

@@ -115,9 +115,11 @@ namespace SimpleWeb {
   public:
     virtual void send(const std::shared_ptr<OutMessage> &out_message, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) = 0;
     virtual void send(string_view out_message_str, const std::function<void(const error_code &)> &callback = nullptr, unsigned char fin_rsv_opcode = 129) = 0;
+    virtual void send_close(int status, const std::string &reason = "", const std::function<void(const error_code &)> &callback = nullptr) = 0;
     virtual std::string remote_endpoint_address() noexcept = 0;
     virtual unsigned short remote_endpoint_port() noexcept = 0;
     virtual std::string ID() = 0;
+    virtual ~IWSConnection() = default;
   };
 
   template <class socket_type>
@@ -336,7 +338,7 @@ namespace SimpleWeb {
         send(out_message, callback, fin_rsv_opcode);
       }
 
-      void send_close(int status, const std::string &reason = "", const std::function<void(const error_code &)> &callback = nullptr) {
+      void send_close(int status, const std::string &reason = "", const std::function<void(const error_code &)> &callback = nullptr) override {
         // Send close only once (in case close is initiated by server)
         if(closed)
           return;
@@ -951,18 +953,5 @@ namespace SimpleWeb {
     }
   };
 } // namespace SimpleWeb
-
-
-// Struct for connecting users
-struct WSUser {
-    std::shared_ptr<SimpleWeb::IWSConnection> Connection;
-    std::string Address;
-    int Block;
-    std::string Ip;
-    bool Service;
-    int MainPort;
-    int WssPort;
-};
-
 
 #endif /* SERVER_WS_HPP */

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "httprpc.h"
 #include <interfaces/node.h>
 
 #include <addrdb.h>
@@ -222,11 +223,15 @@ public:
         req.params = params;
         req.strMethod = command;
         req.URI = uri;
-        return g_socket->m_table_rpc.execute(req);
+        if (g_privateTable)
+            return g_privateTable->execute(req);
+        else {
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "RPC table is not initialized");
+        }
     }
     std::vector<std::string> listRpcCommands() override {
-        if (g_socket)
-            return g_socket->m_table_rpc.listCommands();
+        if (g_privateTable)
+            return g_privateTable->listCommands();
         else
             return vector<string>();;
     }

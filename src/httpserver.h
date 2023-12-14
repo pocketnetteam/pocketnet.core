@@ -21,17 +21,8 @@
 #include "init.h"
 #include "pocketdb/SQLiteConnection.h"
 #include <eventloop.h>
+#include "rpcapi/rpcapi.h"
 
-static const int DEFAULT_HTTP_THREADS = 4;
-static const int DEFAULT_HTTP_POST_THREADS = 4;
-static const int DEFAULT_HTTP_PUBLIC_THREADS = 4;
-static const int DEFAULT_HTTP_STATIC_THREADS = 4;
-static const int DEFAULT_HTTP_REST_THREADS = 4;
-static const int DEFAULT_HTTP_WORKQUEUE = 16;
-static const int DEFAULT_HTTP_POST_WORKQUEUE = 16;
-static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE = 16;
-static const int DEFAULT_HTTP_STATIC_WORKQUEUE = 16;
-static const int DEFAULT_HTTP_REST_WORKQUEUE = 16;
 static const int DEFAULT_HTTP_SERVER_TIMEOUT = 30;
 
 static const bool DEFAULT_API_ENABLE = true;
@@ -47,8 +38,6 @@ class HTTPRequest;
 template<typename WorkItem>
 class WorkQueue;
 
-struct HTTPPathHandler;
-
 namespace util {
 class Ref;
 }
@@ -56,7 +45,7 @@ class Ref;
 /** Initialize HTTP server.
  * Call this before RegisterHTTPHandler or EventBase().
  */
-bool InitHTTPServer(const util::Ref& context);
+bool InitHTTPServer(const util::Ref& context, const std::shared_ptr<IRequestProcessor>& privateHandler, const std::shared_ptr<IRequestProcessor>& webHandler, const std::shared_ptr<IRequestProcessor>& restHandler, const std::shared_ptr<IRequestProcessor>& staticHandler);
 /** Start HTTP server.
  * This is separate from InitHTTPServer to give users race-condition-free time
  * to register their handlers between InitHTTPServer and StartHTTPServer.
@@ -82,11 +71,12 @@ struct event_base* EventBase();
 /** In-flight HTTP request.
  * Thin C++ wrapper around evhttp_request.
  */
-class HTTPRequest
+class HTTPRequest : public IReplier
 {
 private:
     struct evhttp_request* req;
     bool replySent;
+    std::string m_peerStr;
 
     DbConnectionRef dbConnection;
 
@@ -106,9 +96,13 @@ public:
         OPTIONS
     };
 
+    Statistic::RequestTime GetCreated() const override;
+
     /** Get requested URI.
      */
     std::string GetURI() const;
+
+    const std::string& GetPeerStr() const override;
 
     /** Get CService (address:ip) for the origin of the http request.
      */
@@ -137,7 +131,7 @@ public:
      *
      * @note call this before calling WriteErrorReply or Reply.
      */
-    void WriteHeader(const std::string& hdr, const std::string& value);
+    void WriteHeader(const std::string& hdr, const std::string& value) override;
 
     /**
      * Write HTTP reply.
@@ -147,11 +141,9 @@ public:
      * @note Can be called only once. As this will give the request back to the
      * main thread, do not call any other HTTPRequest methods after calling this.
      */
-    void WriteReply(int nStatus, const std::string& strReply = "");
+    void WriteReply(int nStatus, const std::string& strReply = "") override;
 
-    void SetDbConnection(const DbConnectionRef& _dbConnection);
-
-    const DbConnectionRef& DbConnection() const;
+    bool GetAuthCredentials(std::string& out) override;
 };
 
 /** Event handler closure.
@@ -223,29 +215,6 @@ private:
     struct event_base* base;
 };
 
-/** HTTP request work item */
-class HTTPWorkItem final : public HTTPClosure
-{
-public:
-    HTTPWorkItem(std::shared_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
-        req(std::move(_req)), path(_path), func(_func)
-    {
-    }
-
-    void operator()(DbConnectionRef& dbConnection) override
-    {
-        auto jreq = req.get();
-        jreq->SetDbConnection(dbConnection);
-
-        func(jreq, path);
-    }
-
-    std::shared_ptr<HTTPRequest> req;
-
-private:
-    std::string path;
-    HTTPRequestHandler func;
-};
 
 class HTTPSocket
 {
@@ -253,14 +222,10 @@ private:
     struct evhttp* m_http;
     struct evhttp* m_eventHTTP;
     std::vector<evhttp_bound_socket*> m_boundSockets;
-    std::vector<std::shared_ptr<QueueEventLoopThread<std::unique_ptr<HTTPClosure>>>> m_thread_http_workers;
     std::optional<SSLContext> m_sslCtx;
 
-protected:
-    void StartThreads(const std::string name, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection);
-
 public:
-    HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess, bool fUseTls = false);
+    HTTPSocket(struct event_base* base, int timeout, bool publicAccess, bool fUseTls = false);
     ~HTTPSocket();
 
     /** Sets the need to check the request source. For public APIs,
@@ -268,12 +233,10 @@ public:
     bool m_publicAccess;
     
     /** Work queue for handling longer requests off the event loop thread */
-    CRPCTable m_table_rpc;
-    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> m_workQueue;
-    std::vector<HTTPPathHandler> m_pathHandlers;
+    std::shared_ptr<IRequestProcessor> m_requestProcessor;
 
     /** Start worker threads to listen on bound http sockets */
-    void StartHTTPSocket(int threadCount, bool selfDbConnection);
+    void StartHTTPSocket();
     /** Stop worker threads on all bound http sockets */
     void StopHTTPSocket();
 
@@ -287,24 +250,21 @@ public:
      * If multiple handlers match a prefix, the first-registered one will
      * be invoked.
      */
-    void RegisterHTTPHandler(const std::string& prefix, bool exactMatch,
-        const HTTPRequestHandler& handler, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> _queue);
-
-    /** Unregister handler for prefix */
-    void UnregisterHTTPHandler(const std::string& prefix, bool exactMatch);
-
-    static bool HTTPReq(HTTPRequest* req, const util::Ref& context,  CRPCTable& table);
+    void RegisterRequestProcessor(std::shared_ptr<IRequestProcessor> reqProcessor)
+    {
+        m_requestProcessor = std::move(reqProcessor);
+    }
 };
 
 class HTTPWebSocket: public HTTPSocket
 {
 public:
     CRPCTable m_table_post_rpc;
-    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> m_workPostQueue;
 
-    HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess, bool fUseTls = false);
+    HTTPWebSocket(struct event_base* base, int timeout, bool publicAccess, bool fUseTls = false);
     ~HTTPWebSocket();
-    void StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection);
+
+    void StartHTTPSocket();
     void StopHTTPSocket();
     void InterruptHTTPSocket();
 };

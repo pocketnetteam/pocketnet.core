@@ -116,6 +116,7 @@ build_id_string+=$(shell $(build_CC) --version 2>/dev/null)
 build_id_string+=$(shell $(build_AR) --version 2>/dev/null)
 build_id_string+=$(shell $(build_CXX) --version 2>/dev/null)
 build_id_string+=$(shell $(build_RANLIB) --version 2>/dev/null)
+build_id_string+=$(shell $(build_WINDRES) --version 2>/dev/null)
 build_id_string+=$(shell $(build_STRIP) --version 2>/dev/null)
 
 $(host_arch)_$(host_os)_id_string:=$(HOST_ID_SALT)
@@ -123,6 +124,7 @@ $(host_arch)_$(host_os)_id_string+=$(shell $(host_CC) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_AR) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_CXX) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_RANLIB) --version 2>/dev/null)
+$(host_arch)_$(host_os)_id_string+=$(shell $(host_WINDRES) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_STRIP) --version 2>/dev/null)
 
 ifneq ($(strip $(FORCE_USE_SYSTEM_CLANG)),)
@@ -137,12 +139,13 @@ qt_packages_$(NO_QT) = $(qt_packages) $(qt_$(host_os)_packages) $(qt_$(host_arch
 bdb_packages_$(NO_BDB) = $(bdb_packages)
 sqlite_packages_$(NO_SQLITE) = $(sqlite_packages)
 wallet_packages_$(NO_WALLET) = $(bdb_packages_) $(sqlite_packages_)
+libdatachannel_packages_$(NO_LIBDATACHANNEL) = $(libdatachannel_packages)
 
 upnp_packages_$(NO_UPNP) = $(upnp_packages)
 zmq_packages_$(NO_ZMQ) = $(zmq_packages)
 multiprocess_packages_$(MULTIPROCESS) = $(multiprocess_packages)
 
-packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(qt_packages_) $(wallet_packages_) $(upnp_packages_)
+packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(qt_packages_) $(wallet_packages_) $(upnp_packages_) $(libdatachannel_packages_)
 native_packages += $($(host_arch)_$(host_os)_native_packages) $($(host_os)_native_packages)
 
 ifneq ($(zmq_packages_),)
@@ -186,6 +189,7 @@ $(host_prefix)/share/config.site : config.site.in $(host_prefix)/.stamp_$(final_
             -e 's|@CXX@|$(toolchain_path)$(host_CXX)|' \
             -e 's|@AR@|$(binutils_path)$(host_AR)|' \
             -e 's|@RANLIB@|$(binutils_path)$(host_RANLIB)|' \
+            -e 's|@WINDRES@|$(binutils_path)$(host_WINDRES)|' \
             -e 's|@NM@|$(binutils_path)$(host_NM)|' \
             -e 's|@STRIP@|$(binutils_path)$(host_STRIP)|' \
             -e 's|@build_os@|$(build_os)|' \

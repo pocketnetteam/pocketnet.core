@@ -15,14 +15,21 @@
 #include <exception>
 
 
-// TODO (losty-fur): interface for queue
+template <class T>
+class IQueueAdjuster
+{
+public:
+    virtual bool Add(T entry) = 0;
+    virtual ~IQueueAdjuster() = default;
+};
+
 /**
  * Thread safe queue class
  * 
  * @tparam T - queue entry
  */
 template<class T>
-class Queue
+class Queue : public IQueueAdjuster<T>
 {
 public:
     using condCheck = std::function<bool()>;

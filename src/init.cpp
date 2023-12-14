@@ -47,7 +47,6 @@
 #include <script/standard.h>
 #include <shutdown.h>
 #include <eventloop.h>
-#include <websocket/notifyprocessor.h>
 #ifdef ENABLE_WALLET
 #include <staker.h>
 #endif
@@ -64,18 +63,24 @@
 #include <util/threadnames.h>
 #include <util/translation.h>
 #include <validation.h>
+#include <rest.h>
 
 #include <validationinterface.h>
 #include <walletinitinterface.h>
 
 #include <websocket/ws.h>
-#include <websocket/wshandlerprovider.h>
+#include <notification/wshandlerprovider.h>
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/migrations/base.h"
 #include "pocketdb/migrations/main.h"
 #include "pocketdb/migrations/web.h"
+
+#include "webrtc/webrtcfactory.h"
+#include "webrtc/signaling/signalingserver.h"
+#include "web/WSConnection.h"
+#include "notification/NotificationsFactory.h"
 
 #include <functional>
 #include <set>
@@ -105,9 +110,14 @@ static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 Statistic::RequestStatEngine gStatEngineInstance;
 
-std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
-std::shared_ptr<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>> notifyClientsThread;
-std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
+std::unique_ptr<notifications::INotifications> notificationProcessor = notifications::NotificationsFactory().NewNotifications();;
+
+// TODO (losty-rpc): fixup
+RPC g_rpc;
+Rest g_rest;
+// TODO (losty-rtc): fixup
+std::unique_ptr<webrtc::IWebRTC> g_webrtc;
+webrtc::signaling::SignalingServer g_signaling;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -198,10 +208,11 @@ void ShutdownPocketServices()
 
 void Interrupt(NodeContext& node)
 {
+    // TODO (losty-rtc): interrupt webrtc.
     InterruptHTTPServer();
-    InterruptHTTPRPC();
+    g_rpc.InterruptHTTPRPC();
     InterruptRPC();
-    InterruptREST();
+    g_rest.InterruptREST();
     InterruptTorControl();
     InterruptMapPort();
     if (node.connman)
@@ -224,14 +235,11 @@ void Shutdown(NodeContext& node)
     // PocketServices::WalControllerInst.Stop();
     gStatEngineInstance.Stop();
 
-    if (notifyClientsThread) {
-        notifyClientsThread->Stop();
-        notifyClientsThread.reset(); // Explicit clear memory to exist sqlite connection.
-    }
-        
-    StopHTTPRPC();
-    StopREST();
-    StopSTATIC();
+    g_rpc.StopHTTPRPC();
+    g_rest.StopREST();
+    if (g_webrtc)
+        g_webrtc->Stop();
+    g_signaling.Stop();
     StopRPC();
     StopHTTPServer();
 
@@ -276,6 +284,9 @@ void Shutdown(NodeContext& node)
     #endif
     threadGroup.interrupt_all();
     threadGroup.join_all();
+    if (notificationProcessor) {
+        notificationProcessor->Stop();
+    }
 
     // After the threads that potentially access these pointers have been stopped,
     // destruct and reset all to nullptr.
@@ -667,6 +678,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-rpcrestworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_WORKQUEUE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpccachesize=<n>", strprintf("Maximum amount of memory in megabytes allowed for RPCcache usage (default: %d MB)", 64), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-server", "Accept command line and JSON-RPC commands", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-notificationsthreads=<n>", strprintf("Set number of notifications workers used to process incoming blocks and construct notification messages (default: %d)", 1), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 
     // SQLite
     argsman.AddArg("-sqlmode", "Experimental: Set journal mode (wal|persist|etc, default: wal)", ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
@@ -674,6 +686,11 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlsharedcache", strprintf("Experimental: enable shared cache for sqlite connections (default: disabled)"), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
+
+    // WebRTC
+    argsman.AddArg("-webrtc", strprintf("Allow rpc and ws connections via WebRTC (default: %u)", true), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-webrtcport", strprintf("Port that will be used to connect to signaling nodes (default: %d)", 13131), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+
 
 #if HAVE_DECL_DAEMON
     argsman.AddArg("-daemon", "Run in the background as a daemon and accept commands", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -981,23 +998,31 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
     const ArgsManager& args = *Assert(node.args);
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
-
-    if (!InitHTTPServer(context))
+    if (!g_rpc.Init(args, context)) {
+        return false;
+    }
+    // TODO (losty-nat): clean up
+    if (!InitHTTPServer(context, g_rpc.GetPrivateRequestProcessor(), g_rpc.GetWebRequestProcessor(), g_rest.GetRestRequestProcessor(), g_rest.GetStaticRequestProcessor()))
         return false;
     
     StartRPC();
     
     node.rpc_interruption_point = RpcInterruptionPoint;
-
-    if (!StartHTTPRPC(context))
+    if (!g_rpc.StartHTTPRPC())
         return false;
-    
-    if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE))
-        StartREST(context);
-
-    if (gArgs.GetBoolArg("-static", DEFAULT_STATIC_ENABLE))
-        StartSTATIC(context);
-
+    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) {
+        if (!g_rest.Init(args, context))
+        // TODO (losty-nat): log
+            return false;
+        g_rest.StartREST();
+        g_rest.StartSTATIC();
+    }
+    g_webrtc = webrtc::WebRTCFactory().InitNewWebRTC(args.GetBoolArg("-webrtc", true), g_rpc.GetWebRequestProcessor(), notificationProcessor->GetProtocol(), args.GetArg("-webrtcport", 13131));
+    g_webrtc->Start();
+    // TODO (losty-rtc): hardcoded. Should be moved somewhere to net_processing on new peers
+    // TODO (losty): allow disable signaling
+    g_signaling.Init("^/signaling/?$", args.GetArg("-webrtcport", 13131));
+    g_signaling.Start();
     StartHTTPServer();
 
     return true;
@@ -1481,13 +1506,13 @@ static void StartWSS()
 
 }
 
+static void InitNotifications(int threads)
+{
+    notificationProcessor->Start(threads);
+}
+
 static void InitWS()
 {
-    WSConnections = std::make_shared<ProtectedMap<std::string, WSUser>>();
-    auto notifyProcessor = std::make_shared<NotifyBlockProcessor>(WSConnections);
-    notifyClientsQueue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
-    notifyClientsThread = std::make_shared<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>(notifyClientsQueue, notifyProcessor);
-    notifyClientsThread->Start("notifyClientsThread");
     std::thread server_thread(&StartWS);
     server_thread.detach();
     std::thread serversecure_thread(&StartWSS);
@@ -2246,9 +2271,12 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // ********************************************************* Step 13: finished
 
     // Start WebSocket server
-    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
+    if (args.GetBoolArg("-api", DEFAULT_API_ENABLE)) {
+        InitNotifications(args.GetArg("-notificationsthreads", 1));
         InitWS();
-    ChainRepoInst.EnsureSocialRegistry(ChainActive().Height() + 1);
+    }
+
+    PocketDb::ChainRepoInst.EnsureSocialRegistry(ChainActive().Height() + 1);
 
     gStatEngineInstance.Run(threadGroup, context);
 
