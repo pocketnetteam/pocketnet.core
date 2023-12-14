@@ -232,6 +232,9 @@ namespace PocketWeb::PocketWebRpc
 
                 if (auto arg = _args.At("pricemax", true); arg.isNum())
                     args.PriceMax = arg.get_int();
+
+                if (auto arg = _args.At("search", true); arg.isStr())
+                    args.Search = arg.get_str();
             }
 
             auto hashes = request.DbConnection()->BarteronRepoInst->GetDeals(args);

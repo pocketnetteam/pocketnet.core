@@ -288,12 +288,16 @@ namespace PocketDb
                     ),
                     loc as (
                         select ? as value
+                    ),
+                    search as (
+                        select ? as value
                     )
                     select distinct
                         (select r.String from Registry r where r.RowId = to2.RowId)
                     from
                         price,
-                        loc
+                        loc,
+                        search
 
                     -- Source offer
                     -- cross join
@@ -331,6 +335,7 @@ namespace PocketDb
                         ( ? or po2.Int1 >= price.min ) and
                         ( ? or po2.Int1 <= price.max ) and
                         ( ? or po2.String6 is null or po2.String6 like loc.value) and -- TODO (losty): maybe use: 'substr(po2.String6, 1, loc.size()) = loc' instead if 'like' ???
+                        ( ? or po2.String2 like search.value or po2.String3 like search.value) and
                         ( ? or ru2.String in ( )sql" + join(vector<string>(args.Addresses.size(), "?"), ",") + R"sql( ) ) and
                         ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
                         cu2.Height <= ?
@@ -343,6 +348,7 @@ namespace PocketDb
                     args.PriceMin,
                     args.PriceMax,
                     args.Location,
+                    args.Search,
                     args.TheirTags.empty(),
                     args.TheirTags,
                     args.MyTags.empty(),
@@ -350,6 +356,7 @@ namespace PocketDb
                     (args.PriceMin < 0),
                     (args.PriceMax < 0),
                     args.Location.empty(),
+                    args.Search.empty(),
                     args.Addresses.empty(),
                     args.Addresses,
                     args.ExcludeAddresses.empty(),

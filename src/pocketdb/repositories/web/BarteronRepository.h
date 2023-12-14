@@ -36,6 +36,7 @@ namespace PocketDb
         string Location = "";
         int PriceMin = -1;
         int PriceMax = -1;
+        string Search;
     };
 
     struct BarteronAccountAdditionalInfo
