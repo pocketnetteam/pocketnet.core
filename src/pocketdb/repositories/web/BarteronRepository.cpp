@@ -415,6 +415,8 @@ namespace PocketDb
 
                             cross join Chain c1 on
                                 c1.Uid = o1.OfferId
+                            cross join Last l1 on
+                                l1.TxId = c1.TxId
                             cross join Transactions tx1 on
                                 tx1.RowId = c1.TxId and
                                 (? or tx1.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
@@ -423,6 +425,8 @@ namespace PocketDb
 
                             cross join Chain c2 on
                                 c2.Uid = o2.OfferId
+                            cross join Last l2 on
+                                l2.TxId = c2.TxId
                             cross join Transactions tx2 on
                                 tx2.RowId = c2.TxId and
                                 (? or tx2.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
