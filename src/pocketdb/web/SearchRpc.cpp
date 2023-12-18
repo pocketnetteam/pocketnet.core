@@ -40,37 +40,16 @@ namespace PocketWeb::PocketWebRpc
 
         // Optional parameters
         // TopBlock
-        if (request.params.size() > 2)
-        {
-            try
-            {
-                if (!ParseInt32(request.params[2].get_str(), &searchRequest.TopBlock))
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
-            }
-            catch (...) { }
-        }
+        if (request.params.size() > 2 && request.params[2].isNum())
+            searchRequest.TopBlock = request.params[2].get_int();
 
         // PageStart
-        if (request.params.size() > 3)
-        {
-            try
-            {
-                if (!ParseInt32(request.params[3].get_str(), &searchRequest.PageStart))
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
-            }
-            catch (...) { }
-        }
+        if (request.params.size() > 3 && request.params[3].isNum())
+            searchRequest.PageStart = request.params[3].get_int();
 
         // PageSize
-        if (request.params.size() > 4)
-        {
-            try
-            {
-                if (!ParseInt32(request.params[4].get_str(), &searchRequest.PageSize))
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
-            }
-            catch (...) { }
-        }
+        if (request.params.size() > 4 && request.params[4].isNum())
+            searchRequest.PageSize = request.params[4].get_int();
 
         // Address
         if (request.params.size() > 5) {
@@ -96,15 +75,12 @@ namespace PocketWeb::PocketWebRpc
         // Search posts in caption, message and urls
         if (type == "posts")
         {
-            // TODO (aok): realize search indexing
             searchRequest.TxTypes = { CONTENT_POST, CONTENT_VIDEO };
             searchRequest.FieldTypes = {
                 ContentFieldType_ContentPostCaption,
                 ContentFieldType_ContentVideoCaption,
                 ContentFieldType_ContentPostMessage,
                 ContentFieldType_ContentVideoMessage,
-                // ContentFieldType_ContentPostUrl,
-                // ContentFieldType_ContentVideoUrl,
             };
 
             // Search
@@ -164,8 +140,6 @@ namespace PocketWeb::PocketWebRpc
             result.pushKV("users", UniValue(UniValue::VOBJ));
             result.At("users").pushKV("data", data);
         }
-        
-        // Send result
         
         return result;
     },
