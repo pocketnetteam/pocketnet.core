@@ -1387,6 +1387,51 @@ namespace PocketDb
 
         return result;
     }
+
+    vector<string> WebRpcRepository::GetLastContentHashesByRootTxHashes(const vector<string>& rootHashes)
+    {
+        vector<string> result;
+        result.reserve(rootHashes.size());
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                cnt as (
+                    select
+                        c.Uid as uid
+                    from
+                        vTx t
+                        cross join Chain c on
+                            c.TxId = t.RowId
+                    where
+                        t.Hash in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    hash.String
+                from
+                    cnt,
+                    Chain c
+                    cross join Last l on
+                        l.TxId = c.TxId
+                    cross join Registry hash on
+                        hash.RowId = c.TxId
+                where
+                    c.Uid = cnt.uid
+            )sql")
+            .Bind(rootHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto [ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
+
     vector<string> WebRpcRepository::GetCommentScores(const vector<string>& commentHashes)
     {
         vector<string> result;

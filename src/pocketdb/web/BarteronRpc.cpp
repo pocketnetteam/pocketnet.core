@@ -56,7 +56,7 @@ namespace PocketWeb::PocketWebRpc
         }};
     }
     
-    RPCHelpMan GetBarteronOffersByHashes()
+    RPCHelpMan GetBarteronOffersByRootTxHashes()
     {
         return RPCHelpMan{"getbarteronoffersbyhashes",
             "\nGet barteron offers information.\n",
@@ -75,7 +75,8 @@ namespace PocketWeb::PocketWebRpc
             RPCTypeCheck(request.params, { UniValue::VARR });
             auto hashes = ParseArrayHashes(request.params[0].get_array());
 
-            auto txs = request.DbConnection()->TransactionRepoInst->List(hashes, true);
+            auto lastTxHashes = request.DbConnection()->WebRpcRepoInst->GetLastContentHashesByRootTxHashes(hashes);
+            auto txs = request.DbConnection()->TransactionRepoInst->List(lastTxHashes, true);
 
             UniValue result(UniValue::VARR);
             for (const auto& tx : *txs)
