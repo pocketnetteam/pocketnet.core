@@ -1180,7 +1180,7 @@ void CConnman::DisconnectNodes()
         {
             if (pnode->fDisconnect)
             {
-                g_webrtc->DropConnection(pnode->GetAddrName().substr(0, pnode->GetAddrName().find(":")));
+                g_webrtc->DropConnection(pnode->GetAddrName());
                 // remove from vNodes
                 vNodes.erase(remove(vNodes.begin(), vNodes.end(), pnode), vNodes.end());
 

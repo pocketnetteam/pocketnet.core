@@ -59,18 +59,18 @@ void webrtc::WebRTC::InitiateNewSignalingConnection(const std::string& ip)
             return;
         }
 
-        if (!message.exists("ip")) {
+        if (!message.exists("id")) {
             // TODO (losty-rtc): error
             return;
         }
-        auto ip = message["ip"].get_str();
+        auto id = message["id"].get_str();
         if (!message.exists("message")) {
             // TODO (losty-rtc): error
             return;
         }
 
         if (auto lock = ws.lock()) {
-            protocol->Process(message["message"], ip, lock);
+            protocol->Process(message["message"], id, lock);
         }
     });
     ws->onClosed([wsHandler = std::weak_ptr(wsHandler)]() {
@@ -85,9 +85,9 @@ void webrtc::WebRTC::InitiateNewSignalingConnection(const std::string& ip)
     m_wsConnections->insert(ip, std::move(wsHandler));
 }
 
-void webrtc::WebRTC::DropConnection(const std::string &ip)
+void webrtc::WebRTC::DropConnection(const std::string &id)
 {
-    m_wsConnections->erase(ip);
+    m_wsConnections->erase(id);
 }
 
 void webrtc::WebRTC::Start()
