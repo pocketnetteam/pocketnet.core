@@ -38,11 +38,11 @@ void webrtc::WebRTC::InitiateNewSignalingConnection(const std::string& ip)
     auto wsHandler = std::make_shared<webrtc::WsConnectionHandler>(ip, ws, m_wsConnections);
     // TODO (losty-rtc): better memory handling in callbacks
     ws->onOpen([ws = std::weak_ptr(ws)]() {
-        // UniValue registermeMsg(UniValue::VOBJ);
-        // registermeMsg.pushKV("type", "registerme");
-        // if (auto lock = ws.lock()) {
-        //     lock->send(registermeMsg.write());
-        // }
+        UniValue registermeMsg(UniValue::VOBJ);
+        registermeMsg.pushKV("type", "registerasnode");
+        if (auto lock = ws.lock()) {
+            lock->send(registermeMsg.write());
+        }
     });
     ws->onMessage([ws = std::weak_ptr(ws), protocol = m_protocol](rtc::message_variant data) {
         if (!std::holds_alternative<std::string>(data))
