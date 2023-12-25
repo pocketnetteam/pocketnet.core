@@ -14,6 +14,15 @@ namespace webrtc::signaling
     using Connection = SimpleWeb::IWSConnection;
     using Message = SimpleWeb::InMessage;
 
+    struct SignalingConnection
+    {
+        SignalingConnection(std::shared_ptr<Connection> _connection)
+            : connection (std::move(_connection))
+        {}
+        std::shared_ptr<Connection> connection;
+        bool isNode = false;
+    };
+
     class SignalingProcessor
     {
     public:
@@ -22,7 +31,7 @@ namespace webrtc::signaling
         void ProcessMessage(const std::shared_ptr<Connection>& connection, std::shared_ptr<Message> in_message);
         void Stop();
     private:
-        ProtectedMap<std::string, std::shared_ptr<Connection>> m_connections;
+        ProtectedMap<std::string, std::shared_ptr<SignalingConnection>> m_connections;
     };
 } // webrtc::signaling
 

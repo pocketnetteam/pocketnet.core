@@ -17,7 +17,7 @@ void webrtc::signaling::SignalingProcessor::OnNewConnection(std::shared_ptr<Conn
     // TODO (losty-rtc): use Sec-WebSocket-Key???
     auto id = GetConnectionId(*conn);
     LogPrintf("DEBUG (Signaling): new signaling connection from %s\n", id);
-    if (!m_connections.insert(id, std::move(conn))) {
+    if (!m_connections.insert(id, std::make_shared<SignalingConnection>(conn))) {
         LogPrintf("DEBUG (Signaling): already existed connection from %s\n", id);
     }
 }
@@ -56,8 +56,8 @@ void webrtc::signaling::SignalingProcessor::ProcessMessage(const std::shared_ptr
 
         // Replacing ip with sender so receiver will know who sends the message.
         msg.pushKV("id", senderId);
-        auto sendFunc = [&msg](const std::shared_ptr<Connection>& conn) {
-            conn->send(msg.write());
+        auto sendFunc = [&msg](const std::shared_ptr<SignalingConnection>& conn) {
+            conn->connection->send(msg.write());
         };
         if (!m_connections.exec_for_elem(requestedId, sendFunc)) {
             // TODO (losty-signaling): error - no such connection
@@ -65,6 +65,18 @@ void webrtc::signaling::SignalingProcessor::ProcessMessage(const std::shared_ptr
             return; 
         }
 
+    } else if (type == "registerasnode") {
+        m_connections.exec_for_elem(senderId, [](const auto& conn) {
+            conn->isNode = true;
+        });
+    } else if (type == "listnodes") {
+        UniValue msg (UniValue::VARR);
+        m_connections.Iterate([&](std::pair<const std::string&, const std::shared_ptr<SignalingConnection>&> elem) {
+            if (elem.second->isNode) {
+                msg.push_back(elem.first);
+            }
+        });
+        connection->send(msg.write());
     } else {
         LogPrintf("DEBUG (Signaling): unexpected message type from '%s'\n", senderId);
         // TODO (losty-signaling): error
