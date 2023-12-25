@@ -1151,8 +1151,6 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
     {
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
-        // TODO (losty-rtc): validate
-        g_webrtc->InitiateNewSignalingConnection(pnode->GetAddrName().substr(0, pnode->GetAddrName().find(":")));
     }
 
     // We received a new connection, harvest entropy from the time (and our peer count)
@@ -2208,7 +2206,6 @@ void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
     {
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
-        g_webrtc->InitiateNewSignalingConnection(pnode->GetAddrName().substr(0, pnode->GetAddrName().find(":")));
     }
 }
 

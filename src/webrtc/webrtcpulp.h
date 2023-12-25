@@ -17,7 +17,7 @@ public:
      */
     void Start() override {};
     void Stop() override {};
-    void InitiateNewSignalingConnection(const std::string& ip) override {};
+    void InitiateNewSignalingConnection(const std::string& ip, const std::string& myid) override {};
     void DropConnection(const std::string& ip) override {};
 
 };

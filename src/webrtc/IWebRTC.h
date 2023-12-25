@@ -18,7 +18,7 @@ public:
      */
     virtual void Start() = 0;
     virtual void Stop() = 0;
-    virtual void InitiateNewSignalingConnection(const std::string& ip) = 0;
+    virtual void InitiateNewSignalingConnection(const std::string& ip, const std::string& myId) = 0;
     virtual void DropConnection(const std::string& ip) = 0;
 };
 } // namespace webrtc

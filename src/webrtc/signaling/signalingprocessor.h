@@ -16,11 +16,21 @@ namespace webrtc::signaling
 
     struct SignalingConnection
     {
-        SignalingConnection(std::shared_ptr<Connection> _connection)
-            : connection (std::move(_connection))
+        // TODO (losty-rtc): dirty hack.
+        // `manualId` is something that is used to identificate connections.
+        // This equeals to ip:port pair by default and is being changed during registerasnode request.
+        // However, the logic of identifying peers is too complicated because we want clients to know
+        // what node they are exactly going to connect too (because there might be e.x. 2 or more nodes behind the
+        // same NAT) and at the same time nodes do not care about who is going to connect so there is no need for clients to be
+        // registered as signaling. This result in different logic for clients and nodes manipuldating with signaling.
+        // Consider generalized solution after determine the way how nodes will be identified by the clients.
+        SignalingConnection(std::shared_ptr<Connection> _connection, std::string _manualId)
+            : connection (std::move(_connection)),
+              manualId(std::move(_manualId))
         {}
         std::shared_ptr<Connection> connection;
-        bool isNode = false;
+        std::string manualId;
+        bool fIsNode = false;
     };
 
     class SignalingProcessor

@@ -34,6 +34,7 @@
 #include <typeinfo>
 
 #include "pocketdb/services/Accessor.h"
+#include "webrtc/IWebRTC.h"
 
 /** Expiration time for orphan transactions in seconds */
 static constexpr int64_t ORPHAN_TX_EXPIRE_TIME = 20 * 60;
@@ -2695,6 +2696,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
                   pfrom.nStartingHeight, addrMe.ToString(), pfrom.GetId(),
                   remoteAddr);
 
+        g_webrtc->InitiateNewSignalingConnection(pfrom.GetAddrName().substr(0, pfrom.GetAddrName().find(":")), pfrom.GetAddrLocal().ToString());
         int64_t nTimeOffset = nTime - GetTime();
         pfrom.nTimeOffset = nTimeOffset;
         AddTimeData(pfrom.addr, nTimeOffset);

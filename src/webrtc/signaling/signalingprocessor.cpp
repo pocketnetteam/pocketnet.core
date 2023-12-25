@@ -17,7 +17,7 @@ void webrtc::signaling::SignalingProcessor::OnNewConnection(std::shared_ptr<Conn
     // TODO (losty-rtc): use Sec-WebSocket-Key???
     auto id = GetConnectionId(*conn);
     LogPrintf("DEBUG (Signaling): new signaling connection from %s\n", id);
-    if (!m_connections.insert(id, std::make_shared<SignalingConnection>(conn))) {
+    if (!m_connections.insert(id, std::make_shared<SignalingConnection>(conn, id))) {
         LogPrintf("DEBUG (Signaling): already existed connection from %s\n", id);
     }
 }
@@ -56,24 +56,41 @@ void webrtc::signaling::SignalingProcessor::ProcessMessage(const std::shared_ptr
 
         // Replacing ip with sender so receiver will know who sends the message.
         msg.pushKV("id", senderId);
-        auto sendFunc = [&msg](const std::shared_ptr<SignalingConnection>& conn) {
-            conn->connection->send(msg.write());
+        bool found = false;
+        auto sendFunc = [&](const std::pair<std::string, const std::shared_ptr<SignalingConnection>&>& elem) {
+            if (elem.second->manualId == requestedId) {
+                elem.second->connection->send(msg.write());
+                found = true;
+            }
         };
-        if (!m_connections.exec_for_elem(requestedId, sendFunc)) {
+        // TODO (losty-rtc): this iterates through overall map. Fix this by providing search by manualId.
+        m_connections.Iterate(sendFunc);
+        if (!found) {
             // TODO (losty-signaling): error - no such connection
             LogPrintf("DEBUG (Signaling): failed to find requested id '%s' from %s\n", requestedId, senderId);
             return; 
         }
 
     } else if (type == "registerasnode") {
-        m_connections.exec_for_elem(senderId, [](const auto& conn) {
-            conn->isNode = true;
+        if (!msg.exists("id")) {
+            LogPrintf("DEBUG (Signaling): registerasnode missing the ID!!!\n");
+            return;
+        }
+        if (!msg["id"].isStr()) {
+            LogPrintf("DEBUG (Signaling): registerasnode id is not string\n");
+            return;
+        }
+        auto id = msg["id"].get_str();
+        m_connections.exec_for_elem(senderId, [&](const auto& signalingConnection) {
+            signalingConnection->manualId = id;
+            signalingConnection->fIsNode = true;
         });
+        LogPrintf("DEBUG (Signaling): new node registered with id %s instead of %s\n", id, senderId);
     } else if (type == "listnodes") {
         UniValue msg (UniValue::VARR);
         m_connections.Iterate([&](std::pair<const std::string&, const std::shared_ptr<SignalingConnection>&> elem) {
-            if (elem.second->isNode) {
-                msg.push_back(elem.first);
+            if (elem.second->fIsNode) {
+                msg.push_back(elem.second->manualId);
             }
         });
         connection->send(msg.write());

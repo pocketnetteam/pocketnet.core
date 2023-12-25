@@ -24,7 +24,7 @@ webrtc::WebRTC::WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, std:
 }
 
 
-void webrtc::WebRTC::InitiateNewSignalingConnection(const std::string& ip)
+void webrtc::WebRTC::InitiateNewSignalingConnection(const std::string& ip, const std::string& myid)
 {
     if (!m_fRunning) {
         // TODO (losty-rtc): error
@@ -37,9 +37,10 @@ void webrtc::WebRTC::InitiateNewSignalingConnection(const std::string& ip)
     auto ws = std::make_shared<rtc::WebSocket>();
     auto wsHandler = std::make_shared<webrtc::WsConnectionHandler>(ip, ws, m_wsConnections);
     // TODO (losty-rtc): better memory handling in callbacks
-    ws->onOpen([ws = std::weak_ptr(ws)]() {
+    ws->onOpen([ws = std::weak_ptr(ws), myid = myid]() {
         UniValue registermeMsg(UniValue::VOBJ);
         registermeMsg.pushKV("type", "registerasnode");
+        registermeMsg.pushKV("id", myid);
         if (auto lock = ws.lock()) {
             lock->send(registermeMsg.write());
         }
