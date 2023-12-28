@@ -4035,9 +4035,15 @@ namespace PocketDb
                     left join
                         Ratings ur indexed by Ratings_Type_Uid_Last_Value on
                             ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
+                    left join
+                        JuryBan jb on
+                            jb.AccountId = cu.Uid and
+                            jb.Ending > ?
                     where
                         -- Do not show posts from users with low reputation
                         ifnull(ur.Value,0) > ?
+                        -- Do not show posts from banned users
+                        and jb.AccountId is null
                     order by
                         r.Value desc
                     limit ?
@@ -4047,6 +4053,7 @@ namespace PocketDb
                     nHeight,
                     nHeight - depth,
                     contentTypes,
+                    nHeight,
                     badReputationLimit,
                     countOut
                 );
@@ -4544,6 +4551,10 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
             where
 
                     ct.Height > ?
@@ -4551,6 +4562,9 @@ namespace PocketDb
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -4606,6 +4620,7 @@ namespace PocketDb
                     contentTypes,
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight - depth,
                     topHeight,
                     badReputationLimit
@@ -4769,6 +4784,10 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
             where
 
                     ct.Height > ?
@@ -4776,6 +4795,9 @@ namespace PocketDb
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -4847,6 +4869,7 @@ namespace PocketDb
                     contentTypes,
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight - depth,
                     topHeight,
                     badReputationLimit
@@ -5194,11 +5217,21 @@ namespace PocketDb
                 Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     u.Type in (100) and u.RegId1 = t.RegId1
             cross join
+                Chain cu on
+                    cu.TxId = u.RowId
+            cross join
                 Last lu on
                     lu.TxId = u.RowId
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.RegId3 is null
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5254,6 +5287,7 @@ namespace PocketDb
                 stmt.Bind(
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight,
                     contentTypes
                 );
@@ -5409,12 +5443,19 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.RegId3 is null
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5467,6 +5508,7 @@ namespace PocketDb
                     lang.empty(),
                     lang,
                     0,
+                    topHeight,
                     topHeight,
                     contentTypes,
                     badReputationLimit
@@ -5621,12 +5663,19 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
             where
                 ct.Height > ?
                 and ct.Height <= ?
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
 
                 -- Exclude posts
                 and t.RegId2 not in (
@@ -5676,6 +5725,7 @@ namespace PocketDb
                     contentTypes,
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight - cntBlocksForResult,
                     topHeight,
                     badReputationLimit,
@@ -5897,10 +5947,17 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > heightMax.value
             where
                 tb.Type in ( 208 )
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value, 0) > minReputation.value
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+                -- Other excludes
                 and tc.RegId2 not in (
                     select RowId
                     from Registry
