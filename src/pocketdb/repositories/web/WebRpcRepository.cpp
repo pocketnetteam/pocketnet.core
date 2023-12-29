@@ -4046,11 +4046,19 @@ namespace PocketDb
                         JuryBan jb on
                             jb.AccountId = cu.Uid and
                             jb.Ending > ?
+                    left join
+                        Jury j on
+                            j.AccountId = cu.Uid
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
                     where
                         -- Do not show posts from users with low reputation
                         ifnull(ur.Value,0) > ?
                         -- Do not show posts from banned users
                         and jb.AccountId is null
+                        -- Do not show posts from users with active jury
+                        and jv.RowId is null
                     order by
                         r.Value desc
                     limit ?
@@ -4562,6 +4570,12 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
 
                     ct.Height > ?
@@ -4572,6 +4586,9 @@ namespace PocketDb
 
                 -- Do not show posts from banned users
                 and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.RowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -4795,6 +4812,12 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
 
                     ct.Height > ?
@@ -4805,6 +4828,9 @@ namespace PocketDb
 
                 -- Do not show posts from banned users
                 and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.RowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5233,12 +5259,21 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.RegId3 is null
 
                 -- Do not show posts from banned users
                 and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.RowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5454,6 +5489,12 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.RegId3 is null
@@ -5463,6 +5504,9 @@ namespace PocketDb
 
                 -- Do not show posts from banned users
                 and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.RowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5674,6 +5718,12 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 ct.Height > ?
                 and ct.Height <= ?
@@ -5683,6 +5733,9 @@ namespace PocketDb
 
                 -- Do not show posts from banned users
                 and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.RowId is null
 
                 -- Exclude posts
                 and t.RegId2 not in (
@@ -5958,23 +6011,37 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > heightMax.value
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 tb.Type in ( 208 )
+
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value, 0) > minReputation.value
+
                 -- Do not show posts from banned users
                 and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.RowId is null
+
                 -- Other excludes
                 and tc.RegId2 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
                 )
+
                 and tc.RegId1 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
                 )
+
             group by
                 ctc.Uid,
                 tb.RegId2
