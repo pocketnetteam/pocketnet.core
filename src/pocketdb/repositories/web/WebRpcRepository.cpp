@@ -627,6 +627,12 @@ namespace PocketDb
                             if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok)
                                 record.pushKV("actions", value);
 
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                UniValue flags(UniValue::VOBJ);
+                                flags.read(value);
+                                record.pushKV("bans", flags);
+                            }
+
                             if (!shortForm) {
 
                                 if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
@@ -956,6 +962,7 @@ namespace PocketDb
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 5), '{}') as FlagsJson
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 6), '{}') as FirstFlagsCount
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 7), 0) as ActionsCount
+                ,(select json_group_object(jb.VoteRowId, jb.Ending) from JuryBan jb where jb.AccountId = cu.Uid) as Bans
 
             from
                 addr,
