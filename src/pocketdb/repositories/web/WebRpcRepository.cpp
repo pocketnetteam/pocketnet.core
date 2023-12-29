@@ -4058,7 +4058,7 @@ namespace PocketDb
                         -- Do not show posts from banned users
                         and jb.AccountId is null
                         -- Do not show posts from users with active jury
-                        and jv.RowId is null
+                        and jv.FlagRowId is null
                     order by
                         r.Value desc
                     limit ?
@@ -4588,7 +4588,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.RowId is null
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -4830,7 +4830,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.RowId is null
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5273,7 +5273,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.RowId is null
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5506,7 +5506,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.RowId is null
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5735,7 +5735,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.RowId is null
+                and jv.FlagRowId is null
 
                 -- Exclude posts
                 and t.RegId2 not in (
@@ -6027,7 +6027,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.RowId is null
+                and jv.FlagRowId is null
 
                 -- Other excludes
                 and tc.RegId2 not in (
