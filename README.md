@@ -61,7 +61,9 @@ $ docker run -d \
     --name=pocketnet.main \
     -p 37070:37070 \
     -p 38081:38081 \
+    -p 38881:38881 \
     -p 8087:8087 \
+    -p 8887:8887 \
     -v /var/pocketnet/.data:/home/pocketcoin/.pocketcoin \
     pocketnetteam/pocketnet.core:latest
 ```
@@ -90,8 +92,12 @@ services:
       - 37071:37071
       # To accept HTTP POST requests along the path 127.0.0.1:38081/public/
       - 38081:38081
+      # TLS version of HTTP POST
+      - 38881:38881
       # For the ability to establish a WebSocket connection to a node to support notifications
       - 8087:8087
+      # TLS version of WebSocket (WSS)
+      - 8887:8887
     logging:
       driver: "local"
       options:
