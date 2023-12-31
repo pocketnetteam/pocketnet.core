@@ -450,10 +450,10 @@ void PocketcoinApplication::getLatestVersionFinished() {
                 int latest_version = new_tag_name.replace(QString("v"), QString("")).replace(QString("."), QString("")).toInt();;
 
                 if (latest_version > current_version) {
-                    qWarning() << "Check updates result: a new version is available (https://github.com/bitnetteam/bitnet.core/releases/latest)";
+                    qWarning() << "Check updates result: a new version is available (https://api.github.com/repos/pocketnetteam/pocketnet.core/releases/latest)";
 
                     update_dlg = new UpdateNotificationDialog(
-                        QString("https://github.com/bitnetteam/bitnet.core/releases/latest"),
+                        QString("https://api.github.com/repos/pocketnetteam/pocketnet.core/releases/latest"),
                         (QString::number(CLIENT_VERSION_MAJOR) + "." + QString::number(CLIENT_VERSION_MINOR) + "." + QString::number(CLIENT_VERSION_REVISION)),
                         json_obj["tag_name"].toString().replace(QString("v"), QString("")),
                         nullptr
@@ -462,7 +462,7 @@ void PocketcoinApplication::getLatestVersionFinished() {
                     update_dlg->exec();
                     update_dlg->setFocus();
                 } else {
-                    qWarning() << "Check updates result: no new versions (https://github.com/bitnetteam/bitnet.core/releases/latest)";
+                    qWarning() << "Check updates result: no new versions (https://api.github.com/repos/pocketnetteam/pocketnet.core/releases/latest)";
                 }
             } else {
                 qWarning() << "Check updates result: invalid json: " << json_data;
@@ -483,7 +483,7 @@ void PocketcoinApplication::checkLatestRelease() {
 
         QNetworkAccessManager* network_manager = new QNetworkAccessManager(this);
         QNetworkRequest request;
-        request.setUrl(QUrl("https://api.github.com/repos/bitnetapp/bitnet.core/releases/latest"));
+        request.setUrl(QUrl("https://api.github.com/repos/pocketnetteam/pocketnet.core/releases/latest"));
         request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         
         QNetworkReply* reply = network_manager->get(request);
