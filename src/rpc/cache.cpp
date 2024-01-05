@@ -36,7 +36,6 @@ RPCCacheEntry::RPCCacheEntry(UniValue data, int validUntill)
     : m_data(std::move(data)),
       m_validUntill(std::move(validUntill))
 {
-    m_size = m_data.write().size();
 }
 const UniValue& RPCCacheEntry::GetData() const
 {
@@ -46,9 +45,9 @@ const int& RPCCacheEntry::GetValidUntill() const
 {
     return m_validUntill;
 }
-const size_t& RPCCacheEntry::Size() const
+const size_t RPCCacheEntry::Size() const
 {
-    return m_size;
+    return m_data.write().size();
 }
 
 RPCCache::RPCCache() 
