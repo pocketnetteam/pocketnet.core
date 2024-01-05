@@ -37,8 +37,8 @@ namespace PocketWeb::PocketWebRpc
 
         // Get initial block number
         int blockNumber = request.params[1].get_int();
-        if (ChainActive().Height() - blockNumber > 10000)
-            blockNumber = ChainActive().Height() - 10000;
+        if (ChainActiveSafeHeight() - blockNumber > 10000)
+            blockNumber = ChainActiveSafeHeight() - 10000;
 
         // Get count of result records
         int cntResult = 30;
@@ -53,7 +53,7 @@ namespace PocketWeb::PocketWebRpc
         // Language statistic
         auto[contentCount, contentLangCount] = request.DbConnection()->WebRpcRepoInst->GetContentLanguages(blockNumber);
         UniValue fullStat(UniValue::VOBJ);
-        fullStat.pushKV("block", ::ChainActive().Height());
+        fullStat.pushKV("block", ChainActiveSafeHeight());
         fullStat.pushKV("cntposts", contentCount);
         fullStat.pushKV("contentsLang", contentLangCount);
         result.push_back(fullStat);

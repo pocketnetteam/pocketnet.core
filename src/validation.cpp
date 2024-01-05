@@ -121,21 +121,18 @@ CChainState& ChainstateActive()
     return *g_chainman.m_active_chainstate;
 }
 
-CChainState& ChainstateActiveUnsafe()
-{
-    if (g_chainman.m_active_chainstate);
-    return *g_chainman.m_active_chainstate;
-}
-
 CChain& ChainActive()
 {
     LOCK(::cs_main);
     return ::ChainstateActive().m_chain;
 }
 
-CChain& ChainActiveUnsafe()
+int ChainActiveSafeHeight()
 {
-    return ::ChainstateActive().m_chain;
+    if (!g_chainman.m_active_chainstate)
+        return 0;
+    
+    return (*g_chainman.m_active_chainstate).m_chain.Height();
 }
 
 /**

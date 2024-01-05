@@ -39,7 +39,7 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[1].isBool())
                 verdict = request.params[1].get_bool();
 
-            Pagination pagination{ ChainActive().Height(), 0, 10, "height", false };
+            Pagination pagination{ ChainActiveSafeHeight(), 0, 10, "height", false };
             if (request.params[2].isNum())
                 pagination.TopHeight = min(request.params[2].get_int(), pagination.TopHeight);
             if (request.params[3].isNum())
