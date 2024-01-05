@@ -34,9 +34,9 @@ std::map<std::string, int> RPCCacheInfoGenerator::Generate() const
 
 RPCCacheEntry::RPCCacheEntry(UniValue data, int validUntill)
     : m_data(std::move(data)),
-      m_validUntill(std::move(validUntill)),
-      m_size(m_data.write().size())
+      m_validUntill(std::move(validUntill))
 {
+    m_size = m_data.write().size();
 }
 const UniValue& RPCCacheEntry::GetData() const
 {
