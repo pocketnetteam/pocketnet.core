@@ -790,7 +790,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
 
             auto execute = gStatEngineInstance.GetCurrentSystemTime();
 
-            LogPrint(BCLog::RPC, "RPC executed method %s/%s (%s) > %.2fms\n",
+            LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
                 uri, method, rpcKey, (execute.count() - start.count()));
 
             // Send reply
