@@ -174,7 +174,9 @@ namespace PocketWeb::PocketWebRpc
             return result;
 
         auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(keyword);
+        LogPrintf("DEBUG SearchUsers: ids.size() = %d\n", ids.size());
         auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
+        LogPrintf("DEBUG SearchUsers: usersProfiles.size() = %d\n", usersProfiles.size());
         
         for (auto& id : ids)
             result.push_back(usersProfiles[id]);
