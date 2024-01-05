@@ -34,8 +34,10 @@ std::map<std::string, int> RPCCacheInfoGenerator::Generate() const
 
 RPCCacheEntry::RPCCacheEntry(UniValue data, int validUntill)
     : m_data(std::move(data)),
-      m_validUntill(std::move(validUntill))
-{}
+      m_validUntill(std::move(validUntill)),
+      m_size(m_data.write().size())
+{
+}
 const UniValue& RPCCacheEntry::GetData() const
 {
     return m_data;
@@ -43,6 +45,10 @@ const UniValue& RPCCacheEntry::GetData() const
 const int& RPCCacheEntry::GetValidUntill() const
 {
     return m_validUntill;
+}
+const size_t& RPCCacheEntry::Size() const
+{
+    return m_size;
 }
 
 RPCCache::RPCCache() 
@@ -73,8 +79,7 @@ void RPCCache::ClearOverdue(int height)
 {
     for (auto itr = m_cache.begin(); itr != m_cache.end();) {
         if(itr->second.GetValidUntill() <= height) {
-            // TODO: calculate size more accurate, probably move to RPCCache entry or smth.
-            m_cacheSize -= (itr->first.size() + itr->second.GetData().write().size()); // Decreasing cache size 
+            m_cacheSize -= (itr->first.size() + itr->second.Size()); // Decreasing cache size 
             itr = m_cache.erase(itr);
         } else {
             itr++;
@@ -84,7 +89,7 @@ void RPCCache::ClearOverdue(int height)
 
 void RPCCache::Put(const std::string& path, const UniValue& content, const int& lifeTime)
 {
-    auto currentHeight = ChainActive().Height();
+    auto currentHeight = ChainActiveSafeHeight();
 
     auto validUntill = currentHeight + lifeTime;
 
@@ -95,28 +100,28 @@ void RPCCache::Put(const std::string& path, const UniValue& content, const int& 
     ClearOverdue(currentHeight);
 
     if (m_maxCacheSize < size + m_cacheSize) {
-        LogPrint(BCLog::RPC, "RPC cache over size limit: current = %d, max = %d\n", size + m_cacheSize, m_maxCacheSize);
+        LogPrint(BCLog::RPC, "RPC cache over size limit: current = %d, max = %d\n", m_cacheSize, m_maxCacheSize);
         return;
     }
 
     if (auto entry = m_cache.find(path); entry != m_cache.end()) {
         LogPrint(BCLog::RPC, "RPC cache put update '%s'\n", path);
         // Adjust cache size, remove old element size, add new element size
-        m_cacheSize -= entry->second.GetData().size();
+        m_cacheSize -= entry->second.Size();
         m_cacheSize += content.write().size();
     } else {
         LogPrint(BCLog::RPC, "RPC cache put '%s', size %d\n", path, size);
         m_cacheSize += size;
     }
-    m_cache.insert_or_assign(path, RPCCacheEntry(content, validUntill));
 
+    m_cache.insert_or_assign(path, RPCCacheEntry(content, validUntill));
 }
 
 UniValue RPCCache::Get(const std::string& path)
 {
     LOCK(CacheMutex);
 
-    ClearOverdue(ChainActive().Height());
+    ClearOverdue(ChainActiveSafeHeight());
 
     if (auto entry = m_cache.find(path); entry != m_cache.end()) {
         LogPrint(BCLog::RPC, "RPC Cache get found %s in cache\n", path);
