@@ -627,6 +627,12 @@ namespace PocketDb
                             if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok)
                                 record.pushKV("actions", value);
 
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                UniValue flags(UniValue::VOBJ);
+                                flags.read(value);
+                                record.pushKV("bans", flags);
+                            }
+
                             if (!shortForm) {
 
                                 if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
@@ -956,6 +962,7 @@ namespace PocketDb
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 5), '{}') as FlagsJson
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 6), '{}') as FirstFlagsCount
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 7), 0) as ActionsCount
+                ,(select json_group_object((select r.String from Registry r where r.RowId = jb.VoteRowId), jb.Ending) from JuryBan jb where jb.AccountId = cu.Uid) as Bans
 
             from
                 addr,
@@ -4035,9 +4042,23 @@ namespace PocketDb
                     left join
                         Ratings ur indexed by Ratings_Type_Uid_Last_Value on
                             ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
+                    left join
+                        JuryBan jb on
+                            jb.AccountId = cu.Uid and
+                            jb.Ending > ?
+                    left join
+                        Jury j on
+                            j.AccountId = cu.Uid
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
                     where
                         -- Do not show posts from users with low reputation
                         ifnull(ur.Value,0) > ?
+                        -- Do not show posts from banned users
+                        and jb.AccountId is null
+                        -- Do not show posts from users with active jury
+                        and jv.FlagRowId is null
                     order by
                         r.Value desc
                     limit ?
@@ -4047,6 +4068,7 @@ namespace PocketDb
                     nHeight,
                     nHeight - depth,
                     contentTypes,
+                    nHeight,
                     badReputationLimit,
                     countOut
                 );
@@ -4544,6 +4566,16 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
 
                     ct.Height > ?
@@ -4551,6 +4583,12 @@ namespace PocketDb
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -4606,6 +4644,7 @@ namespace PocketDb
                     contentTypes,
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight - depth,
                     topHeight,
                     badReputationLimit
@@ -4769,6 +4808,16 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
 
                     ct.Height > ?
@@ -4776,6 +4825,12 @@ namespace PocketDb
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -4847,6 +4902,7 @@ namespace PocketDb
                     contentTypes,
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight - depth,
                     topHeight,
                     badReputationLimit
@@ -5194,11 +5250,30 @@ namespace PocketDb
                 Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     u.Type in (100) and u.RegId1 = t.RegId1
             cross join
+                Chain cu on
+                    cu.TxId = u.RowId
+            cross join
                 Last lu on
                     lu.TxId = u.RowId
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.RegId3 is null
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5254,6 +5329,7 @@ namespace PocketDb
                 stmt.Bind(
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight,
                     contentTypes
                 );
@@ -5409,12 +5485,28 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.RegId3 is null
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5467,6 +5559,7 @@ namespace PocketDb
                     lang.empty(),
                     lang,
                     0,
+                    topHeight,
                     topHeight,
                     contentTypes,
                     badReputationLimit
@@ -5621,12 +5714,28 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 ct.Height > ?
                 and ct.Height <= ?
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Exclude posts
                 and t.RegId2 not in (
@@ -5676,6 +5785,7 @@ namespace PocketDb
                     contentTypes,
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight - cntBlocksForResult,
                     topHeight,
                     badReputationLimit,
@@ -5897,20 +6007,41 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > heightMax.value
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 tb.Type in ( 208 )
+
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value, 0) > minReputation.value
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
+
+                -- Other excludes
                 and tc.RegId2 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
                 )
+
                 and tc.RegId1 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
                 )
+
             group by
                 ctc.Uid,
                 tb.RegId2
