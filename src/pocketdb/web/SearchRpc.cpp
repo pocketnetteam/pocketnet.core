@@ -220,7 +220,7 @@ namespace PocketWeb::PocketWebRpc
         vector<int> contentTypes;
         ParseRequestContentTypes(request.params[1], contentTypes);
 
-        int nHeight = ::ChainActive().Height();
+        int nHeight = ChainActiveSafeHeight();
         if (request.params.size() > 2)
         {
             RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
@@ -375,7 +375,7 @@ namespace PocketWeb::PocketWebRpc
                     cntSubs = request.params[6].get_int();
                 cntSubs = std::min(cntSubs, 30);
 
-                int nHeight = ChainActive().Height();
+                int nHeight = ChainActiveSafeHeight();
                 // if (request.params.size() > 5 && request.params[5].isNum() && request.params[5].get_int() > 0)
                 //     nHeight = request.params[5].get_int();
 
@@ -497,7 +497,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 4 && request.params[4].isNum())
             cntOut = request.params[4].get_int();
 
-        int nHeight = ChainActive().Height();
+        int nHeight = ChainActiveSafeHeight();
         if (request.params.size() > 5 && request.params[5].isNum() && request.params[5].get_int() > 0)
             nHeight = request.params[5].get_int();
 

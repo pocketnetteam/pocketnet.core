@@ -34,6 +34,7 @@ public:
     RPCCacheEntry(UniValue data, int validUntill);
     const UniValue& GetData() const;
     const int& GetValidUntill() const;
+    const size_t Size() const;
 private:
     int m_validUntill;
     UniValue m_data;

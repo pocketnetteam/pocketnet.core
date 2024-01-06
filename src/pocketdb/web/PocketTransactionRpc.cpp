@@ -254,7 +254,7 @@ namespace PocketWeb::PocketWebRpc
         // Get unspents
         vector<pair<string, uint32_t>> mempoolInputs;
         node.mempool->GetAllInputs(mempoolInputs);
-        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActive().Height(), confirmations, mempoolInputs);
+        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActiveSafeHeight(), confirmations, mempoolInputs);
 
         // Build inputs
         int64_t totalAmount = 0;

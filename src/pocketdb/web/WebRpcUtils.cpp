@@ -166,7 +166,7 @@ namespace PocketWeb::PocketWebRpc
 
     Pagination ParsePaginationArgs(UniValue& args)
     {
-        Pagination pagination{ ChainActive().Height(), 0, 10, "height", true };
+        Pagination pagination{ ChainActiveSafeHeight(), 0, 10, "height", true };
 
         if (auto arg = args.At("topHeight", true); arg.isNum())
             pagination.TopHeight = min(arg.get_int(), pagination.TopHeight);

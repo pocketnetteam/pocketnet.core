@@ -881,8 +881,7 @@ private:
     friend CChain& ChainActive();
 
     // For ReadOnly access without lock cs_main
-    friend CChainState& ChainstateActiveUnsafe();
-    friend CChain& ChainActiveUnsafe();
+    friend int ChainActiveSafeHeight();
 
 public:
     //! A single BlockManager instance is shared across each constructed
@@ -996,11 +995,12 @@ extern ChainstateManager g_chainman GUARDED_BY(::cs_main);
 
 /** Please prefer the identical ChainstateManager::ActiveChainstate */
 CChainState& ChainstateActive();
-CChainState& ChainstateActiveUnsafe();
 
 /** Please prefer the identical ChainstateManager::ActiveChain */
 CChain& ChainActive();
-CChain& ChainActiveUnsafe();
+
+/** A safe non-blocking method to get the current height */
+int ChainActiveSafeHeight();
 
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern std::unique_ptr<CBlockTreeDB> pblocktree;
