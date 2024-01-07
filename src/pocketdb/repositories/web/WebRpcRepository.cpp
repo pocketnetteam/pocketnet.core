@@ -1058,7 +1058,7 @@ namespace PocketDb
 
                         (
                             select o.Value
-                            from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                            from TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                             where o.TxId = t.RowId and o.AddressId = p.RegId1 and o.AddressId != t.RegId1
                             limit 1
                         ) as Donate
@@ -1433,7 +1433,7 @@ namespace PocketDb
                     on ct.TxId = t.RowId
             left join Transactions sc indexed by Transactions_Type_RegId2_RegId1
                 on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
-            left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+            left join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                 on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
             where
                 -- exclude commenters blocked by the author of the post
@@ -1698,7 +1698,7 @@ namespace PocketDb
                     left join
                         Transactions sc indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on sc.Type in (301) and sc.RegId1 = addr.id and sc.RegId2 = c.RegId2 and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
-                    left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                    left join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                         on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
                 )sql")
                 .Bind(addressHash, cmntHashes, cmntIds);
@@ -2779,7 +2779,7 @@ namespace PocketDb
                         t.Type,
                         c.Height
                     from addr
-                    join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                    join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
                         o.AddressId = addr.id and not exists (select 1 from TxInputs i where i.TxId = o.TxId and i.Number = o.Number)
                     join Chain c on
                         c.TxId = o.TxId and c.Height <= ?
@@ -2865,7 +2865,7 @@ namespace PocketDb
                     from
                         addr
                     cross join
-                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                        TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
                             o.AddressId = addr.id
                     cross join
                         Chain c on
@@ -3450,7 +3450,7 @@ namespace PocketDb
                         addr,
                         height
                     cross join
-                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                        TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                             on o.AddressId = addr.id
                     cross join
                         Chain c indexed by Chain_TxId_Height
@@ -3606,7 +3606,7 @@ namespace PocketDb
                         (select r.String from Registry r where r.RowId = c.RegId5) as  answerid,
                         (
                             select o.Value
-                            from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                            from TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                             where o.TxId = c.RowId and o.AddressId = p.RegId1 and o.AddressId != c.RegId1
                         ) as Donate
                     from
@@ -6537,7 +6537,7 @@ namespace PocketDb
                                 Last lp on
                                     lp.TxId = p.RowId
                             cross join
-                                TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
                                     o.AddressId = p.RegId1 and
                                     o.AddressId != c.RegId1 and
                                     o.TxId = c.RowId and
@@ -9063,7 +9063,7 @@ namespace PocketDb
 
                     from
                         params,
-                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                        TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
 
                         join Transactions t not indexed on
                             t.RowId = o.TxId and

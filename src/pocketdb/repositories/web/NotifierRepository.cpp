@@ -505,7 +505,7 @@ namespace PocketDb
                             select
                                 o.Value
                             from
-                                TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                             where
                                 o.AddressId = content.RegId1 and
                                 o.TxId = comment.RowId and
