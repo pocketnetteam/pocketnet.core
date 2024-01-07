@@ -144,9 +144,8 @@ public:
 
         nDefaultPort = 37070;
         nPruneAfterHeight = 100000;
-        m_assumed_blockchain_size = 50; // 50 is ok for now
+        m_assumed_blockchain_size = 150; // 100 is ok for now (20240101)
         m_assumed_chain_state_size = 0; // We do not use prune
-                                        //
 
         genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
