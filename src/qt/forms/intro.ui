@@ -212,6 +212,9 @@
    </item>
    <item>
     <widget class="QCheckBox" name="prune">
+     <property name="visible">
+      <bool>false</bool>
+     </property>
      <property name="toolTip">
       <string>Reverting this setting requires re-downloading the entire blockchain. It is faster to download the full chain first and prune it later. Disables some advanced features.</string>
      </property>
