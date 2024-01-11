@@ -36,8 +36,8 @@ static const CRPCCommand commands[] =
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecomendedsubscriptionsforuser",&gettemplate,                       {"address", "count"}},
 
-    {"hidden",       "generatepocketnettransaction",        &GenerateTransaction,           {"address", "privkeys", "outcount", "type", "payload", "fee", "contentaddress", "confirmations"}},
-    {"hidden",       "generatetransaction",                 &GenerateTransaction,           {"address", "privkeys", "outcount", "type", "payload", "fee", "contentaddress", "confirmations"}},
+    {"hidden",       "generatepocketnettransaction",        &GenerateTransaction,           {"address", "privkeys", "outcount", "type", "payload", "fee", "contentaddress", "confirmations", "locktime"}},
+    {"hidden",       "generatetransaction",                 &GenerateTransaction,           {"address", "privkeys", "outcount", "type", "payload", "fee", "contentaddress", "confirmations", "locktime"}},
     {"hidden",       "generateaddress",                     &GenerateAddress,               {}},
 
     // Search

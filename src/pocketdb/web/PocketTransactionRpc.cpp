@@ -187,6 +187,7 @@ namespace PocketWeb::PocketWebRpc
                     {"fee", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                     {"contentaddress", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                     {"confirmations", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"locktime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                 },
                 {
                     // TODO (rpc): provide return description
@@ -237,6 +238,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[7].isNum())
             confirmations = request.params[7].get_int64();
 
+        // Locktime for delay transaction
         UniValue locktime(UniValue::VNUM);
         locktime = NullUniValue;
         if (request.params[8].isNum())
