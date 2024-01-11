@@ -11,6 +11,7 @@ test_runner.py
 import json
 import sys
 import pathlib
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
@@ -275,6 +276,7 @@ class AccountsTest(PocketcoinTestFramework):
         builder.register_accounts()
 
         self.set_up(builder)
+        time.sleep(10)
         self.test_getuseraddress(builder)
         self.test_getuserprofile(builder)
         self.test_getaddressregistration(builder)

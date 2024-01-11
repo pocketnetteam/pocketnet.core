@@ -83,7 +83,11 @@ namespace PocketServices
         webRepoInst->UpsertBarteronAccounts(currHeight);
         webRepoInst->UpsertBarteronOffers(currHeight);
 
-        if (currHeight % 60 == 0 && pindexBestHeader && (pindexBestHeader->nHeight - currHeight) < 60)
+        int period = 60;
+        if (gArgs.GetChainName() == CBaseChainParams::REGTEST)
+            period = 1;
+            
+        if (currHeight % period == 0 && pindexBestHeader && (pindexBestHeader->nHeight - currHeight) < period)
             webRepoInst->CollectAccountStatistic();
 
         webRepoInst->SetCurrentHeight(currHeight);
