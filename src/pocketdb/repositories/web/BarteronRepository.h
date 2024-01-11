@@ -29,10 +29,29 @@ namespace PocketDb
     struct BarteronOffersDealDto
     {
         Pagination Page;
-        string Offer = "";
-        string Address = "";
-        int Location = -1;
-        int Price = -1;
+        vector<int> MyTags;
+        vector<int> TheirTags;
+        vector<string> Addresses;
+        vector<string> ExcludeAddresses;
+        string Location = "";
+        int PriceMin = -1;
+        int PriceMax = -1;
+        string Search;
+    };
+
+    struct BarteronAccountAdditionalInfo
+    {
+        int64_t RegDate;
+        int Rating;
+    };
+
+    struct BarteronOffersComplexDealDto
+    {
+        Pagination Page;
+        int64_t MyTag = 0;
+        vector<int64_t> TheirTags;
+        vector<string> ExcludeAddresses;
+        string Location;
     };
 
     class BarteronRepository : public BaseRepository
@@ -41,10 +60,11 @@ namespace PocketDb
         explicit BarteronRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
         vector<string> GetAccountIds(const vector<string>& addresses);
+        map<string, BarteronAccountAdditionalInfo> GetAccountsAdditionalInfo(const vector<string>& txids);
         vector<string> GetAccountOffersIds(const string& address);
         vector<string> GetFeed(const BarteronOffersFeedDto& args);
         vector<string> GetDeals(const BarteronOffersDealDto& args);
-
+        map<string, vector<string>> GetComplexDeal(const BarteronOffersComplexDealDto& args);
     };
 
     typedef std::shared_ptr<BarteronRepository> BarteronRepositoryRef;

@@ -49,6 +49,79 @@ namespace PocketDb
 
         return result;
     }
+
+    map<string, BarteronAccountAdditionalInfo> BarteronRepository::GetAccountsAdditionalInfo(const vector<string>& txids)
+    {
+        map<string, BarteronAccountAdditionalInfo> result;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                data as (
+                    select
+                        t.Hash as txid,
+                        c.Uid as uid,
+                        t.RegId1 as addrid
+                    from
+                        vTx t
+                        cross join Chain c on
+                            c.TxId = t.RowId
+                    where
+                        t.Hash in ( )sql" + join(vector<string>(txids.size(), "?"), ",") + R"sql( )
+                ),
+                regdate as (
+                    select
+                        t.Time as val
+                    from
+                        data
+                        cross join Chain c indexed by Chain_Uid_Height on
+                            c.Uid = data.uid
+                        cross join First f on
+                            f.TxId = c.TxId
+                        cross join Transactions t on
+                            t.RowId = c.TxId
+                ),
+                rating as (
+                    select
+                        cast (ifnull(avg(s.Int1), 0) * 10 as integer) as val
+                    from
+                        data,
+                        Transactions o indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                            s.Type = 300 and
+                            s.RegId2 = o.RegId2 and
+                            s.RegId1 != addrid
+                        cross join Chain c on -- chain only
+                            c.TxId = s.RowId
+                    where
+                        o.Type = 211 and
+                        o.RegId1 = addrid
+                )
+                select
+                    data.txid,
+                    regdate.val,
+                    rating.val
+                from
+                    data,
+                    regdate,
+                    rating
+            )sql")
+            .Bind(txids)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    string txid;
+                    int64_t regdate;
+                    int rating;
+                    if (cursor.CollectAll(txid, regdate, rating)) {
+                        result.insert({std::move(txid), {regdate, rating}});
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
     
     vector<string> BarteronRepository::GetAccountOffersIds(const string& address)
     {
@@ -195,62 +268,53 @@ namespace PocketDb
     {
         vector<string> result;
 
-        // string _orderBy = " ct.Height ";
-        // if (args.Page.OrderBy == "location")
-        //     _orderBy = " pt.String6 ";
-        // if (args.Page.OrderBy == "price")
-        //     _orderBy = " pt.Int1 ";
-        // if (args.Page.OrderDesc)
-        //     _orderBy += " desc ";
+        string _orderBy = " co2.Height ";
+        if (args.Page.OrderBy == "location")
+            _orderBy = " po2.String6 ";
+        if (args.Page.OrderBy == "price")
+            _orderBy = " po2.Int1 ";
+        if (args.Page.OrderDesc)
+            _orderBy += " desc ";
         
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                    offer as (
-                        select
-                            c.Uid as value
-                        from
-                            Registry r
-                        cross join
-                            Transactions t on t.RowId = r.RowId
-                        cross join
-                            Chain c on c.TxId = t.RowId
-                        where r.String = ?
-                    ),
-                    addr as (
-                        select ? as value
-                    ),
                     price as (
-                        select ? as value
+                        select
+                            ? as min,
+                            ? as max
                     ),
                     loc as (
                         select ? as value
+                    ),
+                    search as (
+                        select ? as value
                     )
-                    select
+                    select distinct
                         (select r.String from Registry r where r.RowId = to2.RowId)
                     from
-                        offer,
-                        addr,
                         price,
-                        loc
+                        loc,
+                        search
 
                     -- Source offer
-                    cross join
-                        BarteronOffers o1 indexed by BarteronOffers_OfferId_Tag_AccountId
-                            on o1.OfferId = offer.value
-                    cross join
-                        BarteronOfferTags t1 -- autoindex OfferId_Tag
-                            on t1.OfferId = o1.OfferId
+                    -- cross join
+                    --     BarteronOffers o1 indexed by BarteronOffers_OfferId_Tag_AccountId
+                    --         on o1.OfferId = offer.value
+                    -- cross join
+                    --     BarteronOfferTags t1 -- autoindex OfferId_Tag
+                    --         on t1.OfferId = o1.OfferId
 
                     -- Offer potencial for deal
                     cross join
                         BarteronOffers o2 -- autoindex Tag_OfferId_AccountId
-                            on o2.Tag = t1.Tag and o2.OfferId != t1.OfferId and o2.AccountId != o1.AccountId
+                            on (? or o2.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( )) -- TODO (losty): shouldn't belong to user that asks for deals -- and o2.OfferId != t1.OfferId and o2.AccountId != o1.AccountId
                     cross join
-                        BarteronOfferTags t2 -- autoindex OfferId_Tag
-                            on t2.OfferId = o2.OfferId and t2.Tag = o1.Tag
+                        BarteronOfferTags t2 on -- autoindex OfferId_Tag
+                            t2.OfferId = o2.OfferId
+                            and (? or t2.Tag in ( )sql" + join(vector<string>(args.MyTags.size(), "?"), ",") + R"sql( ))
 
                     -- Offer potencial account
                     cross join Chain cu2 indexed by Chain_Uid_Height on cu2.Uid = o2.AccountId
@@ -259,29 +323,47 @@ namespace PocketDb
                     cross join Registry ru2 on ru2.RowId = u2.RegId1
 
                     -- Filter found deals by another conditions
-                    cross join Chain c1 on c1.Uid = o1.OfferId
-                    cross join Last l1 on l1.TxId = c1.TxId
-                    cross join Payload p1 on p1.TxId = l1.TxId
+                    -- cross join Chain c1 on c1.Uid = o1.OfferId
+                    -- cross join Last l1 on l1.TxId = c1.TxId
+                    -- cross join Payload p1 on p1.TxId = l1.TxId
                     cross join Chain co2 on co2.Uid = o2.OfferId
                     cross join Transactions to2 on to2.RowId = co2.TxId
                     cross join Last lo2 on lo2.TxId = co2.TxId
                     cross join Payload po2 on po2.TxId = lo2.TxId
 
                     where
-                        ( ? or abs(po2.Int1 - p1.Int1) < price.value ) and
-                        ( ? or substr(po2.String6, 1, loc.value) like substr(p1.String6, 1, loc.value) ) and
-                        ( ? or ru2.String = addr.value )
+                        ( ? or po2.Int1 >= price.min ) and
+                        ( ? or po2.Int1 <= price.max ) and
+                        ( ? or po2.String6 is null or po2.String6 like loc.value) and -- TODO (losty): maybe use: 'substr(po2.String6, 1, loc.size()) = loc' instead if 'like' ???
+                        ( ? or po2.String2 like search.value or po2.String3 like search.value) and
+                        ( ? or ru2.String in ( )sql" + join(vector<string>(args.Addresses.size(), "?"), ",") + R"sql( ) ) and
+                        ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
+                        cu2.Height <= ?
 
-                    limit 5 -- todo add pagination ?
+                    order by
+                        )sql" + _orderBy + R"sql(
+                    limit ? offset ?
                 )sql")
                 .Bind(
-                    args.Offer,
-                    args.Address,
-                    args.Price,
+                    args.PriceMin,
+                    args.PriceMax,
                     args.Location,
-                    (args.Price < 0),
-                    (args.Location < 0),
-                    (args.Address.empty())
+                    args.Search,
+                    args.TheirTags.empty(),
+                    args.TheirTags,
+                    args.MyTags.empty(),
+                    args.MyTags,
+                    (args.PriceMin < 0),
+                    (args.PriceMax < 0),
+                    args.Location.empty(),
+                    args.Search.empty(),
+                    args.Addresses.empty(),
+                    args.Addresses,
+                    args.ExcludeAddresses.empty(),
+                    args.ExcludeAddresses,
+                    args.Page.TopHeight,
+                    args.Page.PageSize,
+                    args.Page.PageStart * args.Page.PageSize
                 );
             },
             [&] (Stmt& stmt) {
@@ -298,4 +380,84 @@ namespace PocketDb
         return result;
     }
 
+    map<string, vector<string>> BarteronRepository::GetComplexDeal(const BarteronOffersComplexDealDto& args)
+    {
+        map<string, vector<string>> result;
+        SqlTransaction(
+            __func__,
+            [&]() {
+                return Sql(
+                    R"sql(
+                        with
+                            loc as (
+                                select ? as value
+                            ),
+                            mytag as (
+                                select ? as value
+                            )
+                        select
+                            (select r.String from Registry r where r.RowId = tx1.RowId),
+                            (select r.String from Registry r where r.RowId = tx2.RowId)
+                        from
+                            loc,
+                            mytag
+                            cross join BarteronOffers o1 on
+                                o1.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( ) and
+                                not exists (select 1 from BarteronOfferTags tt where tt.OfferId = o1.OfferId and tt.Tag = mytag.value)
+                            cross join BarteronOfferTags t1 on
+                                t1.OfferId = o1.OfferId
+
+                            cross join BarteronOffers o2 on
+                                o2.Tag = t1.Tag
+                            cross join BarteronOfferTags t2 on
+                                t2.OfferId = o2.OfferId and
+                                t2.Tag = mytag.value
+
+                            cross join Chain c1 on
+                                c1.Uid = o1.OfferId
+                            cross join Last l1 on
+                                l1.TxId = c1.TxId
+                            cross join Transactions tx1 on
+                                tx1.RowId = c1.TxId and
+                                (? or tx1.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
+                            cross join Payload p1 on
+                                p1.TxId = c1.TxId
+
+                            cross join Chain c2 on
+                                c2.Uid = o2.OfferId
+                            cross join Last l2 on
+                                l2.TxId = c2.TxId
+                            cross join Transactions tx2 on
+                                tx2.RowId = c2.TxId and
+                                tx2.RegId1 != tx1.RegId1 and
+                                (? or tx2.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
+                            cross join Payload p2 on
+                                p2.TxId = c2.TxId
+                        where
+                            (? or ((p1.String6 is null or p1.String6 like loc.value) and (p2.String6 is null or p2.String6 like loc.value)))
+                    )sql"
+                )
+                .Bind(
+                    args.Location,
+                    args.MyTag,
+                    args.TheirTags,
+                    args.ExcludeAddresses.empty(),
+                    args.ExcludeAddresses,
+                    args.ExcludeAddresses.empty(),
+                    args.ExcludeAddresses,
+                    args.Location.empty()
+                )
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        string target, intermediate;
+                        if (cursor.CollectAll(target, intermediate)) {
+                            result[target].emplace_back(intermediate);
+                        }
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
 }
