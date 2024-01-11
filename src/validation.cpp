@@ -630,7 +630,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     if (!CheckFinalTx(tx, STANDARD_LOCKTIME_VERIFY_FLAGS))
     {
         TxType txType = TransactionHelper::ParseType(ptx);
-        if(!TransactionHelper::IsIn(txType, vector<TxType>{TxType::CONTENT_POST, TxType::CONTENT_VIDEO, TxType::CONTENT_ARTICLE, TxType::CONTENT_STREAM, TxType::CONTENT_AUDIO}))
+        if(!TransactionHelper::IsIn(txType, vector<TxType>{TxType::CONTENT_POST, TxType::CONTENT_VIDEO, TxType::CONTENT_ARTICLE, TxType::CONTENT_STREAM, TxType::CONTENT_AUDIO, TxType::CONTENT_COLLECTION, TxType::BOOST_CONTENT}))
             return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "non-final");
     }
 
@@ -5624,14 +5624,26 @@ bool LoadMempool(CTxMemPool& pool)
                 pool.PrioritiseTransaction(tx->GetHash(), amountdelta);
             }
             TxValidationState state;
-            if (nTime > nNow - nExpiryTimeout) {
+            int64_t txTime = nTime;
+            if (tx->nLockTime != 0)
+            {
+                if (tx->nLockTime > LOCKTIME_THRESHOLD)
+                {
+                    txTime = tx->nLockTime;
+                }
+                else if (tx->nLockTime > ChainActive().Height())
+                {
+                    txTime = ChainActive().Tip()->nTime + ((tx->nLockTime - ChainActive().Height()) * Params().GetConsensus().nPowTargetSpacing);
+                }
+            }
+            if (txTime > nNow - nExpiryTimeout) {
                 std::shared_ptr<Transaction> pocketTx;
                 if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx))
                     state.Invalid(TxValidationResult::TX_POCKET_SQLITE, "not found in sqlite db");
-                
+
                 if (state.IsValid()) {
                     LOCK(cs_main);
-                    AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pocketTx, nTime,
+                    AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pocketTx, txTime,
                                                nullptr /* plTxnReplaced */, false /* bypass_limits */,
                                                false /* test_accept */);
                 }
@@ -5650,9 +5662,7 @@ bool LoadMempool(CTxMemPool& pool)
                         expiredHashes.emplace(tx->GetHash().GetHex());
                     }
                 }
-            }
-            else
-            {
+            } else {
                 expiredHashes.emplace(tx->GetHash().GetHex());
             }
             if (ShutdownRequested())
