@@ -6,10 +6,12 @@
 #ifndef POCKETCOIN_VALIDATION_H
 #define POCKETCOIN_VALIDATION_H
 
-#include "eventloop.h"
 #if defined(HAVE_CONFIG_H)
 #include <config/pocketcoin-config.h>
 #endif
+
+#include "eventloop.h"
+#include "notification/INotifications.h"
 
 #include <amount.h>
 #include <coins.h>
@@ -44,8 +46,7 @@
 using namespace PocketHelpers;
 extern std::unordered_map<std::string, int> pocketProcessed;
 
-extern std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
-extern std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
+extern std::unique_ptr<notifications::INotifications> notificationProcessor;
 
 class CChainState;
 class BlockValidationState;

@@ -1,21 +1,24 @@
-#include "websocket/notifyprocessor.h"
+// Copyright (c) 2018-2022 The Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
 
+#include "notification/notifyprocessor.h"
+
+#include "core_io.h"
 #include "validation.h"
 #include "primitives/block.h"
-#include "pocketdb/pocketnet.h"
 
 
-NotifyBlockProcessor::NotifyBlockProcessor(std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections) 
+notifications::NotifyBlockProcessor::NotifyBlockProcessor(std::shared_ptr<NotifyableStorage> clients) 
+    : m_clients(std::move(clients))
 {
-    m_WSConnections = std::move(WSConnections);
-
-    auto dbBasePath = (GetDataDir() / "pocketdb").string();
+     auto dbBasePath = (GetDataDir() / "pocketdb").string();
     sqliteDbInst = make_shared<SQLiteDatabase>(true);
     sqliteDbInst->Init(dbBasePath, "main");
     notifierRepoInst = make_shared<NotifierRepository>(*sqliteDbInst);
 }
 
-NotifyBlockProcessor::~NotifyBlockProcessor()
+notifications::NotifyBlockProcessor::~NotifyBlockProcessor()
 {
     sqliteDbInst->m_connection_mutex.lock();
     notifierRepoInst->Destroy();
@@ -25,7 +28,8 @@ NotifyBlockProcessor::~NotifyBlockProcessor()
     sqliteDbInst = nullptr;
 }
 
-void NotifyBlockProcessor::PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields)
+
+void notifications::NotifyBlockProcessor::PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields)
 {
     UniValue msg(UniValue::VOBJ);
     msg.pushKV("addr", addrTo);
@@ -45,9 +49,9 @@ void NotifyBlockProcessor::PrepareWSMessage(std::map<std::string, std::vector<Un
     messages[addrTo].push_back(msg);
 }
 
-void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
+void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
 {
-    if (m_WSConnections->empty()) {
+    if (m_clients->empty()) {
         return;
     }
 
@@ -383,7 +387,13 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         contentsLang.pushKV(TransactionHelper::TxStringType(PocketHelpers::TransactionHelper::ConvertOpReturnToType(itemContent.first)), langContents);
     }
 
-    auto send = [&](std::pair<const std::string, WSUser>& connWS) {
+    std:set<std::string> droppedConnections; // Handling dropped and non-lockable connections
+    auto send = [&](std::pair<const std::string, NotificationClient>& connWS) {
+        auto connection = connWS.second.Connection.lock();
+        if (!connection) {
+            droppedConnections.insert(connWS.first);
+            return;
+        }
         UniValue msg(UniValue::VOBJ);
         msg.pushKV("addr", connWS.second.Address);
         msg.pushKV("stakeTxHash", _block_stake_txHash);
@@ -413,7 +423,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         {
             try
             {
-                connWS.second.Connection->send(msg.write(), [](const SimpleWeb::error_code& ec) {});
+                connection->Send(msg.write());
             }
             catch (const std::exception& e)
             {
@@ -446,7 +456,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                 {
                     try
                     {
-                        connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+                        connection->Send(m.write());
                     }
                     catch (const std::exception& e)
                     {
@@ -458,5 +468,10 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             connWS.second.Block = blockIndex->nHeight;
         }
     };
-    m_WSConnections->Iterate(send);
+    m_clients->Iterate(send);
+
+    // Clearing all dropped connections to omit OOM
+    for (const auto& dropped : droppedConnections) {
+        m_clients->erase(dropped);
+    }
 }

@@ -6,6 +6,7 @@ $(1)_objc=$($($(1)_type)_OBJC)
 $(1)_objcxx=$($($(1)_type)_OBJCXX)
 $(1)_ar=$($($(1)_type)_AR)
 $(1)_ranlib=$($($(1)_type)_RANLIB)
+$(1)_windres=$($($(1)_type)_WINDRES)
 $(1)_libtool=$($($(1)_type)_LIBTOOL)
 $(1)_nm=$($($(1)_type)_NM)
 $(1)_cflags=$($($(1)_type)_CFLAGS) $($($(1)_type)_$(release_type)_CFLAGS)
@@ -141,6 +142,9 @@ endif
 ifneq ($($(1)_ranlib),)
 $(1)_autoconf += RANLIB="$$($(1)_ranlib)"
 endif
+ifneq ($($(1)_windres),)
+$(1)_autoconf += WINDRES="$$($(1)_windres)"
+endif
 ifneq ($($(1)_ar),)
 $(1)_autoconf += AR="$$($(1)_ar)"
 endif
@@ -168,6 +172,12 @@ ifneq ($(host),$(build))
 $(1)_cmake += -DCMAKE_SYSTEM_NAME=$($(host_os)_cmake_system)
 $(1)_cmake += -DCMAKE_C_COMPILER_TARGET=$(host)
 $(1)_cmake += -DCMAKE_CXX_COMPILER_TARGET=$(host)
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH=/usr/$(host)\;$$($($(1)_type)_prefix) # TODO (losty): i hope there is a better way to get path to host environment
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
+$(1)_cmake += -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
+
 endif
 endif
 endef

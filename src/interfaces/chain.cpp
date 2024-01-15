@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "httprpc.h"
 #include <interfaces/chain.h>
 
 #include <chain.h>
@@ -125,16 +126,18 @@ public:
                 throw;
             }
         };
-        if (g_socket)
-            g_socket->m_table_rpc.appendCommand(m_command.name, &m_command);
+        // TODO (losty-nat): take table by args
+        if (g_privateTable)
+            g_privateTable->appendCommand(m_command.name, &m_command);
     }
 
     void disconnect() final
     {
         if (m_wrapped_command) {
             m_wrapped_command = nullptr;
-            if (g_socket)
-                g_socket->m_table_rpc.removeCommand(m_command.name, &m_command);
+            // TODO (losty-nat): take by args
+            if (g_privateTable)
+                g_privateTable->removeCommand(m_command.name, &m_command);
         }
     }
 

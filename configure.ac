@@ -243,6 +243,12 @@ AC_ARG_ENABLE([zmq],
   [use_zmq=$enableval],
   [use_zmq=yes])
 
+AC_ARG_ENABLE([webrtc],
+  [AS_HELP_STRING([--disable-webrtc],
+  [disable rpc and web via WebRTC])],
+  [use_webrtc=$enableval],
+  [use_webrtc=yes])
+
 AC_ARG_WITH([libmultiprocess],
   [AS_HELP_STRING([--with-libmultiprocess=yes|no|auto],
   [Build with libmultiprocess library. (default: auto, i.e. detect with pkg-config)])],
@@ -604,6 +610,7 @@ case $host in
      AC_CHECK_LIB([mswsock],  [main],, AC_MSG_ERROR(libmswsock missing))
      AC_CHECK_LIB([shlwapi],  [PathRemoveFileSpecW],, AC_MSG_ERROR(libshlwapi missing))
      AC_CHECK_LIB([iphlpapi], [GetAdaptersAddresses],, AC_MSG_ERROR(libiphlpapi missing))
+     AC_CHECK_LIB([bcrypt],   [BCryptGenRandom],, AC_MSG_ERROR(libbcrypt missing))
 
      dnl -static is interpreted by libtool, where it has a different meaning.
      dnl In libtool-speak, it's -all-static.
@@ -1242,6 +1249,53 @@ if test x$enable_wallet != xno; then
     fi
 fi
 
+dnl Searching for libdatachannel
+DATACHANNEL_LIBS=""
+DATACHANNEL_CPPFLAGS=""
+if test x$use_webrtc != xno; then
+  AC_ARG_VAR(DATACHANNEL_CPPFLAGS, [C compiler flags for libdatachannel, bypasses autodetection])
+  AC_ARG_VAR(DATACHANNEL_LIBS, [Linker flags for libdatachannel, bypasses autodetection])
+  if test "x$DATACHANNEL_CPPFLAGS$DATACHANNEL_LIBS" = "x"; then
+    AC_MSG_CHECKING([for libdatachannel])
+    TEMP_LIBS="$LIBS"
+    dnl datachannel libs depends on openssl, pthreads and other system libs, thus they should be linked firstly
+    LIBS="-ldatachannel $SSL_LIBS $CRYPTO_LIBS $PTHREAD_LIBS $TEMP_LIBS"
+    TEMP_CXXFLAGS="$CXXFLAGS"
+    CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
+    TEMP_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -DRTC_ENABLE_MEDIA=0"
+    AC_LINK_IFELSE([ AC_LANG_PROGRAM(
+        [[ #include <rtc/rtc.hpp> ]],
+        [[ rtc::WebSocket ws; rtc::PeerConnection pc; ]]
+    )],
+      [DATACHANNEL_LIBS="-ldatachannel"]
+      [have_datachannel=yes],
+      [have_datachannel=no])
+    if test x$have_datachannel = xno; then
+      dnl Probably failed because datachannel static lib doesn't contain its dependencies, try to link them explicitly
+      LIBS="-ldatachannel -lusrsctp -ljuice $SSL_LIBS $CRYPTO_LIBS $PTHREAD_LIBS $TEMP_LIBS"
+      AC_LINK_IFELSE([ AC_LANG_PROGRAM(
+          [[ #include <rtc/rtc.hpp> ]],
+          [[ rtc::WebSocket ws; rtc::PeerConnection pc; ]]
+      )],
+      [have_datachannel=yes]
+      [DATACHANNEL_LIBS="-ldatachannel -lusrsctp -ljuice"])
+    fi
+    if test x$have_datachannel = xno; then
+      AC_MSG_RESULT(no)
+      AC_MSG_ERROR([Failed to find libdatachannel. Reconfigure with --disable-webrtc or specify DATACHANNEL_LIBS and DATACHANNEL_CPPFLAGS explicitly])
+    fi
+    LIBS="$TEMP_LIBS"
+    CXXFLAGS="$TEMP_CXXFLAGS"
+    CPPFLAGS="$TEMP_CPPFLAGS"
+    AC_MSG_RESULT(yes)
+    AC_DEFINE([USE_WEBRTC], 1, [Using WebRTC])
+  fi
+else
+  AC_DEFINE([USE_WEBRTC], 0, [Using WebRTC])
+fi
+AC_DEFINE([RTC_ENABLE_MEDIA], 0, [Disable media support for WebRTC])
+
 dnl Check for libminiupnpc (optional)
 if test x$use_upnp != xno; then
   AC_CHECK_HEADERS(
@@ -1611,6 +1665,7 @@ AM_CONDITIONAL([ENABLE_SHANI],[test x$enable_shani = xyes])
 AM_CONDITIONAL([ENABLE_ARM_CRC],[test x$enable_arm_crc = xyes])
 AM_CONDITIONAL([USE_ASM],[test x$use_asm = xyes])
 AM_CONDITIONAL([WORDS_BIGENDIAN],[test x$ac_cv_c_bigendian = xyes])
+AM_CONDITIONAL([USE_WEBRTC], [test x$use_webrtc = xyes])
 
 AC_DEFINE(CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MAJOR, [Major version])
 AC_DEFINE(CLIENT_VERSION_MINOR, _CLIENT_VERSION_MINOR, [Minor version])
@@ -1669,6 +1724,8 @@ AC_SUBST(SSL_LIBS)
 AC_SUBST(TESTDEFS)
 AC_SUBST(MINIUPNPC_CPPFLAGS)
 AC_SUBST(MINIUPNPC_LIBS)
+AC_SUBST(DATACHANNEL_CPPFLAGS)
+AC_SUBST(DATACHANNEL_LIBS)
 AC_SUBST(EVENT_LIBS)
 AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(EVENT_OPENSSL_LIBS)
@@ -1734,12 +1791,12 @@ case ${OS} in
      mv test/config-2.ini test/config.ini
    ;;
 esac
-
 echo
 echo "Options used to compile and link:"
 echo "  boost process = $ax_cv_boost_process"
 echo "  multiprocess  = $build_multiprocess"
 echo "  with wallet   = $enable_wallet"
+echo "  with webrtc   = $use_webrtc"
 if test "x$enable_wallet" != "xno"; then
     echo "    with sqlite = $use_sqlite"
 fi

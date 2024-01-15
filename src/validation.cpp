@@ -3024,8 +3024,8 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
 typedef std::map<std::string, std::string> custom_fields;
 void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 {
-    if (notifyClientsQueue) {
-        notifyClientsQueue->Add({block, blockIndex});
+    if (notificationProcessor) {
+        notificationProcessor->GetNotificationQueue()->Add({block, blockIndex});
     }
 }
 

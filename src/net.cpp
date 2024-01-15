@@ -21,6 +21,7 @@
 #include <scheduler.h>
 #include <util/strencodings.h>
 #include <util/translation.h>
+#include <webrtc/IWebRTC.h>
 
 #ifdef WIN32
 #include <string.h>
@@ -1177,6 +1178,7 @@ void CConnman::DisconnectNodes()
         {
             if (pnode->fDisconnect)
             {
+                g_webrtc->DropConnection(pnode->GetAddrName());
                 // remove from vNodes
                 vNodes.erase(remove(vNodes.begin(), vNodes.end(), pnode), vNodes.end());
 

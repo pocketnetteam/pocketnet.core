@@ -26,6 +26,18 @@ namespace util {
 class Ref;
 } // namespace util
 
+// TODO (losty-nat): move somewhere
+static const int DEFAULT_HTTP_THREADS = 4;
+static const int DEFAULT_HTTP_POST_THREADS = 4;
+static const int DEFAULT_HTTP_PUBLIC_THREADS = 4;
+static const int DEFAULT_HTTP_STATIC_THREADS = 4;
+static const int DEFAULT_HTTP_REST_THREADS = 4;
+static const int DEFAULT_HTTP_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_POST_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_STATIC_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_REST_WORKQUEUE = 16;
+
 /** Interrupt threads */
 void Interrupt(NodeContext& node);
 void Shutdown(NodeContext& node);
