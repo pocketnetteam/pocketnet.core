@@ -25,7 +25,6 @@ namespace PocketTx
 
         return SocialTransaction::GenerateHash(data);
     }
-
     
     const optional<string>& ModerationVote::GetJuryId() const { return m_string2; }
     void ModerationVote::SetJuryId(const string& value) { m_string2 = value; }

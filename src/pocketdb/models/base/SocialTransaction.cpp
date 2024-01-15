@@ -85,6 +85,7 @@ namespace PocketTx
     void SocialTransaction::DeserializeRpc(const UniValue& src)
     {
         Deserialize(src);
+        DeserializePayload(src);
     }
     
     const optional<string>& SocialTransaction::GetAddress() const { return m_string1; }
