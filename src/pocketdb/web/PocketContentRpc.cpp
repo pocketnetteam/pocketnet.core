@@ -1367,7 +1367,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxs = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(address, heightMax, heightMin, blockNum, filters);
+        auto shortTxs = request.DbConnection()->NotifierRepoInst->GetEventsForAddresses(address, heightMax, heightMin, blockNum, filters);
         UniValue res(UniValue::VARR);
         for (const auto& tx: shortTxs) {
             res.push_back(tx.Serialize());
@@ -1396,6 +1396,9 @@ namespace PocketWeb::PocketWebRpc
                             {ShortTxTypeConvertor::toString(ShortTxType::ContentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new scores to acc's content"},
                             {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new content from acc's private subscriptions"},
                             {ShortTxTypeConvertor::toString(ShortTxType::Repost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new reposts of acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new assigned jury for authors"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::JuryModerate), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new assigned jury for moderators"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::JuryVerdict), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new verdict by assigned jury"},
                         }
                     },
                 },
@@ -1430,7 +1433,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        return request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+        return request.DbConnection()->NotifierRepoInst->GetNotifications(height, filters);
     },
        };
     }
@@ -1500,7 +1503,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxs = request.DbConnection()->WebRpcRepoInst->GetActivities(address, heightMax, heightMin, blockNum, filters);
+        auto shortTxs = request.DbConnection()->NotifierRepoInst->GetActivities(address, heightMax, heightMin, blockNum, filters);
         UniValue res(UniValue::VARR);
         for (const auto& tx: shortTxs) {
             res.push_back(tx.Serialize());
@@ -1564,7 +1567,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto res = request.DbConnection()->WebRpcRepoInst->GetNotificationsSummary(heightMax, heightMin, addresses, filters);
+        auto res = request.DbConnection()->NotifierRepoInst->GetNotificationsSummary(heightMax, heightMin, addresses, filters);
         UniValue response(UniValue::VOBJ);
 
         for (const auto& addressEntry: res) {
