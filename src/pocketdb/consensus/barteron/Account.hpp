@@ -49,7 +49,6 @@ namespace PocketConsensus
         
         ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
         {
-            LogPrintf("consensusData.MempoolCount: %d\n", consensusData.MempoolCount);
             return { consensusData.MempoolCount <= 0, ConsensusResult_ManyTransactions };
         }
 
