@@ -18,9 +18,7 @@ namespace PocketTx
     }
 
     void Default::Deserialize(const UniValue& src) {}
-    void Default::DeserializePayload(const UniValue& src)
-    {
-    }
+    void Default::DeserializePayload(const UniValue& src) {}
 
     string Default::BuildHash()
     {
