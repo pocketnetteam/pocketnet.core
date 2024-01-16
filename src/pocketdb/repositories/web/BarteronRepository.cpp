@@ -196,12 +196,12 @@ namespace PocketDb
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                    lang as (select ? as value),
-                    tags as (select value from json_each(?)),
-                    location as (select ? as value),
-                    priceMax as (select ? as value),
-                    priceMin as (select ? as value),
-                    search as (select ? as value)
+                        lang as (select ? as value),
+                        tags as (select value from json_each(?)),
+                        location as (select ? as value),
+                        priceMax as (select ? as value),
+                        priceMin as (select ? as value),
+                        search as (select ? as value)
 
                     select
                         (select r.String from Registry r where r.RowId = t.RowId)
@@ -227,7 +227,7 @@ namespace PocketDb
                         Chain cu
                             on cu.TxId = u.RowId
                     -- Tags
-                    cross join
+                    left join
                         web.BarteronOffers bo
                             on bo.AccountId = cu.Uid and bo.OfferId = ct.Uid
                     -- Filters
