@@ -68,12 +68,25 @@ namespace PocketDb
         SystemRepoInst.Init();
         MigrationRepoInst.Init();
 
-        LogPrintf("SQLite database version: %d\n", SystemRepoInst.GetDbVersion());
+        auto dbVersion = SystemRepoInst.GetDbVersion();
+        LogPrintf("SQLite database version: %d\n", dbVersion);
+
+        // Drop web database
+        bool dropWebDb = gArgs.GetArg("-reindex", 0) == 5;
+        
+        // Change database version
+        if (dbVersion < 1)
+        {
+            dbVersion = 1;
+            SystemRepoInst.SetDbVersion(dbVersion);
+            LogPrintf("SQLite database version changed: %d\n", dbVersion);
+            dropWebDb = true;
+        }
 
         // Open, create structure and close `web` db
         PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();
         SQLiteDatabase sqliteDbWebInst(false);
-        sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, gArgs.GetArg("-reindex", 0) == 5);
+        sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, dropWebDb);
         sqliteDbWebInst.CreateStructure();
         sqliteDbWebInst.Close();
 
