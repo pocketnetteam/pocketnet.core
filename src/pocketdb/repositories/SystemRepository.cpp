@@ -28,10 +28,7 @@ namespace PocketDb
     {
         SqlTransaction(__func__, [&]()
         {
-            Sql(R"sql(
-                PRAGMA user_version = ?
-            )sql")
-            .Bind(version)
+            Sql(R"sql( PRAGMA user_version = )sql" + to_string(version))
             .Run();
         });
     }
