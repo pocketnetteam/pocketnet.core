@@ -59,6 +59,23 @@ size_t CTxMemPoolEntry::GetTxSize() const
     return GetVirtualTransactionSize(nTxWeight, sigOpCost);
 }
 
+std::chrono::seconds CTxMemPoolEntry::GetTimeOrLock() const
+{
+    if (GetTx().nLockTime != 0)
+    {
+        if (GetTx().nLockTime > LOCKTIME_THRESHOLD)
+        {
+            return std::chrono::seconds{GetTx().nLockTime};
+        }
+        else if (GetTx().nLockTime > ChainActive().Height())
+        {
+            return std::chrono::seconds{ChainActive().Tip()->nTime} + std::chrono::seconds{(GetTx().nLockTime - ChainActive().Height()) * Params().GetConsensus().nPowTargetSpacing};
+        }
+    }
+
+    return GetTime();
+}
+
 // Update the given tx for any in-mempool descendants.
 // Assumes that CTxMemPool::m_children is correct for the given tx and all
 // descendants.
@@ -1082,23 +1099,10 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     indexed_transaction_set::index<entry_time>::type::iterator it = mapTx.get<entry_time>().begin();
     setEntries toremove;
 
-    std::chrono::seconds txTime = it->GetTime();
-    if (it->GetTx().nLockTime != 0)
+    while (it != mapTx.get<entry_time>().end() && it->GetTimeOrLock() < time)
     {
-        if (it->GetTx().nLockTime > LOCKTIME_THRESHOLD)
-        {
-            txTime = std::chrono::seconds{it->GetTx().nLockTime};
-        }
-        else if (it->GetTx().nLockTime > ChainActive().Height())
-        {
-            txTime = std::chrono::seconds{ChainActive().Tip()->nTime} + std::chrono::seconds{(it->GetTx().nLockTime - ChainActive().Height()) * Params().GetConsensus().nPowTargetSpacing};
-        }
-    }
-    while (it != mapTx.get<entry_time>().end() && txTime < time) {
         toremove.insert(mapTx.project<0>(it));
-
         it++;
-        txTime = it->GetTime();
     }
 
     setEntries stage;
