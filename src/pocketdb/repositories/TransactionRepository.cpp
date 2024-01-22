@@ -23,8 +23,21 @@ namespace PocketDb
             collectData.txContextData = move(txData);
             collectData.inputs = ptx->Inputs();
             collectData.outputs = ptx->OutputsConst();
-            collectData.payload = ptx->GetPayload();
             collectData.ptx = ptx;
+
+            if (ptx->GetPayload()) {
+                if (ptx->GetPayload()->GetString1() ||
+                    ptx->GetPayload()->GetString2() ||
+                    ptx->GetPayload()->GetString3() ||
+                    ptx->GetPayload()->GetString4() ||
+                    ptx->GetPayload()->GetString5() ||
+                    ptx->GetPayload()->GetString6() ||
+                    ptx->GetPayload()->GetString7() ||
+                    ptx->GetPayload()->GetInt1()
+                ) {
+                    collectData.payload = ptx->GetPayload();
+                }
+            }
 
             return collectData;
         }
