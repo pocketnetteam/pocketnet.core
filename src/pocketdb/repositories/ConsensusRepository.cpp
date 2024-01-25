@@ -562,6 +562,11 @@ namespace PocketDb
         return {blockingExists, blockingType};
     }
 
+    bool ConsensusRepository::ExistBlocking(const string& address, const string& addressTo)
+    {
+        return ExistBlocking(address, addressTo, "[]");
+    }
+
     bool ConsensusRepository::ExistBlocking(const string& address, const string& addressTo, const string& addressesTo)
     {
         bool blockingExists = false;

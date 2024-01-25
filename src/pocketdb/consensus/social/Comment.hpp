@@ -58,7 +58,6 @@ namespace PocketConsensus
             if (*contentTx->GetType() == CONTENT_DELETE)
                 return {false, ConsensusResult_CommentDeletedContent};
 
-            // TODO (aok): convert to Content base class
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                     *contentTx->GetString1(), *ptx->GetAddress()
