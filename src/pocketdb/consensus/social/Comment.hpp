@@ -59,7 +59,7 @@ namespace PocketConsensus
                 return {false, ConsensusResult_CommentDeletedContent};
 
             // Check Blocking
-            if (!ValidateBlocking(*contentTx->GetString1(), *ptx->GetAddress(), block == nullptr))
+            if (ValidateBlocking(*contentTx->GetString1(), *ptx->GetAddress(), block == nullptr))
                 return {false, ConsensusResult_Blocking};
 
             return SocialConsensus::Validate(tx, ptx, block);
