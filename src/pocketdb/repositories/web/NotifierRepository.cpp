@@ -2788,11 +2788,11 @@ namespace PocketDb
                         cross join vTxStr sv on
                             sv.RowId = v.RowId
 
-                        cross join JuryBan jb
-                            on jb.VoteRowId = v.ROWID
+                        cross join Jury j
+                            on j.FlagRowId = v.RegId2
 
                         cross join Chain cu on
-                            cu.Uid = jb.AccountId and
+                            cu.Uid = j.AccountId and
                             exists (select 1 from Last l where l.TxId = cu.TxId)
 
                         cross join vTxStr su on
@@ -2802,7 +2802,7 @@ namespace PocketDb
                             on p.TxId = cu.TxId
 
                         cross join JuryVerdict jv indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
-                            on jv.VoteRowId = jb.VoteRowId
+                            on jv.VoteRowId = v.RowId
 
                         cross join Transactions f
                             on f.RowId = jv.FlagRowId
@@ -2820,7 +2820,7 @@ namespace PocketDb
                             cp.TxId = c.RowId
 
                         left join Ratings rn indexed by Ratings_Type_Uid_Last_Height on
-                            rn.Type = 0 and rn.Uid = jb.AccountId and rn.Last = 1
+                            rn.Type = 0 and rn.Uid = j.AccountId and rn.Last = 1
 
                     where
                         v.Type = 420
