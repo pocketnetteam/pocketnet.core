@@ -174,10 +174,10 @@ namespace PocketConsensus
             if (from1to2 == from2to1)
                 return false;
                 
-            if (from1to2 && PocketDb::ConsensusRepoInst.ExistsBlocking(address1, address2))
+            if (from1to2 && PocketDb::ConsensusRepoInst.ExistBlocking(address1, address2))
                 return true;
             
-            if (from2to1 && PocketDb::ConsensusRepoInst.ExistsBlocking(address2, address1))
+            if (from2to1 && PocketDb::ConsensusRepoInst.ExistBlocking(address2, address1))
                 return true;
 
             return false;
