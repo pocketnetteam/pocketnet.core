@@ -87,10 +87,10 @@ namespace PocketConsensus
     };
 
     // ----------------------------------------------------------------------------------------------
-    class CommentConsensus_checkpoint_pip_105 : public BoostContentConsensus_checkpoint_disable_for_blocked
+    class BoostContentConsensus_checkpoint_pip_105 : public BoostContentConsensus_checkpoint_disable_for_blocked
     {
     public:
-        CommentConsensus_checkpoint_pip_105() : BoostContentConsensus_checkpoint_disable_for_blocked() {}
+        BoostContentConsensus_checkpoint_pip_105() : BoostContentConsensus_checkpoint_disable_for_blocked() {}
     protected:
         virtual bool ValidateBlocking(const string& address1, const string& address2, bool mempool)
         {
@@ -108,7 +108,7 @@ namespace PocketConsensus
         {
             Checkpoint({       0,       0, -1, make_shared<BoostContentConsensus>() });
             Checkpoint({ 1757000,  953000, -1, make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>() });
-            Checkpoint({ 2727000, 2574300,  0, make_shared<CommentConsensus_checkpoint_pip_105>() });
+            Checkpoint({ 2727000, 2574300,  0, make_shared<BoostContentConsensus_checkpoint_pip_105>() });
         }
     };
 
