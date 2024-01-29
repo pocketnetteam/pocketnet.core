@@ -178,7 +178,7 @@ namespace PocketConsensus
     public:
         CommentConsensus_checkpoint_pip_105() : CommentConsensus_checkpoint_1180000() {}
     protected:
-        virtual bool ValidateBlocking(const string& address1, const string& address2, bool mempool)
+        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
         {
             return SocialConsensus::CheckBlocking(address1, address2, true, true);
         }

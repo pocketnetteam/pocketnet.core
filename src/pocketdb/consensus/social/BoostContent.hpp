@@ -65,7 +65,7 @@ namespace PocketConsensus
 
         vector<string> GetAddressesForCheckRegistration(const BoostContentRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            return { *ptx->GetAddress() };
         }
 
         virtual bool ValidateBlocking(const string& address1, const string& address2, bool mempool)
@@ -92,7 +92,7 @@ namespace PocketConsensus
     public:
         BoostContentConsensus_checkpoint_pip_105() : BoostContentConsensus_checkpoint_disable_for_blocked() {}
     protected:
-        virtual bool ValidateBlocking(const string& address1, const string& address2, bool mempool)
+        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
         {
             return SocialConsensus::CheckBlocking(address1, address2, true, true);
         }
