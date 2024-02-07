@@ -1152,14 +1152,14 @@ namespace PocketDb
                     r.String
                 from
                     cnt,
-                    Transactions t
+                    Transactions t indexed by Transactions_Type_RegId3_RegId4_RegId5
                     cross join Last l on
                         l.TxId = t.RowId
                     cross join Registry r on
                         r.RowId = t.RowId
                 where
-                    t.Type in (204,205,206) and
-                    t.RegId2 = cnt.id
+                    t.Type in (204, 205, 206) and
+                    t.RegId3 = cnt.id
             )sql")
             .Bind(contentHashes)
             .Select([&](Cursor& cursor) {
