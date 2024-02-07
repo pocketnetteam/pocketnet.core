@@ -886,6 +886,7 @@ namespace PocketDb
                     from
                         Chain c
 
+                    -- Comment
                     cross join
                         Transactions t
                             on t.RowId = c.TxId and t.Type in (204, 205)
@@ -899,6 +900,7 @@ namespace PocketDb
                         Ratings rc indexed by Ratings_Type_Uid_Last_Value
                             on rc.Type = 3 and rc.Last = 1 and rc.Uid = c.Uid and rc.Value >= 0
 
+                    -- Author of comment
                     cross join
                         Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on ua.Type = 100 and ua.RegId1 = t.RegId1
@@ -906,8 +908,10 @@ namespace PocketDb
                         Last lua
                             on lua.TxId = ua.RowId
 
-                    cross join Transactions p indexed by Transactions_Type_RegId2_RegId1
-                        on p.Type in (200, 201, 202, 209, 210) and p.RegId2 = t.RegId3
+                    -- Content
+                    cross join
+                        Transactions p indexed by Transactions_Type_RegId2_RegId1 on
+                            p.Type in (200, 201, 202, 209, 210) and p.RegId2 = t.RegId3
                     cross join
                         Last lp
                             on lp.TxId = p.RowId
@@ -920,11 +924,7 @@ namespace PocketDb
 
                     where
                         c.Height > (? - 600) and
-                        not exists (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1
-                        )
+                        not exists (select 1 from BlockingLists bl where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1)
 
                     order by c.Height desc
                     limit ?
@@ -984,7 +984,7 @@ namespace PocketDb
                 (select r.String from Registry r where r.RowId = c.RegId2)                  as RootTxHash,
                 (select r.String from Registry r where r.RowId = c.RegId3)                  as PostTxHash,
                 (select r.String from Registry r where r.RowId = c.RegId1)                  as AddressHash,
-                (select corig.Time from Transactions corig where corig.RowId = c.RegId2)   as Time,
+                (select corig.Time from Transactions corig where corig.RowId = c.RegId2)    as TimeOrigin,
                 c.Time                                                                      as TimeUpdate,
                 cc.Height,
                 (select p.String1 from Payload p where p.TxId = c.RowId)                    as Message,
@@ -1142,7 +1142,7 @@ namespace PocketDb
                 with
                 cnt as (
                     select
-                        cast (r.RowId as int) as id -- TODO (losty): wtf why cast is necessary???
+                        r.RowId as id
                     from
                         Registry r
                     where
@@ -1185,7 +1185,7 @@ namespace PocketDb
                 with
                 cnt as (
                     select
-                        cast (r.RowId as int) as id -- TODO (losty): wtf why cast is necessary???
+                        r.RowId as id
                     from
                         Registry r
                     where
@@ -1270,7 +1270,7 @@ namespace PocketDb
                 with
                 cnt as (
                     select
-                        cast (r.RowId as int) as id -- TODO (losty): wtf why cast is necessary???
+                        r.RowId as id
                     from
                         Registry r
                     where
@@ -1435,7 +1435,8 @@ namespace PocketDb
                 ) as Reputation,
                 ifnull(sc.Int1, 0) as MyScore,
                 (
-                    select count()
+                    select
+                        count()
                     from
                         Transactions s indexed by Transactions_Type_RegId4_RegId1
                     cross join
@@ -1444,7 +1445,7 @@ namespace PocketDb
                     cross join
                         Chain cs
                             on cs.TxId = s.RowId
-                    -- exclude deleted accounts
+                    -- exclude deleted accounts TODO (aok, block): need?
                     cross join
                         Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on uac.Type = 100 and uac.RegId1 = s.RegId1
@@ -1452,15 +1453,9 @@ namespace PocketDb
                         Last luac
                             on luac.TxId = uac.RowId
                     where
-                        s.Type in (204, 205) and
-                        s.RegId4 = c.RegId2 and
-                        -- exclude commenters blocked by the author of the post
-                        not exists (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
-                        )
-                ) AS ChildrenCount,
+                        s.Type in (204, 205, 206) and
+                        s.RegId4 = c.RegId2
+                ) as ChildrenCount,
                 o.Value as Donate
             from
                 tx,
@@ -1474,6 +1469,7 @@ namespace PocketDb
             cross join
                 Chain cc
                     on cc.TxId = c.RowId
+            -- TODO (aok, block): need?
             cross join
                 Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
                     on ua.Type = 100 and ua.RegId1 = c.RegId1
