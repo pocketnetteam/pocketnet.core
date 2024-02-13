@@ -683,137 +683,139 @@ namespace PocketDb
     vector<ShortForm> NotifierRepository::GetActivities(const string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const set<ShortTxType>& filters)
     {
         static const map<ShortTxType, string> selects = {
-        {
-            ShortTxType::Answer, R"sql(
-                -- My answers to other's comments
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                    sa.Hash,
-                    a.Type,
-                    null,
-                    ca.Height as Height,
-                    ca.BlockNum as BlockNum,
-                    a.Time,
-                    sa.String2,
-                    sa.String3,
-                    null,
-                    null,
-                    null,
-                    pa.String1,
-                    sa.String4,
-                    sa.String5,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    sc.Hash,
-                    c.Type,
-                    sc.String1,
-                    cc.Height,
-                    cc.BlockNum,
-                    c.Time,
-                    sc.String2,
-                    null,
-                    null,
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'Number', o.Number,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
+            // ShortTxType::Answer
+            {
+                ShortTxType::Answer, R"sql(
+                    -- My answers to other's comments
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
+                        sa.Hash,
+                        a.Type,
+                        null,
+                        ca.Height as Height,
+                        ca.BlockNum as BlockNum,
+                        a.Time,
+                        sa.String2,
+                        sa.String3,
+                        null,
+                        null,
+                        null,
+                        pa.String1,
+                        sa.String4,
+                        sa.String5,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        sc.Hash,
+                        c.Type,
+                        sc.String1,
+                        cc.Height,
+                        cc.BlockNum,
+                        c.Time,
+                        sc.String2,
+                        null,
+                        null,
+                        (
+                            select
+                                json_group_array(
+                                    json_object(
+                                        'Value', o.Value,
+                                        'Number', o.Number,
+                                        'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                        'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
+                                    )
                                 )
-                            )
 
-                        from
-                            TxInputs i
+                            from
+                                TxInputs i
 
-                            join TxOutputs o on
-                                o.TxId = i.TxId and
-                                o.Number = i.Number
+                                join TxOutputs o on
+                                    o.TxId = i.TxId and
+                                    o.Number = i.Number
 
-                        where
-                            i.SpentTxId = c.RowId
-                    ),
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
+                            where
+                                i.SpentTxId = c.RowId
+                        ),
+                        (
+                            select
+                                json_group_array(
+                                    json_object(
+                                        'Value', o.Value,
+                                        'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
+                                        'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
+                                    )
                                 )
-                            )
 
-                        from
-                            TxOutputs o
+                            from
+                                TxOutputs o
 
-                        where
-                            o.TxId = c.RowId
-                        order by
-                            o.Number
-                    ),
-                    pc.String1,
-                    sc.String4,
-                    sc.String5,
-                    null, -- Badge
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rca.Value,0),
-                    null
+                            where
+                                o.TxId = c.RowId
+                            order by
+                                o.Number
+                        ),
+                        pc.String1,
+                        sc.String4,
+                        sc.String5,
+                        null, -- Badge
+                        pac.String2,
+                        pac.String3,
+                        ifnull(rca.Value,0),
+                        null
 
-                from
-                    params,
-                    Transactions a indexed by Transactions_Type_RegId1_RegId2_RegId3 -- My comments
+                    from
+                        params,
+                        Transactions a -- My comments
 
-                    cross join vTxStr sa on
-                        sa.RowId = a.RowId
+                        cross join vTxStr sa on
+                            sa.RowId = a.RowId
 
-                    cross join Chain ca on
-                        ca.TxId = a.RowId and
-                        ca.Height > params.min and
-                        (ca.Height < params.max or (ca.Height = params.max and ca.BlockNum < params.blockNum))
+                        cross join Chain ca on
+                            ca.TxId = a.RowId and
+                            ca.Height > params.min and
+                            (ca.Height < params.max or (ca.Height = params.max and ca.BlockNum < params.blockNum))
 
-                    cross join Transactions c indexed by Transactions_Type_RegId5_RegId1 on -- Other answers
-                        c.Type in (204, 205) and
-                        c.RegId5 = a.RegId2 and
-                        c.RegId1 != a.RegId1 and
-                        exists (select 1 from Last l where l.TxId = c.RowId)
+                        cross join Transactions c indexed by Transactions_Type_RegId2_RegId1 on -- Other answers
+                            c.Type in (204, 205) and
+                            c.RegId2 = a.RegId5 and
+                            c.RegId1 != a.RegId1 and
+                            exists (select 1 from Last l where l.TxId = c.RowId)
 
-                    cross join Chain cc on
-                        cc.TxId = c.RowId
+                        cross join Chain cc on
+                            cc.TxId = c.RowId
 
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
+                        cross join vTxStr sc on
+                            sc.RowId = c.RowId
 
-                    left join Payload pc on
-                        pc.TxId = c.RowId
+                        left join Payload pc on
+                            pc.TxId = c.RowId
 
-                    left join Payload pa on
-                        pa.TxId = a.RowId
+                        left join Payload pa on
+                            pa.TxId = a.RowId
 
-                    left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ac.Type = 100 and
-                        ac.RegId1 = c.RegId1 and
-                        exists (select 1 from Last l where l.TxId = ac.RowId)
+                        left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            ac.Type = 100 and
+                            ac.RegId1 = c.RegId1 and
+                            exists (select 1 from Last l where l.TxId = ac.RowId)
 
-                    left join Payload pac on
-                        pac.TxId = ac.RowId
+                        left join Payload pac on
+                            pac.TxId = ac.RowId
 
-                    left join Ratings rca indexed by Ratings_Type_Uid_Last_Height on
-                        rca.Type = 0 and
-                        rca.Uid = ca.Uid and
-                        rca.Last = 1
+                        left join Ratings rca indexed by Ratings_Type_Uid_Last_Height on
+                            rca.Type = 0 and
+                            rca.Uid = ca.Uid and
+                            rca.Last = 1
 
-                where
-                    a.Type in (204, 205, 206) and
-                    a.RegId1 = params.addressId
+                    where
+                        a.Type in (204, 205, 206) and
+                        a.RegId1 = params.addressId
 
-            )sql"
+                )sql"
             },
 
+            // ShortTxType::Comment
             {
                 ShortTxType::Comment, R"sql(
                 -- Comments for my content
@@ -896,7 +898,7 @@ namespace PocketDb
 
                 from
                     params,
-                    Transactions c indexed by Transactions_Type_RegId4_RegId1 -- TODO (optimization): not covering index
+                    Transactions c
                     
                     cross join vTxStr sc on
                         sc.RowId = c.RowId
@@ -946,9 +948,10 @@ namespace PocketDb
                     c.RegId5 is null and
                     c.RegId1 = params.addressId
 
-            )sql"
+                )sql"
             },
 
+            // ShortTxType::Subscriber
             {
                 ShortTxType::Subscriber, R"sql(
                 -- Subscribers
@@ -1028,9 +1031,10 @@ namespace PocketDb
                     subs.Type in (302, 303, 304) and
                     subs.RegId1 = params.addressId
 
-            )sql"
+                )sql"
             },
 
+            // ShortTxType::CommentScore
             {
                 ShortTxType::CommentScore, R"sql(
                 -- Comment scores
@@ -1161,6 +1165,7 @@ namespace PocketDb
             )sql"
             },
 
+            // ShortTxType::ContentScore
             {
                 ShortTxType::ContentScore, R"sql(
                 -- Content scores
@@ -1254,6 +1259,7 @@ namespace PocketDb
             )sql"
             },
 
+            // ShortTxType::Boost
             {
                 ShortTxType::Boost, R"sql(
                 -- Boosts for my content
@@ -1384,6 +1390,7 @@ namespace PocketDb
             )sql"
             },
 
+            // ShortTxType::Blocking
             {
                 ShortTxType::Blocking, R"sql(
                 -- My blockings and unblockings
