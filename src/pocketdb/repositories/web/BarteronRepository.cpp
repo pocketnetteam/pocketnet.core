@@ -182,6 +182,7 @@ namespace PocketDb
         UniValue _tags(UniValue::VARR);
         for (auto t : args.Tags)
             _tags.push_back(t);
+        string _tagsStr = _tags.write();
 
         string _orderBy = " ct.Height ";
         if (args.Page.OrderBy == "location")
@@ -240,11 +241,11 @@ namespace PocketDb
                 )sql")
                 .Bind(
                     args.Language,
-                    _tags.write(),
-                    args.Location + "%",
+                    _tagsStr,
+                    args.Location,
                     args.PriceMax,
                     args.PriceMin,
-                    "%" + args.Search + "%",
+                    args.Search,
                     args.Page.TopHeight,
                     args.Page.PageSize,
                     args.Page.PageStart * args.Page.PageSize
@@ -258,7 +259,8 @@ namespace PocketDb
                             result.push_back(value);
                     }
                 });
-            }
+            },
+            true
         );
 
         return result;
