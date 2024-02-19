@@ -2843,11 +2843,11 @@ namespace PocketDb
                         t.Type,
                         c.Height
                     from addr
-                    join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
+                    cross join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
                         o.AddressId = addr.id and not exists (select 1 from TxInputs i where i.TxId = o.TxId and i.Number = o.Number)
-                    join Chain c on
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = o.TxId and c.Height <= ?
-                    join Transactions t on
+                    cross join Transactions t on
                         t.RowId = o.TxId
                     order by c.Height asc
                 )sql")
