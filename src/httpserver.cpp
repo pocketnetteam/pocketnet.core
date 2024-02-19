@@ -819,8 +819,8 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
     }
     catch (const std::exception& e)
     {
-        LogPrint(BCLog::RPCERROR, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
-        JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
+        LogPrint(BCLog::RPCERROR, "Exception %s\n", JSONRPCError(RPC_INTERNAL_ERROR, e.what()).write());
+        JSONErrorReply(req, JSONRPCError(RPC_INTERNAL_ERROR, e.what()), jreq.id);
         executeSuccess = false;
     }
 
