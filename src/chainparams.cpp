@@ -76,7 +76,6 @@ class CMainParams : public CChainParams
 public:
     CMainParams()
     {
-        // TODO (losty-critical): check all below todos
         strNetworkID = CBaseChainParams::MAIN;
         networkId = NetworkMain;
         consensus.signet_blocks = false;
@@ -127,10 +126,10 @@ public:
         consensus.nHeight_version_1_0_0 = 108300;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000070f765e8eced98f1e2"); // 2572257
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000075b452a5dd8ae7ea28"); // 2633153
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0xfab2675f6d1e87278288be29fa9a8696c22de0036accc323bbe06a65d1b471a6"); // 2572257
+        consensus.defaultAssumeValid = uint256S("0x822afcd867256e7fbd1426f0188653ad65d52776f7d6bd79dafa9704abc2855e"); // 2633153
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
