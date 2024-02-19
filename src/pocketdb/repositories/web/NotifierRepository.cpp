@@ -2638,7 +2638,7 @@ namespace PocketDb
                         f.Int1,
                         null,
                         null,
-                        null,
+                        sf.Hash, -- Description (Jury Tx)
                         null,
                         null,
                         -- Account data for tx creator
@@ -2737,11 +2737,11 @@ namespace PocketDb
                         cv.BlockNum,
                         v.Time,
                         null,
-                        sv.String2, -- Jury Tx
+                        null,
                         v.Int1, -- Value
                         null,
                         null,
-                        null,
+                        sv.String2, -- Description (Jury Tx)
                         null,
                         null,
                         -- Account data for tx creator
@@ -2850,7 +2850,7 @@ namespace PocketDb
                         f.Int1, -- Value
                         null,
                         null,
-                        null,
+                        sf.Hash, -- Description (Jury Tx)
                         null,
                         null,
                         -- Account data for tx creator
@@ -3996,7 +3996,7 @@ namespace PocketDb
                         f.Int1,
                         null,
                         null,
-                        null,
+                        sf.Hash, -- Description (Jury Tx)
                         null,
                         null,
                         -- Account data for tx creator
@@ -4058,11 +4058,123 @@ namespace PocketDb
             },
 
             {
+                ShortTxType::JuryVerdict, R"sql(
+                    select
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryVerdict) + R"sql('),
+                        -- Tx data
+                        sv.Hash, -- Vote Tx
+                        v.Type,
+                        null,
+                        cv.Height as Height,
+                        cv.BlockNum as BlockNum,
+                        v.Time,
+                        null,
+                        null, -- Tx of content
+                        v.Int1, -- Value
+                        null,
+                        null,
+                        sv.String2, -- Description (Jury Tx)
+                        null,
+                        null,
+                        -- Account data for tx creator
+                        null,
+                        null,
+                        null,
+                        null,
+                        -- Additional data
+                        null,
+                        -- Related Content
+                        sc.Hash,
+                        c.Type,
+                        sc.String1,
+                        cc.Height,
+                        cc.BlockNum,
+                        c.Time,
+                        sc.String2,
+                        sc.String3,
+                        null,
+                        null,
+                        null,
+                        (
+                            case
+                                when c.Type in (204,205) then cp.String1
+                                else cp.String2
+                            end
+                        ),
+                        sc.String4,
+                        sc.String5,
+                        -- Account data for related tx
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+
+                    from
+                        params,
+                        Transactions acc indexed by Transactions_Type_RegId1_RegId2_RegId3
+
+                        cross join Chain cacc on
+                            cacc.TxId = acc.RowId
+
+                        cross join Jury j on
+                            j.AccountId = cacc.Uid
+
+                        cross join JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
+
+                        cross join Transactions v on
+                            v.RowId = jv.VoteRowId
+
+                        cross join Chain cv indexed by Chain_Height_Uid on
+                            cv.TxId = v.RowId and
+                            cv.Height > params.min and
+                            (cv.Height < params.max or (cv.Height = params.max and cv.BlockNum < params.blockNum))
+
+                        cross join vTxStr sv on
+                            sv.RowId = v.RowId
+
+                        cross join Chain cu on
+                            cu.Uid = j.AccountId and
+                            exists (select 1 from Last l where l.TxId = cu.TxId)
+
+                        cross join vTxStr su on
+                            su.RowId = cu.TxId
+
+                        cross join Payload p
+                            on p.TxId = cu.TxId
+
+                        cross join Transactions f
+                            on f.RowId = jv.FlagRowId
+
+                        cross join Transactions c on
+                            c.RowId = f.RegId2
+
+                        cross join Chain cc on
+                            cc.TxId = c.RowId
+
+                        cross join vTxStr sc on
+                            sc.RowId = c.RowId
+
+                        cross join Payload cp on
+                            cp.TxId = c.RowId
+
+                        left join Ratings rn indexed by Ratings_Type_Uid_Last_Height on
+                            rn.Type = 0 and rn.Uid = j.AccountId and rn.Last = 1
+
+                    where
+                        acc.Type = 100 and
+                        acc.RegId1 = params.addressId and
+                        exists (select 1 from Last l where l.TxId = acc.RowId)
+                )sql"
+            },
+
+            {
                 ShortTxType::JuryModerate, R"sql(
                     select
                         (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryModerate) + R"sql('),
                         -- Tx data
-                        sf.Hash, -- Jury Tx
+                        sf.Hash, -- Flag Tx
                         f.Type,
                         null,
                         cf.Height as Height,
@@ -4073,7 +4185,7 @@ namespace PocketDb
                         f.Int1, -- Value
                         null,
                         null,
-                        null, -- Jury Tx
+                        sf.Hash, -- Description (Jury Tx)
                         null,
                         null,
                         -- Account data for tx creator

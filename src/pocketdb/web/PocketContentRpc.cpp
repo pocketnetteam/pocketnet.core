@@ -1319,6 +1319,9 @@ namespace PocketWeb::PocketWebRpc
                                 {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "content from private subscriptions"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Boost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "boosts of acc's content"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Repost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "reposts of acc's content"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Juries assigned to account"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::JuryModerate), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Juries assigned to moderators"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::JuryVerdict), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Juries results"},
                             }
                         }
                           },
@@ -1336,9 +1339,11 @@ namespace PocketWeb::PocketWebRpc
 
         auto address = request.params[0].get_str();
 
-        int64_t heightMax = ChainActiveSafeHeight(); // TODO (losty): deadlock here wtf
+        int64_t heightMax = ChainActiveSafeHeight();
         if (request.params.size() > 1 && request.params[1].isNum()) {
             heightMax = request.params[1].get_int64();
+            if (heightMax > ChainActiveSafeHeight())
+                heightMax = ChainActiveSafeHeight();
         }
 
         int64_t blockNum = 9999999; // Default

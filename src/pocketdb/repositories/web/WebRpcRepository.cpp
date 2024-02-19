@@ -3282,6 +3282,8 @@ namespace PocketDb
         return result;
     }
 
+    // ------------------------- Missed ---------------------
+
     vector<UniValue> WebRpcRepository::GetMissedRelayedContent(const string& address, int height)
     {
         vector<UniValue> result;
@@ -3921,6 +3923,8 @@ namespace PocketDb
 
         return result;
     }
+
+    // ------------------------- Other ---------------------
 
     UniValue WebRpcRepository::SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut)
     {
