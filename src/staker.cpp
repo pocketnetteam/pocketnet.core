@@ -74,34 +74,27 @@ void Staker::run(const util::Ref& context, CChainParams const& chainparams, boos
     {
         auto wallets = GetWallets();
 
-        std::unordered_set<std::string> walletNames;
-
         for (auto& wallet : wallets)
         {
-            std::string name(wallet->GetName());
-
-            if (walletWorkers.find(name) == walletWorkers.end())
+            if (walletWorkers.find(wallet->GetName()) == walletWorkers.end())
             {
                 // Create a worker thread for the wallet.
                 threadGroup.create_thread(
                     boost::bind(
-                        &Staker::worker, this, boost::cref(context), boost::cref(chainparams), boost::cref(name)
+                        &Staker::worker, this, boost::cref(context), boost::cref(chainparams), boost::cref(wallet->GetName())
                     )
                 );
-                walletWorkers.insert(name);
-            }
 
-            walletNames.insert(name);
+                walletWorkers.insert(wallet->GetName());
+            }
         }
 
-        std::vector<std::string> removes;
-
-        for (auto& name : walletWorkers)
+        for (auto it = walletWorkers.begin(); it != walletWorkers.end(); )
         {
-            if (GetWallet(name) == nullptr)
-            {
-                removes.push_back(name);
-            }
+            if (GetWallet(*it) == nullptr)
+                it = walletWorkers.erase(it);
+            else
+                ++it;
         }
 
         m_interrupt.sleep_for(std::chrono::milliseconds{minerSleep * 10});
@@ -110,7 +103,7 @@ void Staker::run(const util::Ref& context, CChainParams const& chainparams, boos
 
 void Staker::worker(const util::Ref& context, CChainParams const& chainparams, std::string const& walletName)
 {
-    LogPrintf("Staker worker thread started for %s\n", walletName);
+    LogPrintf("Staker worker thread started for \"%s\"\n", walletName);
 
     util::ThreadRename("coin-staker");
 
@@ -196,9 +189,11 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     }
     catch (const std::runtime_error& e)
     {
-        LogPrintf("Staker worker thread runtime error: %s\n", e.what());
+        LogPrintf("Staker worker thread runtime error: \"%s\"\n", e.what());
         return;
     }
+
+    LogPrintf("Staker worker thread stopped for \"%s\"\n", walletName);
 }
 
 bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, unsigned int blocks, const std::string& wallet_name)
