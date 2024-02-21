@@ -173,16 +173,33 @@ namespace PocketDb
 
         string _filters = "";
         if (!args.Language.empty()) _filters += " cross join lang on pt.String1 = lang.value ";
-        if (!args.Tags.empty()) _filters += " cross join tags on bo.Tag = tags.value ";
-        if (!args.Location.empty()) _filters += " cross join location on pt.String6 like location.value ";
         if (args.PriceMax > 0) _filters += " cross join priceMax on pt.Int1 <= priceMax.value ";
         if (args.PriceMin > 0) _filters += " cross join priceMin on pt.Int1 >= priceMin.value ";
         if (!args.Search.empty()) _filters += " cross join search on pt.String2 like search.value or pt.String3 like search.value ";
 
-        UniValue _tags(UniValue::VARR);
-        for (auto t : args.Tags)
-            _tags.push_back(t);
-        string _tagsStr = _tags.write();
+        string _tagsStr = "[]";
+        string _locationStr = "[]";
+
+        if (!args.Tags.empty()) {
+            _filters += " cross join tags on bo.Tag = tags.value ";
+            UniValue _tags(UniValue::VARR);
+            for (auto t : args.Tags)
+                _tags.push_back(t);
+            _tagsStr = _tags.write();
+        }
+
+        if (!args.Location.empty()) {
+            int _locationNum = 0;
+
+            UniValue _location(UniValue::VARR);
+            for (auto t : args.Location) {
+                _location.push_back(t);
+                _locationNum = t.length();
+            }
+
+            _locationStr = _location.write();
+            _filters += " cross join location on substr(pt.String6, 1, " + to_string(_locationNum) + ") = location.value ";
+        }
 
         string _orderBy = " ct.Height ";
         if (args.Page.OrderBy == "location")
@@ -199,7 +216,7 @@ namespace PocketDb
                     with
                         lang as (select ? as value),
                         tags as (select value from json_each(?)),
-                        location as (select ? as value),
+                        location as (select value from json_each(?)),
                         priceMax as (select ? as value),
                         priceMin as (select ? as value),
                         search as (select ? as value)
@@ -242,7 +259,7 @@ namespace PocketDb
                 .Bind(
                     args.Language,
                     _tagsStr,
-                    args.Location,
+                    _locationStr,
                     args.PriceMax,
                     args.PriceMin,
                     args.Search,
@@ -259,8 +276,7 @@ namespace PocketDb
                             result.push_back(value);
                     }
                 });
-            },
-            true
+            }
         );
 
         return result;

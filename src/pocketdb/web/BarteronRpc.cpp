@@ -159,8 +159,10 @@ namespace PocketWeb::PocketWebRpc
                         if (arg[i].isNum())
                             feedArgs.Tags.push_back(arg[i].get_int());
                     
-                if (auto arg = args.At("location", true); arg.isStr())
-                    feedArgs.Location = arg.get_str();
+                if (auto arg = args.At("location", true); arg.isArray())
+                    for (size_t i = 0; i < arg.size(); i++)
+                        if (arg[i].isStr())
+                            feedArgs.Location.push_back(arg[i].get_str());
                     
                 if (auto arg = args.At("priceMax", true); arg.isNum())
                     feedArgs.PriceMax = arg.get_int();

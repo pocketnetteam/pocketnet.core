@@ -20,7 +20,7 @@ namespace PocketDb
         Pagination Page;
         string Language = "";
         vector<int> Tags;
-        string Location = "";
+        vector<string> Location;
         int64_t PriceMax = 0;
         int64_t PriceMin = 0;
         string Search = "";
