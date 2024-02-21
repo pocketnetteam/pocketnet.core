@@ -798,15 +798,15 @@ namespace PocketDb
                 Chain cu on
                     cu.TxId = u.RowId
             cross join
-                Payload p on
-                    p.TxId = u.RowId
-            cross join
                 Transactions reg indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     reg.Type in (100) and
                     reg.RegId1 = addr.id
             cross join
                 First freg on
                     freg.TxId = reg.RowId
+            left join
+                Payload p on
+                    p.TxId = u.RowId
             left join
                 Ratings r indexed by Ratings_Type_Uid_Last_Value on
                     r.Type = 0 and
