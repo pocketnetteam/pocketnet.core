@@ -41,7 +41,7 @@ namespace PocketConsensus
             if (!actuallTxOk || !originalTxOk)
                 return {false, ConsensusResult_NotFound};
 
-            auto originalPtx = static_pointer_cast<Comment>(originalTx);
+            auto originalPtx = static_pointer_cast<CommentEdit>(originalTx);
 
             // Check author of comment
             if (auto[ok, result] = CheckAuthor(ptx, originalPtx); !ok)
@@ -94,9 +94,7 @@ namespace PocketConsensus
                 return {false, ConsensusResult_CommentDeletedContent};
             
             // Check Blocking
-            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                    *contentTx->GetString1(), *ptx->GetAddress()
-                ); existsBlocking && blockingType == ACTION_BLOCKING)
+            if (ValidateBlocking(*contentTx->GetString1(), *ptx->GetAddress(), block == nullptr))
                 return {false, ConsensusResult_Blocking};
 
             // Check edit limit
@@ -153,7 +151,11 @@ namespace PocketConsensus
             return {*ptx->GetAddress()};
         }
 
-        virtual bool AllowEditWindow(const CommentEditRef& ptx, const CommentRef& blockPtx)
+        virtual bool ValidateBlocking(const string& address1, const string& address2, bool mempool)
+        {
+            return SocialConsensus::CheckBlocking(address1, address2, true, mempool);
+        }
+        virtual bool AllowEditWindow(const CommentEditRef& ptx, const CommentEditRef& blockPtx)
         {
             return (*ptx->GetTime() - *blockPtx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_comment_depth);
         }
@@ -165,19 +167,19 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual ConsensusValidateResult CheckAuthor(const CommentEditRef& ptx, const CommentRef& originalPtx)
+        virtual ConsensusValidateResult CheckAuthor(const CommentEditRef& ptx, const CommentEditRef& originalPtx)
         {
             return Success;
         }
     };
 
-
+    // ----------------------------------------------------------------------------------------------
     class CommentEditConsensus_checkpoint_1180000 : public CommentEditConsensus
     {
     public:
         CommentEditConsensus_checkpoint_1180000() : CommentEditConsensus() {}
     protected:
-        bool AllowEditWindow(const CommentEditRef& ptx, const CommentRef& originalTx) override
+        bool AllowEditWindow(const CommentEditRef& ptx, const CommentEditRef& originalTx) override
         {
             auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
             if (!ok) return false;
@@ -185,18 +187,30 @@ namespace PocketConsensus
         }
     };
 
-
+    // ----------------------------------------------------------------------------------------------
     class CommentEditConsensus_checkpoint_check_author : public CommentEditConsensus_checkpoint_1180000
     {
     public:
         CommentEditConsensus_checkpoint_check_author() : CommentEditConsensus_checkpoint_1180000() {}
     protected:
-        ConsensusValidateResult CheckAuthor(const CommentEditRef& ptx, const CommentRef& originalPtx) override
+        ConsensusValidateResult CheckAuthor(const CommentEditRef& ptx, const CommentEditRef& originalPtx) override
         {
             if (*ptx->GetAddress() != *originalPtx->GetAddress())
                 return {false, ConsensusResult_ContentEditUnauthorized};
             
             return Success;
+        }
+    };
+
+    // ----------------------------------------------------------------------------------------------
+    class CommentEditConsensus_checkpoint_pip_105 : public CommentEditConsensus_checkpoint_check_author
+    {
+    public:
+        CommentEditConsensus_checkpoint_pip_105() : CommentEditConsensus_checkpoint_check_author() {}
+    protected:
+        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
+        {
+            return SocialConsensus::CheckBlocking(address1, address2, true, true);
         }
     };
 
@@ -210,7 +224,8 @@ namespace PocketConsensus
         {
             Checkpoint({       0,      -1, -1, make_shared<CommentEditConsensus>() });
             Checkpoint({ 1180000,       0, -1, make_shared<CommentEditConsensus_checkpoint_1180000>() });
-            Checkpoint({ 1873500, 1155000,  0, make_shared<CommentEditConsensus_checkpoint_check_author>() });
+            Checkpoint({ 1873500, 1155000, -1, make_shared<CommentEditConsensus_checkpoint_check_author>() });
+            Checkpoint({ 2727000, 2574300,  0, make_shared<CommentEditConsensus_checkpoint_pip_105>() });
         }
     };
 

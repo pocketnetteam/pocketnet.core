@@ -159,8 +159,10 @@ namespace PocketWeb::PocketWebRpc
                         if (arg[i].isNum())
                             feedArgs.Tags.push_back(arg[i].get_int());
                     
-                if (auto arg = args.At("location", true); arg.isStr())
-                    feedArgs.Location = arg.get_str();
+                if (auto arg = args.At("location", true); arg.isArray())
+                    for (size_t i = 0; i < arg.size(); i++)
+                        if (arg[i].isStr())
+                            feedArgs.Location.push_back(arg[i].get_str());
                     
                 if (auto arg = args.At("priceMax", true); arg.isNum())
                     feedArgs.PriceMax = arg.get_int();
@@ -221,8 +223,10 @@ namespace PocketWeb::PocketWebRpc
                     for (int i = 0; i < arg.size(); i++)
                         args.Addresses.emplace_back(arg[i].get_str());
 
-                if (auto arg = _args.At("location", true); arg.isStr())
-                    args.Location = arg.get_str();
+                if (auto arg = _args.At("location", true); arg.isArray())
+                    for (size_t i = 0; i < arg.size(); i++)
+                        if (arg[i].isStr())
+                            args.Location.push_back(arg[i].get_str());
 
                 if (auto arg = _args.At("excludeaddresses", true); arg.isArray())
                     for (int i = 0; i < arg.size(); i++)
@@ -375,8 +379,10 @@ namespace PocketWeb::PocketWebRpc
                     for (int i = 0; i < arg.size(); i++)
                         args.ExcludeAddresses.emplace_back(arg[i].get_str());
 
-                if (auto arg = _args.At("location", true); arg.isStr())
-                        args.Location = arg.get_str();
+                if (auto arg = _args.At("location", true); arg.isArray())
+                    for (size_t i = 0; i < arg.size(); i++)
+                        if (arg[i].isStr())
+                            args.Location.push_back(arg[i].get_str());
 
                 if (args.MyTag == 0 || args.TheirTags.empty()) {
                     // TODO (losty): error

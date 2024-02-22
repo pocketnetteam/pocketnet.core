@@ -173,16 +173,30 @@ namespace PocketDb
 
         string _filters = "";
         if (!args.Language.empty()) _filters += " cross join lang on pt.String1 = lang.value ";
-        if (!args.Tags.empty()) _filters += " cross join tags on bo.Tag = tags.value ";
-        if (!args.Location.empty()) _filters += " cross join location on pt.String6 like location.value ";
         if (args.PriceMax > 0) _filters += " cross join priceMax on pt.Int1 <= priceMax.value ";
         if (args.PriceMin > 0) _filters += " cross join priceMin on pt.Int1 >= priceMin.value ";
         if (!args.Search.empty()) _filters += " cross join search on pt.String2 like search.value or pt.String3 like search.value ";
 
-        UniValue _tags(UniValue::VARR);
-        for (auto t : args.Tags)
-            _tags.push_back(t);
-        string _tagsStr = _tags.write();
+        string _tagsStr = "[]";
+        string _locationStr = "[]";
+
+        if (!args.Tags.empty()) {
+            UniValue _tags(UniValue::VARR);
+            for (auto t : args.Tags)
+                _tags.push_back(t);
+
+            _tagsStr = _tags.write();
+            _filters += " cross join tags on bo.Tag = tags.value ";
+        }
+
+        if (!args.Location.empty()) {
+            UniValue _location(UniValue::VARR);
+            for (auto t : args.Location)
+                _location.push_back(t + "%");
+
+            _locationStr = _location.write();
+            _filters += " cross join location on pt.String6 like location.value ";
+        }
 
         string _orderBy = " ct.Height ";
         if (args.Page.OrderBy == "location")
@@ -199,7 +213,7 @@ namespace PocketDb
                     with
                         lang as (select ? as value),
                         tags as (select value from json_each(?)),
-                        location as (select ? as value),
+                        location as (select value from json_each(?)),
                         priceMax as (select ? as value),
                         priceMin as (select ? as value),
                         search as (select ? as value)
@@ -242,7 +256,7 @@ namespace PocketDb
                 .Bind(
                     args.Language,
                     _tagsStr,
-                    args.Location,
+                    _locationStr,
                     args.PriceMax,
                     args.PriceMin,
                     args.Search,
@@ -277,28 +291,37 @@ namespace PocketDb
             _orderBy = " po2.Int1 ";
         if (args.Page.OrderDesc)
             _orderBy += " desc ";
+
+        string _filters = "";
+
+        string _locationStr = "[]";
+        if (!args.Location.empty()) {
+            UniValue _location(UniValue::VARR);
+            for (auto t : args.Location)
+                _location.push_back(t + "%");
+
+            _locationStr = _location.write();
+            _filters += " cross join location on po2.String6 like location.value ";
+        }
         
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                    price as (
-                        select
-                            ? as min,
-                            ? as max
-                    ),
-                    loc as (
-                        select ? as value
-                    ),
-                    search as (
-                        select ? as value
-                    )
+                        price as (
+                            select
+                                ? as min,
+                                ? as max
+                        ),
+                        location as (select value from json_each(?)),
+                        search as (
+                            select ? as value
+                        )
                     select distinct
                         (select r.String from Registry r where r.RowId = to2.RowId)
                     from
                         price,
-                        loc,
                         search
 
                     -- Source offer
@@ -333,10 +356,12 @@ namespace PocketDb
                     cross join Last lo2 on lo2.TxId = co2.TxId
                     cross join Payload po2 on po2.TxId = lo2.TxId
 
+                    -- Filters
+                    )sql" + _filters + R"sql(
+
                     where
                         ( ? or po2.Int1 >= price.min ) and
                         ( ? or po2.Int1 <= price.max ) and
-                        ( ? or po2.String6 is null or po2.String6 like loc.value) and -- TODO (losty): maybe use: 'substr(po2.String6, 1, loc.size()) = loc' instead if 'like' ???
                         ( ? or po2.String2 like search.value or po2.String3 like search.value) and
                         ( ? or ru2.String in ( )sql" + join(vector<string>(args.Addresses.size(), "?"), ",") + R"sql( ) ) and
                         ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
@@ -349,7 +374,7 @@ namespace PocketDb
                 .Bind(
                     args.PriceMin,
                     args.PriceMax,
-                    args.Location,
+                    _locationStr,
                     args.Search,
                     args.TheirTags.empty(),
                     args.TheirTags,
@@ -357,7 +382,6 @@ namespace PocketDb
                     args.MyTags,
                     (args.PriceMin < 0),
                     (args.PriceMax < 0),
-                    args.Location.empty(),
                     args.Search.empty(),
                     args.Addresses.empty(),
                     args.Addresses,
@@ -385,15 +409,26 @@ namespace PocketDb
     map<string, vector<string>> BarteronRepository::GetComplexDeal(const BarteronOffersComplexDealDto& args)
     {
         map<string, vector<string>> result;
+
+        string _filters = "";
+
+        string _locationStr = "[]";
+        if (!args.Location.empty()) {
+            UniValue _location(UniValue::VARR);
+            for (auto t : args.Location)
+                _location.push_back(t + "%");
+
+            _locationStr = _location.write();
+            _filters += " cross join location on ( p1.String6 like location.value or p2.String6 like location.value )";
+        }
+        
         SqlTransaction(
             __func__,
-            [&]() {
+            [&]() -> Stmt& {
                 return Sql(
                     R"sql(
                         with
-                            loc as (
-                                select ? as value
-                            ),
+                            location as (select value from json_each(?)),
                             mytag as (
                                 select ? as value
                             )
@@ -401,7 +436,6 @@ namespace PocketDb
                             (select r.String from Registry r where r.RowId = tx1.RowId),
                             (select r.String from Registry r where r.RowId = tx2.RowId)
                         from
-                            loc,
                             mytag
                             cross join BarteronOffers o1 on
                                 o1.Tag in ( )sql" + join(vector<string>(args.TheirTags.size(), "?"), ",") + R"sql( ) and
@@ -435,21 +469,23 @@ namespace PocketDb
                                 (? or tx2.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
                             cross join Payload p2 on
                                 p2.TxId = c2.TxId
-                        where
-                            (? or ((p1.String6 is null or p1.String6 like loc.value) and (p2.String6 is null or p2.String6 like loc.value)))
+
+                            -- Filters
+                            )sql" + _filters + R"sql(
                     )sql"
                 )
                 .Bind(
-                    args.Location,
+                    _locationStr,
                     args.MyTag,
                     args.TheirTags,
                     args.ExcludeAddresses.empty(),
                     args.ExcludeAddresses,
                     args.ExcludeAddresses.empty(),
-                    args.ExcludeAddresses,
-                    args.Location.empty()
-                )
-                .Select([&](Cursor& cursor) {
+                    args.ExcludeAddresses
+                );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step()) {
                         string target, intermediate;
                         if (cursor.CollectAll(target, intermediate)) {

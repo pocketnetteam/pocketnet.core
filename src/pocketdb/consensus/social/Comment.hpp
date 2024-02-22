@@ -58,11 +58,8 @@ namespace PocketConsensus
             if (*contentTx->GetType() == CONTENT_DELETE)
                 return {false, ConsensusResult_CommentDeletedContent};
 
-            // TODO (aok): convert to Content base class
             // Check Blocking
-            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                    *contentTx->GetString1(), *ptx->GetAddress()
-                ); existsBlocking && blockingType == ACTION_BLOCKING)
+            if (ValidateBlocking(*contentTx->GetString1(), *ptx->GetAddress(), block == nullptr))
                 return {false, ConsensusResult_Blocking};
 
             return SocialConsensus::Validate(tx, ptx, block);
@@ -108,15 +105,18 @@ namespace PocketConsensus
         }
         ConsensusValidateResult ValidateMempool(const CommentRef& ptx) override
         {
-            int count = GetChainCount(ptx);
-            count += ConsensusRepoInst.CountMempoolComment(*ptx->GetAddress());
+            int count = GetChainCount(ptx) + ConsensusRepoInst.CountMempoolComment(*ptx->GetAddress());
             return ValidateLimit(ptx, count);
         }
         vector<string> GetAddressesForCheckRegistration(const CommentRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            return { *ptx->GetAddress() };
         }
 
+        virtual bool ValidateBlocking(const string& address1, const string& address2, bool mempool)
+        {
+            return SocialConsensus::CheckBlocking(address1, address2, true, mempool);
+        }
         virtual int64_t GetLimit(AccountMode mode) { 
             return mode >= AccountMode_Full ? 
                 GetConsensusLimit(ConsensusLimit_full_comment) : 
@@ -145,9 +145,7 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1124000 block
-    *******************************************************************************************************************/
+    // ----------------------------------------------------------------------------------------------
     class CommentConsensus_checkpoint_1124000 : public CommentConsensus
     {
     public:
@@ -159,9 +157,7 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1180000 block
-    *******************************************************************************************************************/
+    // ----------------------------------------------------------------------------------------------
     class CommentConsensus_checkpoint_1180000 : public CommentConsensus_checkpoint_1124000
     {
     public:
@@ -176,6 +172,18 @@ namespace PocketConsensus
         }
     };
 
+    // ----------------------------------------------------------------------------------------------
+    class CommentConsensus_checkpoint_pip_105 : public CommentConsensus_checkpoint_1180000
+    {
+    public:
+        CommentConsensus_checkpoint_pip_105() : CommentConsensus_checkpoint_1180000() {}
+    protected:
+        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
+        {
+            return SocialConsensus::CheckBlocking(address1, address2, true, true);
+        }
+    };
+
 
     // ----------------------------------------------------------------------------------------------
     // Factory for select actual rules version
@@ -184,9 +192,10 @@ namespace PocketConsensus
     public:
         CommentConsensusFactory()
         {
-            Checkpoint({       0, -1, -1, make_shared<CommentConsensus>() });
-            Checkpoint({ 1124000, -1, -1, make_shared<CommentConsensus_checkpoint_1124000>() });
-            Checkpoint({ 1180000,  0,  0, make_shared<CommentConsensus_checkpoint_1180000>() });
+            Checkpoint({       0,      -1, -1, make_shared<CommentConsensus>() });
+            Checkpoint({ 1124000,      -1, -1, make_shared<CommentConsensus_checkpoint_1124000>() });
+            Checkpoint({ 1180000,       0, -1, make_shared<CommentConsensus_checkpoint_1180000>() });
+            Checkpoint({ 2727000, 2574300,  0, make_shared<CommentConsensus_checkpoint_pip_105>() });
         }
     };
 

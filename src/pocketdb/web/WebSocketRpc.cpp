@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/WebSocketRpc.h"
+#include "pocketdb/helpers/ShortFormModelsHelper.h"
 #include "rpc/util.h"
 
 namespace PocketWeb::PocketWebRpc
@@ -37,8 +38,8 @@ namespace PocketWeb::PocketWebRpc
 
         // Get initial block number
         int blockNumber = request.params[1].get_int();
-        if (ChainActiveSafeHeight() - blockNumber > 10000)
-            blockNumber = ChainActiveSafeHeight() - 10000;
+        if (ChainActiveSafeHeight() - blockNumber > 43200) // Month
+            blockNumber = ChainActiveSafeHeight() - 43200;
 
         // Get count of result records
         int cntResult = 30;
@@ -144,6 +145,35 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedBoosts(address, blockNumber, cntResult));
+
+        // ---------------------------------------------------------------------
+
+        // Moderation events
+        auto moderNotifies = request.DbConnection()->NotifierRepoInst->GetEventsForAddresses(
+            address, ChainActiveSafeHeight(), blockNumber, 9999999, { ShortTxType::JuryAssigned, ShortTxType::JuryModerate, ShortTxType::JuryVerdict });
+
+        for (const auto& tx: moderNotifies) {
+            UniValue record(UniValue::VOBJ);
+
+            auto optype = tx.GetType();
+
+            record.pushKV("addr", address);
+            record.pushKV("msg", "event");
+            record.pushKV("mesType", PocketHelpers::ShortTxTypeConvertor::toString(optype));
+            record.pushKV("reason", *tx.GetTxData().GetVal());
+            record.pushKV("juryHash", *tx.GetTxData().GetDescription());
+
+            if (tx.GetRelaytedContent())
+            {
+                record.pushKV("contentType", std::to_string(tx.GetRelaytedContent()->GetTxType()));
+                record.pushKV("contentHash", tx.GetRelaytedContent()->GetHash());
+
+                if (tx.GetRelaytedContent()->GetRootTxHash())
+                    record.pushKV("contentRootHash", *tx.GetRelaytedContent()->GetRootTxHash());
+            }
+            
+            result.push_back(record);
+        }
 
         // ---------------------------------------------------------------------
 

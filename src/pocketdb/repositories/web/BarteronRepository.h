@@ -20,7 +20,7 @@ namespace PocketDb
         Pagination Page;
         string Language = "";
         vector<int> Tags;
-        string Location = "";
+        vector<string> Location;
         int64_t PriceMax = 0;
         int64_t PriceMin = 0;
         string Search = "";
@@ -33,7 +33,7 @@ namespace PocketDb
         vector<int> TheirTags;
         vector<string> Addresses;
         vector<string> ExcludeAddresses;
-        string Location = "";
+        vector<string> Location;
         int PriceMin = -1;
         int PriceMax = -1;
         string Search;
@@ -51,7 +51,7 @@ namespace PocketDb
         int64_t MyTag = 0;
         vector<int64_t> TheirTags;
         vector<string> ExcludeAddresses;
-        string Location;
+        vector<string> Location;
     };
 
     class BarteronRepository : public BaseRepository

@@ -395,10 +395,8 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                 custom_fields cFields {
                     { "mesType", optype },
                     { "reason", to_string(data["val"].get_int()) },
+                    { "juryHash", data["description"].get_str() },
                 };
-
-                if (optype == "juryverdict" && !data["postHash"].isNull())
-                    cFields.emplace("juryHash", data["postHash"].get_str());
 
                 if (!data["relatedContent"].isNull())
                 {
