@@ -273,7 +273,8 @@ namespace PocketDb
                             result.push_back(value);
                     }
                 });
-            }
+            },
+            true
         );
 
         return result;
