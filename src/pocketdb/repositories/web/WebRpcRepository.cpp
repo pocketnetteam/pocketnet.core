@@ -1052,13 +1052,8 @@ namespace PocketDb
                         where c1.Type in (204, 205)
                           and c1.RegId3 = t.RegId2
                           and c1.RegId4 is null
-
                           -- exclude commenters blocked by the author of the post
-                          and not exists (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = t.RegId1 and bl.IdTarget = c1.RegId1
-                          )
+                          and not exists (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c1.RegId1)
 
                         order by o.Value desc, c1.RowId desc
                         limit 1
@@ -1456,7 +1451,9 @@ namespace PocketDb
                         s.Type in (204, 205, 206) and
                         s.RegId4 = c.RegId2
                 ) as ChildrenCount,
-                o.Value as Donate
+                o.Value as Donate,
+                (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
+                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent
             from
                 tx,
                 addr
@@ -1496,12 +1493,6 @@ namespace PocketDb
             left join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                 on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
             where
-                -- exclude commenters blocked by the author of the post
-                not exists (
-                    select 1
-                    from BlockingLists bl
-                    where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
-                )
                 )sql" + parentWhere + R"sql(
         )sql";
 
@@ -1545,6 +1536,12 @@ namespace PocketDb
                             record.pushKV("amount", value);
                             record.pushKV("donation", "true");
                         }
+
+                        if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0)
+                            record.pushKV("blck_cnt_cmt", 1);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(18); ok && value > 0)
+                            record.pushKV("blck_cmt_cnt", 1);
+
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                         {
@@ -1711,22 +1708,12 @@ namespace PocketDb
                                 Last luac
                                     on luac.TxId = uac.RowId
                             where
-                                s.Type in (204, 205) and
-                                s.RegId4 = c.RegId2 and
-                                -- exclude commenters blocked by the author of the post
-                                not exists (
-                                    select 1
-                                    from BlockingLists bl
-                                    where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
-                                )
+                                s.Type in (204, 205, 206) and
+                                s.RegId4 = c.RegId2
                         ) AS ChildrenCount,
                         o.Value as Donate,
-                        (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
-                            limit 1
-                        )Blocked,
+                        (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
+                        (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent,
                         cc.Uid
                     from
                         txs,
@@ -1758,8 +1745,9 @@ namespace PocketDb
                     left join
                         Transactions sc indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on sc.Type in (301) and sc.RegId1 = addr.id and sc.RegId2 = c.RegId2 and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
-                    left join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
-                        on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
+                    left join
+                        TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
+                            on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
                 )sql")
                 .Bind(addressHash, cmntHashes, cmntIds);
             },
@@ -1792,7 +1780,9 @@ namespace PocketDb
                         }
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0)
-                            record.pushKV("blck", 1);
+                            record.pushKV("blck_cnt_cmt", 1);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(18); ok && value > 0)
+                            record.pushKV("blck_cmt_cnt", 1);
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                         {
@@ -1816,7 +1806,7 @@ namespace PocketDb
                         }
 
                         auto[ok_hash, hash] = cursor.TryGetColumnString(1);
-                        auto[ok_id, id] = cursor.TryGetColumnInt64(18);
+                        auto[ok_id, id] = cursor.TryGetColumnInt64(19);
                         result.emplace_back(hash, id, record);
                     }
                 });
