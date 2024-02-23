@@ -1492,7 +1492,7 @@ namespace PocketDb
                 on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
             left join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                 on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
-            where
+            where 1=1
                 )sql" + parentWhere + R"sql(
         )sql";
 
