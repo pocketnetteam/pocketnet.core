@@ -925,6 +925,7 @@ namespace PocketDb
                     where
                         c.Height > (? - 600) and
                         not exists (select 1 from BlockingLists bl where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1)
+                        not exists (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = p.RegId1)
 
                     order by c.Height desc
                     limit ?
@@ -1054,6 +1055,7 @@ namespace PocketDb
                           and c1.RegId4 is null
                           -- exclude commenters blocked by the author of the post
                           and not exists (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c1.RegId1)
+                          and not exists (select 1 from BlockingLists bl where bl.IdSource = c1.RegId1 and bl.IdTarget = t.RegId1)
 
                         order by o.Value desc, c1.RowId desc
                         limit 1
@@ -4279,14 +4281,8 @@ namespace PocketDb
                             cross join Chain cc
                                 on cc.TxId = c.RowId
                             where
-                                c.Type in (204, 205) and
-                                c.RegId3 = t.RegId2 and
-                                -- exclude commenters blocked by the author of the post
-                                not exists (
-                                    select 1
-                                    from BlockingLists bl
-                                    where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
-                                )
+                                c.Type in (204, 205, 206) and
+                                c.RegId3 = t.RegId2
                         ) as CommentsCount,
                         ifnull((
                             select
@@ -4909,16 +4905,6 @@ namespace PocketDb
                         r.String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
                 )
 
-                -- Skip blocked authors
-                and t.RegId1 not in (
-                    select
-                        bl.IdTarget
-                    from
-                        BlockingLists bl
-                    where
-                        bl.IdSource = ( select r.RowId from Registry r where r.String = ? )
-                )
-
                 )sql" + tagsIncludedSql + R"sql(
 
                 )sql" + tagsExcludedSql + R"sql(
@@ -4936,10 +4922,8 @@ namespace PocketDb
                         bl.IdSource = t.RegId1 and
                         bl.IdTarget = cmnt.RegId1
                 where
-                    cmnt.Type in (204, 205) and
+                    cmnt.Type in (204, 205, 206) and
                     cmnt.RegId3 = t.RegId2
-                    -- exclude commenters blocked by the author of the post
-                    and bl.ROWID is null
             ) desc
 
             limit ?
@@ -5043,14 +5027,8 @@ namespace PocketDb
                         Last l on
                             l.TxId = s.RowId
                     where
-                        s.Type in (204, 205) and
-                        s.RegId3 = t.RegId2 and
-                        -- exclude commenters blocked by the author of the post
-                        not exists (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
-                        )
+                        s.Type in (204, 205, 206) and
+                        s.RegId3 = t.RegId2
                 )
             )sql";
         }
@@ -5083,8 +5061,8 @@ namespace PocketDb
                         addr as ( select RowId as id, String as hash from Registry where String = ?),
                         lang as ( select ? as value ),
                         topContentId as ( select ? as value )
-                    select distinct
-                        ct.Uid
+                    select
+                        distinct ct.Uid
                     from
                         height,
                         addr,
