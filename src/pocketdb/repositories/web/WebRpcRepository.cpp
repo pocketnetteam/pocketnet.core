@@ -1468,7 +1468,6 @@ namespace PocketDb
             cross join
                 Chain cc
                     on cc.TxId = c.RowId
-            -- TODO (aok, block): need?
             cross join
                 Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
                     on ua.Type = 100 and ua.RegId1 = c.RegId1
@@ -1478,7 +1477,7 @@ namespace PocketDb
             cross join
                 Transactions r
                     on r.RowId = c.RegId2
-            cross join
+            left join
                 Payload pl
                     on pl.TxId = c.RowId
             cross join
@@ -1490,10 +1489,12 @@ namespace PocketDb
             cross join
                 Chain ct
                     on ct.TxId = t.RowId
-            left join Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
-            left join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
-                on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
+            left join
+                Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                    on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
+            left join
+                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
+                    on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
             where 1=1
                 )sql" + parentWhere + R"sql(
         )sql";
@@ -1732,7 +1733,7 @@ namespace PocketDb
                     cross join
                         Transactions r
                             on r.RowId = c.RegId2
-                    cross join
+                    left join
                         Payload pl
                             on pl.TxId = c.RowId
                     cross join
