@@ -1639,7 +1639,7 @@ namespace PocketDb
                             on l.TxId = t.RowId
                     cross join
                         Registry r
-                            on r.RowId = t.RegId1
+                            on r.RowId = t.RowId
                     where
                         c.Uid in ( )sql" + join(vector<string>(cmntIds.size(), "?"), ",") + R"sql( )
                 )
