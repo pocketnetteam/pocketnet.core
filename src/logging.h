@@ -32,7 +32,7 @@ struct LogCategory {
 };
 
 namespace BCLog {
-    enum LogFlags : int64_t {
+    enum LogFlags : uint64_t {
         NONE          = 0,
         NET           = (1 <<  0),
         TOR           = (1 <<  1),
@@ -65,9 +65,9 @@ namespace BCLog {
         WALLET        = (1 << 28),
         SQLBENCH      = (1 << 29),
         RPCERROR      = (1 << 30),
-        MIGRATION     = (1 << 31),
-        STATSQLBENCH  = ((int64_t)1 << 32),
-        ALL           = ~(int64_t)0,
+        MIGRATION     = ((uint64_t)1 << 31),
+        STATSQLBENCH  = ((uint64_t)1 << 32),
+        ALL           = ~(uint64_t)0,
     };
 
     class Logger
@@ -87,7 +87,7 @@ namespace BCLog {
         std::atomic_bool m_started_new_line{true};
 
         /** Log categories bitfield. */
-        std::atomic<int64_t> m_categories{0};
+        std::atomic<uint64_t> m_categories{0};
 
         std::string LogTimestampStr(const std::string& str);
 
@@ -137,7 +137,7 @@ namespace BCLog {
 
         void ShrinkDebugFile();
 
-        int64_t GetCategoryMask() const { return m_categories.load(); }
+        uint64_t GetCategoryMask() const { return m_categories.load(); }
 
         void EnableCategory(LogFlags flag);
         bool EnableCategory(const std::string& str);
