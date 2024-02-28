@@ -87,7 +87,7 @@ namespace BCLog {
         std::atomic_bool m_started_new_line{true};
 
         /** Log categories bitfield. */
-        std::atomic<uint32_t> m_categories{0};
+        std::atomic<int64_t> m_categories{0};
 
         std::string LogTimestampStr(const std::string& str);
 
@@ -137,7 +137,7 @@ namespace BCLog {
 
         void ShrinkDebugFile();
 
-        uint32_t GetCategoryMask() const { return m_categories.load(); }
+        int64_t GetCategoryMask() const { return m_categories.load(); }
 
         void EnableCategory(LogFlags flag);
         bool EnableCategory(const std::string& str);
