@@ -131,8 +131,8 @@ namespace PocketDb
                         }
                     );
 
-                    if (timeouted)
-                        throw JSONError(408, "Sql request timeout");
+                    // if (timeouted)
+                    //     throw JSONError(408, "Sql request timeout");
                 }
                 else
                 {
