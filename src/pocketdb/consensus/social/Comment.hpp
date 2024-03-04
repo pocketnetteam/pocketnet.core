@@ -59,7 +59,7 @@ namespace PocketConsensus
                 return {false, ConsensusResult_CommentDeletedContent};
 
             // Check Blocking
-            if (ValidateBlocking(*contentTx->GetString1(), *ptx->GetAddress(), block == nullptr))
+            if (ValidateBlocking(*contentTx->GetString1(), *ptx->GetAddress()))
                 return {false, ConsensusResult_Blocking};
 
             return SocialConsensus::Validate(tx, ptx, block);
@@ -113,9 +113,10 @@ namespace PocketConsensus
             return { *ptx->GetAddress() };
         }
 
-        virtual bool ValidateBlocking(const string& address1, const string& address2, bool mempool)
+        virtual bool ValidateBlocking(const string& address1, const string& address2)
         {
-            return SocialConsensus::CheckBlocking(address1, address2, true, mempool);
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(address1, address2);
+            return existsBlocking && blockingType == ACTION_BLOCKING;
         }
         virtual int64_t GetLimit(AccountMode mode) { 
             return mode >= AccountMode_Full ? 
@@ -178,9 +179,9 @@ namespace PocketConsensus
     public:
         CommentConsensus_checkpoint_pip_105() : CommentConsensus_checkpoint_1180000() {}
     protected:
-        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-            return SocialConsensus::CheckBlocking(address1, address2, true, true);
+            return SocialConsensus::CheckBlocking(address1, address2);
         }
     };
 

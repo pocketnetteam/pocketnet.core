@@ -70,7 +70,7 @@ namespace PocketConsensus
                 return {false, ConsensusResult_SelfCommentScore};
 
             // Check Blocking
-            if (ValidateBlocking(*lastContentPtx->GetAddress(), *ptx->GetAddress(), block == nullptr))
+            if (ValidateBlocking(*lastContentPtx->GetAddress(), *ptx->GetAddress()))
                 return {false, ConsensusResult_Blocking};
 
             // Check OP_RETURN content author address and score value
@@ -171,7 +171,7 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual bool ValidateBlocking(const string& address1, const string& address2, bool mempool)
+        virtual bool ValidateBlocking(const string& address1, const string& address2)
         {
             return false;
         }
@@ -193,9 +193,10 @@ namespace PocketConsensus
     public:
         explicit ScoreCommentConsensus_checkpoint_430000() : ScoreCommentConsensus() {}
     protected:
-        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-            return SocialConsensus::CheckBlocking(address1, address2, true, false);
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(address1, address2);
+            return existsBlocking && blockingType == ACTION_BLOCKING;
         }
     };
 
@@ -207,7 +208,7 @@ namespace PocketConsensus
     public:
         explicit ScoreCommentConsensus_checkpoint_514184() : ScoreCommentConsensus_checkpoint_430000() {}
     protected:
-        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
             return false;
         }
@@ -246,9 +247,10 @@ namespace PocketConsensus
     public:
         explicit ScoreCommentConsensus_checkpoint_disable_for_blocked() : ScoreCommentConsensus_checkpoint_1180000() {}
     protected:
-        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-            return SocialConsensus::CheckBlocking(address1, address2, true, mempool);
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(address1, address2);
+            return existsBlocking && blockingType == ACTION_BLOCKING;
         }
     };
 
@@ -258,9 +260,9 @@ namespace PocketConsensus
     public:
         explicit ScoreCommentConsensus_checkpoint_pip_105() : ScoreCommentConsensus_checkpoint_disable_for_blocked() {}
     protected:
-        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-            return SocialConsensus::CheckBlocking(address1, address2, true, true);
+            return SocialConsensus::CheckBlocking(address1, address2);
         }
     };
 
