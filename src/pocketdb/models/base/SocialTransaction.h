@@ -17,6 +17,7 @@ namespace PocketTx
 
         optional<UniValue> Serialize() const override;
         void Deserialize(const UniValue& src) override;
+        void DeserializePayload(const UniValue& src) override;
         void DeserializeRpc(const UniValue& src) override;
 
         const optional<string>& GetAddress() const;

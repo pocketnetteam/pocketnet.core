@@ -59,7 +59,10 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "s4"); ok) SetString4(val);
         if (auto[ok, val] = TryGetStr(src, "s5"); ok) SetString5(val);
         if (auto[ok, val] = TryGetInt64(src, "i1"); ok) SetInt1(val);
+    }
 
+    void SocialTransaction::DeserializePayload(const UniValue& src)
+    {
         // Deserialize payload part if exists non-empty "p" object
         if (auto[pOk, pVal] = TryGetObj(src, "p"); pOk)
         {
@@ -82,6 +85,7 @@ namespace PocketTx
     void SocialTransaction::DeserializeRpc(const UniValue& src)
     {
         Deserialize(src);
+        DeserializePayload(src);
     }
     
     const optional<string>& SocialTransaction::GetAddress() const { return m_string1; }

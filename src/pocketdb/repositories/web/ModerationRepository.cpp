@@ -306,6 +306,7 @@ namespace PocketDb
                     )
                     select
                         (select r.String from Registry r where r.RowId = f.RowId) as JuryId,
+                        (select r.String from Registry r where r.RowId = f.RegId2) as ContentId,
                         f.Int1 as Reason,
                         b.Ending
                     from
@@ -337,9 +338,11 @@ namespace PocketDb
                         
                         if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
                             record.pushKV("juryId", value);
-                        if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok)
+                            record.pushKV("contentId", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(2); ok)
                             record.pushKV("reason", value);
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok)
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(3); ok)
                             record.pushKV("ending", value);
                         
                         result.push_back(record);

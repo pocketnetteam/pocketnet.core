@@ -217,7 +217,7 @@ public:
         }
         catch (const std::exception& e)
         {
-            LogPrint(BCLog::RPCERROR, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
+            LogPrint(BCLog::RPCERROR, "Exception %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
             JSONErrorReply(reqContext.replier, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
             executeSuccess = false;
         }

@@ -118,6 +118,7 @@ build_id_string+=$(shell $(build_CXX) --version 2>/dev/null)
 build_id_string+=$(shell $(build_RANLIB) --version 2>/dev/null)
 build_id_string+=$(shell $(build_WINDRES) --version 2>/dev/null)
 build_id_string+=$(shell $(build_STRIP) --version 2>/dev/null)
+build_id_string+=$(shell $(build_WINDRES) --version 2>/dev/null)
 
 $(host_arch)_$(host_os)_id_string:=$(HOST_ID_SALT)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_CC) --version 2>/dev/null)
@@ -126,6 +127,7 @@ $(host_arch)_$(host_os)_id_string+=$(shell $(host_CXX) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_RANLIB) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_WINDRES) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_STRIP) --version 2>/dev/null)
+$(host_arch)_$(host_os)_id_string+=$(shell $(host_WINDRES) --version 2>/dev/null)
 
 ifneq ($(strip $(FORCE_USE_SYSTEM_CLANG)),)
 build_id_string+=system_clang
@@ -179,7 +181,7 @@ $(host_prefix)/.stamp_$(final_build_id): $(native_packages) $(packages)
 	$(AT)mkdir -p $(@D)
 	$(AT)echo copying packages: $^
 	$(AT)echo to: $(@D)
-	$(AT)cd $(@D); $(foreach package,$^, tar xf $($(package)_cached); )
+	$(AT)cd $(@D); $(foreach package,$^, $(build_TAR) xf $($(package)_cached); )
 	$(AT)touch $@
 
 $(host_prefix)/share/config.site : config.site.in $(host_prefix)/.stamp_$(final_build_id)

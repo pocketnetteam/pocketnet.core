@@ -40,7 +40,6 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateBlock(const BarteronAccountRef& ptx, const PocketBlockRef& block) override
         {
             auto blockPtxs = SocialConsensus::ExtractBlockPtxs(block, ptx, { BARTERON_ACCOUNT });
-            LogPrintf("blockPtxs.size(): %d\n", blockPtxs.size());
             if (blockPtxs.size() > 0)
                 return {false, ConsensusResult_ManyTransactions};
 
@@ -49,7 +48,6 @@ namespace PocketConsensus
         
         ConsensusValidateResult ValidateMempool(const BarteronAccountRef& ptx) override
         {
-            LogPrintf("consensusData.MempoolCount: %d\n", consensusData.MempoolCount);
             return { consensusData.MempoolCount <= 0, ConsensusResult_ManyTransactions };
         }
 

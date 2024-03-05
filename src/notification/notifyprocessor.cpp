@@ -57,6 +57,7 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
 
     const auto& block = entry.first;
     auto blockIndex = entry.second;
+    auto blockHeight = blockIndex->nHeight;
     std::map<std::string, std::vector<UniValue>> messages;
     uint256 _block_hash = block.GetHash();
     // vtx[1] - always staking transaction
@@ -76,7 +77,7 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
         std::string optype;
 
         // Get all addresses from tx outs and check OP_RETURN
-        for (int i = 0; i < tx->vout.size(); i++) {
+        for (size_t i = 0; i < tx->vout.size(); i++) {
             const CTxOut& txout = tx->vout[i];
             //-------------------------
             if (txout.scriptPubKey[0] == OP_RETURN) {
@@ -377,7 +378,48 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
         }
     }
 
-     // Send all WS clients messages
+    // Prepare moderation events for this block
+    UniValue moderNotifies = notifierRepoInst->GetNotifications(blockHeight, { ShortTxType::JuryAssigned, ShortTxType::JuryModerate, ShortTxType::JuryVerdict });
+
+    const auto& txsData = moderNotifies["data"].getValues();
+
+    for (const auto& notifier : moderNotifies["notifiers"].getObjMap())
+    {
+        const auto& address = notifier.first;
+        const auto& events = notifier.second["e"].getObjMap();
+
+        for (const auto& event : events)
+        {
+            // PrepareWSMessage(messages, "event", response["contentAddress"].get_str(), txid, txtime, cFields);
+            const auto& optype = event.first;
+            for (const auto& i : event.second.getValues())
+            {
+                auto& data = txsData[i.get_int()];
+
+                custom_fields cFields {
+                    { "mesType", optype },
+                    { "reason", to_string(data["val"].get_int()) },
+                    { "juryHash", data["description"].get_str() },
+                };
+
+                if (data["relatedContent"].isObject())
+                {
+                    cFields.emplace("contentType", to_string(data["relatedContent"]["txType"].get_int()));
+                    cFields.emplace("contentHash", data["relatedContent"]["hash"].get_str());
+
+                    if (data["relatedContent"]["rootTxHash"].isStr())
+                        cFields.emplace("contentRootHash", data["relatedContent"]["rootTxHash"].get_str());
+
+                    if (data["relatedContent"]["address"].isStr())
+                        cFields.emplace("contentAddress", data["relatedContent"]["address"].get_str());
+                }
+                
+                PrepareWSMessage(messages, "event", address, data["hash"].get_str(), data["time"].get_int64(), cFields);
+            }
+        }
+    }
+
+    // Prepare total shares by content type and language
     UniValue contentsLang(UniValue::VOBJ);
     for (const auto& itemContent : contentLangCnt){
         UniValue langContents(UniValue::VOBJ);

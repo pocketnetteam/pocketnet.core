@@ -23,10 +23,6 @@ namespace PocketDb
     public:
         explicit MigrationRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
-        bool CreateBlockingList();
-        // TODO (optimization): rename
-        void AddTransactionFirstField();
-
         bool NeedMigrate0_22();
         void Migrate0_21__0_22();
     protected:

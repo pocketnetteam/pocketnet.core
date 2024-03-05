@@ -13,7 +13,7 @@ namespace PocketWeb::PocketWebRpc
     void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address)
     {
-        topHeight = ChainActive().Height();
+        topHeight = ChainActiveSafeHeight();
         if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int() > 0)
             topHeight = request.params[0].get_int();
 
@@ -502,7 +502,7 @@ namespace PocketWeb::PocketWebRpc
             depthBlocks = min(depthBlocks, 90 * dayInBlocks);
         }
 
-        int nHeightOffset = ChainActive().Height();
+        int nHeightOffset = ChainActiveSafeHeight();
         int nOffset = 0;
         if (request.params.size() > 2)
         {
@@ -530,7 +530,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 5)
             address = request.params[5].get_str();
 
-        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         return request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang,
@@ -621,7 +621,7 @@ namespace PocketWeb::PocketWebRpc
                 topContentId = ids[0];
         }
 
-        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -719,7 +719,7 @@ namespace PocketWeb::PocketWebRpc
                 topContentId = ids[0];
         }
 
-        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -807,7 +807,7 @@ namespace PocketWeb::PocketWebRpc
         ParseFeedRequest(request, topHeight, skipString, skipInt, lang, tags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, skipString);
 
-        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -914,7 +914,7 @@ namespace PocketWeb::PocketWebRpc
                 topContentId = ids[0];
         }
 
-        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -1021,7 +1021,7 @@ namespace PocketWeb::PocketWebRpc
         //         topContentId = ids[0];
         // }
 
-        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
@@ -1256,7 +1256,7 @@ namespace PocketWeb::PocketWebRpc
             lang = request.params[0].get_str();
 
         const int count = 1;
-        const int height = ChainActive().Height() - 150000;
+        const int height = ChainActiveSafeHeight() - 150000;
 
         auto ids = request.DbConnection()->WebRpcRepoInst->GetRandomContentIds(lang, count, height);
         auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, "");
@@ -1319,6 +1319,9 @@ namespace PocketWeb::PocketWebRpc
                                 {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "content from private subscriptions"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Boost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "boosts of acc's content"},
                                 {ShortTxTypeConvertor::toString(ShortTxType::Repost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "reposts of acc's content"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Juries assigned to account"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::JuryModerate), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Juries assigned to moderators"},
+                                {ShortTxTypeConvertor::toString(ShortTxType::JuryVerdict), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Juries results"},
                             }
                         }
                           },
@@ -1336,9 +1339,11 @@ namespace PocketWeb::PocketWebRpc
 
         auto address = request.params[0].get_str();
 
-        int64_t heightMax = ChainActive().Height(); // TODO (losty): deadlock here wtf
+        int64_t heightMax = ChainActiveSafeHeight();
         if (request.params.size() > 1 && request.params[1].isNum()) {
             heightMax = request.params[1].get_int64();
+            if (heightMax > ChainActiveSafeHeight())
+                heightMax = ChainActiveSafeHeight();
         }
 
         int64_t blockNum = 9999999; // Default
@@ -1367,7 +1372,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxs = request.DbConnection()->WebRpcRepoInst->GetEventsForAddresses(address, heightMax, heightMin, blockNum, filters);
+        auto shortTxs = request.DbConnection()->NotifierRepoInst->GetEventsForAddresses(address, heightMax, heightMin, blockNum, filters);
         UniValue res(UniValue::VARR);
         for (const auto& tx: shortTxs) {
             res.push_back(tx.Serialize());
@@ -1396,6 +1401,9 @@ namespace PocketWeb::PocketWebRpc
                             {ShortTxTypeConvertor::toString(ShortTxType::ContentScore), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new scores to acc's content"},
                             {ShortTxTypeConvertor::toString(ShortTxType::PrivateContent), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new content from acc's private subscriptions"},
                             {ShortTxTypeConvertor::toString(ShortTxType::Repost), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new reposts of acc's content"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new assigned jury for authors"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::JuryModerate), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new assigned jury for moderators"},
+                            {ShortTxTypeConvertor::toString(ShortTxType::JuryVerdict), RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "new verdict by assigned jury"},
                         }
                     },
                 },
@@ -1413,7 +1421,7 @@ namespace PocketWeb::PocketWebRpc
 
         auto height = request.params[0].get_int64();
 
-        if (height > ChainActive().Height()) throw JSONRPCError(RPC_INVALID_PARAMETER, "Spefified height is greater than current chain height");
+        if (height > ChainActiveSafeHeight()) throw JSONRPCError(RPC_INVALID_PARAMETER, "Spefified height is greater than current chain height");
 
         std::set<ShortTxType> filters;
         if (request.params.size() > 1 && request.params[1].isArray()) {
@@ -1430,7 +1438,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        return request.DbConnection()->WebRpcRepoInst->GetNotifications(height, filters);
+        return request.DbConnection()->NotifierRepoInst->GetNotifications(height, filters);
     },
        };
     }
@@ -1469,7 +1477,7 @@ namespace PocketWeb::PocketWebRpc
 
         auto address = request.params[0].get_str();
 
-        int64_t heightMax = ChainActive().Height();
+        int64_t heightMax = ChainActiveSafeHeight();
         if (request.params.size() > 1 && request.params[1].isNum()) {
             heightMax = request.params[1].get_int64();
         }
@@ -1500,7 +1508,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto shortTxs = request.DbConnection()->WebRpcRepoInst->GetActivities(address, heightMax, heightMin, blockNum, filters);
+        auto shortTxs = request.DbConnection()->NotifierRepoInst->GetActivities(address, heightMax, heightMin, blockNum, filters);
         UniValue res(UniValue::VARR);
         for (const auto& tx: shortTxs) {
             res.push_back(tx.Serialize());
@@ -1537,7 +1545,7 @@ namespace PocketWeb::PocketWebRpc
             addresses.emplace_back(addressesRaw[i].get_str());
         }
 
-        int64_t heightMax = ChainActiveUnsafe().Height(); // TODO (losty): deadlock here wtf
+        int64_t heightMax = ChainActiveSafeHeight();
         if (request.params.size() > 1 && request.params[1].isNum()) {
             heightMax = request.params[1].get_int64();
         }
@@ -1564,7 +1572,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto res = request.DbConnection()->WebRpcRepoInst->GetNotificationsSummary(heightMax, heightMin, addresses, filters);
+        auto res = request.DbConnection()->NotifierRepoInst->GetNotificationsSummary(heightMax, heightMin, addresses, filters);
         UniValue response(UniValue::VOBJ);
 
         for (const auto& addressEntry: res) {
@@ -1603,7 +1611,7 @@ namespace PocketWeb::PocketWebRpc
                           {
                               string address = "";
                               string addressPagination = "";
-                              int nHeight = ChainActive().Height();
+                              int nHeight = ChainActiveSafeHeight();
                               int countOutOfUsers = 10;
                               int countOutOfcontents = 10;
 
@@ -1627,7 +1635,7 @@ namespace PocketWeb::PocketWebRpc
                               if (request.params.size() > 4 && request.params[4].isNum())
                                   countOutOfcontents = std::min(request.params[4].get_int(), 1000);
 
-                              auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActive().Height());
+                              auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
                               auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
                               UniValue content = request.DbConnection()->WebRpcRepoInst->GetsubsciptionsGroupedByAuthors(

@@ -34,8 +34,8 @@ namespace PocketConsensus
                 return {false, ConsensusResult_CommentDeletedContent};
 
             // Check Blocking
-            if (auto[ok, result] = ValidateBlocking(*contentTx->GetString1(), ptx); !ok)
-                return {false, result};
+            if (ValidateBlocking(*contentTx->GetString1(), *ptx->GetAddress()))
+                return {false, ConsensusResult_Blocking};
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -65,12 +65,12 @@ namespace PocketConsensus
 
         vector<string> GetAddressesForCheckRegistration(const BoostContentRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            return { *ptx->GetAddress() };
         }
 
-        virtual ConsensusValidateResult ValidateBlocking(const string& contentAddress, const BoostContentRef& ptx)
+        virtual bool ValidateBlocking(const string& address1, const string& address2)
         {
-            return Success;
+            return false;
         }
     };
 
@@ -80,13 +80,22 @@ namespace PocketConsensus
     public:
         BoostContentConsensus_checkpoint_disable_for_blocked() : BoostContentConsensus() {}
     protected:
-        ConsensusValidateResult ValidateBlocking(const string& contentAddress, const BoostContentRef& ptx) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                contentAddress, *ptx->GetAddress()); existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, ConsensusResult_Blocking};
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(address1, address2);
+            return existsBlocking && blockingType == ACTION_BLOCKING;
+        }
+    };
 
-            return Success;
+    // ----------------------------------------------------------------------------------------------
+    class BoostContentConsensus_checkpoint_pip_105 : public BoostContentConsensus_checkpoint_disable_for_blocked
+    {
+    public:
+        BoostContentConsensus_checkpoint_pip_105() : BoostContentConsensus_checkpoint_disable_for_blocked() {}
+    protected:
+        bool ValidateBlocking(const string& address1, const string& address2) override
+        {
+            return SocialConsensus::CheckBlocking(address1, address2);
         }
     };
 
@@ -98,8 +107,9 @@ namespace PocketConsensus
     public:
         BoostContentConsensusFactory()
         {
-            Checkpoint({       0,      0, -1, make_shared<BoostContentConsensus>() });
-            Checkpoint({ 1757000, 953000,  0, make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({       0,       0, -1, make_shared<BoostContentConsensus>() });
+            Checkpoint({ 1757000,  953000, -1, make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({ 2770200, 2574300,  0, make_shared<BoostContentConsensus_checkpoint_pip_105>() });
         }
     };
 

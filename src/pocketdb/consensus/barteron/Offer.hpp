@@ -22,20 +22,20 @@ namespace PocketConsensus
         BarteronOfferConsensus() : SocialConsensus<BarteronOffer>()
         {
             Limits.Set("payload_size", 60000, 30000, 1024);
-            Limits.Set("max_active_count", 30, 10, 5000);
+            Limits.Set("max_active_count", 30, 50, 5000);
         }
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronOfferRef& ptx, const PocketBlockRef& block) override
         {
-            if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
-                return {false, code};
-
-            // Get all the necessary data for transaction validation
             consensusData = ConsensusRepoInst.BarteronOffer(
                 *ptx->GetAddress(),
                 *ptx->GetRootTxHash()
             );
 
+            if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
+                return {false, code};
+
+            // Get all the necessary data for transaction validation
             // Validate new or edited transaction
             if (ptx->IsEdit())
                 ValidateEdit(ptx);

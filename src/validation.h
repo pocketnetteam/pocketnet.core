@@ -80,7 +80,7 @@ static const unsigned int DEFAULT_DESCENDANT_LIMIT = 25;
 /** Default for -limitdescendantsize, maximum kilobytes of in-mempool descendants */
 static const unsigned int DEFAULT_DESCENDANT_SIZE_LIMIT = 101;
 /** Default for -mempoolexpiry, expiration time for mempool transactions in hours */
-static const unsigned int DEFAULT_MEMPOOL_EXPIRY = 26;
+static const unsigned int DEFAULT_MEMPOOL_EXPIRY = 168;
 /** The maximum size of a blk?????.dat file (since 0.8) */
 static const unsigned int MAX_BLOCKFILE_SIZE = 0x8000000; // 128 MiB
 /** Maximum number of dedicated script-checking threads allowed */
@@ -882,8 +882,7 @@ private:
     friend CChain& ChainActive();
 
     // For ReadOnly access without lock cs_main
-    friend CChainState& ChainstateActiveUnsafe();
-    friend CChain& ChainActiveUnsafe();
+    friend int ChainActiveSafeHeight();
 
 public:
     //! A single BlockManager instance is shared across each constructed
@@ -997,11 +996,12 @@ extern ChainstateManager g_chainman GUARDED_BY(::cs_main);
 
 /** Please prefer the identical ChainstateManager::ActiveChainstate */
 CChainState& ChainstateActive();
-CChainState& ChainstateActiveUnsafe();
 
 /** Please prefer the identical ChainstateManager::ActiveChain */
 CChain& ChainActive();
-CChain& ChainActiveUnsafe();
+
+/** A safe non-blocking method to get the current height */
+int ChainActiveSafeHeight();
 
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern std::unique_ptr<CBlockTreeDB> pblocktree;

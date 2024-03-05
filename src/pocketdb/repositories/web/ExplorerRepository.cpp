@@ -433,49 +433,63 @@ namespace PocketDb
             __func__,
             [&]() -> Stmt& {
                 return Sql(R"sql(
-                    -- Address in outputs
-                    select distinct
-                        (select r.String from Registry r where r.RowId = t.RowId),
-                        c.Height as Height,
-                        c.BlockNum as BlockNum
-                    from
-                        Chain c indexed by Chain_Height_BlockNum
-                    cross join
-                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-                            on o.TxId = c.TxId and o.AddressId = (select r.RowId as id from Registry r where r.String = ?)
-                    cross join
-                        Transactions t
-                            on t.RowId = o.TxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
-                    where
-                        c.Height <= ?
-
+                    with
+                        topHeight as ( select ? as value ),
+                        address as ( select r.RowId as id from Registry r where r.String = ? ),
+                        outputs as (
+                            select distinct
+                                t.RowId,
+                                c.Height
+                            from
+                                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number,
+                                address,
+                                topheight
+                            cross join
+                                Transactions t on
+                                    t.RowId = o.TxId
+                            cross join
+                                Chain c indexed by Chain_TxId_Height on
+                                    c.TxId = o.TxId and
+                                    c.Height <= topheight.value
+                            where
+                                o.AddressId = address.id
+                            limit ?
+                        ),
+                        inputs as (
+                            select distinct
+                                t.RowId
+                            from
+                                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number,
+                                address,
+                                topheight
+                            cross join
+                                TxInputs i indexed by TxInputs_TxId_Number_SpentTxId on
+                                    i.TxId = o.TxId and i.Number = o.Number
+                            cross join
+                                Transactions t on
+                                    t.RowId = i.SpentTxId
+                            cross join
+                                Chain c indexed by Chain_TxId_Height on
+                                    c.TxId = o.TxId and
+                                    c.Height <= topheight.value
+                            where
+                                o.AddressId = address.id
+                            limit ?
+                        )
+                    select (select r.String from Registry r where r.RowId = o.RowId) as Hash, o.RowId from outputs o
                     union
-
-                    -- Address in inputs
-                    select distinct
-                        (select r.String from Registry r where r.RowId = t.RowId),
-                        c.Height as Height,
-                        c.BlockNum as BlockNum
-                    from
-                        Chain c indexed by Chain_Height_BlockNum
-                    cross join
-                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-                            on o.TxId = c.TxId and o.AddressId = (select r.RowId as id from Registry r where r.String = ?)
-                    cross join
-                        TxInputs i indexed by TxInputs_TxId_Number_SpentTxId
-                            on i.TxId = o.TxId and i.Number = o.Number
-                    cross join
-                        Transactions t
-                            on t.RowId = i.SpentTxId and ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
-                    where
-                        c.Height <= ?
-
-                    order by
-                    c.Height desc, c.BlockNum desc
-
+                    select (select r.String from Registry r where r.RowId = i.RowId) as Hash, i.RowId from inputs i
+                    order by RowId desc
                     limit ? offset ?
                 )sql")
-                .Bind(address, types.empty(), types, topHeight, address, types.empty(), types, topHeight, pageSize, pageStart);
+                .Bind(
+                    topHeight,
+                    address,
+                    pageSize + pageStart,
+                    pageSize + pageStart,
+                    pageSize,
+                    pageStart
+                );
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {

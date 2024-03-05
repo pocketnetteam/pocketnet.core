@@ -63,7 +63,6 @@ namespace PocketConsensus
                     return {false, ConsensusResult_NotFound};
             }
 
-            // TODO (aok): convert to Comment base class
             auto lastContentPtx = static_pointer_cast<Comment>(lastContent);
 
             // Check score to self
@@ -71,8 +70,8 @@ namespace PocketConsensus
                 return {false, ConsensusResult_SelfCommentScore};
 
             // Check Blocking
-            if (auto[ok, result] = ValidateBlocking(*lastContentPtx->GetAddress(), ptx); !ok)
-                return {false, result};
+            if (ValidateBlocking(*lastContentPtx->GetAddress(), *ptx->GetAddress()))
+                return {false, ConsensusResult_Blocking};
 
             // Check OP_RETURN content author address and score value
             if (auto[ok, txOpReturnPayload] = TransactionHelper::ExtractOpReturnPayload(tx); ok)
@@ -172,9 +171,9 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& tx)
+        virtual bool ValidateBlocking(const string& address1, const string& address2)
         {
-            return Success;
+            return false;
         }
         virtual int GetChainCount(const ScoreCommentRef& ptx)
         {
@@ -194,18 +193,10 @@ namespace PocketConsensus
     public:
         explicit ScoreCommentConsensus_checkpoint_430000() : ScoreCommentConsensus() {}
     protected:
-        ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& ptx) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-
-            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                commentAddress,
-                *ptx->GetAddress()
-            );
-
-            if (existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, ConsensusResult_Blocking};
-
-            return Success;
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(address1, address2);
+            return existsBlocking && blockingType == ACTION_BLOCKING;
         }
     };
 
@@ -217,15 +208,13 @@ namespace PocketConsensus
     public:
         explicit ScoreCommentConsensus_checkpoint_514184() : ScoreCommentConsensus_checkpoint_430000() {}
     protected:
-        ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& ptx) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-            return Success;
+            return false;
         }
     };
 
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1124000 block
-    *******************************************************************************************************************/
+    // ----------------------------------------------------------------------------------------------
     class ScoreCommentConsensus_checkpoint_1124000 : public ScoreCommentConsensus_checkpoint_514184
     {
     public:
@@ -237,6 +226,7 @@ namespace PocketConsensus
         }
     };
 
+    // ----------------------------------------------------------------------------------------------
     class ScoreCommentConsensus_checkpoint_1180000 : public ScoreCommentConsensus_checkpoint_1124000
     {
     public:
@@ -251,40 +241,45 @@ namespace PocketConsensus
         }
     };
 
+    // ----------------------------------------------------------------------------------------------
     class ScoreCommentConsensus_checkpoint_disable_for_blocked : public ScoreCommentConsensus_checkpoint_1180000
     {
     public:
         explicit ScoreCommentConsensus_checkpoint_disable_for_blocked() : ScoreCommentConsensus_checkpoint_1180000() {}
     protected:
-        ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& ptx) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(address1, address2);
+            return existsBlocking && blockingType == ACTION_BLOCKING;
+        }
+    };
 
-            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                commentAddress,
-                *ptx->GetAddress()
-            );
-
-            if (existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, ConsensusResult_Blocking};
-
-            return Success;
+    // ----------------------------------------------------------------------------------------------
+    class ScoreCommentConsensus_checkpoint_pip_105 : public ScoreCommentConsensus_checkpoint_disable_for_blocked
+    {
+    public:
+        explicit ScoreCommentConsensus_checkpoint_pip_105() : ScoreCommentConsensus_checkpoint_disable_for_blocked() {}
+    protected:
+        bool ValidateBlocking(const string& address1, const string& address2) override
+        {
+            return SocialConsensus::CheckBlocking(address1, address2);
         }
     };
 
 
     // ----------------------------------------------------------------------------------------------
-    // Factory for select actual rules version
     class ScoreCommentConsensusFactory : public BaseConsensusFactory<ScoreCommentConsensus>
     {
     public:
         ScoreCommentConsensusFactory()
         {
-            Checkpoint({       0,     -1, -1, make_shared<ScoreCommentConsensus>() });
-            Checkpoint({  430000,     -1, -1, make_shared<ScoreCommentConsensus_checkpoint_430000>() });
-            Checkpoint({  514184,     -1, -1, make_shared<ScoreCommentConsensus_checkpoint_514184>() });
-            Checkpoint({ 1124000,     -1, -1, make_shared<ScoreCommentConsensus_checkpoint_1124000>() });
-            Checkpoint({ 1180000,      0, -1, make_shared<ScoreCommentConsensus_checkpoint_1180000>() });
-            Checkpoint({ 1757000, 953000,  0, make_shared<ScoreCommentConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({       0,      -1, -1, make_shared<ScoreCommentConsensus>() });
+            Checkpoint({  430000,      -1, -1, make_shared<ScoreCommentConsensus_checkpoint_430000>() });
+            Checkpoint({  514184,      -1, -1, make_shared<ScoreCommentConsensus_checkpoint_514184>() });
+            Checkpoint({ 1124000,      -1, -1, make_shared<ScoreCommentConsensus_checkpoint_1124000>() });
+            Checkpoint({ 1180000,       0, -1, make_shared<ScoreCommentConsensus_checkpoint_1180000>() });
+            Checkpoint({ 1757000,  953000, -1, make_shared<ScoreCommentConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({ 2770200, 2574300,  0, make_shared<ScoreCommentConsensus_checkpoint_pip_105>() });
         }
     };
 

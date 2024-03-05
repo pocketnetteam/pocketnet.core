@@ -178,7 +178,7 @@ namespace PocketWeb::PocketWebRpc
         uint64_t nNetworkWeight = GetPoSKernelPS();
         entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
 
-        CBlockIndex* pindex = ::ChainActive().Tip();
+        CBlockIndex* pindex = ChainActive().Tip();
         UniValue oblock(UniValue::VOBJ);
         oblock.pushKV("height", pindex->nHeight);
         oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
@@ -235,7 +235,7 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            int height = ChainActive().Height();
+            int height = ChainActiveSafeHeight();
             if (request.params.size() > 0 && request.params[0].isNum())
                 height = request.params[0].get_int();
 
@@ -311,14 +311,14 @@ namespace PocketWeb::PocketWebRpc
             },
             [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
             {
-                int64_t height = ChainActiveUnsafe().Height();
+                int64_t height = ChainActiveSafeHeight();
                 if (request.params.size() > 0 && request.params[0].isNum()) {
                     height = request.params[0].get_int();
                 }
                 
-                auto blockIndex = ChainActiveUnsafe().Tip();
+                auto blockIndex = ChainActive().Tip();
                 if (blockIndex->nHeight > height)
-                    blockIndex = ChainActiveUnsafe()[height];
+                    blockIndex = ChainActive()[height];
 
                 UniValue result(UniValue::VOBJ);
                 result.pushKV("Height", blockIndex->nHeight);

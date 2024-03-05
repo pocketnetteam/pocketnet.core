@@ -735,7 +735,7 @@ class RPCPublicOverloadWrapper():
     def __getattr__(self, name):
         return getattr(self.rpc, name)
 
-    def generatetransaction(self, account, tx, outCount=1, conf=9):
+    def generatetransaction(self, account, tx, outCount=1, conf=9, locktime=0):
         contentAddress = ''
         if (tx.TxType == '7570766f74655368617265' or tx.TxType == '6353636f7265'):
             contentAddress = tx.ContentAddress
@@ -747,5 +747,6 @@ class RPCPublicOverloadWrapper():
             type=tx.TxType,
             payload=tx.Serialize(),
             confirmations=conf,
-            contentaddress=contentAddress
+            contentaddress=contentAddress,
+            locktime=locktime
         )

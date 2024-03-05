@@ -3,7 +3,6 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/web/WebRpcRepository.h"
-#include "pocketdb/helpers/ShortFormRepositoryHelper.h"
 #include <functional>
 
 namespace PocketDb
@@ -561,10 +560,12 @@ namespace PocketDb
             )sql";
         }
 
-        if (shortForm)
-            sql += GetAccountProfilesSqlShort();
-        else
-            sql += GetAccountProfilesSqlFull();
+        sql += GetAccountProfilesSqlShort();
+
+        string fullPart = "";
+        if (!shortForm)
+            fullPart = GetAccountProfilesSqlFull();
+        sql = sql.replace(sql.find("<FULLPART>"), 10, fullPart);
 
         SqlTransaction(
             __func__,
@@ -627,6 +628,12 @@ namespace PocketDb
                             if (auto [ok, value] = cursor.TryGetColumnInt64(i++); ok)
                                 record.pushKV("actions", value);
 
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                UniValue flags(UniValue::VOBJ);
+                                flags.read(value);
+                                record.pushKV("bans", flags);
+                            }
+
                             if (!shortForm) {
 
                                 if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
@@ -642,9 +649,9 @@ namespace PocketDb
                                 }
 
                                 if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
-                                    UniValue subscribes(UniValue::VARR);
-                                    subscribes.read(value);
-                                    record.pushKV("blocking", subscribes);
+                                    UniValue blockings(UniValue::VARR);
+                                    blockings.read(value);
+                                    record.pushKV("blocking", blockings);
                                 }
 
                                 if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
@@ -667,250 +674,69 @@ namespace PocketDb
     string WebRpcRepository::GetAccountProfilesSqlFull()
     {
         return R"sql(
-            select
-                (select r.String from Registry r where r.RowId = u.RowId) as AccountHash
-                ,(select r.String from Registry r where r.RowId = u.RegId1) as Addres
-                ,cu.Uid
-                ,u.Type
-                ,ifnull(p.String2,'') as Name
-                ,ifnull(p.String3,'') as Avatar
-                ,ifnull(p.String7,'') as Donations
-                ,ifnull((select r.String from Registry r where r.RowId = u.RegId2),'') as Referrer
-                ,ifnull((
-                    select
-                        count()
-                    from
-                        Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join
-                        Last lpo
-                            on lpo.TxId = po.RowId
-                    where
-                        po.Type in (200,201,202,209,210) and po.RegId1 = addr.id
-                ), 0) as PostsCount
-                ,ifnull((
-                    select
-                        count()
-                    from
-                        Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join
-                        Last lpo
-                            on lpo.TxId = po.RowId
-                    where
-                        po.Type in (207) and
-                        po.RegId1 = addr.id
-                ), 0) as DelCount
-                ,ifnull((
-                    select
-                        r.Value
-                    from
-                        Ratings r indexed by Ratings_Type_Uid_Last_Value
-                    where
-                        r.Type = 0 and
-                        r.Uid = cu.Uid and
-                        r.Last = 1
-                ), 0) as Reputation
-                ,(
-                    select
-                        count()
-                    from
-                        Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join
-                        Last lsubs
-                            on lsubs.TxId = subs.RowId
-                    cross join
-                        Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on uas.Type in (100) and uas.RegId1 = subs.RegId2
-                    cross join
-                        Last luas
-                            on luas.TxId = uas.RowId
-                    where
-                        subs.Type in (302, 303) and
-                        subs.RegId1 = addr.id
-                ) as SubscribesCount
-                ,(
-                    select
-                        count()
-                    from
-                        Transactions subs indexed by Transactions_Type_RegId2_RegId1
-                    cross join
-                        Last lsubs
-                            on lsubs.TxId = subs.RowId
-                    cross join
-                        Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on uas.Type in (100) and uas.RegId1 = subs.RegId1
-                    cross join
-                        Last luas
-                            on luas.TxId = uas.RowId
-                    where
-                        subs.Type in (302, 303) and
-                        subs.RegId2 = addr.id
-                ) as SubscribersCount
-                ,(
-                    select
-                        count()
-                    from
-                        BlockingLists bl
-                    where
-                        bl.IdSource = u.RegId1
-                ) as BlockingsCount
-                ,ifnull((
-                    select
-                        sum(lkr.Value)
-                    from Ratings lkr indexed by Ratings_Type_Uid_Last_Value
-                    where
-                        lkr.Type in (111,112,113) and lkr.Uid = cu.Uid and lkr.Last = 1
-                ), 0) as Likers
-                ,ifnull(p.String6,'') as Pubkey
-                ,ifnull(p.String4,'') as About
-                ,ifnull(p.String1,'') as Lang
-                ,ifnull(p.String5,'') as Url
-                ,u.Time
-                ,(
-                    select
-                        reg.Time
-                    from Transactions reg indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join First freg
-                        on freg.TxId = reg.RowId
-                    where
-                        reg.Type in (100) and
-                        reg.RegId1 = addr.id
-                ) as RegistrationDate
-                ,(
-                    select
-                        json_group_object(gr.Type, gr.Cnt)
-                    from
-                        (
-                            select
-                                (f.Int1)Type,
-                                (count())Cnt
-                            from
-                                Transactions f indexed by Transactions_Type_RegId3_RegId1
-                            cross join
-                                Chain c
-                                    on c.TxId = f.RowId
-                            where
-                                f.Type in (410) and
-                                f.RegId3 = addr.id
-                            group by
-                                f.Int1
-                        )gr
-                ) as FlagsJson
-                ,(
-                    select
-                        json_group_object(gr.Type, gr.Cnt)
-                    from
-                        (
-                            select
-                                (f.Int1)Type,
-                                (count())Cnt
-                            from
-                                Transactions f indexed by Transactions_Type_RegId3_RegId1
-                            cross join (
-                                select
-                                    min(cfp.Height) as minHeight
-                                from
-                                    Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                cross join
-                                    First ffp
-                                        on ffp.TxId = fp.RowId
-                                cross join
-                                    Chain cfp indexed by Chain_TxId_Height
-                                        on cfp.TxId = fp.RowId
-                                where
-                                    fp.Type in (200, 201, 202, 209, 210) and
-                                    fp.RegId1 = addr.id
-                            )fp
-                            cross join
-                                Chain cf indexed by Chain_TxId_Height
-                                    on cf.TxId = f.RowId and cf.Height >= fp.minHeight and cf.Height <= (fp.minHeight + firstFlagsDepth.value)
-                            where
-                                f.Type in (410) and
-                                f.RegId3 = addr.id
-                            group by
-                                f.Int1
-                        )gr
-                ) as FirstFlagsCount
-                ,(
-                    select
-                        count()
-                    from
-                        Transactions t indexed by Transactions_Type_RegId1_Time
-                    where
-                        t.Type in (100,103,170,207,200,201,202,209,210,220,204,205,206,208,300,301,302,303,304,305,306,307,400,401,402,403,404,405,410,420,104,211) and
-                        t.RegId1 = addr.id
-                ) as ActionsCount
-                ,(
-                    select
-                        json_group_array(
-                            json_object(
-                                'adddress', rsubs.String,
-                                'private', case when subs.Type == 303 then 'true' else 'false' end
-                            )
+            ,(
+                select
+                    json_group_array(
+                        json_object(
+                            'adddress', rsubs.String,
+                            'private', case when subs.Type == 303 then 'true' else 'false' end
                         )
-                    from Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join Last lsubs
-                        on lsubs.TxId = subs.RowId
-                    cross join Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    on uas.Type = 100 and uas.RegId1 = subs.RegId2
-                    cross join Last luas
-                        on luas.TxId = uas.RowId
-                    cross join Registry rsubs
-                        on rsubs.RowId = subs.RegId2
-                    where
-                        subs.Type in (302, 303) and
-                        subs.RegId1 = addr.id
-                ) as Subscribes
-                ,(
+                    )
+                from Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join Last lsubs
+                    on lsubs.TxId = subs.RowId
+                cross join Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                on uas.Type = 100 and uas.RegId1 = subs.RegId2
+                cross join Last luas
+                    on luas.TxId = uas.RowId
+                cross join Registry rsubs
+                    on rsubs.RowId = subs.RegId2
+                where
+                    subs.Type in (302, 303) and
+                    subs.RegId1 = addr.id
+            ) as Subscribes
+            ,(
+                select
+                    json_group_array(rsubs.String)
+                from Transactions subs indexed by Transactions_Type_RegId2_RegId1
+                cross join Last lsubs
+                    on lsubs.TxId = subs.RowId
+                cross join Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                on uas.Type in (100) and uas.RegId1 = subs.RegId1
+                cross join Last luas
+                    on luas.TxId = uas.RowId
+                cross join Registry rsubs
+                    on rsubs.RowId = subs.RegId1
+                where
+                    subs.Type in (302, 303) and
+                    subs.RegId2 = addr.id
+            ) as Subscribers
+            ,(
+                select
+                    json_group_array(rub.String)
+                from
+                    BlockingLists bl
+                cross join
+                    Registry rub on
+                        rub.RowId = bl.IdTarget
+                where
+                    bl.IdSource = u.RegId1
+            ) as Blockings
+            ,(
+                select json_group_object(gr.Type, gr.Cnt)
+                from (
                     select
-                        json_group_array(rsubs.String)
-                    from Transactions subs indexed by Transactions_Type_RegId2_RegId1
-                    cross join Last lsubs
-                        on lsubs.TxId = subs.RowId
-                    cross join Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    on uas.Type in (100) and uas.RegId1 = subs.RegId1
-                    cross join Last luas
-                        on luas.TxId = uas.RowId
-                    cross join Registry rsubs
-                        on rsubs.RowId = subs.RegId1
+                        f.Type as Type,
+                        count() as Cnt
+                    from Transactions f indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    join Last lf
+                        on lf.TxId = f.RowId
                     where
-                        subs.Type in (302, 303) and
-                        subs.RegId2 = addr.id
-                ) as Subscribers
-                ,(
-                    select
-                        json_group_array(rub.String)
-                    from
-                        BlockingLists bl
-                    cross join
-                        Registry rub on
-                            rub.RowId = bl.IdTarget
-                    where
-                        bl.IdSource = u.RegId1
-                ) as Blockings
-                ,(
-                    select json_group_object(gr.Type, gr.Cnt)
-                    from (
-                        select
-                            f.Type as Type,
-                            count() as Cnt
-                        from Transactions f indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        join Last lf
-                            on lf.TxId = f.RowId
-                        where
-                            f.Type in (200,201,202,209,210,220,207) and f.RegId1 = addr.id
-                        group by
-                            f.Type
-                    )gr
-                ) as ContentJson
-            from addr, firstFlagsDepth
-            cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                on u.Type in (100, 170) and u.RegId1 = addr.id
-            cross join Last lu
-                on lu.TxId = u.RowId
-            cross join Chain cu
-                on cu.TxId = u.RowId
-            cross join Payload p
-                on p.TxId = u.RowId
+                        f.Type in (200,201,202,209,210,220,207) and f.RegId1 = addr.id
+                    group by
+                        f.Type
+                )gr
+            ) as ContentJson
         )sql";
     }
 
@@ -956,7 +782,8 @@ namespace PocketDb
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 5), '{}') as FlagsJson
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 6), '{}') as FirstFlagsCount
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 7), 0) as ActionsCount
-
+                ,(select json_group_object((select r.String from Registry r where r.RowId = jb.VoteRowId), jb.Ending) from JuryBan jb where jb.AccountId = cu.Uid) as Bans
+                <FULLPART>
             from
                 addr,
                 firstFlagsDepth
@@ -971,15 +798,15 @@ namespace PocketDb
                 Chain cu on
                     cu.TxId = u.RowId
             cross join
-                Payload p on
-                    p.TxId = u.RowId
-            cross join
                 Transactions reg indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     reg.Type in (100) and
                     reg.RegId1 = addr.id
             cross join
                 First freg on
                     freg.TxId = reg.RowId
+            left join
+                Payload p on
+                    p.TxId = u.RowId
             left join
                 Ratings r indexed by Ratings_Type_Uid_Last_Value on
                     r.Type = 0 and
@@ -1051,7 +878,7 @@ namespace PocketDb
 
                         (
                             select o.Value
-                            from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                            from TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                             where o.TxId = t.RowId and o.AddressId = p.RegId1 and o.AddressId != t.RegId1
                             limit 1
                         ) as Donate
@@ -1059,6 +886,7 @@ namespace PocketDb
                     from
                         Chain c
 
+                    -- Comment
                     cross join
                         Transactions t
                             on t.RowId = c.TxId and t.Type in (204, 205)
@@ -1072,6 +900,7 @@ namespace PocketDb
                         Ratings rc indexed by Ratings_Type_Uid_Last_Value
                             on rc.Type = 3 and rc.Last = 1 and rc.Uid = c.Uid and rc.Value >= 0
 
+                    -- Author of comment
                     cross join
                         Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on ua.Type = 100 and ua.RegId1 = t.RegId1
@@ -1079,8 +908,10 @@ namespace PocketDb
                         Last lua
                             on lua.TxId = ua.RowId
 
-                    cross join Transactions p indexed by Transactions_Type_RegId2_RegId1
-                        on p.Type in (200, 201, 202, 209, 210) and p.RegId2 = t.RegId3
+                    -- Content
+                    cross join
+                        Transactions p indexed by Transactions_Type_RegId2_RegId1 on
+                            p.Type in (200, 201, 202, 209, 210) and p.RegId2 = t.RegId3
                     cross join
                         Last lp
                             on lp.TxId = p.RowId
@@ -1093,11 +924,8 @@ namespace PocketDb
 
                     where
                         c.Height > (? - 600) and
-                        not exists (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1
-                        )
+                        not exists (select 1 from BlockingLists bl where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1) and
+                        not exists (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = p.RegId1)
 
                     order by c.Height desc
                     limit ?
@@ -1157,7 +985,7 @@ namespace PocketDb
                 (select r.String from Registry r where r.RowId = c.RegId2)                  as RootTxHash,
                 (select r.String from Registry r where r.RowId = c.RegId3)                  as PostTxHash,
                 (select r.String from Registry r where r.RowId = c.RegId1)                  as AddressHash,
-                (select corig.Time from Transactions corig where corig.RowId = c.RegId2)   as Time,
+                (select corig.Time from Transactions corig where corig.RowId = c.RegId2)    as TimeOrigin,
                 c.Time                                                                      as TimeUpdate,
                 cc.Height,
                 (select p.String1 from Payload p where p.TxId = c.RowId)                    as Message,
@@ -1225,13 +1053,9 @@ namespace PocketDb
                         where c1.Type in (204, 205)
                           and c1.RegId3 = t.RegId2
                           and c1.RegId4 is null
-
                           -- exclude commenters blocked by the author of the post
-                          and not exists (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = t.RegId1 and bl.IdTarget = c1.RegId1
-                          )
+                          and not exists (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c1.RegId1)
+                          and not exists (select 1 from BlockingLists bl where bl.IdSource = c1.RegId1 and bl.IdTarget = t.RegId1)
 
                         order by o.Value desc, c1.RowId desc
                         limit 1
@@ -1304,6 +1128,250 @@ namespace PocketDb
         return result;
     }
 
+    vector<string> WebRpcRepository::GetContentComments(const vector<string>& contentHashes)
+    {
+        vector<string> result;
+        result.reserve(contentHashes.size());
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                cnt as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    r.String
+                from
+                    cnt,
+                    Transactions t indexed by Transactions_Type_RegId3_RegId4_RegId5
+                    cross join Last l on
+                        l.TxId = t.RowId
+                    cross join Registry r on
+                        r.RowId = t.RowId
+                where
+                    t.Type in (204, 205, 206) and
+                    t.RegId3 = cnt.id
+            )sql")
+            .Bind(contentHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
+
+    vector<string> WebRpcRepository::GetContentScores(const vector<string>& contentHashes)
+    {
+        vector<string> result;
+        result.reserve(contentHashes.size());
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                cnt as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    r.String
+                from
+                    cnt,
+                    Transactions t
+                    cross join Registry r on
+                        r.RowId = t.RowId
+                where
+                    t.Type = 300 and
+                    t.RegId2 = cnt.id
+            )sql")
+            .Bind(contentHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
+
+    vector<string> WebRpcRepository::GetLastContentHashesByRootTxHashes(const vector<string>& rootHashes)
+    {
+        vector<string> result;
+        result.reserve(rootHashes.size());
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                cnt as (
+                    select
+                        c.Uid as uid
+                    from
+                        vTx t
+                        cross join Chain c on
+                            c.TxId = t.RowId
+                    where
+                        t.Hash in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    hash.String
+                from
+                    cnt,
+                    Chain c
+                    cross join Last l on
+                        l.TxId = c.TxId
+                    cross join Registry hash on
+                        hash.RowId = c.TxId
+                where
+                    c.Uid = cnt.uid
+            )sql")
+            .Bind(rootHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto [ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
+
+    vector<string> WebRpcRepository::GetCommentScores(const vector<string>& commentHashes)
+    {
+        vector<string> result;
+        result.reserve(commentHashes.size());
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                cnt as (
+                    select
+                        r.RowId as id
+                    from
+                        Registry r
+                    where
+                        r.String in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
+                )
+                select
+                    r.String
+                from
+                    cnt,
+                    Transactions t
+                    cross join Registry r on
+                        r.RowId = t.RowId
+                where
+                    t.Type = 301 and
+                    t.RegId2 = cnt.id
+            )sql")
+            .Bind(commentHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
+
+    vector<string> WebRpcRepository::GetAddresses(const vector<string>& txHashes)
+    {
+        vector<string> result;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select distinct
+                    r.String
+                from
+                    vTx t
+                    cross join Registry r on
+                        r.RowId = t.RegId1
+                where
+                    t.Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+            )sql")
+            .Bind(txHashes)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step()) {
+                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                        result.emplace_back(val);
+                    }
+                }
+            });
+
+        });
+
+        return result;
+    }
+
+    vector<string> WebRpcRepository::GetAccountsIds(const vector<string>& addresses)
+    {
+
+        vector<string> result;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                    addr as (
+                        select
+                            RowId as id
+                        from
+                            Registry
+                        where
+                            String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                    )
+                    select
+                        (select r.String from Registry r where r.RowId = a.RowId)
+                    from
+                        addr
+                    cross join
+                        Transactions a
+                            on a.Type in (100) and a.RegId1 = addr.id
+                    cross join
+                        Last l
+                            on l.TxId = a.RowId
+                )sql")
+                .Bind(addresses);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                            result.push_back(value);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
     UniValue WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
         auto result = UniValue(UniValue::VARR);
@@ -1364,7 +1432,8 @@ namespace PocketDb
                 ) as Reputation,
                 ifnull(sc.Int1, 0) as MyScore,
                 (
-                    select count()
+                    select
+                        count()
                     from
                         Transactions s indexed by Transactions_Type_RegId4_RegId1
                     cross join
@@ -1373,7 +1442,7 @@ namespace PocketDb
                     cross join
                         Chain cs
                             on cs.TxId = s.RowId
-                    -- exclude deleted accounts
+                    -- exclude deleted accounts TODO (aok, block): need?
                     cross join
                         Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on uac.Type = 100 and uac.RegId1 = s.RegId1
@@ -1381,16 +1450,12 @@ namespace PocketDb
                         Last luac
                             on luac.TxId = uac.RowId
                     where
-                        s.Type in (204, 205) and
-                        s.RegId4 = c.RegId2 and
-                        -- exclude commenters blocked by the author of the post
-                        not exists (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
-                        )
-                ) AS ChildrenCount,
-                o.Value as Donate
+                        s.Type in (204, 205, 206) and
+                        s.RegId4 = c.RegId2
+                ) as ChildrenCount,
+                o.Value as Donate,
+                (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
+                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent
             from
                 tx,
                 addr
@@ -1412,7 +1477,7 @@ namespace PocketDb
             cross join
                 Transactions r
                     on r.RowId = c.RegId2
-            cross join
+            left join
                 Payload pl
                     on pl.TxId = c.RowId
             cross join
@@ -1424,17 +1489,13 @@ namespace PocketDb
             cross join
                 Chain ct
                     on ct.TxId = t.RowId
-            left join Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
-            left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-                on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
-            where
-                -- exclude commenters blocked by the author of the post
-                not exists (
-                    select 1
-                    from BlockingLists bl
-                    where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
-                )
+            left join
+                Transactions sc indexed by Transactions_Type_RegId2_RegId1
+                    on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
+            left join
+                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
+                    on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
+            where 1=1
                 )sql" + parentWhere + R"sql(
         )sql";
 
@@ -1478,6 +1539,12 @@ namespace PocketDb
                             record.pushKV("amount", value);
                             record.pushKV("donation", "true");
                         }
+
+                        if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0)
+                            record.pushKV("blck_cnt_cmt", 1);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(18); ok && value > 0)
+                            record.pushKV("blck_cmt_cnt", 1);
+
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                         {
@@ -1572,7 +1639,7 @@ namespace PocketDb
                             on l.TxId = t.RowId
                     cross join
                         Registry r
-                            on r.RowId = t.RegId1
+                            on r.RowId = t.RowId
                     where
                         c.Uid in ( )sql" + join(vector<string>(cmntIds.size(), "?"), ",") + R"sql( )
                 )
@@ -1644,22 +1711,12 @@ namespace PocketDb
                                 Last luac
                                     on luac.TxId = uac.RowId
                             where
-                                s.Type in (204, 205) and
-                                s.RegId4 = c.RegId2 and
-                                -- exclude commenters blocked by the author of the post
-                                not exists (
-                                    select 1
-                                    from BlockingLists bl
-                                    where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
-                                )
+                                s.Type in (204, 205, 206) and
+                                s.RegId4 = c.RegId2
                         ) AS ChildrenCount,
                         o.Value as Donate,
-                        (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
-                            limit 1
-                        )Blocked,
+                        (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
+                        (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent,
                         cc.Uid
                     from
                         txs,
@@ -1676,7 +1733,7 @@ namespace PocketDb
                     cross join
                         Transactions r
                             on r.RowId = c.RegId2
-                    cross join
+                    left join
                         Payload pl
                             on pl.TxId = c.RowId
                     cross join
@@ -1691,8 +1748,9 @@ namespace PocketDb
                     left join
                         Transactions sc indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on sc.Type in (301) and sc.RegId1 = addr.id and sc.RegId2 = c.RegId2 and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
-                    left join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-                        on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
+                    left join
+                        TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
+                            on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
                 )sql")
                 .Bind(addressHash, cmntHashes, cmntIds);
             },
@@ -1725,7 +1783,9 @@ namespace PocketDb
                         }
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0)
-                            record.pushKV("blck", 1);
+                            record.pushKV("blck_cnt_cmt", 1);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(18); ok && value > 0)
+                            record.pushKV("blck_cmt_cnt", 1);
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                         {
@@ -1749,7 +1809,7 @@ namespace PocketDb
                         }
 
                         auto[ok_hash, hash] = cursor.TryGetColumnString(1);
-                        auto[ok_id, id] = cursor.TryGetColumnInt64(18);
+                        auto[ok_id, id] = cursor.TryGetColumnInt64(19);
                         result.emplace_back(hash, id, record);
                     }
                 });
@@ -2772,11 +2832,11 @@ namespace PocketDb
                         t.Type,
                         c.Height
                     from addr
-                    join TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                    cross join TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
                         o.AddressId = addr.id and not exists (select 1 from TxInputs i where i.TxId = o.TxId and i.Number = o.Number)
-                    join Chain c on
+                    cross join Chain c indexed by Chain_TxId_Height on
                         c.TxId = o.TxId and c.Height <= ?
-                    join Transactions t on
+                    cross join Transactions t on
                         t.RowId = o.TxId
                     order by c.Height asc
                 )sql")
@@ -2858,7 +2918,7 @@ namespace PocketDb
                     from
                         addr
                     cross join
-                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                        TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
                             o.AddressId = addr.id
                     cross join
                         Chain c on
@@ -3211,6 +3271,8 @@ namespace PocketDb
         return result;
     }
 
+    // ------------------------- Missed ---------------------
+
     vector<UniValue> WebRpcRepository::GetMissedRelayedContent(const string& address, int height)
     {
         vector<UniValue> result;
@@ -3443,7 +3505,7 @@ namespace PocketDb
                         addr,
                         height
                     cross join
-                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                        TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                             on o.AddressId = addr.id
                     cross join
                         Chain c indexed by Chain_TxId_Height
@@ -3599,7 +3661,7 @@ namespace PocketDb
                         (select r.String from Registry r where r.RowId = c.RegId5) as  answerid,
                         (
                             select o.Value
-                            from TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
+                            from TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
                             where o.TxId = c.RowId and o.AddressId = p.RegId1 and o.AddressId != c.RegId1
                         ) as Donate
                     from
@@ -3851,6 +3913,8 @@ namespace PocketDb
         return result;
     }
 
+    // ------------------------- Other ---------------------
+
     UniValue WebRpcRepository::SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut)
     {
         UniValue result(UniValue::VARR);
@@ -4035,9 +4099,23 @@ namespace PocketDb
                     left join
                         Ratings ur indexed by Ratings_Type_Uid_Last_Value on
                             ur.Type = 0 and ur.Uid = cu.Uid and ur.Last = 1
+                    left join
+                        JuryBan jb on
+                            jb.AccountId = cu.Uid and
+                            jb.Ending > ?
+                    left join
+                        Jury j on
+                            j.AccountId = cu.Uid
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
                     where
                         -- Do not show posts from users with low reputation
                         ifnull(ur.Value,0) > ?
+                        -- Do not show posts from banned users
+                        and jb.AccountId is null
+                        -- Do not show posts from users with active jury
+                        and jv.FlagRowId is null
                     order by
                         r.Value desc
                     limit ?
@@ -4047,6 +4125,7 @@ namespace PocketDb
                     nHeight,
                     nHeight - depth,
                     contentTypes,
+                    nHeight,
                     badReputationLimit,
                     countOut
                 );
@@ -4203,14 +4282,8 @@ namespace PocketDb
                             cross join Chain cc
                                 on cc.TxId = c.RowId
                             where
-                                c.Type in (204, 205) and
-                                c.RegId3 = t.RegId2 and
-                                -- exclude commenters blocked by the author of the post
-                                not exists (
-                                    select 1
-                                    from BlockingLists bl
-                                    where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1
-                                )
+                                c.Type in (204, 205, 206) and
+                                c.RegId3 = t.RegId2
                         ) as CommentsCount,
                         ifnull((
                             select
@@ -4544,6 +4617,16 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
 
                     ct.Height > ?
@@ -4551,6 +4634,12 @@ namespace PocketDb
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -4606,6 +4695,7 @@ namespace PocketDb
                     contentTypes,
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight - depth,
                     topHeight,
                     badReputationLimit
@@ -4769,6 +4859,16 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
 
                     ct.Height > ?
@@ -4776,6 +4876,12 @@ namespace PocketDb
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -4800,16 +4906,6 @@ namespace PocketDb
                         r.String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
                 )
 
-                -- Skip blocked authors
-                and t.RegId1 not in (
-                    select
-                        bl.IdTarget
-                    from
-                        BlockingLists bl
-                    where
-                        bl.IdSource = ( select r.RowId from Registry r where r.String = ? )
-                )
-
                 )sql" + tagsIncludedSql + R"sql(
 
                 )sql" + tagsExcludedSql + R"sql(
@@ -4827,10 +4923,8 @@ namespace PocketDb
                         bl.IdSource = t.RegId1 and
                         bl.IdTarget = cmnt.RegId1
                 where
-                    cmnt.Type in (204, 205) and
+                    cmnt.Type in (204, 205, 206) and
                     cmnt.RegId3 = t.RegId2
-                    -- exclude commenters blocked by the author of the post
-                    and bl.ROWID is null
             ) desc
 
             limit ?
@@ -4847,6 +4941,7 @@ namespace PocketDb
                     contentTypes,
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight - depth,
                     topHeight,
                     badReputationLimit
@@ -4933,14 +5028,8 @@ namespace PocketDb
                         Last l on
                             l.TxId = s.RowId
                     where
-                        s.Type in (204, 205) and
-                        s.RegId3 = t.RegId2 and
-                        -- exclude commenters blocked by the author of the post
-                        not exists (
-                            select 1
-                            from BlockingLists bl
-                            where bl.IdSource = t.RegId1 and bl.IdTarget = s.RegId1
-                        )
+                        s.Type in (204, 205, 206) and
+                        s.RegId3 = t.RegId2
                 )
             )sql";
         }
@@ -4973,8 +5062,8 @@ namespace PocketDb
                         addr as ( select RowId as id, String as hash from Registry where String = ?),
                         lang as ( select ? as value ),
                         topContentId as ( select ? as value )
-                    select distinct
-                        ct.Uid
+                    select
+                        distinct ct.Uid
                     from
                         height,
                         addr,
@@ -5194,11 +5283,30 @@ namespace PocketDb
                 Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     u.Type in (100) and u.RegId1 = t.RegId1
             cross join
+                Chain cu on
+                    cu.TxId = u.RowId
+            cross join
                 Last lu on
                     lu.TxId = u.RowId
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.RegId3 is null
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5254,6 +5362,7 @@ namespace PocketDb
                 stmt.Bind(
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight,
                     contentTypes
                 );
@@ -5409,12 +5518,28 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.RegId3 is null
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5467,6 +5592,7 @@ namespace PocketDb
                     lang.empty(),
                     lang,
                     0,
+                    topHeight,
                     topHeight,
                     contentTypes,
                     badReputationLimit
@@ -5621,12 +5747,28 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > ?
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 ct.Height > ?
                 and ct.Height <= ?
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
 
                 -- Exclude posts
                 and t.RegId2 not in (
@@ -5676,6 +5818,7 @@ namespace PocketDb
                     contentTypes,
                     lang.empty(),
                     lang,
+                    topHeight,
                     topHeight - cntBlocksForResult,
                     topHeight,
                     badReputationLimit,
@@ -5897,20 +6040,41 @@ namespace PocketDb
                     ur.Type = 0 and
                     ur.Uid = cu.Uid and
                     ur.Last = 1
+            left join
+                JuryBan jb on
+                    jb.AccountId = cu.Uid and
+                    jb.Ending > heightMax.value
+            left join
+                Jury j on
+                    j.AccountId = cu.Uid
+            left join
+                JuryVerdict jv on
+                    jv.FlagRowId = j.FlagRowId
             where
                 tb.Type in ( 208 )
+
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value, 0) > minReputation.value
+
+                -- Do not show posts from banned users
+                and jb.AccountId is null
+
+                -- Do not show posts from users with active jury
+                and jv.FlagRowId is null
+
+                -- Other excludes
                 and tc.RegId2 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
                 )
+
                 and tc.RegId1 not in (
                     select RowId
                     from Registry
                     where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
                 )
+
             group by
                 ctc.Uid,
                 tb.RegId2
@@ -6406,7 +6570,7 @@ namespace PocketDb
                                 Last lp on
                                     lp.TxId = p.RowId
                             cross join
-                                TxOutputs o indexed by TxOutputs_AddressId_TxId_Number on
+                                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
                                     o.AddressId = p.RegId1 and
                                     o.AddressId != c.RegId1 and
                                     o.TxId = c.RowId and
@@ -6469,3783 +6633,5 @@ namespace PocketDb
 
         return result;
     };
-
-    // Choosing predicate for function above based on filters.
-    std::function<bool(const ShortTxType&)> _choosePredicate(const std::set<ShortTxType>& filters) {
-        if (filters.empty()) {
-            // No filters mean that we should perform all selects
-            return [&filters](...) { return true; };
-        } else {
-            // Perform only selects that are specified in filters.
-            return [&filters](const ShortTxType& select) { return filters.find(select) != filters.end(); };
-        }
-    };
-
-    // Method used to construct sql query and required bindings from provided selects based on filters
-    static inline string _unionSelectsBasedOnFilters(
-                const std::set<ShortTxType>& filters,
-                const std::map<ShortTxType, string>& selects,
-                const std::string& header,
-                const std::string& footer, const std::string& separator = "union")
-    {
-        auto predicate = _choosePredicate(filters);
-
-        // Query elemets that will be used to construct full query
-        std::vector<std::string> queryElems;
-        for (const auto& select: selects) {
-            if (predicate(select.first)) {
-                queryElems.emplace_back(select.second);
-                queryElems.emplace_back(separator);
-            }
-        }
-
-        if (queryElems.empty()) {
-            throw std::runtime_error("Failed to construct query for requested filters");
-        }
-        queryElems.pop_back(); // Dropping last "union"
-
-        std::stringstream ss;
-        ss << header;
-        for (const auto& elem: queryElems) {
-            ss << elem;
-        }
-        ss << footer;
-
-        // Full query and required binds in correct order
-        return ss.str();
-    }
-
-    // Method used to construct sql query and required bindings from provided selects based on filters
-    static inline tuple<bool, string> _constructSelectsBasedOnFilters(
-                const std::set<ShortTxType>& filters,
-                const std::pair<ShortTxType, string>& select,
-                const std::string& header)
-    {
-        auto predicate = _choosePredicate(filters);
-
-        // Query elemets that will be used to construct full query
-        if (!predicate(select.first))
-            return { false, "" };
-        
-        std::stringstream ss;
-        ss << header << select.second;
-
-        // Full query and required binds in correct order
-        return { true, ss.str() };
-    }
-
-    std::vector<ShortForm> WebRpcRepository::GetActivities(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
-    {
-        static const std::map<ShortTxType, string> selects = {
-        {
-            ShortTxType::Answer, R"sql(
-                -- My answers to other's comments
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                    sa.Hash,
-                    a.Type,
-                    null,
-                    ca.Height as Height,
-                    ca.BlockNum as BlockNum,
-                    a.Time,
-                    sa.String2,
-                    sa.String3,
-                    null,
-                    null,
-                    null,
-                    pa.String1,
-                    sa.String4,
-                    sa.String5,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    sc.Hash,
-                    c.Type,
-                    sc.String1,
-                    cc.Height,
-                    cc.BlockNum,
-                    c.Time,
-                    sc.String2,
-                    null,
-                    null,
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'Number', o.Number,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                                )
-                            )
-
-                        from
-                            TxInputs i
-
-                            join TxOutputs o on
-                                o.TxId = i.TxId and
-                                o.Number = i.Number
-
-                        where
-                            i.SpentTxId = c.RowId
-                    ),
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                                )
-                            )
-
-                        from
-                            TxOutputs o
-
-                        where
-                            o.TxId = c.RowId
-                        order by
-                            o.Number
-                    ),
-                    pc.String1,
-                    sc.String4,
-                    sc.String5,
-                    null, -- Badge
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rca.Value,0),
-                    null
-
-                from
-                    params,
-                    Transactions a indexed by Transactions_Type_RegId1_RegId2_RegId3 -- My comments
-
-                    cross join vTxStr sa on
-                        sa.RowId = a.RowId
-
-                    cross join Chain ca on
-                        ca.TxId = a.RowId and
-                        ca.Height > params.min and
-                        (ca.Height < params.max or (ca.Height = params.max and ca.BlockNum < params.blockNum))
-
-                    cross join Transactions c indexed by Transactions_Type_RegId5_RegId1 on -- Other answers
-                        c.Type in (204, 205) and
-                        c.RegId5 = a.RegId2 and
-                        c.RegId1 != a.RegId1 and
-                        exists (select 1 from Last l where l.TxId = c.RowId)
-
-                    cross join Chain cc on
-                        cc.TxId = c.RowId
-
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-
-                    left join Payload pc on
-                        pc.TxId = c.RowId
-
-                    left join Payload pa on
-                        pa.TxId = a.RowId
-
-                    left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ac.Type = 100 and
-                        ac.RegId1 = c.RegId1 and
-                        exists (select 1 from Last l where l.TxId = ac.RowId)
-
-                    left join Payload pac on
-                        pac.TxId = ac.RowId
-
-                    left join Ratings rca indexed by Ratings_Type_Uid_Last_Height on
-                        rca.Type = 0 and
-                        rca.Uid = ca.Uid and
-                        rca.Last = 1
-
-                where
-                    a.Type in (204, 205, 206) and
-                    a.RegId1 = params.addressId
-
-            )sql"
-            },
-
-            {
-                ShortTxType::Comment, R"sql(
-                -- Comments for my content
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
-                    sc.Hash,
-                    c.Type,
-                    null,
-                    cc.Height as Height,
-                    cc.BlockNum as BlockNum,
-                    c.Time,
-                    sc.String2,
-                    sc.String3,
-                    null,
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'Number', o.Number,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                                )
-                            )
-
-                        from
-                            TxInputs i
-
-                            join TxOutputs o on
-                                o.TxId = i.TxId and
-                                o.Number = i.Number
-
-                        where
-                            i.SpentTxId = c.RowId
-                    ),
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                                )
-                            )
-                            
-                        from
-                            TxOutputs o
-                        where
-                            o.TxId = c.RowId
-                        order by
-                            o.Number
-                    ),
-                    pc.String1,
-                    sc.String4,
-                    sc.String5,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    sp.Hash,
-                    p.Type,
-                    sp.String1,
-                    cp.Height,
-                    cp.BlockNum,
-                    p.Time,
-                    sp.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pp.String2,
-                    null,
-                    null,
-                    null,
-                    pap.String2,
-                    pap.String3,
-                    ifnull(rap.Value, 0),
-                    null
-
-                from
-                    params,
-                    Transactions c indexed by Transactions_Type_RegId4_RegId1 -- TODO (optimization): not covering index
-                    
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-                        
-                    cross join Chain cc on
-                        cc.TxId = c.RowId and
-                        cc.Height > params.min and
-                        (cc.Height < params.max or (cc.Height = params.max and cc.BlockNum < params.blockNum))
-
-                    cross join Transactions p indexed by Transactions_Type_RegId2_RegId1 on
-                        p.Type in (200,201,202,209,210) and
-                        p.RegId2 = c.RegId3 and
-                        p.RegId1 != c.RegId1 and
-                        exists (select 1 from Last l where l.TxId = p.RowId)
-
-                    cross join Chain cp on
-                        cp.TxId = p.RowId
-
-                    cross join vTxStr sp on
-                        sp.RowId = p.RowId
-
-                    left join Payload pc on
-                        pc.TxId = c.RowId
-
-                    left join Payload pp on
-                        pp.TxId = p.RowId
-
-                    left join Transactions ap indexed by Transactions_Type_RegId1_RegId2_RegId3 on -- accounts of commentators
-                        ap.Type = 100 and
-                        ap.RegId1 = p.RegId1 and
-                        exists (select 1 from Last l where l.TxId = ap.RowId)
-
-                    left join Chain cap on
-                        cap.TxId = ap.RowId
-
-                    left join Payload pap on
-                        pap.TxId = ap.RowId
-
-                    left join Ratings rap indexed by Ratings_Type_Uid_Last_Height on
-                        rap.Type = 0 and
-                        rap.Uid = cap.Uid and
-                        rap.Last = 1
-
-                where
-                    c.Type in (204, 205, 206) and
-                    c.RegId4 is null and
-                    c.RegId5 is null and
-                    c.RegId1 = params.addressId
-
-            )sql"
-            },
-
-            {
-                ShortTxType::Subscriber, R"sql(
-                -- Subscribers
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
-                    ssubs.Hash,
-                    subs.Type,
-                    null,
-                    csubs.Height as Height,
-                    csubs.BlockNum as BlockNum,
-                    subs.Time,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    su.Hash,
-                    u.Type,
-                    su.String1,
-                    cu.Height,
-                    cu.BlockNum,
-                    u.Time,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pu.String2,
-                    pu.String3,
-                    ifnull(ru.Value,0),
-                    null
-
-                from
-                    params,
-                    Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3
-
-                    cross join Chain csubs on
-                        csubs.TxId = subs.RowId and
-                        csubs.Height > params.min and
-                        (csubs.Height < params.max or (csubs.Height = params.max and csubs.BlockNum < params.max))
-
-                    cross join vTxStr ssubs on
-                        ssubs.RowId = subs.RowId
-
-                    cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        u.Type in (100) and
-                        u.RegId1 = subs.RegId2 and
-                        exists (select 1 from Last l where l.TxId = u.RowId)
-
-                    cross join Chain cu on
-                        cu.TxId = u.RowId
-
-                    cross join vTxStr su on
-                        su.RowId = u.RowId
-
-                    left join Payload pu on
-                        pu.TxId = u.RowId
-
-                    left join Ratings ru indexed by Ratings_Type_Uid_Last_Height on
-                        ru.Type = 0 and
-                        ru.Uid = cu.Uid and
-                        ru.Last = 1
-
-                where
-                    subs.Type in (302, 303, 304) and
-                    subs.RegId1 = params.addressId
-
-            )sql"
-            },
-
-            {
-                ShortTxType::CommentScore, R"sql(
-                -- Comment scores
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
-                    ss.Hash,
-                    s.Type,
-                    null,
-                    cs.Height as Height,
-                    cs.BlockNum as BlockNum,
-                    s.Time,
-                    null,
-                    null,
-                    s.Int1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    sc.Hash,
-                    c.Type,
-                    sc.String1,
-                    cc.Height,
-                    cc.BlockNum,
-                    c.Time,
-                    sc.String2,
-                    sc.String3,
-                    null,
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'Number', o.Number,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                                )
-                            )
-
-                        from
-                            TxInputs i
-
-                            join TxOutputs o on
-                                o.TxId = i.TxId and
-                                o.Number = i.Number
-
-                        where
-                            i.SpentTxId = c.RowId
-                    ),
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                                )
-                            )
-
-                        from
-                            TxOutputs o
-
-                        where
-                            o.TxId = c.RowId
-                        order by
-                            o.Number
-                    ),
-                    pc.String1,
-                    sc.String4,
-                    sc.String5,
-                    null,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    null
-
-                from
-                    params,
-                    Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 -- TODO (optimization): only (Type)
-
-                    cross join Chain cs on
-                        cs.TxId = s.RowId and
-                        cs.Height > params.min and
-                        (cs.Height < params.max or (cs.Height = params.max and cs.BlockNum < params.blockNum))
-
-                    cross join vTxStr ss on
-                        ss.RowId = s.RowId
-                        
-                    cross join Transactions c indexed by Transactions_Type_RegId2_RegId1 on
-                        c.Type in (204,205) and
-                        c.RegId2 = s.RegId2 and
-                        exists (select 1 from Last l where l.TxId = c.RowId)
-
-                    cross join Chain cc on
-                        cc.TxId = c.RowId
-
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-
-                    left join Payload pc on
-                        pc.TxId = c.RowId
-
-                    left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ac.Type = 100 and
-                        ac.RegId1 = c.RegId1 and
-                        exists (select 1 from Last l where l.TxId = ac.RowId)
-
-                    left join Chain cac on
-                        cac.TxId = ac.RowId
-
-                    left join Payload pac on
-                        pac.TxId = ac.RowId
-
-                    left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                        rac.Type = 0 and
-                        rac.Uid = cac.Uid and
-                        rac.Last = 1
-
-                where
-                    s.Type = 301 and
-                    s.RegId1 = params.addressId
-
-            )sql"
-            },
-
-            {
-                ShortTxType::ContentScore, R"sql(
-                -- Content scores
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
-                    ss.Hash,
-                    s.Type,
-                    null,
-                    cs.Height as Height,
-                    cs.BlockNum as BlockNum,
-                    s.Time,
-                    null,
-                    null,
-                    s.Int1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    sc.Hash,
-                    c.Type,
-                    sc.String1,
-                    cc.Height,
-                    cc.BlockNum,
-                    c.Time,
-                    sc.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pc.String2,
-                    null,
-                    null,
-                    null,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    null
-
-                from
-                    params,
-                    Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
-
-                    cross join Chain cs on
-                        cs.TxId = s.RowId and
-                        cs.Height > params.min and
-                        (cs.Height < params.max or (cs.Height = params.max and cs.BlockNum < params.blockNum))
-
-                    cross join vTxStr ss on
-                        ss.RowId = s.RowId
-
-                    cross join Transactions c indexed by Transactions_Type_RegId2_RegId1 on
-                        c.Type in (200,201,202,209,210) and
-                        c.RegId2 = s.RegId2 and
-                        exists (select 1 from Last l where l.TxId = c.RowId)
-
-                    cross join Chain cc on
-                        cc.TxId = c.RowId
-
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-
-                    left join Payload pc on
-                        pc.TxId = c.RowId
-
-                    left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ac.Type = 100 and
-                        ac.RegId1 = c.RegId1 and
-                        exists (select 1 from Last l where l.TxId = ac.RowId)
-
-                    left join Chain cac on
-                        cac.TxId = ac.RowId
-
-                    left join Payload pac on
-                        pac.TxId = ac.RowId
-
-                    left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                        rac.Type = 0 and
-                        rac.Uid = cac.Uid and
-                        rac.Last = 1
-
-                where
-                    s.Type = 300 and
-                    s.RegId1 = params.addressId
-
-            )sql"
-            },
-
-            {
-                ShortTxType::Boost, R"sql(
-                -- Boosts for my content
-                select
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
-                    sBoost.Hash,
-                    tboost.Type,
-                    null,
-                    cBoost.Height as Height,
-                    cBoost.BlockNum as BlockNum,
-                    tBoost.Time,
-                    null,
-                    null,
-                    null,
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'Number', o.Number,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                                )
-                            )
-
-                        from
-                            TxInputs i
-
-                            join TxOutputs o on
-                                o.TxId = i.TxId and
-                                o.Number = i.Number
-
-                        where
-                            i.SpentTxId = tBoost.RowId
-                    ),
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'Value', o.Value,
-                                    'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                    'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                                )
-                            )
-
-                        from
-                            TxOutputs o
-
-                        where
-                            o.TxId = tBoost.RowId
-                        order by
-                            o.Number
-                    ),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    sContent.Hash,
-                    tContent.Type,
-                    sContent.String1,
-                    cContent.Height,
-                    cContent.BlockNum,
-                    tContent.Time,
-                    sContent.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pContent.String2,
-                    null,
-                    null,
-                    null,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    null
-
-                from
-                    params,
-                    Transactions tBoost indexed by Transactions_Type_RegId1_RegId2_RegId3
-
-                    cross join Chain cBoost on
-                        cBoost.TxId = tBoost.RowId and
-                        cBoost.Height > params.min and
-                        (cBoost.Height < params.max or (cBoost.Height = params.max and cBoost.BlockNum < params.blockNum))
-        
-                    cross join vTxStr sBoost on
-                        sBoost.RowId = tBoost.RowId
-        
-                    cross join Transactions tContent indexed by Transactions_Type_RegId2_RegId1 on
-                        tContent.Type in (200,201,202,209,210) and
-                        tContent.RegId2 = tBoost.RegId2 and
-                        exists (select 1 from Last l where l.TxId = tContent.RowId)
-        
-                    cross join Chain cContent on
-                        cContent.TxId = tContent.RowId
-        
-                    cross join vtxStr sContent on
-                        sContent.RowId = tContent.RowId
-        
-                    left join Payload pContent on
-                        pContent.TxId = tContent.RowId
-                    
-                    left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ac.RegId1 = tContent.RegId1 and
-                        ac.Type = 100 and
-                        exists (select 1 from Last l where l.TxId = ac.RowId)
-        
-                    left join Chain cac on
-                        cac.TxId = ac.RowId
-        
-                    left join Payload pac on
-                        pac.TxId = ac.RowId
-        
-                    left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                        rac.Type = 0 and
-                        rac.Uid = cac.Uid and
-                        rac.Last = 1
-
-                where
-                    tBoost.Type in (208) and 
-                    tBoost.RegId1 = params.addressId
-
-            )sql"
-            },
-
-            {
-                ShortTxType::Blocking, R"sql(
-                -- My blockings and unblockings
-                select
-                    ('blocking')TP,
-                    sb.Hash,
-                    b.Type,
-                    sac.String1,
-                    cb.Height as Height,
-                    cb.BlockNum as BlockNum,
-                    b.Time,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pac.String2,
-                    pac.String3,
-                    ifnull(rac.Value,0),
-                    (
-                        select
-                            json_group_array(
-                                json_object(
-                                    'address', smac.String1,
-                                    'account', json_object(
-                                        'name', pmac.String2,
-                                        'avatar', pmac.String3,
-                                        'reputation', ifnull(rmac.Value,0)
-                                    )
-                                )
-                            )
-                        from
-                            Transactions mac indexed by Transactions_Type_RegId1_RegId2_RegId3
-
-                            join vTxStr smac on
-                                smac.RowId = mac.RowId
-
-                            join Chain cmac on
-                                cmac.TxId = mac.RowId
-
-                            left join Payload pmac on
-                                pmac.TxId = mac.RowId
-
-                            left join Ratings rmac indexed by Ratings_Type_Uid_Last_Height on
-                                rmac.Type = 0 and
-                                rmac.Uid = cmac.Uid and
-                                rmac.Last = 1
-
-                        where
-                            mac.RegId1 in (select value from json_each(b.RegId3)) and
-                            mac.Type = 100 and
-                            exists (select 1 from Last l where l.TxId = mac.RowId)
-                    ),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-
-                from
-                    params,
-                    Transactions b indexed by Transactions_Type_RegId1_RegId2_RegId3
-
-                    cross join Chain cb on
-                        cb.TxId = b.RowId and
-                        cb.Height > params.min and
-                        (cb.Height < params.max or (cb.Height = params.max and cb.BlockNum < params.blockNum))
-
-                    cross join vTxStr sb on
-                        sb.RowId = b.RowId
-
-                    left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ac.RegId1 = b.RegId2 and
-                        ac.Type = 100 and
-                        exists (select 1 from Last l where l.TxId = ac.RowId)
-
-                    left join vTxStr sac on
-                        sac.RowId = ac.RowId
-
-                    left join Chain cac on
-                        cac.TxId = ac.RowId
-
-                    left join Payload pac on
-                        pac.TxId = ac.RowId
-
-                    left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                        rac.Type = 0 and
-                        rac.Uid = cac.Uid and
-                        rac.Last = 1
-
-                    where
-                        b.Type in (305,306) and
-                        b.RegId1 = params.addressId
-
-            )sql"
-            },
-        };
-
-        static const auto header = R"sql(
-            -- Common 'with' for all unions
-            with
-                params as (
-                    select
-                        ? as max,
-                        ? as min,
-                        ? as blockNum,
-                        r.RowId as addressId
-                    from
-                        Registry r
-                    where
-                        r.String = ?
-                )
-        )sql";
-
-        static const auto footer = R"sql(
-            -- Global order and limit for pagination
-            order by Height desc, BlockNum desc
-            limit 10
-
-        )sql";
-
-        auto sql = _unionSelectsBasedOnFilters(filters, selects, header, footer);
-
-        EventsReconstructor reconstructor;
-        SqlTransaction(
-            __func__,
-            [&]() -> Stmt& {
-                return Sql(sql)
-                .Bind(heightMax, heightMin, blockNumMax, address);
-            },
-            [&] (Stmt& stmt) {
-                stmt.Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                    {
-                        reconstructor.FeedRow(cursor);
-                    }
-                });
-            }
-        );
-
-        return reconstructor.GetResult();
-    }
-
-    UniValue WebRpcRepository::GetNotifications(int64_t height, const std::set<ShortTxType>& filters)
-    {
-        // Static because it will not be changed for entire node run
-        static const std::map<ShortTxType, string> selects = {
-            {
-                ShortTxType::Money, R"sql(
-                    -- Incoming money
-                    select
-                        null, -- Will be filled
-                        null,
-                        null,
-                        null,
-                        null,
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
-                        r.String,
-                        t.Type,
-                        null,
-                        c.Height as Height,
-                        c.BlockNum as BlockNum,
-                        t.Time,
-                        null,
-                        null,
-                        null,
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'Number', o.Number,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-
-                            from
-                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-
-                                join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
-                                    o.TxId = i.TxId and
-                                    o.Number = i.Number
-
-                            where
-                                i.SpentTxId = t.RowId
-                        ),
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId),
-                                'Account', json_object(
-                                    'Lang', pna.String1,
-                                    'Name', pna.String2,
-                                    'Avatar', pna.String3
-                                )
-                            ))
-
-                            from
-                                TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-
-                                left join Transactions na indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                    na.Type = 100 and
-                                    na.RegId1 = o.AddressId and
-                                    exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                                left join Chain cna on
-                                    cna.TxId = na.RowId
-
-                                left join Payload pna on
-                                    pna.TxId = na.RowId
-
-                                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                                    rna.Type = 0 and
-                                    rna.Uid = cna.Uid and
-                                    rna.Last = 1
-
-                            where
-                                o.TxId = t.RowId
-                            order by
-                                o.Number
-                        )
-
-                    from
-                        Transactions t
-
-                        join Chain c indexed by Chain_Height_Uid on
-                            c.TxId = t.RowId and
-                            c.Height = ?
-
-                        join Registry r on
-                            r.RowId = t.RowId
-
-                    where
-                        t.Type in (1,2,3) -- 1 default money transfer, 2 coinbase, 3 coinstake
-            )sql"
-            },
-
-            {
-                ShortTxType::Referal, R"sql(
-                    -- referals
-                    select
-                        st.String2,
-                        pna.String1,
-                        pna.String2,
-                        pna.String3,
-                        ifnull(rna.Value,0),
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
-                        st.Hash,
-                        t.Type,
-                        st.String1,
-                        c.Height as Height,
-                        c.BlockNum as BlockNum,
-                        t.Time,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        p.String1,
-                        p.String2,
-                        p.String3,
-                        ifnull(r.Value,0) -- TODO (losty): do we need rating if referal is always a new user?
-
-                    from Transactions t not indexed -- Accessing by rowid
-
-                    cross join vTxStr st on
-                        st.RowId = t.RowId
-
-                    join Chain c indexed by Chain_Height_Uid on
-                        c.TxId = t.RowId and
-                        c.Height = ?
-
-                    left join Payload p on
-                        p.TxId = t.RowId
-
-                    left join Ratings r indexed by Ratings_Type_Uid_Last_Height on
-                        r.Type = 0 and
-                        r.Uid = c.Uid and
-                        r.Last = 1
-
-                    join Transactions na indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        na.Type = 100 and
-                        na.RegId1 = t.RegId2
-                        and exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                    join Chain cna on
-                        cna.TxId = na.RowId
-
-                    left join Payload pna on
-                        pna.TxId = na.RowId
-
-                    left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                        rna.Type = 0 and
-                        rna.Uid = cna.Uid and
-                        rna.Last = 1
-
-                    where
-                        t.Type = 100 and
-                        t.RegId2 > 0 and
-                        exists (select 1 from First f where f.TxId = t.RowId) -- Only original;
-            )sql"
-            },
-
-            {
-                ShortTxType::Answer, R"sql(
-                    -- Comment answers
-                    select
-                        sc.String1,
-                        pna.String1,
-                        pna.String2,
-                        pna.String3,
-                        ifnull(rna.Value,0),
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                        sa.Hash,
-                        a.Type,
-                        sa.String1,
-                        ca.Height as Height,
-                        ca.BlockNum as BlockNum,
-                        a.Time,
-                        sa.String2,
-                        sa.String3,
-                        null,
-                        null,
-                        null,
-                        pa.String1,
-                        sa.String4,
-                        sa.String5,
-                        paa.String1,
-                        paa.String2,
-                        paa.String3,
-                        ifnull(ra.Value,0),
-                        null,
-                        spost.Hash,
-                        post.Type,
-                        spost.String1,
-                        cpost.Height,
-                        cpost.BlockNum,
-                        post.Time,
-                        spost.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        ppost.String2,
-                        papost.String1,
-                        papost.String2,
-                        papost.String3,
-                        ifnull(rapost.Value,0)
-
-                    -- TODO (optimization): a lot missing indices
-                    from Transactions a -- Other answers
-                    cross join vTxStr sa on
-                        sa.RowId = a.RowId
-
-                    join Transactions c indexed by Transactions_Type_RegId2_RegId1 on -- My comments
-                        c.Type in (204, 205) and
-                        c.RegId2 = a.RegId5 and
-                        c.RegId1 != a.RegId1 and
-                        exists (select 1 from Last lc where lc.TxId = c.RowId)
-
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-
-                    join Chain ca indexed by Chain_Height_Uid on
-                        ca.TxId = a.RowId and
-                        ca.Height = ?
-
-                    left join Transactions post on
-                        post.Type in (200,201,202,209,210) and
-                        post.RegId2 = a.RegId3 and
-                        exists (select 1 from Last lpost where lpost.TxId = post.RowId)
-                    left join vTxStr spost on
-                        spost.RowId = post.RowId
-
-                    left join Chain cpost on
-                        cpost.TxId = post.RowId
-
-                    left join Payload ppost on
-                        ppost.TxId = post.RowId
-
-                    left join Transactions apost on
-                        apost.Type = 100 and
-                        apost.RegId1 = post.RegId1 and
-                        exists (select 1 from Last lapost where lapost.TxId = apost.RowId)
-
-                    left join Chain capost on
-                        capost.TxId = apost.RowId
-
-                    left join Payload papost on
-                        papost.TxId = apost.RowId
-
-                    left join Ratings rapost indexed by Ratings_Type_Uid_Last_Height on
-                        rapost.Type = 0 and
-                        rapost.Uid = capost.Uid and
-                        rapost.Last = 1
-
-                    left join Payload pa on
-                        pa.TxId = a.RowId
-
-                    left join Transactions aa on
-                        aa.Type = 100 and
-                        aa.RegId1 = a.RegId1 and
-                        exists (select 1 from Last laa where laa.TxId = aa.RowId)
-
-                    left join Chain caa on
-                        caa.TxId = aa.RowId
-
-                    left join Payload paa on
-                        paa.TxId = aa.RowId
-
-                    left join Ratings ra indexed by Ratings_Type_Uid_Last_Height on
-                        ra.Type = 0 and
-                        ra.Uid = caa.Uid and
-                        ra.Last = 1
-
-                    left join Transactions na on
-                        na.Type = 100 and
-                        na.RegId1 = c.RegId1 and
-                        exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                    left join Chain cna on
-                        cna.TxId = na.RowId
-
-                    left join Payload pna on
-                        pna.TxId = na.RowId
-
-                    left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                        rna.Type = 0 and
-                        rna.Uid = cna.Uid and
-                        rna.Last = 1
-
-                    where
-                        a.Type = 204 -- only orig
-            )sql"
-            },
-
-            {
-                ShortTxType::Comment, R"sql(
-                    -- Comments for my content
-                    select
-                        sp.String1,
-                        pna.String1,
-                        pna.String2,
-                        pna.String3,
-                        ifnull(rna.Value,0),
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
-                        sc.Hash,
-                        c.Type,
-                        sc.String1,
-                        cc.Height as Height,
-                        cc.BlockNum as BlockNum,
-                        c.Time,
-                        sc.String2,
-                        sc.String3,
-                        null,
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'Number', o.Number,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-
-                            from
-                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-
-                                join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
-                                    o.TxId = i.TxId and
-                                    o.Number = i.Number
-
-                            where
-                                i.SpentTxId = c.RowId
-                        ),
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-
-                            from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-
-                            where
-                                o.TxId = c.RowId
-                            order by
-                                o.Number
-                        ),
-                        pc.String1,
-                        null,
-                        null,
-                        pac.String1,
-                        pac.String2,
-                        pac.String3,
-                        ifnull(rac.Value,0),
-                        null,
-                        sp.Hash,
-                        p.Type,
-                        null,
-                        cp.Height,
-                        cp.BlockNum,
-                        p.Time,
-                        sp.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pp.String2
-
-                    from Transactions c
-
-                    join Chain cc indexed by Chain_Height_Uid on
-                        cc.TxId = c.RowId and
-                        cc.Height = ?
-
-                    join vTxStr sc on
-                        sc.RowId = c.RowId
-
-                    join Transactions p on
-                        p.Type in (200,201,202,209,210) and
-                        p.RegId2 = c.RegId3 and
-                        p.RegId1 != c.RegId1 and
-                        exists (select 1 from Last lp where lp.TxId = p.RowId)
-
-                    join vTxStr sp on
-                        sp.RowId = p.RowId
-
-                    join Chain cp on
-                        cp.TxId = p.RowId
-
-                    left join Payload pc on
-                        pC.TxId = c.RowId
-
-                    left join Transactions ac on
-                        ac.RegId1 = c.RegId1 and
-                        ac.Type = 100 and
-                        exists (select 1 from Last lac where lac.TxId = ac.RowId)
-
-                    left join Chain cac on
-                        cac.TxId = ac.RowId
-
-                    left join Payload pac on
-                        pac.TxId = ac.RowId
-
-                    left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                        rac.Type = 0 and
-                        rac.Uid = cac.Uid and
-                        rac.Last = 1
-
-                    left join Payload pp on
-                        pp.TxId = p.RowId
-
-                    left join Transactions na on
-                        na.Type = 100 and
-                        na.RegId1 = p.RegId1 and
-                        exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                    left join Chain cna on
-                        cna.TxId = na.RowId
-
-                    left join Payload pna on
-                        pna.TxId = na.RowId
-
-                    left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                        rna.Type = 0 and
-                        rna.Uid = cna.Uid and
-                        rna.Last = 1
-
-                    where 
-                        c.Type = 204 and -- only orig
-                        c.RegId4 is null and
-                        c.RegId5 is null
-            )sql"
-            },
-
-            {
-                ShortTxType::Subscriber, R"sql(
-                    -- Subscribers
-                    select
-                        s.String2,
-                        pna.String1,
-                        pna.String2,
-                        pna.String3,
-                        ifnull(rna.Value,0),
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
-                        s.Hash,
-                        subs.Type,
-                        s.String1,
-                        c.Height as Height,
-                        c.BlockNum as BlockNum,
-                        subs.Time,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pu.String1,
-                        pu.String2,
-                        pu.String3,
-                        ifnull(ru.Value,0)
-
-                    from Transactions subs
-
-                    cross join vTxStr s on
-                        s.RowId = subs.RowId
-
-                    join Chain c indexed by Chain_Height_Uid on
-                        c.TxId = subs.RowId and
-                        c.Height = ?
-
-                    left join Transactions u on
-                        u.Type in (100) and
-                        u.RegId1 = subs.RegId1 and
-                        exists (select 1 from Last lu where lu.TxId = u.RowId)
-
-                    left join Chain cu on
-                        cu.TxId = u.RowId
-
-                    left join Payload pu on
-                        pu.TxId = u.RowId
-
-                    left join Ratings ru indexed by Ratings_Type_Uid_Last_Height on
-                        ru.Type = 0 and
-                        ru.Uid = cu.Uid and
-                        ru.Last = 1
-
-                    left join Transactions na on
-                        na.Type = 100 and
-                        na.RegId1 = subs.RegId2 and
-                        exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                    left join Chain cna on
-                        cna.TxId = na.RowId
-
-                    left join Payload pna on
-                        pna.TxId = na.RowId
-
-                    left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                        rna.Type = 0 and
-                        rna.Uid = cna.Uid and
-                        rna.Last = 1
-
-                    where
-                        subs.Type in (302, 303) -- Ignoring unsubscribers?
-            )sql"
-            },
-
-            {
-                ShortTxType::CommentScore, R"sql(
-                    -- Comment scores
-                    select
-                        sc.String1,
-                        pna.String1,
-                        pna.String2,
-                        pna.String3,
-                        ifnull(rna.Value,0),
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
-                        ss.Hash,
-                        s.Type,
-                        ss.String1,
-                        cs.Height as Height,
-                        cs.BlockNum as BlockNum,
-                        s.Time,
-                        null,
-                        null,
-                        s.Int1,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pacs.String1,
-                        pacs.String2,
-                        pacs.String3,
-                        ifnull(racs.Value,0),
-                        null,
-                        sc.Hash,
-                        c.Type,
-                        null,
-                        cc.Height,
-                        cc.BlockNum,
-                        null,
-                        sc.String2,
-                        sc.String3,
-                        null,
-                        null,
-                        null,
-                        ps.String1,
-                        sc.String4,
-                        sc.String5
-
-                    from Transactions s
-
-                    cross join vTxStr ss on
-                        ss.RowId = s.RowId
-
-                    join Chain cs indexed by Chain_Height_Uid on
-                        cs.TxId = s.RowId
-                        and cs.Height = ?
-
-                    join Transactions c indexed by Transactions_Type_RegId2_RegId1 on
-                        c.Type in (204,205) and
-                        c.RegId2 = s.RegId2 and
-                        exists (select 1 from Last lc where lc.TxId = c.RowId)
-
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-
-                    join Chain cc on
-                        cc.TxId = c.RowId
-
-                    left join Payload ps on
-                        ps.TxId = c.RowId
-
-                    join Transactions acs on
-                        acs.Type = 100 and
-                        acs.RegId1 = s.RegId1 and
-                        exists (select 1 from Last lacs where lacs.TxId = acs.RowId)
-
-                    join Chain cacs on
-                        cacs.TxId = acs.RowId
-
-                    left join Payload pacs on
-                        pacs.TxId = acs.RowId
-
-                    left join Ratings racs indexed by Ratings_Type_Uid_Last_Height on
-                        racs.Type = 0 and
-                        racs.Uid = cacs.Uid and
-                        racs.Last = 1
-
-                    left join Transactions na on
-                        na.Type = 100 and
-                        na.RegId1 = c.RegId1 and
-                        exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                    left join Chain cna on
-                        cna.TxId = na.RowId
-
-                    left join Payload pna on
-                        pna.TxId = na.RowId
-
-                    left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                        rna.Type = 0 and
-                        rna.Uid = cna.Uid and
-                        rna.Last = 1
-
-                    where
-                        s.Type = 301
-            )sql"
-            },
-
-            {
-                ShortTxType::ContentScore, R"sql(
-                    -- Content scores
-                    select
-                        sc.String1,
-                        pna.String1,
-                        pna.String2,
-                        pna.String3,
-                        ifnull(rna.Value,0),
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
-                        ss.Hash,
-                        s.Type,
-                        ss.String1,
-                        cs.Height as Height,
-                        cs.BlockNum as BlockNum,
-                        s.Time,
-                        null,
-                        null,
-                        s.Int1,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pacs.String1,
-                        pacs.String2,
-                        pacs.String3,
-                        ifnull(racs.Value,0),
-                        null,
-                        sc.Hash,
-                        c.Type,
-                        null,
-                        cc.Height,
-                        cc.BlockNum,
-                        null,
-                        sc.String2,
-                        sc.String3,
-                        null,
-                        null,
-                        null,
-                        ps.String1
-
-                    from Transactions s
-
-                    cross join vTxStr ss on
-                        ss.RowId = s.RowId
-
-                    join Chain cs indexed by Chain_Height_Uid on
-                        cs.TxId = s.RowId
-                        and cs.Height = ?
-
-                    join Transactions c indexed by Transactions_Type_RegId2_RegId1 on
-                        c.Type in (200,201,202,209,210) and
-                        c.RegId2 = s.RegId2 and
-                        exists (select 1 from Last lc where lc.TxId = c.RowId)
-
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-
-                    join Chain cc on
-                        cc.TxId = c.RowId
-
-                    left join Payload ps on
-                        ps.TxId = c.RowId
-
-                    join Transactions acs on
-                        acs.Type = 100 and
-                        acs.RegId1 = s.RegId1 and
-                        exists (select 1 from Last lacs where lacs.TxId = acs.RowId)
-
-                    join Chain cacs on
-                        cacs.TxId = acs.RowId
-
-                    left join Payload pacs on
-                        pacs.TxId = acs.RowId
-
-                    left join Ratings racs indexed by Ratings_Type_Uid_Last_Height on
-                        racs.Type = 0 and
-                        racs.Uid = cacs.Uid and
-                        racs.Last = 1
-
-                    left join Transactions na on
-                        na.Type = 100 and
-                        na.RegId1 = c.RegId1 and
-                        exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                    left join Chain cna on
-                        cna.TxId = na.RowId
-
-                    left join Payload pna on
-                        pna.TxId = na.RowId
-
-                    left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                        rna.Type = 0 and
-                        rna.Uid = cna.Uid and
-                        rna.Last = 1
-
-                    where
-                        s.Type = 300
-            )sql"
-            },
-
-            {
-                ShortTxType::PrivateContent, R"sql(
-                    -- Content from private subscribers
-                    select
-                        ssubs.String1,
-                        pna.String1,
-                        pna.String2,
-                        pna.String3,
-                        ifnull(rna.Value,0),
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
-                        sc.Hash,
-                        c.Type,
-                        sc.String1,
-                        cc.Height as Height,
-                        cc.BlockNum as BlockNum,
-                        c.Time,
-                        sc.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        p.String2,
-                        null,
-                        null,
-                        pac.String1,
-                        pac.String2,
-                        pac.String3,
-                        ifnull(rac.Value,0),
-                        null,
-                        sr.Hash,
-                        r.Type,
-                        sr.String1,
-                        cr.Height,
-                        cr.BlockNum,
-                        r.Time,
-                        sr.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pr.String2
-
-                    from Transactions c not indexed -- content for private subscribers
-
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-
-                    join Chain cc indexed by Chain_Height_Uid on
-                        cc.TxId = c.RowId and
-                        cc.Height = ?
-
-                    join Transactions subs on -- Subscribers private
-                        subs.Type = 303 and
-                        subs.RegId2 = c.RegId1 and
-                        exists (select 1 from Last ls where ls.TxId = subs.RowId)
-
-                    cross join vTxStr ssubs on
-                        ssubs.RowId = subs.RowId
-
-                    left join Transactions r on -- related content - possible reposts
-                        r.Type = 200 and
-                        r.RegId2 = c.RegId3 and
-                        exists (select 1 from Last rl where rl.TxId = r.RowId)
-
-                    left join vTxStr sr on
-                        sr.RowId = r.RowId
-
-                    left join Chain cr on
-                        cr.TxId = r.RowId
-
-                    left join Payload pr on
-                        pr.TxId = r.RowId
-
-                    cross join Transactions ac on
-                        ac.Type = 100 and
-                        ac.RegId1 = c.RegId1 and
-                        exists (select 1 from Last lac where lac.TxId = ac.RowId)
-
-                    join Chain cac on
-                        cac.TxId = ac.RowId
-
-                    cross join Payload p on
-                        p.TxId = c.RowId
-
-                    cross join Payload pac on
-                        pac.TxId = ac.RowId
-
-                    left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                        rac.Type = 0 and
-                        rac.Uid = cac.Uid and
-                        rac.Last = 1
-
-                    left join Transactions na on
-                        na.Type = 100 and
-                        na.RegId1 = subs.RegId1 and
-                        exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                    left join Chain cna on
-                        cna.TxId = na.RowId
-
-                    left join Payload pna on
-                        pna.TxId = na.RowId
-
-                    left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                        rna.Type = 0 and
-                        rna.Uid = cna.Uid and
-                        rna.Last = 1
-
-                    where
-                        c.Type in (200,201,202,209,210) and
-                        exists (select 1 from First f where f.TxId = c.RowId)
-            )sql"
-            },
-
-            {
-                ShortTxType::Boost, R"sql(
-                    -- Boosts for my content
-                    select
-                        sc.String1,
-                        pna.String1,
-                        pna.String2,
-                        pna.String3,
-                        ifnull(rna.Value,0),
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
-                        sb.Hash,
-                        tboost.Type,
-                        sb.String1,
-                        c.Height as Height,
-                        c.BlockNum as BlockNum,
-                        tBoost.Time,
-                        sb.String2,
-                        null,
-                        null,
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'Number', o.Number,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-
-                            from
-                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-
-                                join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
-                                    o.TxId = i.TxId and
-                                    o.Number = i.Number
-
-                            where
-                                i.SpentTxId = tBoost.RowId
-                        ),
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-
-                            from
-                                TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-
-                            where
-                                o.TxId = tBoost.RowId
-                            order by
-                                o.Number
-                        ),
-                        null,
-                        null,
-                        null,
-                        pac.String1,
-                        pac.String2,
-                        pac.String3,
-                        ifnull(rac.Value,0),
-                        null,
-                        sc.Hash,
-                        tContent.Type,
-                        null,
-                        cc.Height,
-                        cc.BlockNum,
-                        tContent.Time,
-                        sc.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pContent.String2
-
-                    from Transactions tBoost
-
-                    cross join vTxStr sb on
-                        sb.RowId = tBoost.RowId
-
-                    join Chain c indexed by Chain_Height_Uid on
-                        c.TxId = tBoost.RowId and
-                        c.Height = ?
-
-                    left join Transactions tContent on
-                        tContent.Type in (200,201,202,209,210) and
-                        tContent.RegId2 = tBoost.RegId2 and
-                        exists (select 1 from Last l where l.TxId = tContent.RowId)
-
-                    left join Chain cc on
-                        cc.TxId = tContent.RowId
-
-                    left join vTxStr sc on
-                        sc.RowId = tContent.RowId
-
-                    left join Payload pContent on
-                        pContent.TxId = tContent.RowId
-
-                    left join Transactions ac on
-                        ac.RegId1 = tBoost.RegId1 and
-                        ac.Type = 100 and
-                        exists (select 1 from Last lac where lac.TxId = ac.RowId)
-
-                    left join Chain cac on
-                        cac.TxId = ac.RowId
-
-                    left join Payload pac on
-                        pac.TxId = ac.RowId
-
-                    left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                        rac.Type = 0 and
-                        rac.Uid = cac.Uid and
-                        rac.Last = 1
-
-                    left join Transactions na on
-                        na.Type = 100 and
-                        na.RegId1 = tContent.RegId1 and
-                        exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                    left join Chain cna on
-                        cna.TxId = na.RowId
-
-                    left join Payload pna on
-                        pna.TxId = na.RowId
-
-                    left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                        rna.Type = 0 and
-                        rna.Uid = cna.Uid and
-                        rna.Last = 1
-
-                    where
-                        tBoost.Type in (208) and
-                        exists (select 1 from Last l where l.TxId = tBoost.RowId)
-            )sql"
-            },
-
-            {
-            ShortTxType::Repost, R"sql(
-                -- Reposts
-                select
-                    sp.String1,
-                    pna.String1,
-                    pna.String2,
-                    pna.String3,
-                    ifnull(rna.Value,0),
-                    (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
-                    sr.Hash,
-                    r.Type,
-                    sr.String1,
-                    cr.Height as Height,
-                    cr.BlockNum as BlockNum,
-                    r.Time,
-                    sr.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pr.String2,
-                    null,
-                    null,
-                    par.String1,
-                    par.String2,
-                    par.String3,
-                    ifnull(rar.Value,0),
-                    null,
-                    sp.Hash,
-                    p.Type,
-                    null,
-                    cp.Height,
-                    cp.BlockNum,
-                    p.Time,
-                    sp.String2,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pp.String2
-
-                from Transactions r not indexed
-
-                cross join vTxStr sr on
-                    sr.RowId = r.RowId
-
-                join Chain cr indexed by Chain_Height_Uid on
-                    cr.TxId = r.RowId and
-                    cr.Height = ?
-
-                join Transactions p on
-                    p.Type = 200 and
-                    p.RegId2 = r.RegId3 and
-                    exists (select 1 from Last lp where lp.TxId = p.RowId)
-
-                cross join vTxStr sp on
-                    sp.RowId = p.RowId
-
-                join Chain cp on
-                    cp.TxId = p.RowId
-
-                left join Payload pp on
-                    pp.TxId = p.RowId
-
-                left join Payload pr on
-                    pr.TxId = r.RowId
-
-                join Transactions ar on
-                    ar.Type = 100 and
-                    ar.RegId1 = r.RegId1 and
-                    exists (select 1 from Last lar where lar.TxId = ar.RowId)
-
-                join Chain car on
-                    car.TxId = ar.RowId
-
-                left join Payload par on
-                    par.TxId = ar.RowId
-
-                left join Ratings rar indexed by Ratings_Type_Uid_Last_Height on
-                    rar.Type = 0 and
-                    rar.Uid = car.Uid and
-                    rar.Last = 1
-
-                left join Transactions na on
-                    na.Type = 100 and
-                    na.RegId1 = p.RegId1 and
-                    exists (select 1 from Last lna where lna.TxId = na.RowId)
-
-                left join Chain cna on
-                    cna.TxId = na.RowId
-
-                left join Payload pna on
-                    pna.TxId = na.RowId
-
-                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                    rna.Type = 0 and
-                    rna.Uid = cna.Uid and
-                    rna.Last = 1
-
-                where
-                    r.Type = 200 and
-                    exists (select 1 from First f where f.TxId = r.RowId) -- Only orig
-            )sql"
-            },
-
-            {
-                ShortTxType::JuryAssigned, R"sql(
-                    select
-                        -- Notifier data
-                        su.String1,
-                        p.String1,
-                        p.String2,
-                        p.String3,
-                        ifnull(rn.Value, 0),
-                        -- type of shortForm
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql('),
-                        -- Flag data
-                        sf.Hash, -- Jury Tx
-                        f.Type,
-                        null,
-                        cf.Height,
-                        cf.BlockNum,
-                        f.Time,
-                        null,
-                        null, -- Tx of content
-                        f.Int1,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        -- Account data for tx creator
-                        null,
-                        null,
-                        null,
-                        null,
-                        -- Additional data
-                        null,
-                        -- Related Content
-                        sc.Hash,
-                        c.Type,
-                        sc.String1,
-                        cc.Height,
-                        cc.BlockNum,
-                        c.Time,
-                        sc.String2,
-                        sc.String3,
-                        null,
-                        null,
-                        null,
-                        (
-                            case
-                                when c.Type in (204,205) then cp.String1
-                                else cp.String2
-                            end
-                        ),
-                        sc.String4,
-                        sc.String5,
-                        -- Account data for related tx
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        Transactions f
-
-                        cross join Chain cf indexed by Chain_Height_Uid on
-                            cf.TxId = f.RowId and
-                            cf.Height = ?
-
-                        cross join vTxStr sf on
-                            sf.RowId = f.RowId
-
-                        cross join Jury j
-                            on j.FlagRowId = f.ROWID
-
-                        cross join Chain cu on
-                            cu.Uid = j.AccountId and
-                            exists (select 1 from Last l where l.TxId = cu.TxId)
-
-                        cross join vTxStr su on
-                            su.RowId = cu.TxId
-
-                        cross join Payload p
-                            on p.TxId = cu.TxId
-
-                        cross join Transactions c
-                            on c.RowId = f.RegId2
-
-                        cross join Chain cc on
-                            cc.TxId = c.RowId
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        cross join Payload cp
-                            on cp.TxId = c.RowId
-
-                        left join Ratings rn indexed by Ratings_Type_Uid_Last_Height
-                            on rn.Type = 0 and rn.Uid = j.AccountId and rn.Last = 1
-
-                    where
-                        f.Type = 410
-                )sql"
-            },
-
-            {
-                ShortTxType::JuryVerdict, R"sql(
-                    select
-                        -- Notifier data
-                        su.String1,
-                        p.String1,
-                        p.String2,
-                        p.String3,
-                        ifnull(rn.Value, 0),
-                        -- type of shortForm
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryVerdict) + R"sql('),
-                        -- Tx data
-                        sv.Hash,
-                        v.Type,
-                        null,
-                        cv.Height,
-                        cv.BlockNum,
-                        v.Time,
-                        null,
-                        sv.String2, -- Jury Tx
-                        v.Int1, -- Value
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        -- Account data for tx creator
-                        null,
-                        null,
-                        null,
-                        null,
-                        -- Additional data
-                        null,
-                        -- Related Content
-                        sc.Hash,
-                        c.Type,
-                        sc.String1,
-                        cc.Height,
-                        cc.BlockNum,
-                        c.Time,
-                        sc.String2,
-                        sc.String3,
-                        null,
-                        null,
-                        null,
-                        (
-                            case
-                                when c.Type in (204,205) then cp.String1
-                                else cp.String2
-                            end
-                        ),
-                        sc.String4,
-                        sc.String5,
-                        -- Account data for related tx
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        Transactions v
-
-                        cross join Chain cv indexed by Chain_Height_Uid on
-                            cv.TxId = v.RowId and
-                            cv.Height = ?
-
-                        cross join vTxStr sv on
-                            sv.RowId = v.RowId
-
-                        cross join JuryBan jb
-                            on jb.VoteRowId = v.ROWID
-
-                        cross join Chain cu on
-                            cu.Uid = jb.AccountId and
-                            exists (select 1 from Last l where l.TxId = cu.TxId)
-
-                        cross join vTxStr su on
-                            su.RowId = cu.TxId
-
-                        cross join Payload p
-                            on p.TxId = cu.TxId
-
-                        cross join JuryVerdict jv indexed by JuryVerdict_VoteRowId_FlagRowId_Verdict
-                            on jv.VoteRowId = jb.VoteRowId
-
-                        cross join Transactions f
-                            on f.RowId = jv.FlagRowId
-
-                        cross join Transactions c on
-                            c.RowId = f.RegId2
-
-                        cross join Chain cc on
-                            cc.TxId = c.RowId
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        cross join Payload cp on
-                            cp.TxId = c.RowId
-
-                        left join Ratings rn indexed by Ratings_Type_Uid_Last_Height on
-                            rn.Type = 0 and rn.Uid = jb.AccountId and rn.Last = 1
-
-                    where
-                        v.Type = 420
-                )sql"
-            },
-
-            {
-                ShortTxType::JuryModerate, R"sql(
-                    select
-                        -- Notifier data
-                        su.String1,
-                        p.String1,
-                        p.String2,
-                        p.String3,
-                        ifnull(rn.Value, 0),
-                        -- type of shortForm
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryModerate) + R"sql('),
-                        -- Tx data
-                        sf.Hash, -- Jury Tx
-                        f.Type,
-                        null,
-                        cf.Height,
-                        cf.BlockNum,
-                        f.Time,
-                        null,
-                        null,
-                        f.Int1, -- Value
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        -- Account data for tx creator
-                        null,
-                        null,
-                        null,
-                        null,
-                        -- Additional data
-                        null,
-                        -- Related Content
-                        sc.Hash,
-                        c.Type,
-                        sc.String1,
-                        cc.Height,
-                        cc.BlockNum,
-                        c.Time,
-                        sc.String2,
-                        sc.String3,
-                        null,
-                        null,
-                        null,
-                        (
-                            case
-                                when c.Type in (204,205) then cp.String1
-                                else cp.String2
-                            end
-                        ),
-                        sc.String4,
-                        sc.String5,
-                        -- Account data for related tx
-                        suc.String1,
-                        cpc.String1,
-                        cpc.String2,
-                        cpc.String3,
-                        ifnull(rnc.Value, 0)
-
-                    from
-                        Transactions f
-
-                        cross join Chain cf indexed by Chain_Height_Uid on
-                            cf.TxId = f.RowId and
-                            cf.Height = (? - 10)
-
-                        cross join vTxStr sf on
-                            sf.RowId = f.RowId
-
-                        cross join JuryModerators jm
-                            on jm.FlagRowId = f.RowId
-
-                        cross join Chain cu on
-                            cu.Uid = jm.AccountId and
-                            exists (select 1 from Last l where l.TxId = cu.TxId)
-
-                        cross join vTxStr su on
-                            su.RowId = cu.TxId
-
-                        cross join Payload p
-                            on p.TxId = cu.TxId
-
-                        left join Ratings rn indexed by Ratings_Type_Uid_Last_Height
-                            on rn.Type = 0 and rn.Uid = jm.AccountId and rn.Last = 1
-
-                        -- content
-                        cross join Transactions c
-                            on c.RowId = f.RegId2
-
-                        cross join Chain cc on
-                            cc.TxId = c.RowId
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        cross join Payload cp
-                            on cp.TxId = c.RowId
-
-                        -- content author
-                        cross join Transactions uc
-                            on uc.Type = 100 and exists (select 1 from Last l where l.TxId = uc.RowId) and uc.RegId1 = c.RegId1
-
-                        cross join Chain cuc on
-                            cuc.TxId = uc.RowId
-
-                        cross join vTxStr suc on
-                            suc.RowId = uc.RowId
-
-                        cross join Payload cpc
-                            on cpc.TxId = uc.RowId
-
-                        left join Ratings rnc indexed by Ratings_Type_Uid_Last_Height
-                            on rnc.Type = 0 and rnc.Uid = cuc.Uid and rnc.Last = 1
-
-                    where
-                        f.Type = 410
-                )sql"
-            }
-
-        };
-
-        auto predicate = _choosePredicate(filters);
-        
-        NotificationsReconstructor reconstructor;
-        for(const auto& select: selects) {
-            const auto& type = select.first;
-            if (predicate(type)) {
-                const auto& query = select.second;
-
-                SqlTransaction(
-                    __func__,
-                    [&]() -> Stmt& {
-                        return Sql(query)
-                            .Bind(height);
-                    },
-                    [&] (Stmt& stmt) {
-                        stmt.Select([&](Cursor& cursor) {
-                            while (cursor.Step())
-                                reconstructor.FeedRow(cursor);
-                        });
-                    }
-                );
-            }
-        }
-        auto notificationResult = reconstructor.GetResult();
-        return notificationResult.Serialize();
-    }
-
-    std::vector<ShortForm> WebRpcRepository::GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters)
-    {
-        static const std::map<ShortTxType, string> selects = {
-            {
-                ShortTxType::Money, R"sql(
-                    -- Incoming money
-                    select distinct
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Money) + R"sql(')TP,
-                        st.Hash,
-                        t.Type,
-                        null,
-                        ct.Height as Height,
-                        ct.BlockNum as BlockNum,
-                        null,
-                        null,
-                        null,
-                        null,
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'Number', o.Number,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-
-                            from
-                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-
-                                join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
-                                    o.TxId = i.TxId and
-                                    o.Number = i.Number
-
-                            where
-                                i.SpentTxId = t.RowId
-                        ),
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId),
-                                'Account', json_object(
-                                    'Lang', pna.String1,
-                                    'Name', pna.String2,
-                                    'Avatar', pna.String3,
-                                    'Rep', ifnull(rna.Value,0)
-                                )
-                            ))
-
-                            from
-                                TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-
-                                left join Transactions na indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                    na.Type = 100 and
-                                    na.RegId1 = o.AddressId and
-                                    exists (select 1 from Last l where l.TxId = na.RowId)
-
-                                left join Chain cna on
-                                    cna.TxId = na.RowId
-
-                                left join Payload pna on
-                                    pna.TxId = na.RowId
-
-                                left join Ratings rna indexed by Ratings_Type_Uid_Last_Height on
-                                    rna.Type = 0 and
-                                    rna.Uid = cna.Uid and
-                                    rna.Last = 1
-
-                            where
-                                o.TxId = t.RowId
-                            order by
-                                o.Number
-                        ),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        params,
-                        TxOutputs o indexed by TxOutputs_AddressId_TxId_Number
-
-                        join Transactions t not indexed on
-                            t.RowId = o.TxId and
-                            t.Type in (1,2,3)
-
-                        cross join Chain ct not indexed on
-                            ct.TxId = t.RowId and
-                            ct.Height > params.min and
-                            (ct.Height < params.max or (ct.Height = params.max and ct.BlockNum < params.blockNum))
-
-                        cross join vTxStr st on
-                            st.Rowid = t.RowId
-
-                    where
-                        o.AddressId = params.addressId
-                    order by ct.Height desc, ct.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::Referal, R"sql(
-                    -- referals
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql(')TP,
-                        s.Hash,
-                        t.Type,
-                        s.String1,
-                        c.Height as Height,
-                        c.BlockNum as BlockNum,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        p.String1,
-                        p.String2,
-                        p.String3,
-                        ifnull(r.Value,0),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        params,
-                        Transactions t
-
-                        cross join vTxStr s on
-                            s.RowId = t.RowId
-
-                        cross join Chain c not indexed on
-                            c.TxId = t.RowId and
-                            c.Height > params.min and
-                            (c.Height < params.max or (c.Height = params.max and c.BlockNum < params.blockNum))
-
-                        left join Transactions tLast indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            tLast.Type = 100 and
-                            tLast.RegId1 = t.RegId1 and
-                            exists (select 1 from Last l where l.TxId = tLast.RowId)
-
-                        left join Chain cLast on
-                            cLast.TxId = tLast.RowId
-
-                        left join Payload p on
-                            p.TxId = tLast.RowId
-
-                        left join Ratings r indexed by Ratings_Type_Uid_Last_Height on
-                            r.Type = 0 and
-                            r.Uid = cLast.Uid and
-                            r.Last = 1
-
-                    where
-                        t.Type = 100 and
-                        t.RegId2 = params.addressId and
-                        exists (select 1 from First f where f.TxId = t.RowId)
-                    order by c.Height desc, c.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::Answer, R"sql(
-                    -- Comment answers
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Answer) + R"sql(')TP,
-                        sa.Hash,
-                        a.Type,
-                        sa.String1,
-                        ca.Height as Height,
-                        ca.BlockNum as BlockNum,
-                        null,
-                        sa.String2,
-                        sa.String3,
-                        null,
-                        null,
-                        null,
-                        pa.String1,
-                        sa.String4,
-                        sa.String5,
-                        paa.String1,
-                        paa.String2,
-                        paa.String3,
-                        ifnull(ra.Value,0),
-                        null,
-                        sc.Hash,
-                        c.Type,
-                        null,
-                        cc.Height,
-                        cc.BlockNum,
-                        null,
-                        sc.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pc.String1,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        params
-                    cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        c.Type in (204, 205) and
-                        c.RegId1 = params.addressId
-                    cross join Last lc on
-                        lc.TxId = c.RowId
-                    cross join Chain cc on
-                        cc.TxId = c.RowId
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-                    cross join Payload pc on
-                        pc.TxId = c.RowId
-                    cross join Transactions a indexed by Transactions_Type_RegId5_RegId1 on
-                        a.Type in (204, 205) and
-                        a.RegId5 = c.RegId2 and
-                        a.RegId1 != c.RegId1
-                    cross join First fa on
-                        fa.TxId = a.RowId
-                    cross join vTxStr sa on
-                        sa.RowId = a.RowId
-                    cross join Chain ca not indexed on
-                        ca.TxId = a.RowId and
-                        ca.Height > params.min and
-                        (ca.Height < params.max or (ca.Height = params.max and ca.BlockNum < params.blockNum))
-                    cross join Transactions aLast indexed by Transactions_Type_RegId2_RegId1 on
-                        aLast.Type in (204,205) and
-                        aLast.RegId2 = a.RowId
-                    cross join Last laLast on
-                        laLast.TxId = aLast.RowId
-                    cross join Payload pa on
-                        pa.TxId = aLast.RowId
-                    cross join Transactions aa indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        aa.Type = 100 and
-                        aa.RegId1 = a.RegId1
-                    cross join Last laa on
-                        laa.TxId = aa.RowId
-                    cross join Chain caa on
-                        caa.TxId = aa.RowId
-                    cross join Payload paa on
-                        paa.TxId = aa.RowId
-                    left join Ratings ra indexed by Ratings_Type_Uid_Last_Height on
-                        ra.Type = 0 and
-                        ra.Uid = caa.Uid and
-                        ra.Last = 1
-                    order by cc.Height desc, cc.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::Comment, R"sql(
-                    -- Comments for my content
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql(')TP,
-                        sc.Hash,
-                        c.Type,
-                        sc.String1,
-                        cc.Height as Height,
-                        cc.BlockNum as BlockNum,
-                        null,
-                        sc.String2,
-                        null,
-                        null,
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'Number', o.Number,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-                            from
-                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-                                join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
-                                    o.TxId = i.TxId and
-                                    o.Number = i.Number
-                            where
-                                i.SpentTxId = c.RowId
-                        ),
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-                            from
-                                TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-                            where
-                                o.TxId = c.RowId
-                            order by
-                                o.Number
-                        ),
-                        pc.String1,
-                        null,
-                        null,
-                        pac.String1,
-                        pac.String2,
-                        pac.String3,
-                        ifnull(rac.Value,0),
-                        null,
-                        sp.Hash,
-                        p.Type,
-                        null,
-                        cp.Height,
-                        cp.BlockNum,
-                        null,
-                        sp.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pp.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-                    from
-                        params
-                    cross join Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        p.Type in (200,201,202,209,210) and
-                        p.RegId1 = params.addressId
-                    cross join Last lp on
-                        lp.TxId = p.RowId
-                    cross join Chain cp on
-                        cp.TxId = p.RowId
-                    cross join vTxStr sp on
-                        sp.RowId = p.RowId
-                    cross join Transactions c indexed by Transactions_Type_RegId3_RegId1 on
-                        c.Type = 204 and
-                        c.RegId3 = p.RegId2 and
-                        c.RegId1 != p.RegId1 and
-                        c.RegId4 is null and
-                        c.RegId5 is null
-                    cross join Chain cc not indexed on
-                        cc.TxId = c.RowId and
-                        cc.Height > params.min and
-                        (cc.Height < params.max or (cc.Height = params.max and cc.BlockNum < params.blockNum))
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-                    cross join Transactions cLast indexed by Transactions_Type_RegId2_RegId1 on
-                        cLast.Type in (204,205) and
-                        cLast.RegId2 = c.RowId
-                    cross join Last lcLast on
-                        lcLast.TxId = cLast.RowId
-                    cross join Payload pc on
-                        pC.TxId = cLast.RowId
-                    cross join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        ac.RegId1 = c.RegId1 and
-                        ac.Type = 100
-                    cross join Last lac on
-                        lac.TxId = ac.RowId
-                    cross join Chain cac on
-                        cac.TxId = ac.RowId
-                    cross join Payload pac on
-                        pac.TxId = ac.RowId
-                    cross join Payload pp on
-                        pp.TxId = p.RowId
-                    left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                        rac.Type = 0 and
-                        rac.Uid = cac.Uid and
-                        rac.Last = 1
-                    order by cc.Height desc, cc.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::Subscriber, R"sql(
-                    -- Subscribers
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql(')TP,
-                        s.Hash,
-                        subs.Type,
-                        s.String1,
-                        c.Height as Height,
-                        c.BlockNum as BlockNum,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pu.String1,
-                        pu.String2,
-                        pu.String3,
-                        ifnull(ru.Value,0),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        params,
-                        Transactions subs indexed by Transactions_Type_RegId2_RegId1
-
-                        cross join Chain c not indexed on
-                            c.TxId = subs.RowId and
-                            c.Height > params.min and
-                            (c.Height < params.max or (c.Height = params.max and c.BlockNum < params.blockNum))
-
-                        cross join vTxStr s on
-                            s.RowId = subs.RowId
-
-                        join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            u.Type in (100) and
-                            u.RegId1 = subs.RegId1 and
-                            exists (select 1 from Last l where l.TxId = u.RowId)
-
-                        left join Chain cu on
-                            cu.TxId = u.RowId
-                        left join Payload pu on
-                            pu.TxId = u.RowId
-                        left join Ratings ru indexed by Ratings_Type_Uid_Last_Height on
-                            ru.Type = 0 and
-                            ru.Uid = cu.Uid and
-                            ru.Last = 1
-                    where
-                        subs.Type in (302, 303, 304) and -- Ignoring unsubscribers?
-                        subs.RegId2 = params.addressId
-                    order by c.Height desc, c.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::CommentScore, R"sql(
-                    -- Comment scores
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
-                        ss.Hash,
-                        s.Type,
-                        ss.String1,
-                        cs.Height as Height,
-                        cs.BlockNum as BlockNum,
-                        null,
-                        null,
-                        null,
-                        s.Int1,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pacs.String1,
-                        pacs.String2,
-                        pacs.String3,
-                        ifnull(racs.Value,0),
-                        null,
-                        sc.Hash,
-                        c.Type,
-                        null,
-                        cc.Height,
-                        cc.BlockNum,
-                        null,
-                        sc.String2,
-                        sc.String3,
-                        null,
-                        null,
-                        null,
-                        ps.String1,
-                        sc.String4,
-                        sc.String5,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        params,
-                        Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-
-                        cross join Chain cc on
-                            cc.TxId = c.RowId
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
-                            s.Type = 301 and
-                            s.RegId2 = c.RegId2
-
-                        cross join Chain cs not indexed on
-                            cs.TxId = s.RowId and
-                            cs.Height > params.min and
-                            (cs.Height < params.max or (cs.Height = params.max and cs.BlockNum < params.blockNum))
-
-                        cross join vTxStr ss on
-                            ss.RowId = s.RowId
-
-                        left join Transactions cLast indexed by Transactions_Type_RegId2_RegId1 on
-                            cLast.Type in (204,205) and
-                            cLast.RegId2 = c.RegId2 and
-                            exists (select 1 from Last l where l.TxId = cLast.RowId)
-
-                        left join Payload ps on
-                            ps.TxId = cLast.RowId
-
-                        left join Transactions acs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            acs.Type = 100 and
-                            acs.RegId1 = s.RegId1 and
-                            exists (select 1 from Last l where l.TxId = acs.RowId)
-                        left join Chain cacs on
-                            cacs.TxId = acs.RowId
-                        left join Payload pacs on
-                            pacs.TxId = acs.RowId
-                        left join Ratings racs indexed by Ratings_Type_Uid_Last_Height on
-                            racs.Type = 0 and
-                            racs.Uid = cacs.Uid and
-                            racs.Last = 1
-                    where
-                        c.Type in (204) and
-                        c.RegId1 = params.addressId
-                    order by cs.Height desc, cs.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                // TODO (losty): optimize
-                ShortTxType::ContentScore, R"sql(
-                    -- Content scores
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
-                        ss.Hash,
-                        s.Type,
-                        ss.String1,
-                        cs.Height as Height,
-                        cs.BlockNum as BlockNum,
-                        null,
-                        null,
-                        null,
-                        s.Int1,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pacs.String1,
-                        pacs.String2,
-                        pacs.String3,
-                        ifnull(racs.Value,0),
-                        null,
-                        sc.Hash,
-                        c.Type,
-                        null,
-                        cc.Height,
-                        cc.BlockNum,
-                        null,
-                        sc.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pc.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        params,
-                        Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3
-
-                        cross join Chain cc on
-                            cc.TxId = c.RowId
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
-                            s.Type = 300 and
-                            s.RegId2 = c.RegId2
-
-                        cross join Chain cs not indexed on
-                            cs.TxId = s.RowId and
-                            cs.Height > params.min and
-                            (cs.Height < params.max or (cs.Height = params.max and cs.BlockNum < params.blockNum))
-
-                        cross join vTxStr ss on
-                            ss.RowId = s.RowId
-
-                        left join Transactions cLast indexed by Transactions_Type_RegId2_RegId1 on
-                            cLast.Type = c.Type and
-                            cLast.RegId2 = c.RegId2 and
-                            exists (select 1 from Last l where l.TxId = cLast.RowId)
-
-                        left join Payload pc on
-                            pc.TxId = cLast.RowId
-
-                        left join Transactions acs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            acs.Type = 100 and
-                            acs.RegId1 = s.RegId1 and
-                            exists (select 1 from Last l where l.TxId = acs.RowId)
-
-                        left join Chain cacs on
-                            cacs.TxId = acs.RowId
-
-                        left join Payload pacs on
-                            pacs.TxId = acs.RowId
-
-                        left join Ratings racs indexed by Ratings_Type_Uid_Last_Height on
-                            racs.Type = 0 and
-                            racs.Uid = cacs.Uid and
-                            racs.Last = 1
-                    where
-                        c.Type in (200,201,202,209,210) and
-                        c.RegId1 = params.addressId
-                    order by cs.Height desc, cs.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::PrivateContent, R"sql(
-                    -- Content from private subscribers
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::PrivateContent) + R"sql(')TP,
-                        sc.Hash,
-                        c.Type,
-                        sc.String1,
-                        cc.Height as Height,
-                        cc.BlockNum as BlockNum,
-                        null,
-                        sc.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        p.String2,
-                        null,
-                        null,
-                        pac.String1,
-                        pac.String2,
-                        pac.String3,
-                        ifnull(rac.Value,0),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        params,
-                        Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3 -- Subscribers private
-
-                        cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on-- content for private subscribers
-                            c.Type in (200,201,202,209,210) and
-                            c.RegId1 = subs.RegId2 and
-                            exists (select 1 from First f where f.TxId = c.RowId)
-
-                        cross join Chain cc not indexed on
-                            cc.TxId = c.RowId and
-                            cc.Height > params.min and
-                            (cc.Height < params.max or (cc.Height = params.max and cc.BlockNum < params.blockNum))
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        left join Transactions cLast indexed by Transactions_Type_RegId2_RegId1 on
-                            cLast.Type = c.Type and
-                            cLast.RegId2 = c.RegId2 and
-                            exists (select 1 from Last l where l.TxId = cLast.RowId)
-
-                        left join Payload p on
-                            p.TxId = cLast.RowId
-
-                        left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            ac.Type = 100 and
-                            ac.RegId1 = c.RegId1 and
-                            exists (select 1 from Last l where l.TxId = ac.RowId)
-
-                        left join Chain cac on
-                            cac.TxId = ac.RowId
-
-                        left join Payload pac on
-                            pac.TxId = ac.RowId
-
-                        left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                            rac.Type = 0 and
-                            rac.Uid = cac.Uid and
-                            rac.Last = 1
-                    where
-                        subs.Type = 303 and
-                        subs.RegId1 = params.addressId and
-                        exists (select 1 from Last l where l.TxId = subs.RowId)
-                    order by cc.Height desc, cc.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::Boost, R"sql(
-                    -- Boosts for my content
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Boost) + R"sql(')TP,
-                        sBoost.Hash,
-                        tBoost.Type,
-                        sBoost.String1,
-                        cBoost.Height as Height,
-                        cBoost.BlockNum as BlockNum,
-                        null,
-                        null,
-                        null,
-                        null,
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'Number', o.Number,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-
-                            from
-                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-
-                                join TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
-                                    o.TxId = i.TxId and
-                                    o.Number = i.Number
-
-                            where
-                                i.SpentTxId = tBoost.RowId
-                        ),
-                        (
-                            select json_group_array(json_object(
-                                'Value', o.Value,
-                                'AddressHash', (select r.String from Registry r where r.RowId = o.AddressId),
-                                'ScriptPubKey', (select r.String from Registry r where r.RowId = o.ScriptPubKeyId)
-                            ))
-
-                            from
-                                TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-
-                            where
-                                o.TxId = tBoost.RowId
-                            order by
-                                o.Number
-                        ),
-                        null,
-                        null,
-                        null,
-                        pac.String1,
-                        pac.String2,
-                        pac.String3,
-                        ifnull(rac.Value,0),
-                        null,
-                        sContent.Hash,
-                        tContent.Type,
-                        null,
-                        cContent.Height,
-                        cContent.BlockNum,
-                        null,
-                        sContent.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pContent.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        params,
-                        Transactions tBoost indexed by Transactions_Type_RegId2_RegId1
-
-                        cross join Chain cBoost not indexed on
-                            cBoost.TxId = tBoost.RowId and
-                            cBoost.Height > params.min and
-                            (cBoost.Height < params.max or (cBoost.Height = params.max and cBoost.BlockNum < params.blockNum))
-
-                        cross join vTxStr sBoost on
-                            sBoost.RowId = tBoost.RowId
-
-                        cross join Transactions tContent indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            tContent.Type in (200,201,202,209,210) and
-                            tContent.RegId1 = params.addressId and
-                            tContent.RegId2 = tBoost.RegId2 and
-                            exists (select 1 from Last l where l.TxId = tContent.RowId)
-
-                        cross join vTxStr sContent on
-                            sContent.RowId = tContent.RowId
-
-                        cross join Chain cContent on
-                            cContent.TxId = tContent.RowId
-
-                        left join Payload pContent on
-                            pContent.TxId = tContent.RowId
-
-                        left join Transactions ac indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            ac.Type = 100 and
-                            ac.RegId1 = tBoost.RegId1 and
-                            exists (select 1 from Last l where l.TxId = ac.RowId)
-
-                        left join Chain cac on
-                            cac.TxId = ac.RowId
-
-                        left join Payload pac on
-                            pac.TxId = ac.RowId
-
-                        left join Ratings rac indexed by Ratings_Type_Uid_Last_Height on
-                            rac.Type = 0 and
-                            rac.Uid = cac.Uid and
-                            rac.Last = 1
-
-                    where
-                        tBoost.Type in (208)
-                    order by cBoost.Height desc, cBoost.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::Repost, R"sql(
-                    -- Reposts
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql(')TP,
-                        sr.Hash,
-                        r.Type,
-                        sr.String1,
-                        cr.Height as Height,
-                        cr.BlockNum as BlockNum,
-                        null,
-                        sr.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pr.String2,
-                        null,
-                        null,
-                        par.String1,
-                        par.String2,
-                        par.String3,
-                        ifnull(rar.Value,0),
-                        null,
-                        sp.Hash,
-                        p.Type,
-                        null,
-                        cp.Height,
-                        cp.BlockNum,
-                        null,
-                        sp.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        pp.String2,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-
-                    from
-                        params,
-                        Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
-
-                        cross join Chain cp on
-                            cp.TxId = p.RowId
-
-                        cross join vTxStr sp on
-                            sp.RowId = p.RowId
-
-                        left join Payload pp on
-                            pp.TxId = p.RowId
-
-                        cross join Transactions r indexed by Transactions_Type_RegId3_RegId1 on
-                            r.Type = 200 and
-                            r.RegId3 = p.RegId2 and
-                            exists (select 1 from First f where f.TxId = r.RowId)
-
-                        cross join vTxStr sr on
-                            sr.RowId = r.RowId
-
-                        cross join Chain cr not indexed on
-                            cr.TxId = r.RowId and
-                            cr.Height > params.min and
-                            (cr.Height < params.max or (cr.Height = params.max and cr.BlockNum < params.blockNum))
-
-                        left join Transactions rLast indexed by Transactions_Type_RegId2_RegId1 on
-                            rLast.Type = r.Type and
-                            rLast.RegId2 = r.RegId2 and
-                            exists (select 1 from Last l where l.TxId = rLast.RowId)
-
-                        left join Payload pr on
-                            pr.TxId = rLast.RowId
-
-                        left join Transactions ar indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            ar.Type = 100 and
-                            ar.RegId1 = r.RegId1 and
-                            exists (select 1 from Last l where l.TxId = ar.RowId)
-
-                        left join Chain car on
-                            car.TxId = ar.RowId
-                        left join Payload par on
-                            par.TxId = ar.RowId
-                        left join Ratings rar indexed by Ratings_Type_Uid_Last_Height
-                            on rar.Type = 0
-                            and rar.Uid = car.Uid
-                            and rar.Last = 1
-                    where
-                        p.Type = 200 and
-                        p.RegId1 = params.addressId and
-                        exists (select 1 from Last l where l.TxId = p.RowId)
-                    order by cr.Height desc, cr.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::JuryAssigned, R"sql(
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryAssigned) + R"sql('),
-                        -- Flag data
-                        sf.Hash, -- Jury Tx
-                        f.Type,
-                        null,
-                        cf.Height as Height,
-                        cf.BlockNum as BlockNum,
-                        f.Time,
-                        null,
-                        null,
-                        f.Int1,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        -- Account data for tx creator
-                        null,
-                        null,
-                        null,
-                        null,
-                        -- Additional data
-                        null,
-                        -- Related Content
-                        sc.Hash,
-                        c.Type,
-                        sc.String1,
-                        cc.Height,
-                        cc.BlockNum,
-                        c.Time,
-                        sc.String2,
-                        sc.String3,
-                        null,
-                        null,
-                        null,
-                        (
-                            case
-                                when c.Type in (204,205) then cp.String1
-                                else cp.String2
-                            end
-                        ),
-                        sc.String4,
-                        sc.String5,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-                    from
-                        params
-                    cross join Transactions f indexed by Transactions_Type_RegId3_RegId1 on
-                        f.Type = 410 and
-                        f.RegId3 = params.addressId
-                    cross join Chain cf indexed by Chain_TxId_Height on
-                        cf.TxId = f.RowId and
-                        cf.Height > params.min and
-                        (cf.Height < params.max or (cf.Height = params.max and cf.BlockNum < params.blockNum))
-                    cross join vTxStr sf on
-                        sf.RowId = f.RowId
-                    cross join Jury j on
-                        j.FlagRowId = f.RowId
-                    cross join Transactions c on
-                        c.RowId = f.RegId2
-                    cross join Chain cc on
-                        cc.TxId = c.RowId
-                    cross join vTxStr sc on
-                        sc.RowId = c.RowId
-                    cross join Payload cp on
-                        cp.TxId = c.RowId
-                    order by cf.Height desc, cf.BlockNum desc
-                    limit 10
-                )sql"
-            },
-
-            {
-                ShortTxType::JuryModerate, R"sql(
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::JuryModerate) + R"sql('),
-                        -- Tx data
-                        sf.Hash, -- Jury Tx
-                        f.Type,
-                        null,
-                        cf.Height as Height,
-                        cf.BlockNum as BlockNum,
-                        f.Time,
-                        null,
-                        null, -- Tx of content
-                        f.Int1, -- Value
-                        null,
-                        null,
-                        null, -- Jury Tx
-                        null,
-                        null,
-                        -- Account data for tx creator
-                        null,
-                        null,
-                        null,
-                        null,
-                        -- Additional data
-                        null,
-                        -- Related Content
-                        sc.Hash,
-                        c.Type,
-                        sc.String1,
-                        cc.Height,
-                        cc.BlockNum,
-                        c.Time,
-                        sc.String2,
-                        sc.String3,
-                        null,
-                        null,
-                        null,
-                        (
-                            case
-                                when c.Type in (204,205) then cp.String1
-                                else cp.String2
-                            end
-                        ),
-                        sc.String4,
-                        sc.String5,
-                        -- Account data for related tx
-                        suc.String1,
-                        cpc.String1,
-                        cpc.String2,
-                        cpc.String3,
-                        ifnull(rnc.Value, 0)
-
-                    from
-                        params,
-                        Transactions acc indexed by Transactions_Type_RegId1_RegId2_RegId3
-
-                        cross join Chain cacc on
-                            cacc.TxId = acc.RowId
-
-                        cross join JuryModerators jm indexed by JuryModerators_AccountId_FlagRowId on
-                            jm.AccountId = cacc.Uid
-
-                        cross join Transactions f on
-                            f.RowId = jm.FlagRowId
-
-                        cross join Chain cf not indexed on
-                            cf.TxId = f.RowId and
-                            cf.Height > params.min and
-                            (cf.Height < params.max or (cf.Height = params.max and cf.BlockNum < params.blockNum))
-
-                        cross join vTxStr sf on
-                            sf.RowId = f.RowId
-
-                        -- content
-                        cross join Transactions c on
-                            c.RowId = f.RegId2
-
-                        cross join Chain cc on
-                            cc.TxId = c.RowId
-
-                        cross join vTxStr sc on
-                            sc.RowId = c.RowId
-
-                        cross join Payload cp on
-                            cp.TxId = c.RowId
-
-                        -- content author
-                        cross join Transactions uc indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            uc.Type = 100 and
-                            uc.RegId1 = c.RegId1 and
-                            exists (select 1 from Last l where l.TxId = uc.RowId)
-
-                        cross join vTxStr suc on
-                            suc.RowId = uc.RowId
-
-                        cross join Chain cuc on
-                            cuc.TxId = uc.RowId
-
-                        cross join Payload cpc on
-                            cpc.TxId = uc.RowId
-
-                        left join Ratings rnc indexed by Ratings_Type_Uid_Last_Height on
-                            rnc.Type = 0 and
-                            rnc.Uid = cuc.Uid and
-                            rnc.Last = 1
-                    where
-                        acc.Type = 100 and
-                        acc.RegId1 = params.addressId and
-                        exists (select 1 from Last l where l.TxId = acc.RowId)
-                    order by cf.Height desc, cf.BlockNum desc
-                    limit 10
-                )sql"
-            }
-        };
-
-        static const auto header = R"sql(
-            with
-                params as (
-                    select
-                        ? as max,
-                        ? as min,
-                        ? as blockNum,
-                        r.RowId as addressId
-                    from
-                        Registry r
-                    where
-                        r.String = ?
-                )
-        )sql";
-
-        EventsReconstructor reconstructor;
-        for (const auto& reqSql : selects)
-        {
-            auto[ok, sql] = _constructSelectsBasedOnFilters(filters, reqSql, header);
-            if (!ok)
-                continue;
-            
-            string _sql = sql;
-            SqlTransaction(
-                __func__,
-                [&]() -> Stmt& {
-                    return Sql(_sql).Bind(heightMax, heightMin, blockNumMax, address);
-                },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                            reconstructor.FeedRow(cursor);
-                    });
-                }
-            );
-        }
-
-        auto result = reconstructor.GetResult();
-
-        std::sort(result.begin(), result.end(), [](auto& a, auto& b) {
-            return std::tie(*a.GetTxData().GetHeight(), *a.GetTxData().GetHeight()) < std::tie(*b.GetTxData().GetHeight(), *b.GetTxData().GetHeight());
-        });
-        
-        std::vector<PocketDb::ShortForm> shortResult(result.begin(), result.begin() + std::min(10, (int)result.size()));
-        return shortResult;
-    }
-
-    std::map<std::string, std::map<ShortTxType, int>> WebRpcRepository::GetNotificationsSummary(int64_t heightMax, int64_t heightMin, const std::vector<std::string>& addresses, const std::set<ShortTxType>& filters)
-    {
-        const std::map<ShortTxType, string> selects = {
-            {
-                ShortTxType::Referal, R"sql(
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Referal) + R"sql('),
-                        addr.hash,
-                        t.RowId
-                    from
-                        addr,
-                        params
-                        cross join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
-                            t.Type in (100) and
-                            t.RegId2 = addr.id
-                        cross join First f on
-                            f.TxId = t.RowId
-                        cross join Chain c on
-                            c.TxId = f.TxId and c.Height between params.min and params.max
-                )sql"
-            },
-
-            {
-                ShortTxType::Comment, R"sql(
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Comment) + R"sql('),
-                        addr.hash,
-                        c.RowId
-                    from
-                        addr,
-                        params
-                    cross join Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        p.Type in (200, 201, 202, 209, 210) and
-                        p.RegId1 = addr.id
-                    cross join Last lp on
-                        lp.TxId = p.RowId
-                    cross join Transactions c indexed by Transactions_Type_RegId3_RegId1 on
-                        c.Type in (204) and
-                        c.RegId3 = p.RegId2 and
-                        c.RegId1 != p.RegId1 and
-                        c.RegId4 is null and
-                        c.RegId5 is null
-                    cross join Chain cc on
-                        cc.TxId = c.RowId and
-                        cc.Height between params.min and params.max
-                )sql"
-            },
-
-            {
-                ShortTxType::Subscriber, R"sql(
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Subscriber) + R"sql('),
-                        addr.hash,
-                        s.RowId
-                    from
-                        addr,
-                        params
-                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
-                            s.Type in (302, 303) and
-                            s.RegId2 = addr.id
-                        cross join Chain c on
-                            c.TxId = s.RowId and
-                            c.Height between params.min and params.max
-                )sql"
-            },
-
-            {
-                ShortTxType::CommentScore, R"sql(
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql('),
-                        addr.hash,
-                        s.RowId
-                    from
-                        addr,
-                        params
-                        cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            c.Type in (204, 205) and c.RegId1 = addr.id
-                        cross join Last lc on
-                            lc.TxId = c.RowId
-                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
-                            s.Type in (301) and s.RegId2 = c.RegId2
-                        cross join Chain cs on
-                            cs.TxId = s.RowId and cs.Height between params.min and params.max
-                )sql"
-            },
-
-            {
-                ShortTxType::ContentScore, R"sql(
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql('),
-                        addr.hash,
-                        s.RowId
-                    from
-                        addr,
-                        params
-                        cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            c.Type in (200, 201, 202, 209, 210) and
-                            c.RegId1 = addr.id
-                        cross join Last lc on
-                            lc.TxId = c.RowId
-                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
-                            s.Type in (300) and
-                            s.RegId2 = c.RegId2
-                        cross join Chain cs on
-                            cs.TxId = s.RowId and
-                            cs.Height between params.min and params.max
-                )sql"
-            },
-
-            {
-                ShortTxType::Repost, R"sql(
-                    select
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::Repost) + R"sql('),
-                        addr.hash,
-                        r.RowId
-                    from
-                        addr,
-                        params
-                        cross join Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            p.Type in (200) and
-                            p.RegId1 = addr.id
-                        cross join Last lp on
-                            lp.TxId = p.RowId
-                        cross join Transactions r indexed by Transactions_Type_RegId3_RegId1 on
-                            r.Type in (200) and
-                            r.RegId3 = p.RegId2 and
-                            r.RegId3 is not null
-                        cross join First fr on
-                            fr.TxId = r.RowId
-                        cross join Chain cr on
-                            cr.TxId = r.RowId and
-                            cr.Height between params.min and params.max
-                )sql"
-            }
-        };
-
-        const auto header = R"sql(
-            with
-                params as (
-                    select
-                        ? as max,
-                        ? as min
-                ),
-                addr as (
-                    select
-                        r.RowId as id,
-                        r.String as hash
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                )
-        )sql";
-
-        auto sql = _unionSelectsBasedOnFilters(filters, selects, header, "");
-
-        NotificationSummaryReconstructor reconstructor;
-        SqlTransaction(
-            __func__,
-            [&]() -> Stmt& {
-                return Sql(sql).Bind(heightMax, heightMin, addresses);
-            },
-            [&] (Stmt& stmt) {
-                stmt.Select([&](Cursor& cursor)
-                {
-                    while (cursor.Step())
-                        reconstructor.FeedRow(cursor);
-                });
-            }
-        );
-
-        return reconstructor.GetResult();
-    }
 
 }

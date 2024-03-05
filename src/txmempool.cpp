@@ -59,6 +59,23 @@ size_t CTxMemPoolEntry::GetTxSize() const
     return GetVirtualTransactionSize(nTxWeight, sigOpCost);
 }
 
+std::chrono::seconds CTxMemPoolEntry::GetTimeOrLock() const
+{
+    if (GetTx().nLockTime != 0)
+    {
+        if (GetTx().nLockTime > LOCKTIME_THRESHOLD)
+        {
+            return std::chrono::seconds{GetTx().nLockTime};
+        }
+        else if (GetTx().nLockTime > ChainActive().Height())
+        {
+            return std::chrono::seconds{ChainActive().Tip()->nTime} + std::chrono::seconds{(GetTx().nLockTime - ChainActive().Height()) * Params().GetConsensus().nPowTargetSpacing};
+        }
+    }
+
+    return GetTime();
+}
+
 // Update the given tx for any in-mempool descendants.
 // Assumes that CTxMemPool::m_children is correct for the given tx and all
 // descendants.
@@ -1081,7 +1098,8 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     AssertLockHeld(cs);
     indexed_transaction_set::index<entry_time>::type::iterator it = mapTx.get<entry_time>().begin();
     setEntries toremove;
-    while (it != mapTx.get<entry_time>().end() && it->GetTime() < time)
+
+    while (it != mapTx.get<entry_time>().end() && it->GetTimeOrLock() < time)
     {
         toremove.insert(mapTx.project<0>(it));
         it++;

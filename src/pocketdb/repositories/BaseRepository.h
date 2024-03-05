@@ -38,6 +38,14 @@ namespace PocketDb
 
         string EscapeValue(string value);
 
+        UniValue JSONError(int code, const string& message)
+        {
+            UniValue error(UniValue::VOBJ);
+            error.pushKV("code", code);
+            error.pushKV("message", message);
+            return error;
+        }
+
         // General method for SQL operations
         // Locked with shutdownMutex
         // Timeouted for ReadOnly connections
@@ -49,7 +57,7 @@ namespace PocketDb
                 int64_t nTime1 = GetTimeMicros();
 
                 if (!m_database.BeginTransaction())
-                    throw runtime_error(strprintf("%s: can't begin transaction\n", func));
+                    throw JSONError(500, strprintf("%s: can't begin transaction\n", func));
 
                 // We are running SQL logic with timeout only for read-only connections
                 if (m_database.IsReadOnly())
@@ -65,6 +73,7 @@ namespace PocketDb
                         {
                             m_database.InterruptQuery();
                             LogPrintf("Function `%s` failed with execute timeout\n", func);
+                            throw JSONError(408, "Sql request timeout");
                         }
                     );
                 }
@@ -74,7 +83,7 @@ namespace PocketDb
                 }
                 
                 if (!m_database.CommitTransaction())
-                    throw runtime_error(strprintf("%s: can't commit transaction\n", func));
+                    throw JSONError(500, strprintf("%s: can't commit transaction\n", func));
 
                 int64_t nTime2 = GetTimeMicros();
 
@@ -83,7 +92,7 @@ namespace PocketDb
             catch (const exception& ex)
             {
                 m_database.AbortTransaction();
-                throw runtime_error(func + ": " + ex.what());
+                throw JSONError(500, ex.what());
             }
         }
 
@@ -91,10 +100,11 @@ namespace PocketDb
         {
             try
             {
+                bool timeouted = false;
                 int64_t nTime1 = GetTimeMicros();
 
                 if (!m_database.BeginTransaction())
-                    throw runtime_error(strprintf("%s: can't begin transaction\n", func));
+                    throw JSONError(500, strprintf("%s: can't begin transaction\n", func));
 
                 // Prepare transaction binds
                 auto& stmt = prepare();
@@ -106,6 +116,7 @@ namespace PocketDb
                 if (m_database.IsReadOnly())
                 {
                     auto timeoutValue = chrono::seconds(gArgs.GetArg("-sqltimeout", 10));
+
                     run_with_timeout(
                         [&]()
                         {
@@ -116,6 +127,7 @@ namespace PocketDb
                         {
                             m_database.InterruptQuery();
                             LogPrintf("Warning! Function `%s` failed with execute timeout:\n%s\n", func, stmt.Log());
+                            timeouted = true;
                         }
                     );
                 }
@@ -125,16 +137,23 @@ namespace PocketDb
                 }
                 
                 if (!m_database.CommitTransaction())
-                    throw runtime_error(strprintf("%s: can't commit transaction\n", func));
+                    throw JSONError(500, strprintf("%s: can't commit transaction\n", func));
 
                 int64_t nTime2 = GetTimeMicros();
-
                 BenchLog(func, 0.001 * (nTime2 - nTime1));
+
+                if (m_database.IsReadOnly() && timeouted)
+                    throw JSONError(408, "Sql request timeout");
+            }
+            catch (const UniValue& objError)
+            {
+                m_database.AbortTransaction();
+                throw JSONError(500, objError.write());
             }
             catch (const exception& ex)
             {
                 m_database.AbortTransaction();
-                throw runtime_error(func + ": " + ex.what());
+                throw JSONError(500, ex.what());
             }
         }
 

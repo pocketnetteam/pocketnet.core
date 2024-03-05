@@ -215,11 +215,11 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + request.params[0].get_str());
         auto address = request.params[0].get_str();
 
-        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(::ChainActive().Height());
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
         auto windowDepth = reputationConsensus->GetConsensusLimit(ConsensusLimit_depth);
 
         // Read general account info and current state
-        auto result = request.DbConnection()->WebRpcRepoInst->GetAccountState(address, ::ChainActive().Height() - windowDepth);
+        auto result = request.DbConnection()->WebRpcRepoInst->GetAccountState(address, ChainActiveSafeHeight() - windowDepth);
         if (result["address"].isNull())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
@@ -424,7 +424,7 @@ namespace PocketWeb::PocketWebRpc
         node.mempool->GetAllInputs(mempoolInputs);
 
         // Get unspents from DB
-        int height = ::ChainActiveUnsafe().Height();
+        int height = ChainActiveSafeHeight();
         return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, height, 0, mempoolInputs);
     },
         };
@@ -465,7 +465,7 @@ namespace PocketWeb::PocketWebRpc
                                   }
                               }
 
-                              int height = ::ChainActive().Height();
+                              int height = ChainActiveSafeHeight();
                               if (request.params.size() > 1) {
                                   if (request.params[1].isNum()) {
                                       if (request.params[1].get_int() > 0) {
@@ -566,7 +566,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        int nHeight = ::ChainActive().Height();
+        int nHeight = ChainActiveSafeHeight();
         if (request.params.size() > 1) {
             if (request.params[1].isNum()) {
                 if (request.params[1].get_int() > 0) {
@@ -575,7 +575,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        int depthR = ChainActive().Height();
+        int depthR = ChainActiveSafeHeight();
         if (request.params.size() > 2) {
             if (request.params[2].isNum()) {
                 if (request.params[2].get_int() > 0) {
@@ -782,88 +782,88 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetTopAccounts()
     {
         return RPCHelpMan{"GetTopAccounts",
-                          "\nReturn top accounts based on their content ratings\n",
-                          {
-                                  // TODO (rpc): provide inputs description
-                          },
-                          {
-                                  // TODO (rpc): provide return description
-                          },
-                          RPCExamples{
-                                  // TODO (rpc): provide correct examples
-                                  HelpExampleCli("GetTopAccounts", "\"address\"") +
-                                  HelpExampleRpc("GetTopAccounts", "\"address\"")
-                          },
-                          [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-                          {
-                              int topHeight = ::ChainActive().Height();
-                              if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int() > 0)
-                                  topHeight = request.params[0].get_int();
+            "\nReturn top accounts based on their content ratings\n",
+            {
+                    // TODO (rpc): provide inputs description
+            },
+            {
+                    // TODO (rpc): provide return description
+            },
+            RPCExamples{
+                    // TODO (rpc): provide correct examples
+                    HelpExampleCli("GetTopAccounts", "\"address\"") +
+                    HelpExampleRpc("GetTopAccounts", "\"address\"")
+            },
+            [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+            {
+                int topHeight = ChainActiveSafeHeight();
+                if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int() > 0)
+                    topHeight = request.params[0].get_int();
 
-                              int countOut = 15;
-                              if (request.params.size() > 1 && request.params[1].isNum())
-                                  countOut = request.params[1].get_int();
+                int countOut = 15;
+                if (request.params.size() > 1 && request.params[1].isNum())
+                    countOut = request.params[1].get_int();
 
-                              string lang = "";
-                              if (request.params.size() > 2 && request.params[2].isStr())
-                                  lang = request.params[2].get_str();
+                string lang = "";
+                if (request.params.size() > 2 && request.params[2].isStr())
+                    lang = request.params[2].get_str();
 
-                              vector<string> tags;
-                              if (request.params.size() > 3)
-                                  ParseRequestTags(request.params[3], tags);
+                vector<string> tags;
+                if (request.params.size() > 3)
+                    ParseRequestTags(request.params[3], tags);
 
-                              vector<int> contentTypes;
-                              if (request.params.size() > 4)
-                                  ParseRequestContentTypes(request.params[4], contentTypes);
+                vector<int> contentTypes;
+                if (request.params.size() > 4)
+                    ParseRequestContentTypes(request.params[4], contentTypes);
 
-                              vector<string> adrsExcluded;
-                              if (request.params.size() > 5)
-                              {
-                                  if (request.params[5].isStr() && !request.params[5].get_str().empty())
-                                  {
-                                      adrsExcluded.push_back(request.params[5].get_str());
-                                  }
-                                  else if (request.params[5].isArray())
-                                  {
-                                      UniValue adrs = request.params[5].get_array();
-                                      for (unsigned int idx = 0; idx < adrs.size(); idx++)
-                                      {
-                                          string adrEx = boost::trim_copy(adrs[idx].get_str());
-                                          if (!adrEx.empty())
-                                              adrsExcluded.push_back(adrEx);
+                vector<string> adrsExcluded;
+                if (request.params.size() > 5)
+                {
+                    if (request.params[5].isStr() && !request.params[5].get_str().empty())
+                    {
+                        adrsExcluded.push_back(request.params[5].get_str());
+                    }
+                    else if (request.params[5].isArray())
+                    {
+                        UniValue adrs = request.params[5].get_array();
+                        for (unsigned int idx = 0; idx < adrs.size(); idx++)
+                        {
+                            string adrEx = boost::trim_copy(adrs[idx].get_str());
+                            if (!adrEx.empty())
+                                adrsExcluded.push_back(adrEx);
 
-                                          if (adrsExcluded.size() > 100)
-                                              break;
-                                      }
-                                  }
-                              }
+                            if (adrsExcluded.size() > 100)
+                                break;
+                        }
+                    }
+                }
 
-                              vector<string> tagsExcluded;
-                              if (request.params.size() > 6)
-                                  ParseRequestTags(request.params[6], tagsExcluded);
+                vector<string> tagsExcluded;
+                if (request.params.size() > 6)
+                    ParseRequestTags(request.params[6], tagsExcluded);
 
-                              int depth = 60 * 24 * 30 * 12; // about 1 year
-                              if (request.params.size() > 7)
-                              {
-                                  RPCTypeCheckArgument(request.params[7], UniValue::VNUM);
-                                  depth = std::min(depth, request.params[7].get_int());
-                              }
+                int depth = 60 * 24 * 30 * 12; // about 1 year
+                if (request.params.size() > 7)
+                {
+                    RPCTypeCheckArgument(request.params[7], UniValue::VNUM);
+                    depth = std::min(depth, request.params[7].get_int());
+                }
 
-                              auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(::ChainActive().Height());
-                              auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+                auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
+                auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
-                              UniValue result(UniValue::VARR);
-                              auto ids =  request.DbConnection()->WebRpcRepoInst->GetTopAccounts(topHeight, countOut, lang, tags, contentTypes,
-                                adrsExcluded, tagsExcluded, depth, badReputationLimit);
-                              if (!ids.empty())
-                              {
-                                  auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
-                                  for (const auto[id, record] : profiles)
-                                      result.push_back(record);
-                              }
+                UniValue result(UniValue::VARR);
+                auto ids =  request.DbConnection()->WebRpcRepoInst->GetTopAccounts(topHeight, countOut, lang, tags, contentTypes,
+                adrsExcluded, tagsExcluded, depth, badReputationLimit);
+                if (!ids.empty())
+                {
+                    auto profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
+                    for (const auto[id, record] : profiles)
+                        result.push_back(record);
+                }
 
-                              return result;
-                          },
+                return result;
+            },
         };
     }
 

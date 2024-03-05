@@ -562,6 +562,11 @@ namespace PocketDb
         return {blockingExists, blockingType};
     }
 
+    bool ConsensusRepository::ExistBlocking(const string& address, const string& addressTo)
+    {
+        return ExistBlocking(address, addressTo, "[]");
+    }
+
     bool ConsensusRepository::ExistBlocking(const string& address, const string& addressTo, const string& addressesTo)
     {
         bool blockingExists = false;
@@ -1835,12 +1840,10 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join First f on
-                        f.TxId = t.RowId
                 where
                     t.Type in (204) and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
-                    t.RegId1 = str1.id
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -1953,14 +1956,10 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join First f on
-                        f.TxId = t.RowId
-                    cross join Chain c indexed by Chain_TxId_Height on
-                        c.TxId = t.RowId and
-                        c.Height >= ?
                 where
                     t.Type in (307) and
-                    t.RegId1 = str1.id
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2073,12 +2072,10 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join First f on
-                        f.TxId = t.RowId
                 where
                     t.Type in (200) and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
-                    t.RegId1 = str1.id
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2191,8 +2188,6 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join First f on
-                        f.TxId = t.RowId
                 where
                     t.Type in (201) and
                     t.RegId1 = str1.id and
@@ -2268,12 +2263,10 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join First f on
-                        f.TxId = t.RowId
                 where
                     t.Type in (202) and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
-                    t.RegId1 = str1.id
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2346,12 +2339,10 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join First f on
-                        f.TxId = t.RowId
                 where
                     t.Type in (209) and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
-                    t.RegId1 = str1.id
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2424,12 +2415,10 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join First f on
-                        f.TxId = t.RowId
                 where
                     t.Type in (210) and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
-                    t.RegId1 = str1.id
+                    t.RegId1 = str1.id and
+                    not exists (select 1 from Chain c where c.TxId = t.RowId)
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2502,8 +2491,6 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join First f on
-                        f.TxId = t.RowId
                 where
                     t.Type in (220) and
                     t.RegId1 = str1.id and
@@ -3204,7 +3191,6 @@ namespace PocketDb
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
                 where
-                    -- TODO (optimization): check for not exists First???
                     t.Type in (202,207) and
                     t.RegId1 = str1.id and
                     t.RegId2 = str2.id and

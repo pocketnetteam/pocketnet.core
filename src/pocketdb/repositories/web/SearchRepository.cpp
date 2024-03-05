@@ -92,7 +92,7 @@ namespace PocketDb
                         Last lt on
                             lt.TxId = t.RowId
                     order by
-                        keyword.rank desc
+                        ct.Uid desc
                     limit ?
                     offset ?
                 )sql")

@@ -73,7 +73,7 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        int topHeight = ChainActive().Height() / 10 * 10;
+        int topHeight = ChainActiveSafeHeight() / 10 * 10;
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
@@ -107,7 +107,7 @@ namespace PocketWeb::PocketWebRpc
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
 
-        int topHeight = ChainActive().Height() / 10 * 10;
+        int topHeight = ChainActiveSafeHeight() / 10 * 10;
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
@@ -136,7 +136,7 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        int topHeight = ChainActive().Height() / 10 * 10;
+        int topHeight = ChainActiveSafeHeight() / 10 * 10;
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
@@ -165,7 +165,7 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        int topHeight = ChainActive().Height() / 10 * 10;
+        int topHeight = ChainActiveSafeHeight() / 10 * 10;
         if (request.params[0].isNum())
             topHeight = min(request.params[0].get_int(), topHeight);
 
@@ -204,11 +204,11 @@ namespace PocketWeb::PocketWebRpc
             if (count > 100) count = 100;
         }
 
-        int last_height = ::ChainActive().Height();
+        int last_height = ::ChainActiveSafeHeight();
         if (request.params.size() > 1 && request.params[1].isNum())
         {
             last_height = request.params[1].get_int();
-            if (last_height < 0) last_height = ::ChainActive().Height();
+            if (last_height < 0) last_height = ::ChainActiveSafeHeight();
         }
 
         bool verbose = false;
@@ -297,7 +297,7 @@ namespace PocketWeb::PocketWebRpc
         if (!blockHash.empty())
             pindex = LookupBlockIndexWithoutLock(uint256S(blockHash));
 
-        if (blockNumber >= 0 && blockNumber <= ::ChainActive().Height())
+        if (blockNumber >= 0 && blockNumber <= ::ChainActiveSafeHeight())
             pindex = ::ChainActive()[blockNumber];
 
         if (!pindex)
@@ -423,7 +423,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        int topHeight = ChainActive().Height();
+        int topHeight = ChainActiveSafeHeight();
         if (request.params[1].isNum())
             topHeight = request.params[1].get_int();
 
@@ -509,7 +509,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (address)");
         string address = request.params[0].get_str();
 
-        int pageInitBlock = ::ChainActive().Height();
+        int pageInitBlock = ::ChainActiveSafeHeight();
         if (request.params.size() > 1 && request.params[1].isNum())
             pageInitBlock = request.params[1].get_int();
 

@@ -14,7 +14,6 @@
 #include <timedata.h>
 #include "core_io.h"
 #include "util/html.h"
-#include "pocketdb/models/shortform/ShortForm.h"
 
 namespace PocketDb
 {
@@ -66,6 +65,13 @@ namespace PocketDb
 
         UniValue GetUserStatistic(const vector<string>& addresses, const int nHeight = 0, const int depthR = 0, const int depthC = 0, const int cntC = 1);
 
+        vector<string> GetContentComments(const vector<string>& contentHashes);
+        vector<string> GetContentScores(const vector<string>& contentHashes);
+        vector<string> GetLastContentHashesByRootTxHashes(const vector<string>& rootHashes);
+        vector<string> GetCommentScores(const vector<string>& commentHashes);
+        // Get account tx id for signer of specified transactions (using RegId1)
+        vector<string> GetAddresses(const vector<string>& txHashes);
+        vector<string> GetAccountsIds(const vector<string>& addresses);
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
         map<string, UniValue> GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash);
         map<int64_t, UniValue> GetCommentsByIds(const vector<int64_t>& cmntIds, const string& addressHash);
@@ -172,34 +178,6 @@ namespace PocketDb
                                        const string& keyword, const string& orderby, const string& ascdesc);
 
         UniValue GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight, int countOutOfUsers, int countOutOfcontents, int badReputationLimit);
-
-        /**
-         * Returns map where key is address. Value is map, where key - height, value - vector of transactions for this height.
-         */
-        std::vector<ShortForm> GetEventsForAddresses(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNum, const std::set<ShortTxType>& filters);
-
-        /**
-         * Get all possible events for all adresses in concrete block
-         * 
-         * @param height height of block to search
-         * @param filters
-         */
-        UniValue GetNotifications(int64_t height, const std::set<ShortTxType>& filters);
-
-        /**
-         * Get all activities (posts, comments, etc) created by address
-         * 
-         * @param address - address to search activities for
-         * @param heightMax - height to start search from, including
-         * @param heightMin - height untill search, excluding
-         * @param blockNumMax - number of tx in block to start search in heightMax, excluding
-         * @param filters 
-         * @return vector of activities in ShortForm
-         */
-        std::vector<ShortForm> GetActivities(const std::string& address, int64_t heightMax, int64_t heightMin, int64_t blockNumMax, const std::set<ShortTxType>& filters);
-
-        // TODO (losty): convert return type to class of smth. + docs
-        std::map<std::string, std::map<ShortTxType, int>> GetNotificationsSummary(int64_t heightMax, int64_t heightMin, const std::vector<std::string>& addresses, const std::set<ShortTxType>& filters);
 
     private:
         int cntBlocksForResult = 300;

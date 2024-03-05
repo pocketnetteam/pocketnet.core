@@ -76,7 +76,6 @@ class CMainParams : public CChainParams
 public:
     CMainParams()
     {
-        // TODO (losty-critical): check all below todos
         strNetworkID = CBaseChainParams::MAIN;
         networkId = NetworkMain;
         consensus.signet_blocks = false;
@@ -127,10 +126,10 @@ public:
         consensus.nHeight_version_1_0_0 = 108300;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000054f92794f5af6e8b95"); // 2107600
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000075b452a5dd8ae7ea28"); // 2633153
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0xe2df34836b828d3eb8b5226bc45a44c4cd97dd89132a7ec564b3ccb85d4b426e"); // 2107600
+        consensus.defaultAssumeValid = uint256S("0x822afcd867256e7fbd1426f0188653ad65d52776f7d6bd79dafa9704abc2855e"); // 2633153
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -144,9 +143,8 @@ public:
 
         nDefaultPort = 37070;
         nPruneAfterHeight = 100000;
-        m_assumed_blockchain_size = 50; // 50 is ok for now
+        m_assumed_blockchain_size = 150; // 100 is ok for now (20240101)
         m_assumed_chain_state_size = 0; // We do not use prune
-                                        //
 
         genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
