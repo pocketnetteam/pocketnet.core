@@ -1,23 +1,26 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 4fee473..3707bfe 100644
+index 87d309c2..338604b7 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -220,12 +220,12 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+@@ -252,7 +252,7 @@ else()
+ 	add_library(Usrsctp::Usrsctp ALIAS usrsctp)
  endif()
- add_library(Usrsctp::Usrsctp ALIAS usrsctp)
  
 -add_library(datachannel SHARED
 +add_library(datachannel SHARED EXCLUDE_FROM_ALL
  	${LIBDATACHANNEL_SOURCES}
  	${LIBDATACHANNEL_HEADERS}
  	${LIBDATACHANNEL_IMPL_SOURCES}
- 	${LIBDATACHANNEL_IMPL_HEADERS})
+@@ -271,7 +271,7 @@ endif()
+ 
+ target_compile_definitions(datachannel PRIVATE RTC_EXPORTS)
+ 
 -add_library(datachannel-static STATIC EXCLUDE_FROM_ALL
 +add_library(datachannel-static STATIC
  	${LIBDATACHANNEL_SOURCES}
  	${LIBDATACHANNEL_HEADERS}
  	${LIBDATACHANNEL_IMPL_SOURCES}
-@@ -390,7 +390,9 @@ if(WARNINGS_AS_ERRORS)
+@@ -439,7 +439,9 @@ if(WARNINGS_AS_ERRORS)
  	endif()
  endif()
  
@@ -25,11 +28,11 @@ index 4fee473..3707bfe 100644
 +set_target_properties(datachannel-static PROPERTIES OUTPUT_NAME datachannel)
 +set_target_properties(juice-static PROPERTIES OUTPUT_NAME juice)
 +install(TARGETS datachannel-static juice-static usrsctp plog EXPORT LibDataChannelTargets
- 	RUNTIME DESTINATION bin
- 	LIBRARY DESTINATION lib
- 	ARCHIVE DESTINATION lib
-@@ -400,29 +402,6 @@ install(FILES ${LIBDATACHANNEL_HEADERS}
- 	DESTINATION include/rtc
+ 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+ 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+ 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+@@ -449,29 +451,6 @@ install(FILES ${LIBDATACHANNEL_HEADERS}
+ 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtc
  )
  
 -# Export targets
@@ -37,13 +40,13 @@ index 4fee473..3707bfe 100644
 -	EXPORT LibDataChannelTargets
 -	FILE LibDataChannelTargets.cmake
 -	NAMESPACE LibDataChannel::
--	DESTINATION lib/cmake/LibDataChannel
+-	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LibDataChannel
 -)
 -
 -# Export config
 -install(
 -	FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/LibDataChannelConfig.cmake
--	DESTINATION lib/cmake/LibDataChannel
+-	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LibDataChannel
 -)
 -
 -# Export config version
@@ -53,7 +56,7 @@ index 4fee473..3707bfe 100644
 -	VERSION ${PROJECT_VERSION}
 -	COMPATIBILITY SameMajorVersion)
 -install(FILES ${CMAKE_BINARY_DIR}/LibDataChannelConfigVersion.cmake
--	DESTINATION lib/cmake/LibDataChannel)
+-	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LibDataChannel)
 -
  # Tests
  if(NOT NO_TESTS)

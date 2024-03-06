@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 4fee473..3e7f5ec 100644
+index 87d309c2..fe84d371 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -269,8 +269,7 @@ else()
+@@ -312,8 +312,7 @@ else()
  endif()
  
  if(NO_MEDIA)

@@ -1,7 +1,7 @@
 package=libdatachanel
-$(package)_version=0.17.7
-$(package)_download_path=https://github.com/lostystyg/libdatachannel/releases/download/v$($(package)_version)/
-$(package)_file_name=$(package)-$($(package)_version)-Source.tar.gz
+$(package)_version=0.20.1
+$(package)_download_path=https://github.com/pocketnetteam/libdatachannel/releases/download/$($(package)_version)/
+$(package)_file_name=$(package)-$($(package)_version).tgz
 $(package)_sha256_hash=3c8de85fde74c375fc9acc5e5614567542497d7607d5574ec9ee3cab97587d3f
 $(package)_dependencies=openssl
 $(package)_patches=build_static.patch
