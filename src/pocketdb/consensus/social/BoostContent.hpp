@@ -34,7 +34,7 @@ namespace PocketConsensus
                 return {false, ConsensusResult_CommentDeletedContent};
 
             // Check Blocking
-            if (ValidateBlocking(*contentTx->GetString1(), *ptx->GetAddress(), block == nullptr))
+            if (ValidateBlocking(*contentTx->GetString1(), *ptx->GetAddress()))
                 return {false, ConsensusResult_Blocking};
 
             return SocialConsensus::Validate(tx, ptx, block);
@@ -68,7 +68,7 @@ namespace PocketConsensus
             return { *ptx->GetAddress() };
         }
 
-        virtual bool ValidateBlocking(const string& address1, const string& address2, bool mempool)
+        virtual bool ValidateBlocking(const string& address1, const string& address2)
         {
             return false;
         }
@@ -80,9 +80,10 @@ namespace PocketConsensus
     public:
         BoostContentConsensus_checkpoint_disable_for_blocked() : BoostContentConsensus() {}
     protected:
-        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-            return SocialConsensus::CheckBlocking(address1, address2, true, mempool);
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(address1, address2);
+            return existsBlocking && blockingType == ACTION_BLOCKING;
         }
     };
 
@@ -92,9 +93,9 @@ namespace PocketConsensus
     public:
         BoostContentConsensus_checkpoint_pip_105() : BoostContentConsensus_checkpoint_disable_for_blocked() {}
     protected:
-        bool ValidateBlocking(const string& address1, const string& address2, bool mempool) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-            return SocialConsensus::CheckBlocking(address1, address2, true, true);
+            return SocialConsensus::CheckBlocking(address1, address2);
         }
     };
 
@@ -108,7 +109,7 @@ namespace PocketConsensus
         {
             Checkpoint({       0,       0, -1, make_shared<BoostContentConsensus>() });
             Checkpoint({ 1757000,  953000, -1, make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>() });
-            Checkpoint({ 2727000, 2574300,  0, make_shared<BoostContentConsensus_checkpoint_pip_105>() });
+            Checkpoint({ 2770200, 2574300,  0, make_shared<BoostContentConsensus_checkpoint_pip_105>() });
         }
     };
 

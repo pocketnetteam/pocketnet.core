@@ -169,15 +169,15 @@ namespace PocketConsensus
             return lst;
         }
     
-        virtual bool CheckBlocking(const string& address1, const string& address2, bool from1to2, bool from2to1)
+        virtual bool CheckBlocking(const string& address1, const string& address2)
         {
-            if (from1to2 == from2to1)
+            if (address1 == address2)
                 return false;
                 
-            if (from1to2 && PocketDb::ConsensusRepoInst.ExistBlocking(address1, address2))
+            if (PocketDb::ConsensusRepoInst.ExistBlocking(address1, address2))
                 return true;
             
-            if (from2to1 && PocketDb::ConsensusRepoInst.ExistBlocking(address2, address1))
+            if (PocketDb::ConsensusRepoInst.ExistBlocking(address2, address1))
                 return true;
 
             return false;

@@ -398,11 +398,16 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     { "juryHash", data["description"].get_str() },
                 };
 
-                if (!data["relatedContent"].isNull())
+                if (data["relatedContent"].isObject())
                 {
-                    cFields.emplace("contentHash", data["relatedContent"]["hash"].get_str());
-                    cFields.emplace("contentRootHash", data["relatedContent"]["rootTxHash"].get_str());
                     cFields.emplace("contentType", to_string(data["relatedContent"]["txType"].get_int()));
+                    cFields.emplace("contentHash", data["relatedContent"]["hash"].get_str());
+
+                    if (data["relatedContent"]["rootTxHash"].isStr())
+                        cFields.emplace("contentRootHash", data["relatedContent"]["rootTxHash"].get_str());
+
+                    if (data["relatedContent"]["address"].isStr())
+                        cFields.emplace("contentAddress", data["relatedContent"]["address"].get_str());
                 }
                 
                 PrepareWSMessage(messages, "event", address, data["hash"].get_str(), data["time"].get_int64(), cFields);

@@ -37,8 +37,8 @@ namespace PocketConsensus
             }
 
             // Check Blocking
-            if (auto[ok, result] = ValidateBlocking(ptx); !ok)
-                return {false, result};
+            if (ValidateBlocking(ptx))
+                return {false, ConsensusResult_Blocking};
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -97,9 +97,9 @@ namespace PocketConsensus
         {
             return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
-        virtual ConsensusValidateResult ValidateBlocking(const SubscribeRef& ptx)
+        virtual bool ValidateBlocking(const SubscribeRef& ptx)
         {
-            return Success;
+            return false;
         }
     };
 
@@ -109,13 +109,22 @@ namespace PocketConsensus
     public:
         SubscribeConsensus_checkpoint_disable_for_blocked() : SubscribeConsensus() {}
     protected:
-        ConsensusValidateResult ValidateBlocking(const SubscribeRef& ptx) override
+        bool ValidateBlocking(const SubscribeRef& ptx) override
         {
-            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                *ptx->GetAddressTo(), *ptx->GetAddress()); existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, ConsensusResult_Blocking};
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*ptx->GetAddressTo(), *ptx->GetAddress());
+            return existsBlocking && blockingType == ACTION_BLOCKING;
+        }
+    };
 
-            return Success;
+    // Disable scores for blocked accounts in any direction
+    class SubscribeConsensus_checkpoint_pip_105 : public SubscribeConsensus_checkpoint_disable_for_blocked
+    {
+    public:
+        SubscribeConsensus_checkpoint_pip_105() : SubscribeConsensus_checkpoint_disable_for_blocked() {}
+    protected:
+        bool ValidateBlocking(const SubscribeRef& ptx) override
+        {
+            return SocialConsensus::CheckBlocking(*ptx->GetAddressTo(), *ptx->GetAddress());
         }
     };
 
@@ -127,8 +136,9 @@ namespace PocketConsensus
     public:
         SubscribeConsensusFactory()
         {
-            Checkpoint({       0,      0, -1, make_shared<SubscribeConsensus>() });
-            Checkpoint({ 1757000, 953000,  0, make_shared<SubscribeConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({       0,       0, -1, make_shared<SubscribeConsensus>() });
+            Checkpoint({ 1757000,  953000, -1, make_shared<SubscribeConsensus_checkpoint_disable_for_blocked>() });
+            Checkpoint({ 2770200, 2574300,  0, make_shared<SubscribeConsensus_checkpoint_pip_105>() });
         }
     };
 

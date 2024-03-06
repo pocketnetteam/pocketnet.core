@@ -100,6 +100,7 @@ namespace PocketDb
         {
             try
             {
+                bool timeouted = false;
                 int64_t nTime1 = GetTimeMicros();
 
                 if (!m_database.BeginTransaction())
@@ -114,7 +115,6 @@ namespace PocketDb
                 // We are running SQL logic with timeout only for read-only connections
                 if (m_database.IsReadOnly())
                 {
-                    bool timeouted = false;
                     auto timeoutValue = chrono::seconds(gArgs.GetArg("-sqltimeout", 10));
 
                     run_with_timeout(
@@ -130,9 +130,6 @@ namespace PocketDb
                             timeouted = true;
                         }
                     );
-
-                    if (timeouted)
-                        throw JSONError(408, "Sql request timeout");
                 }
                 else
                 {
@@ -143,8 +140,15 @@ namespace PocketDb
                     throw JSONError(500, strprintf("%s: can't commit transaction\n", func));
 
                 int64_t nTime2 = GetTimeMicros();
-
                 BenchLog(func, 0.001 * (nTime2 - nTime1));
+
+                if (m_database.IsReadOnly() && timeouted)
+                    throw JSONError(408, "Sql request timeout");
+            }
+            catch (const UniValue& objError)
+            {
+                m_database.AbortTransaction();
+                throw JSONError(500, objError.write());
             }
             catch (const exception& ex)
             {

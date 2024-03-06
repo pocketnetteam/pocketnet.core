@@ -170,6 +170,9 @@ namespace PocketWeb::PocketWebRpc
 
                 if (tx.GetRelaytedContent()->GetRootTxHash())
                     record.pushKV("contentRootHash", *tx.GetRelaytedContent()->GetRootTxHash());
+
+                if (tx.GetRelaytedContent()->GetAddress())
+                    record.pushKV("contentAddress", *tx.GetRelaytedContent()->GetAddress());
             }
             
             result.push_back(record);

@@ -48,8 +48,8 @@ namespace PocketConsensus
                         return {false, ConsensusResult_RepostDeletedContent};
 
                     // Check Blocking
-                    if (auto[ok, result] = ValidateBlocking(*relayTx->GetString1(), ptx); !ok)
-                        return {false, result};
+                    if (ValidateBlocking(*relayTx->GetString1(), *ptx->GetAddress()))
+                        return {false, ConsensusResult_Blocking};
                 }
             }
 
@@ -228,9 +228,9 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual ConsensusValidateResult ValidateBlocking(const string& contentAddress, const PostRef& ptx)
+        virtual bool ValidateBlocking(const string& address1, const string& address2)
         {
-            return Success;
+            return false;
         }
     };
 
@@ -275,17 +275,10 @@ namespace PocketConsensus
         PostConsensus_checkpoint_disable_for_blocked() : PostConsensus_checkpoint_1180000() {}
 
     protected:
-        ConsensusValidateResult ValidateBlocking(const string& contentAddress, const PostRef& ptx) override
+        bool ValidateBlocking(const string& address1, const string& address2) override
         {
-            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                contentAddress,
-                *ptx->GetAddress()
-            );
-
-            if (existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, ConsensusResult_Blocking};
-
-            return Success;
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(address1, address2);
+            return existsBlocking && blockingType == ACTION_BLOCKING;
         }
     };
 
@@ -319,8 +312,8 @@ namespace PocketConsensus
                         return {false, ConsensusResult_RepostDeletedContent};
 
                     // Check Blocking
-                    if (auto[ok, result] = ValidateBlocking(*relayTx->GetString1(), ptx); !ok)
-                        return {false, result};
+                    if (ValidateBlocking(*relayTx->GetString1(), *ptx->GetAddress()))
+                        return {false, ConsensusResult_Blocking};
                 }
             }
 
@@ -330,6 +323,19 @@ namespace PocketConsensus
             return Success;
         }
     };
+
+    // ----------------------------------------------------------------------------------------------
+    class PostConsensus_checkpoint_pip_105 : public PostConsensus_checkpoint_tmp_fix
+    {
+    public:
+        PostConsensus_checkpoint_pip_105() : PostConsensus_checkpoint_tmp_fix() {}
+    protected:
+        bool ValidateBlocking(const string& address1, const string& address2) override
+        {
+            return SocialConsensus::CheckBlocking(address1, address2);
+        }
+    };
+
 
     class PostConsensusFactory : public BaseConsensusFactory<PostConsensus>
     {
@@ -341,6 +347,7 @@ namespace PocketConsensus
             Checkpoint({ 1180000,       0, -1, make_shared<PostConsensus_checkpoint_1180000>() });
             Checkpoint({ 1757000,  953000, -1, make_shared<PostConsensus_checkpoint_disable_for_blocked>() });
             Checkpoint({ 2583000, 2280000,  0, make_shared<PostConsensus_checkpoint_tmp_fix>() });
+            Checkpoint({ 2770200, 2574300,  0, make_shared<PostConsensus_checkpoint_pip_105>() });
         }
     };
 
