@@ -1074,14 +1074,17 @@ namespace PocketDb
                     0
                 from
                     Transactions v
-                    cross join Transactions f
-                        on f.RowId = v.RegId2
-                    cross join Transactions vv on
-                        vv.Type in (420) and -- Votes
-                        vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
-                        vv.Int1 = 0 and -- Negative verdict
-                    cross join Last l on
-                        l.TxId = vv.RowId
+                    cross join
+                        Transactions f on
+                            f.RowId = v.RegId2
+                    cross join
+                        Transactions vv on
+                            vv.Type in (420) and -- Votes
+                            vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
+                            vv.Int1 = 0 and -- Negative verdict
+                    cross join
+                        Chain c on
+                            c.TxId = vv.RowId
                 where
                     v.RowId = (select r.RowId from Registry r where r.String = ?) and
                     not exists (select 1 from JuryVerdict jv where jv.FlagRowId = f.RowId)
@@ -1111,8 +1114,8 @@ namespace PocketDb
                         from
                             Transactions vv
                         cross join
-                            Last l on
-                                l.TxId = vv.RowId
+                            Chain c on
+                                c.TxId = vv.RowId
                         where
                             vv.Type in (420) and -- Votes
                             vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
