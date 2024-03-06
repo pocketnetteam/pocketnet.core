@@ -282,3 +282,21 @@ To build executables for ARM:
 
 
 For further documentation on the depends system see [README.md](../depends/README.md) in the depends directory.
+
+
+libdatachannel building
+-------------------
+
+Building:
+```sh
+cd libdatachannel
+mkdir build
+cmake -DNO_MEDIA=ON -DNO_EXAMPLES=ON -DNO_TESTS=ON -B build
+cmake --build build -j12
+cmake --install build --prefix build/prefix
+```
+
+For setup VSCode add to `settings.json` in `cmake.configureArgs`
+```
+-DLIBDATACHANNEL_ROOT=/.../build/prefix/
+```
