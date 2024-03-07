@@ -1081,7 +1081,7 @@ namespace PocketDb
                         Transactions vv on
                             vv.Type in (420) and -- Votes
                             vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
-                            vv.Int1 = 0 and -- Negative verdict
+                            vv.Int1 = 0 -- Negative verdict
                     cross join
                         Chain c on
                             c.TxId = vv.RowId
@@ -1119,7 +1119,7 @@ namespace PocketDb
                         where
                             vv.Type in (420) and -- Votes
                             vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
-                            vv.Int1 = 1 and -- Positive verdict
+                            vv.Int1 = 1 -- Positive verdict
                     )
             )sql")
             .Bind(voteTxHash, votesCount)
