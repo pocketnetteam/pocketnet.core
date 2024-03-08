@@ -223,7 +223,7 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     }
 
     if (txPrev->BlockHash == "") {
-        LogPrintf("CheckProofOfStake(): missing block hash for tx: %s", txin.prevout.hash.ToString());
+        LogPrintf("CheckProofOfStake(): missing block hash for tx: %s\n", txin.prevout.hash.ToString());
         return false;
     }
     auto hashBlock = uint256S(txPrev->BlockHash);
@@ -285,7 +285,7 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
     }
 
     if (txPrev->BlockHash == "") {
-        LogPrintf("CheckKernel(): missing block hash for tx: %s", prevout.hash.ToString());
+        LogPrintf("CheckKernel(): missing block hash for tx: %s\n", prevout.hash.ToString());
         return false;
     }
     auto hashBlock = uint256S(txPrev->BlockHash);
@@ -578,7 +578,7 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge, Chai
             continue; // previous transaction not in main chain
 
         if (txPrev->BlockHash == "") {
-            LogPrintf("TransactionGetCoinAge(): missing block hash for tx: %s", txPrevHash);
+            LogPrintf("TransactionGetCoinAge(): missing block hash for tx: %s\n", txPrevHash);
             return false;
         }
         auto hashBlock = uint256S(txPrev->BlockHash);
