@@ -985,7 +985,7 @@ namespace PocketDb
                     from Transactions f,
                         Jury j,
                         h
-                    where f.RowId = h.rowid and j.FlagRowId = f.ROWID
+                    where f.RowId = h.RowId and j.FlagRowId = f.RowId
                   ),
                   c as (
                     select ?/2 as cnt
@@ -1066,7 +1066,7 @@ namespace PocketDb
         {
             Sql(R"sql(
                 -- if there is at least one negative vote, then the defendant is acquitted
-                insert or ignore into
+                insert or fail into
                     JuryVerdict (FlagRowId, VoteRowId, Verdict)
                 select
                     f.RowId,
@@ -1074,23 +1074,27 @@ namespace PocketDb
                     0
                 from
                     Transactions v
-                    cross join Transactions f
-                        on f.RowId = v.RegId2
-                    cross join Transactions vv on
-                        vv.Type in (420) and -- Votes
-                        vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
-                        vv.Int1 = 0 and -- Negative verdict
-                        not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
-                        
+                    cross join
+                        Transactions f on
+                            f.RowId = v.RegId2
+                    cross join
+                        Transactions vv on
+                            vv.Type in (420) and -- Votes
+                            vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
+                            vv.Int1 = 0 -- Negative verdict
+                    cross join
+                        Chain c on
+                            c.TxId = vv.RowId
                 where
-                    v.RowId = (select r.RowId from Registry r where r.String = ?)
+                    v.RowId = (select r.RowId from Registry r where r.String = ?) and
+                    not exists (select 1 from JuryVerdict jv where jv.FlagRowId = f.RowId)
             )sql")
             .Bind(voteTxHash)
             .Run();
             
             Sql(R"sql(
                 -- if there are X positive votes, then the defendant is punished
-                insert or ignore into
+                insert or fail into
                     JuryVerdict (FlagRowId, VoteRowId, Verdict)
                 select
                     f.RowId,
@@ -1098,20 +1102,24 @@ namespace PocketDb
                     1
                 from
                     Transactions v
-                    cross join Transactions f
-                        on f.RowId = v.RegId2
+                    cross join
+                        Transactions f on
+                            f.RowId = v.RegId2
                 where
                     v.RowId = (select r.RowId from Registry r where r.String = ?) and
+                    not exists (select 1 from JuryVerdict jv where jv.FlagRowId = f.RowId) and
                     ? <= (
                         select
                             count()
                         from
                             Transactions vv
+                        cross join
+                            Chain c on
+                                c.TxId = vv.RowId
                         where
                             vv.Type in (420) and -- Votes
                             vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
-                            vv.Int1 = 1 and -- Positive verdict
-                            not exists (select 1 from Last l where l.TxId = vv.RowId) -- TODO (optimization): in it needed or was used just for index?
+                            vv.Int1 = 1 -- Positive verdict
                     )
             )sql")
             .Bind(voteTxHash, votesCount)
@@ -1138,9 +1146,9 @@ namespace PocketDb
                     join Transactions f
                         on f.RowId = v.RegId2
                     cross join Jury j
-                        on j.FlagRowId = f.ROWID
+                        on j.FlagRowId = v.RegId2
                     cross join JuryVerdict jv
-                        on jv.VoteRowId = v.ROWID and
+                        on jv.VoteRowId = v.RowId and
                            jv.FlagRowId = j.FlagRowId and
                            jv.Verdict = 1
                 where
