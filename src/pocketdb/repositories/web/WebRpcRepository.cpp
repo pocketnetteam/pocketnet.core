@@ -4956,8 +4956,7 @@ namespace PocketDb
                 
                 stmt.Bind(
                     txidsExcluded,
-                    addrsExcluded,
-                    address
+                    addrsExcluded
                 );
 
                 if (!tagsIncluded.empty())
