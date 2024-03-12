@@ -126,7 +126,7 @@ namespace PocketDb
                         [&]()
                         {
                             m_database.InterruptQuery();
-                            LogPrintf("Warning! Function `%s` failed with execute timeout:\n%s\n", func, stmt.Log());
+                            LogPrint(BCLog::RPC, "Warning! Function `%s` failed with execute timeout:\n%s\n", func, stmt.Log());
                             timeouted = true;
                         }
                     );
