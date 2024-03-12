@@ -138,7 +138,7 @@ namespace PocketConsensus
         {
             Checkpoint({       0,       0, -1, make_shared<SubscribeConsensus>() });
             Checkpoint({ 1757000,  953000, -1, make_shared<SubscribeConsensus_checkpoint_disable_for_blocked>() });
-            Checkpoint({ 2770200, 2574300,  0, make_shared<SubscribeConsensus_checkpoint_pip_105>() });
+            Checkpoint({ 2794500, 2574300,  0, make_shared<SubscribeConsensus_checkpoint_pip_105>() });
         }
     };
 
