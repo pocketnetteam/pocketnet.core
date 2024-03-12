@@ -226,7 +226,7 @@ namespace PocketConsensus
             Checkpoint({       0,      -1, -1, make_shared<CommentEditConsensus>() });
             Checkpoint({ 1180000,       0, -1, make_shared<CommentEditConsensus_checkpoint_1180000>() });
             Checkpoint({ 1873500, 1155000, -1, make_shared<CommentEditConsensus_checkpoint_check_author>() });
-            Checkpoint({ 2770200, 2574300,  0, make_shared<CommentEditConsensus_checkpoint_pip_105>() });
+            Checkpoint({ 2794500, 2574300,  0, make_shared<CommentEditConsensus_checkpoint_pip_105>() });
         }
     };
 

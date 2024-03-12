@@ -312,7 +312,7 @@ namespace PocketConsensus
             Checkpoint({ 1324655,   65000, -1, make_shared<ScoreContentConsensus_checkpoint_1324655>() });
             Checkpoint({ 1757000,  953000, -1, make_shared<ScoreContentConsensus_checkpoint_disable_for_blocked>() });
             Checkpoint({ 2583000, 2267333, -1, make_shared<ScoreContentConsensus_checkpoint_pip_103>() });
-            Checkpoint({ 2770200, 2574300,  0, make_shared<ScoreContentConsensus_checkpoint_pip_105>() });
+            Checkpoint({ 2794500, 2574300,  0, make_shared<ScoreContentConsensus_checkpoint_pip_105>() });
         }
     };
 
