@@ -364,13 +364,16 @@ static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& req
             if (ret)
                 cache->PutRpcCache(request, tmpRes);
         }
+        catch (const UniValue& objError)
+        {
+            throw JSONRPCError(RPC_MISC_ERROR, objError.write());
+        }
         catch (const std::exception& e)
         {
             throw JSONRPCError(RPC_MISC_ERROR, e.what());
         }
     }
     
-
     auto stop = gStatEngineInstance.GetCurrentSystemTime();
 
     auto diff = (stop - start);
