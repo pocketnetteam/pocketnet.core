@@ -57,6 +57,7 @@ private:
     bool isStaking;
     unsigned int minerSleep;
     uint64_t lastCoinStakeSearchInterval;
+    uint64_t nLastCoinStakeSearchTime;
     std::unordered_set<std::string> walletWorkers;
 };
 
