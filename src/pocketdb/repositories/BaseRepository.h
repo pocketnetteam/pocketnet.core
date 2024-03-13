@@ -72,8 +72,6 @@ namespace PocketDb
                         [&]()
                         {
                             m_database.InterruptQuery();
-                            LogPrintf("Function `%s` failed with execute timeout\n", func);
-                            throw JSONError(408, "Sql request timeout");
                         }
                     );
                 }
@@ -88,6 +86,11 @@ namespace PocketDb
                 int64_t nTime2 = GetTimeMicros();
 
                 BenchLog(func, 0.001 * (nTime2 - nTime1));
+            }
+            catch (const UniValue& objError)
+            {
+                m_database.AbortTransaction();
+                throw JSONError(500, objError.write());
             }
             catch (const exception& ex)
             {
@@ -126,7 +129,7 @@ namespace PocketDb
                         [&]()
                         {
                             m_database.InterruptQuery();
-                            LogPrint(BCLog::SQLERROR, "Warning! Function `%s` failed with execute timeout:\n%s\n", func, stmt.Log());
+                            LogPrint(BCLog::SQLERROR, "`%s` failed with execute timeout:\n%s\n", func, stmt.Log());
                             timeouted = true;
                         }
                     );
@@ -143,7 +146,7 @@ namespace PocketDb
                 BenchLog(func, 0.001 * (nTime2 - nTime1));
 
                 if (m_database.IsReadOnly() && timeouted)
-                    throw JSONError(408, "Sql request timeout");
+                    throw JSONError(408, func + ": sql request timeout");
             }
             catch (const UniValue& objError)
             {
