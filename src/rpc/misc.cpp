@@ -566,7 +566,7 @@ static RPCHelpMan logging()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    uint32_t original_log_categories = LogInstance().GetCategoryMask();
+    uint64_t original_log_categories = LogInstance().GetCategoryMask();
 
     UniValue enable(UniValue::VARR);
     UniValue disable(UniValue::VARR);
@@ -590,8 +590,8 @@ static RPCHelpMan logging()
     if (!disable.empty())
         EnableOrDisableLogCategories(disable, false);
 
-    uint32_t updated_log_categories = LogInstance().GetCategoryMask();
-    uint32_t changed_log_categories = original_log_categories ^ updated_log_categories;
+    uint64_t updated_log_categories = LogInstance().GetCategoryMask();
+    uint64_t changed_log_categories = original_log_categories ^ updated_log_categories;
 
     // Update libevent logging if BCLog::LIBEVENT has changed.
     // If the library version doesn't allow it, UpdateHTTPServerLogging() returns false,
