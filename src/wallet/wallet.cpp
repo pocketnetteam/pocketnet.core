@@ -4828,6 +4828,9 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 		static int nMaxStakeSearchInterval = 60;
 		bool fKernelFound = false;
 		for (unsigned int n = 0; n < fmin(nSearchInterval, (int64_t)nMaxStakeSearchInterval) && !fKernelFound && pindexPrev == ::ChainActive().Tip(); n++) {
+                       if (((txNew.nTime - n) & STAKE_TIMESTAMP_MASK) != 0)	// Check whether the coinstake timestamp meets protocol
+                           continue;
+
 			boost::this_thread::interruption_point();
 			// Search backward in time from the given txNew timestamp
 			// Search nSearchInterval seconds back up to nMaxStakeSearchInterval
