@@ -239,7 +239,7 @@ bool BlockAssembler::TestTransaction(const CTransactionRef& tx, PocketBlockRef& 
     // Payload should be in operative table Transactions
     if (!ptx)
     {
-        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with result 'NOT FOUND'\n",
+        LogPrint(BCLog::STAKEMODIF, "Warning: build block skip transaction %s with result 'NOT FOUND'\n",
             tx->GetHash().GetHex());
 
         return false;
@@ -248,7 +248,7 @@ bool BlockAssembler::TestTransaction(const CTransactionRef& tx, PocketBlockRef& 
     // Check consensus
     if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(tx, ptx, ChainActive().Height() + 1); !ok)
     {
-        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with check result %d\n",
+        LogPrint(BCLog::STAKEMODIF, "Warning: build block skip transaction %s with check result %d\n",
             tx->GetHash().GetHex(), (int) result);
 
         return false;
@@ -257,7 +257,7 @@ bool BlockAssembler::TestTransaction(const CTransactionRef& tx, PocketBlockRef& 
     // Validate consensus
     if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(tx, ptx, pblockTemplate, ChainActive().Height() + 1); !ok)
     {
-        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with validate result %d\n",
+        LogPrint(BCLog::STAKEMODIF, "Warning: build block skip transaction %s with validate result %d\n",
             tx->GetHash().GetHex(), (int) result);
 
         return false;
