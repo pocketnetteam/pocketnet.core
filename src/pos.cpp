@@ -450,6 +450,7 @@ bool ComputeNextStakeModifier(const CBlockIndex *pindexPrev, uint64_t &nStakeMod
         // '-' indicates proof-of-work blocks not selected
         strSelectionMap.insert(0, pindexPrev->nHeight - nHeightFirstCandidate + 1, '-');
         pindex = pindexPrev;
+
         while (pindex && pindex->nHeight >= nHeightFirstCandidate)
         {
             // '=' indicates proof-of-stake blocks not selected
@@ -459,6 +460,7 @@ bool ComputeNextStakeModifier(const CBlockIndex *pindexPrev, uint64_t &nStakeMod
             }
             pindex = pindex->pprev;
         }
+
         for (auto &item : mapSelectedBlocks)
         {
             // 'S' indicates selected proof-of-stake blocks
@@ -466,6 +468,8 @@ bool ComputeNextStakeModifier(const CBlockIndex *pindexPrev, uint64_t &nStakeMod
             strSelectionMap.replace(item.second->nHeight - nHeightFirstCandidate, 1,
                 item.second->IsProofOfStake() ? "S" : "W");
         }
+
+        LogPrint(BCLog::STAKEMODIF, "ComputeNextStakeModifier: selection map=%s\n", strSelectionMap);
     }
 
     nStakeModifier = nStakeModifierNew;
