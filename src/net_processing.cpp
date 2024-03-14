@@ -2555,7 +2555,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         }
         if (gArgs.GetBoolArg("-disconnectold", DEFAULT_DISCONNECT_OLD) && DeformatSubVersion(cleanSubVer) < Params().Forks().GetLastAcceptedSubVersion(ChainActive().Height())) {
             LogPrint(BCLog::NET, "peer=%d using outdated version %s and potentially could be forked %i; disconnecting\n", pfrom.GetId(), cleanSubVer);
-            m_banman->Ban(pfrom.addr, 60 * 60 /* 1 hour */);
+            m_banman->Ban(pfrom.addr, 60 * 60 * 24 /* 1 day */);
             pfrom.fDisconnect = true;
             return;
         }
