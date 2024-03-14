@@ -26,7 +26,7 @@ namespace PocketDb
     class WebRepository : public BaseRepository
     {
     public:
-        explicit WebRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit WebRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         int GetCurrentHeight();
         void SetCurrentHeight(int height);

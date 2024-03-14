@@ -23,7 +23,7 @@ namespace PocketDb
     class ExplorerRepository : public BaseRepository
     {
     public:
-        explicit ExplorerRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit ExplorerRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         map<int, map<int, int>> GetBlocksStatistic(int bottomHeight, int topHeight);
         UniValue GetTransactionsStatistic(int64_t top, int depth, int period);

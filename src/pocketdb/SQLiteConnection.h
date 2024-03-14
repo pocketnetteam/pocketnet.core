@@ -31,7 +31,7 @@ namespace PocketDb
 
     public:
 
-        SQLiteConnection();
+        SQLiteConnection(bool timeouted);
         virtual ~SQLiteConnection();
 
         WebRpcRepositoryRef WebRpcRepoInst;

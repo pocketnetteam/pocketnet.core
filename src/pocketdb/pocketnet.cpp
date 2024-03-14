@@ -7,13 +7,13 @@
 namespace PocketDb
 {
     SQLiteDatabase SQLiteDbInst(false);
-    TransactionRepository TransRepoInst(SQLiteDbInst);
-    ChainRepository ChainRepoInst(SQLiteDbInst);
-    RatingsRepository RatingsRepoInst(SQLiteDbInst);
-    ConsensusRepository ConsensusRepoInst(SQLiteDbInst);
-    ExplorerRepository ExplorerRepoInst(SQLiteDbInst);
-    SystemRepository SystemRepoInst(SQLiteDbInst);
-    MigrationRepository MigrationRepoInst(SQLiteDbInst);
+    TransactionRepository TransRepoInst(SQLiteDbInst, false);
+    ChainRepository ChainRepoInst(SQLiteDbInst, false);
+    RatingsRepository RatingsRepoInst(SQLiteDbInst, false);
+    ConsensusRepository ConsensusRepoInst(SQLiteDbInst, false);
+    ExplorerRepository ExplorerRepoInst(SQLiteDbInst, false);
+    SystemRepository SystemRepoInst(SQLiteDbInst, false);
+    MigrationRepository MigrationRepoInst(SQLiteDbInst, false);
 
     CheckpointRepository CheckpointRepoInst;
 } // PocketDb

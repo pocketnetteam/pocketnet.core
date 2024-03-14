@@ -27,7 +27,7 @@ namespace PocketDb
     class ChainRepository : public BaseRepository
     {
     public:
-        explicit ChainRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit ChainRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         // Update transactions set block hash & height
         // Also spent outputs

@@ -92,7 +92,7 @@ namespace PocketDb
     class ConsensusRepository : public TransactionRepository
     {
     public:
-        explicit ConsensusRepository(SQLiteDatabase& db) : TransactionRepository(db) {}
+        explicit ConsensusRepository(SQLiteDatabase& db, bool timeouted) : TransactionRepository(db, timeouted) {}
 
         ConsensusData_BarteronAccount BarteronAccount(const string& address);
         ConsensusData_BarteronOffer BarteronOffer(const string& address, const string& rootTxHash);

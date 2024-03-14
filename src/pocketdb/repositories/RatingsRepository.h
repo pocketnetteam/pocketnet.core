@@ -24,7 +24,7 @@ namespace PocketDb
     class RatingsRepository : public BaseRepository
     {
     public:
-        explicit RatingsRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit RatingsRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         // Accumulate new rating records
         void InsertRatings(shared_ptr<vector<Rating>> ratings);
