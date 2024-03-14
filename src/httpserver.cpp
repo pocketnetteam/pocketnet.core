@@ -43,10 +43,9 @@ static const size_t MAX_HEADERS_SIZE = 8192;
 class ExecutorSqlite : public IQueueProcessor<std::unique_ptr<HTTPClosure>>
 {
 public:
-    explicit ExecutorSqlite(bool selfDbConnection)
+    explicit ExecutorSqlite()
     {
-        if (selfDbConnection)
-            m_sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
+        m_sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>(true);
     }
     void Process(std::unique_ptr<HTTPClosure> closure) override
     {
@@ -475,28 +474,28 @@ void StartHTTPServer()
 
     if (g_socket)
     {
-        g_socket->StartHTTPSocket(rpcMainThreads, false);
+        g_socket->StartHTTPSocket(rpcMainThreads);
         LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
     }
 
     // The same worker threads will service POST and PUBLIC RPC requests
     if (g_webSocket)
     {
-        g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
+        g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads);
         LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
         if (g_webSocketHttps)
         {
-            g_webSocketHttps->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
+            g_webSocketHttps->StartHTTPSocket(rpcPublicThreads, rpcPostThreads);
         }
     }
     if (g_staticSocket)
     {
-        g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
+        g_staticSocket->StartHTTPSocket(rpcStaticThreads);
         LogPrintf("HTTP: starting %d Static worker threads\n", rpcStaticThreads);
     }
     if (g_restSocket)
     {
-        g_restSocket->StartHTTPSocket(rpcRestThreads, true);
+        g_restSocket->StartHTTPSocket(rpcRestThreads);
         LogPrintf("HTTP: starting %d Rest worker threads\n", rpcRestThreads);
     }
 }
@@ -620,21 +619,21 @@ HTTPSocket::~HTTPSocket()
     }
 }
 
-void HTTPSocket::StartThreads(const std::string name, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection)
+void HTTPSocket::StartThreads(const std::string name, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount)
 {
     for (int i = 0; i < threadCount; i++) {
         // Creating exec processor for every thread to guarantee each thread will have its own sqliteConnection.
         // If unique sqliteConnection for each thread is not required, execProcessor can be shared between threads
-        auto execProcessor = std::make_shared<ExecutorSqlite>(selfDbConnection);
+        auto execProcessor = std::make_shared<ExecutorSqlite>();
         auto thread = std::make_shared<QueueEventLoopThread<std::unique_ptr<HTTPClosure>>>(queue, std::move(execProcessor));
         thread->Start(name);
         m_thread_http_workers.emplace_back(thread);
     }
 }
 
-void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
+void HTTPSocket::StartHTTPSocket(int threadCount)
 {
-    StartThreads("HTTPSocket::StartHTTPSocket", m_workQueue, threadCount, selfDbConnection);
+    StartThreads("HTTPSocket::StartHTTPSocket", m_workQueue, threadCount);
 }
 
 void HTTPSocket::StopHTTPSocket()
@@ -854,10 +853,10 @@ HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDept
 
 HTTPWebSocket::~HTTPWebSocket() = default;
 
-void HTTPWebSocket::StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection)
+void HTTPWebSocket::StartHTTPSocket(int threadCount, int threadPostCount)
 {
-    StartThreads("HTTPWebSocket::StartHTTPSocket (GET)", m_workQueue, threadCount, selfDbConnection);
-    StartThreads("HTTPWebSocket::StartHTTPSocket (POST)", m_workPostQueue, threadPostCount, selfDbConnection);
+    StartThreads("HTTPWebSocket::StartHTTPSocket (GET)", m_workQueue, threadCount);
+    StartThreads("HTTPWebSocket::StartHTTPSocket (POST)", m_workPostQueue, threadPostCount);
 }
 
 void HTTPWebSocket::StopHTTPSocket()

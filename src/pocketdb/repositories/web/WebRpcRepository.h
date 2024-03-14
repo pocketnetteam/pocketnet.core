@@ -53,7 +53,7 @@ namespace PocketDb
     class WebRpcRepository : public BaseRepository
     {
     public:
-        explicit WebRpcRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit WebRpcRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         UniValue GetAddressId(const string& address);
         UniValue GetAddressId(int64_t id);

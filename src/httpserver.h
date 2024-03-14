@@ -257,7 +257,7 @@ private:
     std::optional<SSLContext> m_sslCtx;
 
 protected:
-    void StartThreads(const std::string name, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection);
+    void StartThreads(const std::string name, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount);
 
 public:
     HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess, bool fUseTls = false);
@@ -273,7 +273,7 @@ public:
     std::vector<HTTPPathHandler> m_pathHandlers;
 
     /** Start worker threads to listen on bound http sockets */
-    void StartHTTPSocket(int threadCount, bool selfDbConnection);
+    void StartHTTPSocket(int threadCount);
     /** Stop worker threads on all bound http sockets */
     void StopHTTPSocket();
 
@@ -304,7 +304,7 @@ public:
 
     HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess, bool fUseTls = false);
     ~HTTPWebSocket();
-    void StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection);
+    void StartHTTPSocket(int threadCount, int threadPostCount);
     void StopHTTPSocket();
     void InterruptHTTPSocket();
 };

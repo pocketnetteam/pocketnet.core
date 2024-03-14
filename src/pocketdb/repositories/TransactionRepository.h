@@ -50,7 +50,7 @@ namespace PocketDb
     class TransactionRepository : public BaseRepository
     {
     public:
-        explicit TransactionRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit TransactionRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         //  Base transaction operations
         void InsertTransactions(PocketBlock& pocketBlock);

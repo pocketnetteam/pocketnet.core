@@ -37,7 +37,7 @@ namespace PocketServices
         sqliteDbInst->Init(dbBasePath, "main");
         sqliteDbInst->AttachDatabase("web");
 
-        webRepoInst = make_shared<WebRepository>(*sqliteDbInst);
+        webRepoInst = make_shared<WebRepository>(*sqliteDbInst, false);
 
         // Start worker infinity loop
         while (true)

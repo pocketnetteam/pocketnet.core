@@ -21,7 +21,7 @@ namespace PocketDb
     class ModerationRepository : public BaseRepository
     {
     public:
-        explicit ModerationRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit ModerationRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         void Init() override;
         void Destroy() override;

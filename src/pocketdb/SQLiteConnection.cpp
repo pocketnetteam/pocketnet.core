@@ -6,7 +6,7 @@
 
 namespace PocketDb
 {
-    SQLiteConnection::SQLiteConnection()
+    SQLiteConnection::SQLiteConnection(bool timeouted)
     {
         auto dbBasePath = (GetDataDir() / "pocketdb").string();
 
@@ -14,14 +14,14 @@ namespace PocketDb
         SQLiteDbInst->Init(dbBasePath, "main");
         SQLiteDbInst->AttachDatabase("web");
 
-        WebRpcRepoInst = make_shared<WebRpcRepository>(*SQLiteDbInst);
-        ExplorerRepoInst = make_shared<ExplorerRepository>(*SQLiteDbInst);
-        SearchRepoInst = make_shared<SearchRepository>(*SQLiteDbInst);
-        ModerationRepoInst = make_shared<ModerationRepository>(*SQLiteDbInst);
-        BarteronRepoInst = make_shared<BarteronRepository>(*SQLiteDbInst);
-        NotifierRepoInst = make_shared<NotifierRepository>(*SQLiteDbInst);
-        TransactionRepoInst = make_shared<TransactionRepository>(*SQLiteDbInst);
-        ConsensusRepoInst = make_shared<ConsensusRepository>(*SQLiteDbInst);
+        WebRpcRepoInst = make_shared<WebRpcRepository>(*SQLiteDbInst, true);
+        ExplorerRepoInst = make_shared<ExplorerRepository>(*SQLiteDbInst, true);
+        SearchRepoInst = make_shared<SearchRepository>(*SQLiteDbInst, true);
+        ModerationRepoInst = make_shared<ModerationRepository>(*SQLiteDbInst, true);
+        BarteronRepoInst = make_shared<BarteronRepository>(*SQLiteDbInst, true);
+        NotifierRepoInst = make_shared<NotifierRepository>(*SQLiteDbInst, true);
+        TransactionRepoInst = make_shared<TransactionRepository>(*SQLiteDbInst, true);
+        ConsensusRepoInst = make_shared<ConsensusRepository>(*SQLiteDbInst, true);
     }
 
     SQLiteConnection::~SQLiteConnection()

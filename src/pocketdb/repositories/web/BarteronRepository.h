@@ -57,7 +57,7 @@ namespace PocketDb
     class BarteronRepository : public BaseRepository
     {
     public:
-        explicit BarteronRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit BarteronRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         vector<string> GetAccountIds(const vector<string>& addresses);
         map<string, BarteronAccountAdditionalInfo> GetAccountsAdditionalInfo(const vector<string>& txids);
