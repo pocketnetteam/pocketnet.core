@@ -27,6 +27,7 @@ public:
     bool getIsStaking();
 
     uint64_t getLastCoinStakeSearchInterval();
+    uint64_t getLastCoinStakeSearchTime();
 
     void startWorkers(
         boost::thread_group& threadGroup,
