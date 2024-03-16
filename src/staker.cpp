@@ -275,8 +275,6 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
         return true;
     }
 
-    nLastCoinStakeSearchTime = GetAdjustedTime();
-
     CKey key;
     CMutableTransaction txCoinStake;
     CTransaction txNew;
