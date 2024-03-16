@@ -50,6 +50,11 @@ uint64_t Staker::getLastCoinStakeSearchInterval()
     return lastCoinStakeSearchInterval;
 }
 
+uint64_t Staker::getLastCoinStakeSearchTime()
+{
+    return nLastCoinStakeSearchTime;
+}
+
 void Staker::startWorkers(
     boost::thread_group& threadGroup,
     const util::Ref& context,
