@@ -187,13 +187,9 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                         blocktemplate->pocketBlock->emplace_back(ptx);
 
                     CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
-                    UninterruptibleSleep(std::chrono::milliseconds{minerSleep});
-                }
-                else
-                {
-                    m_interrupt.sleep_for(std::chrono::milliseconds{minerSleep});
                 }
             }
+            m_interrupt.sleep_for(std::chrono::milliseconds{minerSleep});
         }
     }
     catch (const std::runtime_error& e)
