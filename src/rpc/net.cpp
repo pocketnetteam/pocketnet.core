@@ -812,6 +812,8 @@ static RPCHelpMan getstakinginfo()
                             { RPCResult::Type::NUM, "currentblockweight", "Weight of the current block" },
                             { RPCResult::Type::NUM, "currentblocktx", "Tx of the current block" },
                             { RPCResult::Type::STR_AMOUNT, "difficulty", "Difficulty" },
+                            { RPCResult::Type::NUM, "search-interval", "Coinstake search interval" },
+                            { RPCResult::Type::STR, "search-time", "Coinstake search time" },
                             { RPCResult::Type::NUM, "weight", "nWeight" },
                             { RPCResult::Type::NUM, "netstakeweight", "Stake network weight" },
                             { RPCResult::Type::NUM, "expectedtime", "Expected time" }
@@ -848,6 +850,7 @@ static RPCHelpMan getstakinginfo()
 
     obj.pushKV("difficulty", GetPosDifficulty(GetLastBlockIndex(ChainActive().Tip(), true)));
     obj.pushKV("search-interval", Staker::getInstance()->getLastCoinStakeSearchInterval());
+    obj.pushKV("search-time", FormatISO8601DateTime(Staker::getInstance()->getLastCoinStakeSearchTime()));
 
     obj.pushKV("weight", (uint64_t)nWeight);
     obj.pushKV("balance", (uint64_t)nBalance);
