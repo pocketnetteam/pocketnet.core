@@ -4095,7 +4095,7 @@ bool PeerManager::MaybeDiscourageAndDisconnect(CNode& pnode)
     }
 
     // Normal case: Disconnect the peer and discourage all nodes sharing the address
-    LogPrintf("Disconnecting and discouraging peer %d!\n", peer_id);
+    LogPrintf("Disconnecting and discouraging peer=%d%s!\n", peer_id, (fLogIPs ? strprintf(", peeraddr=%s", pnode.addr.ToString()) : ""));
     if (m_banman) m_banman->Discourage(pnode.addr);
     m_connman.DisconnectNode(pnode.addr);
     return true;
