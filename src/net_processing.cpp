@@ -2162,7 +2162,7 @@ void PeerManager::ProcessHeadersMessage(CNode& pfrom, const std::vector<CBlockHe
                 // nMinimumChainWork, even if a peer has a chain past our tip,
                 // as an anti-DoS measure.
                 if (pfrom.IsOutboundOrBlockRelayConn()) {
-                    LogPrintf("Disconnecting outbound peer %d -- headers chain has insufficient work\n", pfrom.GetId());
+                    LogPrintf("Disconnecting outbound peer=%d%s -- headers chain has insufficient work\n", pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
                     pfrom.fDisconnect = true;
                 }
             }
@@ -2299,8 +2299,8 @@ static bool PrepareBlockFilterRequest(CNode& peer, const CChainParams& chain_par
         (filter_type == BlockFilterType::BASIC &&
          (peer.GetLocalServices() & NODE_COMPACT_FILTERS));
     if (!supported_filter_type) {
-        LogPrint(BCLog::NET, "peer %d requested unsupported block filter type: %d\n",
-                 peer.GetId(), static_cast<uint8_t>(filter_type));
+        LogPrint(BCLog::NET, "peer=%d%s requested unsupported block filter type: %d\n",
+                 peer.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", peer.addr.ToString()) : ""), static_cast<uint8_t>(filter_type));
         peer.fDisconnect = true;
         return false;
     }
@@ -2311,8 +2311,8 @@ static bool PrepareBlockFilterRequest(CNode& peer, const CChainParams& chain_par
 
         // Check that the stop block exists and the peer would be allowed to fetch it.
         if (!stop_index || !BlockRequestAllowed(stop_index, chain_params.GetConsensus())) {
-            LogPrint(BCLog::NET, "peer %d requested invalid block hash: %s\n",
-                     peer.GetId(), stop_hash.ToString());
+            LogPrint(BCLog::NET, "peer=%d%s requested invalid block hash: %s\n",
+                     peer.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", peer.addr.ToString()) : ""), stop_hash.ToString());
             peer.fDisconnect = true;
             return false;
         }
@@ -2320,15 +2320,15 @@ static bool PrepareBlockFilterRequest(CNode& peer, const CChainParams& chain_par
 
     uint32_t stop_height = stop_index->nHeight;
     if (start_height > stop_height) {
-        LogPrint(BCLog::NET, "peer %d sent invalid getcfilters/getcfheaders with " /* Continued */
+        LogPrint(BCLog::NET, "peer=%d%s sent invalid getcfilters/getcfheaders with " /* Continued */
                  "start height %d and stop height %d\n",
-                 peer.GetId(), start_height, stop_height);
+                 peer.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", peer.addr.ToString()) : ""), start_height, stop_height);
         peer.fDisconnect = true;
         return false;
     }
     if (stop_height - start_height >= max_height_diff) {
-        LogPrint(BCLog::NET, "peer %d requested too many cfilters/cfheaders: %d / %d\n",
-                 peer.GetId(), stop_height - start_height + 1, max_height_diff);
+        LogPrint(BCLog::NET, "peer=%d%s requested too many cfilters/cfheaders: %d / %d\n",
+                 peer.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", peer.addr.ToString()) : ""), stop_height - start_height + 1, max_height_diff);
         peer.fDisconnect = true;
         return false;
     }
@@ -2534,14 +2534,16 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         }
         if (pfrom.ExpectServicesFromConn() && !HasAllDesirableServiceFlags(nServices))
         {
-            LogPrint(BCLog::NET, "peer=%d does not offer the expected services (%08x offered, %08x expected); disconnecting\n", pfrom.GetId(), nServices, GetDesirableServiceFlags(nServices));
+            LogPrint(BCLog::NET, "peer=%d%s does not offer the expected services (%08x offered, %08x expected); disconnecting!\n",
+                     pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""), nServices, GetDesirableServiceFlags(nServices));
             pfrom.fDisconnect = true;
             return;
         }
 
         if (nVersion < MIN_PEER_PROTO_VERSION) {
             // disconnect from peers older than this proto version
-            LogPrint(BCLog::NET, "peer=%d using obsolete version %i; disconnecting\n", pfrom.GetId(), nVersion);
+            LogPrint((BCLog::LogFlags)(BCLog::NET|BCLog::CONSENSUS), "Peer=%d%s using obsolete version=%i; disconnecting!\n",
+                     pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""), nVersion);
             pfrom.fDisconnect = true;
             return;
         }
@@ -2554,7 +2556,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             cleanSubVer = SanitizeString(strSubVer);
         }
         if (gArgs.GetBoolArg("-disconnectold", DEFAULT_DISCONNECT_OLD) && DeformatSubVersion(cleanSubVer) < Params().Forks().GetLastAcceptedSubVersion(ChainActive().Height())) {
-            LogPrint(BCLog::NET, "peer=%d using outdated version %s and potentially could be forked %i; disconnecting\n", pfrom.GetId(), cleanSubVer);
+            LogPrint((BCLog::LogFlags)(BCLog::NET|BCLog::CONSENSUS), "Peer=%d%s using outdated version=%s and potentially could be forked; disconnecting!\n",
+                     pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""), cleanSubVer);
             m_banman->Ban(pfrom.addr, 60 * 60 * 24 /* 1 day */);
             pfrom.fDisconnect = true;
             return;
@@ -2728,10 +2731,14 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             // Mark this node as currently connected, so we update its timestamp later.
             LOCK(cs_main);
             State(pfrom.GetId())->fCurrentlyConnected = true;
-            LogPrintf("New outbound peer connected: version: %d, blocks=%d, peer=%d%s (%s)\n",
-                      pfrom.nVersion.load(), pfrom.nStartingHeight,
+            LogPrintf("New outbound peer connected: version=%s, blocks=%d, peer=%d%s (%s)\n",
+                      pfrom.cleanSubVer, pfrom.nStartingHeight,
                       pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""),
                       pfrom.m_tx_relay == nullptr ? "block-relay" : "full-relay");
+        } else {
+            LogPrint((BCLog::LogFlags)(BCLog::NET|BCLog::CONSENSUS), "New inbound peer connected: version=%s, blocks=%d, peer=%d%s\n",
+                      pfrom.cleanSubVer, pfrom.nStartingHeight,
+                      pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
         }
 
         if (pfrom.GetCommonVersion() >= SENDHEADERS_VERSION) {
@@ -2785,7 +2792,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     }
 
     if (!pfrom.fSuccessfullyConnected) {
-        LogPrint(BCLog::NET, "Unsupported message \"%s\" prior to verack from peer=%d\n", SanitizeString(msg_type), pfrom.GetId());
+        LogPrint(BCLog::NET, "Unsupported message \"%s\" prior to verack from peer=%d%s\n",
+                 SanitizeString(msg_type), pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
         return;
     }
 
@@ -2944,7 +2952,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
             if (inv.IsMsgBlk()) {
                 const bool fAlreadyHave = AlreadyHaveBlock(inv.hash);
-                LogPrint(BCLog::NET, "got inv: %s  %s peer=%d\n", inv.ToString(), fAlreadyHave ? "have" : "new", pfrom.GetId());
+                LogPrint(BCLog::NET, "got inv: %s  %s peer=%d%s\n", inv.ToString(), fAlreadyHave ? "have" : "new",
+                         pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
 
                 UpdateBlockAvailability(pfrom.GetId(), inv.hash);
                 if (!fAlreadyHave && !fImporting && !IsChainReindex() && !mapBlocksInFlight.count(inv.hash)) {
@@ -2958,24 +2967,28 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             } else if (inv.IsGenTxMsg()) {
                 const GenTxid gtxid = ToGenTxid(inv);
                 const bool fAlreadyHave = AlreadyHaveTx(gtxid, m_mempool);
-                LogPrint(BCLog::NET, "got inv: %s  %s peer=%d\n", inv.ToString(), fAlreadyHave ? "have" : "new", pfrom.GetId());
+                LogPrint(BCLog::NET, "got inv: %s  %s peer=%d%s\n", inv.ToString(), fAlreadyHave ? "have" : "new",
+                         pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
 
                 pfrom.AddKnownTx(inv.hash);
                 if (fBlocksOnly) {
-                    LogPrint(BCLog::NET, "transaction (%s) inv sent in violation of protocol, disconnecting peer=%d\n", inv.hash.ToString(), pfrom.GetId());
+                    LogPrint(BCLog::NET, "transaction (%s) inv sent in violation of protocol, disconnecting peer=%d%s\n", inv.hash.ToString(),
+                             pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
                     pfrom.fDisconnect = true;
                     return;
                 } else if (!fAlreadyHave && !m_chainman.ActiveChainstate().IsInitialBlockDownload()) {
                     AddTxAnnouncement(pfrom, gtxid, current_time);
                 }
             } else {
-                LogPrint(BCLog::NET, "Unknown inv type \"%s\" received from peer=%d\n", inv.ToString(), pfrom.GetId());
+                LogPrint(BCLog::NET, "Unknown inv type \"%s\" received from peer=%d%s\n", inv.ToString(),
+                         pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
             }
         }
 
         if (best_block != nullptr) {
             m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::GETHEADERS, ::ChainActive().GetLocator(pindexBestHeader), *best_block));
-            LogPrint(BCLog::NET, "getheaders (%d) %s to peer=%d\n", pindexBestHeader->nHeight, best_block->ToString(), pfrom.GetId());
+            LogPrint(BCLog::NET, "getheaders (%d) %s to peer=%d%s\n", pindexBestHeader->nHeight, best_block->ToString(),
+                     pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
         }
 
         return;
@@ -3094,7 +3107,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
             const CBlockIndex* pindex = LookupBlockIndex(req.blockhash);
             if (!pindex || !(pindex->nStatus & BLOCK_HAVE_DATA)) {
-                LogPrint(BCLog::NET, "Peer %d sent us a getblocktxn for a block we don't have\n", pfrom.GetId());
+                LogPrint(BCLog::NET, "Peer=%d%s sent us a getblocktxn for a block we don't have\n", pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
                 return;
             }
 
@@ -3115,7 +3128,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         // might maliciously send lots of getblocktxn requests to trigger
         // expensive disk reads, because it will require the peer to
         // actually receive all the data read from disk over the network.
-        LogPrint(BCLog::NET, "Peer %d sent us a getblocktxn for a block > %i deep\n", pfrom.GetId(), MAX_BLOCKTXN_DEPTH);
+        LogPrint(BCLog::NET, "Peer=%d%s sent us a getblocktxn for a block > %i deep\n",
+                 pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""), MAX_BLOCKTXN_DEPTH);
         CInv inv;
         WITH_LOCK(cs_main, inv.type = State(pfrom.GetId())->fWantsCmpctWitness ? MSG_WITNESS_BLOCK : MSG_BLOCK);
         inv.hash = req.blockhash;
@@ -3283,8 +3297,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
             pfrom.nLastTXTime = GetTime();
 
-            LogPrint(BCLog::MEMPOOL, "AcceptToMemoryPool: peer=%d: accepted %s (poolsz %u txn, %u kB)\n",
-                pfrom.GetId(),
+            LogPrint(BCLog::MEMPOOL, "AcceptToMemoryPool: peer=%d%s: accepted %s (poolsz %u txn, %u kB)\n",
+                pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""),
                 tx.GetHash().ToString(),
                 m_mempool.size(), m_mempool.DynamicMemoryUsage() / 1000);
 
@@ -3407,8 +3421,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         // regardless of false positives.
 
         if (state.IsInvalid()) {
-            LogPrint(BCLog::MEMPOOLREJ, "%s from peer=%d was not accepted: %s\n", tx.GetHash().ToString(),
-                pfrom.GetId(),
+            LogPrint(BCLog::MEMPOOLREJ, "%s from peer=%d%s was not accepted: %s\n", tx.GetHash().ToString(),
+                pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""),
                 state.ToString());
             MaybePunishNodeForTx(pfrom.GetId(), state);
         }
@@ -3419,7 +3433,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     {
         // Ignore cmpctblock received while importing
         if (fImporting || IsChainReindex()) {
-            LogPrint(BCLog::NET, "Unexpected cmpctblock message received from peer %d\n", pfrom.GetId());
+            LogPrint(BCLog::NET, "Unexpected cmpctblock message received from peer=%d%s\n",
+               pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
             return;
         }
 
@@ -3660,7 +3675,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     {
         // Ignore blocktxn received while importing
         if (fImporting || IsChainReindex()) {
-            LogPrint(BCLog::NET, "Unexpected blocktxn message received from peer %d\n", pfrom.GetId());
+            LogPrint(BCLog::NET, "Unexpected blocktxn message received from peer=%d%s\n",
+               pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
             return;
         }
 
@@ -3675,7 +3691,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             std::map<uint256, std::pair<NodeId, std::list<QueuedBlock>::iterator> >::iterator it = mapBlocksInFlight.find(resp.blockhash);
             if (it == mapBlocksInFlight.end() || !it->second.second->partialBlock ||
                     it->second.first != pfrom.GetId()) {
-                LogPrint(BCLog::NET, "Peer %d sent us block transactions for block we weren't expecting\n", pfrom.GetId());
+                LogPrint(BCLog::NET, "Peer=%d%s sent us block transactions for block we weren't expecting\n",
+                   pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
                 return;
             }
 
@@ -3746,7 +3763,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     {
         // Ignore headers received while importing
         if (fImporting || IsChainReindex()) {
-            LogPrint(BCLog::NET, "Unexpected headers message received from peer %d\n", pfrom.GetId());
+            LogPrint(BCLog::NET, "Unexpected headers message received from peer=%d%s\n",
+               pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
             return;
         }
 
@@ -3772,14 +3790,16 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     {
         // Ignore block received while importing
         if (fImporting || IsChainReindex()) {
-            LogPrint(BCLog::NET, "Unexpected block message received from peer %d\n", pfrom.GetId());
+            LogPrint(BCLog::NET, "Unexpected block message received from peer=%d%s\n",
+               pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
             return;
         }
 
         std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
         vRecv >> *pblock;
 
-        LogPrint(BCLog::NET, "received block %s peer=%d\n", pblock->GetHash().ToString(), pfrom.GetId());
+        LogPrint(BCLog::NET, "received block %s peer=%d%s\n",
+           pblock->GetHash().ToString(), pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
 
         bool forceProcessing = false;
         const uint256 hash(pblock->GetHash());
@@ -3817,14 +3837,16 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         // Making nodes which are behind NAT and can only make outgoing connections ignore
         // the getaddr message mitigates the attack.
         if (!pfrom.IsInboundConn()) {
-            LogPrint(BCLog::NET, "Ignoring \"getaddr\" from %s connection. peer=%d\n", pfrom.ConnectionTypeAsString(), pfrom.GetId());
+            LogPrint(BCLog::NET, "Ignoring \"getaddr\" from %s connection. peer=%d%s\n",
+               pfrom.ConnectionTypeAsString(), pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
             return;
         }
 
         // Only send one GetAddr response per connection to reduce resource waste
         //  and discourage addr stamping of INV announcements.
         if (pfrom.fSentAddr) {
-            LogPrint(BCLog::NET, "Ignoring repeated \"getaddr\". peer=%d\n", pfrom.GetId());
+            LogPrint(BCLog::NET, "Ignoring repeated \"getaddr\". peer=%d%s\n",
+               pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
             return;
         }
         pfrom.fSentAddr = true;
@@ -3848,7 +3870,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         {
             if (!pfrom.HasPermission(PF_NOBAN))
             {
-                LogPrint(BCLog::NET, "mempool request with bloom filters disabled, disconnect peer=%d\n", pfrom.GetId());
+                LogPrint(BCLog::NET, "mempool request with bloom filters disabled, disconnect peer=%d%s\n",
+                   pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
                 pfrom.fDisconnect = true;
             }
             return;
@@ -3858,7 +3881,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         {
             if (!pfrom.HasPermission(PF_NOBAN))
             {
-                LogPrint(BCLog::NET, "mempool request with bandwidth limit reached, disconnect peer=%d\n", pfrom.GetId());
+                LogPrint(BCLog::NET, "mempool request with bandwidth limit reached, disconnect peer=%d%s\n",
+                   pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
                 pfrom.fDisconnect = true;
             }
             return;
@@ -3934,8 +3958,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         }
 
         if (!(sProblem.empty())) {
-            LogPrint(BCLog::NET, "pong peer=%d: %s, %x expected, %x received, %u bytes\n",
-                pfrom.GetId(),
+            LogPrint(BCLog::NET, "pong peer=%d%s: %s, %x expected, %x received, %u bytes\n",
+                pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""),
                 sProblem,
                 pfrom.nPingNonceSent,
                 nonce,
@@ -4018,7 +4042,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
                 LOCK(pfrom.m_tx_relay->cs_feeFilter);
                 pfrom.m_tx_relay->minFeeFilter = newFeeFilter;
             }
-            LogPrint(BCLog::NET, "received: feefilter of %s from peer=%d\n", CFeeRate(newFeeFilter).ToString(), pfrom.GetId());
+            LogPrint(BCLog::NET, "received: feefilter of %s from peer=%d%s\n",
+               CFeeRate(newFeeFilter).ToString(), pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
         }
         return;
     }
@@ -4055,7 +4080,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     }
 
     // Ignore unknown commands for extensibility
-    LogPrint(BCLog::NET, "Unknown command \"%s\" from peer=%d\n", SanitizeString(msg_type), pfrom.GetId());
+    LogPrint(BCLog::NET, "Unknown command \"%s\" from peer=%d%s\n",
+       SanitizeString(msg_type), pfrom.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToString()) : ""));
     return;
 }
 
@@ -4076,26 +4102,26 @@ bool PeerManager::MaybeDiscourageAndDisconnect(CNode& pnode)
 
     if (pnode.HasPermission(PF_NOBAN)) {
         // We never disconnect or discourage peers for bad behavior if they have the NOBAN permission flag
-        LogPrintf("Warning: not punishing noban peer %d!\n", peer_id);
+        LogPrintf("Warning: not punishing noban peer=%d%s!\n", peer_id, (fLogIPs ? strprintf(", peeraddr=%s", pnode.addr.ToString()) : ""));
         return false;
     }
 
     if (pnode.IsManualConn()) {
         // We never disconnect or discourage manual peers for bad behavior
-        LogPrintf("Warning: not punishing manually connected peer %d!\n", peer_id);
+        LogPrintf("Warning: not punishing manually connected peer=%d%s!\n", peer_id, (fLogIPs ? strprintf(", peeraddr=%s", pnode.addr.ToString()) : ""));
         return false;
     }
 
     if (pnode.addr.IsLocal()) {
         // We disconnect local peers for bad behavior but don't discourage (since that would discourage
         // all peers on the same local address)
-        LogPrintf("Warning: disconnecting but not discouraging local peer %d!\n", peer_id);
+        LogPrintf("Warning: disconnecting but not discouraging local peer=%d%s!\n", peer_id, (fLogIPs ? strprintf(", peeraddr=%s", pnode.addr.ToString()) : ""));
         pnode.fDisconnect = true;
         return true;
     }
 
     // Normal case: Disconnect the peer and discourage all nodes sharing the address
-    LogPrintf("Disconnecting and discouraging peer=%d%s!\n", peer_id, (fLogIPs ? strprintf(", peeraddr=%s", pnode.addr.ToString()) : ""));
+    LogPrintf("Disconnecting and discouraging peer=%d%s, subver=%s!\n", peer_id, (fLogIPs ? strprintf(", peeraddr=%s", pnode.addr.ToString()) : ""), pnode.cleanSubVer);
     if (m_banman) m_banman->Discourage(pnode.addr);
     m_connman.DisconnectNode(pnode.addr);
     return true;
@@ -4210,11 +4236,16 @@ void PeerManager::ConsiderEviction(CNode& pto, int64_t time_in_seconds)
             // message to give the peer a chance to update us.
             if (state.m_chain_sync.m_sent_getheaders) {
                 // They've run out of time to catch up!
-                LogPrintf("Disconnecting outbound peer %d for old chain, best known block = %s\n", pto.GetId(), state.pindexBestKnownBlock != nullptr ? state.pindexBestKnownBlock->GetBlockHash().ToString() : "<none>");
+                LogPrintf("Disconnecting outbound peer=%d%s for old chain, best known block=%s\n",
+                   pto.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pto.addr.ToString()) : ""),
+                   state.pindexBestKnownBlock != nullptr ? state.pindexBestKnownBlock->GetBlockHash().ToString() : "<none>");
                 pto.fDisconnect = true;
             } else {
                 assert(state.m_chain_sync.m_work_header);
-                LogPrint(BCLog::NET, "sending getheaders to outbound peer=%d to verify chain work (current best known block:%s, benchmark blockhash: %s)\n", pto.GetId(), state.pindexBestKnownBlock != nullptr ? state.pindexBestKnownBlock->GetBlockHash().ToString() : "<none>", state.m_chain_sync.m_work_header->GetBlockHash().ToString());
+                LogPrint(BCLog::NET, "Sending getheaders to outbound peer=%d%s to verify chain work (current best known block:%s, benchmark blockhash: %s)\n",
+                   pto.GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pto.addr.ToString()) : ""),
+                   state.pindexBestKnownBlock != nullptr ? state.pindexBestKnownBlock->GetBlockHash().ToString() : "<none>",
+                   state.m_chain_sync.m_work_header->GetBlockHash().ToString());
                 m_connman.PushMessage(&pto, msgMaker.Make(NetMsgType::GETHEADERS, ::ChainActive().GetLocator(state.m_chain_sync.m_work_header->pprev), uint256()));
                 state.m_chain_sync.m_sent_getheaders = true;
                 constexpr int64_t HEADERS_RESPONSE_TIME = 120; // 2 minutes
@@ -4268,11 +4299,13 @@ void PeerManager::EvictExtraOutboundPeers(int64_t time_in_seconds)
                 // block from.
                 CNodeState &state = *State(pnode->GetId());
                 if (time_in_seconds - pnode->nTimeConnected > MINIMUM_CONNECT_TIME && state.nBlocksInFlight == 0) {
-                    LogPrint(BCLog::NET, "disconnecting extra outbound peer=%d (last block announcement received at time %d)\n", pnode->GetId(), oldest_block_announcement);
+                    LogPrint(BCLog::NET, "disconnecting extra outbound peer=%d%s (last block announcement received at time %d)\n",
+                       pnode->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pnode->addr.ToString()) : ""), oldest_block_announcement);
                     pnode->fDisconnect = true;
                     return true;
                 } else {
-                    LogPrint(BCLog::NET, "keeping outbound peer=%d chosen for eviction (connect time: %d, blocks_in_flight: %d)\n", pnode->GetId(), pnode->nTimeConnected, state.nBlocksInFlight);
+                    LogPrint(BCLog::NET, "keeping outbound peer=%d%s chosen for eviction (connect time: %d, blocks_in_flight: %d)\n",
+                       pnode->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pnode->addr.ToString()) : ""), pnode->nTimeConnected, state.nBlocksInFlight);
                     return false;
                 }
             });
@@ -4448,7 +4481,8 @@ bool PeerManager::SendMessages(CNode* pto)
                    got back an empty response.  */
                 if (pindexStart->pprev)
                     pindexStart = pindexStart->pprev;
-                LogPrint(BCLog::NET, "initial getheaders (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
+                LogPrint(BCLog::NET, "initial getheaders (%d) to peer=%d%s (startheight:%d)\n",
+                    pindexStart->nHeight, pto->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pto->addr.ToString()) : ""), pto->nStartingHeight);
                 m_connman.PushMessage(pto, msgMaker.Make(NetMsgType::GETHEADERS, ::ChainActive().GetLocator(pindexStart), uint256()));
             }
         }
@@ -4768,7 +4802,8 @@ bool PeerManager::SendMessages(CNode* pto)
             // Stalling only triggers when the block download window cannot move. During normal steady state,
             // the download window should be much larger than the to-be-downloaded set of blocks, so disconnection
             // should only happen during initial block download.
-            LogPrintf("Peer=%d is stalling block download, disconnecting\n", pto->GetId());
+            LogPrintf("Peer=%d%s is stalling block download, disconnecting\n",
+               pto->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pto->addr.ToString()) : ""));
             pto->fDisconnect = true;
             return true;
         }
@@ -4781,7 +4816,8 @@ bool PeerManager::SendMessages(CNode* pto)
             QueuedBlock &queuedBlock = state.vBlocksInFlight.front();
             int nOtherPeersWithValidatedDownloads = nPeersWithValidatedDownloads - (state.nBlocksInFlightValidHeaders > 0);
             if (count_microseconds(current_time) > state.nDownloadingSince + consensusParams.nPowTargetSpacing * (BLOCK_DOWNLOAD_TIMEOUT_BASE + BLOCK_DOWNLOAD_TIMEOUT_PER_PEER * nOtherPeersWithValidatedDownloads)) {
-                LogPrintf("Timeout downloading block %s from peer=%d, disconnecting\n", queuedBlock.hash.ToString(), pto->GetId());
+                LogPrintf("Timeout downloading block %s from peer=%d%s, disconnecting\n",
+                   queuedBlock.hash.ToString(), pto->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pto->addr.ToString()) : ""));
                 pto->fDisconnect = true;
                 return true;
             }
@@ -4797,11 +4833,11 @@ bool PeerManager::SendMessages(CNode* pto)
                     // disconnect our sync peer for stalling; we have bigger
                     // problems if we can't get any outbound peers.
                     if (!pto->HasPermission(PF_NOBAN)) {
-                        LogPrintf("Timeout downloading headers from peer=%d, disconnecting\n", pto->GetId());
+                        LogPrintf("Timeout downloading headers from peer=%d%s, disconnecting\n", pto->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pto->addr.ToString()) : ""));
                         pto->fDisconnect = true;
                         return true;
                     } else {
-                        LogPrintf("Timeout downloading headers from noban peer=%d, not disconnecting\n", pto->GetId());
+                        LogPrintf("Timeout downloading headers from noban peer=%d%s, not disconnecting\n", pto->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pto->addr.ToString()) : ""));
                         // Reset the headers sync state so that we have a
                         // chance to try downloading from a different peer.
                         // Note: this will also result in at least one more
