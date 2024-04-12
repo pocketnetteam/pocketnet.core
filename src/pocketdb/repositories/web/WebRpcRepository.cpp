@@ -2910,33 +2910,40 @@ namespace PocketDb
                                 Registry
                             where
                                 String = ?
+                        ),
+                        txs as (
+                            select
+                                ifnull(t.Type, 0) as type,
+                                ifnull(o.Value, 0) as amount
+                            from
+                                addr
+                            cross join
+                                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
+                                    o.AddressId = addr.id
+                            cross join
+                                Chain c on
+                                    c.TxId = o.TxId and
+                                    c.Height <= ? and
+                                    c.Height >= ?
+                            cross join
+                                Transactions t on
+                                    t.RowId = c.TxId
+                            cross join
+                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId on
+                                    i.SpentTxId = o.TxId
+                            cross join
+                                TxOutputs oi indexed by TxOutputs_TxId_Number_AddressId on
+                                    oi.TxId = i.TxId and
+                                    oi.Number = i.Number and
+                                    oi.AddressId != o.AddressId
+                            group by o.TxId, t.Type
                         )
                     select
-                        addr.hash,
-                        ifnull(t.Type, 0) as type,
-                        sum(ifnull(o.Value, 0)) as amount
-                    from
-                        addr
-                    cross join
-                        TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number on
-                            o.AddressId = addr.id
-                    cross join
-                        Chain c on
-                            c.TxId = o.TxId and
-                            c.Height <= ? and
-                            c.Height >= ?
-                    cross join
-                        Transactions t on
-                            t.RowId = c.TxId
-                    cross join
-                        TxInputs i indexed by TxInputs_SpentTxId_Number_TxId on
-                            i.SpentTxId = o.TxId
-                    cross join
-                        TxOutputs oi indexed by TxOutputs_TxId_Number_AddressId on
-                            oi.TxId = i.TxId and
-                            oi.Number = i.Number and
-                            oi.AddressId != o.AddressId
-                    group by t.Type
+                        txs.type,
+                        sum(txs.amount) as amount
+                    from txs
+                    group by
+                        txs.type
                 )sql")
                 .Bind(address, height, height - depth);
             },
@@ -2949,9 +2956,9 @@ namespace PocketDb
                     while (cursor.Step())
                     {
                         int64_t amount = 0;
-                        if (auto[ok, type] = cursor.TryGetColumnInt(1); ok)
+                        if (auto[ok, type] = cursor.TryGetColumnInt(0); ok)
                         {
-                            if (auto[ok, value] = cursor.TryGetColumnInt64(2); ok) amount = value;
+                            if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) amount = value;
 
                             switch (type) {
                                 case 1:
@@ -4956,8 +4963,7 @@ namespace PocketDb
                 
                 stmt.Bind(
                     txidsExcluded,
-                    addrsExcluded,
-                    address
+                    addrsExcluded
                 );
 
                 if (!tagsIncluded.empty())

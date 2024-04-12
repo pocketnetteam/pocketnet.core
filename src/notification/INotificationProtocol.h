@@ -26,7 +26,7 @@ public:
      * @return true - if message successfully parsed and requested action was performed. Returns true even if it is resubscription of existed subscribr
      * @return false - if message is in unexpected format
      */
-    virtual bool ProcessMessage(const UniValue& msg, std::shared_ptr<IConnection> connection, const std::string& id) = 0;
+    virtual bool ProcessMessage(const std::string& msg, std::shared_ptr<IConnection> connection, const std::string& id) = 0;
 
     /**
      * Force deleting the connection from notification without unsubscribe message.

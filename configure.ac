@@ -1,7 +1,7 @@
 AC_PREREQ([2.69])
 define(_CLIENT_VERSION_MAJOR, 0)
 define(_CLIENT_VERSION_MINOR, 22)
-define(_CLIENT_VERSION_REVISION, 3)
+define(_CLIENT_VERSION_REVISION, 4)
 define(_CLIENT_VERSION_BUILD, 0)
 define(_CLIENT_VERSION_RC, 0)
 define(_CLIENT_VERSION_IS_RELEASE, true)
@@ -1791,6 +1791,7 @@ case ${OS} in
      mv test/config-2.ini test/config.ini
    ;;
 esac
+
 echo
 echo "Options used to compile and link:"
 echo "  boost process = $ax_cv_boost_process"

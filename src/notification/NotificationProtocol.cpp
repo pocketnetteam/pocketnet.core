@@ -10,40 +10,50 @@ notifications::NotificationProtocol::NotificationProtocol(std::shared_ptr<Notify
     : m_clients(std::move(clients))
 {}
 
-bool notifications::NotificationProtocol::ProcessMessage(const UniValue& msg, std::shared_ptr<IConnection> connection, const std::string& id)
+// TODO (losty-nat) : split ProcessMessage for string/UniValue msg
+bool notifications::NotificationProtocol::ProcessMessage(const std::string& msg, std::shared_ptr<IConnection> connection, const std::string& id)
 {
-    std::vector<std::string> keys = msg.getKeys();
-    if (std::find(keys.begin(), keys.end(), "addr") != keys.end())
+    UniValue val;
+
+    if (msg == "0") // Ping/Pong
     {
-        std::string _addr = msg["addr"].get_str();
-
-        int block = ChainActive().Height();
-        if (std::find(keys.begin(), keys.end(), "block") != keys.end()) block = msg["block"].get_int();
-
-        std::string ip = connection->GetRemoteEndpointAddress();
-        bool service = std::find(keys.begin(), keys.end(), "service") != keys.end();
-
-        int mainPort = 8899;
-        if (std::find(keys.begin(), keys.end(), "mainport") != keys.end())
-            mainPort = msg["mainport"].get_int();
-
-        int wssPort = 8099;
-        if (std::find(keys.begin(), keys.end(), "wssport") != keys.end())
-            wssPort = msg["wssport"].get_int();
-
-        if (std::find(keys.begin(), keys.end(), "nonce") != keys.end())
+        connection->Send("1");
+    }
+    else if (val.read(msg)) // Messages with data
+    {
+        std::vector<std::string> keys = val.getKeys();
+        if (std::find(keys.begin(), keys.end(), "addr") != keys.end())
         {
-            NotificationClient wsUser = {std::weak_ptr(connection), _addr, block, ip, service, mainPort, wssPort};
-            m_clients->insert_or_assign(id, wsUser);
-        } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
-        {
-            if (msg["msg"].get_str() == "unsubscribe")
+            std::string _addr = val["addr"].get_str();
+
+            int block = ChainActive().Height();
+            if (std::find(keys.begin(), keys.end(), "block") != keys.end()) block = val["block"].get_int();
+
+            std::string ip = connection->GetRemoteEndpointAddress();
+            bool service = std::find(keys.begin(), keys.end(), "service") != keys.end();
+
+            int mainPort = 8899;
+            if (std::find(keys.begin(), keys.end(), "mainport") != keys.end())
+                mainPort = val["mainport"].get_int();
+
+            int wssPort = 8099;
+            if (std::find(keys.begin(), keys.end(), "wssport") != keys.end())
+                wssPort = val["wssport"].get_int();
+
+            if (std::find(keys.begin(), keys.end(), "nonce") != keys.end())
             {
-                m_clients->erase(id);
+                NotificationClient wsUser = {std::weak_ptr(connection), _addr, block, ip, service, mainPort, wssPort};
+                m_clients->insert_or_assign(id, wsUser);
+            } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
+            {
+                if (val["msg"].get_str() == "unsubscribe")
+                {
+                    m_clients->erase(id);
+                }
             }
-        }
 
-        return true;
+            return true;
+        }
     }
 
     return false;

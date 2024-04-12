@@ -239,13 +239,11 @@ static bool HTTPBindAddresses()
             g_socket->BindAddress("127.0.0.1", securePort);
             if (gArgs.IsArgSet("-rpcallowip"))
             {
-                LogPrintf(
-                    "WARNING: option -rpcallowip was specified without -rpcbind; this doesn't usually make sense\n");
+                LogPrintf("WARNING: option -rpcallowip was specified without -rpcbind; this doesn't usually make sense\n");
             }
             if (gArgs.IsArgSet("-rpcbind"))
             {
-                LogPrintf(
-                    "WARNING: option -rpcbind was ignored because -rpcallowip was not specified, refusing to allow everyone to connect\n");
+                LogPrintf("WARNING: option -rpcbind was ignored because -rpcallowip was not specified, refusing to allow everyone to connect\n");
             }
         }
         else if (gArgs.IsArgSet("-rpcbind"))
@@ -338,7 +336,7 @@ bool InitHTTPServer(const util::Ref& context, const std::shared_ptr<IRequestProc
         g_webSocket = new HTTPWebSocket(eventBase, timeout, true);
         g_webSocket->RegisterRequestProcessor(webHandler);
         g_webSocketHttps = new HTTPWebSocket(eventBase, timeout, true, /* tls */ true);
-        // TODO (losty-merge): register request processor?
+        // TODO (losty-nat): register request processor?
     }
 
     if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE))

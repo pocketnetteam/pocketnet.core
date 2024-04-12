@@ -158,6 +158,7 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::QT, "qt"},
     {BCLog::LEVELDB, "leveldb"},
     {BCLog::VALIDATION, "validation"},
+    {BCLog::STAKEMODIF, "stakemodif"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
     {BCLog::SYNC, "sync"},
@@ -166,7 +167,8 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::WALLET, "wallet"},
     {BCLog::SQLBENCH, "sqlbench"},
     {BCLog::RPCERROR, "rpcerror"},
-    {BCLog::MIGRATION, "migration"}
+    {BCLog::MIGRATION, "migration"},
+    {BCLog::WARN, "warn"},    
 };
 
 bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str)

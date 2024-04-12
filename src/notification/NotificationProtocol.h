@@ -19,7 +19,7 @@ class NotificationProtocol : public INotificationProtocol
 {
 public:
     explicit NotificationProtocol(std::shared_ptr<NotifyableStorage> clients);
-    bool ProcessMessage(const UniValue& msg, std::shared_ptr<IConnection> connection, const std::string& id) override;
+    bool ProcessMessage(const std::string& msg, std::shared_ptr<IConnection> connection, const std::string& id) override;
 
     void forceDelete(const std::string& id) override;
 

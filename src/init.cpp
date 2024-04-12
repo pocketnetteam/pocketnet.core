@@ -112,10 +112,10 @@ Statistic::RequestStatEngine gStatEngineInstance;
 
 std::unique_ptr<notifications::INotifications> notificationProcessor = notifications::NotificationsFactory().NewNotifications();;
 
-// TODO (losty-rpc): fixup
+// TODO (losty-nat): fixup
 RPC g_rpc;
 Rest g_rest;
-// TODO (losty-rtc): fixup
+// TODO (losty-nat): fixup
 std::unique_ptr<webrtc::IWebRTC> g_webrtc;
 webrtc::signaling::SignalingServer g_signaling;
 
@@ -208,7 +208,7 @@ void ShutdownPocketServices()
 
 void Interrupt(NodeContext& node)
 {
-    // TODO (losty-rtc): interrupt webrtc.
+    // TODO (losty-nat): interrupt webrtc.
     InterruptHTTPServer();
     g_rpc.InterruptHTTPRPC();
     InterruptRPC();
@@ -1019,8 +1019,8 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
     }
     g_webrtc = webrtc::WebRTCFactory().InitNewWebRTC(args.GetBoolArg("-webrtc", true), g_rpc.GetWebRequestProcessor(), notificationProcessor->GetProtocol(), args.GetArg("-webrtcport", 13131));
     g_webrtc->Start();
-    // TODO (losty-rtc): hardcoded. Should be moved somewhere to net_processing on new peers
-    // TODO (losty): allow disable signaling
+    // TODO (losty-nat): hardcoded. Should be moved somewhere to net_processing on new peers
+    // TODO (losty-nat): allow disable signaling
     g_signaling.Init("^/signaling/?$", args.GetArg("-webrtcport", 13131));
     g_signaling.Start();
     StartHTTPServer();

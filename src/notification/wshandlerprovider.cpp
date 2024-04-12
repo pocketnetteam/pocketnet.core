@@ -15,17 +15,14 @@ std::function<void(std::shared_ptr<SimpleWeb::IWSConnection>, std::shared_ptr<Si
         std::shared_ptr<SimpleWeb::InMessage> in_message)
     {
         auto out_message = in_message->string();
-        UniValue val;
-        if (val.read(out_message))
+
+        try
         {
-            try
-            {
-                notificationProcessor->GetProtocol()->ProcessMessage(val, std::make_shared<WSConnection>(connection), connection->ID());
-            }
-            catch (const std::exception &e)
-            {
-                LogPrintf("Warning: ws.on_message - %s\n", e.what());
-            }
+            notificationProcessor->GetProtocol()->ProcessMessage(out_message, std::make_shared<WSConnection>(connection), connection->ID());
+        }
+        catch (const std::exception &e)
+        {
+            LogPrintf("Warning: ws.on_message - %s\n", e.what());
         }
     };
 }

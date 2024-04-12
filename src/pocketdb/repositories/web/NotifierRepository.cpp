@@ -2693,7 +2693,7 @@ namespace PocketDb
                             sf.RowId = f.RowId
 
                         cross join Jury j
-                            on j.FlagRowId = f.ROWID
+                            on j.FlagRowId = f.RowId
 
                         cross join Chain cu on
                             cu.Uid = j.AccountId and

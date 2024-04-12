@@ -27,7 +27,7 @@ class WorkItemExecutor : public IQueueProcessor<std::unique_ptr<IWorkItem>>
 public:
     void Process(std::unique_ptr<IWorkItem> entry) override;
 private:
-    DbConnectionRef m_sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
+    DbConnectionRef m_sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>(false);
 };
 
 #endif // POCKETCOIN_RPCPROCESSOR_H

@@ -21,7 +21,7 @@ namespace PocketDb
     class MigrationRepository : public BaseRepository
     {
     public:
-        explicit MigrationRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit MigrationRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         bool NeedMigrate0_22();
         void Migrate0_21__0_22();

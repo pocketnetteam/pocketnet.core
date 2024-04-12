@@ -12,10 +12,10 @@
 notifications::NotifyBlockProcessor::NotifyBlockProcessor(std::shared_ptr<NotifyableStorage> clients) 
     : m_clients(std::move(clients))
 {
-     auto dbBasePath = (GetDataDir() / "pocketdb").string();
+    auto dbBasePath = (GetDataDir() / "pocketdb").string();
     sqliteDbInst = make_shared<SQLiteDatabase>(true);
     sqliteDbInst->Init(dbBasePath, "main");
-    notifierRepoInst = make_shared<NotifierRepository>(*sqliteDbInst);
+    notifierRepoInst = make_shared<NotifierRepository>(*sqliteDbInst, false);
 }
 
 notifications::NotifyBlockProcessor::~NotifyBlockProcessor()
@@ -79,100 +79,107 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
         // Get all addresses from tx outs and check OP_RETURN
         for (size_t i = 0; i < tx->vout.size(); i++) {
             const CTxOut& txout = tx->vout[i];
-            //-------------------------
-            if (txout.scriptPubKey[0] == OP_RETURN) {
-                std::string asmstr = ScriptToAsmStr(txout.scriptPubKey);
-                std::vector<std::string> spl;
-                boost::split(spl, asmstr, boost::is_any_of("\t "));
-                if (spl.size() >= 3) {
-                    if (spl[1] == OR_POST) {
-                        optype = "share";
-                        sharesCnt += 1;
+            
+            try
+            {
+                if (txout.scriptPubKey[0] == OP_RETURN) {
+                    std::string asmstr = ScriptToAsmStr(txout.scriptPubKey);
+                    std::vector<std::string> spl;
+                    boost::split(spl, asmstr, boost::is_any_of("\t "));
+                    if (spl.size() >= 3) {
+                        if (spl[1] == OR_POST) {
+                            optype = "share";
+                            sharesCnt += 1;
 
-                        auto response = notifierRepoInst->GetPostLang(txid);
+                            auto response = notifierRepoInst->GetPostLang(txid);
 
-                        if (response.exists("lang"))
-                        {
-                            std::string lang = response["lang"].get_str();
+                            if (response.exists("lang"))
+                            {
+                                std::string lang = response["lang"].get_str();
 
-                            contentLangCnt[OR_POST][lang] += 1;
+                                contentLangCnt[OR_POST][lang] += 1;
+                            }
                         }
-                    }
-                    else if (spl[1] == OR_VIDEO) {
-                        optype = "video";
-                        sharesCnt += 1;
+                        else if (spl[1] == OR_VIDEO) {
+                            optype = "video";
+                            sharesCnt += 1;
 
-                        auto response = notifierRepoInst->GetPostLang(txid);
+                            auto response = notifierRepoInst->GetPostLang(txid);
 
-                        if (response.exists("lang"))
-                        {
-                            std::string lang = response["lang"].get_str();
+                            if (response.exists("lang"))
+                            {
+                                std::string lang = response["lang"].get_str();
 
-                            contentLangCnt[OR_VIDEO][lang] += 1;
+                                contentLangCnt[OR_VIDEO][lang] += 1;
+                            }
                         }
-                    }
-                    else if (spl[1] == OR_ARTICLE) {
-                        optype = "article";
-                        sharesCnt += 1;
+                        else if (spl[1] == OR_ARTICLE) {
+                            optype = "article";
+                            sharesCnt += 1;
 
-                        auto response = notifierRepoInst->GetPostLang(txid);
+                            auto response = notifierRepoInst->GetPostLang(txid);
 
-                        if (response.exists("lang"))
-                        {
-                            std::string lang = response["lang"].get_str();
+                            if (response.exists("lang"))
+                            {
+                                std::string lang = response["lang"].get_str();
 
-                            contentLangCnt[OR_ARTICLE][lang] += 1;
+                                contentLangCnt[OR_ARTICLE][lang] += 1;
+                            }
                         }
-                    }
-                    else if (spl[1] == OR_STREAM) {
-                        optype = "stream";
-                        sharesCnt += 1;
+                        else if (spl[1] == OR_STREAM) {
+                            optype = "stream";
+                            sharesCnt += 1;
 
-                        auto response = notifierRepoInst->GetPostLang(txid);
+                            auto response = notifierRepoInst->GetPostLang(txid);
 
-                        if (response.exists("lang"))
-                        {
-                            std::string lang = response["lang"].get_str();
+                            if (response.exists("lang"))
+                            {
+                                std::string lang = response["lang"].get_str();
 
-                            contentLangCnt[OR_STREAM][lang] += 1;
+                                contentLangCnt[OR_STREAM][lang] += 1;
+                            }
                         }
-                    }
-                    else if (spl[1] == OR_AUDIO) {
-                        optype = "audio";
-                        sharesCnt += 1;
+                        else if (spl[1] == OR_AUDIO) {
+                            optype = "audio";
+                            sharesCnt += 1;
 
-                        auto response = notifierRepoInst->GetPostLang(txid);
+                            auto response = notifierRepoInst->GetPostLang(txid);
 
-                        if (response.exists("lang"))
-                        {
-                            std::string lang = response["lang"].get_str();
+                            if (response.exists("lang"))
+                            {
+                                std::string lang = response["lang"].get_str();
 
-                            contentLangCnt[OR_AUDIO][lang] += 1;
+                                contentLangCnt[OR_AUDIO][lang] += 1;
+                            }
                         }
+                        else if (spl[1] == OR_CONTENT_BOOST)
+                            optype = "contentBoost";
+                        else if (spl[1] == OR_SCORE)
+                            optype = "upvoteShare";
+                        else if (spl[1] == OR_SUBSCRIBE)
+                            optype = "subscribe";
+                        else if (spl[1] == OR_SUBSCRIBEPRIVATE)
+                            optype = "subscribePrivate";
+                        else if (spl[1] == OR_USERINFO)
+                            optype = "userInfo";
+                        else if (spl[1] == OR_UNSUBSCRIBE)
+                            optype = "unsubscribe";
+                        else if (spl[1] == OR_COMMENT_SCORE)
+                            optype = "cScore";
+                        else if (spl[1] == OR_COMMENT)
+                            optype = "comment";
+                        else if (spl[1] == OR_COMMENT_EDIT)
+                            optype = "commentEdit";
+                        else if (spl[1] == OR_COMMENT_DELETE)
+                            optype = "commentDelete";
                     }
-                    else if (spl[1] == OR_CONTENT_BOOST)
-                        optype = "contentBoost";
-                    else if (spl[1] == OR_SCORE)
-                        optype = "upvoteShare";
-                    else if (spl[1] == OR_SUBSCRIBE)
-                        optype = "subscribe";
-                    else if (spl[1] == OR_SUBSCRIBEPRIVATE)
-                        optype = "subscribePrivate";
-                    else if (spl[1] == OR_USERINFO)
-                        optype = "userInfo";
-                    else if (spl[1] == OR_UNSUBSCRIBE)
-                        optype = "unsubscribe";
-                    else if (spl[1] == OR_COMMENT_SCORE)
-                        optype = "cScore";
-                    else if (spl[1] == OR_COMMENT)
-                        optype = "comment";
-                    else if (spl[1] == OR_COMMENT_EDIT)
-                        optype = "commentEdit";
-                    else if (spl[1] == OR_COMMENT_DELETE)
-                        optype = "commentDelete";
                 }
             }
-            //-------------------------
+            catch (const UniValue& e)
+            {
+                LogPrint(BCLog::WARN, "Exception %s\n", e.write());
+            }
+
             CTxDestination destAddress;
             bool fValidAddress = ExtractDestination(txout.scriptPubKey, destAddress);
             if (fValidAddress) {
@@ -200,31 +207,23 @@ void notifications::NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*
                 if (response.exists("hash") && response.exists("rootHash") && response["hash"].get_str() != response["rootHash"].get_str())
                     continue;
 
-                // TODO: Notification from POCKETNET_TEAM
-                // if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
-                // {
-                //     txidpocketnet += txid + ",";
-                // }
-                // else
-                // {
-                    auto repostResponse = notifierRepoInst->GetOriginalPostAddressByRepost(txid);
-                    if (repostResponse.exists("hash"))
+                auto repostResponse = notifierRepoInst->GetOriginalPostAddressByRepost(txid);
+                if (repostResponse.exists("hash"))
+                {
+                    std::string address = repostResponse["address"].get_str();
+
+                    custom_fields cFields
                     {
-                        std::string address = repostResponse["address"].get_str();
+                        {"mesType",    "reshare"},
+                        {"txidRepost", repostResponse["hash"].get_str()},
+                        {"addrFrom",   repostResponse["addressRepost"].get_str()},
+                        {"nameFrom",   repostResponse["nameRepost"].get_str()}
+                    };
+                    if (repostResponse.exists("avatarRepost"))
+                        cFields.emplace("avatarFrom",repostResponse["avatarRepost"].get_str());
 
-                        custom_fields cFields
-                        {
-                            {"mesType",    "reshare"},
-                            {"txidRepost", repostResponse["hash"].get_str()},
-                            {"addrFrom",   repostResponse["addressRepost"].get_str()},
-                            {"nameFrom",   repostResponse["nameRepost"].get_str()}
-                        };
-                        if (repostResponse.exists("avatarRepost"))
-                            cFields.emplace("avatarFrom",repostResponse["avatarRepost"].get_str());
-
-                        PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
-                    }
-                // } // TODO: Notification from POCKETNET_TEAM
+                    PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
+                }
 
                 auto subscribesResponse = notifierRepoInst->GetPrivateSubscribeAddressesByAddressTo(addr.first);
                 for (size_t i = 0; i < subscribesResponse.size(); ++i)

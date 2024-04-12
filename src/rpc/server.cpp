@@ -233,7 +233,8 @@ static UniValue JSONRPCExecOne(JSONRPCRequest jreq, const UniValue& req, const C
 {
     UniValue rpc_result(UniValue::VOBJ);
 
-    try {
+    try
+    {
         jreq.parse(req);
 
         UniValue result = tableRPC.execute(jreq);
@@ -245,8 +246,7 @@ static UniValue JSONRPCExecOne(JSONRPCRequest jreq, const UniValue& req, const C
     }
     catch (const std::exception& e)
     {
-        rpc_result = JSONRPCReplyObj(NullUniValue,
-                                     JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
+        rpc_result = JSONRPCReplyObj(NullUniValue, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
     }
 
     return rpc_result;
@@ -338,6 +338,7 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
             }
         }
     }
+
     throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
 }
 
@@ -350,29 +351,17 @@ static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& req
     UniValue tmpRes = cache->GetRpcCache(request);
     if (tmpRes.isNull())
     {
-        try
-        {
-            RPCCommandExecution execution(request.strMethod);
-            // Execute, convert arguments to array if necessary
-            if (request.params.isObject()) {
-                ret = command.actor(transformNamedArguments(request, command.argNames), tmpRes, last_handler);
-            } else {
-                ret = command.actor(request, tmpRes, last_handler);
-            }
+        RPCCommandExecution execution(request.strMethod);
+        // Execute, convert arguments to array if necessary
+        if (request.params.isObject()) {
+            ret = command.actor(transformNamedArguments(request, command.argNames), tmpRes, last_handler);
+        } else {
+            ret = command.actor(request, tmpRes, last_handler);
+        }
 
-            // Save return value in cache for later
-            if (ret)
-                cache->PutRpcCache(request, tmpRes);
-        }
-        catch (const UniValue& objError)
-        {
-            LogPrint(BCLog::RPCERROR, "Exception %s\n", objError.write());
-            throw JSONRPCError(RPC_MISC_ERROR, objError.write());
-        }
-        catch (const std::exception& e)
-        {
-            throw JSONRPCError(RPC_MISC_ERROR, e.what());
-        }
+        // Save return value in cache for later
+        if (ret)
+            cache->PutRpcCache(request, tmpRes);
     }
     
     auto stop = gStatEngineInstance.GetCurrentSystemTime();

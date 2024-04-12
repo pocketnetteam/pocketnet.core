@@ -35,6 +35,7 @@ namespace PocketDb
 
     protected:
         SQLiteDatabase& m_database;
+        bool m_timeouted;
 
         string EscapeValue(string value);
 
@@ -48,7 +49,6 @@ namespace PocketDb
 
         // General method for SQL operations
         // Locked with shutdownMutex
-        // Timeouted for ReadOnly connections
         template<typename T>
         void SqlTransaction(const string& func, T execute)
         {
@@ -59,28 +59,7 @@ namespace PocketDb
                 if (!m_database.BeginTransaction())
                     throw JSONError(500, strprintf("%s: can't begin transaction\n", func));
 
-                // We are running SQL logic with timeout only for read-only connections
-                if (m_database.IsReadOnly())
-                {
-                    auto timeoutValue = chrono::seconds(gArgs.GetArg("-sqltimeout", 10));
-                    run_with_timeout(
-                        [&]()
-                        {
-                            execute();
-                        },
-                        timeoutValue,
-                        [&]()
-                        {
-                            m_database.InterruptQuery();
-                            LogPrintf("Function `%s` failed with execute timeout\n", func);
-                            throw JSONError(408, "Sql request timeout");
-                        }
-                    );
-                }
-                else
-                {
-                    execute();
-                }
+                execute();
                 
                 if (!m_database.CommitTransaction())
                     throw JSONError(500, strprintf("%s: can't commit transaction\n", func));
@@ -89,6 +68,11 @@ namespace PocketDb
 
                 BenchLog(func, 0.001 * (nTime2 - nTime1));
             }
+            catch (const UniValue& objError)
+            {
+                m_database.AbortTransaction();
+                throw JSONError(500, objError.write());
+            }
             catch (const exception& ex)
             {
                 m_database.AbortTransaction();
@@ -96,6 +80,9 @@ namespace PocketDb
             }
         }
 
+        // General method for SQL operations with splitted prepare and excute parts
+        // Locked with shutdownMutex
+        // Timeouted for ReadOnly connections
         void SqlTransaction(const string& func, const function<Stmt&()>& prepare, const function<void(Stmt&)>& execute, bool logForce = false)
         {
             try
@@ -113,7 +100,7 @@ namespace PocketDb
                     LogPrintf("Debug logging sql query for `%s`:\n%s\n", func, stmt.Log());
 
                 // We are running SQL logic with timeout only for read-only connections
-                if (m_database.IsReadOnly())
+                if (m_timeouted)
                 {
                     auto timeoutValue = chrono::seconds(gArgs.GetArg("-sqltimeout", 10));
 
@@ -126,7 +113,7 @@ namespace PocketDb
                         [&]()
                         {
                             m_database.InterruptQuery();
-                            LogPrintf("Warning! Function `%s` failed with execute timeout:\n%s\n", func, stmt.Log());
+                            LogPrint(BCLog::WARN, "`%s` failed with execute timeout:\n%s\n", func, stmt.Log());
                             timeouted = true;
                         }
                     );
@@ -142,8 +129,8 @@ namespace PocketDb
                 int64_t nTime2 = GetTimeMicros();
                 BenchLog(func, 0.001 * (nTime2 - nTime1));
 
-                if (m_database.IsReadOnly() && timeouted)
-                    throw JSONError(408, "Sql request timeout");
+                if (m_timeouted && timeouted)
+                    throw JSONError(408, func + ": sql request timeout");
             }
             catch (const UniValue& objError)
             {
@@ -169,7 +156,7 @@ namespace PocketDb
 
     public:
 
-        explicit BaseRepository(SQLiteDatabase& db) : m_database(db)
+        explicit BaseRepository(SQLiteDatabase& db, bool timeouted) : m_database(db), m_timeouted(timeouted)
         {
         }
 

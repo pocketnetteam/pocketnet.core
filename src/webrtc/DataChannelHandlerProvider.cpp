@@ -39,22 +39,22 @@ std::function<void(rtc::message_variant)> webrtc::DataChannelHandlerProvider::Ge
 std::function<void(rtc::message_variant)> webrtc::DataChannelHandlerProvider::GetNotificationsHandler(std::shared_ptr<notifications::INotificationProtocol> notificationProtocol, std::weak_ptr<rtc::DataChannel> dc, const std::string& ip)
 {
     return [notificationProtocol, dc, ip](rtc::message_variant data) {
-                if (!std::holds_alternative<std::string>(data)) {
-                    // TOOD (losty-rtc): error
-                    return;
-                }
-                auto datachannel = dc.lock();
-                if (!datachannel) {
-                    // Freeing memory
-                    return;
-                }
-                UniValue message(UniValue::VOBJ);
-                if (!message.read(std::get<std::string>(data))) {
-                    // TODO (losty-rtc): error
-                    return;
-                }
-                if (notificationProtocol)
-                    notificationProtocol->ProcessMessage(message, std::make_shared<DataChannelConnection>(datachannel, ip), ip);
+        if (!std::holds_alternative<std::string>(data)) {
+            // TOOD (losty-rtc): error
+            return;
+        }
+
+        auto datachannel = dc.lock();
+        if (!datachannel) {
+            // Freeing memory
+            return;
+        }
+        
+        if (notificationProtocol)
+        {
+            auto msg = std::get<std::string>(data);
+            notificationProtocol->ProcessMessage(msg, std::make_shared<DataChannelConnection>(datachannel, ip), ip);
+        }
     };
 }
 
