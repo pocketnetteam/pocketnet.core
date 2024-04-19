@@ -1,7 +1,7 @@
 [Desktop Entry]
 Encoding=UTF-8
 Version=<VERSION>
-Name[en_US]=PocketnetCore
+Name=PocketnetCore
 GenericName=PocketnetCore
 Exec=pocketcoin-qt
 Terminal=false
