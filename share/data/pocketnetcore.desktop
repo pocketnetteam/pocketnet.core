@@ -1,11 +1,11 @@
 [Desktop Entry]
 Encoding=UTF-8
 Version=<VERSION>
-Name[en_US]=PocketnetCore
+Name=PocketnetCore
 GenericName=PocketnetCore
 Exec=pocketcoin-qt
 Terminal=false
-Icon[en_US]=/usr/local/share/pixmaps/pocketcoin.png
+Icon=/usr/local/share/pixmaps/pocketcoin.png
 Type=Application
 Categories=Application;Network;
-Comment[en_US]=PocketnetCore GUI
+Comment=PocketnetCore Node GUI
