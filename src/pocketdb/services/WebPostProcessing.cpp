@@ -66,32 +66,52 @@ namespace PocketServices
 
     bool WebPostProcessor::ProcessNextHeight()
     {
-        int currHeight = webRepoInst->GetCurrentHeight();
-        gStatEngineInstance.HeightWeb = currHeight;
-
-        // Return 'false' for non found work
-        if (ChainActive().Height() - currHeight <= 0)
-            return false;
-
-        // Proccess next block height
-        currHeight += 1;
-
-        // Launch all needed processes
-        ProcessTags(currHeight);
-        ProcessSearchContent(currHeight);
-        
-        webRepoInst->UpsertBarteronAccounts(currHeight);
-        webRepoInst->UpsertBarteronOffers(currHeight);
-
-        int period = 60;
-        if (gArgs.GetChainName() == CBaseChainParams::REGTEST)
-            period = 1;
+        try
+        {
+            int64_t nTime1 = GetTimeMicros();
             
-        if (currHeight % period == 0 && pindexBestHeader && (pindexBestHeader->nHeight - currHeight) < period)
-            webRepoInst->CollectAccountStatistic();
+            int currHeight = webRepoInst->GetCurrentHeight();
+            gStatEngineInstance.HeightWeb = currHeight;
 
-        webRepoInst->SetCurrentHeight(currHeight);
-        return true;
+            // Return 'false' for non found work
+            if (ChainActive().Height() - currHeight <= 0)
+                return false;
+
+            // Proccess next block height
+            currHeight += 1;
+
+            // Launch all needed processes
+            ProcessTags(currHeight);
+            ProcessSearchContent(currHeight);
+        
+            webRepoInst->UpsertBarteronAccounts(currHeight);
+            webRepoInst->UpsertBarteronOffers(currHeight);
+
+            int period = 60;
+            if (gArgs.GetChainName() == CBaseChainParams::REGTEST)
+                period = 1;
+            
+            if (currHeight % period == 0 && pindexBestHeader && (pindexBestHeader->nHeight - currHeight) < period)
+            {
+                int64_t nTime2 = GetTimeMicros();
+                
+                webRepoInst->CollectAccountStatistic();
+                
+                int64_t nTime3 = GetTimeMicros();
+                LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessNextHeight (CollectAccountStatistic): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
+            }
+            
+            webRepoInst->SetCurrentHeight(currHeight);
+            
+            int64_t nTime4 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessNextHeight: %.2fms\n", 0.001 * (double)(nTime4 - nTime1));
+            
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            LogPrintf("Warning: WebPostProcessor::ProcessNextHeight - %s\n", e.what());
+        }
     }
 
 
