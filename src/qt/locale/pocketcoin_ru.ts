@@ -171,7 +171,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR POCKETCOINS&lt;/b&gt;!</source>
-        <translation>Предупреждение: если вы зашифруете кошелёк и потеряете парольную фразу, вы &lt;b&gt;ПОТЕРЯЕТЕ ВСЕ ВАШИ покеткоинЫ&lt;/b&gt;!</translation>
+        <translation>Предупреждение: если вы зашифруете кошелёк и потеряете парольную фразу, вы &lt;b&gt;ПОТЕРЯЕТЕ ВСЕ ВАШИ ПОКЕТКОИНЫ&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -1031,7 +1031,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Pocketcoin</source>
-        <translation>покеткоин</translation>
+        <translation>Покеткоин</translation>
     </message>
     <message>
         <source>Discard blocks after verification, except most recent %1 GB (prune)</source>
@@ -2699,7 +2699,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>The Pocketcoin address to send the payment to</source>
-        <translation>покеткоин-адрес, на который нужно отправить платёж</translation>
+        <translation>Покеткоин-адрес, на который нужно отправить платёж</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2789,7 +2789,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>The Pocketcoin address to sign the message with</source>
-        <translation>покеткоин-адрес, которым подписать сообщение</translation>
+        <translation>Покеткоин-адрес, которым подписать сообщение</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2845,7 +2845,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>The Pocketcoin address the message was signed with</source>
-        <translation>покеткоин-адрес, которым было подписано сообщение</translation>
+        <translation>Покеткоин-адрес, которым было подписано сообщение</translation>
     </message>
     <message>
         <source>The signed message to verify</source>
