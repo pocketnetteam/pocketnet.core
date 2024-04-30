@@ -67,12 +67,12 @@
     </message>
     <message>
         <source>These are your Pocketcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Это ваши биткоин-адреса для отправки платежей. Всегда проверяйте сумму и адрес получателя перед отправкой перевода.</translation>
+        <translation>Это ваши покеткоин-адреса для отправки платежей. Всегда проверяйте сумму и адрес получателя перед отправкой перевода.</translation>
     </message>
     <message>
         <source>These are your Pocketcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
 Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation>Это ваши биткоин-адреса для получения платежей. Используйте кнопку «Создать новый адрес для получения» на вкладке Получить, чтобы создать новые адреса.
+        <translation>Это ваши покеткоин-адреса для получения платежей. Используйте кнопку «Создать новый адрес для получения» на вкладке Получить, чтобы создать новые адреса.
 Подписание возможно только с адресами типа "legacy".</translation>
     </message>
     <message>
@@ -171,7 +171,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR POCKETCOINS&lt;/b&gt;!</source>
-        <translation>Предупреждение: если вы зашифруете кошелёк и потеряете парольную фразу, вы &lt;b&gt;ПОТЕРЯЕТЕ ВСЕ ВАШИ БИТКОИНЫ&lt;/b&gt;!</translation>
+        <translation>Предупреждение: если вы зашифруете кошелёк и потеряете парольную фразу, вы &lt;b&gt;ПОТЕРЯЕТЕ ВСЕ ВАШИ ПОКЕТКОИНЫ&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -191,7 +191,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your pocketcoins from being stolen by malware infecting your computer.</source>
-        <translation>Помните, что шифрование кошелька не может полностью защитить ваши биткоины от кражи вредоносными программами, заражающими ваш компьютер.</translation>
+        <translation>Помните, что шифрование кошелька не может полностью защитить ваши покеткоины от кражи вредоносными программами, заражающими ваш компьютер.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -365,7 +365,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Send coins to a Pocketcoin address</source>
-        <translation>Отправить средства на биткоин-адрес</translation>
+        <translation>Отправить средства на покеткоин-адрес</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -401,11 +401,11 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Sign messages with your Pocketcoin addresses to prove you own them</source>
-        <translation>Подписывайте сообщения вашими биткоин-адресами, чтобы доказать, что вы ими владеете</translation>
+        <translation>Подписывайте сообщения вашими покеткоин-адресами, чтобы доказать, что вы ими владеете</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Pocketcoin addresses</source>
-        <translation>Проверяйте сообщения, чтобы убедиться, что они подписаны конкретными биткоин-адресами</translation>
+        <translation>Проверяйте сообщения, чтобы убедиться, что они подписаны конкретными покеткоин-адресами</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -441,7 +441,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Pocketcoin network</source>
-        <translation><numerusform>%n активное подключение к сети Pocketcoin</numerusform><numerusform>%n активных подключения к сети Pocketcoin</numerusform><numerusform>%n активных подключений к сети Pocketcoin</numerusform><numerusform>%n активных подключений к сети биткоина</numerusform></translation>
+        <translation><numerusform>%n активное подключение к сети Pocketcoin</numerusform><numerusform>%n активных подключения к сети Pocketcoin</numerusform><numerusform>%n активных подключений к сети Pocketcoin</numerusform><numerusform>%n активных подключений к сети покеткоина</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -489,7 +489,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Load Partially Signed Pocketcoin Transaction</source>
-        <translation>Загрузить частично подписанные биткоин-транзакции (PSBT)</translation>
+        <translation>Загрузить частично подписанные покеткоин-транзакции (PSBT)</translation>
     </message>
     <message>
         <source>Load PSBT from clipboard...</source>
@@ -497,7 +497,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Load Partially Signed Pocketcoin Transaction from clipboard</source>
-        <translation>Загрузить частично подписанную биткоин-транзакцию из буфера обмена</translation>
+        <translation>Загрузить частично подписанную покеткоин-транзакцию из буфера обмена</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -934,7 +934,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>The entered address "%1" is not a valid Pocketcoin address.</source>
-        <translation>Введенный адрес "%1" не является действительным биткоин-адресом.</translation>
+        <translation>Введенный адрес "%1" не является действительным покеткоин-адресом.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1031,7 +1031,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Pocketcoin</source>
-        <translation>биткоин</translation>
+        <translation>Покеткоин</translation>
     </message>
     <message>
         <source>Discard blocks after verification, except most recent %1 GB (prune)</source>
@@ -1047,7 +1047,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>%1 will download and store a copy of the Pocketcoin block chain.</source>
-        <translation>%1 скачает и сохранит копию цепочки блоков биткоина.</translation>
+        <translation>%1 скачает и сохранит копию цепочки блоков покеткоина.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1082,7 +1082,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the pocketcoin network, as detailed below.</source>
-        <translation>Недавние транзакции могут быть пока не видны, и поэтому отображаемый баланс вашего кошелька может быть неверным. Информация станет верной после завершения синхронизации с сетью биткоина, прогресс которой вы можете видеть ниже.</translation>
+        <translation>Недавние транзакции могут быть пока не видны, и поэтому отображаемый баланс вашего кошелька может быть неверным. Информация станет верной после завершения синхронизации с сетью покеткоина, прогресс которой вы можете видеть ниже.</translation>
     </message>
     <message>
         <source>Attempting to spend pocketcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
@@ -1137,7 +1137,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <name>OpenURIDialog</name>
     <message>
         <source>Open pocketcoin URI</source>
-        <translation>Открыть URI биткоина</translation>
+        <translation>Открыть URI покеткоина</translation>
     </message>
     <message>
         <source>URI:</source>
@@ -1279,7 +1279,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Automatically open the Pocketcoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Автоматически открыть порт биткоин-клиента на маршрутизаторе. Работает, если ваш маршрутизатор поддерживает UPnP, и данная функция включена.</translation>
+        <translation>Автоматически открыть порт покеткоин-клиента на маршрутизаторе. Работает, если ваш маршрутизатор поддерживает UPnP, и данная функция включена.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -1295,7 +1295,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Connect to the Pocketcoin network through a SOCKS5 proxy.</source>
-        <translation>Подключиться к сети биткоина через прокси SOCKS5.</translation>
+        <translation>Подключиться к сети покеткоина через прокси SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1371,7 +1371,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Connect to the Pocketcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation>Подключаться к сети биткоина через отдельный прокси SOCKS5 для скрытых сервисов Tor.</translation>
+        <translation>Подключаться к сети покеткоина через отдельный прокси SOCKS5 для скрытых сервисов Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1446,7 +1446,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Pocketcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation>Показанная информация может быть устаревшей. Ваш кошелёк автоматически синхронизируется с сетью биткоина после подключения, но этот процесс пока не завершён.</translation>
+        <translation>Показанная информация может быть устаревшей. Ваш кошелёк автоматически синхронизируется с сетью покеткоина после подключения, но этот процесс пока не завершён.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1676,7 +1676,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Pocketcoin address or malformed URI parameters.</source>
-        <translation>Не удалось обработать URI! Это может быть вызвано тем, что биткоин-адрес неверен или параметры URI неправильно сформированы.</translation>
+        <translation>Не удалось обработать URI! Это может быть вызвано тем, что покеткоин-адрес неверен или параметры URI неправильно сформированы.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1718,7 +1718,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Enter a Pocketcoin address (e.g. %1)</source>
-        <translation>Введите биткоин-адрес (напр. %1)</translation>
+        <translation>Введите покеткоин-адрес (напр. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -2179,7 +2179,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Pocketcoin network.</source>
-        <translation>Необязательное сообщение для запроса платежа, которое будет показано при открытии запроса. Внимание: это сообщение не будет отправлено вместе с платежом через сеть биткоина.</translation>
+        <translation>Необязательное сообщение для запроса платежа, которое будет показано при открытии запроса. Внимание: это сообщение не будет отправлено вместе с платежом через сеть покеткоина.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2536,7 +2536,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>Creates a Partially Signed Pocketcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation>Создает частично подписанную биткоин-транзакцию (PSBT), чтобы использовать её, например, с офлайновым кошельком %1, или PSBT-совместимым аппаратным кошельком.</translation>
+        <translation>Создает частично подписанную покеткоин-транзакцию (PSBT), чтобы использовать её, например, с офлайновым кошельком %1, или PSBT-совместимым аппаратным кошельком.</translation>
     </message>
     <message>
         <source> from wallet '%1'</source>
@@ -2584,7 +2584,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>Please, review your transaction proposal. This will produce a Partially Signed Pocketcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation>Пожалуйста, ещё раз просмотрите черновик вашей транзакции. Будет создана частично подписанная биткойн-транзакцию (PSBT), которую можно сохранить или скопировать, после чего подписать, например, офлайновым кошельком %1, или PSBT-совместимым аппаратным кошельком.</translation>
+        <translation>Пожалуйста, ещё раз просмотрите черновик вашей транзакции. Будет создана частично подписанная покеткоин-транзакцию (PSBT), которую можно сохранить или скопировать, после чего подписать, например, офлайновым кошельком %1, или PSBT-совместимым аппаратным кошельком.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -2660,7 +2660,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>Warning: Invalid Pocketcoin address</source>
-        <translation>Предупреждение: неверный биткоин-адрес</translation>
+        <translation>Предупреждение: неверный покеткоин-адрес</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2699,7 +2699,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>The Pocketcoin address to send the payment to</source>
-        <translation>Биткоин-адрес, на который нужно отправить платёж</translation>
+        <translation>Покеткоин-адрес, на который нужно отправить платёж</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2723,7 +2723,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less pocketcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>Комиссия будет вычтена из отправляемой суммы. Получателю придёт меньше биткоинов, чем вы ввели в поле «Сумма». Если выбрано несколько получателей, комиссия распределяется поровну.</translation>
+        <translation>Комиссия будет вычтена из отправляемой суммы. Получателю придёт меньше покеткоинов, чем вы ввели в поле «Сумма». Если выбрано несколько получателей, комиссия распределяется поровну.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2751,7 +2751,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>A message that was attached to the pocketcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Pocketcoin network.</source>
-        <translation>Сообщение, которое было прикреплено к URI и которое будет сохранено вместе с транзакцией для вашего сведения. Обратите внимание: сообщение не будет отправлено через сеть биткоина.</translation>
+        <translation>Сообщение, которое было прикреплено к URI и которое будет сохранено вместе с транзакцией для вашего сведения. Обратите внимание: сообщение не будет отправлено через сеть покеткоина.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2785,11 +2785,11 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>You can sign messages/agreements with your addresses to prove you can receive pocketcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation>Вы можете подписывать сообщения/соглашения своими адресами, чтобы доказать, что вы можете получать биткоины на них. Будьте осторожны и не подписывайте непонятные или случайные сообщения, так как мошенники могут таким образом пытаться присвоить вашу личность. Подписывайте только такие сообщения, с которыми вы согласны вплоть до мелочей.</translation>
+        <translation>Вы можете подписывать сообщения/соглашения своими адресами, чтобы доказать, что вы можете получать покеткоины на них. Будьте осторожны и не подписывайте непонятные или случайные сообщения, так как мошенники могут таким образом пытаться присвоить вашу личность. Подписывайте только такие сообщения, с которыми вы согласны вплоть до мелочей.</translation>
     </message>
     <message>
         <source>The Pocketcoin address to sign the message with</source>
-        <translation>Биткоин-адрес, которым подписать сообщение</translation>
+        <translation>Покеткоин-адрес, которым подписать сообщение</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2821,7 +2821,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>Sign the message to prove you own this Pocketcoin address</source>
-        <translation>Подписать сообщение, чтобы доказать владение биткоин-адресом</translation>
+        <translation>Подписать сообщение, чтобы доказать владение покеткоин-адресом</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -2841,11 +2841,11 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation>Введите ниже адрес получателя, сообщение (убедитесь, что переводы строк, пробелы, знаки табуляции и т. п. скопированы в точности) и подпись, чтобы проверить сообщение. Убедитесь, что вы не придаёте сообщению большего смысла, чем оно на самом деле несёт, чтобы не стать жертвой атаки "человек посередине". Обратите внимание, что подпись доказывает лишь то, что подписавший может получать биткоины на этот адрес, но никак не то, что он отправил какую-либо транзакцию!</translation>
+        <translation>Введите ниже адрес получателя, сообщение (убедитесь, что переводы строк, пробелы, знаки табуляции и т. п. скопированы в точности) и подпись, чтобы проверить сообщение. Убедитесь, что вы не придаёте сообщению большего смысла, чем оно на самом деле несёт, чтобы не стать жертвой атаки "человек посередине". Обратите внимание, что подпись доказывает лишь то, что подписавший может получать покеткоины на этот адрес, но никак не то, что он отправил какую-либо транзакцию!</translation>
     </message>
     <message>
         <source>The Pocketcoin address the message was signed with</source>
-        <translation>Биткоин-адрес, которым было подписано сообщение</translation>
+        <translation>Покеткоин-адрес, которым было подписано сообщение</translation>
     </message>
     <message>
         <source>The signed message to verify</source>
@@ -2857,7 +2857,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Pocketcoin address</source>
-        <translation>Проверить сообщение, чтобы убедиться, что оно действительно подписано указанным биткоин-адресом</translation>
+        <translation>Проверить сообщение, чтобы убедиться, что оно действительно подписано указанным покеткоин-адресом</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
