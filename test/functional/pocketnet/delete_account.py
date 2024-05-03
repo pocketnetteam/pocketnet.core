@@ -160,13 +160,6 @@ class AccountDeleteTest(PocketcoinTestFramework):
         self.log.info("Test 2 - all txs from deleted account")
 
         assert_raises_rpc_error(
-            ConsensusResult.AccountDeleted,
-            None,
-            pubGenTx,
-            accounts[0],
-            AccountPayload(accounts[0].Name),
-        )
-        assert_raises_rpc_error(
             ConsensusResult.NotRegistered,
             None,
             pubGenTx,
@@ -393,6 +386,23 @@ class AccountDeleteTest(PocketcoinTestFramework):
 
         node.stakeblock(1)
 
+        # ---------------------------------------------------------------------------------
+        self.log.info("Test 4 - restore account and again delete")
+
+        pubGenTx(
+            accounts[0],
+            AccountPayload(accounts[0].Name),
+        )
+
+        node.stakeblock(1)
+
+        pubGenTx(
+            accounts[0],
+            AccountDeletePayload(),
+        )      
+
+        node.stakeblock(1)
+        
 
 if __name__ == "__main__":
     AccountDeleteTest().main()
