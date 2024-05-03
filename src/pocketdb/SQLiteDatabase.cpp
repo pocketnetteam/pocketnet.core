@@ -20,7 +20,7 @@ namespace PocketDb
         // invoked."
         // Assert that this is the case:
         assert(arg == nullptr);
-        LogPrintf("%s: %d; Message: %s\n", __func__, code, msg);
+        LogPrint(BCLog::WARN, "%d; Message: %s\n", code, msg);
     }
 
     static void InitializeSqlite()
@@ -100,7 +100,7 @@ namespace PocketDb
         SQLiteDatabase sqliteMainDbInst(false);
         sqliteMainDbInst.Init(pocketPath.string(), mainDb, std::make_shared<PocketDbOldMinimalMigration>());
 
-        MigrationRepository migRepo(sqliteMainDbInst);
+        MigrationRepository migRepo(sqliteMainDbInst, false);
 
         // Destroy repository and close connection with database if migration not needed
         if (!migRepo.NeedMigrate0_22()) {

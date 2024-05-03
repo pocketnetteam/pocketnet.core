@@ -19,7 +19,7 @@ namespace PocketDb
     class NotifierRepository : public BaseRepository
     {
     public:
-        explicit NotifierRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit NotifierRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         UniValue GetAccountInfoByAddress(const string& address);
         UniValue GetPostLang(const string& postHash);

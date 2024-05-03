@@ -24,7 +24,7 @@ namespace PocketDb
     class SearchRepository : public BaseRepository
     {
     public:
-        explicit SearchRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit SearchRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         UniValue SearchTags(const SearchRequest& request);
         vector<int64_t> SearchIds(const SearchRequest& request);

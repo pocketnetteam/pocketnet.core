@@ -13,7 +13,7 @@ namespace PocketDb
     class SystemRepository : public BaseRepository
     {
     public:
-        explicit SystemRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+        explicit SystemRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
         int GetDbVersion();
         void SetDbVersion(int version);

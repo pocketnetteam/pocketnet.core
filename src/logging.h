@@ -67,6 +67,7 @@ namespace BCLog {
         RPCERROR      = (1 << 30),
         MIGRATION     = ((uint64_t)1 << 31),
         STATSQLBENCH  = ((uint64_t)1 << 32),
+        WARN          = ((uint64_t)1 << 33),
         ALL           = ~(uint64_t)0,
     };
 

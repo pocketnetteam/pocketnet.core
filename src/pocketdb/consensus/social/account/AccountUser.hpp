@@ -37,10 +37,8 @@ namespace PocketConsensus
                     return {false, ConsensusResult_NicknameDouble};
             }
 
-            // The deleted account cannot be restored
-            if (auto[ok, type] = ConsensusRepoInst.GetLastAccountType(*ptx->GetAddress()); ok)
-                if (type == TxType::ACCOUNT_DELETE)
-                    return {false, ConsensusResult_AccountDeleted};
+            if (!CheckDeleted(ptx))
+                return {false, ConsensusResult_AccountDeleted};
 
             return SocialConsensus::Validate(tx, ptx, block);
         }
@@ -110,6 +108,7 @@ namespace PocketConsensus
 
             return Success;
         }
+        
         vector<string> GetAddressesForCheckRegistration(const UserRef& ptx) override
         {
             return { };
@@ -138,6 +137,16 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx)
         {
             return Success;
+        }
+
+        virtual bool CheckDeleted(const UserRef& ptx)
+        {
+            // The deleted account cannot be restored
+            if (auto[ok, type] = ConsensusRepoInst.GetLastAccountType(*ptx->GetAddress()); ok)
+                if (type == TxType::ACCOUNT_DELETE)
+                    return false;
+                    
+            return true;
         }
     };
 
@@ -205,15 +214,28 @@ namespace PocketConsensus
         }
     };
 
+    class AccountUserConsensus_checkpoint_pip_106 : public AccountUserConsensus_checkpoint_login_limitation
+    {
+    public:
+        AccountUserConsensus_checkpoint_pip_106() : AccountUserConsensus_checkpoint_login_limitation() {}
+    protected:
+        bool CheckDeleted(const UserRef& ptx) override
+        {
+            // The deleted account can be restored
+            return true;
+        }    
+    };
+
     class AccountUserConsensusFactory : public BaseConsensusFactory<AccountUserConsensus>
     {
     public:
         AccountUserConsensusFactory()
         {
-            Checkpoint({       0,     -1, -1, make_shared<AccountUserConsensus>() });
-            Checkpoint({ 1180000,      0, -1, make_shared<AccountUserConsensus_checkpoint_depth>() });
-            Checkpoint({ 1381841, 162000, -1, make_shared<AccountUserConsensus_checkpoint_chain_count>() });
-            Checkpoint({ 1647000, 650000,  0, make_shared<AccountUserConsensus_checkpoint_login_limitation>() });
+            Checkpoint({       0,      -1, -1, make_shared<AccountUserConsensus>() });
+            Checkpoint({ 1180000,       0, -1, make_shared<AccountUserConsensus_checkpoint_depth>() });
+            Checkpoint({ 1381841,  162000, -1, make_shared<AccountUserConsensus_checkpoint_chain_count>() });
+            Checkpoint({ 1647000,  650000, -1, make_shared<AccountUserConsensus_checkpoint_login_limitation>() });
+            Checkpoint({ 2870000, 2850000,  0, make_shared<AccountUserConsensus_checkpoint_pip_106>() });
         }
     };
 
