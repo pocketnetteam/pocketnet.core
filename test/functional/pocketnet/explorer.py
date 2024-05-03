@@ -176,7 +176,7 @@ class ExplorerTest(PocketcoinTestFramework):
             self.check_transaction(transaction)
 
         self.log.info("Check - get not existing transaction")
-        assert_raises_rpc_error(-1, None, public_api.gettransactions, "dummy_hash")
+        assert_raises_rpc_error(-32603, None, public_api.gettransactions, "dummy_hash")
 
 
     def test_getaddresstransactions(self, builder):
