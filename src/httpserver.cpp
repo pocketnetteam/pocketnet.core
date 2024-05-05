@@ -198,8 +198,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
 
     // Dispatch to worker thread
     // TODO (losty-nat): errors should be processed inside
-    bool ok = httpSock->m_requestProcessor->Process(strURI, body, hreq);
-
+    httpSock->m_requestProcessor->Process(strURI, body, hreq);
 }
 
 /** Callback to reject HTTP requests after shutdown. */

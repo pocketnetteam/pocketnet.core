@@ -998,31 +998,50 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
     const ArgsManager& args = *Assert(node.args);
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
+
+    // Init general rpc interface
     if (!g_rpc.Init(args, context)) {
         return false;
     }
-    // TODO (losty-nat): clean up
+    
+    // Init rest & static interfaces
+    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE) || args.GetBoolArg("-static", DEFAULT_STATIC_ENABLE)) {
+        if (!g_rest.Init(args, context)) {
+            LogPrint(BCLog::HTTP, "Failed to initialize REST/STATIC interface\n");
+            return false;
+        }
+    }
+
+    // Init http server
     if (!InitHTTPServer(context, g_rpc.GetPrivateRequestProcessor(), g_rpc.GetWebRequestProcessor(), g_rest.GetRestRequestProcessor(), g_rest.GetStaticRequestProcessor()))
         return false;
     
+    // Private RPC
     StartRPC();
     
     node.rpc_interruption_point = RpcInterruptionPoint;
+
+    // Public RPC
     if (!g_rpc.StartHTTPRPC())
         return false;
-    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) {
-        if (!g_rest.Init(args, context))
-        // TODO (losty-nat): log
-            return false;
+    
+    // Start REST only enabled
+    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE))
         g_rest.StartREST();
+
+    // Start STATIC only enabled
+    if (args.GetBoolArg("-static", DEFAULT_STATIC_ENABLE))
         g_rest.StartSTATIC();
-    }
+
+    // WEB RTC
     g_webrtc = webrtc::WebRTCFactory().InitNewWebRTC(args.GetBoolArg("-webrtc", true), g_rpc.GetWebRequestProcessor(), notificationProcessor->GetProtocol(), args.GetArg("-webrtcport", 13131));
     g_webrtc->Start();
     // TODO (losty-nat): hardcoded. Should be moved somewhere to net_processing on new peers
     // TODO (losty-nat): allow disable signaling
     g_signaling.Init("^/signaling/?$", args.GetArg("-webrtcport", 13131));
     g_signaling.Start();
+
+    // Start HTTP server
     StartHTTPServer();
 
     return true;
