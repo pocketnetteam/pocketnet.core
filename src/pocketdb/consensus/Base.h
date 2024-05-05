@@ -378,7 +378,7 @@ namespace PocketConsensus
 
         // Other
         { ConsensusLimit_edit_post_depth, {
-            { NetworkMain,    { {0, 86400}, {1180000, 1440} } },
+            { NetworkMain,    { {0, 86400}, {1180000, 1440}, {2870000, 43200 } },
             { NetworkTest,    { {0, 1440} } },
             { NetworkRegTest, { {0, 1440} } }
         } },
