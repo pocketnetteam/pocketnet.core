@@ -378,12 +378,12 @@ namespace PocketConsensus
 
         // Other
         { ConsensusLimit_edit_post_depth, {
-            { NetworkMain,    { {0, 86400}, {1180000, 1440}, {2870000, 43200 } },
+            { NetworkMain,    { {0, 86400}, {1180000, 1440}, {2870000, 43200 } } },
             { NetworkTest,    { {0, 1440} } },
             { NetworkRegTest, { {0, 1440} } }
         } },
         { ConsensusLimit_edit_video_depth, {
-            { NetworkMain,    { {0, 1440} }, {2870000, 43200 } },
+            { NetworkMain,    { {0, 1440}, {2870000, 43200 } } },
             { NetworkTest,    { {0, 1440} } },
             { NetworkRegTest, { {0, 1440} } }
         } },
@@ -393,7 +393,7 @@ namespace PocketConsensus
             { NetworkRegTest, { {0, 4320} } }
         } },
         { ConsensusLimit_edit_stream_depth, {
-            { NetworkMain, { {0, 1440} }, {2870000, 43200 } },
+            { NetworkMain, { {0, 1440}, {2870000, 43200 } } },
             { NetworkTest, { {0, 1440} } },
             { NetworkRegTest, { {0, 1440} } }
         } },
