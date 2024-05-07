@@ -19,8 +19,10 @@ std::function<void(std::shared_ptr<SimpleWeb::IWSConnection>, std::shared_ptr<Si
         if (out_message == "0") // Ping/Pong
         {
             connection->send("1", [](const SimpleWeb::error_code& ec) {});
+            return;
         }
-        else if (val.read(out_message)) // Messages with data
+        
+        if (val.read(out_message) && val.isObject()) // Messages with data
         {
             try
             {
@@ -68,10 +70,6 @@ std::function<void(std::shared_ptr<SimpleWeb::IWSConnection>, std::shared_ptr<Si
                         }
                     }
                 }
-
-                UniValue m(UniValue::VOBJ);
-                m.pushKV("result", "Nothing happened");
-                connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
             }
             catch (const std::exception &e)
             {
@@ -79,8 +77,13 @@ std::function<void(std::shared_ptr<SimpleWeb::IWSConnection>, std::shared_ptr<Si
                 m.pushKV("result", "error");
                 m.pushKV("error", e.what());
                 connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+                return;
             }
         }
+
+        UniValue m(UniValue::VOBJ);
+        m.pushKV("result", "Nothing happened");
+        connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
     };
 }
 
