@@ -19,8 +19,10 @@ std::function<void(std::shared_ptr<SimpleWeb::IWSConnection>, std::shared_ptr<Si
         if (out_message == "0") // Ping/Pong
         {
             connection->send("1", [](const SimpleWeb::error_code& ec) {});
+            return;
         }
-        else if (val.read(out_message)) // Messages with data
+        
+        if (val.read(out_message) && val.isObject()) // Messages with data
         {
             try
             {
@@ -47,12 +49,24 @@ std::function<void(std::shared_ptr<SimpleWeb::IWSConnection>, std::shared_ptr<Si
                     {
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
                         WSConnections->insert_or_assign(connection->ID(), wsUser);
+
+                        UniValue m(UniValue::VOBJ);
+                        m.pushKV("result", "Registered");
+                        connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+
+                        return;
                     }
                     else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
                             WSConnections->erase(connection->ID());
+
+                            UniValue m(UniValue::VOBJ);
+                            m.pushKV("result", "Unsubscribed");
+                            connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+
+                            return;
                         }
                     }
                 }
@@ -63,8 +77,13 @@ std::function<void(std::shared_ptr<SimpleWeb::IWSConnection>, std::shared_ptr<Si
                 m.pushKV("result", "error");
                 m.pushKV("error", e.what());
                 connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
+                return;
             }
         }
+
+        UniValue m(UniValue::VOBJ);
+        m.pushKV("result", "Nothing happened");
+        connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
     };
 }
 
