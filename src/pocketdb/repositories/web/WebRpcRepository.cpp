@@ -1999,7 +1999,7 @@ namespace PocketDb
                             on cs.TxId = s.RowId
                     cross join
                         Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on u.Type in (100) and u.RegId1 = s.RegId1
+                            on u.Type in (100, 170) and u.RegId1 = s.RegId1
                     cross join
                         Last lu
                             on lu.TxId = u.RowId
@@ -2009,7 +2009,7 @@ namespace PocketDb
                     left join
                         Ratings r indexed by Ratings_Type_Uid_Last_Value
                             on r.Type = 0 and r.Last = 1 and r.Uid = cu.Uid
-                    cross join
+                    left join
                         Payload p
                             on p.TxId = u.RowId
                 )sql")
