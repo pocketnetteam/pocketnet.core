@@ -309,14 +309,8 @@ BOOST_AUTO_TEST_CASE(cnetaddr_basic)
     BOOST_CHECK(!addr.IsBindAny());
     BOOST_CHECK_EQUAL(addr.ToString(), link_local);
 
-    // TORv2
-    BOOST_REQUIRE(addr.SetSpecial("6hzph5hv6337r6p2.onion"));
-    BOOST_REQUIRE(addr.IsValid());
-    BOOST_REQUIRE(addr.IsTor());
-
-    BOOST_CHECK(!addr.IsBindAny());
-    BOOST_CHECK(addr.IsAddrV1Compatible());
-    BOOST_CHECK_EQUAL(addr.ToString(), "6hzph5hv6337r6p2.onion");
+    // TORv2, no longer supported
+    BOOST_CHECK(!addr.SetSpecial("6hzph5hv6337r6p2.onion"));
 
     // TORv3
     const char* torv3_addr = "pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion";
@@ -324,6 +318,7 @@ BOOST_AUTO_TEST_CASE(cnetaddr_basic)
     BOOST_REQUIRE(addr.IsValid());
     BOOST_REQUIRE(addr.IsTor());
 
+    BOOST_CHECK(!addr.IsI2P());
     BOOST_CHECK(!addr.IsBindAny());
     BOOST_CHECK(!addr.IsAddrV1Compatible());
     BOOST_CHECK_EQUAL(addr.ToString(), torv3_addr);
@@ -343,6 +338,35 @@ BOOST_AUTO_TEST_CASE(cnetaddr_basic)
 
     // TOR, invalid base32
     BOOST_CHECK(!addr.SetSpecial(std::string{"mf*g zak.onion"}));
+
+    // I2P
+    const char* i2p_addr = "UDHDrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.I2P";
+    BOOST_REQUIRE(addr.SetSpecial(i2p_addr));
+    BOOST_REQUIRE(addr.IsValid());
+    BOOST_REQUIRE(addr.IsI2P());
+
+    BOOST_CHECK(!addr.IsTor());
+    BOOST_CHECK(!addr.IsBindAny());
+    BOOST_CHECK(!addr.IsAddrV1Compatible());
+    BOOST_CHECK_EQUAL(addr.ToString(), ToLower(i2p_addr));
+
+    // I2P, correct length, but decodes to less than the expected number of bytes.
+    BOOST_CHECK(!addr.SetSpecial("udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jn=.b32.i2p"));
+
+    // I2P, extra unnecessary padding
+    BOOST_CHECK(!addr.SetSpecial("udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna=.b32.i2p"));
+
+    // I2P, malicious
+    BOOST_CHECK(!addr.SetSpecial("udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v\0wtf.b32.i2p"s));
+
+    // I2P, valid but unsupported (56 Base32 characters)
+    // See "Encrypted LS with Base 32 Addresses" in
+    // https://geti2p.net/spec/encryptedleaseset.txt
+    BOOST_CHECK(
+        !addr.SetSpecial("pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscsad.b32.i2p"));
+
+    // I2P, invalid base32
+    BOOST_CHECK(!addr.SetSpecial(std::string{"tp*szydbh4dp.b32.i2p"}));
 
     // Internal
     addr.SetInternal("esffpp");
@@ -376,10 +400,8 @@ BOOST_AUTO_TEST_CASE(cnetaddr_serialize_v1)
     BOOST_CHECK_EQUAL(HexStr(s), "1a1b2a2b3a3b4a4b5a5b6a6b7a7b8a8b");
     s.clear();
 
-    BOOST_REQUIRE(addr.SetSpecial("6hzph5hv6337r6p2.onion"));
-    s << addr;
-    BOOST_CHECK_EQUAL(HexStr(s), "fd87d87eeb43f1f2f3f4f5f6f7f8f9fa");
-    s.clear();
+    // TORv2, no longer supported
+    BOOST_CHECK(!addr.SetSpecial("6hzph5hv6337r6p2.onion"));
 
     BOOST_REQUIRE(addr.SetSpecial("pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion"));
     s << addr;
@@ -414,10 +436,8 @@ BOOST_AUTO_TEST_CASE(cnetaddr_serialize_v2)
     BOOST_CHECK_EQUAL(HexStr(s), "02101a1b2a2b3a3b4a4b5a5b6a6b7a7b8a8b");
     s.clear();
 
-    BOOST_REQUIRE(addr.SetSpecial("6hzph5hv6337r6p2.onion"));
-    s << addr;
-    BOOST_CHECK_EQUAL(HexStr(s), "030af1f2f3f4f5f6f7f8f9fa");
-    s.clear();
+    // TORv2, no longer supported
+    BOOST_CHECK(!addr.SetSpecial("6hzph5hv6337r6p2.onion"));
 
     BOOST_REQUIRE(addr.SetSpecial("kpgvmscirrdqpekbqjsvw5teanhatztpp2gl6eee4zkowvwfxwenqaid.onion"));
     s << addr;
@@ -523,25 +543,13 @@ BOOST_AUTO_TEST_CASE(cnetaddr_unserialize_v2)
     BOOST_CHECK(!addr.IsValid());
     BOOST_REQUIRE(s.empty());
 
-    // Valid TORv2.
+    // TORv2, no longer supported.
     s << MakeSpan(ParseHex("03"                      // network type (TORv2)
                            "0a"                      // address length
                            "f1f2f3f4f5f6f7f8f9fa")); // address
     s >> addr;
-    BOOST_CHECK(addr.IsValid());
-    BOOST_CHECK(addr.IsTor());
-    BOOST_CHECK(addr.IsAddrV1Compatible());
-    BOOST_CHECK_EQUAL(addr.ToString(), "6hzph5hv6337r6p2.onion");
+    BOOST_CHECK(!addr.IsValid());
     BOOST_REQUIRE(s.empty());
-
-    // Invalid TORv2, with bogus length.
-    s << MakeSpan(ParseHex("03"    // network type (TORv2)
-                           "07"    // address length
-                           "00")); // address
-    BOOST_CHECK_EXCEPTION(s >> addr, std::ios_base::failure,
-                          HasReason("BIP155 TORv2 address with length 7 (should be 10)"));
-    BOOST_REQUIRE(!s.empty()); // The stream is not consumed on invalid input.
-    s.clear();
 
     // Valid TORv3.
     s << MakeSpan(ParseHex("04"                               // network type (TORv3)

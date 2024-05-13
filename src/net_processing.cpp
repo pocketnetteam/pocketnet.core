@@ -757,11 +757,15 @@ static void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman& connma
                 // blocks using compact encodings.
                 connman.ForNode(lNodesAnnouncingHeaderAndIDs.front(), [&connman, cmpctVer](CNode* pnodeStop){
                     connman.PushMessage(pnodeStop, CNetMsgMaker(pnodeStop->GetCommonVersion()).Make(NetMsgType::SENDCMPCT, /*fAnnounceUsingCMPCTBLOCK=*/false, cmpctVer));
+                    // save BIP152 bandwidth state: we select peer to be low-bandwidth
+                    pnodeStop->m_bip152_highbandwidth_to = false;
                     return true;
                 });
                 lNodesAnnouncingHeaderAndIDs.pop_front();
             }
             connman.PushMessage(pfrom, CNetMsgMaker(pfrom->GetCommonVersion()).Make(NetMsgType::SENDCMPCT, /*fAnnounceUsingCMPCTBLOCK=*/true, cmpctVer));
+            // save BIP152 bandwidth state: we select peer to be high-bandwidth
+            pfrom->m_bip152_highbandwidth_to = true;
             lNodesAnnouncingHeaderAndIDs.push_back(pfrom->GetId());
             return true;
         });
@@ -2902,15 +2906,25 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         bool fAnnounceUsingCMPCTBLOCK = false;
         uint64_t nCMPCTBLOCKVersion = 0;
         vRecv >> fAnnounceUsingCMPCTBLOCK >> nCMPCTBLOCKVersion;
-        if ((pfrom.GetLocalServices() & NODE_WITNESS) && nCMPCTBLOCKVersion == CMPCT_BLOCKS_PROTOCOL_VERSION) {
+        if (nCMPCTBLOCKVersion == 1 || ((pfrom.GetLocalServices() & NODE_WITNESS) && nCMPCTBLOCKVersion == 2)) {
             LOCK(cs_main);
             // fProvidesHeaderAndIDs is used to "lock in" version of compact blocks we send (fWantsCmpctWitness)
             if (!State(pfrom.GetId())->fProvidesHeaderAndIDs) {
                 State(pfrom.GetId())->fProvidesHeaderAndIDs = true;
-                State(pfrom.GetId())->fWantsCmpctWitness = true;
-                State(pfrom.GetId())->fPreferHeaderAndIDs = fAnnounceUsingCMPCTBLOCK;
+                State(pfrom.GetId())->fWantsCmpctWitness = nCMPCTBLOCKVersion == 2;
             }
-            State(pfrom.GetId())->fSupportsDesiredCmpctVersion = true;
+            if (State(pfrom.GetId())->fWantsCmpctWitness == (nCMPCTBLOCKVersion == 2)) { // ignore later version announces
+                State(pfrom.GetId())->fPreferHeaderAndIDs = fAnnounceUsingCMPCTBLOCK;
+                // save whether peer selects us as BIP152 high-bandwidth peer
+                // (receiving sendcmpct(1) signals high-bandwidth, sendcmpct(0) low-bandwidth)
+                pfrom.m_bip152_highbandwidth_from = fAnnounceUsingCMPCTBLOCK;
+            }
+            if (!State(pfrom.GetId())->fSupportsDesiredCmpctVersion) {
+                if (pfrom.GetLocalServices() & NODE_WITNESS)
+                    State(pfrom.GetId())->fSupportsDesiredCmpctVersion = (nCMPCTBLOCKVersion == 2);
+                else
+                    State(pfrom.GetId())->fSupportsDesiredCmpctVersion = (nCMPCTBLOCKVersion == 1);
+            }
         }
         return;
     }
@@ -3854,7 +3868,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         pfrom.vAddrToSend.clear();
         std::vector<CAddress> vAddr;
         if (pfrom.HasPermission(PF_ADDR)) {
-            vAddr = m_connman.GetAddresses(MAX_ADDR_TO_SEND, MAX_PCT_ADDR_TO_SEND);
+            vAddr = m_connman.GetAddresses(MAX_ADDR_TO_SEND, MAX_PCT_ADDR_TO_SEND, /*network=*/std::nullopt);
         } else {
             vAddr = m_connman.GetAddresses(pfrom, MAX_ADDR_TO_SEND, MAX_PCT_ADDR_TO_SEND);
         }

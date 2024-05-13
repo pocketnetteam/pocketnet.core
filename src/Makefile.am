@@ -400,6 +400,7 @@ POCKETCOIN_CORE_H = \
     eventloop.h \
     httprpc.h \
     httpserver.h \
+    i2p.h \
     index/base.h \
     index/blockfilterindex.h \
     index/disktxpos.h \
@@ -426,6 +427,7 @@ POCKETCOIN_CORE_H = \
     netmessagemaker.h \
     node/coin.h \
     node/coinstats.h \
+    node/connection_types.h \
     node/context.h \
     node/psbt.h \
     node/transaction.h \
@@ -496,10 +498,13 @@ POCKETCOIN_CORE_H = \
     util/message.h \
     util/moneystr.h \
     util/rbf.h \
+    util/readwritefile.h \
     util/ref.h \
     util/settings.h \
+    util/sock.h \
     util/spanparsing.h \
     util/string.h \
+    util/syserror.h \
     util/system.h \
     util/threadnames.h \
     util/time.h \
@@ -567,6 +572,7 @@ libpocketcoin_server_a_SOURCES = \
     flatfile.cpp \
     httprpc.cpp \
     httpserver.cpp \
+    i2p.cpp \
     index/base.cpp \
     index/blockfilterindex.cpp \
     index/txindex.cpp \
@@ -579,6 +585,7 @@ libpocketcoin_server_a_SOURCES = \
     net_processing.cpp \
     node/coin.cpp \
     node/coinstats.cpp \
+    node/connection_types.cpp \
     node/context.cpp \
     node/psbt.cpp \
     node/transaction.cpp \
@@ -823,11 +830,15 @@ libpocketcoin_util_a_SOURCES = \
   util/error.cpp \
   util/fees.cpp \
   util/html.cpp \
+  util/sock.cpp \
+  util/syserror.cpp \
   util/system.cpp \
   util/message.cpp \
   util/moneystr.cpp \
   util/rbf.cpp \
+  util/readwritefile.cpp \
   util/settings.cpp \
+  util/syserror.cpp \
   util/threadnames.cpp \
   util/spanparsing.cpp \
   util/strencodings.cpp \

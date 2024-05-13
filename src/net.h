@@ -14,8 +14,10 @@
 #include <compat.h>
 #include <crypto/siphash.h>
 #include <hash.h>
+#include <i2p.h>
 #include <net_permissions.h>
 #include <netaddress.h>
+#include <node/connection_types.h>
 #include <optional.h>
 #include <policy/feerate.h>
 #include <protocol.h>
@@ -24,6 +26,7 @@
 #include <sync.h>
 #include <threadinterrupt.h>
 #include <uint256.h>
+#include <util/check.h>
 
 #include <atomic>
 #include <cstdint>
@@ -115,19 +118,20 @@ struct CSerializedNetMsg
     std::string m_type;
 };
 
+// Moved to <node/connection_types.h>
 /** Different types of connections to a peer. This enum encapsulates the
  * information we have available at the time of opening or accepting the
  * connection. Aside from INBOUND, all types are initiated by us.
  *
  * If adding or removing types, please update CONNECTION_TYPE_DOC in
  * src/rpc/net.cpp. */
-enum class ConnectionType {
+//enum class ConnectionType {
     /**
      * Inbound connections are those initiated by a peer. This is the only
      * property we know at the time of connection, until P2P messages are
      * exchanged.
      */
-    INBOUND,
+//    INBOUND,
 
     /**
      * These are the default connections that we use to connect with the
@@ -135,7 +139,7 @@ enum class ConnectionType {
      * blocks, addresses & transactions. We automatically attempt to open
      * MAX_OUTBOUND_FULL_RELAY_CONNECTIONS using addresses from our AddrMan.
      */
-    OUTBOUND_FULL_RELAY,
+//    OUTBOUND_FULL_RELAY,
 
 
     /**
@@ -144,7 +148,7 @@ enum class ConnectionType {
      * manual connection is misbehaving, we do not automatically disconnect or
      * add it to our discouragement filter.
      */
-    MANUAL,
+//    MANUAL,
 
     /**
      * Feeler connections are short-lived connections made to check that a node
@@ -161,7 +165,7 @@ enum class ConnectionType {
      * first we resolve previously found collisions if they exist (test-before-evict),
      * otherwise connect to a node from the new table.
      */
-    FEELER,
+//    FEELER,
 
     /**
      * We use block-relay-only connections to help prevent against partition
@@ -172,7 +176,7 @@ enum class ConnectionType {
      * addresses from our AddrMan if MAX_BLOCK_RELAY_ONLY_CONNECTIONS
      * isn't reached yet.
      */
-    BLOCK_RELAY,
+//    BLOCK_RELAY,
 
     /**
      * AddrFetch connections are short lived connections used to solicit
@@ -180,8 +184,8 @@ enum class ConnectionType {
      * -seednode command line argument, or under certain conditions when the
      * AddrMan is empty.
      */
-    ADDR_FETCH,
-};
+//    ADDR_FETCH,
+//};
 
 class NetEventsInterface;
 class CConnman
@@ -221,6 +225,7 @@ public:
         std::vector<std::string> m_specified_outgoing;
         std::vector<std::string> m_added_nodes;
         std::vector<bool> m_asmap;
+        bool m_i2p_accept_incoming;
     };
 
     void Init(const Options& connOptions) {
@@ -320,7 +325,16 @@ public:
     void SetServices(const CService &addr, ServiceFlags nServices);
     void MarkAddressGood(const CAddress& addr);
     bool AddNewAddresses(const std::vector<CAddress>& vAddr, const CAddress& addrFrom, int64_t nTimePenalty = 0);
-    std::vector<CAddress> GetAddresses(size_t max_addresses, size_t max_pct);
+    /**
+     * Return all or many randomly selected addresses, optionally by network.
+     *
+     * @param[in] max_addresses  Maximum number of addresses to return (0 = all).
+     * @param[in] max_pct        Maximum percentage of addresses to return (0 = all).
+     * @param[in] network        Select only addresses of this network (nullopt = all).
+     * @param[in] filtered       Select only addresses that are considered high quality (false = all).
+     */
+    std::vector<CAddress> GetAddresses(size_t max_addresses, size_t max_pct, std::optional<Network> network, const bool filtered = true);
+//    std::vector<CAddress> GetAddresses(size_t max_addresses, size_t max_pct);
     /**
      * Cache is used to minimize topology leaks, so it should
      * be used for all non-trusted calls, for example, p2p.
@@ -425,7 +439,22 @@ private:
     void ProcessAddrFetch();
     void ThreadOpenConnections(std::vector<std::string> connect);
     void ThreadMessageHandler();
+    void ThreadI2PAcceptIncoming();
     void AcceptConnection(const ListenSocket& hListenSocket);
+
+    /**
+     * Create a `CNode` object from a socket that has just been accepted and add the node to
+     * the `vNodes` member.
+     * @param[in] hSocket Connected socket to communicate with the peer.
+     * @param[in] permissionFlags The peer's permissions.
+     * @param[in] addr_bind The address and port at our side of the connection.
+     * @param[in] addr The address and port at the peer's side of the connection.
+     */
+    void CreateNodeFromAcceptedSocket(SOCKET hSocket,
+                                      NetPermissionFlags permissionFlags,
+                                      const CAddress& addr_bind,
+                                      const CAddress& addr);
+
     void DisconnectNodes();
     void NotifyNumConnectionsChanged();
     void InactivityCheck(CNode *pnode);
@@ -585,13 +614,26 @@ private:
     Mutex mutexMsgProc;
     std::atomic<bool> flagInterruptMsgProc{false};
 
+    /**
+     * This is signaled when network activity should cease.
+     * A pointer to it is saved in `m_i2p_sam_session`, so make sure that
+     * the lifetime of `interruptNet` is not shorter than
+     * the lifetime of `m_i2p_sam_session`.
+     */
     CThreadInterrupt interruptNet;
+
+    /**
+     * I2P SAM session.
+     * Used to accept incoming and make outgoing I2P connections.
+     */
+    std::unique_ptr<i2p::sam::Session> m_i2p_sam_session;
 
     std::thread threadDNSAddressSeed;
     std::thread threadSocketHandler;
     std::thread threadOpenAddedConnections;
     std::thread threadOpenConnections;
     std::thread threadMessageHandler;
+    std::thread threadI2PAcceptIncoming;
 
     /** flag for deciding to connect to an extra outbound peer,
      *  in excess of m_max_outbound_full_relay
@@ -701,14 +743,18 @@ public:
     int nVersion;
     std::string cleanSubVer;
     bool fInbound;
-    bool m_manual_connection;
+    bool m_manual_connection;		// FIXME!!! Delete!
+    // We requested high bandwidth connection to peer
+    bool m_bip152_highbandwidth_to;
+    // Peer requested high bandwidth connection
+    bool m_bip152_highbandwidth_from;
     int nStartingHeight;
     uint64_t nSendBytes;
     mapMsgCmdSize mapSendBytesPerMsgCmd;
     uint64_t nRecvBytes;
     mapMsgCmdSize mapRecvBytesPerMsgCmd;
     NetPermissionFlags m_permissionFlags;
-    bool m_legacyWhitelisted;
+    bool m_legacyWhitelisted;		// FIXME!!! Delete!
     int64_t m_ping_usec;
     int64_t m_ping_wait_usec;
     int64_t m_min_ping_usec;
@@ -720,9 +766,14 @@ public:
     // Bind address of our side of the connection
     CAddress addrBind;
     // Name of the network the peer connected through
-    std::string m_network;
+    std::string m_network;		// FIXME!!! Change to: Network m_network;
     uint32_t m_mapped_as;
-    std::string m_conn_type_string;
+//    std::string m_conn_type_string;	// FIXME!!! Change to: ConnectionType m_conn_type;
+    ConnectionType m_conn_type;
+    /** Transport protocol type. */
+//    TransportProtocolType m_transport_type;
+    /** BIP324 session id string in hex, if any. */
+//    std::string m_session_id;
 };
 
 
@@ -1025,6 +1076,14 @@ public:
         int64_t nextSendTimeFeeFilter{0};
     };
 
+    // We selected peer as (compact blocks) high-bandwidth peer (BIP152)
+    std::atomic<bool> m_bip152_highbandwidth_to{false};
+    // Peer selected us as (compact blocks) high-bandwidth peer (BIP152)
+    std::atomic<bool> m_bip152_highbandwidth_from{false};
+
+    /** Whether this peer provides all services that we want. Used for eviction decisions */
+    std::atomic_bool m_has_all_wanted_services{false};
+
     // m_tx_relay == nullptr if we're not relaying transactions with this peer
     std::unique_ptr<TxRelay> m_tx_relay;
 
@@ -1203,7 +1262,8 @@ public:
     //! Sets the addrName only if it was not previously set
     void MaybeSetAddrName(const std::string& addrNameIn);
 
-    std::string ConnectionTypeAsString() const;
+//    std::string ConnectionTypeAsString() const;
+    std::string ConnectionTypeAsString() const { return ::ConnectionTypeAsString(m_conn_type); }
 };
 
 /** Return a timestamp in the future (in microseconds) for exponentially distributed events. */

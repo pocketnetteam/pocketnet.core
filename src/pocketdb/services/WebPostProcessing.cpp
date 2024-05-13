@@ -111,6 +111,7 @@ namespace PocketServices
         catch (const std::exception& e)
         {
             LogPrintf("Warning: WebPostProcessor::ProcessNextHeight - %s\n", e.what());
+	    return false;
         }
     }
 

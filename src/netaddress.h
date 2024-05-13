@@ -97,9 +97,6 @@ static constexpr size_t ADDR_IPV4_SIZE = 4;
 /// Size of IPv6 address (in bytes).
 static constexpr size_t ADDR_IPV6_SIZE = 16;
 
-/// Size of TORv2 address (in bytes).
-static constexpr size_t ADDR_TORV2_SIZE = 10;
-
 /// Size of TORv3 address (in bytes). This is the length of just the address
 /// as used in BIP155, without the checksum and the version byte.
 static constexpr size_t ADDR_TORV3_SIZE = 32;
@@ -112,6 +109,11 @@ static constexpr size_t ADDR_CJDNS_SIZE = 16;
 
 /// Size of "internal" (NET_INTERNAL) address (in bytes).
 static constexpr size_t ADDR_INTERNAL_SIZE = 10;
+
+/// SAM 3.1 and earlier do not support specifying ports and force the port to 0.
+static constexpr uint16_t I2P_SAM31_PORT{0};
+
+std::string OnionToString(Span<const uint8_t> addr);
 
 /**
  * Network address.
@@ -185,7 +187,9 @@ class CNetAddr
 
         enum Network GetNetwork() const;
         std::string ToString() const;
+        std::string ToStringIP_Old() const;
         std::string ToStringIP() const;
+	std::string ToStringAddr() const;
         uint64_t GetHash() const;
         bool GetInAddr(struct in_addr* pipv4Addr) const;
         Network GetNetClass() const;
@@ -245,9 +249,6 @@ class CNetAddr
             }
         }
 
-        friend class CSubNet;
-
-    private:
         /**
          * BIP155 network ids recognized by this software.
          */
@@ -259,6 +260,27 @@ class CNetAddr
             I2P = 5,
             CJDNS = 6,
         };
+
+        friend class CSubNet;
+
+    private:
+	/**
+         * Parse a Tor address and set this object to it.
+         * @param[in] addr Address to parse, must be a valid C string, for example
+         * pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion.
+         * @returns Whether the operation was successful.
+         * @see CNetAddr::IsTor()
+	 */
+	bool SetTor(const std::string& addr);
+
+	/**
+         * Parse an I2P address and set this object to it.
+         * @param[in] addr Address to parse, must be a valid C string, for example
+         * ukeu3k5oycgaauneqgtnvselmt4yemvoilkln7jpvamvfx7dnkdq.b32.i2p.
+         * @returns Whether the operation was successful.
+         * @see CNetAddr::IsI2P()
+	 */
+        bool SetI2P(const std::string& addr);
 
         /**
          * Size of CNetAddr when serialized as ADDRv1 (pre-BIP155) (in bytes).
@@ -275,7 +297,7 @@ class CNetAddr
         /**
          * Get the BIP155 network id of this address.
          * Must not be called for IsInternal() objects.
-         * @returns BIP155 network id
+         * @returns BIP155 network id, except TORV2 which is no longer supported.
          */
         BIP155Network GetBIP155Network() const;
 
@@ -306,21 +328,13 @@ class CNetAddr
                 memcpy(arr, IPV4_IN_IPV6_PREFIX.data(), prefix_size);
                 memcpy(arr + prefix_size, m_addr.data(), m_addr.size());
                 return;
-            case NET_ONION:
-                if (m_addr.size() == ADDR_TORV3_SIZE) {
-                    break;
-                }
-                prefix_size = sizeof(TORV2_IN_IPV6_PREFIX);
-                assert(prefix_size + m_addr.size() == sizeof(arr));
-                memcpy(arr, TORV2_IN_IPV6_PREFIX.data(), prefix_size);
-                memcpy(arr + prefix_size, m_addr.data(), m_addr.size());
-                return;
             case NET_INTERNAL:
                 prefix_size = sizeof(INTERNAL_IN_IPV6_PREFIX);
                 assert(prefix_size + m_addr.size() == sizeof(arr));
                 memcpy(arr, INTERNAL_IN_IPV6_PREFIX.data(), prefix_size);
                 memcpy(arr + prefix_size, m_addr.data(), m_addr.size());
                 return;
+            case NET_ONION:
             case NET_I2P:
                 break;
             case NET_CJDNS:
@@ -330,7 +344,7 @@ class CNetAddr
                 assert(false);
             } // no default case, so the compiler can warn about missing cases
 
-            // Serialize TORv3, I2P and CJDNS as all-zeros.
+            // Serialize ONION, I2P and CJDNS as all-zeros.
             memset(arr, 0x0, V1_SERIALIZATION_SIZE);
         }
 
@@ -539,6 +553,7 @@ class CService : public CNetAddr
         std::string ToString() const;
         std::string ToStringPort() const;
         std::string ToStringIPPort() const;
+        std::string ToStringAddrPort() const;
 
         CService(const struct in6_addr& ipv6Addr, uint16_t port);
         explicit CService(const struct sockaddr_in6& addr);
