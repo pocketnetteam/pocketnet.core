@@ -2906,25 +2906,16 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         bool fAnnounceUsingCMPCTBLOCK = false;
         uint64_t nCMPCTBLOCKVersion = 0;
         vRecv >> fAnnounceUsingCMPCTBLOCK >> nCMPCTBLOCKVersion;
-        if (nCMPCTBLOCKVersion == 1 || ((pfrom.GetLocalServices() & NODE_WITNESS) && nCMPCTBLOCKVersion == 2)) {
+        if ((pfrom.GetLocalServices() & NODE_WITNESS) && nCMPCTBLOCKVersion == CMPCT_BLOCKS_PROTOCOL_VERSION) {
             LOCK(cs_main);
             // fProvidesHeaderAndIDs is used to "lock in" version of compact blocks we send (fWantsCmpctWitness)
             if (!State(pfrom.GetId())->fProvidesHeaderAndIDs) {
                 State(pfrom.GetId())->fProvidesHeaderAndIDs = true;
-                State(pfrom.GetId())->fWantsCmpctWitness = nCMPCTBLOCKVersion == 2;
-            }
-            if (State(pfrom.GetId())->fWantsCmpctWitness == (nCMPCTBLOCKVersion == 2)) { // ignore later version announces
+                State(pfrom.GetId())->fWantsCmpctWitness = true;
                 State(pfrom.GetId())->fPreferHeaderAndIDs = fAnnounceUsingCMPCTBLOCK;
-                // save whether peer selects us as BIP152 high-bandwidth peer
-                // (receiving sendcmpct(1) signals high-bandwidth, sendcmpct(0) low-bandwidth)
                 pfrom.m_bip152_highbandwidth_from = fAnnounceUsingCMPCTBLOCK;
             }
-            if (!State(pfrom.GetId())->fSupportsDesiredCmpctVersion) {
-                if (pfrom.GetLocalServices() & NODE_WITNESS)
-                    State(pfrom.GetId())->fSupportsDesiredCmpctVersion = (nCMPCTBLOCKVersion == 2);
-                else
-                    State(pfrom.GetId())->fSupportsDesiredCmpctVersion = (nCMPCTBLOCKVersion == 1);
-            }
+            State(pfrom.GetId())->fSupportsDesiredCmpctVersion = true;
         }
         return;
     }
