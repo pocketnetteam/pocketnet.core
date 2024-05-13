@@ -153,6 +153,7 @@ struct CNodeStateStats {
     int nSyncHeight = -1;
     int nCommonHeight = -1;
     std::vector<int> vHeightInFlight;
+    bool m_relay_txs;
     uint64_t m_addr_processed = 0;
     uint64_t m_addr_rate_limited = 0;
 };

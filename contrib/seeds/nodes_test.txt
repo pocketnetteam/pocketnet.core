@@ -1,2 +1,6 @@
+# List of fixed seed nodes for testnet
 116.203.219.28:36060
 157.90.228.34:36060
+
+# Onion nodes
+2rsyqouzsdaaipyju5wxvyybxxqsokm2jvixvewmsfors2qsqppgd5id.onion:36060

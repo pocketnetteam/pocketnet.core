@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2022 The Bitcoin Core developers
+# Copyright (c) 2017-2020 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test RPC calls related to net.
@@ -25,6 +25,7 @@ from test_framework.util import (
     assert_raises_rpc_error,
     p2p_port,
 )
+from test_framework.wallet import MiniWallet
 
 
 def assert_net_servicesnames(servicesflag, servicenames):
@@ -48,6 +49,9 @@ class NetTest(PocketcoinTestFramework):
         self.supports_cli = False
 
     def run_test(self):
+        # We need miniwallet to make a transaction
+        self.wallet = MiniWallet(self.nodes[0])
+        self.wallet.generate(1)
         # Get out of IBD for the minfeefilter and getpeerinfo tests.
         self.nodes[0].generate(101)
 
@@ -74,8 +78,7 @@ class NetTest(PocketcoinTestFramework):
     def test_getpeerinfo(self):
         self.log.info("Test getpeerinfo")
         # Create a few getpeerinfo last_block/last_transaction values.
-        if self.is_wallet_compiled():
-            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 1)
+        self.wallet.send_self_transfer(from_node=self.nodes[0]) # Make a transaction so we can see it in the getpeerinfo results
         self.nodes[1].generate(1)
         self.sync_all()
         time_now = int(time.time())
@@ -100,6 +103,9 @@ class NetTest(PocketcoinTestFramework):
 
         assert_equal(peer_info[1][0]['connection_type'], 'manual')
         assert_equal(peer_info[1][1]['connection_type'], 'inbound')
+
+        # Check dynamically generated networks list in getpeerinfo help output.
+        assert "(ipv4, ipv6, onion, i2p, not_publicly_routable)" in self.nodes[0].help("getpeerinfo")
 
     def test_getnettotals(self):
         self.log.info("Test getnettotals")
@@ -148,6 +154,9 @@ class NetTest(PocketcoinTestFramework):
         network_info = [node.getnetworkinfo() for node in self.nodes]
         for info in network_info:
             assert_net_servicesnames(int(info["localservices"], 0x10), info["localservicesnames"])
+
+        # Check dynamically generated networks list in getnetworkinfo help output.
+        assert "(ipv4, ipv6, onion, i2p)" in self.nodes[0].help("getnetworkinfo")
 
     def test_getaddednodeinfo(self):
         self.log.info("Test getaddednodeinfo")
