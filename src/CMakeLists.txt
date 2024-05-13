@@ -751,13 +751,19 @@ add_library(${POCKETCOIN_UTIL}
                 util/message.h
                 util/rbf.cpp
                 util/rbf.h
+                util/readwritefile.h
+                util/readwritefile.cpp
                 util/ref.h
                 util/settings.cpp
                 util/settings.h
+                util/sock.h
+                util/sock.cpp
                 util/spanparsing.cpp
                 util/spanparsing.h
                 util/string.cpp
                 util/string.h
+                util/syserror.h
+                util/syserror.cpp
                 util/threadnames.cpp
                 util/threadnames.h
                 util/translation.h
@@ -923,6 +929,8 @@ add_library(${POCKETCOIN_SERVER}
         node/coin.cpp
         node/coinstats.h
         node/coinstats.cpp
+        node/connection_types.h
+        node/connection_types.cpp
         node/context.h
         node/context.cpp
         node/psbt.h
@@ -973,6 +981,8 @@ add_library(${POCKETCOIN_SERVER}
         httprpc.cpp
         httpserver.h
         httpserver.cpp
+        i2p.h
+        i2p.cpp
         init.h
         init.cpp
         interfaces/handler.h

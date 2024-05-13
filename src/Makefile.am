@@ -838,7 +838,6 @@ libpocketcoin_util_a_SOURCES = \
   util/rbf.cpp \
   util/readwritefile.cpp \
   util/settings.cpp \
-  util/syserror.cpp \
   util/threadnames.cpp \
   util/spanparsing.cpp \
   util/strencodings.cpp \
