@@ -23,7 +23,7 @@ application bridge enabled. The following routers are recommended for use with P
 Note the IP address and port the SAM proxy is listening to; usually, it is
 `127.0.0.1:7656`.
 
-Once an I2P router with SAM enabled is up and running, use the following Bitcoin
+Once an I2P router with SAM enabled is up and running, use the following Pocketnet
 Core configuration options:
 
 ```
@@ -41,7 +41,7 @@ Core configuration options:
 In a typical situation, this suffices:
 
 ```
-bitcoind -i2psam=127.0.0.1:7656
+pocketcoind -i2psam=127.0.0.1:7656
 ```
 
 ## Additional configuration options related to I2P
@@ -51,7 +51,7 @@ bitcoind -i2psam=127.0.0.1:7656
 ```
 
 Set the `debug=i2p` config logging option to see additional information in the
-debug log about your I2P configuration and connections. Run `bitcoin-cli help
+debug log about your I2P configuration and connections. Run `pocketcoin-cli help
 logging` for more information.
 
 ```
@@ -66,7 +66,7 @@ I2P support was added to Pocketnet Core in version 22.0 and there may be fewer I
 peers than Tor or IP ones. Therefore, using I2P alone without other networks may
 make a node more susceptible to [Sybil
 attacks](https://en.bitcoin.it/wiki/Weaknesses#Sybil_attack). You can use
-`bitcoin-cli -addrinfo` to see the number of I2P addresses known to your node.
+`pocketcoin-cli -addrinfo` to see the number of I2P addresses known to your node.
 
 Another consideration with `onlynet=i2p` is that the initial blocks download
 phase when syncing up a new node can be very slow. This phase can be sped up by
@@ -106,10 +106,10 @@ incoming I2P connections (`-i2pacceptincoming`):
 - in the "localaddresses" output of RPC `getnetworkinfo`
 - in the debug log (grep for `AddLocal`; the I2P address ends in `.b32.i2p`)
 
-To see which I2P peers your node is connected to, use `bitcoin-cli -netinfo 4`
-or the `getpeerinfo` RPC (e.g. `bitcoin-cli getpeerinfo`).
+To see which I2P peers your node is connected to, use `pocketcoin-cli -netinfo 4`
+or the `getpeerinfo` RPC (e.g. `pocketcoin-cli getpeerinfo`).
 
-You can use the `getnodeaddresses` RPC to fetch a number of I2P peers known to your node; run `bitcoin-cli help getnodeaddresses` for details.
+You can use the `getnodeaddresses` RPC to fetch a number of I2P peers known to your node; run `pocketcoin-cli help getnodeaddresses` for details.
 
 ## Compatibility
 
@@ -135,7 +135,7 @@ port (`TO_PORT`) is always set to 0 and is not in the control of Pocketnet Core.
 By default, your node shares bandwidth and transit tunnels with the I2P network
 in order to increase your anonymity with cover traffic, help the I2P router used
 by your node integrate optimally with the network, and give back to the network.
-It's important that the nodes of a popular application like Bitcoin contribute
+It's important that the nodes of a popular application like Pocketnet contribute
 as much to the I2P network as they consume.
 
 It is possible, though strongly discouraged, to change your I2P router
@@ -162,7 +162,7 @@ in [Embedding I2P in your Application](https://geti2p.net/en/docs/applications/e
 
 In most cases, the default router settings should work fine.
 
-## Bundling I2P in a Bitcoin application
+## Bundling I2P in a Pocketnet application
 
 Please see the "General Guidance for Developers" section in https://geti2p.net/en/docs/api/samv3
-if you are developing a downstream application that may be bundling I2P with Bitcoin.
+if you are developing a downstream application that may be bundling I2P with Pocketnet.
