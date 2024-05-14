@@ -39,13 +39,13 @@ P2P and network changes
 -----------------------
 - Added support for running Pocketnet Core as an
   [I2P (Invisible Internet Project)](https://en.wikipedia.org/wiki/I2P) service
-  and connect to such services. See [i2p.md](https://github.com/pocketnetteam/pocketnet.core/blob/0.22/doc/i2p.md) for details. (backported from bitcoin [#20685](https://github.com/bitcoin/bitcoin/pull/20685))
+  and connect to such services. See [i2p.md](https://github.com/pocketnetteam/pocketnet.core/blob/0.22/doc/i2p.md) for details (backported from bitcoin [#20685](https://github.com/bitcoin/bitcoin/pull/20685))
 - This release removes support for Tor version 2 hidden services in favor of Tor
   v3 only, as the Tor network [dropped support for Tor
   v2](https://blog.torproject.org/v2-deprecation-timeline) with the release of
   Tor version 0.4.6.  Henceforth, Pocketnet Core ignores Tor v2 addresses; it
   neither rumors them over the network to other peers, nor stores them in memory
-  or to `peers.dat`.  (backported from bitcoin [#22050](https://github.com/bitcoin/bitcoin/pull/22050))
+  or to `peers.dat` (backported from bitcoin/bitcoin#22050)
 
 New and Updated RPCs
 --------------------
@@ -55,21 +55,19 @@ New and Updated RPCs
   in compact blocks high-bandwidth mode or whether a peer selected us as a
   compact blocks high-bandwidth peer. High-bandwidth peers send new block
   announcements via a `cmpctblock` message rather than the usual inv/headers
-  announcements. See BIP 152 for more details. (backported from bitcoin [#19776](https://github.com/bitcoin/bitcoin/pull/19776))
+  announcements. See BIP 152 for more details (backported from bitcoin/bitcoin#19776)
 
 - `getpeerinfo` no longer returns the following fields: `addnode`, `banscore`,
   and `whitelisted`, which were previously deprecated in 0.21. Instead of
   `addnode`, the `connection_type` field returns manual. Instead of
   `whitelisted`, the `permissions` field indicates if the peer has special
-  privileges. The `banscore` field has simply been removed. (backported from bitcoin [#20755](https://github.com/bitcoin/bitcoin/pull/20755))
+  privileges. The `banscore` field has simply been removed (backported from bitcoin/bitcoin#20755)
 
 - The `getnodeaddresses` RPC now returns a "network" field indicating the
-  network type (ipv4, ipv6, onion, or i2p) for each address.  (backported from bitcoin [#21594](https://github.com/bitcoin/bitcoin/pull/21594))
+  network type (ipv4, ipv6, onion, or i2p) for each address (backported from bitcoin/bitcoin#21594)
 
 - `getnodeaddresses` now also accepts a "network" argument (ipv4, ipv6, onion,
-  or i2p) to return only addresses of the specified network.  (backported from bitcoin [#21843](https://github.com/bitcoin/bitcoin/pull/21843))
-
-Changes to Wallet or GUI related RPCs can be found in the GUI or Wallet section below.
+  or i2p) to return only addresses of the specified network (backported from bitcoin/bitcoin#21843)
 
 Tools and Utilities
 -------------------
@@ -78,7 +76,7 @@ Tools and Utilities
   node per network type (including Tor v3 and I2P) and total. This can be
   useful to see if the node knows enough addresses in a network to use options
   like `-onlynet=<network>` or to upgrade to this release of Pocketnet Core 0.22.5
-  that supports Tor v3 only.  (backported from bitcoin [#21595](https://github.com/bitcoin/bitcoin/pull/21595))
+  that supports Tor v3 only (backported from bitcoin/bitcoin#21595)
 
 0.22.5 change log
 ===============
@@ -86,7 +84,14 @@ Full Changelog: [0.22.4...0.22.5](https://github.com/pocketnetteam/pocketnet.cor
 
 Backports from bitcoin
 ----------------------
-- bitcoin/bitcoin#22050 Tor v3
+- bitcoin/bitcoin#15423 torcontrol: Query Tor for correct -onion configuration
+- bitcoin/bitcoin#19776 net, rpc: expose high bandwidth mode state via getpeerinfo
+- bitcoin/bitcoin#20685 Add I2P support using I2P SAM
+- bitcoin/bitcoin#20755 [rpc] Remove deprecated fields from getpeerinfo
+- bitcoin/bitcoin#20788 net: add RAII socket and use it instead of bare SOCKET
+- bitcoin/bitcoin#21595 cli: create -addrinfo
+- bitcoin/bitcoin#21843 p2p, rpc: enable GetAddr, GetAddresses, and getnodeaddresses by network
+- bitcoin/bitcoin#22050 p2p: remove tor v2 support
 
 Credits
 =======
@@ -94,6 +99,7 @@ Credits
 Thanks to everyone who directly contributed to this release:
 
 - Andy Oknen
+- Network_Support
 - HiHat
 
 As well as to everyone that helped with translations on [Transifex](https://www.transifex.com/pocketnetteam/pocketnet-core/).
