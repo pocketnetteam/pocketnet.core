@@ -82,7 +82,7 @@ namespace PocketWeb::PocketWebRpc
             obj.pushKV("relaytxes", stats.fRelayTxes);
             obj.pushKV("lastsend", stats.nLastSend);
             obj.pushKV("lastrecv", stats.nLastRecv);
-            obj.pushKV("conntime", stats.nTimeConnected);
+            obj.pushKV("conntime", count_seconds(stats.m_connected));
             obj.pushKV("timeoffset", stats.nTimeOffset);
             obj.pushKV("pingtime", stats.m_ping_usec); // TODO (losty-fur): ping changed from double to usec
             obj.pushKV("protocol", stats.nVersion);

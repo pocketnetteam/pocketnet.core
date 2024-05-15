@@ -222,7 +222,7 @@ static RPCHelpMan getpeerinfo()
         obj.pushKV("last_block", stats.nLastBlockTime);
         obj.pushKV("bytessent", stats.nSendBytes);
         obj.pushKV("bytesrecv", stats.nRecvBytes);
-        obj.pushKV("conntime", stats.nTimeConnected);
+        obj.pushKV("conntime", count_seconds(stats.m_connected));
         obj.pushKV("timeoffset", stats.nTimeOffset);
         if (stats.m_ping_usec > 0) {
             obj.pushKV("pingtime", ((double)stats.m_ping_usec) / 1e6);
