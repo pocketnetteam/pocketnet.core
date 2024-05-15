@@ -668,10 +668,6 @@ public:
      */
     void RemoveStaged(setEntries& stage, bool updateDescendants, MemPoolRemovalReason reason) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
-    /** Remove transactions from SQLite db with payload and additional data
-     */
-    void RemoveSQLiteTransactions(const std::vector<std::string>& hashes, MemPoolRemovalReason reason);
-
     /** Clean SQLite db transactions except hashes array
      */
     void CleanSQLiteTransactions();

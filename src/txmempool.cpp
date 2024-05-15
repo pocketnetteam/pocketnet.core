@@ -575,7 +575,6 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
     for (txiter it : txToRemove)
         CalculateDescendants(it, setAllRemoves);
 
-    RemoveSQLiteTransactions(ConvertEntriesToHashes(setAllRemoves), reason);
     RemoveStaged(setAllRemoves, false, reason); 
 }
 
@@ -1094,19 +1093,6 @@ void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPool
     }
 }
 
-void CTxMemPool::RemoveSQLiteTransactions(const std::vector<std::string>& hashes, MemPoolRemovalReason reason)
-{
-    if (!gArgs.GetArg("-mempoolclean", true))
-        return;
-
-    AssertLockHeld(cs);
-    for (const auto& hash : hashes)
-    {
-        PocketDb::TransRepoInst.CleanTransaction(hash);
-        LogPrint(BCLog::MEMPOOL, "%s: Remove SQLite mempool tx with reason : %d\n", hash, (int)reason);
-    }
-}
-
 void CTxMemPool::CleanSQLiteTransactions()
 {
     LOCK(cs);
@@ -1144,7 +1130,6 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     for (txiter removeit : toremove)
         CalculateDescendants(removeit, stage);
 
-    RemoveSQLiteTransactions(ConvertEntriesToHashes(stage), MemPoolRemovalReason::EXPIRY);
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
 
     return stage.size();
@@ -1263,7 +1248,6 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint> *pvNoSpends
                 txn.push_back(iter->GetTx());
         }
 
-        RemoveSQLiteTransactions(ConvertEntriesToHashes(stage), MemPoolRemovalReason::SIZELIMIT);
         RemoveStaged(stage, false, MemPoolRemovalReason::SIZELIMIT);
 
         if (pvNoSpendsRemaining)

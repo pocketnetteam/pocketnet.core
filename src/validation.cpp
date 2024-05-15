@@ -4869,8 +4869,8 @@ void CChainState::LoadMempool(const ArgsManager& args)
     if (args.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL))
         ::LoadMempool(m_mempool);
 
-    LogPrintf("Clean SQLite mempool..\n");
-    m_mempool.CleanSQLiteTransactions();
+    // LogPrintf("Clean SQLite mempool..\n");
+    // m_mempool.CleanSQLiteTransactions();
     
     m_mempool.SetIsLoaded(!ShutdownRequested());
 }
