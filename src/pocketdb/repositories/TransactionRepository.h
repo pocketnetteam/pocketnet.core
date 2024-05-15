@@ -65,7 +65,7 @@ namespace PocketDb
         int MempoolCount();
 
         void CleanTransaction(const string& hash);
-        void CleanMempool();
+        vector<string> GetMempoolTxHashes();
 
         // TODO (lostystyg): need?
         // optional<string> TxIdToHash(const int64_t& id);

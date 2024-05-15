@@ -109,7 +109,7 @@ void Staker::run(const util::Ref& context, CChainParams const& chainparams, boos
 
 void Staker::worker(const util::Ref& context, CChainParams const& chainparams, std::string const& walletName)
 {
-    LogPrintf("Staker worker thread started for \"%s\"\n", walletName);
+    LogPrintf("Staker worker thread started for wallet: \"%s\"\n", walletName);
 
     util::ThreadRename("coin-staker");
 

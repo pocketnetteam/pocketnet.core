@@ -814,55 +814,33 @@ namespace PocketDb
         });
     }
 
-    void TransactionRepository::CleanMempool()
+    vector<string> TransactionRepository::GetMempoolTxHashes()
     {
+        vector<string> result;
+
         SqlTransaction(__func__, [&]()
         {
-            // Clear Payload table
             Sql(R"sql(
-                delete from Payload
+                select
+                    (select r.String from Registry r where r.RowId = t.RowId) as TxId
+                from
+                    Transactions t
+                    left join Chain c
+                        on c.TxId = t.RowId
                 where
-                    not exists (
-                        select
-                            1
-                        from
-                            Chain c
-                        where
-                            c.TxId = Payload.TxId
-                    )
+                    c.TxId is null
             )sql")
-            .Run();
-
-            // Clear TxOutputs table
-            Sql(R"sql(
-                delete from TxOutputs
-                where
-                    not exists (
-                        select
-                            1
-                        from
-                            Chain c
-                        where
-                            c.TxId = TxOutputs.TxId
-                    )
-            )sql")
-            .Run();
-
-            // Clear Transactions table
-            Sql(R"sql(
-                delete from Transactions
-                where
-                    not exists (
-                        select
-                            1
-                        from
-                            Chain c
-                        where
-                            c.TxId = Transactions.RowId
-                    )
-            )sql")
-            .Run();
+            .Select([&](Cursor& cursor)
+            {
+                while (cursor.Step())
+                {
+                    if (auto[ok, hash] = cursor.TryGetColumnString(0); ok)
+                        result.emplace_back(hash);
+                }
+            });
         });
+
+        return result;
     }
 
     void TransactionRepository::InsertTransactionInputs(const vector<TransactionInput>& inputs, const string& txHash)

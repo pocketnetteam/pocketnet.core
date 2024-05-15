@@ -635,6 +635,7 @@ public:
     void _clear() EXCLUSIVE_LOCKS_REQUIRED(cs); //lock free
     bool CompareDepthAndScore(const uint256& hasha, const uint256& hashb, bool wtxid=false);
     void queryHashes(std::vector<uint256>& vtxid) const;
+    void queryHashes(std::vector<std::string>& vtxhash) const;
     bool isSpent(const COutPoint& outpoint) const;
     unsigned int GetTransactionsUpdated() const;
     void AddTransactionsUpdated(unsigned int n);
@@ -669,7 +670,11 @@ public:
 
     /** Remove transactions from SQLite db with payload and additional data
      */
-    void CleanSQLite(const std::unordered_set<std::string>& hashes, MemPoolRemovalReason reason);
+    void RemoveSQLiteTransactions(const std::vector<std::string>& hashes, MemPoolRemovalReason reason);
+
+    /** Clean SQLite db transactions except hashes array
+     */
+    void CleanSQLiteTransactions();
 
     /** When adding transactions from a disconnected block back to the mempool,
      *  new mempool entries may have children in the mempool (which is generally
@@ -836,6 +841,10 @@ private:
      *  removal.
      */
     void removeUnchecked(txiter entry, MemPoolRemovalReason reason) EXCLUSIVE_LOCKS_REQUIRED(cs);
+
+    // Convert mempool entries to string hashes
+    std::vector<std::string> ConvertEntriesToHashes(const setEntries& entries);
+
 public:
     /** EpochGuard: RAII-style guard for using epoch-based graph traversal algorithms.
      *     When walking ancestors or descendants, we generally want to avoid
