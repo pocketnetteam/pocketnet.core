@@ -62,16 +62,13 @@ namespace PocketDb
         bool Exists(const string& hash);
         bool Exists(vector<string>& txHashes);
         bool ExistsLast(const string& hash);
+
         int MempoolCount();
+        bool MempoolExists(const string& hash);
+        void MempoolInsert(const string& hash);
+        void MempoolRemove(const string& hash);
 
-        void CleanTransaction(const string& hash);
-        vector<string> GetMempoolTxHashes();
-
-        // TODO (lostystyg): need?
-        // optional<string> TxIdToHash(const int64_t& id);
-        // optional<int64_t> TxHashToId(const string& hash);
-        // optional<string> AddressIdToHash(const int64_t& id);
-        // optional<int64_t> AddressHashToId(const string& hash);
+        void RemoveTransaction(const string& hash);
 
     private:
         void InsertRegistry(const set<string>& strings);

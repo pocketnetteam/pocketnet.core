@@ -1108,7 +1108,7 @@ void CTxMemPool::CleanSQLiteTransactions()
 
         if (std::find(vtxhash.begin(), vtxhash.end(), hash) == vtxhash.end())
         {
-            PocketDb::TransRepoInst.CleanTransaction(hash);
+            PocketDb::TransRepoInst.RemoveTransaction(hash);
             LogPrint(BCLog::MEMPOOL, "%d/%d: Remove SQLite mempool tx (%s) with reason : orphan\n", i, vtxhashSql.size(), hash);
         }
     }

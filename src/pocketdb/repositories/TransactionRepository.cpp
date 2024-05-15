@@ -633,6 +633,7 @@ namespace PocketDb
     bool TransactionRepository::Exists(const string& hash)
     {
         bool result = false;
+
         SqlTransaction(__func__, [&]()
         {
             result = (
@@ -712,9 +713,9 @@ namespace PocketDb
         {
             Sql(R"sql(
                 select
-                    (select count() from Transactions)
-                    -
-                    (select count() from Chain)
+                    count()
+                from
+                    Mempool
             )sql")
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
@@ -725,10 +726,150 @@ namespace PocketDb
         return result;
     }
 
-    void TransactionRepository::CleanTransaction(const string& hash)
+    bool TransactionRepository::MempoolExists(const string& hash)
+    {
+        bool result = false;
+
+        SqlTransaction(__func__, [&]()
+        {
+            result = (
+                Sql(R"sql(
+                    select
+                        1
+                    from
+                        Mempool
+                    where
+                        TxId = (select RowId from vTx where Hash = ?)
+                )sql")
+                .Bind(hash)
+                .Run() == SQLITE_ROW
+            );
+        });
+
+        return result;
+    }
+
+    void TransactionRepository::MempoolInsert(const string& hash)
     {
         SqlTransaction(__func__, [&]()
         {
+            Sql(R"sql(
+                insert or fail into Mempool
+                (
+                    TxId
+                )
+                select
+                    RowId
+                from
+                    vTx
+                where
+                    Hash = ? and
+                    not exists (select 1 from Mempool m where m.TxId = vTx.RowId)
+            )sql")
+            .Bind(hash)
+            .Run();
+        });
+    }
+
+    void TransactionRepository::MempoolRemove(const string& hash)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                delete from Mempool
+                where
+                    TxId = (select RowId from vTx where Hash = ?)
+            )sql")
+            .Bind(hash)
+            .Run();
+        });
+    }
+
+    void TransactionRepository::RemoveTransaction(const string& hash)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            // Clear Mempool table
+            Sql(R"sql(
+                with
+                    tx as (
+                        select
+                            t.RowId
+                        from
+                            vTx t
+                        where
+                            t.Hash = ?
+                    )
+                delete from Mempool
+                where
+                    TxId = (select RowId from tx) and
+                    not exists (
+                        select
+                            1
+                        from
+                            tx,
+                            Chain c
+                        where
+                            c.TxId = tx.RowId
+                    )
+            )sql")
+            .Bind(hash)
+            .Run();
+
+            // Clear Last table
+            Sql(R"sql(
+                with
+                    tx as (
+                        select
+                            t.RowId
+                        from
+                            vTx t
+                        where
+                            t.Hash = ?
+                    )
+                delete from Last
+                where
+                    TxId = (select RowId from tx) and
+                    not exists (
+                        select
+                            1
+                        from
+                            tx,
+                            Chain c
+                        where
+                            c.TxId = tx.RowId
+                    )
+            )sql")
+            .Bind(hash)
+            .Run();
+
+            // Clear First table
+            Sql(R"sql(
+                with
+                    tx as (
+                        select
+                            t.RowId
+                        from
+                            vTx t
+                        where
+                            t.Hash = ?
+                    )
+                delete from First
+                where
+                    TxId = (select RowId from tx) and
+                    not exists (
+                        select
+                            1
+                        from
+                            tx,
+                            Chain c
+                        where
+                            c.TxId = tx.RowId
+                    )
+            )sql")
+            .Bind(hash)
+            .Run();
+
             // Clear Payload tablew
             Sql(R"sql(
                 with
@@ -748,7 +889,7 @@ namespace PocketDb
                             1
                         from
                             tx,
-                            Chain c -- primary key
+                            Chain c
                         where
                             c.TxId = tx.RowId
                     )
@@ -777,7 +918,7 @@ namespace PocketDb
                             1
                         from
                             tx,
-                            Chain c -- primary key
+                            Chain c
                         where
                             c.TxId = tx.RowId
                     )
@@ -804,7 +945,7 @@ namespace PocketDb
                             1
                         from
                             tx,
-                            Chain c -- primary key
+                            Chain c
                         where
                             c.TxId = tx.RowId
                     )
@@ -812,35 +953,6 @@ namespace PocketDb
             .Bind(hash)
             .Run();
         });
-    }
-
-    vector<string> TransactionRepository::GetMempoolTxHashes()
-    {
-        vector<string> result;
-
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                select
-                    (select r.String from Registry r where r.RowId = t.RowId) as TxId
-                from
-                    Transactions t
-                    left join Chain c
-                        on c.TxId = t.RowId
-                where
-                    c.TxId is null
-            )sql")
-            .Select([&](Cursor& cursor)
-            {
-                while (cursor.Step())
-                {
-                    if (auto[ok, hash] = cursor.TryGetColumnString(0); ok)
-                        result.emplace_back(hash);
-                }
-            });
-        });
-
-        return result;
     }
 
     void TransactionRepository::InsertTransactionInputs(const vector<TransactionInput>& inputs, const string& txHash)
@@ -1156,83 +1268,6 @@ namespace PocketDb
 
         return res;
     }
-
-    // TODO (lostystyg): need?
-    // optional<string> TransactionRepository::TxIdToHash(const int64_t& id)
-    // {
-    //     optional<string> hash;
-    //     SqlTransaction(__func__, [&]()
-    //     {
-    //         Sql(R"sql(
-    //             select Hash
-    //             from Transactions
-    //             where Id = ?
-    //         )sql")
-    //         .Bind(id)
-    //         .Collect(hash);
-    //     });
-
-    //     return hash;
-    // }
-
-    // optional<int64_t> TransactionRepository::TxHashToId(const string& hash)
-    // {
-    //     auto sql = ;
-
-    //     optional<int64_t> id;
-    //     SqlTransaction(__func__, [&]()
-    //     {
-    //         Sql(R"sql(
-                
-    //         )sql")
-    //         .Bind(hash)
-    //         .Collect(id);
-    //     });
-
-    //     return id;
-    // }
-
-    // optional<string> TransactionRepository::AddressIdToHash(const int64_t& id)
-    // {
-    //     auto sql = R"sql(
-    //         select Hash
-    //         from Addresses
-    //         where Id = ?
-    //     )sql";
-
-    //     optional<string> hash;
-    //     SqlTransaction(__func__, [&]()
-    //     {
-    //         auto& stmt = Sql(sql);
-    //         stmt.Bind(id);
-    //         if (stmt.Step())
-    //             if (auto [ok, val] = stmt.TryGetColumnString(0); ok)
-    //                 hash = val;
-    //     });
-
-    //     return hash;
-    // }
-
-    // optional<int64_t> TransactionRepository::AddressHashToId(const string& hash)
-    // {
-    //     auto sql = R"sql(
-    //         select Id
-    //         from Addresses
-    //         where Hash = ?
-    //     )sql";
-
-    //     optional<int64_t> id;
-    //     SqlTransaction(__func__, [&]()
-    //     {
-    //         auto& stmt = Sql(sql);
-    //         stmt.Bind(hash);
-    //         if (stmt.Step())
-    //             if (auto [ok, val] = stmt.TryGetColumnInt64(0); ok)
-    //                 id = val;
-    //     });
-
-    //     return id;
-    // }
 
     void TransactionRepository::InsertRegistry(const set<string> &strings)
     {
