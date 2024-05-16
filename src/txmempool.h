@@ -398,7 +398,7 @@ enum class MemPoolRemovalReason {
     BLOCK,       //!< Removed for block - 4
     CONFLICT,    //!< Removed for conflict with in-block transaction - 5
     REPLACED,    //!< Removed for replacement - 6
-    CONSENSUS    //!< Removed in sonsensus conflict - 7
+    CONSENSUS,   //!< Removed in sonsensus conflict - 7
 };
 
 class SaltedTxidHasher
@@ -512,6 +512,28 @@ private:
     void trackPackageRemoved(const CFeeRate& rate) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     bool m_is_loaded GUARDED_BY(cs){false};
+
+    std::string ReasonToString(MemPoolRemovalReason reason) const
+    {
+        switch (reason) {
+            case MemPoolRemovalReason::EXPIRY:
+                return "expired";
+            case MemPoolRemovalReason::SIZELIMIT:
+                return "size limit";
+            case MemPoolRemovalReason::REORG:
+                return "reorg";
+            case MemPoolRemovalReason::BLOCK:
+                return "block";
+            case MemPoolRemovalReason::CONFLICT:
+                return "conflict";
+            case MemPoolRemovalReason::REPLACED:
+                return "replaced";
+            case MemPoolRemovalReason::CONSENSUS:
+                return "consensus";
+            default:
+                return "unknown";
+        }
+    }
 
 public:
 
@@ -667,10 +689,6 @@ public:
      *  that any in-mempool descendants have their ancestor state updated.
      */
     void RemoveStaged(setEntries& stage, bool updateDescendants, MemPoolRemovalReason reason) EXCLUSIVE_LOCKS_REQUIRED(cs);
-
-    /** Clean SQLite db transactions except hashes array
-     */
-    void CleanSQLiteTransactions();
 
     /** When adding transactions from a disconnected block back to the mempool,
      *  new mempool entries may have children in the mempool (which is generally

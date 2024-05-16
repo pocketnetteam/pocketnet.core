@@ -785,6 +785,17 @@ namespace PocketDb
         });
     }
 
+    void TransactionRepository::MempoolClear()
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                delete from Mempool
+            )sql")
+            .Run();
+        });
+    }
+
     void TransactionRepository::RemoveTransaction(const string& hash)
     {
         SqlTransaction(__func__, [&]()

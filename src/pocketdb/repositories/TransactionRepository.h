@@ -67,6 +67,7 @@ namespace PocketDb
         bool MempoolExists(const string& hash);
         void MempoolInsert(const string& hash);
         void MempoolRemove(const string& hash);
+        void MempoolClear();
 
         void RemoveTransaction(const string& hash);
 

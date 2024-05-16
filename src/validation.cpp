@@ -1078,8 +1078,6 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
 
         if (args.m_replaced_transactions)
             args.m_replaced_transactions->push_back(it->GetSharedTx());
-
-        LogPrintf("DEBUG! MemPoolRemovalReason::REPLACED -> %s\n", it->GetTx().GetHash().ToString());
     }
     m_pool.RemoveStaged(allConflicting, false, MemPoolRemovalReason::REPLACED);
     
@@ -2948,9 +2946,17 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     // Read transactions payload from db
     PocketBlockRef pocketBlock = nullptr;
     if (!pocketBlockPart)
-        PocketServices::Accessor::GetBlock(blockConnecting, pocketBlock);
+    {
+        if (!PocketServices::Accessor::GetBlock(blockConnecting, pocketBlock))
+        {
+            pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
+            return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-find-social-payload", "", true);
+        }
+    }
     else
+    {
         pocketBlock = pocketBlockPart;
+    }
 
     if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock, pindexNew->nHeight); !ok)
     {
@@ -4867,11 +4873,17 @@ bool static LoadBlockIndexDB(ChainstateManager& chainman, const CChainParams& ch
 void CChainState::LoadMempool(const ArgsManager& args)
 {
     if (args.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL))
+    {
         ::LoadMempool(m_mempool);
+    }
+    else
+    {
+        LOCK(m_mempool.cs);
+        LOCK(cs_main);
+        LogPrintf("Clean SQL mempool..\n");
+        PocketDb::TransRepoInst.MempoolClear();
+    }
 
-    // LogPrintf("Clean SQLite mempool..\n");
-    // m_mempool.CleanSQLiteTransactions();
-    
     m_mempool.SetIsLoaded(!ShutdownRequested());
 }
 
