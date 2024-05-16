@@ -4713,7 +4713,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
 	std::vector<COutput> vCoins;
 	AvailableCoinsForStaking(vCoins, nSpendTime);
 
-	LogPrint(BCLog::WALLET, "Available coins count %d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
+	LogPrint(BCLog::WALLET, "Wallet \"%s\": Available coins count %d BestHeader: %d %s\n", GetName(), vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
 	setCoinsRet.clear();
 	nValueRet = 0;
 
@@ -4818,7 +4818,6 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	}
 
 	if (setCoins.empty()) {
-		// LogPrintf("Set coins empty\n");
 		return false;
 	}
 
@@ -4842,8 +4841,6 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 			// Search nSearchInterval seconds back up to nMaxStakeSearchInterval
 			COutPoint prevoutStake = COutPoint(pcoin.first->tx->GetHash(), pcoin.second);
 			int64_t nBlockTime;
-
-			// LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : txNew.nTime=%s - %d sec\n", FormatISO8601DateTime(txNew.nTime),n);
 
 			if (CheckKernel(pindexPrev, nBits, txNew.nTime - n, prevoutStake, &nBlockTime, this, hashProofOfStakeSource))
 			{
