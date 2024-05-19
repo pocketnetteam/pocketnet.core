@@ -1306,7 +1306,10 @@ bool CConnman::InactivityCheck(CNode *pnode)
     return false;
 }
 
-bool CConnman::GenerateSelectSet(std::set<SOCKET>& recv_set, std::set<SOCKET>& send_set, std::set<SOCKET>& error_set)
+bool CConnman::GenerateSelectSet(const std::vector<CNode*>& nodes,
+                                 std::set<SOCKET>& recv_set,
+                                 std::set<SOCKET>& send_set,
+                                 std::set<SOCKET>& error_set)
 {
     for (const ListenSocket& hListenSocket : vhListenSocket) {
         recv_set.insert(hListenSocket.sock->Get());
@@ -1314,7 +1317,7 @@ bool CConnman::GenerateSelectSet(std::set<SOCKET>& recv_set, std::set<SOCKET>& s
 
     {
         LOCK(cs_vNodes);
-        for (CNode* pnode : vNodes)
+        for (CNode* pnode : nodes)
         {
             // Implement the following logic:
             // * If there is data to send, select() for sending data. As this only
@@ -1360,7 +1363,7 @@ void CConnman::SocketEvents(const std::vector<CNode*>& nodes,
                             std::set<SOCKET>& error_set)
 {
     std::set<SOCKET> recv_select_set, send_select_set, error_select_set;
-    if (!GenerateSelectSet(recv_select_set, send_select_set, error_select_set)) {
+    if (!GenerateSelectSet(nodes, recv_select_set, send_select_set, error_select_set)) {
         interruptNet.sleep_for(std::chrono::milliseconds(SELECT_TIMEOUT_MILLISECONDS));
         return;
     }
@@ -1405,7 +1408,7 @@ void CConnman::SocketEvents(const std::vector<CNode*>& nodes,
                             std::set<SOCKET>& error_set)
 {
     std::set<SOCKET> recv_select_set, send_select_set, error_select_set;
-    if (!GenerateSelectSet(recv_select_set, send_select_set, error_select_set)) {
+    if (!GenerateSelectSet(nodes, recv_select_set, send_select_set, error_select_set)) {
         interruptNet.sleep_for(std::chrono::milliseconds(SELECT_TIMEOUT_MILLISECONDS));
         return;
     }

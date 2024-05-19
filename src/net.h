@@ -202,10 +202,28 @@ uint16_t GetListenPort();
 class NetEventsInterface
 {
 public:
-    virtual bool ProcessMessages(CNode* pnode, std::atomic<bool>& interrupt) = 0;
-    virtual bool SendMessages(CNode* pnode) = 0;
+    /** Initialize a peer (setup state, queue any initial messages) */
     virtual void InitializeNode(CNode* pnode) = 0;
+
+    /** Handle removal of a peer (clear state) */
     virtual void FinalizeNode(const CNode& node, bool& update_connection_time) = 0;
+
+    /**
+    * Process protocol messages received from a given node
+    *
+    * @param[in]   pnode           The node which we have received messages from.
+    * @param[in]   interrupt       Interrupt condition for processing threads
+    * @return                      True if there is more work to be done
+    */
+    virtual bool ProcessMessages(CNode* pnode, std::atomic<bool>& interrupt) = 0;
+
+    /**
+    * Send queued protocol messages to a given node.
+    *
+    * @param[in]   pnode           The node which we are sending messages to.
+    * @return                      True if there is more work to be done
+    */
+    virtual bool SendMessages(CNode* pnode) EXCLUSIVE_LOCKS_REQUIRED(pnode->cs_sendProcessing) = 0;
 
 protected:
     /**
@@ -407,7 +425,9 @@ public:
     }
     int Read(const char *pch, unsigned int nBytes) override {
         int ret = in_data ? readData(pch, nBytes) : readHeader(pch, nBytes);
-        if (ret < 0) Reset();
+        if (ret < 0) {
+            Reset();
+        }
         return ret;
     }
     Optional<CNetMessage> GetMessage(std::chrono::microseconds time, uint32_t& out_err_raw_size) override;
@@ -450,13 +470,15 @@ public:
      */
     std::shared_ptr<Sock> m_sock GUARDED_BY(m_sock_mutex);
 
-    size_t nSendSize{0}; // total size of all vSendMsg entries
-    size_t nSendOffset{0}; // offset inside the first vSendMsg already sent
+    /** Total size of all vSendMsg entries */
+    size_t nSendSize GUARDED_BY(cs_vSend){0};
+    /** Offset inside the first vSendMsg already sent */
+    size_t nSendOffset GUARDED_BY(cs_vSend){0};
     uint64_t nSendBytes GUARDED_BY(cs_vSend){0};
     std::deque<std::vector<unsigned char>> vSendMsg GUARDED_BY(cs_vSend);
-    RecursiveMutex cs_vSend;
-    RecursiveMutex m_sock_mutex;
-    RecursiveMutex cs_vRecv;
+    Mutex cs_vSend;
+    Mutex m_sock_mutex;
+    Mutex cs_vRecv;
 
     RecursiveMutex cs_vProcessMsg;
     std::list<CNetMessage> vProcessMsg GUARDED_BY(cs_vProcessMsg);
@@ -582,7 +604,7 @@ public:
     Network ConnectedThroughNetwork() const;
 
 protected:
-    mapMsgCmdSize mapSendBytesPerMsgCmd;
+    mapMsgCmdSize mapSendBytesPerMsgCmd GUARDED_BY(cs_vSend);
     mapMsgCmdSize mapRecvBytesPerMsgCmd GUARDED_BY(cs_vRecv);
 
 public:
@@ -1093,7 +1115,19 @@ private:
     void NotifyNumConnectionsChanged();
     /** Return true if the peer is inactive and should be disconnected. */
     bool InactivityCheck(CNode *pnode);
-    bool GenerateSelectSet(std::set<SOCKET> &recv_set, std::set<SOCKET> &send_set, std::set<SOCKET> &error_set);
+
+    /**
+     * Generate a collection of sockets to check for IO readiness.
+     * @param[in] nodes Select from these nodes' sockets.
+     * @param[out] recv_set Sockets to check for read readiness.
+     * @param[out] send_set Sockets to check for write readiness.
+     * @param[out] error_set Sockets to check for errors.
+     * @return true if at least one socket is to be checked (the returned set is not empty)
+     */
+    bool GenerateSelectSet(const std::vector<CNode*>& nodes,
+                           std::set<SOCKET>& recv_set,
+                           std::set<SOCKET>& send_set,
+                           std::set<SOCKET>& error_set);
 
     /**
      * Check which sockets are ready for IO.
