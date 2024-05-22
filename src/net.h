@@ -301,7 +301,7 @@ public:
     int nVersion;
     std::string cleanSubVer;
     bool fInbound;
-    bool m_manual_connection;		// FIXME!!! Delete!
+//    bool m_manual_connection;		// FIXME!!! Delete!
     // We requested high bandwidth connection to peer
     bool m_bip152_highbandwidth_to;
     // Peer requested high bandwidth connection
