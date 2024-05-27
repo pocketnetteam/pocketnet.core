@@ -144,20 +144,19 @@ $ pocketcoind --help
     # Latest snapshot archive
     https://snapshot.pocketnet.app/latest.tgz
     ```
-3. There must be archive tgz with 5 directories:
+3. There must be archive tgz with 3 directories:
     ```shell
     blocks\
-      - ...
-    chainstate\
       - ...
     indexes\
       - ...
     pocketdb\
       - main.sqlite3
       - web.sqlite3
-    checkpoints\
-      - main.sqlite3
     ```
+    
+**VERY IMPORTANT**: save the **wallet.dat** file or **wallets/** files before cleaning the directory. It is recommended to even save these files somewhere for backup. 
+
 4. Clean out everything except **wallet.dat** file, **wallets/** directory and **pocketcoin.conf** config file in the blockchain working directory and unpack the archive:
     ```shell
     # for unix
@@ -174,23 +173,14 @@ $ pocketcoind --help
     $ rm -r ./chainstate
     $ rm -r ./indexes
     $ rm -r ./pocketdb
-    $ rm -r ./checkpoints
     
     # unpack new checkpoint DB
     
     # for tar.gz archive
     $ tar -xzf latest.tgz -C ./
-    
-    # for bz2 archive
-    $ tar -xjf latest.tgz -C ./
-    
-    # create wallets directory if not exist
-    $ mkdir wallets
     ```
 5. Make sure the folders and files inside are not set to "read only" (grant permissions to all files for current user via ```chmod -R <username> ~/.pocketcoin/``` unix command)
 6. Start the node.
-
-**VERY IMPORTANT**: save the **wallet.dat** file or **wallets/** files before cleaning the directory. It is recommended to even save these files somewhere for backup. 
 
 # Get address (for PKOIN receiving) and private key info (Linux, Docker)
 ```shell
