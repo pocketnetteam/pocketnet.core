@@ -1217,6 +1217,7 @@ namespace PocketDb
     {
         SqlTransaction(__func__, [&]()
         {
+            // Firstly cancel
             Sql(R"sql(
                 insert into
                     Badges (AccountId, Badge, Cancel, Height)
