@@ -439,8 +439,7 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
             i2p::Connection conn;
             if (m_i2p_sam_session->Connect(addrConnect, conn, proxyConnectionFailed)) {
                 connected = true;
-//                sock = std::make_unique<Sock>(std::move(conn.sock));
-		sock = std::move(conn.sock);
+                sock = std::move(conn.sock);
                 addr_bind = CAddress{conn.me, NODE_NONE};
             }
         } else if (GetProxy(addrConnect.GetNetwork(), proxy)) {
@@ -456,7 +455,7 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
             if (!sock) {
                 return nullptr;
             }
-            connected = ConnectSocketDirectly(addrConnect, sock->Get(), nConnectTimeout,
+            connected = ConnectSocketDirectly(addrConnect, *sock, nConnectTimeout,
                                               conn_type == ConnectionType::MANUAL);
         }
         if (!proxyConnectionFailed) {
