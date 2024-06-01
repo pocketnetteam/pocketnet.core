@@ -128,7 +128,16 @@ public:
 
     const Consensus::Params& GetConsensus() const { return consensus; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
-    int GetDefaultPort() const { return nDefaultPort; }
+    uint16_t GetDefaultPort() const { return nDefaultPort; }
+    uint16_t GetDefaultPort(Network net) const
+    {
+        return net == NET_I2P ? I2P_SAM31_PORT : GetDefaultPort();
+    }
+    uint16_t GetDefaultPort(const std::string& addr) const
+    {
+        CNetAddr a;
+        return a.SetSpecial(addr) ? GetDefaultPort(a.GetNetwork()) : GetDefaultPort();
+    }
 
     const CBlock& GenesisBlock() const { return genesis; }
     /** Default value for -checkmempool and -checkblockindex argument */

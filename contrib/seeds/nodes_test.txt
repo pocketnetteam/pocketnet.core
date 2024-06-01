@@ -4,3 +4,7 @@
 
 # Onion nodes
 2rsyqouzsdaaipyju5wxvyybxxqsokm2jvixvewmsfors2qsqppgd5id.onion:36060
+
+# I2P nodes
+vqq4yhe7asjiaj2axvjuvh7n3fmn4ctofwxesq3qccdxfkdio2aq.b32.i2p:0
+
