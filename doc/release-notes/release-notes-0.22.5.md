@@ -39,13 +39,14 @@ P2P and network changes
 -----------------------
 - Added support for running Pocketnet Core as an
   [I2P (Invisible Internet Project)](https://en.wikipedia.org/wiki/I2P) service
-  and connect to such services. See [i2p.md](https://github.com/pocketnetteam/pocketnet.core/blob/0.22/doc/i2p.md) for details (backported from bitcoin [#20685](https://github.com/bitcoin/bitcoin/pull/20685))
+  and connect to such services. See [doc/i2p.md](https://github.com/pocketnetteam/pocketnet.core/blob/master/doc/i2p.md) for details (backported from bitcoin/bitcoin#20685)
 - This release removes support for Tor version 2 hidden services in favor of Tor
   v3 only, as the Tor network [dropped support for Tor
   v2](https://blog.torproject.org/v2-deprecation-timeline) with the release of
   Tor version 0.4.6.  Henceforth, Pocketnet Core ignores Tor v2 addresses; it
   neither rumors them over the network to other peers, nor stores them in memory
   or to `peers.dat` (backported from bitcoin/bitcoin#22050)
+- Full support has been added for the CJDNS network. See the new option -cjdnsreachable and [doc/cjdns.md](https://github.com/pocketnetteam/pocketnet.core/blob/master/doc/cjdns.md) (backported from bitcoin/bitcoin#23077)
 
 New and Updated RPCs
 --------------------

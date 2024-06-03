@@ -229,7 +229,7 @@ class CNetAddr
          */
         bool IsRelayable() const
         {
-            return IsIPv4() || IsIPv6() || IsTor();
+            return IsIPv4() || IsIPv6() || IsTor() || IsI2P() || IsCJDNS();
         }
 
         /**
@@ -572,6 +572,8 @@ class CService : public CNetAddr
             READWRITEAS(CNetAddr, obj);
             READWRITE(Using<BigEndianFormatter<2>>(obj.port));
         }
+
+        friend CService MaybeFlipIPv6toCJDNS(const CService& service);
 };
 
 bool SanityCheckASMap(const std::vector<bool>& asmap);

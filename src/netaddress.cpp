@@ -735,7 +735,7 @@ bool CNetAddr::GetInAddr(struct in_addr* pipv4Addr) const
 }
 
 /**
- * Try to get our IPv6 address.
+ * Try to get our IPv6 (or CJDNS) address.
  *
  * @param[out] pipv6Addr The in6_addr struct to which to copy.
  *
@@ -746,7 +746,7 @@ bool CNetAddr::GetInAddr(struct in_addr* pipv4Addr) const
  */
 bool CNetAddr::GetIn6Addr(struct in6_addr* pipv6Addr) const
 {
-    if (!IsIPv6()) {
+    if (!IsIPv6() && !IsCJDNS()) {
         return false;
     }
     assert(sizeof(*pipv6Addr) == m_addr.size());
@@ -866,8 +866,14 @@ std::vector<unsigned char> CNetAddr::GetGroup(const std::vector<bool> &asmap) co
         vchRet.push_back((ipv4 >> 24) & 0xFF);
         vchRet.push_back((ipv4 >> 16) & 0xFF);
         return vchRet;
-    } else if (IsTor() || IsI2P() || IsCJDNS()) {
+    } else if (IsTor() || IsI2P()) {
         nBits = 4;
+    } else if (IsCJDNS()) {
+        // Treat in the same way as Tor and I2P because the address in all of
+        // them is "random" bytes (derived from a public key). However in CJDNS
+        // the first byte is a constant 0xfc, so the random bytes come after it.
+        // Thus skip the constant 8 bits at the start.
+        nBits = 12;
     } else if (IsHeNet()) {
         // for he.net, use /36 groups
         nBits = 36;
@@ -963,6 +969,11 @@ int CNetAddr::GetReachabilityFrom(const CNetAddr *paddrPartner) const
         switch (ourNet) {
         case NET_I2P:	return REACH_PRIVATE;
         default:	return REACH_DEFAULT;
+        }
+    case NET_CJDNS:
+        switch (ourNet) {
+        case NET_CJDNS: return REACH_PRIVATE;
+        default: return REACH_DEFAULT;
         }
     case NET_TEREDO:
         switch(ourNet) {
