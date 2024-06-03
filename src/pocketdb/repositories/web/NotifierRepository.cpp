@@ -2175,7 +2175,7 @@ namespace PocketDb
                         pna.String2,
                         pna.String3,
                         ifnull(rna.Value,0),
-                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::CommentScore) + R"sql(')TP,
+                        (')sql" + ShortTxTypeConvertor::toString(ShortTxType::ContentScore) + R"sql(')TP,
                         ss.Hash,
                         s.Type,
                         ss.String1,
