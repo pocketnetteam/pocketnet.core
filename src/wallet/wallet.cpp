@@ -4713,7 +4713,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
 	std::vector<COutput> vCoins;
 	AvailableCoinsForStaking(vCoins, nSpendTime);
 
-	LogPrint(BCLog::WALLET, "Available coins count %d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
+	LogPrint(BCLog::WALLET, "Available UTXO count %d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
 	setCoinsRet.clear();
 	nValueRet = 0;
 
@@ -4826,7 +4826,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	CScript scriptPubKeyKernel;
 	CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
 
-	LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : SelectedCoins=%d txNew.nTime=%s nSearchInterval=%ld\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval);
+	LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : Selected UTXO=%d txNew.nTime=%s nSearchInterval=%ld\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval);
 
 	for (auto & pcoin : setCoins) {
 		static int nMaxStakeSearchInterval = 60;
@@ -4894,7 +4894,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 				vwtxPrev.insert(std::make_pair(pcoin.first, pcoin.second));
 				txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
 
-				LogPrint(BCLog::WALLET, "CreateCoinStake : added kernel type=%d chained tx value=%ld \n", GetTxnOutputType(whichType), pcoin.first->tx->vout[pcoin.second].nValue);
+				LogPrint(BCLog::WALLET, "CreateCoinStake : added kernel type=%d, chained tx value=%ld, tx time=%s\n", GetTxnOutputType(whichType), pcoin.first->tx->vout[pcoin.second].nValue, FormatISO8601DateTime(pcoin.first->tx->nTime));
 				fKernelFound = true;
 				break;
 			}
