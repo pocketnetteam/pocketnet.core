@@ -69,7 +69,6 @@ public:
         std::string const& walletName,
         unsigned int minerSleep
     );
-    uint64_t WorkerLastCoinStakeSearchTime;
 
 private:
     std::string walletName;

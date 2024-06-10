@@ -850,7 +850,7 @@ static RPCHelpMan getstakinginfo()
     }
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
-    bool staking = Staker::getInstance()->getLastCoinStakeSearchInterval() && nWeight;                                  // FIXME!!! Need more precision checking
+    bool staking = ((nLastCoinStakeSearchTime + 60) > GetAdjustedTime()) && nWeight;                                    // Check if coinstkae search was performed in last minute and have weight
     uint64_t nExpectedTime = staking ? (GetTargetSpacing(ChainActive().Height()) * nNetworkWeight / nWeight) : 0;
 
     UniValue obj(UniValue::VOBJ);
