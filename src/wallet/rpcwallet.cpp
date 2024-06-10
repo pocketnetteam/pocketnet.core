@@ -2620,7 +2620,7 @@ static RPCHelpMan getwalletinfo()
     size_t kpExternalSize = pwallet->KeypoolCountExternalKeys();
     const auto bal = pwallet->GetBalance();
     int64_t kp_oldest = pwallet->GetOldestKeyPoolTime();
-    obj.pushKV("walletname", pwallet->GetName());
+    obj.pushKV("walletname", pwallet->GetName() + " / " + pwallet->GetDisplayName());
     obj.pushKV("walletversion", pwallet->GetVersion());
     obj.pushKV("format", pwallet->GetDatabase().Format());
     obj.pushKV("balance", ValueFromAmount(bal.m_mine_trusted));

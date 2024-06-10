@@ -739,6 +739,8 @@ private:
 
     bool CreateTransactionInternal(const std::vector<CRecipient>& vecSend, CTransactionRef& tx, CAmount& nFeeRet, int& nChangePosInOut, bilingual_str& error, const CCoinControl& coin_control, FeeCalculation& fee_calc_out, bool sign);
 
+    uint64_t nLastCoinStakeSearchTime=0;
+
 public:
     /*
      * Main wallet lock.
@@ -1301,6 +1303,11 @@ public:
 
     //! Add a descriptor to the wallet, return a ScriptPubKeyMan & associated output type
     ScriptPubKeyMan* AddWalletDescriptor(WalletDescriptor& desc, const FlatSigningProvider& signing_provider, const std::string& label, bool internal);
+
+    // Last coinstake search time
+    uint64_t GetLastCoinStakeSearchTime();
+    // Set last coinstake search time
+    void SetLastCoinStakeSearchTime(uint64_t nTime);
 };
 
 /**

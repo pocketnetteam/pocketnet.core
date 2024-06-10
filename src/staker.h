@@ -27,7 +27,7 @@ public:
     bool getIsStaking();
 
     uint64_t getLastCoinStakeSearchInterval();
-    uint64_t getLastCoinStakeSearchTime();
+    uint64_t getLastCoinStakeTime();
 
     void startWorkers(
         boost::thread_group& threadGroup,
@@ -58,20 +58,21 @@ private:
     bool isStaking;
     unsigned int minerSleep;
     uint64_t lastCoinStakeSearchInterval;
-    uint64_t nLastCoinStakeSearchTime;
+    uint64_t nLastCoinStakeTime;
     std::unordered_set<std::string> walletWorkers;
 };
 
-class StakerWorker
+/* class StakerWorker
 {
 public:
     StakerWorker(
         std::string const& walletName,
         unsigned int minerSleep
     );
+    uint64_t WorkerLastCoinStakeSearchTime;
 
 private:
     std::string walletName;
-};
+}; */
 
 #endif

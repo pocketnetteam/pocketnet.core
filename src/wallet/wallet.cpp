@@ -4713,7 +4713,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
 	std::vector<COutput> vCoins;
 	AvailableCoinsForStaking(vCoins, nSpendTime);
 
-	LogPrint(BCLog::WALLET, "Available UTXO count %d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
+	WalletLogPrintf("SelectCoinsForStaking() : available UTXO count=%d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
 	setCoinsRet.clear();
 	nValueRet = 0;
 
@@ -4826,7 +4826,11 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	CScript scriptPubKeyKernel;
 	CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
 
-	LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : Selected UTXO=%d txNew.nTime=%s nSearchInterval=%ld\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval);
+        // LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : Selected UTXO=%d txNew.nTime=%s nSearchInterval=%ld\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval);
+        if (LogAcceptCategory(BCLog::STAKEMODIF))
+        {
+            WalletLogPrintf("CreateCoinStake : Selected UTXO=%d txNew.nTime=%s nSearchInterval=%ld\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval);
+        }
 
 	for (auto & pcoin : setCoins) {
 		static int nMaxStakeSearchInterval = 60;
@@ -4848,7 +4852,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 			if (CheckKernel(pindexPrev, nBits, txNew.nTime - n, prevoutStake, &nBlockTime, this, hashProofOfStakeSource))
 			{
 				// Found a kernel
-				LogPrint(BCLog::WALLET, "CreateCoinStake : kernel found at txNew.nTime=%s - %d sec\n", FormatISO8601DateTime(txNew.nTime), n);
+				WalletLogPrintf("CreateCoinStake : kernel found at txNew.nTime=%s - %d sec\n", FormatISO8601DateTime(txNew.nTime), n);
 				std::vector<std::vector<unsigned char>> vSolutions;
 				CScript scriptPubKeyOut;
 				scriptPubKeyKernel = pcoin.first->tx->vout[pcoin.second].scriptPubKey;
@@ -4858,7 +4862,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 					break;
 				}
 
-				LogPrint(BCLog::WALLET, "CreateCoinStake : parsed kernel type=%d\n", GetTxnOutputType(whichType));
+				WalletLogPrintf("CreateCoinStake : parsed kernel type=%d\n", GetTxnOutputType(whichType));
 				if (whichType != TxoutType::PUBKEY && whichType != TxoutType::PUBKEYHASH) {
 					LogPrintf("CreateCoinStake : no support for kernel type=\"%s\"\n", GetTxnOutputType(whichType));
 					break;  // only support pay to public key and pay to address
@@ -4894,7 +4898,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 				vwtxPrev.insert(std::make_pair(pcoin.first, pcoin.second));
 				txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
 
-				LogPrint(BCLog::WALLET, "CreateCoinStake : added kernel type=%d, chained tx value=%ld, tx time=%s\n", GetTxnOutputType(whichType), pcoin.first->tx->vout[pcoin.second].nValue, FormatISO8601DateTime(pcoin.first->tx->nTime));
+				WalletLogPrintf("CreateCoinStake : added kernel type=%d, chained tx value=%ld, tx time=%s\n", GetTxnOutputType(whichType), pcoin.first->tx->vout[pcoin.second].nValue, FormatISO8601DateTime(pcoin.first->tx->nTime));
 				fKernelFound = true;
 				break;
 			}
@@ -5086,3 +5090,12 @@ tuple<uint64_t, uint64_t> CWallet::GetStakeWeight() const
 	return {nBalance, nWeight};
 }
 
+uint64_t CWallet::GetLastCoinStakeSearchTime()
+{
+    return nLastCoinStakeSearchTime;
+}
+
+void CWallet::SetLastCoinStakeSearchTime(uint64_t nTime)
+{
+    nLastCoinStakeSearchTime = nTime;
+}
