@@ -84,10 +84,16 @@ void test_one_input(const std::vector<uint8_t>& buffer)
             (void)connman.ForNode(fuzzed_data_provider.ConsumeIntegral<NodeId>(), [&](auto) { return fuzzed_data_provider.ConsumeBool(); });
             break;
         case 15:
-            (void)connman.GetAddresses(fuzzed_data_provider.ConsumeIntegral<size_t>(), fuzzed_data_provider.ConsumeIntegral<size_t>());
+            (void)connman.GetAddresses(
+                    /* max_addresses */ fuzzed_data_provider.ConsumeIntegral<size_t>(),
+                    /* max_pct */ fuzzed_data_provider.ConsumeIntegral<size_t>(),
+                    /* network */ std::nullopt);
             break;
         case 16: {
-            (void)connman.GetAddresses(random_node, fuzzed_data_provider.ConsumeIntegral<size_t>(), fuzzed_data_provider.ConsumeIntegral<size_t>());
+            (void)connman.GetAddresses(
+                    /* requestor */ random_node,
+                    /* max_addresses */ fuzzed_data_provider.ConsumeIntegral<size_t>(),
+                    /* max_pct */ fuzzed_data_provider.ConsumeIntegral<size_t>());
             break;
         }
         case 17:

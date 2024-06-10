@@ -153,7 +153,16 @@ class CNetAddr
 
         bool SetInternal(const std::string& name);
 
-        bool SetSpecial(const std::string &strName); // for Tor addresses
+        /**
+         * Parse a Tor or I2P address and set this object to it.
+         * @param[in] addr Address to parse, for example
+         * pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion or
+         * ukeu3k5oycgaauneqgtnvselmt4yemvoilkln7jpvamvfx7dnkdq.b32.i2p.
+         * @returns Whether the operation was successful.
+         * @see CNetAddr::IsTor(), CNetAddr::IsI2P()
+         */
+        bool SetSpecial(const std::string& addr);
+
         bool IsBindAny() const; // INADDR_ANY equivalent
         bool IsIPv4() const;    // IPv4 mapped address (::FFFF:0:0/96, 0.0.0.0/0)
         bool IsIPv6() const;    // IPv6 address (not mapped IPv4, not Tor)
@@ -220,7 +229,7 @@ class CNetAddr
          */
         bool IsRelayable() const
         {
-            return IsIPv4() || IsIPv6() || IsTor();
+            return IsIPv4() || IsIPv6() || IsTor() || IsI2P() || IsCJDNS();
         }
 
         /**
@@ -563,6 +572,8 @@ class CService : public CNetAddr
             READWRITEAS(CNetAddr, obj);
             READWRITE(Using<BigEndianFormatter<2>>(obj.port));
         }
+
+        friend CService MaybeFlipIPv6toCJDNS(const CService& service);
 };
 
 bool SanityCheckASMap(const std::vector<bool>& asmap);

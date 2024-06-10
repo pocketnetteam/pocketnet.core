@@ -109,8 +109,6 @@ void Staker::run(const util::Ref& context, CChainParams const& chainparams, boos
 
 void Staker::worker(const util::Ref& context, CChainParams const& chainparams, std::string const& walletName)
 {
-    LogPrintf("Staker worker thread started for \"%s\"\n", walletName);
-
     util::ThreadRename("coin-staker");
 
     const auto& node = EnsureNodeContext(context);
@@ -120,6 +118,8 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
 
     auto wallet = GetWallet(walletName);
     if (!wallet) return;
+
+    LogPrintf("Staker worker thread started for \"%s\"\n", wallet->GetDisplayName());
 
     try
     {
@@ -198,7 +198,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
         return;
     }
 
-    LogPrintf("Staker worker thread stopped for \"%s\"\n", walletName);
+    LogPrintf("Staker worker thread stopped for \"%s\"\n", wallet->GetDisplayName());
 }
 
 bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, unsigned int blocks, const std::string& wallet_name)
@@ -286,7 +286,7 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
     txCoinStake.nTime = GetAdjustedTime();
     txCoinStake.nTime &= ~STAKE_TIMESTAMP_MASK;
 
-    int64_t nSearchTime = txCoinStake.nTime;	// FIXME!!!
+    int64_t nSearchTime = txCoinStake.nTime;
 
     auto legacyKeyStore = wallet->GetOrCreateLegacyScriptPubKeyMan();
     assert(legacyKeyStore);
@@ -296,7 +296,10 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
 
     {
         int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nLastCoinStakeSearchTime;
-        // int64_t nSearchInterval = STAKE_TIMESTAMP_MASK + 1;
+
+        lastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
+        nLastCoinStakeSearchTime = nSearchTime;
+
         if (wallet->CreateCoinStake(*legacyKeyStore, block->nBits, nSearchInterval, nFees, txCoinStake, key))
         {
             if (txCoinStake.nTime > ::ChainActive().Tip()->GetMedianTimePast())
@@ -304,9 +307,6 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
                 return sign(block, txCoinStake, vtx, *legacyKeyStore, key, wallet);
             }
         }
-
-        lastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
-        nLastCoinStakeSearchTime = nSearchTime;
     } else {
 	LogPrint(BCLog::STAKEMODIF, "SignBlock() : nSearchTime(%s) <= nLastCoinStakeSearchTime(%s)\n", FormatISO8601DateTime(nSearchTime), FormatISO8601DateTime(nLastCoinStakeSearchTime));
     }

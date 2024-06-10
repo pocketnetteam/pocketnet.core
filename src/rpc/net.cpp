@@ -222,7 +222,7 @@ static RPCHelpMan getpeerinfo()
         obj.pushKV("last_block", stats.nLastBlockTime);
         obj.pushKV("bytessent", stats.nSendBytes);
         obj.pushKV("bytesrecv", stats.nRecvBytes);
-        obj.pushKV("conntime", stats.nTimeConnected);
+        obj.pushKV("conntime", count_seconds(stats.m_connected));
         obj.pushKV("timeoffset", stats.nTimeOffset);
         if (stats.m_ping_usec > 0) {
             obj.pushKV("pingtime", ((double)stats.m_ping_usec) / 1e6);
@@ -239,10 +239,6 @@ static RPCHelpMan getpeerinfo()
         // their ver message.
         obj.pushKV("subver", stats.cleanSubVer);
         obj.pushKV("inbound", stats.fInbound);
-        if (IsDeprecatedRPCEnabled("getpeerinfo_addnode")) {
-            // addnode is deprecated in v0.21 for removal in v0.22
-            obj.pushKV("addnode", stats.m_manual_connection);
-        }
         obj.pushKV("bip152_hb_to", stats.m_bip152_highbandwidth_to);
         obj.pushKV("bip152_hb_from", stats.m_bip152_highbandwidth_from);
         obj.pushKV("startingheight", stats.nStartingHeight);
@@ -528,7 +524,7 @@ static UniValue GetNetworksInfo()
     UniValue networks(UniValue::VARR);
     for (int n = 0; n < NET_MAX; ++n) {
         enum Network network = static_cast<enum Network>(n);
-        if (network == NET_UNROUTABLE || network == NET_I2P || network == NET_CJDNS || network == NET_INTERNAL) continue;
+        if (network == NET_UNROUTABLE || network == NET_INTERNAL) continue;
         proxyType proxy;
         UniValue obj(UniValue::VOBJ);
         GetProxy(network, proxy);
