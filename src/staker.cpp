@@ -31,7 +31,7 @@ Staker::Staker() :
     isStaking(false),
     minerSleep(500),
     lastCoinStakeSearchInterval(0),
-    nLastCoinStakeSearchTime(0)
+    nLastCoinStakeTime(0)
 {
 }
 
@@ -50,9 +50,9 @@ uint64_t Staker::getLastCoinStakeSearchInterval()
     return lastCoinStakeSearchInterval;
 }
 
-uint64_t Staker::getLastCoinStakeSearchTime()
+ uint64_t Staker::getLastCoinStakeTime()
 {
-    return nLastCoinStakeSearchTime;
+    return nLastCoinStakeTime;
 }
 
 void Staker::startWorkers(
@@ -109,15 +109,16 @@ void Staker::run(const util::Ref& context, CChainParams const& chainparams, boos
 
 void Staker::worker(const util::Ref& context, CChainParams const& chainparams, std::string const& walletName)
 {
-    util::ThreadRename("coin-staker");
-
     const auto& node = EnsureNodeContext(context);
     CHECK_NONFATAL(node.mempool); // Mempool should be always available here
     CHECK_NONFATAL(node.chainman); // Same for this
     bool running = true;
+//    auto static WorkerLastCoinStakeSearchTime = 0;
 
     auto wallet = GetWallet(walletName);
     if (!wallet) return;
+
+    util::ThreadRename("coin-staker" + wallet->GetDisplayName());
 
     LogPrintf("Staker worker thread started for \"%s\"\n", wallet->GetDisplayName());
 
@@ -168,27 +169,28 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                 m_interrupt.sleep_for(std::chrono::milliseconds{30000});
             }
 
-	    if ((GetAdjustedTime() & ~STAKE_TIMESTAMP_MASK) > nLastCoinStakeSearchTime)
-	    {
+            if ((GetAdjustedTime() & ~STAKE_TIMESTAMP_MASK) > std::max(wallet->GetLastCoinStakeSearchTime(), nLastCoinStakeTime) ||     // For main network algorithm in full-time mode
+                    Params().NetworkID() == NetworkId::NetworkRegTest)                                                                  // For regtest we can skip time checks
+            {
                 uint64_t nFees = 0;
-	        auto assembler = BlockAssembler(*node.mempool, chainparams);
+                auto assembler = BlockAssembler(*node.mempool, chainparams);
 
-    		// Nullopt for scriptPubKeyIn because coinbase script is only usefull for mining blocks
-    	        auto blocktemplate = assembler.CreateNewBlock(
-            	    nullopt, true, &nFees
-        	);
+                // Nullopt for scriptPubKeyIn because coinbase script is only usefull for mining blocks
+                auto blocktemplate = assembler.CreateNewBlock(
+                    nullopt, true, &nFees
+                );
 
-        	auto block = std::make_shared<CBlock>(blocktemplate->block);
+                auto block = std::make_shared<CBlock>(blocktemplate->block);
 
-        	if (signBlock(block, wallet, nFees))
-        	{
-            	    // Extend pocketBlock with coinStake transaction
-            	    if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
-                	blocktemplate->pocketBlock->emplace_back(ptx);
+                if (signBlock(block, wallet, nFees))
+                {
+                    // Extend pocketBlock with coinStake transaction
+                    if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
+                        blocktemplate->pocketBlock->emplace_back(ptx);
 
-            	    CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
-        	}
-	    }
+                    CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
+                }
+            }
             m_interrupt.sleep_for(std::chrono::milliseconds{minerSleep});
         }
     }
@@ -286,29 +288,34 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
     txCoinStake.nTime = GetAdjustedTime();
     txCoinStake.nTime &= ~STAKE_TIMESTAMP_MASK;
 
-    int64_t nSearchTime = txCoinStake.nTime;
+    uint64_t nSearchTime = txCoinStake.nTime;
 
     auto legacyKeyStore = wallet->GetOrCreateLegacyScriptPubKeyMan();
     assert(legacyKeyStore);
 
-    if (nSearchTime > nLastCoinStakeSearchTime ||		// For main network algorithm in full-time mode
-	Params().NetworkID() == NetworkId::NetworkRegTest)	// For regtest we can skip time checks
+    uint64_t nWalletLastCoinStakeSearchTime = wallet->GetLastCoinStakeSearchTime();
+
+    if (nSearchTime > std::max(nWalletLastCoinStakeSearchTime, nLastCoinStakeTime) ||    // For main network algorithm in full-time mode
+        Params().NetworkID() == NetworkId::NetworkRegTest)                              // For regtest we can skip time checks
 
     {
-        int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nLastCoinStakeSearchTime;
+        int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nWalletLastCoinStakeSearchTime;
 
-        lastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
-        nLastCoinStakeSearchTime = nSearchTime;
+        lastCoinStakeSearchInterval = nSearchTime - nWalletLastCoinStakeSearchTime;
+        wallet->SetLastCoinStakeSearchTime(nSearchTime);                                // Save search time for current wallet
 
         if (wallet->CreateCoinStake(*legacyKeyStore, block->nBits, nSearchInterval, nFees, txCoinStake, key))
         {
             if (txCoinStake.nTime > ::ChainActive().Tip()->GetMedianTimePast())
             {
-                return sign(block, txCoinStake, vtx, *legacyKeyStore, key, wallet);
+                if (sign(block, txCoinStake, vtx, *legacyKeyStore, key, wallet)) {
+                    nLastCoinStakeTime = nSearchTime;
+                    return true;
+                }
             }
         }
     } else {
-	LogPrint(BCLog::STAKEMODIF, "SignBlock() : nSearchTime(%s) <= nLastCoinStakeSearchTime(%s)\n", FormatISO8601DateTime(nSearchTime), FormatISO8601DateTime(nLastCoinStakeSearchTime));
+        LogPrint(BCLog::STAKEMODIF, "SignBlock() failed: nSearchTime(%s) <= nWalletLastCoinStakeSearchTime(%s)\n", FormatISO8601DateTime(nSearchTime), FormatISO8601DateTime(nWalletLastCoinStakeSearchTime));
     }
 #endif
 
@@ -373,6 +380,7 @@ bool Staker::sign(std::shared_ptr<CBlock> block, CMutableTransaction& txCoinStak
 
     return key.Sign(block->GetHash(), block->vchBlockSig);
 }
+
 
 void Staker::stop()
 {
