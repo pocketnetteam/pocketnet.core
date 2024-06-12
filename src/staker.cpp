@@ -113,6 +113,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     CHECK_NONFATAL(node.mempool); // Mempool should be always available here
     CHECK_NONFATAL(node.chainman); // Same for this
     bool running = true;
+//    auto static WorkerLastCoinStakeSearchTime = 0;
 
     auto wallet = GetWallet(walletName);
     if (!wallet) return;
@@ -190,7 +191,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                     CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
                 }
             }
-            
+
             m_interrupt.sleep_for(std::chrono::milliseconds{minerSleep});
         }
     }
@@ -291,9 +292,14 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
     auto legacyKeyStore = wallet->GetOrCreateLegacyScriptPubKeyMan();
     assert(legacyKeyStore);
 
+    uint64_t nWalletLastCoinStakeSearchTime = wallet->GetLastCoinStakeSearchTime();
+
+    if (nSearchTime > std::max(nWalletLastCoinStakeSearchTime, nLastCoinStakeTime) ||    // For main network algorithm in full-time mode
+        Params().NetworkID() == NetworkId::NetworkRegTest)                              // For regtest we can skip time checks
     {
         int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nWalletLastCoinStakeSearchTime;
 
+        lastCoinStakeSearchInterval = nSearchTime - nWalletLastCoinStakeSearchTime;
         wallet->SetLastCoinStakeSearchTime(nSearchTime);                                // Save search time for current wallet
 
         if (wallet->CreateCoinStake(*legacyKeyStore, block->nBits, nSearchInterval, nFees, txCoinStake, key))
