@@ -4818,7 +4818,6 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	}
 
 	if (setCoins.empty()) {
-		// LogPrintf("Set coins empty\n");
 		return false;
 	}
 
@@ -4846,8 +4845,6 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 			// Search nSearchInterval seconds back up to nMaxStakeSearchInterval
 			COutPoint prevoutStake = COutPoint(pcoin.first->tx->GetHash(), pcoin.second);
 			int64_t nBlockTime;
-
-			// LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : txNew.nTime=%s - %d sec\n", FormatISO8601DateTime(txNew.nTime),n);
 
 			if (CheckKernel(pindexPrev, nBits, txNew.nTime - n, prevoutStake, &nBlockTime, this, hashProofOfStakeSource))
 			{

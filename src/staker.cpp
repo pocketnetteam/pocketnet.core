@@ -191,6 +191,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
                     CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
                 }
             }
+
             m_interrupt.sleep_for(std::chrono::milliseconds{minerSleep});
         }
     }
@@ -278,8 +279,6 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
         return true;
     }
 
-//    static int64_t nLastCoinStakeSearchTime = GetAdjustedTime();	// Declaration moved to private section
-
     CKey key;
     CMutableTransaction txCoinStake;
     CTransaction txNew;
@@ -297,7 +296,6 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
 
     if (nSearchTime > std::max(nWalletLastCoinStakeSearchTime, nLastCoinStakeTime) ||    // For main network algorithm in full-time mode
         Params().NetworkID() == NetworkId::NetworkRegTest)                              // For regtest we can skip time checks
-
     {
         int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nWalletLastCoinStakeSearchTime;
 

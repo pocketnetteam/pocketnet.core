@@ -1075,11 +1075,12 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
                 hash.ToString(),
                 FormatMoney(nModifiedFees - nConflictingFees),
                 (int)entry->GetTxSize() - (int)nConflictingSize);
+
         if (args.m_replaced_transactions)
             args.m_replaced_transactions->push_back(it->GetSharedTx());
     }
     m_pool.RemoveStaged(allConflicting, false, MemPoolRemovalReason::REPLACED);
-
+    
     // This transaction should only count for fee estimation if:
     // - it isn't a BIP 125 replacement transaction (may not be widely supported)
     // - it's not being re-added during a reorg which bypasses typical mempool fee limits
@@ -2945,9 +2946,17 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     // Read transactions payload from db
     PocketBlockRef pocketBlock = nullptr;
     if (!pocketBlockPart)
-        PocketServices::Accessor::GetBlock(blockConnecting, pocketBlock);
+    {
+        if (!PocketServices::Accessor::GetBlock(blockConnecting, pocketBlock))
+        {
+            pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
+            return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-find-social-payload", "", true);
+        }
+    }
     else
+    {
         pocketBlock = pocketBlockPart;
+    }
 
     if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock, pindexNew->nHeight); !ok)
     {
@@ -4865,16 +4874,16 @@ void CChainState::LoadMempool(const ArgsManager& args)
 {
     if (args.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL))
     {
-        if (!args.GetArg("-mempoolclean", false))
-        {
-            ::LoadMempool(m_mempool);
-        }
-        else
-        {
-            LogPrintf("Clean SQLite mempool..\n");
-            PocketDb::TransRepoInst.CleanMempool();
-        }
+        ::LoadMempool(m_mempool);
     }
+    else
+    {
+        LOCK(m_mempool.cs);
+        LOCK(cs_main);
+        LogPrintf("Clean SQL mempool..\n");
+        PocketDb::TransRepoInst.MempoolClear();
+    }
+
     m_mempool.SetIsLoaded(!ShutdownRequested());
 }
 
@@ -5597,8 +5606,8 @@ bool LoadMempool(CTxMemPool& pool)
     }
 
     int64_t count = 0;
-    std::unordered_set<string> expiredHashes;
     int64_t failed = 0;
+    int64_t expired = 0;
     int64_t already_there = 0;
     int64_t unbroadcast = 0;
     int64_t nNow = GetTime();
@@ -5631,7 +5640,7 @@ bool LoadMempool(CTxMemPool& pool)
                 {
                     txTime = tx->nLockTime;
                 }
-                else if (tx->nLockTime > ChainActive().Height())
+                else if (tx->nLockTime > (uint32_t)ChainActive().Height())
                 {
                     txTime = ChainActive().Tip()->nTime + ((tx->nLockTime - ChainActive().Height()) * Params().GetConsensus().nPowTargetSpacing);
                 }
@@ -5659,12 +5668,13 @@ bool LoadMempool(CTxMemPool& pool)
                         ++already_there;
                     } else {
                         ++failed;
-                        expiredHashes.emplace(tx->GetHash().GetHex());
+                        ++expired;
                     }
                 }
             } else {
-                expiredHashes.emplace(tx->GetHash().GetHex());
+                ++expired;
             }
+
             if (ShutdownRequested())
                 return false;
         }
@@ -5690,8 +5700,6 @@ bool LoadMempool(CTxMemPool& pool)
             // unbroadcast set.
             if (pool.get(txid) != nullptr) pool.AddUnbroadcastTx(txid);
         }
-
-        pool.CleanSQLite(expiredHashes, MemPoolRemovalReason::EXPIRY);
     }
     catch (const std::exception& e)
     {
@@ -5699,7 +5707,7 @@ bool LoadMempool(CTxMemPool& pool)
         return false;
     }
 
-    LogPrintf("Imported mempool transactions from disk: %i succeeded, %i failed, %i expired, %i already there, %i waiting for initial broadcast\n", count, failed, expiredHashes.size(), already_there, unbroadcast);
+    LogPrintf("Imported mempool transactions from disk: %i succeeded, %i failed, %i expired, %i already there, %i waiting for initial broadcast\n", count, failed, expired, already_there, unbroadcast);
     return true;
 }
 

@@ -278,7 +278,7 @@ public:
     void StopHTTPSocket();
 
     /** Acquire a http socket handle for a provided IP address and port number */
-    void BindAddress(std::string ipAddr, int port);
+    void BindAddress(std::string ipAddr, int port, bool warningPort = false);
     /** Get number of bound IP sockets */
     int GetAddressCount();
 

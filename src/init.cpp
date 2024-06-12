@@ -487,7 +487,6 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-settings=<file>", strprintf("Specify path to dynamic settings data file. Can be disabled with -nosettings. File is written at runtime and not meant to be edited by users (use %s instead for custom settings). Relative paths will be prefixed by datadir location. (default: %s)", POCKETCOIN_CONF_FILENAME, POCKETCOIN_SETTINGS_FILENAME), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-reindex-start", "Start block for -reindex logic (Deafult: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
-    argsman.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-disconnectlast", "Disconnect latest blocks up to the specified height (Default: -1)", false, OptionsCategory::COMMANDS);
 
 #if HAVE_SYSTEM

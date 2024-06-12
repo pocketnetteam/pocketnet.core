@@ -423,6 +423,9 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry& entry, setEntries& setAnces
     // all the appropriate checks.
     indexed_transaction_set::iterator newit = mapTx.insert(entry).first;
 
+    // Accept in SQL Mempool
+    PocketDb::TransRepoInst.MempoolInsert(entry.GetTx().GetHash().ToString());
+
     // Update transaction for any feeDelta created by PrioritiseTransaction
     // TODO: refactor so that the fee delta is calculated before inserting
     // into mapTx.
@@ -506,6 +509,17 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     cachedInnerUsage -= memusage::DynamicUsage(it->GetMemPoolParentsConst()) + memusage::DynamicUsage(it->GetMemPoolChildrenConst());
     mapTx.erase(it);
 
+    // Remove from SQL Mempool
+    PocketDb::TransRepoInst.MempoolRemove(hash.ToString());
+    LogPrint(BCLog::MEMPOOL, "SQL MempoolRemove: %s - Reason: %s\n", hash.ToString(), ReasonToString(reason));
+
+    // For some situations, you also need to clear the sql transaction
+    if (reason == MemPoolRemovalReason::CONFLICT)
+    {
+        PocketDb::TransRepoInst.RemoveTransaction(hash.ToString());
+        LogPrint(BCLog::MEMPOOL, "SQL RemoveTransaction: %s - Reason: %s\n", hash.ToString(), ReasonToString(reason));
+    }
+
     nTransactionsUpdated++;
     if (minerPolicyEstimator) { minerPolicyEstimator->removeTx(hash, false); }
 }
@@ -548,7 +562,7 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
 {
     // Remove transaction from memory pool
     AssertLockHeld(cs);
-    // std::unordered_set<std::string> removeHashes;
+    
     setEntries txToRemove;
     txiter origit = mapTx.find(origTx.GetHash());
     if (origit != mapTx.end())
@@ -570,19 +584,12 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
             assert(nextit != mapTx.end());
             txToRemove.insert(nextit);
         }
-
-        // TODO (aok): do not remove before inspect
-        // auto hash = origTx.GetHash().GetHex();
-        // if (PocketDb::TransRepoInst.Exists(hash))
-        // {
-        //    PocketDb::TransRepoInst.CleanTransaction(origTx.GetHash().GetHex());
-        // }
     }
     setEntries setAllRemoves;
     for (txiter it : txToRemove)
         CalculateDescendants(it, setAllRemoves);
-    if (setAllRemoves.size())
-        RemoveStaged(setAllRemoves, false, reason);
+
+    RemoveStaged(setAllRemoves, false, reason); 
 }
 
 void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMemPoolHeight, int flags)
@@ -628,7 +635,6 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
     setEntries setAllRemoves;
     for (txiter it : txToRemove)
         CalculateDescendants(it, setAllRemoves);
-
 
     RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::REORG);
 }
@@ -676,6 +682,7 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         {
             setEntries stage;
             stage.insert(it);
+            // There is no need to delete a transaction from sqlite here.
             RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
         }
         removeConflicts(*tx);
@@ -689,6 +696,8 @@ void CTxMemPool::_clear()
 {
     mapTx.clear();
     mapNextTx.clear();
+    // Clean SQL Mempool
+    PocketDb::TransRepoInst.MempoolClear();
     totalTxSize = 0;
     cachedInnerUsage = 0;
     lastRollingFeeUpdate = GetTime();
@@ -908,6 +917,20 @@ void CTxMemPool::queryHashes(std::vector<uint256>& vtxid) const
     }
 }
 
+void CTxMemPool::queryHashes(std::vector<string>& vtxhash) const
+{
+    LOCK(cs);
+    auto iters = GetSortedDepthAndScore();
+
+    vtxhash.clear();
+    vtxhash.reserve(mapTx.size());
+
+    for (auto it : iters)
+    {
+        vtxhash.push_back(it->GetTx().GetHash().ToString());
+    }
+}
+
 static TxMempoolInfo GetInfo(CTxMemPool::indexed_transaction_set::const_iterator it)
 {
     return TxMempoolInfo{
@@ -1083,16 +1106,6 @@ void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPool
     }
 }
 
-void CTxMemPool::CleanSQLite(const std::unordered_set<std::string>& hashes, MemPoolRemovalReason reason)
-{
-    AssertLockHeld(cs);
-    for (const auto& hash : hashes)
-    {
-        PocketDb::TransRepoInst.CleanTransaction(hash);
-        LogPrint(BCLog::MEMPOOL, "%s: Clean SQLite mempool tx with reason %d\n", hash, (int)reason);
-    }
-}
-
 int CTxMemPool::Expire(std::chrono::seconds time)
 {
     AssertLockHeld(cs);
@@ -1109,18 +1122,19 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     for (txiter removeit : toremove)
         CalculateDescendants(removeit, stage);
 
-    // Build list of tx hashes for cleaning sqlite
-    std::unordered_set<std::string> removeHashes;
-    for (const auto& iter : stage)
-        removeHashes.emplace(iter->GetTx().GetHash().GetHex());
-
-    // Remove from memory mempool
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
 
-    // Also remove from sqlite db
-    CleanSQLite(removeHashes, MemPoolRemovalReason::EXPIRY);
-
     return stage.size();
+}
+
+std::vector<std::string> CTxMemPool::ConvertEntriesToHashes(const setEntries& entries)
+{
+    std::vector<std::string> removeHashes;
+
+    for (auto iter : entries)
+        removeHashes.push_back(iter->GetTx().GetHash().ToString());
+
+    return removeHashes;
 }
 
 void CTxMemPool::addUnchecked(const CTxMemPoolEntry& entry, bool validFeeEstimate)
@@ -1225,7 +1239,9 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint> *pvNoSpends
             for (txiter iter : stage)
                 txn.push_back(iter->GetTx());
         }
+
         RemoveStaged(stage, false, MemPoolRemovalReason::SIZELIMIT);
+
         if (pvNoSpendsRemaining)
         {
             for (const CTransaction& tx : txn)

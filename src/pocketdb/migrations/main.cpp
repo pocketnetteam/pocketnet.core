@@ -70,6 +70,13 @@ namespace PocketDb
         )sql");
 
         _tables.emplace_back(R"sql(
+            create table if not exists Mempool
+            (
+                TxId integer primary key
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
             create table if not exists Transactions
             (
                 RowId    integer primary key, -- Id of tx hash in Registry table
