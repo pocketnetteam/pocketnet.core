@@ -13,6 +13,7 @@ AC_PREREQ(2.61)
 AC_INIT(sqlite, 3.42.0, http://www.sqlite.org)
 AC_CONFIG_SRCDIR([sqlite3.c])
 AC_CONFIG_AUX_DIR([.])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Use automake.
 AM_INIT_AUTOMAKE([foreign])
@@ -21,7 +22,7 @@ AC_SYS_LARGEFILE
 
 # Check for required programs.
 AC_PROG_CC
-AC_PROG_LIBTOOL
+LT_INIT
 AC_PROG_MKDIR_P
 
 # Check for library functions that SQLite can optionally use.

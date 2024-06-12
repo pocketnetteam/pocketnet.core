@@ -222,7 +222,7 @@ static RPCHelpMan getpeerinfo()
         obj.pushKV("last_block", stats.nLastBlockTime);
         obj.pushKV("bytessent", stats.nSendBytes);
         obj.pushKV("bytesrecv", stats.nRecvBytes);
-        obj.pushKV("conntime", stats.nTimeConnected);
+        obj.pushKV("conntime", count_seconds(stats.m_connected));
         obj.pushKV("timeoffset", stats.nTimeOffset);
         if (stats.m_ping_usec > 0) {
             obj.pushKV("pingtime", ((double)stats.m_ping_usec) / 1e6);
@@ -239,10 +239,6 @@ static RPCHelpMan getpeerinfo()
         // their ver message.
         obj.pushKV("subver", stats.cleanSubVer);
         obj.pushKV("inbound", stats.fInbound);
-        if (IsDeprecatedRPCEnabled("getpeerinfo_addnode")) {
-            // addnode is deprecated in v0.21 for removal in v0.22
-            obj.pushKV("addnode", stats.m_manual_connection);
-        }
         obj.pushKV("bip152_hb_to", stats.m_bip152_highbandwidth_to);
         obj.pushKV("bip152_hb_from", stats.m_bip152_highbandwidth_from);
         obj.pushKV("startingheight", stats.nStartingHeight);
@@ -528,7 +524,7 @@ static UniValue GetNetworksInfo()
     UniValue networks(UniValue::VARR);
     for (int n = 0; n < NET_MAX; ++n) {
         enum Network network = static_cast<enum Network>(n);
-        if (network == NET_UNROUTABLE || network == NET_I2P || network == NET_CJDNS || network == NET_INTERNAL) continue;
+        if (network == NET_UNROUTABLE || network == NET_INTERNAL) continue;
         proxyType proxy;
         UniValue obj(UniValue::VOBJ);
         GetProxy(network, proxy);
@@ -842,6 +838,7 @@ static RPCHelpMan getstakinginfo()
 #ifdef ENABLE_WALLET
     uint64_t nBalance = 0;
     uint64_t nWeight = 0;
+    uint64_t nLastCoinStakeSearchTime=0;
 
     auto wallets = GetWallets();
 
@@ -849,10 +846,11 @@ static RPCHelpMan getstakinginfo()
         auto[balance, weight] = wallet->GetStakeWeight();
         nBalance += balance;
         nWeight += weight;
+        nLastCoinStakeSearchTime = std::max(nLastCoinStakeSearchTime, wallet->GetLastCoinStakeSearchTime());
     }
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
-    bool staking = Staker::getInstance()->getLastCoinStakeSearchInterval() && nWeight;
+    bool staking = ((nLastCoinStakeSearchTime + 60) > GetAdjustedTime()) && nWeight;                                    // Check if coinstkae search was performed in last minute and have weight
     uint64_t nExpectedTime = staking ? (GetTargetSpacing(ChainActive().Height()) * nNetworkWeight / nWeight) : 0;
 
     UniValue obj(UniValue::VOBJ);
@@ -866,7 +864,8 @@ static RPCHelpMan getstakinginfo()
 
     obj.pushKV("difficulty", GetPosDifficulty(GetLastBlockIndex(ChainActive().Tip(), true)));
     obj.pushKV("search-interval", Staker::getInstance()->getLastCoinStakeSearchInterval());
-    obj.pushKV("search-time", FormatISO8601DateTime(Staker::getInstance()->getLastCoinStakeSearchTime()));
+    obj.pushKV("search-time", FormatISO8601DateTime(nLastCoinStakeSearchTime));
+    obj.pushKV("stake-time", FormatISO8601DateTime(Staker::getInstance()->getLastCoinStakeTime()));
 
     obj.pushKV("weight", (uint64_t)nWeight);
     obj.pushKV("balance", (uint64_t)nBalance);

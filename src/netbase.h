@@ -69,8 +69,37 @@ std::unique_ptr<Sock> CreateSockTCP(const CService& address_family);
  */
 extern std::function<std::unique_ptr<Sock>(const CService&)> CreateSock;
 
-bool ConnectSocketDirectly(const CService &addrConnect, const SOCKET& hSocketRet, int nTimeout, bool manual_connection);
+/**
+ * Try to connect to the specified service on the specified socket.
+ *
+ * @param addrConnect The service to which to connect.
+ * @param sock The socket on which to connect.
+ * @param nTimeout Wait this many milliseconds for the connection to be
+ *                 established.
+ * @param manual_connection Whether or not the connection was manually requested
+ *                          (e.g. through the addnode RPC)
+ *
+ * @returns Whether or not a connection was successfully made.
+ */
+bool ConnectSocketDirectly(const CService &addrConnect, const Sock& sock, int nTimeout, bool manual_connection);
+
+/**
+ * Connect to a specified destination service through a SOCKS5 proxy by first
+ * connecting to the SOCKS5 proxy.
+ *
+ * @param proxy The SOCKS5 proxy.
+ * @param strDest The destination service to which to connect.
+ * @param port The destination port.
+ * @param sock The socket on which to connect to the SOCKS5 proxy.
+ * @param nTimeout Wait this many milliseconds for the connection to the SOCKS5
+ *                 proxy to be established.
+ * @param[out] outProxyConnectionFailed Whether or not the connection to the
+ *                                      SOCKS5 proxy failed.
+ *
+ * @returns Whether or not the operation succeeded.
+ */
 bool ConnectThroughProxy(const proxyType& proxy, const std::string& strDest, int port, const Sock& sock, int nTimeout, bool& outProxyConnectionFailed);
+
 /** Disable or enable blocking-mode for a socket */
 bool SetSocketNonBlocking(const SOCKET& hSocket, bool fNonBlocking);
 /** Set the TCP_NODELAY flag on a socket */

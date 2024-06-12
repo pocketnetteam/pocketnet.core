@@ -166,7 +166,7 @@ public:
 
         bech32_hrp = "bc";
 
-        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
+        vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main), std::end(chainparams_seed_main));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -278,7 +278,7 @@ public:
 
         bech32_hrp = "bc";
 
-        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
+        vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_test), std::end(chainparams_seed_test));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -289,10 +289,10 @@ public:
             {}};
 
         chainTxData = ChainTxData{
-            // Data from rpc: getchaintxstats 4096 0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8
-            /* nTime    */ 1532884444,
-            /* nTxCount */ 331282217,
-            /* dTxRate  */ 2.4};
+            // Data from rpc: getchaintxstats 4096 d9ba9a6b8ee97a92ffc59f41705ba051a8cb0bfd2d2efcfcb6f4f4de014d7bd0
+            /* nTime    */ 1715877776,
+            /* nTxCount */ 26163027,
+            /* dTxRate  */ 0.06584104343356463};
     }
 };
 

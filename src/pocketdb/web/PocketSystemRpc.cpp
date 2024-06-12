@@ -56,7 +56,6 @@ namespace PocketWeb::PocketWebRpc
                                 {RPCResult::Type::NUM, "protocol", ""},
                                 {RPCResult::Type::STR, "version", ""},
                                 {RPCResult::Type::BOOL, "inbound", ""},
-                                {RPCResult::Type::BOOL, "addnode", ""},
                                 {RPCResult::Type::NUM, "startingheight", ""},
                                 {RPCResult::Type::BOOL, "whitelisted", ""},
                             },
@@ -82,13 +81,12 @@ namespace PocketWeb::PocketWebRpc
             obj.pushKV("relaytxes", stats.fRelayTxes);
             obj.pushKV("lastsend", stats.nLastSend);
             obj.pushKV("lastrecv", stats.nLastRecv);
-            obj.pushKV("conntime", stats.nTimeConnected);
+            obj.pushKV("conntime", count_seconds(stats.m_connected));
             obj.pushKV("timeoffset", stats.nTimeOffset);
             obj.pushKV("pingtime", stats.m_ping_usec); // TODO (losty-fur): ping changed from double to usec
             obj.pushKV("protocol", stats.nVersion);
             obj.pushKV("version", stats.cleanSubVer);
             obj.pushKV("inbound", stats.fInbound);
-            obj.pushKV("addnode", stats.m_manual_connection);
             obj.pushKV("startingheight", stats.nStartingHeight);
             obj.pushKV("whitelisted", stats.m_legacyWhitelisted); // TODO (losty-fur): probably remove this
 

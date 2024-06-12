@@ -4303,14 +4303,14 @@ void PeerManager::EvictExtraOutboundPeers(int64_t time_in_seconds)
                 // Also don't disconnect any peer we're trying to download a
                 // block from.
                 CNodeState &state = *State(pnode->GetId());
-                if (time_in_seconds - pnode->nTimeConnected > MINIMUM_CONNECT_TIME && state.nBlocksInFlight == 0) {
+                if (time_in_seconds - pnode->m_connected.count() > MINIMUM_CONNECT_TIME && state.nBlocksInFlight == 0) {
                     LogPrint(BCLog::NET, "disconnecting extra outbound peer=%d%s (last block announcement received at time %d)\n",
                        pnode->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pnode->addr.ToString()) : ""), oldest_block_announcement);
                     pnode->fDisconnect = true;
                     return true;
                 } else {
                     LogPrint(BCLog::NET, "keeping outbound peer=%d%s chosen for eviction (connect time: %d, blocks_in_flight: %d)\n",
-                       pnode->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pnode->addr.ToString()) : ""), pnode->nTimeConnected, state.nBlocksInFlight);
+                       pnode->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pnode->addr.ToString()) : ""), pnode->m_connected.count(), state.nBlocksInFlight);
                     return false;
                 }
             });
