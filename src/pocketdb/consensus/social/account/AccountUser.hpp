@@ -235,7 +235,7 @@ namespace PocketConsensus
             Checkpoint({ 1180000,       0, -1, make_shared<AccountUserConsensus_checkpoint_depth>() });
             Checkpoint({ 1381841,  162000, -1, make_shared<AccountUserConsensus_checkpoint_chain_count>() });
             Checkpoint({ 1647000,  650000, -1, make_shared<AccountUserConsensus_checkpoint_login_limitation>() });
-            Checkpoint({ 2870000, 2850000,  0, make_shared<AccountUserConsensus_checkpoint_pip_106>() });
+            Checkpoint({ 2930000, 2850000,  0, make_shared<AccountUserConsensus_checkpoint_pip_106>() });
         }
     };
 
