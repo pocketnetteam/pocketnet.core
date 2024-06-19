@@ -22,6 +22,7 @@
 #include "pocketdb/consensus/social/Stream.hpp"
 #include "pocketdb/consensus/social/Audio.hpp"
 #include "pocketdb/consensus/social/Collection.hpp"
+#include "pocketdb/consensus/social/App.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
 #include "pocketdb/consensus/social/ScoreContent.hpp"
 #include "pocketdb/consensus/social/Subscribe.hpp"

@@ -187,6 +187,12 @@ class ContentStreamPayload(ContentPostPayload):
 # -----------------------------------------------------------------------------------------------------------------
 
 @dataclass
+class ContentAppPayload(ContentPostPayload):
+    TxType = "617070"
+
+# -----------------------------------------------------------------------------------------------------------------
+
+@dataclass
 class ContentDeletePayload:
     TxType = "636f6e74656e7444656c657465"
     content_tx: str = ""

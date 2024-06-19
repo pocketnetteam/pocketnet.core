@@ -632,6 +632,8 @@ add_library(${POCKETDB}
         pocketdb/models/dto/content/CommentEdit.cpp
         pocketdb/models/dto/content/CommentDelete.h
         pocketdb/models/dto/content/CommentDelete.cpp
+        pocketdb/models/dto/content/App.h
+        pocketdb/models/dto/content/App.cpp
 
         pocketdb/models/dto/barteron/Account.h
         pocketdb/models/dto/barteron/Account.cpp
@@ -1208,7 +1210,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/Stream.hpp
         pocketdb/consensus/social/Audio.hpp
         pocketdb/consensus/social/Collection.hpp
-        pocketdb/consensus/social/Collection.hpp
+        pocketdb/consensus/social/App.hpp
         pocketdb/consensus/social/ScoreComment.hpp
         pocketdb/consensus/social/ScoreContent.hpp
         pocketdb/consensus/social/Subscribe.hpp
