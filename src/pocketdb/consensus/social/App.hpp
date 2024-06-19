@@ -39,6 +39,9 @@ namespace PocketConsensus
             if (count >= GetConsensusLimit(ConsensusLimit_app))
                 return { false, ConsensusResult_ContentLimit };
 
+            // Check ID for unique
+            // TODO : app
+
             return Success;
         }
 
@@ -48,10 +51,22 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress()))
+                return {false, ConsensusResult_Failed};
 
             // Repost not allowed
-            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, ConsensusResult_NotAllowed};
+            if (IsEmpty(ptx->GetId()))
+                return {false, ConsensusResult_Failed};
+
+            // Payload must be filled
+            if (!ptx->GetPayload())
+                return {false, ConsensusResult_Failed};
+
+            if (IsEmpty(ptx->GetName()))
+                return {false, ConsensusResult_Failed};
+
+            if (IsEmpty(ptx->GetDescription()))
+                return {false, ConsensusResult_Failed};
 
             return Success;
         }
@@ -97,11 +112,6 @@ namespace PocketConsensus
             return Success;
         }
         
-        vector<string> GetAddressesForCheckRegistration(const AppRef& ptx) override
-        {
-            return { *ptx->GetAddress() };
-        }
-
         virtual ConsensusValidateResult ValidateEdit(const AppRef& ptx)
         {
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(

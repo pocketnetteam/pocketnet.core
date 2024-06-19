@@ -17,6 +17,4 @@ namespace PocketTx
         SetType(TxType::BARTERON_OFFER);
     }
 
-    bool BarteronOffer::IsEdit() const { return m_string2 != m_hash; }
-
 } // namespace PocketTx
