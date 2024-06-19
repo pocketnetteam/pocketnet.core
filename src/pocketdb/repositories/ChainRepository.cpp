@@ -40,7 +40,7 @@ namespace {
                 Common.IsIn(type) ||
                 (FirstRequired.IsIn(type) && isFirst);
         }
-        inline const static StringifyableArray FirstRequired { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE };
+        inline const static StringifyableArray FirstRequired { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_APP };
         inline const static StringifyableArray Common { ACTION_SCORE_COMMENT, ACTION_SCORE_CONTENT, ACTION_COMPLAIN };
     };
 }

@@ -225,6 +225,7 @@ namespace PocketConsensus
         ConsensusLimit_full_comment_score,
 
         ConsensusLimit_pro_video,
+        ConsensusLimit_app,
 
         ConsensusLimit_post_edit_count,
         ConsensusLimit_video_edit_count,
@@ -557,6 +558,12 @@ namespace PocketConsensus
 //            { NetworkTest, { {0, 100} } },
 //            { NetworkRegTest, { {0, 100} } }
 //        } },
+
+        { ConsensusLimit_app, {
+            { NetworkMain,    { {0, 1} } },
+            { NetworkTest,    { {0, 10} } },
+            { NetworkRegTest, { {0, 10} } }
+        } },
 
         { ConsensusLimit_post_edit_count, {
             { NetworkMain,    { {0, 5} } },

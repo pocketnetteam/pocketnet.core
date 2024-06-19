@@ -274,6 +274,20 @@ namespace PocketDb
                             //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 
                             // break;
+                        
+                        case CONTENT_APP:
+
+                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentAppCaption, string2));
+
+                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentAppMessage, string3));
+
+                            // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentAppUrl, string7));
+
+                            break;
+                        
                         default:
                             break;
                         }

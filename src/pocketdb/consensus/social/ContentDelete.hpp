@@ -28,7 +28,7 @@ namespace PocketConsensus
             // Actual content not deleted
             auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COLLECTION, BARTERON_OFFER, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COLLECTION, BARTERON_OFFER, CONTENT_APP, CONTENT_DELETE }
             );
 
             if (!ok)
@@ -61,7 +61,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, BARTERON_OFFER, CONTENT_DELETE }))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, BARTERON_OFFER, CONTENT_APP, CONTENT_DELETE }))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())
@@ -97,7 +97,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COLLECTION, BARTERON_OFFER, CONTENT_DELETE }))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_COLLECTION, BARTERON_OFFER, CONTENT_APP, CONTENT_DELETE }))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())
