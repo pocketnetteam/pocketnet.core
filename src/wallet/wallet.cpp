@@ -4828,7 +4828,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
         // LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : Selected UTXO=%d txNew.nTime=%s nSearchInterval=%ld\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval);
         if (LogAcceptCategory(BCLog::STAKEMODIF))
         {
-            WalletLogPrintf("CreateCoinStake : Selected UTXO=%d txNew.nTime=%s nSearchInterval=%ld\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval);
+            WalletLogPrintf("CreateCoinStake : Selected UTXO=%d txNew.nTime=%s nSearchInterval=%ld nBits=%#010x\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval, nBits);
         }
 
 	for (auto & pcoin : setCoins) {
