@@ -84,14 +84,38 @@ class ContentAppTest(PocketcoinTestFramework):
 
         self.log.info("Create first app transaction")
         
-        firstApp = ContentAppPayload()
-        firstApp.caption = "First app"
-        firstApp.message = "First app description"
-        firstApp.url = "example.pocketnet.app"
+        app = AppPayload()
+        app.s1 = accounts[0].Address
+        app.p = Payload()
+        app.p.s1 = "First App"
+        app.p.s2 = "first_app"
+        app.p.s3 = "First App description"
+        app.p.s4 = "{\"domain\":\"first_app.com\",\"email\":\"first_app@first_app.com\"}"
 
-        firstAppTx = pubGenTx(accounts[0], firstApp)
+        appTx = pubGenTx(accounts[0], app)
+
+        # Double to mempool from one address
+        pubGenTx(accounts[0], app)
+
+        # Double to mempool from another address with same payload
+        pubGenTx(accounts[1], app)
+
+        # Double to mempool from another address with different payload
+        app.s1 = accounts[1].Address
+        pubGenTx(accounts[1], app)
 
         node.stakeblock(1)
+
+        # Double to blockchain from one address
+        pubGenTx(accounts[0], app)
+
+        # Double to blockchain from another address with same payload
+        app.s1 = accounts[0].Address
+        pubGenTx(accounts[1], app)
+
+        # Double to blockchain from another address with different payload
+        app.s1 = accounts[1].Address
+        pubGenTx(accounts[1], app)
 
         # ---------------------------------------------------------------------------------
 

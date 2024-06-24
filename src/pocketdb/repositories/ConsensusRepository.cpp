@@ -323,7 +323,7 @@ namespace PocketDb
                     cross join First f on f.TxId = t.RowId
                     left join Last l on l.TxId = t.RowId
                 where
-                    t.Type in (200,201,202,203,204,209,210,211,220) and
+                    t.Type in (200,201,202,203,204,209,210,211,220,221) and
                     t.RegId2 = str2.id
             )sql";
 
@@ -3624,7 +3624,7 @@ namespace PocketDb
                     Mempool m on
                         m.TxId = t.RowId
                 where
-                    t.Type in (200,201,202,209,210,211,220,207) and
+                    t.Type in (200,201,202,209,210,211,220,221,207) and
                     t.RegId1 = str1.id and
                     t.RegId2 = str2.id
             )sql")

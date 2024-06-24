@@ -38,7 +38,7 @@ namespace PocketTx
     #define OR_STREAM "73747265616d" // Post for stream hosting
     #define OR_AUDIO "617564696f" // Post for audio hosting
     #define OR_COLLECTION "636f6c6c656374696f6e" // Collection of contents
-    #define OR_APP "617070" // Post for app hosting
+    #define OR_APP "6d696e69617070" // Post for app hosting
     
     #define OR_BARTERON_ACCOUNT "6272746163636f756e74"
     #define OR_BARTERON_OFFER "6272746f66666572"
@@ -87,7 +87,7 @@ namespace PocketTx
         CONTENT_STREAM = 209,
         CONTENT_AUDIO = 210,
         CONTENT_COLLECTION = 220,
-        CONTENT_APP = 221,
+        APP = 221,
 
         CONTENT_COMMENT = 204,
         CONTENT_COMMENT_EDIT = 205,
@@ -192,7 +192,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_AUDIO ||
                    Type == TxType::CONTENT_COLLECTION ||
                    Type == TxType::BARTERON_OFFER ||
-                   Type == TxType::CONTENT_APP ||
+                   Type == TxType::APP ||
                    Type == TxType::CONTENT_DELETE;
         }
 

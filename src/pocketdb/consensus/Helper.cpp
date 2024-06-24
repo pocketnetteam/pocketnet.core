@@ -155,7 +155,7 @@ namespace PocketConsensus
                 return ConsensusFactoryInst_Audio.Instance(height)->Check(tx, static_pointer_cast<Audio>(ptx));
             case CONTENT_COLLECTION:
                 return ConsensusFactoryInst_Collection.Instance(height)->Check(tx, static_pointer_cast<Collection>(ptx));
-            case CONTENT_APP:
+            case APP:
                 return ConsensusFactoryInst_App.Instance(height)->Check(tx, static_pointer_cast<App>(ptx));
             case CONTENT_COMMENT:
                 return ConsensusFactoryInst_Comment.Instance(height)->Check(tx, static_pointer_cast<Comment>(ptx));
@@ -227,7 +227,7 @@ namespace PocketConsensus
                 return ConsensusFactoryInst_Audio.Instance(height)->Validate(tx, static_pointer_cast<Audio>(ptx), pBlock);
             case CONTENT_COLLECTION:
                 return ConsensusFactoryInst_Collection.Instance(height)->Validate(tx, static_pointer_cast<Collection>(ptx), pBlock);
-            case CONTENT_APP:
+            case APP:
                 return ConsensusFactoryInst_App.Instance(height)->Validate(tx, static_pointer_cast<App>(ptx), pBlock);
             case CONTENT_COMMENT:
                 return ConsensusFactoryInst_Comment.Instance(height)->Validate(tx, static_pointer_cast<Comment>(ptx), pBlock);

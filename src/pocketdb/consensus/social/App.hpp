@@ -40,7 +40,7 @@ namespace PocketConsensus
                 return { false, ConsensusResult_ContentLimit };
 
             // Check ID for unique
-            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetId(), TxType::CONTENT_APP))
+            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetId(), TxType::APP))
                 return {false, ConsensusResult_NicknameDouble};
 
             return Success;
@@ -82,7 +82,7 @@ namespace PocketConsensus
             // Multiple in block not allowed
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_APP }))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { APP }))
                     continue;
 
                 auto blockPtx = static_pointer_cast<App>(blockTx);
@@ -105,7 +105,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const AppRef& ptx) override
         {
             // Do not allowed multiple txs in mempool
-            if (ConsensusRepoInst.Exists_MS1S2T(*ptx->GetAddress(), *ptx->GetRootTxHash(), { CONTENT_APP, CONTENT_DELETE }))
+            if (ConsensusRepoInst.Exists_MS1S2T(*ptx->GetAddress(), *ptx->GetRootTxHash(), { APP }))
                 return { false, ConsensusResult_ContentLimit };
 
             return Success;
@@ -115,7 +115,7 @@ namespace PocketConsensus
         {
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
-                { CONTENT_APP, CONTENT_DELETE }
+                { APP }
             );
 
             // First get original transaction
@@ -141,7 +141,7 @@ namespace PocketConsensus
             // Double edit in block not allowed
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { CONTENT_APP, CONTENT_DELETE }))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { APP }))
                     continue;
 
                 auto blockPtx = static_pointer_cast<App>(blockTx);

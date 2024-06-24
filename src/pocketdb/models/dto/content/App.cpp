@@ -9,12 +9,12 @@ namespace PocketTx
 {
     App::App() : SocialEditableTransaction()
     {
-        SetType(TxType::CONTENT_APP);
+        SetType(TxType::APP);
     }
 
     App::App(const CTransactionRef& tx) : SocialEditableTransaction(tx)
     {
-        SetType(TxType::CONTENT_APP);
+        SetType(TxType::APP);
     }
 
 

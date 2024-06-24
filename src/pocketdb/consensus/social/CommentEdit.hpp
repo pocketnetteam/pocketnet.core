@@ -85,7 +85,7 @@ namespace PocketConsensus
 
             // Check exists content transaction
             auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(
-                *ptx->GetPostTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE, BARTERON_OFFER, CONTENT_APP });
+                *ptx->GetPostTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE, BARTERON_OFFER, APP });
 
             if (!contentOk)
                 return {false, ConsensusResult_NotFound};
