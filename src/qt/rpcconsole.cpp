@@ -1122,7 +1122,9 @@ void RPCConsole::updateNodeDetail(const CNodeCombinedStats *stats)
     ui->peerVersion->setText(QString::number(stats->nodeStats.nVersion));
     ui->peerSubversion->setText(QString::fromStdString(stats->nodeStats.cleanSubVer));
     ui->peerDirection->setText(stats->nodeStats.fInbound ? tr("Inbound") : tr("Outbound"));
+    ui->peerConnectionType->setText(GUIUtil::ConnectionTypeToQString(stats->nodeStats.m_conn_type, /*prepend_direction=*/true));
     ui->peerHeight->setText(QString::number(stats->nodeStats.nStartingHeight));
+    ui->peerNetwork->setText(QString::fromStdString(stats->nodeStats.m_network));
     if (stats->nodeStats.m_permissionFlags == PF_NONE) {
         ui->peerPermissions->setText(tr("N/A"));
     } else {
