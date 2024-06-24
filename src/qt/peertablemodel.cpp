@@ -104,7 +104,7 @@ PeerTableModel::PeerTableModel(interfaces::Node& node, QObject* parent) :
     m_node(node),
     timer(nullptr)
 {
-    columns << tr("NodeId") << tr("Node/Service") << tr("Direction") << tr("Type") << tr("Network") << tr("Ping") << tr("Sent") << tr("Received") << tr("User Agent");
+    columns << tr("NodeId") << tr("Address") << tr("Direction") << tr("Type") << tr("Network") << tr("Ping") << tr("Sent") << tr("Received") << tr("User Agent");
     priv.reset(new PeerTablePriv());
 
     // set up timer for auto refresh

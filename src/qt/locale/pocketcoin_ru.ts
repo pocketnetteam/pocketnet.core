@@ -1686,20 +1686,28 @@ Signing is only possible with addresses of the type 'legacy'.</source>
 <context>
     <name>PeerTableModel</name>
     <message>
-        <source>User Agent</source>
-        <translation>Пользовательский агент</translation>
-    </message>
-    <message>
-        <source>Node/Service</source>
-        <translation>Узел/служба</translation>
-    </message>
-    <message>
         <source>NodeId</source>
-        <translation>Идентификатор узла</translation>
+        <translation>Ид.узла</translation>
+    </message>
+    <message>
+        <source>Address</source>
+        <translation>Адрес</translation>
+    </message>
+    <message>
+        <source>Direction</source>
+        <translation>Направление</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Тип</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>Сеть</translation>
     </message>
     <message>
         <source>Ping</source>
-        <translation>Время отклика</translation>
+        <translation>Пинг</translation>
     </message>
     <message>
         <source>Sent</source>
@@ -1708,6 +1716,10 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Received</source>
         <translation>Получено</translation>
+    </message>
+    <message>
+        <source>User Agent</source>
+        <translation>Пользовательский агент</translation>
     </message>
 </context>
 <context>
