@@ -104,7 +104,7 @@ PeerTableModel::PeerTableModel(interfaces::Node& node, QObject* parent) :
     m_node(node),
     timer(nullptr)
 {
-    columns << tr("NodeId") << tr("Node/Service") << tr("Ping") << tr("Sent") << tr("Received") << tr("User Agent");
+    columns << tr("NodeId") << tr("Node/Service") << tr("Direction") << tr("Type") << tr("Network") << tr("Ping") << tr("Sent") << tr("Received") << tr("User Agent");
     priv.reset(new PeerTablePriv());
 
     // set up timer for auto refresh
@@ -158,6 +158,16 @@ QVariant PeerTableModel::data(const QModelIndex &index, int role) const
         case Address:
             // prepend to peer address down-arrow symbol for inbound connection and up-arrow for outbound connection
             return QString(rec->nodeStats.fInbound ? "↓ " : "↑ ") + QString::fromStdString(rec->nodeStats.addrName);
+        case Direction:
+            return QString(rec->nodeStats.fInbound ?
+                               //: An Inbound Connection from a Peer.
+                               tr("Inbound") :
+                               //: An Outbound Connection to a Peer.
+                               tr("Outbound"));
+        case ConnectionType:
+            return GUIUtil::ConnectionTypeToQString(rec->nodeStats.m_conn_type, /*prepend_direction=*/false);
+        case Network:
+            return QString::fromStdString(rec->nodeStats.m_network);
         case Subversion:
             return QString::fromStdString(rec->nodeStats.cleanSubVer);
         case Ping:
@@ -169,6 +179,11 @@ QVariant PeerTableModel::data(const QModelIndex &index, int role) const
         }
     } else if (role == Qt::TextAlignmentRole) {
         switch (index.column()) {
+            case Direction:
+            case ConnectionType:
+            case Network:
+                return QVariant(Qt::AlignCenter);
+            case NetNodeId:
             case Ping:
             case Sent:
             case Received:
