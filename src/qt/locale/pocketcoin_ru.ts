@@ -1698,6 +1698,16 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Направление</translation>
     </message>
     <message>
+        <source>Inbound</source>
+        <extracomment>An Inbound Connection from a Peer</extracomment>
+        <translation>Входящий</translation>
+    </message>
+    <message>
+        <source>Outbound</source>
+        <extracomment>An Outbound Connection to a Peer</extracomment>
+        <translation>Исходящий</translation>
+    </message>
+    <message>
         <source>Type</source>
         <translation>Тип</translation>
     </message>
