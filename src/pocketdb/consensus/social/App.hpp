@@ -21,7 +21,7 @@ namespace PocketConsensus
     public:
         AppConsensus() : SocialConsensus<App>()
         {
-            // TODO
+            // TODO app : set limits
             Limits.Set("payload_size", 60000, 60000, 60000);
         }
 
@@ -40,7 +40,8 @@ namespace PocketConsensus
                 return { false, ConsensusResult_ContentLimit };
 
             // Check ID for unique
-            // TODO : app
+            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetId(), TxType::CONTENT_APP))
+                return {false, ConsensusResult_NicknameDouble};
 
             return Success;
         }
@@ -55,14 +56,12 @@ namespace PocketConsensus
                 return {false, ConsensusResult_Failed};
 
             // Repost not allowed
-            if (IsEmpty(ptx->GetId()))
-                return {false, ConsensusResult_Failed};
-
             // Payload must be filled
-            if (!ptx->GetPayload())
+            if (!ptx->GetPayload() || IsEmpty(ptx->GetName()) || IsEmpty(ptx->GetId()))
                 return {false, ConsensusResult_Failed};
 
-            if (IsEmpty(ptx->GetName()))
+            // Check app name length and symbols aka account name
+            if (!CheckIdContent(ptx))
                 return {false, ConsensusResult_Failed};
 
             if (IsEmpty(ptx->GetDescription()))
@@ -119,7 +118,7 @@ namespace PocketConsensus
                 { CONTENT_APP, CONTENT_DELETE }
             );
 
-            // First get original post transaction
+            // First get original transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
             if (!lastContentOk || !originalTxOk)
                 return {false, ConsensusResult_NotFound};
@@ -157,6 +156,20 @@ namespace PocketConsensus
             return Success;
         }
 
+        virtual bool CheckIdContent(const AppRef& ptx)
+        {
+            auto id = *ptx->GetId();
+            boost::algorithm::to_lower(id);
+
+            if (id.size() > 20)
+                return false;
+            
+            if (!all_of(id.begin(), id.end(), [](unsigned char ch) { return ::isalnum(ch) || ch == '_'; }))
+                return false;
+
+            return true;
+        }
+
     };
 
     class AppConsensusFactory : public BaseConsensusFactory<AppConsensus>
@@ -164,7 +177,8 @@ namespace PocketConsensus
     public:
         AppConsensusFactory()
         {
-            Checkpoint({ 0, 0, 0, make_shared<AppConsensus>() });
+            // TODO app : set height
+            Checkpoint({ 9999999, 0, 0, make_shared<AppConsensus>() });
         }
     };
 

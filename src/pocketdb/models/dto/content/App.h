@@ -22,10 +22,10 @@ namespace PocketTx
 
             s1 - address
             s2 - root tx hash
-            s3 - unique app id
 
             p.s1 - name
-            p.s2 - description
+            p.s2 - id
+            p.s3 - description
             p.s4 - settings
 
         */
