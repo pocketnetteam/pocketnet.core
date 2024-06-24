@@ -2162,7 +2162,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>&amp;Disconnect</source>
-        <translation>О&amp;тключиться</translation>
+        <translation>О&amp;тключить</translation>
     </message>
     <message>
         <source>Ban for</source>
