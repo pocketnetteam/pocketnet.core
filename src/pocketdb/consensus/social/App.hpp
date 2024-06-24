@@ -40,7 +40,7 @@ namespace PocketConsensus
                 return { false, ConsensusResult_ContentLimit };
 
             // Check ID for unique
-            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetId(), TxType::APP))
+            if (ConsensusRepoInst.ExistsAnotherByName("", *ptx->GetId(), TxType::APP))
                 return {false, ConsensusResult_NicknameDouble};
 
             return Success;
@@ -55,7 +55,6 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress()))
                 return {false, ConsensusResult_Failed};
 
-            // Repost not allowed
             // Payload must be filled
             if (!ptx->GetPayload() || IsEmpty(ptx->GetName()) || IsEmpty(ptx->GetId()))
                 return {false, ConsensusResult_Failed};
@@ -74,11 +73,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateBlock(const AppRef& ptx, const PocketBlockRef& block) override
         {
-            // Edit
-            if (ptx->IsEdit())
-                return ValidateEditBlock(ptx, block);
-
-            // ---------------------------------------------------------
             // Multiple in block not allowed
             for (auto& blockTx : *block)
             {
@@ -93,9 +87,6 @@ namespace PocketConsensus
                 if (*blockPtx->GetHash() == *ptx->GetHash())
                     continue;
 
-                if (blockPtx->IsEdit())
-                    continue;
-
                 return { false, ConsensusResult_ContentLimit };
             }
 
@@ -105,7 +96,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const AppRef& ptx) override
         {
             // Do not allowed multiple txs in mempool
-            if (ConsensusRepoInst.Exists_MS1S2T(*ptx->GetAddress(), *ptx->GetRootTxHash(), { APP }))
+            if (ConsensusRepoInst.Exists_MS1T(*ptx->GetAddress(), { APP }))
                 return { false, ConsensusResult_ContentLimit };
 
             return Success;
@@ -136,26 +127,6 @@ namespace PocketConsensus
             return Success;
         }
         
-        virtual ConsensusValidateResult ValidateEditBlock(const AppRef& ptx, const PocketBlockRef& block)
-        {
-            // Double edit in block not allowed
-            for (auto& blockTx : *block)
-            {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { APP }))
-                    continue;
-
-                auto blockPtx = static_pointer_cast<App>(blockTx);
-
-                if (*blockPtx->GetHash() == *ptx->GetHash())
-                    continue;
-
-                if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, ConsensusResult_DoubleContentEdit};
-            }
-
-            return Success;
-        }
-
         virtual bool CheckIdContent(const AppRef& ptx)
         {
             auto id = *ptx->GetId();

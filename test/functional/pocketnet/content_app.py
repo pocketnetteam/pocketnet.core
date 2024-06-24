@@ -92,30 +92,31 @@ class ContentAppTest(PocketcoinTestFramework):
         app.p.s3 = "First App description"
         app.p.s4 = "{\"domain\":\"first_app.com\",\"email\":\"first_app@first_app.com\"}"
 
-        appTx = pubGenTx(accounts[0], app)
+        appTx0 = pubGenTx(accounts[0], app)
 
         # Double to mempool from one address
-        pubGenTx(accounts[0], app)
+        assert_raises_rpc_error(ConsensusResult.ContentLimit, None, pubGenTx, accounts[0], app)
 
         # Double to mempool from another address with same payload
-        pubGenTx(accounts[1], app)
-
-        # Double to mempool from another address with different payload
-        app.s1 = accounts[1].Address
-        pubGenTx(accounts[1], app)
+        assert_raises_rpc_error(ConsensusResult.FailedOpReturn, None, pubGenTx, accounts[1], app)
 
         node.stakeblock(1)
 
+        # Another app with same id
+        app.s1 = accounts[1].Address
+        assert_raises_rpc_error(ConsensusResult.NicknameDouble, None, pubGenTx, accounts[1], app)
+
         # Double to blockchain from one address
-        pubGenTx(accounts[0], app)
+        app.s1 = accounts[0].Address
+        assert_raises_rpc_error(ConsensusResult.NicknameDouble, None, pubGenTx, accounts[0], app)
 
         # Double to blockchain from another address with same payload
         app.s1 = accounts[0].Address
-        pubGenTx(accounts[1], app)
+        assert_raises_rpc_error(ConsensusResult.FailedOpReturn, None, pubGenTx, accounts[1], app)
 
         # Double to blockchain from another address with different payload
         app.s1 = accounts[1].Address
-        pubGenTx(accounts[1], app)
+        assert_raises_rpc_error(ConsensusResult.NicknameDouble, None, pubGenTx, accounts[1], app)
 
         # ---------------------------------------------------------------------------------
 
