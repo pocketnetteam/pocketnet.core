@@ -2140,6 +2140,11 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Очистить консоль</translation>
     </message>
     <message>
+        <source>&amp;Copy address</source>
+        <extracomment>Context menu action to copy the address of a peer</extracomment>
+        <translation>&amp;Копировать адрес</translation>
+    </message>
+    <message>
         <source>1 &amp;hour</source>
         <translation>1 &amp;час</translation>
     </message>
