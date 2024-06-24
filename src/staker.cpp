@@ -304,7 +304,7 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
 
         if (wallet->CreateCoinStake(*legacyKeyStore, block->nBits, nSearchInterval, nFees, txCoinStake, key))
         {
-            if (txCoinStake.nTime > ::ChainActive().Tip()->GetMedianTimePast())
+            if (txCoinStake.nTime > ::ChainActive().Tip()->GetMedianTimePast() || Params().NetworkID() == NetworkId::NetworkRegTest)
             {
                 if (sign(block, txCoinStake, vtx, *legacyKeyStore, key, wallet)) {
                     nLastCoinStakeTime = nSearchTime;
