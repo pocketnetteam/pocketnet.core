@@ -56,14 +56,11 @@ namespace PocketConsensus
                 return {false, ConsensusResult_Failed};
 
             // Payload must be filled
-            if (!ptx->GetPayload() || IsEmpty(ptx->GetName()) || IsEmpty(ptx->GetId()))
+            if (!ptx->GetPayload() || IsEmpty(ptx->GetId()))
                 return {false, ConsensusResult_Failed};
 
             // Check app name length and symbols aka account name
             if (!CheckIdContent(ptx))
-                return {false, ConsensusResult_Failed};
-
-            if (IsEmpty(ptx->GetDescription()))
                 return {false, ConsensusResult_Failed};
 
             return Success;

@@ -23,24 +23,23 @@ namespace PocketTx
             s1 - address
             s2 - root tx hash
 
-            p.s1 - name
+            p.s1 - { data }
+                {
+                    "name": "",
+                    "description": "",
+                    "tags": [],
+                    "url": "",
+                    "icon": "",
+                    ...
+                }
             p.s2 - id
-            p.s3 - description
-            p.s4 - settings
 
         */
 
         const optional<string>& GetId() const;
         void SetId(const string& value);
 
-        const optional<string>& GetName() const;
-        void SetName(const string& value);
-
-        const optional<string>& GetDescription() const;
-        void SetDescription(const string& value);
-
-        const optional<string>& GetSettings() const;
-        void SetSettings(const string& value);
+        const optional<UniValue>& GetData() const;
     };
 
 } // namespace PocketTx

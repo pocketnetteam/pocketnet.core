@@ -17,17 +17,22 @@ namespace PocketTx
         SetType(TxType::APP);
     }
 
-
-    const optional<string>& App::GetName() const { return Transaction::GetPayload()->GetString1(); }
-    void App::SetName(const string& value) { Transaction::GetPayload()->SetString1(value); }
-
     const optional<string>& App::GetId() const { return Transaction::GetPayload()->GetString2(); }
     void App::SetId(const string& value) { Transaction::GetPayload()->SetString2(value); }
 
-    const optional<string>& App::GetDescription() const { return Transaction::GetPayload()->GetString3(); }
-    void App::SetDescription(const string& value) { Transaction::GetPayload()->SetString3(value); }
+    const optional<UniValue>& App::GetData() const
+    {
+        if (!Transaction::GetPayload())
+            return nullopt;
 
-    const optional<string>& App::GetSettings() const { return Transaction::GetPayload()->GetString3(); }
-    void App::SetSettings(const string& value) { Transaction::GetPayload()->SetString3(value); }
+        UniValue data(UniValue::VOBJ);
+        // TODO app : parse data with try catch ?
+        data.read(*Transaction::GetPayload()->GetString1());
+
+        if (data.isNull() || !data.isObject())
+            return nullopt;
+
+        return data;
+    }
     
 } // namespace PocketTx
