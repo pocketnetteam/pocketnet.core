@@ -331,13 +331,20 @@ namespace PocketDb
                         
                         case APP:
 
-                            // TODO app : parse data from string1
+                            if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
+                            {
+                                UniValue data(UniValue::VOBJ);
+                                data.read(string1);
 
-                            // if (auto[ok, string2] = cursor.TryGetColumnString(2); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentAppCaption, string2));
+                                if (data.isNull() || !data.isObject())
+                                    break;
 
-                            // if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentAppMessage, string3));
+                                if (data.exists("n"))
+                                    result.emplace_back(WebContent(id, ContentFieldType_AppName, data["n"].get_str()));
+
+                                if (data.exists("d"))
+                                    result.emplace_back(WebContent(id, ContentFieldType_AppDescription, data["d"].get_str()));
+                            }
 
                             break;
                         
