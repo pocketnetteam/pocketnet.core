@@ -10,27 +10,10 @@ namespace PocketDb
     {
         vector<string> result;
 
-        string _filters = "";
-        
-        if (!args.Search.empty())
-            _filters += " cross join search on pt.String2 like search.value or pt.String3 like search.value ";
-
-        string _tagsStr = "[]";
-
-        if (!args.Tags.empty()) {
-            UniValue _tags(UniValue::VARR);
-            for (auto t : args.Tags)
-                _tags.push_back(t);
-
-            _tagsStr = _tags.write();
-            _filters += " cross join tags on bo.Tag = tags.value ";
-        }
+        string _keyword = "\"" + args.Search + "\"" + " OR " + args.Search + "*";
 
         string _orderBy = " ct.Height ";
-        if (args.Page.OrderBy == "location")
-            _orderBy = " pt.String6 ";
-        if (args.Page.OrderBy == "price")
-            _orderBy = " pt.Int1 ";
+        // TODO app : add sorting by rating and comment count
         if (args.Page.OrderDesc)
             _orderBy += " desc ";
         
@@ -38,16 +21,55 @@ namespace PocketDb
             __func__,
             [&]() -> Stmt& {
                 return Sql(R"sql(
-                    
+                    select
+                        (select r.String from Registry r where r.RowId = t.RowId)
+                    from
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join
+                        Last lt
+                            on lt.TxId = t.RowId
+                    cross join
+                        Chain ct indexed by Chain_TxId_Height
+                            on ct.TxId = t.RowId and ct.Height <= ?
+                    cross join
+                        Payload pt
+                            on pt.TxId = t.RowId
+                    where
+                        t.Type in (221) and
+                        (? or t.RowId in (
+                            select
+                                tm.ContentId
+                            from
+                                web.Tags tag indexed by Tags_Lang_Value_Id
+                            join
+                                web.TagsMap tm indexed by TagsMap_TagId_ContentId on
+                                    tm.TagId = tag.Id
+                            where
+                                tag.Value in ( )sql" + join(vector<string>(args.Tags.size(), "?"), ",") + R"sql( ) and
+                                tag.Lang = 'en'
+                        )) and
+                        (? or ct.Uid in (
+                            select
+                                cm.ContentId
+                            from
+                                web.Content c,
+                                web.ContentMap cm
+                            where
+                                c.ROWID = cm.ROWID and
+                                cm.FieldType in (3,5) and
+                                c.Value match ?
+                        ))
+                    order by
+                        )sql" + _orderBy + R"sql(
+                    limit ? offset ?
                 )sql")
                 .Bind(
-                    args.Language,
-                    _tagsStr,
-                    _locationStr,
-                    args.PriceMax,
-                    args.PriceMin,
-                    args.Search,
                     args.Page.TopHeight,
+                    args.Tags.empty(),
+                    args.Tags,
+                    args.Search.empty(),
+                    args.Search,
+                    _orderBy,
                     args.Page.PageSize,
                     args.Page.PageStart * args.Page.PageSize
                 );

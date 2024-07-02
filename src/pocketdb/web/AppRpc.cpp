@@ -32,8 +32,7 @@ namespace PocketWeb::PocketWebRpc
 
             if (auto arg = _args.At("tags", true); arg.isArray())
                 for (size_t i = 0; i < arg.size(); i++)
-                    if (arg[i].isNum())
-                        appListDto.Tags.push_back(arg[i].get_int());
+                    appListDto.Tags.push_back(arg[i].get_str());
 
             if (auto arg = _args.At("search", true); arg.isStr())
                 appListDto.Search = arg.get_str();

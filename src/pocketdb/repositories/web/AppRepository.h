@@ -18,7 +18,7 @@ namespace PocketDb
     struct AppListDto
     {
         Pagination Page;
-        vector<int> Tags;
+        vector<string> Tags;
         string Search = "";
     };
 
