@@ -122,7 +122,10 @@ namespace PocketServices
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<WebTag> contentTags = webRepoInst->GetContentTags(height);
+            auto contentTags = webRepoInst->GetContentTags(height);
+            auto appTags = webRepoInst->GetContentTags(height);
+            contentTags.insert(contentTags.end(), appTags.begin(), appTags.end());
+            
             if (contentTags.empty())
                 return;
 

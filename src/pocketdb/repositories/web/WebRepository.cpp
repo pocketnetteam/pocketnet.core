@@ -104,6 +104,60 @@ namespace PocketDb
         return result;
     }
 
+    vector<WebTag> WebRepository::GetAppTags(int height)
+    {
+        vector<WebTag> result;
+
+        string sql = R"sql(
+            with
+                height as ( select ? as value )
+            select
+                distinct
+                p.RowId,
+                json_each.value
+            from
+                height
+            cross join
+                Chain c on
+                    c.Height = height.value
+            cross join
+                Transactions p on
+                    p.RowId = c.TxId and
+                    p.Type in (221)
+            cross join
+                Last l on
+                    l.TxId = p.RowId
+            cross join
+                Payload pp on
+                    pp.TxId = p.RowId
+            cross join
+                json_each(json_extract(pp.String1, '$.t'))
+        )sql";
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql).Bind(height);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto[okId, id] = cursor.TryGetColumnInt64(0);
+                        if (!okId) continue;
+
+                        auto[okValue, value] = cursor.TryGetColumnString(1);
+                        if (!okValue) continue;
+
+                        result.emplace_back(WebTag(id, "en", value));
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
     void WebRepository::UpsertContentTags(const vector<WebTag>& contentTags)
     {
         // build distinct lists
@@ -204,7 +258,7 @@ namespace PocketDb
             cross join
                 Transactions t on
                     t.RowId = c.TxId and
-                    t.Type in (100, 200, 201, 202, 209, 210, 204, 205)
+                    t.Type in (100, 200, 201, 202, 209, 210, 204, 205, 221)
             cross join
                 Payload p on
                     p.TxId = t.RowId
@@ -277,11 +331,13 @@ namespace PocketDb
                         
                         case APP:
 
-                            if (auto[ok, string2] = cursor.TryGetColumnString(2); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentAppCaption, string2));
+                            // TODO app : parse data from string1
 
-                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentAppMessage, string3));
+                            // if (auto[ok, string2] = cursor.TryGetColumnString(2); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentAppCaption, string2));
+
+                            // if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentAppMessage, string3));
 
                             break;
                         

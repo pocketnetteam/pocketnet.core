@@ -27,7 +27,7 @@ namespace PocketDb
     public:
         explicit AppRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
 
-        vector<string> List(const AppListDto& dto);
+        vector<string> List(const AppListDto& args);
         map<string, UniValue> AdditionalInfo(const vector<string>& txs);
 
     };
