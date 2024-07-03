@@ -25,11 +25,12 @@ namespace PocketTx
 
             p.s1 - { data }
                 {
-                    "name": "",
-                    "description": "",
-                    "tags": [],
-                    "url": "",
-                    "icon": "",
+                    "n": "App Name",
+                    "d": "App Description",
+                    "t": [ "tag1", "tag2", "tag3" ],
+                    "u": "app.com",
+                    "e": "app@mail.com",
+                    "i": "app.com/icon.png",
                     ...
                 }
             p.s2 - id
@@ -37,9 +38,7 @@ namespace PocketTx
         */
 
         const optional<string>& GetId() const;
-        void SetId(const string& value);
-
-        const optional<UniValue>& GetData() const;
+        
     };
 
 } // namespace PocketTx

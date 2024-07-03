@@ -68,8 +68,7 @@ namespace PocketDb
                     args.Tags.empty(),
                     args.Tags,
                     args.Search.empty(),
-                    args.Search,
-                    _orderBy,
+                    _keyword,
                     args.Page.PageSize,
                     args.Page.PageStart * args.Page.PageSize
                 );
@@ -84,6 +83,42 @@ namespace PocketDb
                 });
             }
         );
+
+        return result;
+    }
+
+    map<string, UniValue> AppRepository::AdditionalInfo(const vector<string>& txs)
+    {
+        map<string, UniValue> result;
+
+        // TODO app : implement sql
+        // SqlTransaction(
+        //     __func__,
+        //     [&]() -> Stmt& {
+        //         return Sql(R"sql(
+        //             -- 
+        //         )sql")
+        //         .Bind(
+        //             txs
+        //         );
+        //     },
+        //     [&] (Stmt& stmt) {
+        //         stmt.Select([&](Cursor& cursor) {
+        //             while (cursor.Step())
+        //             {
+        //                 string txHash;
+        //                 cursor.CollectAll(txHash);
+                        
+        //                 UniValue txData(UniValue::VOBJ);
+        //                 txData.pushKV("s", 0);
+        //                 txData.pushKV("c", 0);
+        //                 txData.pushKV("r", 0);
+                        
+        //                 result.emplace(txHash, txData);
+        //             }
+        //         });
+        //     }
+        // );
 
         return result;
     }

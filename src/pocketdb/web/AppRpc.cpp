@@ -37,7 +37,7 @@ namespace PocketWeb::PocketWebRpc
             if (auto arg = _args.At("search", true); arg.isStr())
                 appListDto.Search = arg.get_str();
 
-            UniValue result(UniValue::VOBJ);
+            UniValue result(UniValue::VARR);
 
             // Fetch txs
             auto _txs = request.DbConnection()->AppRepoInst->List(appListDto);
@@ -49,7 +49,6 @@ namespace PocketWeb::PocketWebRpc
             auto txs = request.DbConnection()->TransactionRepoInst->List(_txs, true);
 
             // Build result array with original sorting
-            UniValue result(UniValue::VARR);
             for (const auto& _tx : _txs)
             {
                 for (const auto& tx : *txs)

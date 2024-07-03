@@ -87,10 +87,8 @@ class ContentAppTest(PocketcoinTestFramework):
         app = AppPayload()
         app.s1 = accounts[0].Address
         app.p = Payload()
-        app.p.s1 = "First App"
+        app.p.s1 = "{\"n\":\"First app\",\"d\":\"First app description\",\"u\":\"first_app.com\",\"e\":\"first_app@first_app.com\"}"
         app.p.s2 = "first_app"
-        app.p.s3 = "First App description"
-        app.p.s4 = "{\"domain\":\"first_app.com\",\"email\":\"first_app@first_app.com\"}"
 
         appTx0 = pubGenTx(accounts[0], app)
 
@@ -118,7 +116,11 @@ class ContentAppTest(PocketcoinTestFramework):
         app.s1 = accounts[1].Address
         assert_raises_rpc_error(ConsensusResult.NicknameDouble, None, pubGenTx, accounts[1], app)
 
+        node.stakeblock(1)
+
         # ---------------------------------------------------------------------------------
+
+        self.log.info("Check APIs")
 
 
 if __name__ == "__main__":

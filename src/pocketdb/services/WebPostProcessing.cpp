@@ -123,7 +123,7 @@ namespace PocketServices
             int64_t nTime1 = GetTimeMicros();
 
             auto contentTags = webRepoInst->GetContentTags(height);
-            auto appTags = webRepoInst->GetContentTags(height);
+            auto appTags = webRepoInst->GetAppTags(height);
             contentTags.insert(contentTags.end(), appTags.begin(), appTags.end());
             
             if (contentTags.empty())
