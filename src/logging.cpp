@@ -175,7 +175,7 @@ const CLogCategoryDesc LogCategories[] =
 
 bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str)
 {
-    if (str == "") {
+    if (str.empty()) {
         flag = BCLog::ALL;
         return true;
     }
@@ -186,6 +186,33 @@ bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str)
         }
     }
     return false;
+}
+
+std::string LogLevelToStr(BCLog::Level level)
+{
+    switch (level) {
+    case BCLog::Level::None:
+        return "none";
+    case BCLog::Level::Debug:
+        return "debug";
+    case BCLog::Level::Info:
+        return "info";
+    case BCLog::Level::Warning:
+        return "warning";
+    case BCLog::Level::Error:
+        return "error";
+    }
+    assert(false);
+}
+
+std::string LogCategoryToStr(BCLog::LogFlags category)          // FIXME!!! Need optimization: create fast index in constructor
+{
+    for (const CLogCategoryDesc& category_desc : LogCategories) {
+        if ((category_desc.flag & category)) {
+            return category_desc.category;
+        }
+    }
+    return "";
 }
 
 std::vector<LogCategory> BCLog::Logger::LogCategoriesList()
@@ -250,10 +277,30 @@ namespace BCLog {
     }
 }
 
-void BCLog::Logger::LogPrintStr(const std::string& str)
+void BCLog::Logger::LogPrintStr(const std::string& str, const BCLog::LogFlags category, const BCLog::Level level)
 {
     StdLockGuard scoped_lock(m_cs);
     std::string str_prefixed = LogEscapeMessage(str);
+
+    if (((category != LogFlags::NONE && category != LogFlags::WALLET) || level != Level::None) && m_started_new_line) {
+        std::string s{"["};
+
+        if (category != LogFlags::NONE) {
+            s += LogCategoryToStr(category);
+        }
+
+        if (category != LogFlags::NONE && level != Level::None) {
+            // Only add separator if both flag and level are not NONE
+            s += ":";
+        }
+
+        if (level != Level::None) {
+            s += LogLevelToStr(level);
+        }
+
+        s += "] ";
+        str_prefixed.insert(0, s);
+    }
 
     if (m_log_threadnames && m_started_new_line) {
         str_prefixed.insert(0, "[" + util::ThreadGetInternalName() + "] ");
