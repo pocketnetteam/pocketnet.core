@@ -357,10 +357,10 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     // Now check if proof-of-stake hash meets target protocol
     if (hashProofOfStake > bnTarget)
     {
-	LogPrint(BCLog::TEST, "CheckStakeKernelHash() : hashProofOfStake(%s) > bnTarget (%s)\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
+	LogPrint(BCLog::TEST, "CheckStakeKernelHash() failed: hashProofOfStake(%s) > bnTarget (%s)\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
         return false;
     }
-    LogPrint(BCLog::STAKEMODIF, "CheckStakeKernelHash() : hashProofOfStake(%s) <= bnTarget (%s)\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
+    LogPrint(BCLog::STAKEMODIF, "CheckStakeKernelHash() ok: hashProofOfStake(%s) <= bnTarget (%s)\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
 
     return true;
 }
