@@ -123,7 +123,7 @@ class ContentAppTest(PocketcoinTestFramework):
         self.log.info("Check APIs")
 
         # Scores
-        assert len(node.public().getapps({"search":"first"})) == 1
+        assert len(node.public().getapps({})) == 1
         assert_raises_rpc_error(ConsensusResult.SelfScore, None, pubGenTx, accounts[0], ScoreContentPayload(appTx0, 5, accounts[0].Address))
 
         scTx0 = pubGenTx(accounts[1], ScoreContentPayload(appTx0, 5, accounts[0].Address))
@@ -138,6 +138,10 @@ class ContentAppTest(PocketcoinTestFramework):
         node.stakeblock(1)
 
         # Check rating and additional apis (scores, comments)
+
+        assert node.public().getapps({})[0]['ad']['r'] == 2
+        assert len(node.public().getappscores({"app": appTx0})) == 1
+        assert len(node.public().getappcomments({"app": appTx0})) == 2
 
 
 

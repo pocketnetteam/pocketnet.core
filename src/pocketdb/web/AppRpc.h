@@ -13,6 +13,8 @@ namespace PocketWeb::PocketWebRpc
     using namespace std;
 
     RPCHelpMan GetApps();
+    RPCHelpMan GetAppScores();
+    RPCHelpMan GetAppComments();
     
 }
 

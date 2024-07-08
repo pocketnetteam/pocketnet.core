@@ -153,6 +153,8 @@ static const CRPCCommand commands[] =
     // Apps
     // TODO (rpc): fixup params
     {"apps",           "getapps",                          &GetApps,                        { }},
+    {"apps",           "getappscores",                     &GetAppScores,                   { }},
+    {"apps",           "getappcomments",                   &GetAppComments,                 { }},
     
     
 };
