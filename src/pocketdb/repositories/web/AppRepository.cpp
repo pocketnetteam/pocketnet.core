@@ -6,6 +6,7 @@
 
 namespace PocketDb
 {
+
     vector<string> AppRepository::List(const AppListDto& args)
     {
         vector<string> result;
@@ -91,34 +92,170 @@ namespace PocketDb
     {
         map<string, UniValue> result;
 
-        // TODO app : implement sql
-        // SqlTransaction(
-        //     __func__,
-        //     [&]() -> Stmt& {
-        //         return Sql(R"sql(
-        //             -- 
-        //         )sql")
-        //         .Bind(
-        //             txs
-        //         );
-        //     },
-        //     [&] (Stmt& stmt) {
-        //         stmt.Select([&](Cursor& cursor) {
-        //             while (cursor.Step())
-        //             {
-        //                 string txHash;
-        //                 cursor.CollectAll(txHash);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        app as (
+                            select
+                                r.RowId,
+                                r.String as Hash
+                            from
+                                Registry r
+                            where
+                                r.String in ( )sql" + join(vector<string>(txs.size(), "?"), ",") + R"sql( )
+                        )
+                    select
+                        app.Hash,
+                        r.Value
+                    from
+                        app
+                    cross join
+                        Transactions t on
+                            t.RowId = app.RowId
+                    cross join
+                        Chain c on
+                            c.TxId = t.RowId
+                    cross join
+                        Ratings r on
+                            r.Type = 2 and
+                            r.Last = 1 and
+                            r.Uid = c.Uid
+                )sql")
+                .Bind(
+                    txs
+                );
+            },
+            [&] (Stmt& stmt)
+            {
+                stmt.Select([&](Cursor& cursor)
+                {
+                    while (cursor.Step())
+                    {
+                        string txHash;
+                        int rating;
+                        cursor.CollectAll(txHash, rating);
                         
-        //                 UniValue txData(UniValue::VOBJ);
-        //                 txData.pushKV("s", 0);
-        //                 txData.pushKV("c", 0);
-        //                 txData.pushKV("r", 0);
+                        UniValue txData(UniValue::VOBJ);
+                        txData.pushKV("r", rating);
                         
-        //                 result.emplace(txHash, txData);
-        //             }
-        //         });
-        //     }
-        // );
+                        result.emplace(txHash, txData);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    vector<string> AppRepository::Scores(const string& tx, const Pagination& pg)
+    {
+        vector<string> result;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        apps as (
+                            select
+                                r.RowId
+                            from
+                                Registry r
+                            where
+                                r.String in (?)
+                        )
+                    select
+                        (select r.String from Registry r where r.RowId = t.RowId)
+                    from
+                        apps
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId2_RegId1 on
+                            t.Type in (300) and
+                            t.RegId2 = apps.RowId
+                    cross join
+                        Chain c on
+                            c.TxId = t.RowId and
+                            c.Height <= ?
+                    order by
+                        c.Height desc, c.BlockNum desc
+                    limit ? offset ?
+                )sql")
+                .Bind(
+                    tx,
+                    pg.TopHeight,
+                    pg.PageSize,
+                    pg.PageStart * pg.PageSize
+                );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                            result.push_back(value);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    vector<string> AppRepository::Comments(const string& tx, const Pagination& pg)
+    {
+        vector<string> result;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        apps as (
+                            select
+                                r.RowId
+                            from
+                                Registry r
+                            where
+                                r.String in (?)
+                        )
+                    select
+                        (select r.String from Registry r where r.RowId = t.RowId)
+                    from
+                        apps
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId3_RegId1 on
+                            t.Type in (204,205,206) and
+                            t.RegId3 = apps.RowId
+                    cross join
+                        Last l on
+                            l.TxId = t.RowId
+                    cross join
+                        Chain c on
+                            c.TxId = t.RowId and
+                            c.Height <= ?
+                    order by
+                        c.Height desc, c.BlockNum desc
+                    limit ? offset ?
+                )sql")
+                .Bind(
+                    tx,
+                    pg.TopHeight,
+                    pg.PageSize,
+                    pg.PageStart * pg.PageSize
+                );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                            result.push_back(value);
+                    }
+                });
+            }
+        );
 
         return result;
     }

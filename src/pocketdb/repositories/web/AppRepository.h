@@ -29,6 +29,8 @@ namespace PocketDb
 
         vector<string> List(const AppListDto& args);
         map<string, UniValue> AdditionalInfo(const vector<string>& txs);
+        vector<string> Scores(const string& tx, const Pagination& pg);
+        vector<string> Comments(const string& tx, const Pagination& pg);
 
     };
 

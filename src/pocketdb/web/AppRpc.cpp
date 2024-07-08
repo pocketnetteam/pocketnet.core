@@ -6,6 +6,7 @@
 
 namespace PocketWeb::PocketWebRpc
 {
+
     RPCHelpMan GetApps()
     {
         return RPCHelpMan{"getapps",
@@ -60,10 +61,7 @@ namespace PocketWeb::PocketWebRpc
                         // Add additional data if exists
                         if (auto itr = _additionalData.find(*tx->GetHash()); itr != _additionalData.end()) {
                             UniValue addData(UniValue::VOBJ);
-                            // TODO app : add additional data fields
-                            // addData.pushKV("regdate", itr->second.RegDate);
-                            // addData.pushKV("rating", itr->second.Rating);
-                            txData.pushKV("additional", addData);
+                            txData.pushKV("ad", itr->second);
                         }
 
                         result.push_back(txData);
@@ -71,6 +69,100 @@ namespace PocketWeb::PocketWebRpc
                 }
             }
 
+            return result;
+        }};
+    }
+
+    RPCHelpMan GetAppScores()
+    {
+        return RPCHelpMan{"getappscores",
+            "\nGet application scores list.\n",
+            {
+                { "request", RPCArg::Type::STR, RPCArg::Optional::NO, "JSON object for filter details" },
+            },
+            RPCResult{ RPCResult::Type::ARR, "", "", {
+                { RPCResult::Type::STR_HEX, "hash", "Tx hash" },
+            }},
+            RPCExamples{
+                HelpExampleCli("getappscores", "request") +
+                HelpExampleRpc("getappscores", "request")
+            },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, { UniValue::VOBJ });
+
+            // Parse request params
+            auto _args = request.params[0].get_obj();
+
+            string txHash;
+            if (auto arg = _args.At("app", true); arg.isStr())
+                txHash = arg.get_str();
+            else
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Missing 'app' parameter");
+
+            Pagination pg = ParsePaginationArgs(_args);
+
+            UniValue result(UniValue::VARR);
+
+            // Fetch txs
+            auto _txs = request.DbConnection()->AppRepoInst->Scores(txHash, pg);
+
+            // Construct result from txs
+            auto txs = request.DbConnection()->TransactionRepoInst->List(_txs, true);
+
+            // Build result array with original sorting
+            for (const auto& _tx : _txs)
+                for (const auto& tx : *txs)
+                    if (*tx->GetHash() == _tx)
+                        result.push_back(ConstructTransaction(tx));
+                        
+            return result;
+        }};
+    }
+
+    RPCHelpMan GetAppComments()
+    {
+        return RPCHelpMan{"getappcomments",
+            "\nGet application comments list.\n",
+            {
+                { "request", RPCArg::Type::STR, RPCArg::Optional::NO, "JSON object for filter details" },
+            },
+            RPCResult{ RPCResult::Type::ARR, "", "", {
+                { RPCResult::Type::STR_HEX, "hash", "Tx hash" },
+            }},
+            RPCExamples{
+                HelpExampleCli("getappcomments", "request") +
+                HelpExampleRpc("getappcomments", "request")
+            },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, { UniValue::VOBJ });
+
+            // Parse request params
+            auto _args = request.params[0].get_obj();
+
+            string txHash;
+            if (auto arg = _args.At("app", true); arg.isStr())
+                txHash = arg.get_str();
+            else
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Missing 'app' parameter");
+
+            Pagination pg = ParsePaginationArgs(_args);
+
+            UniValue result(UniValue::VARR);
+
+            // Fetch txs
+            auto _txs = request.DbConnection()->AppRepoInst->Comments(txHash, pg);
+
+            // Construct result from txs
+            auto txs = request.DbConnection()->TransactionRepoInst->List(_txs, true);
+
+            // Build result array with original sorting
+            for (const auto& _tx : _txs)
+                for (const auto& tx : *txs)
+                    if (*tx->GetHash() == _tx)
+                        result.push_back(ConstructTransaction(tx));
+                        
             return result;
         }};
     }
