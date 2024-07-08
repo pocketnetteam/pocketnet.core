@@ -87,7 +87,7 @@ class ContentAppTest(PocketcoinTestFramework):
         app = AppPayload()
         app.s1 = accounts[0].Address
         app.p = Payload()
-        app.p.s1 = "{\"n\":\"First app\",\"d\":\"First app description\",\"u\":\"first_app.com\",\"e\":\"first_app@first_app.com\"}"
+        app.p.s1 = "{\"n\":\"First app\",\"d\":\"First app description\",\"t\":[\"tag1\",\"tag2\"]}"
         app.p.s2 = "first_app"
 
         appTx0 = pubGenTx(accounts[0], app)
