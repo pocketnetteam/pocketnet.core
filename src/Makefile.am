@@ -140,6 +140,7 @@ POCKETDB_H = \
     pocketdb/web/PocketRpc.h \
     pocketdb/web/ModerationRpc.h \
     pocketdb/web/BarteronRpc.h \
+    pocketdb/web/AppRpc.h \
     pocketdb/web/WebRpcUtils.h \
     \
     pocketdb/repositories/RowAccessor.hpp \
@@ -158,6 +159,7 @@ POCKETDB_H = \
     pocketdb/repositories/web/SearchRepository.h \
     pocketdb/repositories/web/ModerationRepository.h \
     pocketdb/repositories/web/BarteronRepository.h \
+    pocketdb/repositories/web/AppRepository.h \
     \
     pocketdb/services/WsNotifier.h \
     pocketdb/services/b/services/Serializer.h \
@@ -296,6 +298,7 @@ POCKETDB_CPP = \
     pocketdb/repositories/web/SearchRepository.cpp \
     pocketdb/repositories/web/ModerationRepository.cpp \
     pocketdb/repositories/web/BarteronRepository.cpp \
+    pocketdb/repositories/web/AppRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
     \
@@ -323,6 +326,7 @@ POCKETDB_CPP = \
     pocketdb/web/PocketRpc.cpp \
     pocketdb/web/ModerationRpc.cpp \
     pocketdb/web/BarteronRpc.cpp \
+    pocketdb/web/AppRpc.cpp \
     pocketdb/web/WebRpcUtils.cpp \
     \
     pocketdb/models/dto/money/Default.cpp \

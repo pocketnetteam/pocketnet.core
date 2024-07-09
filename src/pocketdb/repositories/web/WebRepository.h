@@ -32,6 +32,7 @@ namespace PocketDb
         void SetCurrentHeight(int height);
 
         vector<WebTag> GetContentTags(int height);
+        vector<WebTag> GetAppTags(int height);
         void UpsertContentTags(const vector<WebTag>& contentTags);
 
         vector<WebContent> GetContent(int height);

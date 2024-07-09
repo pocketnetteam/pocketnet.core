@@ -87,10 +87,8 @@ class ContentAppTest(PocketcoinTestFramework):
         app = AppPayload()
         app.s1 = accounts[0].Address
         app.p = Payload()
-        app.p.s1 = "First App"
+        app.p.s1 = "{\"n\":\"First app\",\"d\":\"First app description\",\"t\":[\"tag1\",\"tag2\"]}"
         app.p.s2 = "first_app"
-        app.p.s3 = "First App description"
-        app.p.s4 = "{\"domain\":\"first_app.com\",\"email\":\"first_app@first_app.com\"}"
 
         appTx0 = pubGenTx(accounts[0], app)
 
@@ -118,7 +116,33 @@ class ContentAppTest(PocketcoinTestFramework):
         app.s1 = accounts[1].Address
         assert_raises_rpc_error(ConsensusResult.NicknameDouble, None, pubGenTx, accounts[1], app)
 
+        node.stakeblock(1)
+
         # ---------------------------------------------------------------------------------
+
+        self.log.info("Check APIs")
+
+        # Scores
+        assert len(node.public().getapps({})) == 1
+        assert_raises_rpc_error(ConsensusResult.SelfScore, None, pubGenTx, accounts[0], ScoreContentPayload(appTx0, 5, accounts[0].Address))
+
+        scTx0 = pubGenTx(accounts[1], ScoreContentPayload(appTx0, 5, accounts[0].Address))
+        assert_raises_rpc_error(ConsensusResult.DoubleScore, None, pubGenTx, accounts[1], ScoreContentPayload(appTx0, 5, accounts[0].Address))
+
+        node.stakeblock(1)
+
+        # Comments
+        cmtTx0 = pubGenTx(accounts[0], CommentPayload(appTx0))
+        cmtTx1 = pubGenTx(accounts[1], CommentPayload(appTx0))
+        
+        node.stakeblock(1)
+
+        # Check rating and additional apis (scores, comments)
+
+        assert node.public().getapps({})[0]['ad']['r'] == 2
+        assert len(node.public().getappscores({"app": appTx0})) == 1
+        assert len(node.public().getappcomments({"app": appTx0})) == 2
+
 
 
 if __name__ == "__main__":

@@ -21,7 +21,6 @@ namespace PocketConsensus
     public:
         AppConsensus() : SocialConsensus<App>()
         {
-            // TODO app : set limits
             Limits.Set("payload_size", 60000, 60000, 60000);
         }
 
@@ -56,14 +55,11 @@ namespace PocketConsensus
                 return {false, ConsensusResult_Failed};
 
             // Payload must be filled
-            if (!ptx->GetPayload() || IsEmpty(ptx->GetName()) || IsEmpty(ptx->GetId()))
+            if (!ptx->GetPayload() || IsEmpty(ptx->GetId()))
                 return {false, ConsensusResult_Failed};
 
             // Check app name length and symbols aka account name
             if (!CheckIdContent(ptx))
-                return {false, ConsensusResult_Failed};
-
-            if (IsEmpty(ptx->GetDescription()))
                 return {false, ConsensusResult_Failed};
 
             return Success;
@@ -148,8 +144,7 @@ namespace PocketConsensus
     public:
         AppConsensusFactory()
         {
-            // TODO app : set height
-            Checkpoint({ 9999999, 0, 0, make_shared<AppConsensus>() });
+            Checkpoint({ 2930000, 0, 0, make_shared<AppConsensus>() });
         }
     };
 

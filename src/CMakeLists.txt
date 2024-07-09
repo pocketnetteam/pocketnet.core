@@ -1150,6 +1150,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/web/ModerationRpc.cpp
         pocketdb/web/BarteronRpc.h
         pocketdb/web/BarteronRpc.cpp
+        pocketdb/web/AppRpc.h
+        pocketdb/web/AppRpc.cpp
         pocketdb/pocketnet.h
         pocketdb/pocketnet.cpp
         pocketdb/services/WsNotifier.cpp
@@ -1194,6 +1196,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/web/ModerationRepository.cpp
         pocketdb/repositories/web/BarteronRepository.h
         pocketdb/repositories/web/BarteronRepository.cpp
+        pocketdb/repositories/web/AppRepository.h
+        pocketdb/repositories/web/AppRepository.cpp
         pocketdb/consensus/Base.h
         pocketdb/consensus/Helper.h
         pocketdb/consensus/Social.h
