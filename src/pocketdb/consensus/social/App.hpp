@@ -144,8 +144,7 @@ namespace PocketConsensus
     public:
         AppConsensusFactory()
         {
-            // TODO app : set height
-            Checkpoint({ 9999999, 0, 0, make_shared<AppConsensus>() });
+            Checkpoint({ 2930000, 0, 0, make_shared<AppConsensus>() });
         }
     };
 
