@@ -21,7 +21,6 @@ namespace PocketConsensus
     public:
         AppConsensus() : SocialConsensus<App>()
         {
-            // TODO app : set limits
             Limits.Set("payload_size", 60000, 60000, 60000);
         }
 

@@ -14,7 +14,8 @@ namespace PocketDb
         string _keyword = "\"" + args.Search + "\"" + " OR " + args.Search + "*";
 
         string _orderBy = " ct.Height ";
-        // TODO app : add sorting by rating and comment count
+        if (args.Page.OrderBy == "rating")
+            _orderBy = " r.Value ";
         if (args.Page.OrderDesc)
             _orderBy += " desc ";
         
@@ -35,6 +36,11 @@ namespace PocketDb
                     cross join
                         Payload pt
                             on pt.TxId = t.RowId
+                    left join
+                        Ratings r on
+                            r.Type = 2 and
+                            r.Last = 1 and
+                            r.Uid = ct.Uid
                     where
                         t.Type in (221) and
                         (? or t.RowId in (
