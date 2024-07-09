@@ -893,11 +893,15 @@ namespace PocketDb
                     )
 
                 select 1
-                from address1
-                cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    on  t.RegId1 = address1.RowId and
-                        t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
-                        not exists (select 1 from Chain c where c.TxId = t.RowId)
+                from
+                    address1
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        t.RegId1 = address1.RowId and
+                        t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
             )sql")
             .Bind(string1, types)
             .Select([&](Cursor& cursor) {
@@ -931,12 +935,17 @@ namespace PocketDb
                     )
 
                 select 1
-                from address1, address2
-                cross join Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    on  t.RegId1 = address1.RowId and 
+                from
+                    address1,
+                    address2
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        t.RegId1 = address1.RowId and 
                         t.RegId2 = address2.RowId and 
-                        t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) and
-                        not exists (select 1 from Chain c where c.TxId = t.RowId)
+                        t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
             )sql")
             .Bind(string1, string2, types)
             .Select([&](Cursor& cursor) {
@@ -1180,7 +1189,8 @@ namespace PocketDb
             from
                 address,
                 vTx t
-                join Chain c on
+            cross join
+                Chain c on
                     c.TxId = t.RowId -- Not in mempool
             where
                 t.Hash = ? and
@@ -1755,9 +1765,11 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (305, 306) and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
                     t.RegId1 = str1.id and
                     (t.RegId2 = str2.id or t.RegId3 is not null )
             )sql")
@@ -1803,9 +1815,11 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (302, 303, 304) and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId) and
                     t.RegId1 = str1.id and
                     t.RegId2 = str1.id
             )sql")
@@ -1840,10 +1854,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (204) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -1956,10 +1972,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (307) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2072,10 +2090,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (200) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2188,10 +2208,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (201) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2263,10 +2285,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (202) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2339,10 +2363,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (209) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2415,10 +2441,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (210) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2491,10 +2519,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (220) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2567,10 +2597,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (301) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2679,10 +2711,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (300) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2791,10 +2825,12 @@ namespace PocketDb
                 from
                     str1,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (103) and
-                    t.RegId1 = str1.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId1 = str1.id
             )sql")
             .Bind(address)
             .Select([&](Cursor& cursor) {
@@ -2909,11 +2945,13 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
-                    t.Type in (204,205,206) and -- TODO (optimization): why include 204???
+                    t.Type in (204,205,206) and
                     t.RegId1 = str1.id and
-                    t.RegId2 = str2.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId2 = str2.id
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
@@ -2955,7 +2993,8 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join Chain c on
+                cross join
+                    Chain c on
                         c.TxId = t.RowId
                 where
                     t.Type in (205,206) and
@@ -3002,11 +3041,13 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (200,207) and
                     t.RegId1 = str1.id and
-                    t.RegId2 = str2.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId2 = str2.id
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
@@ -3096,11 +3137,13 @@ namespace PocketDb
                     str1,
                     str2,    
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (201,207) and
                     t.RegId1 = str1.id and
-                    t.RegId2 = str2.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId2 = str2.id
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
@@ -3190,11 +3233,13 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (202,207) and
                     t.RegId1 = str1.id and
-                    t.RegId2 = str2.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId2 = str2.id
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
@@ -3284,11 +3329,13 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (209,207) and
                     t.RegId1 = str1.id and
-                    t.RegId2 = str2.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId2 = str2.id
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
@@ -3378,11 +3425,13 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (210,207) and
                     t.RegId1 = str1.id and
-                    t.RegId2 = str2.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId2 = str2.id
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
@@ -3472,11 +3521,13 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (220,207) and
                     t.RegId1 = str1.id and
-                    t.RegId2 = str2.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId2 = str2.id
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {
@@ -3569,11 +3620,13 @@ namespace PocketDb
                     str1,
                     str2,
                     Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join
+                    Mempool m on
+                        m.TxId = t.RowId
                 where
                     t.Type in (200,201,202,209,210,211,220,207) and
                     t.RegId1 = str1.id and
-                    t.RegId2 = str2.id and
-                    not exists (select 1 from Chain c where c.TxId = t.RowId)
+                    t.RegId2 = str2.id
             )sql")
             .Bind(address, rootTxHash)
             .Select([&](Cursor& cursor) {

@@ -757,11 +757,15 @@ static void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman& connma
                 // blocks using compact encodings.
                 connman.ForNode(lNodesAnnouncingHeaderAndIDs.front(), [&connman, cmpctVer](CNode* pnodeStop){
                     connman.PushMessage(pnodeStop, CNetMsgMaker(pnodeStop->GetCommonVersion()).Make(NetMsgType::SENDCMPCT, /*fAnnounceUsingCMPCTBLOCK=*/false, cmpctVer));
+                    // save BIP152 bandwidth state: we select peer to be low-bandwidth
+                    pnodeStop->m_bip152_highbandwidth_to = false;
                     return true;
                 });
                 lNodesAnnouncingHeaderAndIDs.pop_front();
             }
             connman.PushMessage(pfrom, CNetMsgMaker(pfrom->GetCommonVersion()).Make(NetMsgType::SENDCMPCT, /*fAnnounceUsingCMPCTBLOCK=*/true, cmpctVer));
+            // save BIP152 bandwidth state: we select peer to be high-bandwidth
+            pfrom->m_bip152_highbandwidth_to = true;
             lNodesAnnouncingHeaderAndIDs.push_back(pfrom->GetId());
             return true;
         });
@@ -2909,6 +2913,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
                 State(pfrom.GetId())->fProvidesHeaderAndIDs = true;
                 State(pfrom.GetId())->fWantsCmpctWitness = true;
                 State(pfrom.GetId())->fPreferHeaderAndIDs = fAnnounceUsingCMPCTBLOCK;
+                pfrom.m_bip152_highbandwidth_from = fAnnounceUsingCMPCTBLOCK;
             }
             State(pfrom.GetId())->fSupportsDesiredCmpctVersion = true;
         }
@@ -3854,7 +3859,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         pfrom.vAddrToSend.clear();
         std::vector<CAddress> vAddr;
         if (pfrom.HasPermission(PF_ADDR)) {
-            vAddr = m_connman.GetAddresses(MAX_ADDR_TO_SEND, MAX_PCT_ADDR_TO_SEND);
+            vAddr = m_connman.GetAddresses(MAX_ADDR_TO_SEND, MAX_PCT_ADDR_TO_SEND, /*network=*/std::nullopt);
         } else {
             vAddr = m_connman.GetAddresses(pfrom, MAX_ADDR_TO_SEND, MAX_PCT_ADDR_TO_SEND);
         }
@@ -4298,14 +4303,14 @@ void PeerManager::EvictExtraOutboundPeers(int64_t time_in_seconds)
                 // Also don't disconnect any peer we're trying to download a
                 // block from.
                 CNodeState &state = *State(pnode->GetId());
-                if (time_in_seconds - pnode->nTimeConnected > MINIMUM_CONNECT_TIME && state.nBlocksInFlight == 0) {
+                if (time_in_seconds - pnode->m_connected.count() > MINIMUM_CONNECT_TIME && state.nBlocksInFlight == 0) {
                     LogPrint(BCLog::NET, "disconnecting extra outbound peer=%d%s (last block announcement received at time %d)\n",
                        pnode->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pnode->addr.ToString()) : ""), oldest_block_announcement);
                     pnode->fDisconnect = true;
                     return true;
                 } else {
                     LogPrint(BCLog::NET, "keeping outbound peer=%d%s chosen for eviction (connect time: %d, blocks_in_flight: %d)\n",
-                       pnode->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pnode->addr.ToString()) : ""), pnode->nTimeConnected, state.nBlocksInFlight);
+                       pnode->GetId(), (fLogIPs ? strprintf(", peeraddr=%s", pnode->addr.ToString()) : ""), pnode->m_connected.count(), state.nBlocksInFlight);
                     return false;
                 }
             });

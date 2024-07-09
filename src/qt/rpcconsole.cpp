@@ -601,7 +601,7 @@ void RPCConsole::setClientModel(ClientModel *model, int bestblock_height, int64_
         ui->peerWidget->setColumnWidth(PeerTableModel::Ping, PING_COLUMN_WIDTH);
         ui->peerWidget->horizontalHeader()->setStretchLastSection(true);
 
-        // create peer table context menu actions
+/*        // create peer table context menu actions
         QAction* disconnectAction = new QAction(tr("&Disconnect"), this);
         QAction* banAction1h      = new QAction(tr("Ban for") + " " + tr("1 &hour"), this);
         QAction* banAction24h     = new QAction(tr("Ban for") + " " + tr("1 &day"), this);
@@ -619,11 +619,24 @@ void RPCConsole::setClientModel(ClientModel *model, int bestblock_height, int64_
         connect(banAction1h, &QAction::triggered, [this] { banSelectedNode(60 * 60); });
         connect(banAction24h, &QAction::triggered, [this] { banSelectedNode(60 * 60 * 24); });
         connect(banAction7d, &QAction::triggered, [this] { banSelectedNode(60 * 60 * 24 * 7); });
-        connect(banAction365d, &QAction::triggered, [this] { banSelectedNode(60 * 60 * 24 * 365); });
+        connect(banAction365d, &QAction::triggered, [this] { banSelectedNode(60 * 60 * 24 * 365); }); */
+
+        // create peer table context menu
+        peersTableContextMenu = new QMenu(this);
+        //: Context menu action to copy the address of a peer.
+        peersTableContextMenu->addAction(tr("&Copy address"), [this] {
+            GUIUtil::copyEntryData(ui->peerWidget, PeerTableModel::Address, Qt::DisplayRole);
+        });
+        peersTableContextMenu->addSeparator();
+        peersTableContextMenu->addAction(tr("&Disconnect"), this, &RPCConsole::disconnectSelectedNode);
+        peersTableContextMenu->addAction(ts.ban_for + " " + tr("1 &hour"), [this] { banSelectedNode(60 * 60); });
+        peersTableContextMenu->addAction(ts.ban_for + " " + tr("1 d&ay"), [this] { banSelectedNode(60 * 60 * 24); });
+        peersTableContextMenu->addAction(ts.ban_for + " " + tr("1 &week"), [this] { banSelectedNode(60 * 60 * 24 * 7); });
+        peersTableContextMenu->addAction(ts.ban_for + " " + tr("1 &year"), [this] { banSelectedNode(60 * 60 * 24 * 365); });
 
         // peer table context menu signals
         connect(ui->peerWidget, &QTableView::customContextMenuRequested, this, &RPCConsole::showPeersTableContextMenu);
-        connect(disconnectAction, &QAction::triggered, this, &RPCConsole::disconnectSelectedNode);
+        //connect(disconnectAction, &QAction::triggered, this, &RPCConsole::disconnectSelectedNode);
 
         // peer table signal handling - update peer details when selecting new node
         connect(ui->peerWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RPCConsole::peerSelected);
@@ -1114,7 +1127,7 @@ void RPCConsole::updateNodeDetail(const CNodeCombinedStats *stats)
     ui->peerLastRecv->setText(stats->nodeStats.nLastRecv ? GUIUtil::formatDurationStr(GetSystemTimeInSeconds() - stats->nodeStats.nLastRecv) : tr("never"));
     ui->peerBytesSent->setText(GUIUtil::formatBytes(stats->nodeStats.nSendBytes));
     ui->peerBytesRecv->setText(GUIUtil::formatBytes(stats->nodeStats.nRecvBytes));
-    ui->peerConnTime->setText(GUIUtil::formatDurationStr(GetSystemTimeInSeconds() - stats->nodeStats.nTimeConnected));
+    ui->peerConnTime->setText(GUIUtil::formatDurationStr(GetSystemTimeInSeconds() - stats->nodeStats.m_connected.count()));
     ui->peerPingTime->setText(GUIUtil::formatPingTime(stats->nodeStats.m_ping_usec));
     ui->peerPingWait->setText(GUIUtil::formatPingTime(stats->nodeStats.m_ping_wait_usec));
     ui->peerMinPing->setText(GUIUtil::formatPingTime(stats->nodeStats.m_min_ping_usec));
@@ -1122,7 +1135,9 @@ void RPCConsole::updateNodeDetail(const CNodeCombinedStats *stats)
     ui->peerVersion->setText(QString::number(stats->nodeStats.nVersion));
     ui->peerSubversion->setText(QString::fromStdString(stats->nodeStats.cleanSubVer));
     ui->peerDirection->setText(stats->nodeStats.fInbound ? tr("Inbound") : tr("Outbound"));
+    ui->peerConnectionType->setText(GUIUtil::ConnectionTypeToQString(stats->nodeStats.m_conn_type, /*prepend_direction=*/true));
     ui->peerHeight->setText(QString::number(stats->nodeStats.nStartingHeight));
+    ui->peerNetwork->setText(QString::fromStdString(stats->nodeStats.m_network));
     if (stats->nodeStats.m_permissionFlags == PF_NONE) {
         ui->peerPermissions->setText(tr("N/A"));
     } else {

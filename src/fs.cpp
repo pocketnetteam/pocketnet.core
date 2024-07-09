@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <fs.h>
+#include <util/syserror.h>
 
 #ifndef WIN32
 #include <cstring>
@@ -36,7 +37,7 @@ FILE *fopen(const fs::path& p, const char *mode)
 
 static std::string GetErrorReason()
 {
-    return std::strerror(errno);
+    return SysErrorString(errno);
 }
 
 FileLock::FileLock(const fs::path& file)

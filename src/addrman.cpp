@@ -479,7 +479,7 @@ int CAddrMan::Check_()
 }
 #endif
 
-void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr, size_t max_addresses, size_t max_pct)
+/* void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr, size_t max_addresses, size_t max_pct)
 {
     size_t nNodes = vRandom.size();
     if (max_pct != 0) {
@@ -502,6 +502,39 @@ void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr, size_t max_addresses, size
         if (!ai.IsTerrible())
             vAddr.push_back(ai);
     }
+} */
+
+void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr, size_t max_addresses, size_t max_pct, std::optional<Network> network, const bool filtered)
+{
+    size_t nNodes = vRandom.size();
+    if (max_pct != 0) {
+        nNodes = max_pct * nNodes / 100;
+    }
+    if (max_addresses != 0) {
+        nNodes = std::min(nNodes, max_addresses);
+    }
+
+    // gather a list of random nodes, skipping those of low quality
+    for (unsigned int n = 0; n < vRandom.size(); n++) {
+        if (vAddr.size() >= nNodes)
+            break;
+
+        int nRndPos = insecure_rand.randrange(vRandom.size() - n) + n;
+        SwapRandom(n, nRndPos);
+        const auto it{mapInfo.find(vRandom[n])};
+        assert(it != mapInfo.end());
+
+        const CAddrInfo& ai = mapInfo[vRandom[n]];
+
+        // Filter by network (optional)
+        if (network != std::nullopt && ai.GetNetClass() != network) continue;
+
+        // Filter for quality
+        if (ai.IsTerrible() && filtered) continue;
+
+        vAddr.push_back(ai);
+    }
+    LogPrint(BCLog::ADDRMAN, "GetAddr returned %d random addresses\n", vAddr.size());
 }
 
 void CAddrMan::Connected_(const CService& addr, int64_t nTime)

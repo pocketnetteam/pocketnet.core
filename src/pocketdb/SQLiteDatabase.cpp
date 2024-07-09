@@ -299,8 +299,8 @@ namespace PocketDb
                 if (sqlite3_exec(m_db, ("PRAGMA synchronous = " + sync + ";").c_str(), nullptr, nullptr, nullptr) != 0)
                     throw std::runtime_error("Failed apply synchronous = " + sync);
 
-                if (sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)
-                    throw std::runtime_error("Failed apply temp_store = memory");
+                if (sqlite3_exec(m_db, "PRAGMA temp_store = file;", nullptr, nullptr, nullptr) != 0)
+                    throw std::runtime_error("Failed apply temp_store = file");
             }
 
             // TODO (tawmaz): Not working for existed database

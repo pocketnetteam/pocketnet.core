@@ -288,8 +288,8 @@ static bool HTTPBindAddresses()
     {
         if (!(gArgs.IsArgSet("-rpcallowip") && gArgs.IsArgSet("-rpcbind")))
         { // Default to loopback if not allowing external IPs
-            g_socket->BindAddress("::1", securePort);
-            g_socket->BindAddress("127.0.0.1", securePort);
+            g_socket->BindAddress("::1", securePort, true);
+            g_socket->BindAddress("127.0.0.1", securePort, true);
             if (gArgs.IsArgSet("-rpcallowip"))
             {
                 LogPrintf("WARNING: option -rpcallowip was specified without -rpcbind; this doesn't usually make sense\n");
@@ -306,7 +306,7 @@ static bool HTTPBindAddresses()
                 std::string host;
                 int port = securePort;
                 SplitHostPort(strRPCBind, port, host);
-                g_socket->BindAddress(host, port);
+                g_socket->BindAddress(host, port, true);
             }
         }
 
@@ -604,7 +604,6 @@ HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, boo
     );
 
     m_workQueue = std::make_shared<QueueLimited<std::unique_ptr<HTTPClosure>>>(queueDepth);
-    LogPrintf("HTTP: creating work queue of depth %d\n", queueDepth);
 
     // transfer ownership to eventBase/HTTP via .release()
     m_eventHTTP = http_ctr.release(); 
@@ -676,16 +675,17 @@ void HTTPSocket::InterruptHTTPSocket()
     m_thread_http_workers.clear();
 }
 
-void HTTPSocket::BindAddress(std::string ipAddr, int port)
+void HTTPSocket::BindAddress(std::string ipAddr, int port, bool warningPort)
 { 
     LogPrint(BCLog::HTTP, "Binding RPC on address %s port %i\n", ipAddr, port);
     evhttp_bound_socket *bind_handle = evhttp_bind_socket_with_handle(m_eventHTTP, ipAddr.empty() ? nullptr : ipAddr.c_str(), port);
     if (bind_handle)
     {
         CNetAddr addr;
-        if (ipAddr.empty() || (LookupHost(ipAddr, addr, false) && addr.IsBindAny())) {
-            // TODO (aok, lostystyg): only for private ports
-            LogPrintf("WARNING: the RPC server is not safe to expose to untrusted networks such as the public internet. %s:%d\n", ipAddr, port);
+        if (ipAddr.empty() || (LookupHost(ipAddr, addr, false) && addr.IsBindAny()))
+        {
+            if (warningPort)
+                LogPrintf("WARNING: the RPC server is not safe to expose to untrusted networks such as the public internet. %s:%d\n", ipAddr, port);
         }
         m_boundSockets.push_back(bind_handle);
     }
@@ -848,7 +848,6 @@ HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDept
     : HTTPSocket(base, timeout, queueDepth, publicAccess, fUseTls)
 {
     m_workPostQueue = std::make_shared<QueueLimited<std::unique_ptr<HTTPClosure>>>(queuePostDepth);
-    LogPrintf("HTTP: creating work post queue of depth %d\n", queuePostDepth);
 }
 
 HTTPWebSocket::~HTTPWebSocket() = default;

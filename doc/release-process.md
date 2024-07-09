@@ -10,7 +10,16 @@ Before every release candidate:
 Before every minor and major release:
 
 * Update [bips.md](bips.md) to account for changes since the last release.
-* Update version in `configure.ac` (don't forget to set `CLIENT_VERSION_IS_RELEASE` to `true`)
+* Set `CLIENT_VERSION_IS_RELEASE` to `true
+* Update version in `configure.ac`
+  * _CLIENT_VERSION_*
+* Update version in `CMakeLists.txt`
+  * _CLIENT_VERSION_*
+* Update version in `pocketcoin_config.h`
+  * CLIENT_VERSION_*
+  * COPYRIGHT_YEAR
+  * PACKAGE_STRING
+  * PACKAGE_VERSION
 * Write release notes (see below)
 * Update `src/chainparams.cpp` nMinimumChainWork with information from the getblockchaininfo rpc.
 * Update `src/chainparams.cpp` defaultAssumeValid with information from the getblockhash rpc.

@@ -4713,7 +4713,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
 	std::vector<COutput> vCoins;
 	AvailableCoinsForStaking(vCoins, nSpendTime);
 
-	LogPrint(BCLog::WALLET, "Available coins count %d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
+	WalletLogPrintf("SelectCoinsForStaking() : available UTXO count=%d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
 	setCoinsRet.clear();
 	nValueRet = 0;
 
@@ -4807,6 +4807,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	int64_t nValueIn = 0;
 
 	if (nBalance < Params().GetConsensus().nStakeMinimumThreshold) {
+		LogPrint(BCLog::WALLET, "CreateCoinStake : balance (%d) < nStakeMinimumThreshold (%d)\n", nBalance, Params().GetConsensus().nStakeMinimumThreshold);
 		return false;
 	}
 
@@ -4817,26 +4818,38 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	}
 
 	if (setCoins.empty()) {
-		// LogPrintf("Set coins empty\n");
 		return false;
 	}
 
 	int64_t nCredit = 0;
 	CScript scriptPubKeyKernel;
 	CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
+
+        // LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : Selected UTXO=%d txNew.nTime=%s nSearchInterval=%ld\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval);
+        if (LogAcceptCategory(BCLog::STAKEMODIF))
+        {
+            WalletLogPrintf("CreateCoinStake : Selected UTXO=%d txNew.nTime=%s nSearchInterval=%ld nBits=%#010x\n", setCoins.size(), FormatISO8601DateTime(txNew.nTime), nSearchInterval, nBits);
+        }
+
 	for (auto & pcoin : setCoins) {
 		static int nMaxStakeSearchInterval = 60;
 		bool fKernelFound = false;
 		for (unsigned int n = 0; n < fmin(nSearchInterval, (int64_t)nMaxStakeSearchInterval) && !fKernelFound && pindexPrev == ::ChainActive().Tip(); n++) {
+
+			// Check whether the coinstake timestamp meets protocol
+			if (((txNew.nTime - n) & STAKE_TIMESTAMP_MASK) != 0)
+			    continue;
+
 			boost::this_thread::interruption_point();
 			// Search backward in time from the given txNew timestamp
 			// Search nSearchInterval seconds back up to nMaxStakeSearchInterval
 			COutPoint prevoutStake = COutPoint(pcoin.first->tx->GetHash(), pcoin.second);
 			int64_t nBlockTime;
+
 			if (CheckKernel(pindexPrev, nBits, txNew.nTime - n, prevoutStake, &nBlockTime, this, hashProofOfStakeSource))
 			{
 				// Found a kernel
-				LogPrint(BCLog::WALLET, "CreateCoinStake : kernel found\n");
+				WalletLogPrintf("CreateCoinStake : kernel found at txNew.nTime=%s - %d sec\n", FormatISO8601DateTime(txNew.nTime), n);
 				std::vector<std::vector<unsigned char>> vSolutions;
 				CScript scriptPubKeyOut;
 				scriptPubKeyKernel = pcoin.first->tx->vout[pcoin.second].scriptPubKey;
@@ -4846,7 +4859,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 					break;
 				}
 
-				LogPrint(BCLog::WALLET, "CreateCoinStake : parsed kernel type=%d\n", GetTxnOutputType(whichType));
+				WalletLogPrintf("CreateCoinStake : parsed kernel type=%d\n", GetTxnOutputType(whichType));
 				if (whichType != TxoutType::PUBKEY && whichType != TxoutType::PUBKEYHASH) {
 					LogPrintf("CreateCoinStake : no support for kernel type=\"%s\"\n", GetTxnOutputType(whichType));
 					break;  // only support pay to public key and pay to address
@@ -4882,7 +4895,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 				vwtxPrev.insert(std::make_pair(pcoin.first, pcoin.second));
 				txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
 
-				LogPrint(BCLog::WALLET, "CreateCoinStake : added kernel type=%d\n", GetTxnOutputType(whichType));
+				WalletLogPrintf("CreateCoinStake : added kernel type=%d, chained tx value=%ld, tx time=%s\n", GetTxnOutputType(whichType), pcoin.first->tx->vout[pcoin.second].nValue, FormatISO8601DateTime(pcoin.first->tx->nTime));
 				fKernelFound = true;
 				break;
 			}
@@ -4930,7 +4943,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	}
 
 	if (nCredit < Params().GetConsensus().nStakeMinimumThreshold) {
-		LogPrintf("CreateCoinStake : Credit does not meet minimum threshold=%d\n", nCredit);
+		LogPrintf("CreateCoinStake : Credit (%d) does not meet minimum threshold (%d)\n", nCredit, Params().GetConsensus().nStakeMinimumThreshold);
 		return false;
 	}
 
@@ -5074,3 +5087,12 @@ tuple<uint64_t, uint64_t> CWallet::GetStakeWeight() const
 	return {nBalance, nWeight};
 }
 
+uint64_t CWallet::GetLastCoinStakeSearchTime()
+{
+    return nLastCoinStakeSearchTime;
+}
+
+void CWallet::SetLastCoinStakeSearchTime(uint64_t nTime)
+{
+    nLastCoinStakeSearchTime = nTime;
+}

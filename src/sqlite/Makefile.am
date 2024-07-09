@@ -1,4 +1,4 @@
-
+ACLOCAL_AMFLAGS = -I m4
 AM_CFLAGS = @BUILD_CFLAGS@ 
 lib_LTLIBRARIES = libsqlite3.la
 libsqlite3_la_SOURCES = sqlite3.c

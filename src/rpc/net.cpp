@@ -110,7 +110,8 @@ static RPCHelpMan getpeerinfo()
                             {RPCResult::Type::STR, "addr", "(host:port) The IP address and port of the peer"},
                             {RPCResult::Type::STR, "addrbind", "(ip:port) Bind address of the connection to the peer"},
                             {RPCResult::Type::STR, "addrlocal", "(ip:port) Local address as reported by the peer"},
-                            {RPCResult::Type::STR, "network", "Network (ipv4, ipv6, or onion) the peer connected through"},
+//                            {RPCResult::Type::STR, "network", "Network (ipv4, ipv6, or onion) the peer connected through"},
+	                    {RPCResult::Type::STR, "network", "Network (" + Join(GetNetworkNames(/*append_unroutable=*/true), ", ") + ")"},
                             {RPCResult::Type::NUM, "mapped_as", "The AS in the BGP route to the peer used for diversifying\n"
                                                                 "peer selection (only available if the asmap config flag is set)"},
                             {RPCResult::Type::STR_HEX, "services", "The services offered"},
@@ -133,11 +134,10 @@ static RPCHelpMan getpeerinfo()
                             {RPCResult::Type::NUM, "version", "The peer version, such as 70001"},
                             {RPCResult::Type::STR, "subver", "The string version"},
                             {RPCResult::Type::BOOL, "inbound", "Inbound (true) or Outbound (false)"},
+	                    {RPCResult::Type::BOOL, "bip152_hb_to", "Whether we selected peer as (compact blocks) high-bandwidth peer"},
+    		            {RPCResult::Type::BOOL, "bip152_hb_from", "Whether peer selected us as (compact blocks) high-bandwidth peer"},
                             {RPCResult::Type::BOOL, "addnode", "Whether connection was due to addnode/-connect or if it was an automatic/inbound connection\n"
                                                                "(DEPRECATED, returned only if the config option -deprecatedrpc=getpeerinfo_addnode is passed)"},
-                            {RPCResult::Type::STR, "connection_type", "Type of connection: \n" + Join(CONNECTION_TYPE_DOC, ",\n") + ".\n"
-                                                                      "Please note this output is unlikely to be stable in upcoming releases as we iterate to\n"
-                                                                      "best capture connection behaviors."},
                             {RPCResult::Type::NUM, "startingheight", "The starting height (block) of the peer"},
                             {RPCResult::Type::NUM, "banscore", "The ban score (DEPRECATED, returned only if config option -deprecatedrpc=banscore is passed)"},
                             {RPCResult::Type::NUM, "synced_headers", "The last header we have in common with this peer"},
@@ -146,6 +146,8 @@ static RPCHelpMan getpeerinfo()
                             {
                                 {RPCResult::Type::NUM, "n", "The heights of blocks we're currently asking from this peer"},
                             }},
+    		            {RPCResult::Type::NUM, "addr_processed", "The total number of addresses processed, excluding those dropped due to rate limiting"},
+	                    {RPCResult::Type::NUM, "addr_rate_limited", "The total number of addresses dropped due to rate limiting"},
                             {RPCResult::Type::BOOL, "whitelisted", /* optional */ true, "Whether the peer is whitelisted with default permissions\n"
                                                                                         "(DEPRECATED, returned only if config option -deprecatedrpc=whitelisted is passed)"},
                             {RPCResult::Type::ARR, "permissions", "Any special permissions that have been granted to this peer",
@@ -166,12 +168,15 @@ static RPCHelpMan getpeerinfo()
                                                               "Only known message types can appear as keys in the object and all bytes received\n"
                                                               "of unknown message types are listed under '"+NET_MESSAGE_COMMAND_OTHER+"'."}
                             }},
+                            {RPCResult::Type::STR, "connection_type", "Type of connection: \n" + Join(CONNECTION_TYPE_DOC, ",\n") + ".\n"
+                                                                      "Please note this output is unlikely to be stable in upcoming releases as we iterate to\n"
+                                                                      "best capture connection behaviors."},
                         }},
                     }},
                 },
                 RPCExamples{
                     HelpExampleCli("getpeerinfo", "")
-            + HelpExampleRpc("getpeerinfo", "")
+	            + HelpExampleRpc("getpeerinfo", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -188,6 +193,14 @@ static RPCHelpMan getpeerinfo()
         UniValue obj(UniValue::VOBJ);
         CNodeStateStats statestats;
         bool fStateStats = GetNodeStateStats(stats.nodeid, statestats);
+        // GetNodeStateStats() requires the existence of a CNodeState and a Peer object
+        // to succeed for this peer. These are created at connection initialisation and
+        // exist for the duration of the connection - except if there is a race where the
+        // peer got disconnected in between the GetNodeStats() and the GetNodeStateStats()
+        // calls. In this case, the peer doesn't need to be reported here.
+        if (!fStateStats) {
+            continue;
+        }
         obj.pushKV("id", stats.nodeid);
         obj.pushKV("addr", stats.addrName);
         if (stats.addrBind.IsValid()) {
@@ -209,7 +222,7 @@ static RPCHelpMan getpeerinfo()
         obj.pushKV("last_block", stats.nLastBlockTime);
         obj.pushKV("bytessent", stats.nSendBytes);
         obj.pushKV("bytesrecv", stats.nRecvBytes);
-        obj.pushKV("conntime", stats.nTimeConnected);
+        obj.pushKV("conntime", count_seconds(stats.m_connected));
         obj.pushKV("timeoffset", stats.nTimeOffset);
         if (stats.m_ping_usec > 0) {
             obj.pushKV("pingtime", ((double)stats.m_ping_usec) / 1e6);
@@ -226,10 +239,8 @@ static RPCHelpMan getpeerinfo()
         // their ver message.
         obj.pushKV("subver", stats.cleanSubVer);
         obj.pushKV("inbound", stats.fInbound);
-        if (IsDeprecatedRPCEnabled("getpeerinfo_addnode")) {
-            // addnode is deprecated in v0.21 for removal in v0.22
-            obj.pushKV("addnode", stats.m_manual_connection);
-        }
+        obj.pushKV("bip152_hb_to", stats.m_bip152_highbandwidth_to);
+        obj.pushKV("bip152_hb_from", stats.m_bip152_highbandwidth_from);
         obj.pushKV("startingheight", stats.nStartingHeight);
         if (fStateStats) {
             if (IsDeprecatedRPCEnabled("banscore")) {
@@ -270,7 +281,8 @@ static RPCHelpMan getpeerinfo()
                 recvPerMsgCmd.pushKV(i.first, i.second);
         }
         obj.pushKV("bytesrecv_per_msg", recvPerMsgCmd);
-        obj.pushKV("connection_type", stats.m_conn_type_string);
+//        obj.pushKV("connection_type", stats.m_conn_type_string);
+        obj.pushKV("connection_type", ConnectionTypeAsString(stats.m_conn_type));
 
         ret.push_back(obj);
     }
@@ -512,7 +524,7 @@ static UniValue GetNetworksInfo()
     UniValue networks(UniValue::VARR);
     for (int n = 0; n < NET_MAX; ++n) {
         enum Network network = static_cast<enum Network>(n);
-        if (network == NET_UNROUTABLE || network == NET_I2P || network == NET_CJDNS || network == NET_INTERNAL) continue;
+        if (network == NET_UNROUTABLE || network == NET_INTERNAL) continue;
         proxyType proxy;
         UniValue obj(UniValue::VOBJ);
         GetProxy(network, proxy);
@@ -812,6 +824,8 @@ static RPCHelpMan getstakinginfo()
                             { RPCResult::Type::NUM, "currentblockweight", "Weight of the current block" },
                             { RPCResult::Type::NUM, "currentblocktx", "Tx of the current block" },
                             { RPCResult::Type::STR_AMOUNT, "difficulty", "Difficulty" },
+                            { RPCResult::Type::NUM, "search-interval", "Coinstake search interval" },
+                            { RPCResult::Type::STR, "search-time", "Coinstake search time" },
                             { RPCResult::Type::NUM, "weight", "nWeight" },
                             { RPCResult::Type::NUM, "netstakeweight", "Stake network weight" },
                             { RPCResult::Type::NUM, "expectedtime", "Expected time" }
@@ -824,6 +838,7 @@ static RPCHelpMan getstakinginfo()
 #ifdef ENABLE_WALLET
     uint64_t nBalance = 0;
     uint64_t nWeight = 0;
+    uint64_t nLastCoinStakeSearchTime=0;
 
     auto wallets = GetWallets();
 
@@ -831,10 +846,11 @@ static RPCHelpMan getstakinginfo()
         auto[balance, weight] = wallet->GetStakeWeight();
         nBalance += balance;
         nWeight += weight;
+        nLastCoinStakeSearchTime = std::max(nLastCoinStakeSearchTime, wallet->GetLastCoinStakeSearchTime());
     }
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
-    bool staking = Staker::getInstance()->getLastCoinStakeSearchInterval() && nWeight;
+    bool staking = ((nLastCoinStakeSearchTime + 60) > GetAdjustedTime()) && nWeight;                                    // Check if coinstkae search was performed in last minute and have weight
     uint64_t nExpectedTime = staking ? (GetTargetSpacing(ChainActive().Height()) * nNetworkWeight / nWeight) : 0;
 
     UniValue obj(UniValue::VOBJ);
@@ -848,6 +864,8 @@ static RPCHelpMan getstakinginfo()
 
     obj.pushKV("difficulty", GetPosDifficulty(GetLastBlockIndex(ChainActive().Tip(), true)));
     obj.pushKV("search-interval", Staker::getInstance()->getLastCoinStakeSearchInterval());
+    obj.pushKV("search-time", FormatISO8601DateTime(nLastCoinStakeSearchTime));
+    obj.pushKV("stake-time", FormatISO8601DateTime(Staker::getInstance()->getLastCoinStakeTime()));
 
     obj.pushKV("weight", (uint64_t)nWeight);
     obj.pushKV("balance", (uint64_t)nBalance);
@@ -909,9 +927,16 @@ static RPCHelpMan getnetstakeweight()
 static RPCHelpMan getnodeaddresses()
 {
     return RPCHelpMan{"getnodeaddresses",
-                "\nReturn known addresses which can potentially be used to find new nodes in the network\n",
+//                "\nReturn known addresses which can potentially be used to find new nodes in the network\n",
+                "Return known addresses, after filtering for quality and recency.\n"
+                "These can potentially be used to find new peers in the network.\n"
+                "The total number of addresses known to the node may be higher.",
+//                {
+//                    {"count", RPCArg::Type::NUM, /* default */ "1", "The maximum number of addresses to return. Specify 0 to return all known addresses."},
+//                },
                 {
                     {"count", RPCArg::Type::NUM, /* default */ "1", "The maximum number of addresses to return. Specify 0 to return all known addresses."},
+                    {"network", RPCArg::Type::STR, "all networks", "Return only addresses of the specified network. Can be one of: " + Join(GetNetworkNames(), ", ") + "."},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
@@ -922,12 +947,16 @@ static RPCHelpMan getnodeaddresses()
                             {RPCResult::Type::NUM, "services", "The services offered"},
                             {RPCResult::Type::STR, "address", "The address of the node"},
                             {RPCResult::Type::NUM, "port", "The port of the node"},
+                            {RPCResult::Type::STR, "network", "The network (" + Join(GetNetworkNames(), ", ") + ") the node connected through"},
                         }},
                     }
                 },
                 RPCExamples{
                     HelpExampleCli("getnodeaddresses", "8")
-            + HelpExampleRpc("getnodeaddresses", "8")
+                    + HelpExampleCli("getnodeaddresses", "4 \"i2p\"")
+                    + HelpExampleCli("-named getnodeaddresses", "network=onion count=12")
+                    + HelpExampleRpc("getnodeaddresses", "8")
+                    + HelpExampleRpc("getnodeaddresses", "4, \"i2p\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -943,16 +972,23 @@ static RPCHelpMan getnodeaddresses()
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Address count out of range");
         }
     }
+
+    const std::optional<Network> network{request.params[1].isNull() ? std::nullopt : std::optional<Network>{ParseNetwork(request.params[1].get_str())}};
+    if (network == NET_UNROUTABLE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Network not recognized: %s", request.params[1].get_str()));
+    }
+
     // returns a shuffled list of CAddress
-    std::vector<CAddress> vAddr = node.connman->GetAddresses(count, /* max_pct */ 0);
+    std::vector<CAddress> vAddr = node.connman->GetAddresses(count, /* max_pct */ 0, network);
     UniValue ret(UniValue::VARR);
 
     for (const CAddress& addr : vAddr) {
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("time", (int)addr.nTime);
         obj.pushKV("services", (uint64_t)addr.nServices);
-        obj.pushKV("address", addr.ToStringIP());
+        obj.pushKV("address", addr.ToStringAddr());
         obj.pushKV("port", addr.GetPort());
+        obj.pushKV("network", GetNetworkName(addr.GetNetClass()));
         ret.push_back(obj);
     }
     return ret;

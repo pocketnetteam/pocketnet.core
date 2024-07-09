@@ -133,7 +133,6 @@ namespace PocketConsensus
         }
         ConsensusValidateResult ValidateMempool(const ScoreCommentRef& ptx) override
         {
-
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
                 *ptx->GetAddress(), *ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, true))
@@ -162,7 +161,6 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidateLimit(const ScoreCommentRef& ptx, int count)
         {
-
             auto reputationConsensus = PocketConsensus::ConsensusFactoryInst_Reputation.Instance(Height);
             auto address = ptx->GetAddress();
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*address);
