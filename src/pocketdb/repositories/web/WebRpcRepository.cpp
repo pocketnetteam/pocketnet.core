@@ -5446,7 +5446,7 @@ namespace PocketDb
         string skipPaginationSql = "";
         if (topContentId > 0)
         {
-            skipPaginationSql = R"sql( and t.RowId < (select max(cc.TxId) from Chain cc where cc.Uid = ?) )sql";
+            skipPaginationSql = R"sql( and t.RowId < (select min(cc.TxId) from Chain cc where cc.Uid = ?) )sql";
         }
 
         // ---------------------------------------------------
