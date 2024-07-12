@@ -425,71 +425,120 @@ namespace PocketDb
         return infos;
     }
 
-    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int topHeight, int pageStart, int pageSize, const vector<TxType>& types)
+    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int topHeight, int pageStart, int pageSize, int direction, const vector<TxType>& types)
     {
         map<string, int> txHashes;
+
+        string sqlIncoming = R"sql(
+            ,outputs as (
+                select distinct
+                    t.RowId,
+                    c.Height
+                from
+                    TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number,
+                    address,
+                    topheight
+                cross join
+                    Transactions t on
+                        t.RowId = o.TxId and
+                        ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
+                cross join
+                    Chain c indexed by Chain_TxId_Height on
+                        c.TxId = o.TxId and
+                        c.Height <= topheight.value
+                where
+                    o.AddressId = address.id
+                limit ?
+            )
+        )sql";
+
+        string sqlOutgoing = R"sql(
+            ,inputs as (
+                select distinct
+                    t.RowId
+                from
+                    TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number,
+                    address,
+                    topheight
+                cross join
+                    TxInputs i indexed by TxInputs_TxId_Number_SpentTxId on
+                        i.TxId = o.TxId and i.Number = o.Number
+                cross join
+                    Transactions t on
+                        t.RowId = i.SpentTxId and
+                        ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
+                cross join
+                    Chain c indexed by Chain_TxId_Height on
+                        c.TxId = o.TxId and
+                        c.Height <= topheight.value
+                where
+                    o.AddressId = address.id
+                limit ?
+            )
+        )sql";
+
+        string sqlEnd = R"sql(
+            with
+                topHeight as ( select ? as value ),
+                address as ( select r.RowId as id from Registry r where r.String = ? )
+                
+                )sql" + (direction == 0 || direction == 1 ? sqlIncoming : "") + R"sql(
+                )sql" + (direction == 0 || direction == -1 ? sqlOutgoing : "") + R"sql(
+                
+            )sql" +
+                (direction == 0 || direction == 1
+                    ? R"sql( select (select r.String from Registry r where r.RowId = o.RowId) as Hash, o.RowId from outputs o )sql" 
+                    : ""
+                ) +
+            R"sql(
+
+            )sql" + (direction == 0 ? " union " : "") + R"sql(
+
+            )sql" +
+                (direction == 0 || direction == -1
+                    ? R"sql( select (select r.String from Registry r where r.RowId = i.RowId) as Hash, i.RowId from inputs i )sql" 
+                    : ""
+                ) +
+            R"sql(
+            
+            order by RowId desc
+            limit ? offset ?
+        )sql";
 
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                return Sql(R"sql(
-                    with
-                        topHeight as ( select ? as value ),
-                        address as ( select r.RowId as id from Registry r where r.String = ? ),
-                        outputs as (
-                            select distinct
-                                t.RowId,
-                                c.Height
-                            from
-                                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number,
-                                address,
-                                topheight
-                            cross join
-                                Transactions t on
-                                    t.RowId = o.TxId
-                            cross join
-                                Chain c indexed by Chain_TxId_Height on
-                                    c.TxId = o.TxId and
-                                    c.Height <= topheight.value
-                            where
-                                o.AddressId = address.id
-                            limit ?
-                        ),
-                        inputs as (
-                            select distinct
-                                t.RowId
-                            from
-                                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number,
-                                address,
-                                topheight
-                            cross join
-                                TxInputs i indexed by TxInputs_TxId_Number_SpentTxId on
-                                    i.TxId = o.TxId and i.Number = o.Number
-                            cross join
-                                Transactions t on
-                                    t.RowId = i.SpentTxId
-                            cross join
-                                Chain c indexed by Chain_TxId_Height on
-                                    c.TxId = o.TxId and
-                                    c.Height <= topheight.value
-                            where
-                                o.AddressId = address.id
-                            limit ?
-                        )
-                    select (select r.String from Registry r where r.RowId = o.RowId) as Hash, o.RowId from outputs o
-                    union
-                    select (select r.String from Registry r where r.RowId = i.RowId) as Hash, i.RowId from inputs i
-                    order by RowId desc
-                    limit ? offset ?
-                )sql")
-                .Bind(
+                auto& stmt = Sql(sqlEnd);
+
+                stmt.Bind(
                     topHeight,
-                    address,
-                    pageSize + pageStart,
-                    pageSize + pageStart,
+                    address
+                );
+
+                if (direction == 0 || direction == 1)
+                {
+                    stmt.Bind(
+                        types.empty(),
+                        types,
+                        pageSize + pageStart
+                    );
+                }
+
+                if (direction == 0 || direction == -1)
+                {
+                    stmt.Bind(
+                        types.empty(),
+                        types,
+                        pageSize + pageStart
+                    );
+                }
+
+                stmt.Bind(
                     pageSize,
                     pageStart
                 );
+
+                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
