@@ -19,6 +19,7 @@
 #include "pocketdb/web/SearchRpc.h"
 #include "pocketdb/web/ModerationRpc.h"
 #include "pocketdb/web/BarteronRpc.h"
+#include "pocketdb/web/AppRpc.h"
 
 using namespace PocketWeb::PocketWebRpc;
 

@@ -230,7 +230,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
+    bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name, TxType type)
     {
         bool result = false;
 
@@ -257,7 +257,7 @@ namespace PocketDb
                     cross join Payload p
                         on (p.String2 like ? escape '\')
                     cross join Transactions t
-                        on t.RowId = p.TxId and t.Type = 100 and t.RegId1 != addressRegId.RowId
+                        on t.RowId = p.TxId and t.Type = ? and t.RegId1 != addressRegId.RowId
                     -- filter by chain for exclude mempool
                     cross join Chain c
                         on c.TxId = t.RowId
@@ -265,7 +265,7 @@ namespace PocketDb
                     cross join Last l
                         on l.TxId = t.RowId
             )sql")
-            .Bind(address, _name)
+            .Bind(address, _name, (int)type)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                     cursor.CollectAll(result);
@@ -323,7 +323,7 @@ namespace PocketDb
                     cross join First f on f.TxId = t.RowId
                     left join Last l on l.TxId = t.RowId
                 where
-                    t.Type in (200,201,202,203,204,209,210,211,220) and
+                    t.Type in (200,201,202,203,204,209,210,211,220,221) and
                     t.RegId2 = str2.id
             )sql";
 
@@ -3624,7 +3624,7 @@ namespace PocketDb
                     Mempool m on
                         m.TxId = t.RowId
                 where
-                    t.Type in (200,201,202,209,210,211,220,207) and
+                    t.Type in (200,201,202,209,210,211,220,221,207) and
                     t.RegId1 = str1.id and
                     t.RegId2 = str2.id
             )sql")

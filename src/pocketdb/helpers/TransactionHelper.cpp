@@ -47,6 +47,9 @@ namespace PocketHelpers
         else if (op == OR_COLLECTION)
             return TxType::CONTENT_COLLECTION;
             
+        else if (op == OR_APP)
+            return TxType::APP;
+            
         else if (op == OR_CONTENT_BOOST)
             return TxType::BOOST_CONTENT;
         else if (op == OR_CONTENT_DELETE)
@@ -166,6 +169,8 @@ namespace PocketHelpers
             case TxType::CONTENT_COMMENT_EDIT:
             case TxType::CONTENT_COMMENT_DELETE:
                 return "Comment";
+            case TxType::APP:
+                return "App";
             case TxType::ACTION_SCORE_CONTENT:
                 return "Scores";
             case TxType::ACTION_SCORE_COMMENT:
@@ -342,6 +347,9 @@ namespace PocketHelpers
             case CONTENT_COLLECTION:
                 ptx = make_shared<Collection>(tx);
                 break;
+            case APP:
+                ptx = make_shared<App>(tx);
+                break;
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>(tx);
                 break;
@@ -441,6 +449,9 @@ namespace PocketHelpers
             case CONTENT_COLLECTION:
                 ptx = make_shared<Collection>();
                 break;
+            case APP:
+                ptx = make_shared<App>();
+                break;
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>();
                 break;
@@ -526,6 +537,8 @@ namespace PocketHelpers
                 return "audio";
             case CONTENT_COLLECTION:
                 return "collection";
+            case APP:
+                return "app";
             case ACTION_SCORE_CONTENT:
                 return "upvoteShare";
             case ACTION_SUBSCRIBE:
@@ -572,6 +585,7 @@ namespace PocketHelpers
         else if (type == "stream" || type == OR_STREAM) return TxType::CONTENT_STREAM;
         else if (type == "audio" || type == OR_AUDIO) return TxType::CONTENT_AUDIO;
         else if (type == "collection" || type == OR_COLLECTION) return TxType::CONTENT_COLLECTION;
+        else if (type == "app" || type == OR_APP) return TxType::APP;
         else if (type == "upvoteShare" || type == OR_SCORE) return TxType::ACTION_SCORE_CONTENT;
         else if (type == "subscribe" || type == OR_SUBSCRIBE) return TxType::ACTION_SUBSCRIBE;
         else if (type == "subscribePrivate" || type == OR_SUBSCRIBEPRIVATE) return TxType::ACTION_SUBSCRIBE_PRIVATE;

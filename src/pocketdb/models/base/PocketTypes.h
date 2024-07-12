@@ -20,7 +20,6 @@ namespace PocketTx
     #define OR_ACCOUNT_DELETE "61636344656c"
 
     #define OR_SCORE "7570766f74655368617265"
-    #define OR_POST "7368617265"
     #define OR_POSTEDIT "736861726565646974"
     #define OR_SUBSCRIBE "737562736372696265"
     #define OR_SUBSCRIBEPRIVATE "73756273637269626550726976617465"
@@ -33,13 +32,13 @@ namespace PocketTx
     #define OR_COMMENT_DELETE "636f6d6d656e7444656c657465"
     #define OR_COMMENT_SCORE "6353636f7265"
 
+    #define OR_POST "7368617265"
     #define OR_VIDEO "766964656f" // Post for video hosting
     #define OR_ARTICLE "61727469636c65" // Article Post
-
     #define OR_STREAM "73747265616d" // Post for stream hosting
     #define OR_AUDIO "617564696f" // Post for audio hosting
-
     #define OR_COLLECTION "636f6c6c656374696f6e" // Collection of contents
+    #define OR_APP "6d696e69617070" // Post for app hosting
     
     #define OR_BARTERON_ACCOUNT "6272746163636f756e74"
     #define OR_BARTERON_OFFER "6272746f66666572"
@@ -88,6 +87,7 @@ namespace PocketTx
         CONTENT_STREAM = 209,
         CONTENT_AUDIO = 210,
         CONTENT_COLLECTION = 220,
+        APP = 221,
 
         CONTENT_COMMENT = 204,
         CONTENT_COMMENT_EDIT = 205,
@@ -155,6 +155,8 @@ namespace PocketTx
         ContentFieldType_AccountUserUrl = 7, // Payload.String5
         ContentFieldType_ContentPostUrl = 8, // Payload.String7
         ContentFieldType_ContentVideoUrl = 9, // Payload.String7
+        ContentFieldType_AppName = 3, // Payload.String1.n
+        ContentFieldType_AppDescription = 5, // Payload.String1.d
     };
 
     // Transaction info for indexing spents and other
@@ -190,6 +192,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_AUDIO ||
                    Type == TxType::CONTENT_COLLECTION ||
                    Type == TxType::BARTERON_OFFER ||
+                   Type == TxType::APP ||
                    Type == TxType::CONTENT_DELETE;
         }
 

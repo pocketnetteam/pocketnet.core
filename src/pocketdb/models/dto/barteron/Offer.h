@@ -17,8 +17,6 @@ namespace PocketTx
         BarteronOffer();
         BarteronOffer(const CTransactionRef& tx);
         
-        bool IsEdit() const;
-
         /*
             Use p.s1 for LANGUAGE
             Use p.s2 for CAPTION

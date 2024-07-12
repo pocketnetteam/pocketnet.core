@@ -262,61 +262,71 @@ namespace PocketDb
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (200) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (200) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as PostSpent,
                         (
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (201) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (201) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as VideoSpent,
                         (
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (202) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (202) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as ArticleSpent,
                         (
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (209) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (209) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as StreamSpent,
                         (
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (210) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (210) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as AudioSpent,
                         (
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (204) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (204) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as CommentSpent,
                         (
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (300) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (300) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as ScoreSpent,
                         (
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (301) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (301) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as ScoreCommentSpent,
                         (
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (307) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (307) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as ComplainSpent,
                         (
                             select count()
                             from Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3
                             left join Chain c indexed by Chain_TxId_Height on c.TxId = p.RowId
-                            where p.Type in (410) and p.RegId1 = u.RegId1 and (c.Height >= height.val or c.Height isnull)
+                            left join Mempool m on m.TxId = p.RowId
+                            where p.Type in (410) and p.RegId1 = u.RegId1 and (c.Height >= height.val or m.TxId is not null)
                         ) as FlagsSpent
                     from
                         height,

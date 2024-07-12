@@ -40,7 +40,7 @@ namespace {
                 Common.IsIn(type) ||
                 (FirstRequired.IsIn(type) && isFirst);
         }
-        inline const static StringifyableArray FirstRequired { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE };
+        inline const static StringifyableArray FirstRequired { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, APP };
         inline const static StringifyableArray Common { ACTION_SCORE_COMMENT, ACTION_SCORE_CONTENT, ACTION_COMPLAIN };
     };
 }
@@ -567,7 +567,7 @@ namespace PocketDb
                     from
                         Transactions a -- primary key
                         join Transactions b indexed by Transactions_Type_RegId2_RegId1
-                            on b.Type in (200,201,202,209,210,211,220,207) and b.RegId2 = a.RegId2
+                            on b.Type in (200,201,202,209,210,211,220,221,207) and b.RegId2 = a.RegId2
                         join Last l -- primary key
                             on l.TxId = b.RowId
                     where

@@ -114,8 +114,7 @@ namespace PocketConsensus
     public:
         BarteronOfferConsensusFactory()
         {
-            // TODO (release): set height
-            Checkpoint({ 99999999, 0, 0, make_shared<BarteronOfferConsensus>() });
+            Checkpoint({ 2930000, 0, 0, make_shared<BarteronOfferConsensus>() });
         }
     };
 

@@ -61,8 +61,7 @@ namespace PocketConsensus
     public:
         BarteronAccountConsensusFactory()
         {
-            // TODO (release): set height
-            Checkpoint({ 99999999, 0, 0, make_shared<BarteronAccountConsensus>() });
+            Checkpoint({ 2930000, 0, 0, make_shared<BarteronAccountConsensus>() });
         }
     };
 

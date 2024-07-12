@@ -17,6 +17,8 @@ namespace PocketTx
 
         const optional<string>& GetRootTxHash() const;
         void SetRootTxHash(const string& value);
+
+        bool IsEdit() const;
         
         void Deserialize(const UniValue& src) override;
         string BuildHash() override;
