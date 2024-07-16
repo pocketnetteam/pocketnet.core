@@ -4878,8 +4878,8 @@ void CChainState::LoadMempool(const ArgsManager& args)
     }
     else
     {
-        LOCK(m_mempool.cs);
         LOCK(cs_main);
+        LOCK(m_mempool.cs);
         LogPrintf("Clean SQL mempool..\n");
         PocketDb::TransRepoInst.MempoolClear();
     }
