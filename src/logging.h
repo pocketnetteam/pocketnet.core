@@ -69,7 +69,8 @@ namespace BCLog {
         STATSQLBENCH  = ((uint64_t)1 << 32),
         WARN          = ((uint64_t)1 << 33),
         I2P           = ((uint64_t)1 << 34),
-        TEST          = ((uint64_t)1 << 35),
+        LOCK          = ((uint64_t)1 << 35),
+        TEST          = ((uint64_t)1 << 36),
         ALL           = ~(uint64_t)0,
     };
 
