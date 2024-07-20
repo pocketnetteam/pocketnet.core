@@ -45,7 +45,8 @@ Staking
 
 - Low CPU utilization
 - True staking indication (via `getstakinginfo` RPC) and extended logging (via `logging wallet`)
-- Multi wallet staking 
+- Multi wallet staking
+- Prevent serial blocks generation with same time mark
 
 P2P and network changes
 -----------------------
@@ -60,6 +61,8 @@ P2P and network changes
   neither rumors them over the network to other peers, nor stores them in memory
   or to `peers.dat` (backported from bitcoin/bitcoin#22050)
 - Full support has been added for the CJDNS network. See the new option -cjdnsreachable and [doc/cjdns.md](https://github.com/pocketnetteam/pocketnet.core/blob/0.22/doc/cjdns.md) (backported from bitcoin/bitcoin#23077)
+- `PIP 106`: Allow restore deleted account. ([PR #700](https://github.com/pocketnetteam/pocketnet.core/wiki/PIP-106:-Allow-restore-deleted-account))
+- `PIP 107`: Increase the time limit for editing content. ([PR #702](https://github.com/pocketnetteam/pocketnet.core/wiki/PIP-107:-Increase-the-time-limit-for-editing-content))
 
 GUI changes
 -----------
@@ -97,11 +100,15 @@ Updated settings
 Tools and Utilities
 -------------------
 
-- A new CLI `-addrinfo` command returns the number of addresses known to the
-  node per network type (including Tor v3 and I2P) and total. This can be
+- A new CLI `pocketcoin-cli -addrinfo` command returns the number of addresses known
+  to the node per network type (including Tor v3 and I2P) and total. This can be
   useful to see if the node knows enough addresses in a network to use options
   like `-onlynet=<network>` or to upgrade to this release of Pocketnet Core 0.22.5
-  that supports Tor v3 only (backported from bitcoin/bitcoin#21595)
+  that supports Tor v3 only (backported from bitcoin/bitcoin#21595).
+- A new `pocketcoin-cli -netinfo` command provides a network peer connections
+  dashboard that displays data from the `getpeerinfo` and `getnetworkinfo` RPCs
+  in a human-readable format. An optional integer argument from `0` to `4` may
+  be passed to see increasing levels of detail (backported from bitcoin/bitcoin#).
 
 0.22.5 change log
 =================
@@ -114,9 +121,12 @@ Backports from bitcoin
 - bitcoin/bitcoin#20685 Add I2P support using I2P SAM
 - bitcoin/bitcoin#20755 [rpc] Remove deprecated fields from getpeerinfo
 - bitcoin/bitcoin#20788 net: add RAII socket and use it instead of bare SOCKET
+- bitcoin/bitcoin#21387
 - bitcoin/bitcoin#21595 cli: create -addrinfo
 - bitcoin/bitcoin#21843 p2p, rpc: enable GetAddr, GetAddresses, and getnodeaddresses by network
+- bitcoin/bitcoin#21914
 - bitcoin/bitcoin#22050 p2p: remove tor v2 support
+- bitcoin/bitcoin#23077 Full CJDNS support
 
 Credits
 =======
