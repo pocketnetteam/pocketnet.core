@@ -95,7 +95,7 @@ New and Updated RPCs
 Updated settings
 ----------------
 
-- `-mempoolclean` option added (Cleans mempool on loading and delete of non blocked transactions from sqlite db (Default: 1))
+- `-mempoolclean` option added (cleans mempool on loading and delete of non blocked transactions from sqlite db (default: 1))
 
 Tools and Utilities
 -------------------
@@ -108,7 +108,7 @@ Tools and Utilities
 - A new `pocketcoin-cli -netinfo` command provides a network peer connections
   dashboard that displays data from the `getpeerinfo` and `getnetworkinfo` RPCs
   in a human-readable format. An optional integer argument from `0` to `4` may
-  be passed to see increasing levels of detail (backported from bitcoin/bitcoin#).
+  be passed to see increasing levels of detail (backported from bitcoin/bitcoin#19643).
 
 0.22.5 change log
 =================
@@ -121,12 +121,13 @@ Backports from bitcoin
 - bitcoin/bitcoin#20685 Add I2P support using I2P SAM
 - bitcoin/bitcoin#20755 [rpc] Remove deprecated fields from getpeerinfo
 - bitcoin/bitcoin#20788 net: add RAII socket and use it instead of bare SOCKET
-- bitcoin/bitcoin#21387
+- bitcoin/bitcoin#21387 p2p: Refactor sock to add I2P fuzz and unit tests
 - bitcoin/bitcoin#21595 cli: create -addrinfo
 - bitcoin/bitcoin#21843 p2p, rpc: enable GetAddr, GetAddresses, and getnodeaddresses by network
-- bitcoin/bitcoin#21914
+- bitcoin/bitcoin#21914 net: use stronger AddLocal() for our I2P address
 - bitcoin/bitcoin#22050 p2p: remove tor v2 support
 - bitcoin/bitcoin#23077 Full CJDNS support
+- ...
 
 Credits
 =======
