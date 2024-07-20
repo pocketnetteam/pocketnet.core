@@ -35,8 +35,21 @@ unsupported systems.
 Notable changes
 ===============
 
+Bastyon Apps
+------------
+
+- Mini-Applications transaction support added
+
+Staking
+-------
+
+- Low CPU utilization
+- True staking indication (via `getstakinginfo` RPC) and extended logging (via `logging wallet`)
+- Multi wallet staking 
+
 P2P and network changes
 -----------------------
+
 - Added support for running Pocketnet Core as an
   [I2P (Invisible Internet Project)](https://en.wikipedia.org/wiki/I2P) service
   and connect to such services. See [doc/i2p.md](https://github.com/pocketnetteam/pocketnet.core/blob/0.22/doc/i2p.md) for details (backported from bitcoin/bitcoin#20685)
@@ -47,6 +60,12 @@ P2P and network changes
   neither rumors them over the network to other peers, nor stores them in memory
   or to `peers.dat` (backported from bitcoin/bitcoin#22050)
 - Full support has been added for the CJDNS network. See the new option -cjdnsreachable and [doc/cjdns.md](https://github.com/pocketnetteam/pocketnet.core/blob/0.22/doc/cjdns.md) (backported from bitcoin/bitcoin#23077)
+
+GUI changes
+-----------
+
+- Direction, ConnectionType and Network columns added to peers tab
+- "Copy address" item added to the Peers table context menu
 
 New and Updated RPCs
 --------------------
@@ -70,6 +89,11 @@ New and Updated RPCs
 - `getnodeaddresses` now also accepts a "network" argument (ipv4, ipv6, onion,
   or i2p) to return only addresses of the specified network (backported from bitcoin/bitcoin#21843)
 
+Updated settings
+----------------
+
+- `-mempoolclean` option added (Cleans mempool on loading and delete of non blocked transactions from sqlite db (Default: 1))
+
 Tools and Utilities
 -------------------
 
@@ -80,7 +104,7 @@ Tools and Utilities
   that supports Tor v3 only (backported from bitcoin/bitcoin#21595)
 
 0.22.5 change log
-===============
+=================
 Full Changelog: [0.22.4...0.22.5](https://github.com/pocketnetteam/pocketnet.core/compare/0.22.4...0.22.5)
 
 Backports from bitcoin
