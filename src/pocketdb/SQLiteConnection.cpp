@@ -20,6 +20,7 @@ namespace PocketDb
         ModerationRepoInst = make_shared<ModerationRepository>(*SQLiteDbInst, true);
         BarteronRepoInst = make_shared<BarteronRepository>(*SQLiteDbInst, true);
         NotifierRepoInst = make_shared<NotifierRepository>(*SQLiteDbInst, true);
+        AppRepoInst = make_shared<AppRepository>(*SQLiteDbInst, true);
         TransactionRepoInst = make_shared<TransactionRepository>(*SQLiteDbInst, true);
         ConsensusRepoInst = make_shared<ConsensusRepository>(*SQLiteDbInst, true);
     }
@@ -34,6 +35,7 @@ namespace PocketDb
         ModerationRepoInst->Destroy();
         BarteronRepoInst->Destroy();
         NotifierRepoInst->Destroy();
+        AppRepoInst->Destroy();
         TransactionRepoInst->Destroy();
         ConsensusRepoInst->Destroy();
 

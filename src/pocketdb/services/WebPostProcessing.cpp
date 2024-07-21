@@ -95,7 +95,7 @@ namespace PocketServices
             {
                 int64_t nTime2 = GetTimeMicros();
                 
-//                webRepoInst->CollectAccountStatistic();
+                webRepoInst->CollectAccountStatistic();
                 
                 int64_t nTime3 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessNextHeight (CollectAccountStatistic): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
@@ -122,7 +122,10 @@ namespace PocketServices
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<WebTag> contentTags = webRepoInst->GetContentTags(height);
+            auto contentTags = webRepoInst->GetContentTags(height);
+            auto appTags = webRepoInst->GetAppTags(height);
+            contentTags.insert(contentTags.end(), appTags.begin(), appTags.end());
+            
             if (contentTags.empty())
                 return;
 

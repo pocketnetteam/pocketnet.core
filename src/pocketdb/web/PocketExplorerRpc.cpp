@@ -495,6 +495,13 @@ namespace PocketWeb::PocketWebRpc
                     {"pageInitBlock", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Max block height for filter pagination window"},
                     {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Row number for start page"},
                     {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
+                    {"direction", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Direction transactions (-1: outgoing, 1: incoming, 0: both)"},
+                    {
+                        "txTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "Array of tx types ([int])",
+                        {
+                            {"type", RPCArg::Type::NUM, RPCArg::Optional::NO, ""}   
+                        }
+                    },
                 },
                 {
                     // TODO (rpc): provide return description
@@ -521,9 +528,13 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 3 && request.params[3].isNum())
             pageSize = request.params[3].get_int();
 
+        int direction = 0;
+        if (request.params.size() > 4 && request.params[4].isNum())
+            direction = request.params[4].get_int();
+
         std::vector<TxType> filters;
-        if (request.params.size() > 4 && request.params[4].isArray()) {
-            const auto arr = request.params[4].get_array();
+        if (request.params.size() > 5 && request.params[5].isArray()) {
+            const auto arr = request.params[5].get_array();
             for (int i = 0; i < arr.size(); i++) {
                 filters.emplace_back((TxType)arr[i].get_int());
             }
@@ -534,6 +545,7 @@ namespace PocketWeb::PocketWebRpc
             pageInitBlock,
             pageStart,
             pageSize,
+            direction,
             filters
         );
 

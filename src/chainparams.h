@@ -128,7 +128,16 @@ public:
 
     const Consensus::Params& GetConsensus() const { return consensus; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
-    int GetDefaultPort() const { return nDefaultPort; }
+    uint16_t GetDefaultPort() const { return nDefaultPort; }
+    uint16_t GetDefaultPort(Network net) const
+    {
+        return net == NET_I2P ? I2P_SAM31_PORT : GetDefaultPort();
+    }
+    uint16_t GetDefaultPort(const std::string& addr) const
+    {
+        CNetAddr a;
+        return a.SetSpecial(addr) ? GetDefaultPort(a.GetNetwork()) : GetDefaultPort();
+    }
 
     const CBlock& GenesisBlock() const { return genesis; }
     /** Default value for -checkmempool and -checkblockindex argument */
@@ -154,7 +163,7 @@ public:
     const std::vector<std::string>& DNSSeeds() const { return vSeeds; }
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
     const std::string& Bech32HRP() const { return bech32_hrp; }
-    const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
+    const std::vector<uint8_t>& FixedSeeds() const { return vFixedSeeds; }
     const CCheckpointData& Checkpoints() const { return checkpointData; }
     const ChainTxData& TxData() const { return chainTxData; }
 protected:
@@ -172,7 +181,7 @@ protected:
     std::string strNetworkID;
     NetworkId networkId;
     CBlock genesis;
-    std::vector<SeedSpec6> vFixedSeeds;
+    std::vector<uint8_t> vFixedSeeds;
     bool fDefaultConsistencyChecks;
     bool fRequireStandard;
     bool m_is_test_chain;

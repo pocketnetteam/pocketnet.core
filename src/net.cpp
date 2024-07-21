@@ -24,6 +24,7 @@
 #include <util/sock.h>
 #include <util/strencodings.h>
 #include <util/translation.h>
+#include <util/time.h>
 
 #ifdef WIN32
 #include <string.h>
@@ -150,8 +151,8 @@ bool GetLocal(CService& addr, const CNetAddr *paddrPeer)
     return nBestScore >= 0;
 }
 
-//! Convert the pnSeed6 array into usable address objects.
-static std::vector<CAddress> convertSeed6(const std::vector<SeedSpec6> &vSeedsIn)
+//! Convert the serialized seeds into usable address objects.
+static std::vector<CAddress> ConvertSeeds(const std::vector<uint8_t> &vSeedsIn)
 {
     // It'll only connect to one or two seed nodes because once it connects,
     // it'll get a pile of addresses with newer timestamps.
@@ -159,13 +160,14 @@ static std::vector<CAddress> convertSeed6(const std::vector<SeedSpec6> &vSeedsIn
     // weeks ago.
     const int64_t nOneWeek = 7*24*60*60;
     std::vector<CAddress> vSeedsOut;
-    vSeedsOut.reserve(vSeedsIn.size());
     FastRandomContext rng;
-    for (const auto& seed_in : vSeedsIn) {
-        struct in6_addr ip;
-        memcpy(&ip, seed_in.addr, sizeof(ip));
-        CAddress addr(CService(ip, seed_in.port), GetDesirableServiceFlags(NODE_NONE));
+    CDataStream s(vSeedsIn, SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    while (!s.eof()) {
+        CService endpoint;
+        s >> endpoint;
+        CAddress addr{endpoint, GetDesirableServiceFlags(NODE_NONE)};
         addr.nTime = GetTime() - rng.randrange(nOneWeek) - nOneWeek;
+        LogPrint(BCLog::NET, "Added hardcoded seed: %s\n", addr.ToString());
         vSeedsOut.push_back(addr);
     }
     return vSeedsOut;
@@ -229,9 +231,27 @@ void AdvertiseLocal(CNode *pnode)
     }
 }
 
-// learn a new local address
-bool AddLocal(const CService& addr, int nScore)
+/**
+ * If an IPv6 address belongs to the address range used by the CJDNS network and
+ * the CJDNS network is reachable (-cjdnsreachable config is set), then change
+ * the type from NET_IPV6 to NET_CJDNS.
+ * @param[in] service Address to potentially convert.
+ * @return a copy of `service` either unmodified or changed to CJDNS.
+ */
+CService MaybeFlipIPv6toCJDNS(const CService& service)
 {
+    CService ret{service};
+    if (ret.m_net == NET_IPV6 && ret.m_addr[0] == 0xfc && IsReachable(NET_CJDNS)) {
+        ret.m_net = NET_CJDNS;
+    }
+    return ret;
+}
+
+// learn a new local address
+bool AddLocal(const CService& addr_, int nScore)
+{
+    CService addr{MaybeFlipIPv6toCJDNS(addr_)};
+
     if (!addr.IsRoutable())
         return false;
 
@@ -402,11 +422,14 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
         pszDest ? 0.0 : (double)(GetAdjustedTime() - addrConnect.nTime)/3600.0);
 
     // Resolve
-    const int default_port = Params().GetDefaultPort();
+    const uint16_t default_port{pszDest != nullptr ? GetDefaultPort(pszDest) :
+                                                     m_params.GetDefaultPort()};
+
     if (pszDest) {
         std::vector<CService> resolved;
         if (Lookup(pszDest, resolved,  default_port, fNameLookup && !HaveNameProxy(), 256) && !resolved.empty()) {
-            addrConnect = CAddress(resolved[GetRand(resolved.size())], NODE_NONE);
+            const CService rnd{resolved[GetRand(resolved.size())]};
+            addrConnect = CAddress{MaybeFlipIPv6toCJDNS(rnd), NODE_NONE};
             if (!addrConnect.IsValid()) {
                 LogPrint(BCLog::NET, "Resolver returned invalid address %s for %s\n", addrConnect.ToString(), pszDest);
                 return nullptr;
@@ -1082,9 +1105,11 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
 
     if (!addr.SetSockAddr((const struct sockaddr*)&sockaddr)) {
         LogPrintf("Warning: Unknown socket family\n");
+    } else {
+        addr = CAddress{MaybeFlipIPv6toCJDNS(addr), NODE_NONE};
     }
 
-    const CAddress addr_bind = GetBindAddress(sock->Get());
+    const CAddress addr_bind{MaybeFlipIPv6toCJDNS(GetBindAddress(sock->Get())), NODE_NONE};
 
     NetPermissionFlags permissionFlags = NetPermissionFlags::PF_NONE;
     hListenSocket.AddSocketPermissionFlags(permissionFlags);
@@ -1958,7 +1983,7 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect)
                 LogPrintf("Adding fixed seed nodes as DNS doesn't seem to be available.\n");
                 CNetAddr local;
                 local.SetInternal("fixedseeds");
-                addrman.Add(convertSeed6(Params().FixedSeeds()), local);
+                addrman.Add(ConvertSeeds(Params().FixedSeeds()), local);
                 done = true;
             }
         }
@@ -2111,7 +2136,7 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect)
             // from advertising themselves as a service on another host and
             // port, causing a DoS attack as nodes around the network attempt
             // to connect to it fruitlessly.
-            if (addr.GetPort() != Params().GetDefaultPort() && nTries < 50)
+            if (addr.GetPort() != Params().GetDefaultPort(addr.GetNetwork()) && nTries < 50)
                 continue;
 
             addrConnect = addr;
@@ -2175,7 +2200,7 @@ std::vector<AddedNodeInfo> CConnman::GetAddedNodeInfo()
     }
 
     for (const std::string& strAddNode : lAddresses) {
-        CService service(LookupNumeric(strAddNode, Params().GetDefaultPort()));
+        CService service(LookupNumeric(strAddNode, Params().GetDefaultPort(strAddNode)));
         AddedNodeInfo addedNode{strAddNode, CService(), false, false};
         if (service.IsValid()) {
             // strAddNode is an IP:port
@@ -2476,8 +2501,9 @@ void CConnman::SetNetworkActive(bool active)
     uiInterface.NotifyNetworkActiveChanged(fNetworkActive);
 }
 
-CConnman::CConnman(uint64_t nSeed0In, uint64_t nSeed1In, bool network_active)
+CConnman::CConnman(uint64_t nSeed0In, uint64_t nSeed1In, const CChainParams& params, bool network_active)
     : nSeed0(nSeed0In), nSeed1(nSeed1In)
+    , m_params(params)
 {
     SetTryNewOutboundPeer(false);
 
@@ -2492,7 +2518,21 @@ NodeId CConnman::GetNewNodeId()
 }
 
 
-bool CConnman::Bind(const CService &addr, unsigned int flags, NetPermissionFlags permissions) {
+uint16_t CConnman::GetDefaultPort(Network net) const
+{
+    return net == NET_I2P ? I2P_SAM31_PORT : m_params.GetDefaultPort();
+}
+
+uint16_t CConnman::GetDefaultPort(const std::string& addr) const
+{
+    CNetAddr a;
+    return a.SetSpecial(addr) ? GetDefaultPort(a.GetNetwork()) : m_params.GetDefaultPort();
+}
+
+bool CConnman::Bind(const CService& addr_, unsigned int flags, NetPermissionFlags permissions)
+{
+    const CService addr{MaybeFlipIPv6toCJDNS(addr_)};
+
     if (!(flags & BF_EXPLICIT) && !IsReachable(addr)) {
         return false;
     }

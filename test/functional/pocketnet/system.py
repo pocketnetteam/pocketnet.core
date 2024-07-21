@@ -36,9 +36,7 @@ class SystemTest(PocketcoinTestFramework):
         node0_info = node0_result[0]
         node1_info = node1_result[0]
 
-        assert node0_info["addnode"] == False
         assert node0_info["inbound"] == True
-        assert node1_info["addnode"] == True
         assert node1_info["inbound"] == False
         assert node0_info["lastrecv"] == node1_info["lastrecv"]
         assert node0_info["lastsend"] == node1_info["lastsend"]

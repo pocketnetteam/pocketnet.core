@@ -632,6 +632,8 @@ add_library(${POCKETDB}
         pocketdb/models/dto/content/CommentEdit.cpp
         pocketdb/models/dto/content/CommentDelete.h
         pocketdb/models/dto/content/CommentDelete.cpp
+        pocketdb/models/dto/content/App.h
+        pocketdb/models/dto/content/App.cpp
 
         pocketdb/models/dto/barteron/Account.h
         pocketdb/models/dto/barteron/Account.cpp
@@ -751,13 +753,19 @@ add_library(${POCKETCOIN_UTIL}
                 util/message.h
                 util/rbf.cpp
                 util/rbf.h
+                util/readwritefile.h
+                util/readwritefile.cpp
                 util/ref.h
                 util/settings.cpp
                 util/settings.h
+                util/sock.h
+                util/sock.cpp
                 util/spanparsing.cpp
                 util/spanparsing.h
                 util/string.cpp
                 util/string.h
+                util/syserror.h
+                util/syserror.cpp
                 util/threadnames.cpp
                 util/threadnames.h
                 util/translation.h
@@ -923,6 +931,8 @@ add_library(${POCKETCOIN_SERVER}
         node/coin.cpp
         node/coinstats.h
         node/coinstats.cpp
+        node/connection_types.h
+        node/connection_types.cpp
         node/context.h
         node/context.cpp
         node/psbt.h
@@ -973,6 +983,8 @@ add_library(${POCKETCOIN_SERVER}
         httprpc.cpp
         httpserver.h
         httpserver.cpp
+        i2p.h
+        i2p.cpp
         init.h
         init.cpp
         interfaces/handler.h
@@ -1138,6 +1150,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/web/ModerationRpc.cpp
         pocketdb/web/BarteronRpc.h
         pocketdb/web/BarteronRpc.cpp
+        pocketdb/web/AppRpc.h
+        pocketdb/web/AppRpc.cpp
         pocketdb/pocketnet.h
         pocketdb/pocketnet.cpp
         pocketdb/services/WsNotifier.cpp
@@ -1182,6 +1196,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/web/ModerationRepository.cpp
         pocketdb/repositories/web/BarteronRepository.h
         pocketdb/repositories/web/BarteronRepository.cpp
+        pocketdb/repositories/web/AppRepository.h
+        pocketdb/repositories/web/AppRepository.cpp
         pocketdb/consensus/Base.h
         pocketdb/consensus/Helper.h
         pocketdb/consensus/Social.h
@@ -1198,7 +1214,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/Stream.hpp
         pocketdb/consensus/social/Audio.hpp
         pocketdb/consensus/social/Collection.hpp
-        pocketdb/consensus/social/Collection.hpp
+        pocketdb/consensus/social/App.hpp
         pocketdb/consensus/social/ScoreComment.hpp
         pocketdb/consensus/social/ScoreContent.hpp
         pocketdb/consensus/social/Subscribe.hpp

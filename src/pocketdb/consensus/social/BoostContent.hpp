@@ -26,7 +26,7 @@ namespace PocketConsensus
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BoostContentRef& ptx, const PocketBlockRef& block) override
         {
             // Check exists content transaction
-            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, CONTENT_DELETE });
+            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, APP, CONTENT_DELETE });
             if (!contentOk)
                 return {false, ConsensusResult_NotFound};
 

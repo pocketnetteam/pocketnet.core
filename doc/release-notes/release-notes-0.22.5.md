@@ -35,17 +35,40 @@ unsupported systems.
 Notable changes
 ===============
 
+Bastyon Apps
+------------
+
+- Mini-Applications transaction support added
+
+Staking
+-------
+
+- Low CPU utilization
+- True staking indication (via `getstakinginfo` RPC) and extended logging (via `logging wallet`)
+- Multi wallet staking
+- Prevent serial blocks generation with same time mark
+
 P2P and network changes
 -----------------------
+
 - Added support for running Pocketnet Core as an
   [I2P (Invisible Internet Project)](https://en.wikipedia.org/wiki/I2P) service
-  and connect to such services. See [i2p.md](https://github.com/pocketnetteam/pocketnet.core/blob/0.22/doc/i2p.md) for details (backported from bitcoin [#20685](https://github.com/bitcoin/bitcoin/pull/20685))
+  and connect to such services. See [doc/i2p.md](https://github.com/pocketnetteam/pocketnet.core/blob/0.22/doc/i2p.md) for details (backported from bitcoin/bitcoin#20685)
 - This release removes support for Tor version 2 hidden services in favor of Tor
   v3 only, as the Tor network [dropped support for Tor
   v2](https://blog.torproject.org/v2-deprecation-timeline) with the release of
   Tor version 0.4.6.  Henceforth, Pocketnet Core ignores Tor v2 addresses; it
   neither rumors them over the network to other peers, nor stores them in memory
   or to `peers.dat` (backported from bitcoin/bitcoin#22050)
+- Full support has been added for the CJDNS network. See the new option -cjdnsreachable and [doc/cjdns.md](https://github.com/pocketnetteam/pocketnet.core/blob/0.22/doc/cjdns.md) (backported from bitcoin/bitcoin#23077)
+- `PIP 106`: Allow restore deleted account. ([PR #700](https://github.com/pocketnetteam/pocketnet.core/wiki/PIP-106:-Allow-restore-deleted-account))
+- `PIP 107`: Increase the time limit for editing content. ([PR #702](https://github.com/pocketnetteam/pocketnet.core/wiki/PIP-107:-Increase-the-time-limit-for-editing-content))
+
+GUI changes
+-----------
+
+- Direction, ConnectionType and Network columns added to peers tab
+- "Copy address" item added to the Peers table context menu
 
 New and Updated RPCs
 --------------------
@@ -69,17 +92,26 @@ New and Updated RPCs
 - `getnodeaddresses` now also accepts a "network" argument (ipv4, ipv6, onion,
   or i2p) to return only addresses of the specified network (backported from bitcoin/bitcoin#21843)
 
+Updated settings
+----------------
+
+- `-mempoolclean` option added (cleans mempool on loading and delete of non blocked transactions from sqlite db (default: 1))
+
 Tools and Utilities
 -------------------
 
-- A new CLI `-addrinfo` command returns the number of addresses known to the
-  node per network type (including Tor v3 and I2P) and total. This can be
+- A new CLI `pocketcoin-cli -addrinfo` command returns the number of addresses known
+  to the node per network type (including Tor v3 and I2P) and total. This can be
   useful to see if the node knows enough addresses in a network to use options
   like `-onlynet=<network>` or to upgrade to this release of Pocketnet Core 0.22.5
-  that supports Tor v3 only (backported from bitcoin/bitcoin#21595)
+  that supports Tor v3 only (backported from bitcoin/bitcoin#21595).
+- A new `pocketcoin-cli -netinfo` command provides a network peer connections
+  dashboard that displays data from the `getpeerinfo` and `getnetworkinfo` RPCs
+  in a human-readable format. An optional integer argument from `0` to `4` may
+  be passed to see increasing levels of detail (backported from bitcoin/bitcoin#19643).
 
 0.22.5 change log
-===============
+=================
 Full Changelog: [0.22.4...0.22.5](https://github.com/pocketnetteam/pocketnet.core/compare/0.22.4...0.22.5)
 
 Backports from bitcoin
@@ -89,9 +121,13 @@ Backports from bitcoin
 - bitcoin/bitcoin#20685 Add I2P support using I2P SAM
 - bitcoin/bitcoin#20755 [rpc] Remove deprecated fields from getpeerinfo
 - bitcoin/bitcoin#20788 net: add RAII socket and use it instead of bare SOCKET
+- bitcoin/bitcoin#21387 p2p: Refactor sock to add I2P fuzz and unit tests
 - bitcoin/bitcoin#21595 cli: create -addrinfo
 - bitcoin/bitcoin#21843 p2p, rpc: enable GetAddr, GetAddresses, and getnodeaddresses by network
+- bitcoin/bitcoin#21914 net: use stronger AddLocal() for our I2P address
 - bitcoin/bitcoin#22050 p2p: remove tor v2 support
+- bitcoin/bitcoin#23077 Full CJDNS support
+- ...
 
 Credits
 =======

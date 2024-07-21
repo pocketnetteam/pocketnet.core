@@ -43,6 +43,7 @@
 
 
 class CScheduler;
+class CChainParams;
 class CNode;
 class BanMan;
 struct bilingual_str;
@@ -751,6 +752,8 @@ public:
         return nRefCount;
     }
 
+    /* New version
+    bool ReceiveMsgBytes(Span<const uint8_t> msg_bytes, bool& complete); */
     bool ReceiveMsgBytes(char *pch, unsigned int nBytes, bool& complete);
 
     void SetCommonVersion(int greatest_common_version)
@@ -909,7 +912,7 @@ public:
         m_onion_binds = connOptions.onion_binds;
     }
 
-    CConnman(uint64_t seed0, uint64_t seed1, bool network_active = true);
+    CConnman(uint64_t seed0, uint64_t seed1, const CChainParams& params, bool network_active = true);
     ~CConnman();
     bool Start(CScheduler& scheduler, const Options& options);
 
@@ -1205,6 +1208,9 @@ private:
     // Whether the node should be passed out in ForEach* callbacks
     static bool NodeFullyConnected(const CNode* pnode);
 
+    uint16_t GetDefaultPort(Network net) const;
+    uint16_t GetDefaultPort(const std::string& addr) const;
+
     // Network usage totals
     RecursiveMutex cs_totalBytesRecv;
     RecursiveMutex cs_totalBytesSent;
@@ -1390,6 +1396,8 @@ private:
     private:
         std::vector<CNode*> m_nodes_copy;
     };
+
+    const CChainParams& m_params;
 
     friend struct CConnmanTest;
     friend struct ConnmanTestMsg;

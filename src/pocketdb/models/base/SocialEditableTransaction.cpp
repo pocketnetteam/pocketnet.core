@@ -17,6 +17,8 @@ namespace PocketTx
     const optional<string>& SocialEditableTransaction::GetRootTxHash() const { return m_string2; }
     void SocialEditableTransaction::SetRootTxHash(const string& value) { m_string2 = value; }
 
+    bool SocialEditableTransaction::IsEdit() const { return m_string2 != m_hash; }
+
     void SocialEditableTransaction::Deserialize(const UniValue& src)
     {
         SocialTransaction::Deserialize(src);
