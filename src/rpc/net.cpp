@@ -841,7 +841,7 @@ static RPCHelpMan getstakinginfo()
     uint64_t nBalance = 0;
     uint64_t nWeight = 0;
     uint64_t nLastCoinStakeSearchTime = 0;
-    uint64_t nLastCoinStakeTime = 0;
+    uint64_t nLastCoinStakeTime = Staker::getInstance()->getLastCoinStakeTime();
 
     auto wallets = GetWallets();
 

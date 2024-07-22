@@ -5084,8 +5084,7 @@ tuple<uint64_t, uint64_t, uint64_t> CWallet::GetStakeWeight() const
                 if (nCurrentTime - pcoin.first->tx->nTime > Params().GetConsensus().nStakeMinAge)
                         nWeight += std::min(pcoin.first->tx->vout[pcoin.second].nValue, 5000 * COIN);
 
-//                if (pcoin.first->IsCoinStake() && !pcoin.first->isAbandoned() && !pcoin.first->GetBlocksToMaturity() && pcoin.first->GetDepthInMainChain() > 0) {
-                if (pcoin.first->IsCoinStake() && !pcoin.first->isAbandoned() && !pcoin.first->GetBlocksToMaturity()) {
+                if (pcoin.first->IsCoinStake() && !pcoin.first->isAbandoned() && !pcoin.first->GetBlocksToMaturity() && pcoin.first->GetDepthInMainChain() > 0) {
                         nLastCoinStakeTime = std::max(nLastCoinStakeTime, (uint64_t)pcoin.first->tx->nTime);
                 }
         }
@@ -5095,10 +5094,10 @@ tuple<uint64_t, uint64_t, uint64_t> CWallet::GetStakeWeight() const
 
 uint64_t CWallet::GetLastCoinStakeSearchTime()
 {
-    return nLastCoinStakeSearchTime;
+        return nLastCoinStakeSearchTime;
 }
 
 void CWallet::SetLastCoinStakeSearchTime(uint64_t nTime)
 {
-    nLastCoinStakeSearchTime = nTime;
+        nLastCoinStakeSearchTime = nTime;
 }
