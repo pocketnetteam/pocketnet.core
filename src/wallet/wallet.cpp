@@ -5085,7 +5085,7 @@ tuple<uint64_t, uint64_t, uint64_t> CWallet::GetStakeWeight() const
                         nWeight += std::min(pcoin.first->tx->vout[pcoin.second].nValue, 5000 * COIN);
 
                 if (pcoin.first->IsCoinStake() && !pcoin.first->isAbandoned() && !pcoin.first->GetBlocksToMaturity() && pcoin.first->GetDepthInMainChain() > 0) {
-                        nLastCoinStakeTime = pcoin.first->tx->nTime;
+                        nLastCoinStakeTime = std::max(nLastCoinStakeTime, (uint64_t)pcoin.first->tx->nTime);
                 }
         }
 
