@@ -821,15 +821,16 @@ static RPCHelpMan getstakinginfo()
                             { RPCResult::Type::BOOL, "enabled", "If staking is enabled" },
                             { RPCResult::Type::BOOL, "staking", "If staking is working" },
                             { RPCResult::Type::STR, "errors", "Errors. Empty if there is no error" },
-                            { RPCResult::Type::NUM, "currentblockweight", "Weight of the current block" },
-                            { RPCResult::Type::NUM, "currentblocktx", "Number of Tx-es in mempool prepared for inclusion in stake block" },
-                            { RPCResult::Type::STR_AMOUNT, "difficulty", "Difficulty" },
-                            { RPCResult::Type::NUM, "search-interval", "Coinstake search interval" },
+                            { RPCResult::Type::NUM, "currentblockweight", "Weight of Tx-es prepared for inclusion in the stake block" },
+                            { RPCResult::Type::NUM, "currentblocktx", "Number of Tx-es prepared for inclusion in the stake block" },
+                            { RPCResult::Type::STR_AMOUNT, "difficulty", "Staking difficulty (derivated from last block nBits)" },
+                            { RPCResult::Type::NUM, "search-interval", "Coinstake search interval (16 sec)" },
                             { RPCResult::Type::STR, "search-time", "Coinstake search time" },
-                            { RPCResult::Type::STR, "stake-time", "Last coinstake time" },
-                            { RPCResult::Type::NUM, "weight", "nWeight" },
-                            { RPCResult::Type::NUM, "netstakeweight", "Stake network weight" },
-                            { RPCResult::Type::NUM, "expectedtime", "Expected time to the next stake" }
+                            { RPCResult::Type::STR, "stake-time", "Last stake time" },
+                            { RPCResult::Type::NUM, "weight", "Wallet(s) balans used for staking (in Satoshi)" },
+                            { RPCResult::Type::NUM, "balance", "Wallet(s) balans (in Satoshi)" },
+                            { RPCResult::Type::NUM, "netstakeweight", "Network stake weight" },
+                            { RPCResult::Type::NUM, "expectedtime", "Estimated time to stake (approximate)" }
                         }
                     }
                 },
