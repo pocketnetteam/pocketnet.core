@@ -279,8 +279,7 @@ namespace PocketDb
                         __func__, ret, sqlite3_errstr(ret)));
 
                 // Setting up busy timeout per connection
-                // TODO (losty): get timeout from args
-                ret = sqlite3_busy_timeout(m_db, 10000);
+                ret = sqlite3_busy_timeout(m_db, gArgs.GetArg("-sqltimeout", 10) * 1000);
                 if (ret != SQLITE_OK)
                     throw std::runtime_error(strprintf("%s: %d; Failed to setup busy_timeout: %s\n",
                         __func__, ret, sqlite3_errstr(ret)));
@@ -299,8 +298,16 @@ namespace PocketDb
                 if (sqlite3_exec(m_db, ("PRAGMA synchronous = " + sync + ";").c_str(), nullptr, nullptr, nullptr) != 0)
                     throw std::runtime_error("Failed apply synchronous = " + sync);
 
-                if (sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)
-                    throw std::runtime_error("Failed apply temp_store = memory");
+                string tmpType = gArgs.GetArg("-sqltempstore", "memory");
+                if (sqlite3_exec(m_db, ("PRAGMA temp_store = " + tmpType + ";").c_str(), nullptr, nullptr, nullptr) != 0)
+                    throw std::runtime_error("Failed apply temp_store = " + tmpType);
+                
+                if (tmpType == "file")
+                {
+                    string tmpPath = gArgs.GetArg("-sqltempstorepath", "");
+                    if (tmpPath != "" && sqlite3_exec(m_db, ("PRAGMA temp_store_directory = '" + tmpPath + "';").c_str(), nullptr, nullptr, nullptr) != 0)
+                        throw std::runtime_error("Failed apply temp_store_directory = " + tmpPath);
+                }
             }
 
             // TODO (tawmaz): Not working for existed database
