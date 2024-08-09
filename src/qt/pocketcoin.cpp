@@ -496,7 +496,7 @@ void PocketcoinApplication::checkLatestRelease() {
 void PocketcoinApplication::setAutoUpdate() {
     QTimer* tmr = new QTimer(this);
     tmr->setInterval(3600000);
-    connect(tmr, SIGNAL(timeout()), this, SLOT(checkLatestRelease())); // Подключаем сигнал таймера к нашему слоту
+    connect(tmr, SIGNAL(timeout()), this, SLOT(checkLatestRelease()));
     tmr->start();
 }
 // -----------------------------------------
