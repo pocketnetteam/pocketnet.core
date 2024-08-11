@@ -170,6 +170,7 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::I2P, "i2p"},
     {BCLog::LOCK, "lock"},
     {BCLog::TEST, "test"},
+    {BCLog::SQLQUERY, "sqlquery"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"}
 };
