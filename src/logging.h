@@ -70,6 +70,7 @@ namespace BCLog {
         WARN          = ((uint64_t)1 << 33),
         I2P           = ((uint64_t)1 << 34),
         TEST          = ((uint64_t)1 << 35),
+        SQLQUERY      = ((uint64_t)1 << 36),
         ALL           = ~(uint64_t)0,
     };
 

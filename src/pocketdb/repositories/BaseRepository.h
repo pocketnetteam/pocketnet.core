@@ -83,7 +83,7 @@ namespace PocketDb
         // General method for SQL operations with splitted prepare and excute parts
         // Locked with shutdownMutex
         // Timeouted for ReadOnly connections
-        void SqlTransaction(const string& func, const function<Stmt&()>& prepare, const function<void(Stmt&)>& execute, bool logForce = false)
+        void SqlTransaction(const string& func, const function<Stmt&()>& prepare, const function<void(Stmt&)>& execute)
         {
             try
             {
@@ -96,8 +96,7 @@ namespace PocketDb
                 // Prepare transaction binds
                 auto& stmt = prepare();
 
-                if (logForce || gArgs.GetChainName() == CBaseChainParams::REGTEST)
-                    LogPrintf("Debug logging sql query for `%s`:\n%s\n", func, stmt.Log());
+                LogPrint(BCLog::SQLQUERY, "Sql query `%s`:\n%s\n", func, stmt.Log());
 
                 // We are running SQL logic with timeout only for read-only connections
                 if (m_timeouted)

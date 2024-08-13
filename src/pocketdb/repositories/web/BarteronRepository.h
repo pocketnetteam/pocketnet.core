@@ -21,22 +21,17 @@ namespace PocketDb
         string Language = "";
         vector<int> Tags;
         vector<string> Location;
-        int64_t PriceMax = 0;
-        int64_t PriceMin = 0;
+        int64_t PriceMax = -1;
+        int64_t PriceMin = -1;
         string Search = "";
     };
 
-    struct BarteronOffersDealDto
+    struct BarteronOffersDealDto : public BarteronOffersFeedDto
     {
-        Pagination Page;
         vector<int> MyTags;
         vector<int> TheirTags;
         vector<string> Addresses;
         vector<string> ExcludeAddresses;
-        vector<string> Location;
-        int PriceMin = -1;
-        int PriceMax = -1;
-        string Search;
     };
 
     struct BarteronAccountAdditionalInfo

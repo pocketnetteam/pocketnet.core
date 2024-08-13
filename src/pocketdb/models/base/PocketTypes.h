@@ -157,6 +157,8 @@ namespace PocketTx
         ContentFieldType_ContentVideoUrl = 9, // Payload.String7
         ContentFieldType_AppName = 10, // Payload.String1.n
         ContentFieldType_AppDescription = 11, // Payload.String1.d
+        ContentFieldType_BarteronCaption = 12, // Payload.String2
+        ContentFieldType_BarteronDescription = 13, // Payload.String3
     };
 
     // Transaction info for indexing spents and other
