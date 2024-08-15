@@ -803,7 +803,7 @@ namespace PocketWeb::PocketWebRpc
         vector<string> tagsExcluded;
 
         string skipString = "";
-        int countOut =  0;
+        int countOut =  300;
         ParseFeedRequest(request, topHeight, skipString, countOut, lang, tags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, skipString);
 
