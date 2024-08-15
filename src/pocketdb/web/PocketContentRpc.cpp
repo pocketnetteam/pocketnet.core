@@ -803,9 +803,15 @@ namespace PocketWeb::PocketWebRpc
         vector<string> tagsExcluded;
 
         string skipString = "";
-        int countOut =  300;
+        int countOut = 300;
         ParseFeedRequest(request, topHeight, skipString, countOut, lang, tags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, skipString);
+
+        // Hack for set countOut value more 20
+        // - ParseFeedRequest it will not allow you to set a value of more than 20
+        countOut = 300;
+        if (request.params.size() > 2 && request.params[2].isNum())
+            countOut = request.params[2].get_int();
 
         auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
