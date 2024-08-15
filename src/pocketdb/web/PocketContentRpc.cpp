@@ -803,8 +803,8 @@ namespace PocketWeb::PocketWebRpc
         vector<string> tagsExcluded;
 
         string skipString = "";
-        int skipInt =  0;
-        ParseFeedRequest(request, topHeight, skipString, skipInt, lang, tags, contentTypes, txIdsExcluded,
+        int countOut =  0;
+        ParseFeedRequest(request, topHeight, skipString, countOut, lang, tags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, skipString);
 
         auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
@@ -812,7 +812,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue boosts = request.DbConnection()->WebRpcRepoInst->GetBoostFeed(
-            topHeight, lang, tags, contentTypes,
+            topHeight, countOut, lang, tags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded,
             badReputationLimit);
 
