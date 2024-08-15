@@ -219,6 +219,8 @@ namespace PocketDb
         int CountModerationFlag(const string& address, int height, bool includeMempool);
         int CountModerationFlag(const string& address, const string& addressTo, bool includeMempool);
         bool AllowJuryModerate(const string& address, const string& flagTxHash);
+        int LikersByFlag(const string& txHash);
+        int LikersByVote(const string& txHash);
 
     protected:
     
