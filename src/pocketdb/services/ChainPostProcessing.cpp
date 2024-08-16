@@ -231,7 +231,7 @@ namespace PocketServices
         }
     }
 
-    ModerationCondition& ChainPostProcessing::GetConditions(int height, int accountLikers)
+    ModerationCondition ChainPostProcessing::GetConditions(int height, int accountLikers)
     {
         auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
         ModerationCondition cond;

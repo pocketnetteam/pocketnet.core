@@ -47,7 +47,7 @@ namespace PocketServices
         static void IndexModeration(int height, vector<TransactionIndexingInfo>& txs);
         static void IndexBadges(int height);
 
-        static ModerationCondition& GetConditions(int height, int accountLikers);
+        static ModerationCondition GetConditions(int height, int accountLikers);
         static void IndexModerationFlag(const TransactionIndexingInfo& txInfo, int height);
         static void IndexModerationVote(const TransactionIndexingInfo& txInfo, int height);
 
