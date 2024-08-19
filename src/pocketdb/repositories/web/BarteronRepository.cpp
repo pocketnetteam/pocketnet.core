@@ -177,10 +177,12 @@ namespace PocketDb
         if (args.PriceMax > 0) _filters += " cross join priceMax on pt.Int1 <= priceMax.value ";
         if (args.PriceMin > 0) _filters += " cross join priceMin on pt.Int1 >= priceMin.value ";
 
-        string search = "\"" + args.Search + "\"" + " OR " + args.Search + "*";
+        string search = args.Search;
         boost::replace_all(search, "%", "");
         if (!search.empty())
         {
+            search = "\"" + search + "\"" + " OR " + search + "*";
+
             _filters += R"sql(
                 cross join (
                     select fm.ContentId
@@ -329,11 +331,12 @@ namespace PocketDb
             _filters += " cross join location on po2.String6 like location.value ";
         }
 
-        string search = "\"" + args.Search + "\"" + " OR " + args.Search + "*";
+        string search = args.Search;
         boost::replace_all(search, "%", "");
         if (!search.empty())
         {
-            "\"" + search + "\"" + " OR " + search + "*";
+            search = "\"" + search + "\"" + " OR " + search + "*";
+            
             _filters += R"sql(
                 cross join (
                     select fm.ContentId
