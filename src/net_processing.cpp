@@ -2010,7 +2010,7 @@ void PeerManager::SendBlockTransactions(CNode& pfrom, const CBlock& block, const
     }
 
     const CNetMsgMaker msgMaker(pfrom.GetCommonVersion());
-    m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::BLOCKTXN, resp));
+    m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::BLOCKTXN, resp, pocketBlockData));
 }
 
 void PeerManager::ProcessHeadersMessage(CNode& pfrom, const std::vector<CBlockHeader>& headers, bool via_compact_block)
@@ -2775,7 +2775,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             // they may wish to request compact blocks from us
             if (pfrom.GetLocalServices() & NODE_WITNESS) {
                 m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::SENDCMPCT, /*high_bandwidth=*/false, /*version=*/CMPCTBLOCKS_VERSION));
-                LogPrint(BCLog::NET, "pushed (after VERACK) SENDCMPCT: announce=false to peer=%d%s\n",
+                LogPrint(BCLog::NET, "pushed (after VERACK) SENDCMPCT: high_bandwidth=false to peer=%d%s\n",
                     pfrom.GetId(),
                     fLogIPs ? ", peeraddr=" + pfrom.addr.ToString() : "");
             }
@@ -2938,7 +2938,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             // (receiving sendcmpct_hb(1) signals high-bandwidth, sendcmpct_hb(0) low-bandwidth)
             pfrom.m_bip152_highbandwidth_from = sendcmpct_hb;
 
-            LogPrint(BCLog::NET, "got SENDCMPCT: announce=%s version=%d from peer=%d%s\n",
+            LogPrint(BCLog::NET, "got SENDCMPCT: high_bandwidth=%s version=%d from peer=%d%s\n",
                         sendcmpct_hb ? "true" : "false",
                         sendcmpct_version,
                         pfrom.GetId(),
