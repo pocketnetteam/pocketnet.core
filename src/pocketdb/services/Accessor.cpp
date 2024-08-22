@@ -27,7 +27,7 @@ namespace PocketServices
         }
         catch (const std::exception& e)
         {
-            LogPrintf("Error: PocketServices::GetBlock (%s) - %s\n", block.GetHash().GetHex(), e.what());
+            LogPrintf("Error: Accessor::GetBlock (%s) - %s\n", block.GetHash().GetHex(), e.what());
             return false;
         }
     }
@@ -53,8 +53,17 @@ namespace PocketServices
     {
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
             return true;
-            
-        pocketTx = PocketDb::TransRepoInst.Get(tx.GetHash().GetHex(), true);
+
+        try
+        {    
+            pocketTx = PocketDb::TransRepoInst.Get(tx.GetHash().GetHex(), true);
+        }
+        catch (const std::exception& e)
+        {
+            LogPrintf("Error: Accessor::GetTransaction (%s) - %s\n", tx.GetHash().GetHex(), e.what());
+            return false;
+        }
+
         return pocketTx != nullptr;
     }
 

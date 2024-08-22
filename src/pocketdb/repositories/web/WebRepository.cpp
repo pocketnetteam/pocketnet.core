@@ -258,7 +258,7 @@ namespace PocketDb
             cross join
                 Transactions t on
                     t.RowId = c.TxId and
-                    t.Type in (100, 200, 201, 202, 209, 210, 204, 205, 221)
+                    t.Type in (100, 200, 201, 202, 209, 210, 204, 205, 221, 211)
             cross join
                 Payload p on
                     p.TxId = t.RowId
@@ -328,6 +328,16 @@ namespace PocketDb
                             //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 
                             // break;
+
+                        case BARTERON_OFFER:
+
+                            if (auto[ok, val] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_BarteronCaption, val));
+
+                            if (auto[ok, val] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_BarteronDescription, val));
+
+                            break;
                         
                         case APP:
 

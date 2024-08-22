@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/web/BarteronRepository.h"
+#include <boost/algorithm/string/replace.hpp>
 
 namespace PocketDb
 {
@@ -175,7 +176,27 @@ namespace PocketDb
         if (!args.Language.empty()) _filters += " cross join lang on pt.String1 = lang.value ";
         if (args.PriceMax > 0) _filters += " cross join priceMax on pt.Int1 <= priceMax.value ";
         if (args.PriceMin > 0) _filters += " cross join priceMin on pt.Int1 >= priceMin.value ";
-        if (!args.Search.empty()) _filters += " cross join search on pt.String2 like search.value or pt.String3 like search.value ";
+
+        string search = args.Search;
+        boost::replace_all(search, "%", "");
+        if (!search.empty())
+        {
+            search = "\"" + search + "\"" + " OR " + search + "*";
+
+            _filters += R"sql(
+                cross join (
+                    select fm.ContentId
+                    from
+                        web.Content f
+                    cross join
+                        web.ContentMap fm on
+                            fm.ROWID = f.ROWID
+                    where
+                        fm.FieldType in (12,13) and
+                        f.Value match ?
+                ) sc on sc.ContentId = ct.Uid
+            )sql";
+        }
 
         string _tagsStr = "[]";
         string _locationStr = "[]";
@@ -209,14 +230,13 @@ namespace PocketDb
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                return Sql(R"sql(
+                auto& stmt =  Sql(R"sql(
                     with
                         lang as (select ? as value),
                         tags as (select value from json_each(?)),
                         location as (select value from json_each(?)),
                         priceMax as (select ? as value),
-                        priceMin as (select ? as value),
-                        search as (select ? as value)
+                        priceMin as (select ? as value)
 
                     select
                         (select r.String from Registry r where r.RowId = t.RowId)
@@ -252,18 +272,26 @@ namespace PocketDb
                     order by
                         )sql" + _orderBy + R"sql(
                     limit ? offset ?
-                )sql")
-                .Bind(
+                )sql");
+
+                stmt.Bind(
                     args.Language,
                     _tagsStr,
                     _locationStr,
                     args.PriceMax,
                     args.PriceMin,
-                    args.Search,
-                    args.Page.TopHeight,
+                    args.Page.TopHeight
+                );
+
+                if (!search.empty())
+                    stmt.Bind(search);
+                
+                stmt.Bind(
                     args.Page.PageSize,
                     args.Page.PageStart * args.Page.PageSize
                 );
+
+                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -302,26 +330,43 @@ namespace PocketDb
             _locationStr = _location.write();
             _filters += " cross join location on po2.String6 like location.value ";
         }
+
+        string search = args.Search;
+        boost::replace_all(search, "%", "");
+        if (!search.empty())
+        {
+            search = "\"" + search + "\"" + " OR " + search + "*";
+            
+            _filters += R"sql(
+                cross join (
+                    select fm.ContentId
+                    from
+                        web.Content f
+                    cross join
+                        web.ContentMap fm on
+                            fm.ROWID = f.ROWID
+                    where
+                        fm.FieldType in (12,13) and
+                        f.Value match ?
+                ) sc on sc.ContentId = co2.Uid
+            )sql";
+        }
         
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                return Sql(R"sql(
+                auto& stmt = Sql(R"sql(
                     with
                         price as (
                             select
                                 ? as min,
                                 ? as max
                         ),
-                        location as (select value from json_each(?)),
-                        search as (
-                            select ? as value
-                        )
+                        location as (select value from json_each(?))
                     select distinct
                         (select r.String from Registry r where r.RowId = to2.RowId)
                     from
-                        price,
-                        search
+                        price
 
                     -- Source offer
                     -- cross join
@@ -361,7 +406,6 @@ namespace PocketDb
                     where
                         ( ? or po2.Int1 >= price.min ) and
                         ( ? or po2.Int1 <= price.max ) and
-                        ( ? or po2.String2 like search.value or po2.String3 like search.value) and
                         ( ? or ru2.String in ( )sql" + join(vector<string>(args.Addresses.size(), "?"), ",") + R"sql( ) ) and
                         ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
                         cu2.Height <= ?
@@ -374,14 +418,18 @@ namespace PocketDb
                     args.PriceMin,
                     args.PriceMax,
                     _locationStr,
-                    args.Search,
                     args.TheirTags.empty(),
                     args.TheirTags,
                     args.MyTags.empty(),
-                    args.MyTags,
+                    args.MyTags
+                );
+
+                if (!search.empty())
+                    stmt.Bind(search);
+
+                stmt.Bind(
                     (args.PriceMin < 0),
                     (args.PriceMax < 0),
-                    args.Search.empty(),
                     args.Addresses.empty(),
                     args.Addresses,
                     args.ExcludeAddresses.empty(),
@@ -390,6 +438,8 @@ namespace PocketDb
                     args.Page.PageSize,
                     args.Page.PageStart * args.Page.PageSize
                 );
+
+                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
