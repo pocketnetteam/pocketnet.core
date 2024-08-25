@@ -46,6 +46,8 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QMetaObject>
+#include <QObject>
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QMessageBox>
@@ -158,6 +160,16 @@ void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, cons
 PocketcoinCore::PocketcoinCore(interfaces::Node& node) :
     QObject(), m_node(node)
 {
+    m_context.moveToThread(&m_thread);
+    m_thread.start();
+}
+
+PocketcoinCore::~PocketcoinCore()
+{
+    qDebug() << __func__ << ": Stopping thread";
+    m_thread.quit();
+    m_thread.wait();
+    qDebug() << __func__ << ": Stopped thread";
 }
 
 void PocketcoinCore::handleRunawayException(const std::exception *e)
@@ -168,33 +180,37 @@ void PocketcoinCore::handleRunawayException(const std::exception *e)
 
 void PocketcoinCore::initialize()
 {
-    try
-    {
-        util::ThreadRename("qt-init");
-        qDebug() << __func__ << ": Running initialization in thread";
-        interfaces::BlockAndHeaderTipInfo tip_info;
-        bool rv = m_node.appInitMain(&tip_info);
-        Q_EMIT initializeResult(rv, tip_info);
-    } catch (const std::exception& e) {
-        handleRunawayException(&e);
-    } catch (...) {
-        handleRunawayException(nullptr);
-    }
+    GUIUtil::ObjectInvoke(&m_context, [this] {
+        try
+        {
+            util::ThreadRename("qt-init");
+            qDebug() << __func__ << ": Running initialization in thread";
+            interfaces::BlockAndHeaderTipInfo tip_info;
+            bool rv = m_node.appInitMain(&tip_info);
+            Q_EMIT initializeResult(rv, tip_info);
+        } catch (const std::exception& e) {
+            handleRunawayException(&e);
+        } catch (...) {
+            handleRunawayException(nullptr);
+        }
+    });
 }
 
 void PocketcoinCore::shutdown()
 {
-    try
-    {
-        qDebug() << __func__ << ": Running Shutdown in thread";
-        m_node.appShutdown();
-        qDebug() << __func__ << ": Shutdown finished";
-        Q_EMIT shutdownResult();
-    } catch (const std::exception& e) {
-        handleRunawayException(&e);
-    } catch (...) {
-        handleRunawayException(nullptr);
-    }
+    GUIUtil::ObjectInvoke(&m_context, [this] {
+        try
+        {
+            qDebug() << __func__ << ": Running Shutdown in thread";
+            m_node.appShutdown();
+            qDebug() << __func__ << ": Shutdown finished";
+            Q_EMIT shutdownResult();
+        } catch (const std::exception& e) {
+            handleRunawayException(&e);
+        } catch (...) {
+            handleRunawayException(nullptr);
+        }
+    });
 }
 
 static int qt_argc = 1;
@@ -419,8 +435,21 @@ void PocketcoinApplication::shutdownResult()
 
 void PocketcoinApplication::handleRunawayException(const QString &message)
 {
-    QMessageBox::critical(nullptr, "Runaway exception", PocketcoinGUI::tr("A fatal error occurred. %1 can no longer continue safely and will quit.").arg(PACKAGE_NAME) + QString("<br><br>") + message);
+    QMessageBox::critical(
+        nullptr, tr("Runaway exception"),
+        tr("A fatal error occurred. %1 can no longer continue safely and will quit.").arg(PACKAGE_NAME) %
+        QLatin1String("<br><br>") % GUIUtil::MakeHtmlLink(message, PACKAGE_BUGREPORT));
     ::exit(EXIT_FAILURE);
+}
+
+void PocketcoinApplication::handleNonFatalException(const QString& message)
+{
+    assert(QThread::currentThread() == thread());
+    QMessageBox::warning(
+        nullptr, tr("Internal error"),
+        tr("An internal error occurred. %1 will attempt to continue safely. This is "
+           "an unexpected bug which can be reported as described below.").arg(PACKAGE_NAME) %
+        QLatin1String("<br><br>") % GUIUtil::MakeHtmlLink(message, PACKAGE_BUGREPORT));
 }
 
 WId PocketcoinApplication::getMainWinId() const

@@ -10,15 +10,21 @@
 #include <net.h>
 #include <netaddress.h>
 
+#include <QApplication>
 #include <QEvent>
 #include <QHeaderView>
 #include <QItemDelegate>
 #include <QMessageBox>
+#include <QMetaObject>
 #include <QObject>
 #include <QProgressBar>
 #include <QString>
 #include <QTableView>
 #include <QLabel>
+
+#include <cassert>
+#include <chrono>
+#include <utility>
 
 class QValidatedLineEdit;
 class SendCoinsRecipient;
@@ -311,6 +317,74 @@ namespace GUIUtil
      * Call QMenu::popup() only on supported QT_QPA_PLATFORM.
      */
     void PopupMenu(QMenu* menu, const QPoint& point, QAction* at_action = nullptr);
+
+    /**
+     * Queue a function to run in an object's event loop. This can be
+     * replaced by a call to the QMetaObject::invokeMethod functor overload after Qt 5.10, but
+     * for now use a QObject::connect for compatibility with older Qt versions, based on
+     * https://stackoverflow.com/questions/21646467/how-to-execute-a-functor-or-a-lambda-in-a-given-thread-in-qt-gcd-style
+     */
+    template <typename Fn>
+
+    void ObjectInvoke(QObject* object, Fn&& function, Qt::ConnectionType connection = Qt::QueuedConnection)
+    {
+        QObject source;
+        QObject::connect(&source, &QObject::destroyed, object, std::forward<Fn>(function), connection);
+    }
+
+    /**
+     * Replaces a plain text link with an HTML tagged one.
+     */
+    QString MakeHtmlLink(const QString& source, const QString& link);
+
+
+    void PrintSlotException(
+        const std::exception* exception,
+        const QObject* sender,
+        const QObject* receiver);
+
+    /**
+     * A drop-in replacement of QObject::connect function
+     * (see: https://doc.qt.io/qt-5/qobject.html#connect-3), that
+     * guaranties that all exceptions are handled within the slot.
+     *
+     * NOTE: This function is incompatible with Qt private signals.
+     */
+    template <typename Sender, typename Signal, typename Receiver, typename Slot>
+    auto ExceptionSafeConnect(
+        Sender sender, Signal signal, Receiver receiver, Slot method,
+        Qt::ConnectionType type = Qt::AutoConnection)
+    {
+        return QObject::connect(
+            sender, signal, receiver,
+            [sender, receiver, method](auto&&... args) {
+                bool ok{true};
+                try {
+                    (receiver->*method)(std::forward<decltype(args)>(args)...);
+                } catch (const NonFatalCheckError& e) {
+                    PrintSlotException(&e, sender, receiver);
+                    ok = QMetaObject::invokeMethod(
+                        qApp, "handleNonFatalException",
+                        blockingGUIThreadConnection(),
+                        Q_ARG(QString, QString::fromStdString(e.what())));
+                } catch (const std::exception& e) {
+                    PrintSlotException(&e, sender, receiver);
+                    ok = QMetaObject::invokeMethod(
+                        qApp, "handleRunawayException",
+                        blockingGUIThreadConnection(),
+                        Q_ARG(QString, QString::fromStdString(e.what())));
+                } catch (...) {
+                    PrintSlotException(nullptr, sender, receiver);
+                    ok = QMetaObject::invokeMethod(
+                        qApp, "handleRunawayException",
+                        blockingGUIThreadConnection(),
+                        Q_ARG(QString, "Unknown failure occurred."));
+                }
+                assert(ok);
+            },
+            type);
+    }
+
 } // namespace GUIUtil
 
 #endif // POCKETCOIN_QT_GUIUTIL_H

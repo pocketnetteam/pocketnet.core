@@ -10,6 +10,7 @@
 #endif
 
 #include <QApplication>
+#include <QThread>
 #include <assert.h>
 #include <memory>
 
@@ -34,6 +35,7 @@ class PocketcoinCore: public QObject
     Q_OBJECT
 public:
     explicit PocketcoinCore(interfaces::Node& node);
+    ~PocketcoinCore();
 
 public Q_SLOTS:
     void initialize();
@@ -49,6 +51,8 @@ private:
     void handleRunawayException(const std::exception *e);
 
     interfaces::Node& m_node;
+    QThread m_thread;
+    QObject m_context;
 };
 
 /** Main Pocketcoin application object */
@@ -101,6 +105,12 @@ public Q_SLOTS:
     void shutdownResult();
     /// Handle runaway exceptions. Shows a message box with the problem and quits the program.
     void handleRunawayException(const QString &message);
+
+    /**
+     * A helper function that shows a message box
+     * with details about a non-fatal exception.
+     */
+    void handleNonFatalException(const QString& message);
 
     void getLatestVersionFinished();
     void checkLatestRelease();
