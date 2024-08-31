@@ -161,7 +161,7 @@ namespace PocketDb
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
             int badReputationLimit);
 
-        UniValue GetBoostFeed(int topHeight, const string& lang,
+        UniValue GetBoostFeed(int topHeight, int countOut, const string& lang,
             const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
             int badReputationLimit);
