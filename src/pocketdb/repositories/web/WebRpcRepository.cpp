@@ -4220,6 +4220,9 @@ namespace PocketDb
                         c.TxId as id
                     from
                         Chain c
+                    cross join
+                        First f on
+                            f.TxId = c.TxId
                     where c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
                 ),
             )sql";
@@ -4229,6 +4232,7 @@ namespace PocketDb
 
         unordered_map<int64_t, UniValue> tmpResult{};
         vector<string> authors;
+        vector<int64_t> allUIDs;
 
         SqlTransaction(
             __func__,
@@ -4367,6 +4371,7 @@ namespace PocketDb
                         if (!cursor.Collect(ii++, id))
                             continue;
                         record.pushKV("id", id);
+                        allUIDs.push_back(id);
 
                         cursor.Collect<string>(ii++, record, "edit");
                         cursor.Collect<string>(ii++, record, "repost");
@@ -4428,7 +4433,7 @@ namespace PocketDb
 
         // ---------------------------------------------
         // Get last comments for all posts
-        auto lastComments = GetLastComments(ids, address);
+        auto lastComments = GetLastComments(allUIDs, address);
         for (auto& record : tmpResult)
             record.second.pushKV("lastComment", lastComments[record.first]);
 
