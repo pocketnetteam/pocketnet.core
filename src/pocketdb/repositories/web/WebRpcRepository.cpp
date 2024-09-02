@@ -6157,8 +6157,11 @@ namespace PocketDb
                     while (cursor.Step())
                     {
                         int64_t contentId, sumBoost, contentType;
-                        std::string contentHash, whoBoosted;
-                        cursor.CollectAll(contentId, contentHash, contentType, sumBoost, whoBoosted);
+                        std::string contentHash, whoBoostedStr;
+                        cursor.CollectAll(contentId, contentHash, contentType, sumBoost, whoBoostedStr);
+
+                        UniValue whoBoosted(UniValue::VARR);
+                        whoBoosted.read(whoBoostedStr);
 
                         UniValue boost(UniValue::VOBJ);
                         boost.pushKV("id", contentId);
