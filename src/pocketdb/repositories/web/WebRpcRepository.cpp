@@ -5997,123 +5997,138 @@ namespace PocketDb
                 heightMax as ( select ? as value ),
                 lang as ( select ? as value ),
                 minReputation as ( select ? as value )
+                boosts as (
+                    select
+                        tb.rowid boostId,
+                        bur.String boostAddress,
+                        ctc.Uid contentId,
+                        (select String from Registry where RowId = tb.RegId2) contentHash,
+                        tc.Type as contentType,
+                        (
+                            (
+                                select
+                                    sum(io.Value)
+                                from
+                                    TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                                cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId on
+                                    io.TxId = i.TxId and
+                                    io.Number = i.Number
+                                where
+                                    i.SpentTxId = tb.RowId
+                            )
+                            -
+                            (
+                                select
+                                    sum(o.Value)
+                                from
+                                    TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                                where
+                                    o.TxId = tb.RowId
+                            )
+                        ) as boost,
+                        json_group_array(tag.Value) as _tags
+                    from
+                        heightMin,
+                        heightMax,
+                        lang,
+                        minReputation,
+                        Transactions tb indexed by Transactions_Type_RegId2_RegId1
+                    cross join
+                        Registry bur on
+                            bur.RowId = tb.RegId1
+                    cross join
+                        Chain ctb on
+                            ctb.TxId = tb.RowId and
+                            ctb.Height > heightMin.value and
+                            ctb.Height <= heightMax.value
+                    cross join
+                        Transactions tc indexed by Transactions_Type_RegId2_RegId1 on
+                            tc.RegId2 = tb.RegId2 and
+                            tc.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                    cross join
+                        Last ltc on
+                            ltc.TxId = tc.RowId
+                    cross join
+                        Chain ctc on
+                            ctc.TxId = tc.RowId
+                    left join
+                        web.TagsMap tm on
+                            tm.ContentId = tc.RowId
+                    left join
+                        web.Tags tag on
+                            tag.Id = tm.TagId and
+                            ( ? or tag.Lang = lang.value )
+                    cross join
+                        Payload p on
+                            p.TxId = tc.RowId and
+                            ( ? or p.String1 = lang.value )
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type in (100) and
+                            u.RegId1 = tc.RegId1
+                    cross join
+                        Chain cu on
+                            cu.TxId = u.RowId
+                    cross join
+                        Last lu on
+                            lu.TxId = u.RowId
+                    left join
+                        Ratings ur indexed by Ratings_Type_Uid_Last_Value on
+                            ur.Type = 0 and
+                            ur.Uid = cu.Uid and
+                            ur.Last = 1
+                    left join
+                        JuryBan jb on
+                            jb.AccountId = cu.Uid and
+                            jb.Ending > heightMax.value
+                    left join
+                        Jury j on
+                            j.AccountId = cu.Uid
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
+                    where
+                        tb.Type in ( 208 )
+
+                        -- Do not show posts from users with low reputation
+                        and ifnull(ur.Value, 0) > minReputation.value
+
+                        -- Do not show posts from banned users
+                        and jb.AccountId is null
+
+                        -- Do not show posts from users with active jury
+                        and jv.FlagRowId is null
+
+                        -- Other excludes
+                        and tc.RegId2 not in (
+                            select RowId
+                            from Registry
+                            where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
+                        )
+
+                        and tc.RegId1 not in (
+                            select RowId
+                            from Registry
+                            where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
+                        )
+                    group by
+                        tb.RowId
+                    having
+                        ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 1 ) and
+                        ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 0 )
+                )
             select
-                ctc.Uid contentId,
-                (select String from Registry where RowId = tb.RegId2) contentHash,
-                tc.Type as contentType,
-                sum(
-                    (
-                        select
-                            sum(io.Value)
-                        from
-                            TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-                        cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId on
-                            io.TxId = i.TxId and
-                            io.Number = i.Number
-                        where
-                            i.SpentTxId = tb.RowId
-                    )
-                    -
-                    (
-                        select
-                            sum(o.Value)
-                        from
-                            TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-                        where
-                            o.TxId = tb.RowId
-                    )
-                ) as sumBoost,
-                json_group_array(tag.Value) as _tags
+                b.contentId,
+                b.contentHash,
+                b.contentType,
+                sum(b.boost),
+                json_group_array(json_object(b.boostAddress, b.boost))
             from
-                heightMin,
-                heightMax,
-                lang,
-                minReputation,
-                Transactions tb indexed by Transactions_Type_RegId2_RegId1
-            cross join
-                Chain ctb on
-                    ctb.TxId = tb.RowId and
-                    ctb.Height > heightMin.value and
-                    ctb.Height <= heightMax.value
-            cross join
-                Transactions tc indexed by Transactions_Type_RegId2_RegId1 on
-                    tc.RegId2 = tb.RegId2 and
-                    tc.Type in  ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-            cross join
-                Last ltc on
-                    ltc.TxId = tc.RowId
-            cross join
-                Chain ctc on
-                    ctc.TxId = tc.RowId
-            left join
-                web.TagsMap tm on
-                    tm.ContentId = ctc.Uid
-            left join
-                web.Tags tag on
-                    tag.Id = tm.TagId and
-                    ( ? or tag.Lang = lang.value )
-            cross join
-                Payload p on
-                    p.TxId = tc.RowId and
-                    ( ? or p.String1 = lang.value )
-            cross join
-                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                    u.Type in (100) and
-                    u.RegId1 = tc.RegId1
-            cross join
-                Chain cu on
-                    cu.TxId = u.RowId
-            cross join
-                Last lu on
-                    lu.TxId = u.RowId
-            left join
-                Ratings ur indexed by Ratings_Type_Uid_Last_Value on
-                    ur.Type = 0 and
-                    ur.Uid = cu.Uid and
-                    ur.Last = 1
-            left join
-                JuryBan jb on
-                    jb.AccountId = cu.Uid and
-                    jb.Ending > heightMax.value
-            left join
-                Jury j on
-                    j.AccountId = cu.Uid
-            left join
-                JuryVerdict jv on
-                    jv.FlagRowId = j.FlagRowId
-            where
-                tb.Type in ( 208 )
-
-                -- Do not show posts from users with low reputation
-                and ifnull(ur.Value, 0) > minReputation.value
-
-                -- Do not show posts from banned users
-                and jb.AccountId is null
-
-                -- Do not show posts from users with active jury
-                and jv.FlagRowId is null
-
-                -- Other excludes
-                and tc.RegId2 not in (
-                    select RowId
-                    from Registry
-                    where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
-                )
-
-                and tc.RegId1 not in (
-                    select RowId
-                    from Registry
-                    where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
-                )
-
+                boosts b
             group by
-                ctc.Uid,
-                tb.RegId2
-            having
-                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 1 ) and
-                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 0 )
+                b.contentId
             order by
-                sum(tb.Int1) desc
+                sum(b.boost) desc
         )sql";
 
         SqlTransaction(
@@ -6142,14 +6157,15 @@ namespace PocketDb
                     while (cursor.Step())
                     {
                         int64_t contentId, sumBoost, contentType;
-                        std::string contentHash;
-                        cursor.CollectAll(contentId, contentHash, contentType, sumBoost);
+                        std::string contentHash, whoBoosted;
+                        cursor.CollectAll(contentId, contentHash, contentType, sumBoost, whoBoosted);
 
                         UniValue boost(UniValue::VOBJ);
                         boost.pushKV("id", contentId);
                         boost.pushKV("txid", contentHash);
                         boost.pushKV("txtype", contentType);
                         boost.pushKV("boost", sumBoost);
+                        boost.pushKV("boosted", whoBoosted);
                         result.push_back(boost);
                     }
                 });
