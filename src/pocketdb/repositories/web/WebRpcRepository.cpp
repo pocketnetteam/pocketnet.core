@@ -5991,6 +5991,7 @@ namespace PocketDb
             select
                 ctc.Uid contentId,
                 (select String from Registry where RowId = tb.RegId2) contentHash,
+                tc.Type as contentType,
                 sum(
                     (
                         select
@@ -6131,13 +6132,14 @@ namespace PocketDb
                 stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
-                        int64_t contentId, sumBoost;
+                        int64_t contentId, sumBoost, contentType;
                         std::string contentHash;
-                        cursor.CollectAll(contentId, contentHash, sumBoost);
+                        cursor.CollectAll(contentId, contentHash, contentType, sumBoost);
 
                         UniValue boost(UniValue::VOBJ);
                         boost.pushKV("id", contentId);
                         boost.pushKV("txid", contentHash);
+                        boost.pushKV("txtype", contentType);
                         boost.pushKV("boost", sumBoost);
                         result.push_back(boost);
                     }
