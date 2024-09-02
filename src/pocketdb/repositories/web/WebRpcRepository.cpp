@@ -615,6 +615,7 @@ namespace PocketDb
                             if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
                             if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
                             if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("blockers_count", value);
                             if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
                             if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("k", value);
                             if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("a", value);
@@ -776,6 +777,14 @@ namespace PocketDb
                     where
                         bl.IdSource = u.RegId1
                 ) as BlockingsCount
+                ,(
+                    select
+                        count()
+                    from
+                        BlockingLists bl
+                    where
+                        bl.IdTarget = u.RegId1
+                ) as BlockersCount
                 ,ifnull((
                     select
                         sum(lkr.Value)
