@@ -5996,7 +5996,7 @@ namespace PocketDb
                 heightMin as ( select ? as value ),
                 heightMax as ( select ? as value ),
                 lang as ( select ? as value ),
-                minReputation as ( select ? as value )
+                minReputation as ( select ? as value ),
                 boosts as (
                     select
                         tb.rowid boostId,
