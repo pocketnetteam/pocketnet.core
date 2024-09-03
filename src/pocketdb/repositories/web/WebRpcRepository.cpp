@@ -1087,13 +1087,13 @@ namespace PocketDb
                         select c1.RowId
 
                         from Transactions c1 indexed by Transactions_Type_RegId3_RegId1
-                        join Chain cc1 on cc1.TxId = c1.RowId
-                        join Last lc1 on lc1.TxId = c1.RowId
+                        cross join Chain cc1 on cc1.TxId = c1.RowId
+                        cross join Last lc1 on lc1.TxId = c1.RowId
 
-                        join Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        cross join Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
                           on uac.Type = 100 and uac.RegId1 = c1.RegId1
-                        join Chain cuac on cuac.TxId = uac.RowId
-                        join Last luac on luac.TxId = uac.RowId
+                        cross join Chain cuac on cuac.TxId = uac.RowId
+                        cross join Last luac on luac.TxId = uac.RowId
 
                         left join TxOutputs o
                             on o.TxId = c1.RowId and o.AddressId = t.RegId1 and o.AddressId != c1.RegId1 and o.Value > ?
@@ -1103,19 +1103,18 @@ namespace PocketDb
                           and c1.RegId4 is null
                           -- exclude commenters blocked by the author of the post
                           and not exists (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c1.RegId1)
-                          and not exists (select 1 from BlockingLists bl where bl.IdSource = c1.RegId1 and bl.IdTarget = t.RegId1)
 
                         order by o.Value desc, c1.RowId desc
                         limit 1
                     )commentRowId
 
                 from Chain c indexed by Chain_Uid_Height
-                join Transactions t on t.RowId = c.TxId
-                join Last l on l.TxId = t.RowId
-                join Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join Transactions t on t.RowId = c.TxId
+                cross join Last l on l.TxId = t.RowId
+                cross join Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
                   on ua.RegId1 = t.RegId1 and ua.Type = 100
-                join Chain cua on cua.TxId = ua.RowId
-                join Last lua on lua.TxId = ua.RowId
+                cross join Chain cua on cua.TxId = ua.RowId
+                cross join Last lua on lua.TxId = ua.RowId
 
                 where c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
 
