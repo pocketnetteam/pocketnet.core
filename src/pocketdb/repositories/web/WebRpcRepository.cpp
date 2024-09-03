@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/web/WebRpcRepository.h"
+#include "pocketdb/repositories/ConsensusRepository.h"
 #include <functional>
 
 namespace PocketDb
@@ -645,6 +646,24 @@ namespace PocketDb
                                 record.pushKV("bans", flags);
                             }
 
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                UniValue badges(UniValue::VARR);
+                                if (badges.read(value) && badges.isArray()) {
+                                    BadgeSet badgeSet;
+                                    badgeSet.Developer = IsDeveloper(address);
+
+                                    for (unsigned int i = 0; i < badges.size(); i++)
+                                    {
+                                        if (!badges[i].isNum())
+                                            continue;
+
+                                        badgeSet.Set(badges[i].get_int());
+                                    }
+
+                                    record.pushKV("badges", badgeSet.ToJson());
+                                }
+                            }
+
                             if (!shortForm) {
 
                                 if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
@@ -801,7 +820,17 @@ namespace PocketDb
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 5), '{}') as FlagsJson
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 6), '{}') as FirstFlagsCount
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 7), 0) as ActionsCount
-                ,(select json_group_object((select r.String from Registry r where r.RowId = jb.VoteRowId), jb.Ending) from JuryBan jb where jb.AccountId = cu.Uid) as Bans
+                ,(select json_group_object((select r.String from Registry r where r.RowId = jb.VoteRowId), jb.Ending) from JuryBan jb where jb.AccountId = cu.Uid) as Bans,
+                (
+                    select
+                        json_group_array(b.Badge)
+                    from Badges b
+                    where
+                        b.AccountId = cu.Uid and
+                        b.Cancel = 0
+                    order by
+                        b.Height desc
+                ) as badges
                 <FULLPART>
             from
                 addr,
