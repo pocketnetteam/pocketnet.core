@@ -972,7 +972,8 @@ namespace PocketDb
 
                     where
                         c.Height > (? - 600) and
-                        not exists (select 1 from BlockingLists bl where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1)
+                        not exists (select 1 from BlockingLists bl where bl.IdSource = p.RegId1 and bl.IdTarget = t.RegId1) and
+                        not exists (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = p.RegId1)
 
                     order by c.Height desc
                     limit ?
