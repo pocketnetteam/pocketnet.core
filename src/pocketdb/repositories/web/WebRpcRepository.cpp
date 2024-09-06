@@ -1076,7 +1076,18 @@ namespace PocketDb
                     limit 1
                 ) as Donate,
                 (select 1 from BlockingLists bl where bl.IdSource = cmnt.ContentAddressId and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
-                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = cmnt.ContentAddressId limit 1)CommentBlockedContent
+                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = cmnt.ContentAddressId limit 1)CommentBlockedContent,
+                (
+                    select
+                        json_group_array(
+                            (select rf.String from Registry rf where rf.RowId = f.RowId)
+                        )
+                    from
+                        Transactions f indexed by Transactions_Type_RegId2_RegId1
+                    where
+                        f.Type in (410) and
+                        f.RegId2 = c.RowId
+                ) as Flags
 
             from (
                 select
@@ -1173,6 +1184,13 @@ namespace PocketDb
                             record.pushKV("blck_cnt_cmt", 1);
                         if (auto[ok, value] = cursor.TryGetColumnInt(19); ok && value > 0)
                             record.pushKV("blck_cmt_cnt", 1);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(20); ok)
+                        {
+                            UniValue flags(UniValue::VARR);
+                            flags.read(value);
+                            record.pushKV("flags", flags);
+                        };
                                         
                         result.emplace(contentId, record);
                     }
@@ -1510,7 +1528,18 @@ namespace PocketDb
                 ) as ChildrenCount,
                 o.Value as Donate,
                 (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
-                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent
+                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent,
+                (
+                    select
+                        json_group_array(
+                            (select rf.String from Registry rf where rf.RowId = f.RowId)
+                        )
+                    from
+                        Transactions f indexed by Transactions_Type_RegId2_RegId1
+                    where
+                        f.Type in (410) and
+                        f.RegId2 = c.RowId
+                ) as Flags
             from
                 tx,
                 addr
@@ -1600,6 +1629,12 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnInt(18); ok && value > 0)
                             record.pushKV("blck_cmt_cnt", 1);
 
+                        if (auto[ok, value] = cursor.TryGetColumnString(19); ok)
+                        {
+                            UniValue flags(UniValue::VARR);
+                            flags.read(value);
+                            record.pushKV("flags", flags);
+                        };
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                         {
@@ -1772,7 +1807,18 @@ namespace PocketDb
                         o.Value as Donate,
                         (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
                         (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent,
-                        cc.Uid
+                        cc.Uid,
+                        (
+                            select
+                                json_group_array(
+                                    (select rf.String from Registry rf where rf.RowId = f.RowId)
+                                )
+                            from
+                                Transactions f indexed by Transactions_Type_RegId2_RegId1
+                            where
+                                f.Type in (410) and
+                                f.RegId2 = c.RowId
+                        ) as Flags
                     from
                         txs,
                         addr
@@ -1862,6 +1908,13 @@ namespace PocketDb
                                     break;
                             }
                         }
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(20); ok)
+                        {
+                            UniValue flags(UniValue::VARR);
+                            flags.read(value);
+                            record.pushKV("flags", flags);
+                        };
 
                         auto[ok_hash, hash] = cursor.TryGetColumnString(1);
                         auto[ok_id, id] = cursor.TryGetColumnInt64(19);
@@ -4377,7 +4430,7 @@ namespace PocketDb
                                 tv.RegId2 = t.RegId2 and
                                 tv.RowId != t.RowId
                         ) as Versions,
-                        ifnull((
+                        (
                             select
                                 json_group_array(
                                     (select rf.String from Registry rf where rf.RowId = f.RowId)
@@ -4387,7 +4440,7 @@ namespace PocketDb
                             where
                                 f.Type in (410) and
                                 f.RegId2 = t.RowId
-                        ), 0) as Flags
+                        ) as Flags
                     from
                         txs,
                         addr
