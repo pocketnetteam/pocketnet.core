@@ -65,6 +65,7 @@ namespace PocketDb
 
         void DetachDatabase(const string& dbName);
         void AttachDatabase(const string& dbName);
+        bool IsDatabaseAttached(const string& dbName);
 
         void RebuildIndexes();
     };

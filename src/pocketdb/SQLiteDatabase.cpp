@@ -464,9 +464,38 @@ namespace PocketDb
             throw std::runtime_error("Failed attach database " + dbName);
     }
 
+    bool SQLiteDatabase::IsDatabaseAttached(const string& dbName)
+    {
+        assert(m_db);
+
+        char* errMsg = nullptr;
+        const string cmnd = "pragma database_list;";
+
+        vector<string> attachedDbs;
+        auto callback = [](void* data, int argc, char** argv, char** azColName) -> int {
+            auto vec = static_cast<vector<string>*>(data);
+            if(argc > 1) {
+                vec->push_back(argv[1]);
+            }
+            return 0;
+        };
+
+        if(sqlite3_exec(m_db, cmnd.c_str(), callback, &attachedDbs, &errMsg) != SQLITE_OK) {
+            string error(errMsg);
+            sqlite3_free(errMsg);
+            throw std::runtime_error("Failed to get list of attached databases: " + error);
+        }
+
+        return std::find(attachedDbs.begin(), attachedDbs.end(), dbName) != attachedDbs.end();
+    }
+
     void SQLiteDatabase::DetachDatabase(const string& dbName)
     {
         assert(m_db);
+
+        if(!IsDatabaseAttached(dbName)) {
+            throw std::runtime_error("Database " + dbName + " is not attached.");
+        }
 
         fs::path dbPath(m_db_path);
         string cmnd = "detach " + dbName + ";";

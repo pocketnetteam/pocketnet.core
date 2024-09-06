@@ -501,6 +501,8 @@ find_package(Event 2.0 REQUIRED)
 add_subdirectory(sqlite/)
 add_compile_definitions(USE_SQLITE=1)
 
+include_directories("/usr/local/opt/openssl/include")
+link_directories("/usr/local/opt/openssl/lib")
 find_package(OpenSSL REQUIRED)
 
 # Some configuration

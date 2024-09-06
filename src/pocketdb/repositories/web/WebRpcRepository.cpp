@@ -5985,7 +5985,7 @@ namespace PocketDb
                 minReputation as ( select ? as value )
             select
                 ctc.Uid contentId,
-                (select String from Registry where RowId = tb.RegId2) contentHash,
+                    (select String from Registry where RowId = tb.RegId2) contentHash,
                 sum(
                     (
                         select
@@ -6046,7 +6046,7 @@ namespace PocketDb
                     u.Type in (100) and
                     u.RegId1 = tc.RegId1
             cross join
-                Chain cu on
+                    Chain cu on
                     cu.TxId = u.RowId
             cross join
                 Last lu on
