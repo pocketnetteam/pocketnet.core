@@ -4376,7 +4376,18 @@ namespace PocketDb
                                 tv.Type = t.Type and
                                 tv.RegId2 = t.RegId2 and
                                 tv.RowId != t.RowId
-                        ) as Versions
+                        ) as Versions,
+                        ifnull((
+                            select
+                                json_group_array(
+                                    (select rf.String from Registry rf where rf.RowId = f.RowId)
+                                )
+                            from
+                                Transactions f indexed by Transactions_Type_RegId2_RegId1
+                            where
+                                f.Type in (410) and
+                                f.RegId2 = t.RowId
+                        ), 0) as Flags
                     from
                         txs,
                         addr
@@ -4440,9 +4451,9 @@ namespace PocketDb
                         });
 
                         cursor.Collect(ii++, [&](const string& value) {
-                            UniValue ii(UniValue::VARR);
-                            ii.read(value);
-                            record.pushKV("i", ii);
+                            UniValue i(UniValue::VARR);
+                            i.read(value);
+                            record.pushKV("i", i);
                         });
 
                         cursor.Collect(ii++, [&](const string& value) {
@@ -4462,9 +4473,15 @@ namespace PocketDb
                             ii++;
 
                         cursor.Collect(ii++, [&](const string& value) {
-                            UniValue ii(UniValue::VARR);
-                            ii.read(value);
-                            record.pushKV("versions", ii);
+                            UniValue versions(UniValue::VARR);
+                            versions.read(value);
+                            record.pushKV("versions", versions);
+                        });
+
+                        cursor.Collect(ii++, [&](const string& value) {
+                            UniValue flags(UniValue::VARR);
+                            flags.read(value);
+                            record.pushKV("flags", flags);
                         });
 
                         tmpResult[id] = record;                
