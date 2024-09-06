@@ -4265,9 +4265,6 @@ namespace PocketDb
                         c.TxId as id
                     from
                         Chain c
-                    cross join
-                        First f on
-                            f.TxId = c.TxId
                     where c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
                 ),
             )sql";
