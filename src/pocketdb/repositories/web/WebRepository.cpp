@@ -846,7 +846,7 @@ namespace PocketDb
 
         // FlagsJson
         {
-            unordered_map<int64_t, int64_t> _map;
+            unordered_map<int64_t, string> _map;
             SqlTransaction(
                 "CollectAccountStatistic_FlagsJson_Get",
                 [&]() -> Stmt& {
@@ -884,9 +884,10 @@ namespace PocketDb
                     stmt.Select([&](Cursor& cursor) {
                         while (cursor.Step())
                         {
-                            int64_t regId1, count;
-                            if (cursor.CollectAll(regId1, count))
-                                _map.emplace(regId1, count);
+                            int64_t regId1
+                            string value;
+                            if (cursor.CollectAll(regId1, value))
+                                _map.emplace(regId1, value);
                         }
                     });
                 }
@@ -909,7 +910,7 @@ namespace PocketDb
 
         // FirstFlagsCount
         {
-            unordered_map<int64_t, int64_t> _map;
+            unordered_map<int64_t, string> _map;
             SqlTransaction(
                 "CollectAccountStatistic_FirstFlagsCount_Get",
                 [&]() -> Stmt& {
@@ -963,9 +964,10 @@ namespace PocketDb
                     stmt.Select([&](Cursor& cursor) {
                         while (cursor.Step())
                         {
-                            int64_t regId1, count;
-                            if (cursor.CollectAll(regId1, count))
-                                _map.emplace(regId1, count);
+                            int64_t regId1
+                            string value;
+                            if (cursor.CollectAll(regId1, value))
+                                _map.emplace(regId1, value);
                         }
                     });
                 }
