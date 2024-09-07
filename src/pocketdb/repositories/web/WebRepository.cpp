@@ -884,7 +884,7 @@ namespace PocketDb
                     stmt.Select([&](Cursor& cursor) {
                         while (cursor.Step())
                         {
-                            int64_t regId1
+                            int64_t regId1;
                             string value;
                             if (cursor.CollectAll(regId1, value))
                                 _map.emplace(regId1, value);
@@ -964,7 +964,7 @@ namespace PocketDb
                     stmt.Select([&](Cursor& cursor) {
                         while (cursor.Step())
                         {
-                            int64_t regId1
+                            int64_t regId1;
                             string value;
                             if (cursor.CollectAll(regId1, value))
                                 _map.emplace(regId1, value);
