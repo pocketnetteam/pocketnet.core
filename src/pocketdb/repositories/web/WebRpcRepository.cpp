@@ -628,7 +628,8 @@ namespace PocketDb
                             if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
                                 UniValue flags(UniValue::VOBJ);
                                 flags.read(value);
-                                record.pushKV("flags", flags);
+                                if (flags.size() > 0)
+                                    record.pushKV("flags", flags);
                             }
 
                             if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
@@ -1189,7 +1190,8 @@ namespace PocketDb
                         {
                             UniValue flags(UniValue::VARR);
                             flags.read(value);
-                            record.pushKV("flags", flags);
+                            if (flags.size() > 0)
+                                record.pushKV("flags", flags);
                         };
                                         
                         result.emplace(contentId, record);
@@ -1633,7 +1635,8 @@ namespace PocketDb
                         {
                             UniValue flags(UniValue::VARR);
                             flags.read(value);
-                            record.pushKV("flags", flags);
+                            if (flags.size() > 0)
+                                record.pushKV("flags", flags);
                         };
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
@@ -1913,7 +1916,8 @@ namespace PocketDb
                         {
                             UniValue flags(UniValue::VARR);
                             flags.read(value);
-                            record.pushKV("flags", flags);
+                            if (flags.size() > 0)
+                                record.pushKV("flags", flags);
                         };
 
                         auto[ok_hash, hash] = cursor.TryGetColumnString(1);
@@ -4534,7 +4538,8 @@ namespace PocketDb
                         cursor.Collect(ii++, [&](const string& value) {
                             UniValue flags(UniValue::VARR);
                             flags.read(value);
-                            record.pushKV("flags", flags);
+                            if (flags.size() > 0)
+                                record.pushKV("flags", flags);
                         });
 
                         tmpResult[id] = record;                
@@ -6105,6 +6110,7 @@ namespace PocketDb
                         tb.rowid boostId,
                         bur.String boostAddress,
                         ctc.Uid contentId,
+                        tb.RegId2 contentRowId,
                         (select String from Registry where RowId = tb.RegId2) contentHash,
                         tc.Type as contentType,
                         (
@@ -6225,7 +6231,18 @@ namespace PocketDb
                 b.contentHash,
                 b.contentType,
                 sum(b.boost),
-                json_group_array(json_object(b.boostAddress, b.boost))
+                json_group_array(json_object(b.boostAddress, b.boost)),
+                (
+                    select
+                        json_group_array(
+                            (select rf.String from Registry rf where rf.RowId = f.RowId)
+                        )
+                    from
+                        Transactions f indexed by Transactions_Type_RegId2_RegId1
+                    where
+                        f.Type in (410) and
+                        f.RegId2 = b.contentRowId
+                ) as Flags
             from
                 boosts b
             group by
@@ -6260,8 +6277,9 @@ namespace PocketDb
                     while (cursor.Step())
                     {
                         int64_t contentId, sumBoost, contentType;
-                        std::string contentHash, whoBoostedStr;
-                        cursor.CollectAll(contentId, contentHash, contentType, sumBoost, whoBoostedStr);
+                        std::string contentHash, whoBoostedStr, flagsStr;
+                        cursor.CollectAll(contentId, contentHash, contentType,
+                            sumBoost, whoBoostedStr, flagsStr);
 
                         UniValue whoBoosted(UniValue::VARR);
                         whoBoosted.read(whoBoostedStr);
@@ -6272,6 +6290,12 @@ namespace PocketDb
                         boost.pushKV("txtype", contentType);
                         boost.pushKV("boost", sumBoost);
                         boost.pushKV("boosted", whoBoosted);
+
+                        UniValue flags(UniValue::VARR);
+                        flags.read(flagsStr);
+                        if (flags.size() > 0)
+                            record.pushKV("flags", flags);
+
                         result.push_back(boost);
                     }
                 });
