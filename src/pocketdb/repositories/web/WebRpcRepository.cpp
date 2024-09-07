@@ -6294,7 +6294,7 @@ namespace PocketDb
                         UniValue flags(UniValue::VARR);
                         flags.read(flagsStr);
                         if (flags.size() > 0)
-                            record.pushKV("flags", flags);
+                            boost.pushKV("flags", flags);
 
                         result.push_back(boost);
                     }
