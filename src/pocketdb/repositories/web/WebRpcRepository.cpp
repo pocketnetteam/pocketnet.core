@@ -1763,16 +1763,16 @@ namespace PocketDb
                     select
 
                         c.Type,
-                        (select r.String from Registry r where r.RowId = c.RowId),
-                        (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
-                        (select r.String from Registry r where r.RowId = c.RegId3) as PostTxHash,
-                        (select r.String from Registry r where r.RowId = c.RegId1) as AddressHash,
-                        r.Time AS RootTime,
+                        (select rg.String from Registry rg where rg.RowId = c.RowId),
+                        (select rg.String from Registry rg where rg.RowId = c.RegId2) as RootTxHash,
+                        (select rg.String from Registry rg where rg.RowId = c.RegId3) as PostTxHash,
+                        (select rg.String from Registry rg where rg.RowId = r.RegId1) as AddressHash,
+                        r.Time as RootTime,
                         c.Time,
                         cc.Height,
-                        pl.String1 AS Msg,
-                        (select r.String from Registry r where r.RowId = c.RegId4) as ParentTxHash,
-                        (select r.String from Registry r where r.RowId = c.RegId5) as AnswerTxHash,
+                        pl.String1 as Msg,
+                        (select rg.String from Registry rg where rg.RowId = c.RegId4) as ParentTxHash,
+                        (select rg.String from Registry rg where rg.RowId = c.RegId5) as AnswerTxHash,
                         (
                             select count()
                             from Transactions sc indexed by Transactions_Type_RegId2_RegId1
@@ -1786,9 +1786,9 @@ namespace PocketDb
                             where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = -1
                         ) as ScoreDown,
                         (
-                            select r.Value
-                            from Ratings r indexed by Ratings_Type_Uid_Last_Value
-                            where r.Type = 3 and r.Uid = cc.Uid and r.Last = 1
+                            select rt.Value
+                            from Ratings rt indexed by Ratings_Type_Uid_Last_Value
+                            where rt.Type = 3 and rt.Uid = cc.Uid and rt.Last = 1
                         ) as Reputation,
                         ifnull(sc.Int1, 0) as MyScore,
                         (
@@ -1830,7 +1830,8 @@ namespace PocketDb
                                     f.RegId2 = c.RowId
                                 group by f.Int1
                             ) ff
-                        ) as Flags
+                        ) as Flags,
+                        (select rg.String from Registry rg where rg.RowId = c.RegId1) as LastAddressHash,
                     from
                         txs,
                         addr
@@ -1876,7 +1877,11 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok) record.pushKV("type", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("id", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("postid", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
+                        string rootAddress;
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) {
+                            rootAddress = value;
+                            record.pushKV("address", rootAddress);
+                        }
                         if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("time", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("timeUpd", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("block", value);
@@ -1915,6 +1920,9 @@ namespace PocketDb
                                 case PocketTx::CONTENT_COMMENT_DELETE:
                                     record.pushKV("deleted", true);
                                     record.pushKV("edit", true);
+                                    if (auto[ok, value] = cursor.TryGetColumnString(21); ok)
+                                        if (value != rootAddress)
+                                            record.pushKV("whodel", value);
                                     break;
                                 default:
                                     break;
