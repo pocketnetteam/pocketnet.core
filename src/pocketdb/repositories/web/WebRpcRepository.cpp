@@ -4462,14 +4462,14 @@ namespace PocketDb
                         addr
                     cross join
                         Transactions t
-                            on t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210)
+                            on t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210, 207)
                     cross join
                         Chain c
                             on c.TxId = t.RowId
                     cross join
                         Last l
                             on l.TxId = t.RowId
-                    cross join
+                    left join
                         Payload p
                             on p.TxId = t.RowId
                 )sql")
