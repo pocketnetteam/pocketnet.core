@@ -5970,7 +5970,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetBoostFeed(int topHeight,
+    UniValue WebRpcRepository::GetBoostFeed(int topHeight, int countOut,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         int badReputationLimit)
@@ -6107,7 +6107,7 @@ namespace PocketDb
                 return
                     Sql(sql)
                     .Bind(
-                        topHeight - cntBlocksForResult,
+                        topHeight - countOut,
                         topHeight,
                         lang,
                         -500,
