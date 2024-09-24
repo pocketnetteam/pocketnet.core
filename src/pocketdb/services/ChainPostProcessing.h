@@ -27,19 +27,30 @@ namespace PocketServices
     using std::vector;
     using std::find;
 
-    
+    struct ModerationCondition
+    {
+        int flag_count = 0;
+        int moders_count = 0;
+        int vote_count = 0;
+    };
 
     class ChainPostProcessing
     {
     public:
         static void Index(const CBlock& block, int height);
         static bool Rollback(int height);
+
     protected:
         static void PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs);
         static void IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs);
         static void IndexRatings(int height, vector<TransactionIndexingInfo>& txs);
         static void IndexModeration(int height, vector<TransactionIndexingInfo>& txs);
         static void IndexBadges(int height);
+
+        static ModerationCondition GetConditions(int height, int accountLikers);
+        static void IndexModerationFlag(const TransactionIndexingInfo& txInfo, int height);
+        static void IndexModerationVote(const TransactionIndexingInfo& txInfo, int height);
+
     private:
         static int BadgePeriod()
         {

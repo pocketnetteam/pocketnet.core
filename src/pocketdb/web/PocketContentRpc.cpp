@@ -803,16 +803,22 @@ namespace PocketWeb::PocketWebRpc
         vector<string> tagsExcluded;
 
         string skipString = "";
-        int skipInt =  0;
-        ParseFeedRequest(request, topHeight, skipString, skipInt, lang, tags, contentTypes, txIdsExcluded,
+        int countOut = 300;
+        ParseFeedRequest(request, topHeight, skipString, countOut, lang, tags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, skipString);
+
+        // Hack for set countOut value more 20
+        // - ParseFeedRequest it will not allow you to set a value of more than 20
+        countOut = 300;
+        if (request.params.size() > 2 && request.params[2].isNum())
+            countOut = request.params[2].get_int();
 
         auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(ChainActiveSafeHeight());
         auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
         UniValue result(UniValue::VOBJ);
         UniValue boosts = request.DbConnection()->WebRpcRepoInst->GetBoostFeed(
-            topHeight, lang, tags, contentTypes,
+            topHeight, countOut, lang, tags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded,
             badReputationLimit);
 

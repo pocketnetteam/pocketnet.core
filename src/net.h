@@ -200,43 +200,6 @@ void InterruptMapPort();
 void StopMapPort();
 uint16_t GetListenPort();
 
-/**
- * Interface for message handling
- */
-class NetEventsInterface
-{
-public:
-    /** Initialize a peer (setup state, queue any initial messages) */
-    virtual void InitializeNode(CNode* pnode) = 0;
-
-    /** Handle removal of a peer (clear state) */
-    virtual void FinalizeNode(const CNode& node, bool& update_connection_time) = 0;
-
-    /**
-    * Process protocol messages received from a given node
-    *
-    * @param[in]   pnode           The node which we have received messages from.
-    * @param[in]   interrupt       Interrupt condition for processing threads
-    * @return                      True if there is more work to be done
-    */
-    virtual bool ProcessMessages(CNode* pnode, std::atomic<bool>& interrupt) = 0;
-
-    /**
-    * Send queued protocol messages to a given node.
-    *
-    * @param[in]   pnode           The node which we are sending messages to.
-    * @return                      True if there is more work to be done
-    */
-    virtual bool SendMessages(CNode* pnode) EXCLUSIVE_LOCKS_REQUIRED(pnode->cs_sendProcessing) = 0;
-
-protected:
-    /**
-     * Protected destructor so that instances can only be deleted by derived classes.
-     * If that restriction is no longer desired, this should be made public and virtual.
-     */
-    ~NetEventsInterface() = default;
-};
-
 enum
 {
     LOCAL_NONE,   // unknown
@@ -298,14 +261,12 @@ public:
     int64_t nLastRecv;
     int64_t nLastTXTime;
     int64_t nLastBlockTime;
-//    int64_t nTimeConnected;
     std::chrono::seconds m_connected;
     int64_t nTimeOffset;
     std::string addrName;
     int nVersion;
     std::string cleanSubVer;
     bool fInbound;
-//    bool m_manual_connection;		// FIXME!!! Delete!
     // We requested high bandwidth connection to peer
     bool m_bip152_highbandwidth_to;
     // Peer requested high bandwidth connection
@@ -844,6 +805,43 @@ public:
 
 //    std::string ConnectionTypeAsString() const;
     std::string ConnectionTypeAsString() const { return ::ConnectionTypeAsString(m_conn_type); }
+};
+
+/**
+ * Interface for message handling
+ */
+class NetEventsInterface
+{
+public:
+    /** Initialize a peer (setup state, queue any initial messages) */
+    virtual void InitializeNode(CNode* pnode) = 0;
+
+    /** Handle removal of a peer (clear state) */
+    virtual void FinalizeNode(const CNode& node, bool& update_connection_time) = 0;
+
+    /**
+    * Process protocol messages received from a given node
+    *
+    * @param[in]   pnode           The node which we have received messages from.
+    * @param[in]   interrupt       Interrupt condition for processing threads
+    * @return                      True if there is more work to be done
+    */
+    virtual bool ProcessMessages(CNode* pnode, std::atomic<bool>& interrupt) = 0;
+
+    /**
+    * Send queued protocol messages to a given node.
+    *
+    * @param[in]   pnode           The node which we are sending messages to.
+    * @return                      True if there is more work to be done
+    */
+    virtual bool SendMessages(CNode* pnode) EXCLUSIVE_LOCKS_REQUIRED(pnode->cs_sendProcessing) = 0;
+
+protected:
+    /**
+     * Protected destructor so that instances can only be deleted by derived classes.
+     * If that restriction is no longer desired, this should be made public and virtual.
+     */
+    ~NetEventsInterface() = default;
 };
 
 class CConnman
