@@ -52,6 +52,25 @@ namespace PocketDb
         bool Moderator = false; // 3
         bool Developer = false; // 4
 
+        void Set(int v)
+        {
+            switch (v)
+            {
+                case 1:
+                    Shark = true;
+                    break;
+                case 2:
+                    Whale = true;
+                    break;
+                case 3:
+                    Moderator = true;
+                    break;
+                case 4:
+                    Developer = true;
+                    break;
+            }
+        }
+
         UniValue ToJson()
         {
             UniValue ret(UniValue::VARR);
