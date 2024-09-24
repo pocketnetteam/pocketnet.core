@@ -31,7 +31,7 @@ you can use [the installation script included in contrib/](/contrib/install_db4.
 like so
 
 ```shell
-./contrib/install_db4.sh .
+CFLAGS=-Wno-error=implicit-function-declaration ./contrib/install_db4.sh .
 ```
 
 from the root of the repository.

@@ -3819,5 +3819,85 @@ namespace PocketDb
         return result;
     }
 
+    int ConsensusRepository::LikersByFlag(const string& txHash)
+    {
+        int result = 0;
+        
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                    flag as ( select r.RowId from Registry r where r.String = ? )
+                select
+                    ifnull(lp.Value,0)LikersAll
+                from
+                    flag
+                cross join
+                    Transactions f on
+                        f.RowId = flag.RowId
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_Time on
+                        u.Type in (100, 170) and u.RegId1 = f.RegId3
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                cross join
+                    Last lu on
+                        lu.TxId = u.RowId
+                left join
+                    Ratings lp indexed by Ratings_Type_Uid_Last_Value on
+                        lp.Type in (111, 112, 113) and lp.Uid = cu.Uid and lp.Last = 1
+            )sql")
+            .Bind(txHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::LikersByVote(const string& txHash)
+    {
+        int result = 0;
+        
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                    vote as ( select r.RowId from Registry r where r.String = ? )
+                select
+                    ifnull(lp.Value,0)LikersAll
+                from
+                    vote
+                cross join
+                    Transactions v on
+                        v.RowId = vote.RowId
+                cross join
+                    Transactions f on
+                        f.RowId = v.RegId2
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_Time on
+                        u.Type in (100, 170) and u.RegId1 = f.RegId3
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                cross join
+                    Last lu on
+                        lu.TxId = u.RowId
+                left join
+                    Ratings lp indexed by Ratings_Type_Uid_Last_Value on
+                        lp.Type in (111, 112, 113) and lp.Uid = cu.Uid and lp.Last = 1
+            )sql")
+            .Bind(txHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
 
 }
