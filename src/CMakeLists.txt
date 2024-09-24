@@ -130,7 +130,8 @@ add_subdirectory(secp256k1/)
 set(WITH_PIC ${WITH_PIC_BACKUP} CACHE BOOL "Enable fPIC" FORCE)
 
 # Finding boost
-find_package(Boost 1.66 REQUIRED COMPONENTS system thread chrono filesystem date_time)
+find_package(Boost 1.66 REQUIRED COMPONENTS system thread filesystem)
+#[[
 ######## Boost sleep functions validation
 set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         #include <boost/version.hpp>
@@ -167,6 +168,7 @@ else ()
         message(FATAL_ERROR "No working boost sleep implementation found.")
     endif ()
 endif ()
+]]
 
 # Common checks
 
@@ -790,7 +792,7 @@ add_library(${POCKETCOIN_UTIL}
                 warnings.h
                 warnings.cpp
             )
-target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} ${CRYPT32} Boost::thread Boost::chrono Boost::date_time Event::event univalue)
+target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} ${CRYPT32} Boost::thread Event::event univalue)
 target_link_libraries(${POCKETCOIN_UTIL} PUBLIC Boost::filesystem)
 if(WIN32)
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ws2_32 crypt32 wsock32)
@@ -852,6 +854,7 @@ add_library(${POCKETCOIN_CRYPTO}
         util/strencodings.h # TODO (build): maybe move to utils
         util/strencodings.cpp
         )
+target_include_directories(${POCKETCOIN_CRYPTO} PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(${POCKETCOIN_CRYPTO} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_SUPPORT} secp256k1)
 if (ENABLE_SSE41)
     target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_sse41.cpp)
@@ -1232,7 +1235,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/barteron/Account.hpp
         pocketdb/consensus/Helper.cpp
         )
-    target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} ${POCKET_UTIL} Event::event ${CRYPT32} Boost::boost Boost::date_time)
+    target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} ${POCKET_UTIL} Event::event ${CRYPT32} Boost::boost)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue leveldb)
 target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
