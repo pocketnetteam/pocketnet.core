@@ -8,3 +8,4 @@ PIPs that are implemented by Pocketcoin Core:
 * `PIP 105`: Disable actions (comments, likes, etc.) for accounts that have been blocked by the authors of the "actions". ([PR #683](https://github.com/pocketnetteam/pocketnet.core/wiki/PIP-105:-Disable-actions-(comments,-likes,-etc.)-for-accounts-that-have-been-blocked-by-the-authors-of-the-%22actions%22))
 * `PIP 106`: Allow restore deleted account. ([PR #700](https://github.com/pocketnetteam/pocketnet.core/wiki/PIP-106:-Allow-restore-deleted-account))
 * `PIP 107`: Increase the time limit for editing content. ([PR #702](https://github.com/pocketnetteam/pocketnet.core/wiki/PIP-107:-Increase-the-time-limit-for-editing-content))
+* `PIP 108`: Extend moderation flag categories. ([PR #737](https://github.com/pocketnetteam/pocketnet.core/wiki/PIP-108:-Extend-moderation-flag-categories))

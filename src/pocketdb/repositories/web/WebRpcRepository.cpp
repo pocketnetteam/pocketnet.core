@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/web/WebRpcRepository.h"
+#include "pocketdb/repositories/ConsensusRepository.h"
 #include <functional>
 
 namespace PocketDb
@@ -615,6 +616,7 @@ namespace PocketDb
                             if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribes_count", value);
                             if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("subscribers_count", value);
                             if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("blockings_count", value);
+                            if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("blockers_count", value);
                             if (auto [ok, value] = cursor.TryGetColumnInt(i++); ok) record.pushKV("likers_count", value);
                             if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("k", value);
                             if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) record.pushKV("a", value);
@@ -642,6 +644,24 @@ namespace PocketDb
                                 UniValue flags(UniValue::VOBJ);
                                 flags.read(value);
                                 record.pushKV("bans", flags);
+                            }
+
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                UniValue badges(UniValue::VARR);
+                                if (badges.read(value) && badges.isArray()) {
+                                    BadgeSet badgeSet;
+                                    badgeSet.Developer = IsDeveloper(address);
+
+                                    for (unsigned int i = 0; i < badges.size(); i++)
+                                    {
+                                        if (!badges[i].isNum())
+                                            continue;
+
+                                        badgeSet.Set(badges[i].get_int());
+                                    }
+
+                                    record.pushKV("badges", badgeSet.ToJson());
+                                }
                             }
 
                             if (!shortForm) {
@@ -776,6 +796,14 @@ namespace PocketDb
                     where
                         bl.IdSource = u.RegId1
                 ) as BlockingsCount
+                ,(
+                    select
+                        count()
+                    from
+                        BlockingLists bl
+                    where
+                        bl.IdTarget = u.RegId1
+                ) as BlockersCount
                 ,ifnull((
                     select
                         sum(lkr.Value)
@@ -792,7 +820,17 @@ namespace PocketDb
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 5), '{}') as FlagsJson
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 6), '{}') as FirstFlagsCount
                 ,ifnull((select Data from web.AccountStatistic a where a.AccountRegId = addr.id and a.Type = 7), 0) as ActionsCount
-                ,(select json_group_object((select r.String from Registry r where r.RowId = jb.VoteRowId), jb.Ending) from JuryBan jb where jb.AccountId = cu.Uid) as Bans
+                ,(select json_group_object((select r.String from Registry r where r.RowId = jb.VoteRowId), jb.Ending) from JuryBan jb where jb.AccountId = cu.Uid) as Bans,
+                (
+                    select
+                        json_group_array(b.Badge)
+                    from Badges b
+                    where
+                        b.AccountId = cu.Uid and
+                        b.Cancel = 0
+                    order by
+                        b.Height desc
+                ) as badges
                 <FULLPART>
             from
                 addr,
@@ -1036,7 +1074,24 @@ namespace PocketDb
                         o.AddressId = cmnt.ContentAddressId and
                         o.AddressId != c.RegId1
                     limit 1
-                ) as Donate
+                ) as Donate,
+                (select 1 from BlockingLists bl where bl.IdSource = cmnt.ContentAddressId and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
+                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = cmnt.ContentAddressId limit 1)CommentBlockedContent,
+                (
+                    select
+                        json_group_object(ff.reason, ff.cnt)
+                    from (
+                        select
+                            f.Int1 as reason,
+                            count() as cnt
+                        from
+                            Transactions f indexed by Transactions_Type_RegId2_RegId1
+                        where
+                            f.Type in (410) and
+                            f.RegId2 = c.RowId
+                        group by f.Int1
+                    ) ff
+                ) as Flags
 
             from (
                 select
@@ -1046,38 +1101,39 @@ namespace PocketDb
 
                     -- Last comment for content record
                     (
-                        select c1.RowId
-
+                        select
+                            c1.RowId
                         from Transactions c1 indexed by Transactions_Type_RegId3_RegId1
-                        join Chain cc1 on cc1.TxId = c1.RowId
-                        join Last lc1 on lc1.TxId = c1.RowId
-
-                        join Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
+                        cross join Chain cc1 on cc1.TxId = c1.RowId
+                        cross join Last lc1 on lc1.TxId = c1.RowId
+                        cross join Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
                           on uac.Type = 100 and uac.RegId1 = c1.RegId1
-                        join Chain cuac on cuac.TxId = uac.RowId
-                        join Last luac on luac.TxId = uac.RowId
-
+                        cross join Chain cuac on cuac.TxId = uac.RowId
+                        cross join Last luac on luac.TxId = uac.RowId
                         left join TxOutputs o
                             on o.TxId = c1.RowId and o.AddressId = t.RegId1 and o.AddressId != c1.RegId1 and o.Value > ?
-
+                        left join
+                            BlockingLists bl_cnt_cmt on
+                                bl_cnt_cmt.IdSource = t.RegId1 and bl_cnt_cmt.IdTarget = c1.RegId1
+                        left join
+                            BlockingLists bl_cmt_cnt on
+                                bl_cmt_cnt.IdSource = c1.RegId1 and bl_cmt_cnt.IdTarget = t.RegId1
                         where c1.Type in (204, 205)
                           and c1.RegId3 = t.RegId2
                           and c1.RegId4 is null
-                          -- exclude commenters blocked by the author of the post
-                          and not exists (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c1.RegId1)
-                          and not exists (select 1 from BlockingLists bl where bl.IdSource = c1.RegId1 and bl.IdTarget = t.RegId1)
+                          
+                        order by bl_cnt_cmt.IdSource, bl_cmt_cnt.IdSource, o.Value desc, c1.RowId desc
 
-                        order by o.Value desc, c1.RowId desc
                         limit 1
                     )commentRowId
 
                 from Chain c indexed by Chain_Uid_Height
-                join Transactions t on t.RowId = c.TxId
-                join Last l on l.TxId = t.RowId
-                join Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
+                cross join Transactions t on t.RowId = c.TxId
+                cross join Last l on l.TxId = t.RowId
+                cross join Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
                   on ua.RegId1 = t.RegId1 and ua.Type = 100
-                join Chain cua on cua.TxId = ua.RowId
-                join Last lua on lua.TxId = ua.RowId
+                cross join Chain cua on cua.TxId = ua.RowId
+                cross join Last lua on lua.TxId = ua.RowId
 
                 where c.Uid in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
 
@@ -1128,6 +1184,17 @@ namespace PocketDb
                             record.pushKV("donation", "true");
                             record.pushKV("amount", value);
                         }
+                        if (auto[ok, value] = cursor.TryGetColumnInt(18); ok && value > 0)
+                            record.pushKV("blck_cnt_cmt", 1);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(19); ok && value > 0)
+                            record.pushKV("blck_cmt_cnt", 1);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(20); ok)
+                        {
+                            UniValue flags(UniValue::VOBJ);
+                            flags.read(value);
+                            record.pushKV("flags", flags);
+                        };
                                         
                         result.emplace(contentId, record);
                     }
@@ -1465,7 +1532,22 @@ namespace PocketDb
                 ) as ChildrenCount,
                 o.Value as Donate,
                 (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
-                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent
+                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent,
+                (
+                    select
+                        json_group_object(ff.reason, ff.cnt)
+                    from (
+                        select
+                            f.Int1 as reason,
+                            count() as cnt
+                        from
+                            Transactions f indexed by Transactions_Type_RegId2_RegId1
+                        where
+                            f.Type in (410) and
+                            f.RegId2 = c.RowId
+                        group by f.Int1
+                    ) ff
+                ) as Flags
             from
                 tx,
                 addr
@@ -1555,6 +1637,12 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnInt(18); ok && value > 0)
                             record.pushKV("blck_cmt_cnt", 1);
 
+                        if (auto[ok, value] = cursor.TryGetColumnString(19); ok)
+                        {
+                            UniValue flags(UniValue::VOBJ);
+                            flags.read(value);
+                            record.pushKV("flags", flags);
+                        };
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
                         {
@@ -1675,16 +1763,16 @@ namespace PocketDb
                     select
 
                         c.Type,
-                        (select r.String from Registry r where r.RowId = c.RowId),
-                        (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
-                        (select r.String from Registry r where r.RowId = c.RegId3) as PostTxHash,
-                        (select r.String from Registry r where r.RowId = c.RegId1) as AddressHash,
-                        r.Time AS RootTime,
+                        (select rg.String from Registry rg where rg.RowId = c.RowId),
+                        (select rg.String from Registry rg where rg.RowId = c.RegId2) as RootTxHash,
+                        (select rg.String from Registry rg where rg.RowId = c.RegId3) as PostTxHash,
+                        (select rg.String from Registry rg where rg.RowId = r.RegId1) as AddressHash,
+                        r.Time as RootTime,
                         c.Time,
                         cc.Height,
-                        pl.String1 AS Msg,
-                        (select r.String from Registry r where r.RowId = c.RegId4) as ParentTxHash,
-                        (select r.String from Registry r where r.RowId = c.RegId5) as AnswerTxHash,
+                        pl.String1 as Msg,
+                        (select rg.String from Registry rg where rg.RowId = c.RegId4) as ParentTxHash,
+                        (select rg.String from Registry rg where rg.RowId = c.RegId5) as AnswerTxHash,
                         (
                             select count()
                             from Transactions sc indexed by Transactions_Type_RegId2_RegId1
@@ -1698,9 +1786,9 @@ namespace PocketDb
                             where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = -1
                         ) as ScoreDown,
                         (
-                            select r.Value
-                            from Ratings r indexed by Ratings_Type_Uid_Last_Value
-                            where r.Type = 3 and r.Uid = cc.Uid and r.Last = 1
+                            select rt.Value
+                            from Ratings rt indexed by Ratings_Type_Uid_Last_Value
+                            where rt.Type = 3 and rt.Uid = cc.Uid and rt.Last = 1
                         ) as Reputation,
                         ifnull(sc.Int1, 0) as MyScore,
                         (
@@ -1727,7 +1815,23 @@ namespace PocketDb
                         o.Value as Donate,
                         (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
                         (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent,
-                        cc.Uid
+                        cc.Uid,
+                        (
+                            select
+                                json_group_object(ff.reason, ff.cnt)
+                            from (
+                                select
+                                    f.Int1 as reason,
+                                    count() as cnt
+                                from
+                                    Transactions f indexed by Transactions_Type_RegId2_RegId1
+                                where
+                                    f.Type in (410) and
+                                    f.RegId2 = c.RowId
+                                group by f.Int1
+                            ) ff
+                        ) as Flags,
+                        (select rg.String from Registry rg where rg.RowId = c.RegId1) as LastAddressHash,
                     from
                         txs,
                         addr
@@ -1773,7 +1877,11 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok) record.pushKV("type", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("id", value);
                         if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("postid", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
+                        string rootAddress;
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) {
+                            rootAddress = value;
+                            record.pushKV("address", rootAddress);
+                        }
                         if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("time", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("timeUpd", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("block", value);
@@ -1812,11 +1920,21 @@ namespace PocketDb
                                 case PocketTx::CONTENT_COMMENT_DELETE:
                                     record.pushKV("deleted", true);
                                     record.pushKV("edit", true);
+                                    if (auto[ok, value] = cursor.TryGetColumnString(21); ok)
+                                        if (value != rootAddress)
+                                            record.pushKV("whodel", value);
                                     break;
                                 default:
                                     break;
                             }
                         }
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(20); ok)
+                        {
+                            UniValue flags(UniValue::VOBJ);
+                            flags.read(value);
+                            record.pushKV("flags", flags);
+                        };
 
                         auto[ok_hash, hash] = cursor.TryGetColumnString(1);
                         auto[ok_id, id] = cursor.TryGetColumnInt64(19);
@@ -4229,6 +4347,7 @@ namespace PocketDb
 
         unordered_map<int64_t, UniValue> tmpResult{};
         vector<string> authors;
+        vector<int64_t> allUIDs;
 
         SqlTransaction(
             __func__,
@@ -4330,20 +4449,35 @@ namespace PocketDb
                                 tv.Type = t.Type and
                                 tv.RegId2 = t.RegId2 and
                                 tv.RowId != t.RowId
-                        ) as Versions
+                        ) as Versions,
+                        (
+                            select
+                                json_group_object(ff.reason, ff.cnt)
+                            from (
+                                select
+                                    f.Int1 as reason,
+                                    count() as cnt
+                                from
+                                    Transactions f indexed by Transactions_Type_RegId2_RegId1
+                                where
+                                    f.Type in (410) and
+                                    f.RegId2 = t.RowId
+                                group by f.Int1
+                            ) ff
+                        ) as Flags
                     from
                         txs,
                         addr
                     cross join
                         Transactions t
-                            on t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210)
+                            on t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210, 207)
                     cross join
                         Chain c
                             on c.TxId = t.RowId
                     cross join
                         Last l
                             on l.TxId = t.RowId
-                    cross join
+                    left join
                         Payload p
                             on p.TxId = t.RowId
                 )sql")
@@ -4367,6 +4501,7 @@ namespace PocketDb
                         if (!cursor.Collect(ii++, id))
                             continue;
                         record.pushKV("id", id);
+                        allUIDs.push_back(id);
 
                         cursor.Collect<string>(ii++, record, "edit");
                         cursor.Collect<string>(ii++, record, "repost");
@@ -4393,9 +4528,9 @@ namespace PocketDb
                         });
 
                         cursor.Collect(ii++, [&](const string& value) {
-                            UniValue ii(UniValue::VARR);
-                            ii.read(value);
-                            record.pushKV("i", ii);
+                            UniValue i(UniValue::VARR);
+                            i.read(value);
+                            record.pushKV("i", i);
                         });
 
                         cursor.Collect(ii++, [&](const string& value) {
@@ -4415,9 +4550,15 @@ namespace PocketDb
                             ii++;
 
                         cursor.Collect(ii++, [&](const string& value) {
-                            UniValue ii(UniValue::VARR);
-                            ii.read(value);
-                            record.pushKV("versions", ii);
+                            UniValue versions(UniValue::VARR);
+                            versions.read(value);
+                            record.pushKV("versions", versions);
+                        });
+
+                        cursor.Collect(ii++, [&](const string& value) {
+                            UniValue flags(UniValue::VOBJ);
+                            flags.read(value);
+                            record.pushKV("flags", flags);
                         });
 
                         tmpResult[id] = record;                
@@ -4428,7 +4569,7 @@ namespace PocketDb
 
         // ---------------------------------------------
         // Get last comments for all posts
-        auto lastComments = GetLastComments(ids, address);
+        auto lastComments = GetLastComments(allUIDs, address);
         for (auto& record : tmpResult)
             record.second.pushKV("lastComment", lastComments[record.first]);
 
@@ -5982,123 +6123,155 @@ namespace PocketDb
                 heightMin as ( select ? as value ),
                 heightMax as ( select ? as value ),
                 lang as ( select ? as value ),
-                minReputation as ( select ? as value )
+                minReputation as ( select ? as value ),
+                boosts as (
+                    select
+                        tb.rowid boostId,
+                        bur.String boostAddress,
+                        ctc.Uid contentId,
+                        tb.RegId2 contentRowId,
+                        (select String from Registry where RowId = tb.RegId2) contentHash,
+                        tc.Type as contentType,
+                        (
+                            (
+                                select
+                                    sum(io.Value)
+                                from
+                                    TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                                cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId on
+                                    io.TxId = i.TxId and
+                                    io.Number = i.Number
+                                where
+                                    i.SpentTxId = tb.RowId
+                            )
+                            -
+                            (
+                                select
+                                    sum(o.Value)
+                                from
+                                    TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                                where
+                                    o.TxId = tb.RowId
+                            )
+                        ) as boost,
+                        json_group_array(tag.Value) as _tags
+                    from
+                        heightMin,
+                        heightMax,
+                        lang,
+                        minReputation,
+                        Transactions tb indexed by Transactions_Type_RegId2_RegId1
+                    cross join
+                        Registry bur on
+                            bur.RowId = tb.RegId1
+                    cross join
+                        Chain ctb on
+                            ctb.TxId = tb.RowId and
+                            ctb.Height > heightMin.value and
+                            ctb.Height <= heightMax.value
+                    cross join
+                        Transactions tc indexed by Transactions_Type_RegId2_RegId1 on
+                            tc.RegId2 = tb.RegId2 and
+                            tc.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                    cross join
+                        Last ltc on
+                            ltc.TxId = tc.RowId
+                    cross join
+                        Chain ctc on
+                            ctc.TxId = tc.RowId
+                    left join
+                        web.TagsMap tm on
+                            tm.ContentId = tc.RowId
+                    left join
+                        web.Tags tag on
+                            tag.Id = tm.TagId and
+                            ( ? or tag.Lang = lang.value )
+                    cross join
+                        Payload p on
+                            p.TxId = tc.RowId and
+                            ( ? or p.String1 = lang.value )
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            u.Type in (100) and
+                            u.RegId1 = tc.RegId1
+                    cross join
+                        Chain cu on
+                            cu.TxId = u.RowId
+                    cross join
+                        Last lu on
+                            lu.TxId = u.RowId
+                    left join
+                        Ratings ur indexed by Ratings_Type_Uid_Last_Value on
+                            ur.Type = 0 and
+                            ur.Uid = cu.Uid and
+                            ur.Last = 1
+                    left join
+                        JuryBan jb on
+                            jb.AccountId = cu.Uid and
+                            jb.Ending > heightMax.value
+                    left join
+                        Jury j on
+                            j.AccountId = cu.Uid
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
+                    where
+                        tb.Type in ( 208 )
+
+                        -- Do not show posts from users with low reputation
+                        and ifnull(ur.Value, 0) > minReputation.value
+
+                        -- Do not show posts from banned users
+                        and jb.AccountId is null
+
+                        -- Do not show posts from users with active jury
+                        and jv.FlagRowId is null
+
+                        -- Other excludes
+                        and tc.RegId2 not in (
+                            select RowId
+                            from Registry
+                            where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
+                        )
+
+                        and tc.RegId1 not in (
+                            select RowId
+                            from Registry
+                            where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
+                        )
+                    group by
+                        tb.RowId
+                    having
+                        ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 1 ) and
+                        ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 0 )
+                )
             select
-                ctc.Uid contentId,
-                (select String from Registry where RowId = tb.RegId2) contentHash,
-                sum(
-                    (
+                b.contentId,
+                b.contentHash,
+                b.contentType,
+                sum(b.boost),
+                json_group_array(json_object(b.boostAddress, b.boost)),
+                (
+                    select
+                        json_group_object(ff.reason, ff.cnt)
+                    from (
                         select
-                            sum(io.Value)
+                            f.Int1 as reason,
+                            count() as cnt
                         from
-                            TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
-                        cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId on
-                            io.TxId = i.TxId and
-                            io.Number = i.Number
+                            Transactions f indexed by Transactions_Type_RegId2_RegId1
                         where
-                            i.SpentTxId = tb.RowId
-                    )
-                    -
-                    (
-                        select
-                            sum(o.Value)
-                        from
-                            TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
-                        where
-                            o.TxId = tb.RowId
-                    )
-                ) as sumBoost,
-                json_group_array(tag.Value) as _tags
+                            f.Type in (410) and
+                            f.RegId2 = b.contentRowId
+                        group by f.Int1
+                    ) ff
+                ) as Flags
             from
-                heightMin,
-                heightMax,
-                lang,
-                minReputation,
-                Transactions tb indexed by Transactions_Type_RegId2_RegId1
-            cross join
-                Chain ctb on
-                    ctb.TxId = tb.RowId and
-                    ctb.Height > heightMin.value and
-                    ctb.Height <= heightMax.value
-            cross join
-                Transactions tc indexed by Transactions_Type_RegId2_RegId1 on
-                    tc.RegId2 = tb.RegId2 and
-                    tc.Type in  ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-            cross join
-                Last ltc on
-                    ltc.TxId = tc.RowId
-            cross join
-                Chain ctc on
-                    ctc.TxId = tc.RowId
-            left join
-                web.TagsMap tm on
-                    tm.ContentId = ctc.Uid
-            left join
-                web.Tags tag on
-                    tag.Id = tm.TagId and
-                    ( ? or tag.Lang = lang.value )
-            cross join
-                Payload p on
-                    p.TxId = tc.RowId and
-                    ( ? or p.String1 = lang.value )
-            cross join
-                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                    u.Type in (100) and
-                    u.RegId1 = tc.RegId1
-            cross join
-                Chain cu on
-                    cu.TxId = u.RowId
-            cross join
-                Last lu on
-                    lu.TxId = u.RowId
-            left join
-                Ratings ur indexed by Ratings_Type_Uid_Last_Value on
-                    ur.Type = 0 and
-                    ur.Uid = cu.Uid and
-                    ur.Last = 1
-            left join
-                JuryBan jb on
-                    jb.AccountId = cu.Uid and
-                    jb.Ending > heightMax.value
-            left join
-                Jury j on
-                    j.AccountId = cu.Uid
-            left join
-                JuryVerdict jv on
-                    jv.FlagRowId = j.FlagRowId
-            where
-                tb.Type in ( 208 )
-
-                -- Do not show posts from users with low reputation
-                and ifnull(ur.Value, 0) > minReputation.value
-
-                -- Do not show posts from banned users
-                and jb.AccountId is null
-
-                -- Do not show posts from users with active jury
-                and jv.FlagRowId is null
-
-                -- Other excludes
-                and tc.RegId2 not in (
-                    select RowId
-                    from Registry
-                    where String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
-                )
-
-                and tc.RegId1 not in (
-                    select RowId
-                    from Registry
-                    where String in ( )sql" + join(vector<string>(addrsExcluded.size(), "?"), ",") + R"sql( )
-                )
-
+                boosts b
             group by
-                ctc.Uid,
-                tb.RegId2
-            having
-                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 1 ) and
-                ( ? or max(case when tag.value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( ) then 1 else 0 end) = 0 )
+                b.contentId
             order by
-                sum(tb.Int1) desc
+                sum(b.boost) desc
         )sql";
 
         SqlTransaction(
@@ -6126,14 +6299,25 @@ namespace PocketDb
                 stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
-                        int64_t contentId, sumBoost;
-                        std::string contentHash;
-                        cursor.CollectAll(contentId, contentHash, sumBoost);
+                        int64_t contentId, sumBoost, contentType;
+                        std::string contentHash, whoBoostedStr, flagsStr;
+                        cursor.CollectAll(contentId, contentHash, contentType,
+                            sumBoost, whoBoostedStr, flagsStr);
+
+                        UniValue whoBoosted(UniValue::VARR);
+                        whoBoosted.read(whoBoostedStr);
 
                         UniValue boost(UniValue::VOBJ);
                         boost.pushKV("id", contentId);
                         boost.pushKV("txid", contentHash);
+                        boost.pushKV("txtype", contentType);
                         boost.pushKV("boost", sumBoost);
+                        boost.pushKV("boosted", whoBoosted);
+
+                        UniValue flags(UniValue::VOBJ);
+                        flags.read(flagsStr);
+                        boost.pushKV("flags", flags);
+
                         result.push_back(boost);
                     }
                 });

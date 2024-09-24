@@ -224,31 +224,80 @@ namespace PocketServices
     // The verdicts of the moderators within the jury are also taken into account.
     void ChainPostProcessing::IndexModeration(int height, vector<TransactionIndexingInfo>& txs)
     {
-        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
-
         for (const auto& txInfo : txs)
         {
-            if (txInfo.IsModerationFlag())
-            {
-                ChainRepoInst.IndexModerationJury(
-                    txInfo.Hash,
-                    reputationConsensus->GetHeight() - reputationConsensus->GetConsensusLimit(moderation_jury_flag_depth),
-                    reputationConsensus->GetConsensusLimit(moderation_jury_flag_count),
-                    reputationConsensus->GetConsensusLimit(moderation_jury_moders_count)
-                );
-            }
-
-            if (txInfo.IsModerationVote())
-            {
-                ChainRepoInst.IndexModerationBan(
-                    txInfo.Hash,
-                    reputationConsensus->GetConsensusLimit(moderation_jury_vote_count),
-                    height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_1_time),
-                    height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_2_time),
-                    height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_3_time)
-                );
-            }
+            IndexModerationFlag(txInfo, height);
+            IndexModerationVote(txInfo, height);
         }
+    }
+
+    ModerationCondition ChainPostProcessing::GetConditions(int height, int accountLikers)
+    {
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
+        ModerationCondition cond;
+
+        if (accountLikers < reputationConsensus->GetConsensusLimit(moderation_jury_likers_cat1))
+        {
+            cond.flag_count = reputationConsensus->GetConsensusLimit(moderation_jury_flag_cat1_count);
+            cond.moders_count = reputationConsensus->GetConsensusLimit(moderation_jury_moders_cat1_count);
+            cond.vote_count = reputationConsensus->GetConsensusLimit(moderation_jury_vote_cat1_count);
+        }
+        else if (accountLikers < reputationConsensus->GetConsensusLimit(moderation_jury_likers_cat2))
+        {
+            cond.flag_count = reputationConsensus->GetConsensusLimit(moderation_jury_flag_cat2_count);
+            cond.moders_count = reputationConsensus->GetConsensusLimit(moderation_jury_moders_cat2_count);
+            cond.vote_count = reputationConsensus->GetConsensusLimit(moderation_jury_vote_cat2_count);
+        }
+        else if (accountLikers < reputationConsensus->GetConsensusLimit(moderation_jury_likers_cat3))
+        {
+            cond.flag_count = reputationConsensus->GetConsensusLimit(moderation_jury_flag_cat3_count);
+            cond.moders_count = reputationConsensus->GetConsensusLimit(moderation_jury_moders_cat3_count);
+            cond.vote_count = reputationConsensus->GetConsensusLimit(moderation_jury_vote_cat3_count);
+        }
+        else
+        {
+            cond.flag_count = reputationConsensus->GetConsensusLimit(moderation_jury_flag_cat4_count);
+            cond.moders_count = reputationConsensus->GetConsensusLimit(moderation_jury_moders_cat4_count);
+            cond.vote_count = reputationConsensus->GetConsensusLimit(moderation_jury_vote_cat4_count);
+        }
+
+        return cond;
+    }
+
+    void ChainPostProcessing::IndexModerationFlag(const TransactionIndexingInfo& txInfo, int height)
+    {
+        if (!txInfo.IsModerationFlag())
+            return;
+
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
+        int flag_depth = reputationConsensus->GetConsensusLimit(moderation_jury_flag_depth);
+        int likers = ConsensusRepoInst.LikersByFlag(txInfo.Hash);
+        auto cond = GetConditions(height, likers);
+
+        ChainRepoInst.IndexModerationJury(
+            txInfo.Hash,
+            reputationConsensus->GetHeight() - flag_depth,
+            cond.flag_count,
+            cond.moders_count
+        );
+    }
+
+    void ChainPostProcessing::IndexModerationVote(const TransactionIndexingInfo& txInfo, int height)
+    {
+        if (!txInfo.IsModerationVote())
+            return;
+
+        auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
+        int likers = ConsensusRepoInst.LikersByVote(txInfo.Hash);
+        auto cond = GetConditions(height, likers);
+            
+        ChainRepoInst.IndexModerationBan(
+            txInfo.Hash,
+            cond.vote_count,
+            height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_1_time),
+            height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_2_time),
+            height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_3_time)
+        );
     }
 
     void ChainPostProcessing::IndexBadges(int height)
