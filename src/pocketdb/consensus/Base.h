@@ -259,10 +259,27 @@ namespace PocketConsensus
 
         moderation_flag_count,
         moderation_flag_max_value,
-        moderation_jury_flag_count,
         moderation_jury_flag_depth,
-        moderation_jury_moders_count,
-        moderation_jury_vote_count,
+
+        moderation_jury_likers_cat1,
+        moderation_jury_likers_cat2,
+        moderation_jury_likers_cat3,
+
+        moderation_jury_flag_cat1_count,
+        moderation_jury_flag_cat2_count,
+        moderation_jury_flag_cat3_count,
+        moderation_jury_flag_cat4_count,
+        
+        moderation_jury_moders_cat1_count,
+        moderation_jury_moders_cat2_count,
+        moderation_jury_moders_cat3_count,
+        moderation_jury_moders_cat4_count,
+        
+        moderation_jury_vote_cat1_count,
+        moderation_jury_vote_cat2_count,
+        moderation_jury_vote_cat3_count,
+        moderation_jury_vote_cat4_count,
+
         moderation_jury_ban_1_time,
         moderation_jury_ban_2_time,
         moderation_jury_ban_3_time,
@@ -633,22 +650,90 @@ namespace PocketConsensus
         }},
 
         // JURY
-        { moderation_jury_flag_count, {
-            { NetworkMain,    { {0, 20} }},
-            { NetworkTest,    { {0, 5} }},
-            { NetworkRegTest, { {0, 2} } }
-        }},
         { moderation_jury_flag_depth, {
             { NetworkMain,    { {0, 43200} }},
             { NetworkTest,    { {0, 4320} }},
             { NetworkRegTest, { {0, 10} } }
         }},
-        { moderation_jury_moders_count, {
+
+        // Likers limit for detect jury category
+        { moderation_jury_likers_cat1, {
+            { NetworkMain,    { {0, 3} }},
+            { NetworkTest,    { {0, 1} }},
+            { NetworkRegTest, { {0, 1} } }
+        }},
+        { moderation_jury_likers_cat2, {
+            { NetworkMain,    { {0, 20} }},
+            { NetworkTest,    { {0, 2} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        { moderation_jury_likers_cat3, {
+            { NetworkMain,    { {0, 40} }},
+            { NetworkTest,    { {0, 3} }},
+            { NetworkRegTest, { {0, 3} } }
+        }},
+        
+
+        // Flags
+        { moderation_jury_flag_cat1_count, {
+            { NetworkMain,    { {0, 5} }},
+            { NetworkTest,    { {0, 5} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        { moderation_jury_flag_cat2_count, {
+            { NetworkMain,    { {0, 10} }},
+            { NetworkTest,    { {0, 5} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        { moderation_jury_flag_cat3_count, {
+            { NetworkMain,    { {0, 15} }},
+            { NetworkTest,    { {0, 5} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        { moderation_jury_flag_cat4_count, {
+            { NetworkMain,    { {0, 20} }},
+            { NetworkTest,    { {0, 5} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+
+        // Moderators
+        { moderation_jury_moders_cat1_count, {
             { NetworkMain,    { {0, 80} }},
             { NetworkTest,    { {0, 6} }},
             { NetworkRegTest, { {0, 4} } }
         }},
-        { moderation_jury_vote_count, {
+        { moderation_jury_moders_cat2_count, {
+            { NetworkMain,    { {0, 80} }},
+            { NetworkTest,    { {0, 6} }},
+            { NetworkRegTest, { {0, 4} } }
+        }},
+        { moderation_jury_moders_cat3_count, {
+            { NetworkMain,    { {0, 80} }},
+            { NetworkTest,    { {0, 6} }},
+            { NetworkRegTest, { {0, 4} } }
+        }},
+        { moderation_jury_moders_cat4_count, {
+            { NetworkMain,    { {0, 80} }},
+            { NetworkTest,    { {0, 6} }},
+            { NetworkRegTest, { {0, 4} } }
+        }},
+
+        { moderation_jury_vote_cat1_count, {
+            { NetworkMain,    { {0, 1} }},
+            { NetworkTest,    { {0, 3} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        { moderation_jury_vote_cat2_count, {
+            { NetworkMain,    { {0, 2} }},
+            { NetworkTest,    { {0, 3} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        { moderation_jury_vote_cat3_count, {
+            { NetworkMain,    { {0, 4} }},
+            { NetworkTest,    { {0, 3} }},
+            { NetworkRegTest, { {0, 2} } }
+        }},
+        { moderation_jury_vote_cat4_count, {
             { NetworkMain,    { {0, 8} }},
             { NetworkTest,    { {0, 3} }},
             { NetworkRegTest, { {0, 2} } }
