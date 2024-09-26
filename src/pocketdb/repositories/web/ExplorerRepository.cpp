@@ -468,6 +468,9 @@ namespace PocketDb
                         t.RowId = i.SpentTxId and
                         ( ? or t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( ) )
                 cross join
+                    Chain tc on
+                        tc.TxId = t.RowId
+                cross join
                     Chain c indexed by Chain_TxId_Height on
                         c.TxId = o.TxId and
                         c.Height <= topheight.value
