@@ -172,6 +172,7 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
 
     // verify hash target and signature of coinstake tx
     CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
+    LogPrint(BCLog::STAKEMODIF, "CheckStake(): check proof-of-stake signature for new created block %s", pblock->GetHash().GetHex());
     if (!CheckProofOfStake(chainman.BlockIndex()[pblock->hashPrevBlock], pblock->vtx[1], pblock->nBits, proofHash,
         hashProofOfStakeSource, hashTarget, NULL, mempool))
     {

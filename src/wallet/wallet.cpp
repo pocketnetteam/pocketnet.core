@@ -4845,7 +4845,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 			if (CheckKernel(pindexPrev, nBits, txNew.nTime - n, prevoutStake, &nBlockTime, this, hashProofOfStakeSource))
 			{
 				// Found a kernel
-				LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : kernel found at txNew.nTime=%s - %d sec\n", FormatISO8601DateTime(txNew.nTime), n);
+				LogPrint(BCLog::STAKEMODIF, "CreateCoinStake : kernel found at txNew.nTime=%d - %d sec\n", txNew.nTime, n);
 				std::vector<std::vector<unsigned char>> vSolutions;
 				CScript scriptPubKeyOut;
 				scriptPubKeyKernel = pcoin.first->tx->vout[pcoin.second].scriptPubKey;
