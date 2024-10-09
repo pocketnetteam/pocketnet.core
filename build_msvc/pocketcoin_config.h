@@ -14,7 +14,7 @@
 #define CLIENT_VERSION_MINOR 22
 
 /* Build revision */
-#define CLIENT_VERSION_REVISION 6
+#define CLIENT_VERSION_REVISION 7
 
 /* Version Build */
 #define CLIENT_VERSION_BUILD 0
@@ -346,7 +346,7 @@
 #define PACKAGE_NAME "Pocketnet Core"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "Pocketnet Core 0.22.6"
+#define PACKAGE_STRING "Pocketnet Core 0.22.7"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "pocketcoin"
@@ -355,7 +355,7 @@
 #define PACKAGE_URL "https://github.com/pocketnetteam"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.22.6"
+#define PACKAGE_VERSION "0.22.7"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
