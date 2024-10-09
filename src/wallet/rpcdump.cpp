@@ -712,7 +712,6 @@ RPCHelpMan dumpprivkey()
     };
 }
 
-
 RPCHelpMan dumpwallet()
 {
     return RPCHelpMan{"dumpwallet",
