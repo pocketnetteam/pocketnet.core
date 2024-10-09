@@ -644,7 +644,7 @@ namespace PocketConsensus
             { NetworkRegTest, { {0, 100} } }
         }},
         { moderation_flag_max_value, {
-            { NetworkMain,    { {0, 4}, {2162400, 5}, {3037400, 10} }},
+            { NetworkMain,    { {0, 4}, {2162400, 5}, {3123800, 10} }},
             { NetworkTest,    { {0, 4}, {1531000, 5}, {3100000, 10} }},
             { NetworkRegTest, { {0, 10} } }
         }},
