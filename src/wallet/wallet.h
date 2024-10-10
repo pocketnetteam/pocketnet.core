@@ -1217,7 +1217,7 @@ public:
         LogPrint(BCLog::WALLET, ("%s " + fmt).c_str(), GetDisplayName(), parameters...);
     };
 
-    tuple<uint64_t, uint64_t> GetStakeWeight() const;
+    tuple<uint64_t, uint64_t, uint64_t> GetStakeWeight() const;
     bool CreateCoinStake(const FillableSigningProvider& keystore, unsigned int nBits, int64_t nSearchInterval, int64_t nFees, CMutableTransaction& txNew, CKey& key);
     int64_t GetStake() const;
     int64_t GetNewMint() const;
@@ -1304,7 +1304,7 @@ public:
     //! Add a descriptor to the wallet, return a ScriptPubKeyMan & associated output type
     ScriptPubKeyMan* AddWalletDescriptor(WalletDescriptor& desc, const FlatSigningProvider& signing_provider, const std::string& label, bool internal);
 
-    // Last coinstake search time
+    // Get last coinstake search time
     uint64_t GetLastCoinStakeSearchTime();
     // Set last coinstake search time
     void SetLastCoinStakeSearchTime(uint64_t nTime);

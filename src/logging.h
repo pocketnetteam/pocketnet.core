@@ -71,7 +71,16 @@ namespace BCLog {
         I2P           = ((uint64_t)1 << 34),
         TEST          = ((uint64_t)1 << 35),
         SQLQUERY      = ((uint64_t)1 << 36),
+        LOCK          = ((uint64_t)1 << 37),
         ALL           = ~(uint64_t)0,
+    };
+
+    enum class Level {
+        Debug = 0,
+        None = 1,
+        Info = 2,
+        Warning = 3,
+        Error = 4,
     };
 
     class Logger
@@ -110,7 +119,7 @@ namespace BCLog {
         std::atomic<bool> m_reopen_file{false};
 
         /** Send a string to the log output */
-        void LogPrintStr(const std::string& str);
+        void LogPrintStr(const std::string& str, const BCLog::LogFlags category, const BCLog::Level level);
 
         /** Returns whether logs will be written to any output */
         bool Enabled() const
@@ -178,7 +187,7 @@ bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str);
 // peer can fill up a user's disk with debug.log entries.
 
 template <typename... Args>
-static inline void LogPrintf(const char* fmt, const Args&... args)
+static inline void LogPrintf_(const BCLog::LogFlags flag, const BCLog::Level level, const char* fmt, const Args&... args)
 {
     if (LogInstance().Enabled())
     {
@@ -189,17 +198,25 @@ static inline void LogPrintf(const char* fmt, const Args&... args)
             /* Original format string will have newline so don't add one here */
             log_msg = "Error \"" + std::string(fmterr.what()) + "\" while formatting log message: " + fmt;
         }
-        LogInstance().LogPrintStr(log_msg);
+        LogInstance().LogPrintStr(log_msg, flag, level);
     }
 }
+
+#define LogPrintf(...) LogPrintf_(BCLog::LogFlags::NONE, BCLog::Level::None, __VA_ARGS__)
 
 // Use a macro instead of a function for conditional logging to prevent
 // evaluating arguments when logging for the category is not enabled.
 #define LogPrint(category, ...)              \
     do {                                     \
         if (LogAcceptCategory((category))) { \
-            LogPrintf(__VA_ARGS__);          \
+            LogPrintf_(category, BCLog::Level::None, __VA_ARGS__);          \
         }                                    \
+    } while (0)
+#define LogPrintLevel(level, category, ...)               \
+    do {                                                  \
+        if (LogAcceptCategory((category))) {              \
+            LogPrintf_(category, level, __VA_ARGS__); \
+        }                                                 \
     } while (0)
 
 #endif // POCKETCOIN_LOGGING_H

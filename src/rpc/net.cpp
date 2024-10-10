@@ -818,16 +818,18 @@ static RPCHelpMan getstakinginfo()
                     {
                         {
                             { RPCResult::Type::BOOL, "enabled", "If staking is enabled" },
-                            { RPCResult::Type::BOOL, "staking", "If current block is staking" },
+                            { RPCResult::Type::BOOL, "staking", "If staking is working" },
                             { RPCResult::Type::STR, "errors", "Errors. Empty if there is no error" },
-                            { RPCResult::Type::NUM, "currentblockweight", "Weight of the current block" },
-                            { RPCResult::Type::NUM, "currentblocktx", "Tx of the current block" },
-                            { RPCResult::Type::STR_AMOUNT, "difficulty", "Difficulty" },
-                            { RPCResult::Type::NUM, "search-interval", "Coinstake search interval" },
+                            { RPCResult::Type::NUM, "currentblockweight", "Weight of Tx-es prepared for inclusion in the stake block" },
+                            { RPCResult::Type::NUM, "currentblocktx", "Number of Tx-es prepared for inclusion in the stake block" },
+                            { RPCResult::Type::STR_AMOUNT, "difficulty", "Staking difficulty (derivated from last block nBits)" },
+                            { RPCResult::Type::NUM, "search-interval", "Coinstake search interval (16 sec)" },
                             { RPCResult::Type::STR, "search-time", "Coinstake search time" },
-                            { RPCResult::Type::NUM, "weight", "nWeight" },
-                            { RPCResult::Type::NUM, "netstakeweight", "Stake network weight" },
-                            { RPCResult::Type::NUM, "expectedtime", "Expected time" }
+                            { RPCResult::Type::STR, "stake-time", "Last stake time" },
+                            { RPCResult::Type::NUM, "weight", "Wallet(s) balans used for staking (in Satoshi)" },
+                            { RPCResult::Type::NUM, "balance", "Wallet(s) balans (in Satoshi)" },
+                            { RPCResult::Type::NUM, "netstakeweight", "Network stake weight" },
+                            { RPCResult::Type::NUM, "expectedtime", "Estimated time to stake (approximate)" }
                         }
                     }
                 },
@@ -837,15 +839,17 @@ static RPCHelpMan getstakinginfo()
 #ifdef ENABLE_WALLET
     uint64_t nBalance = 0;
     uint64_t nWeight = 0;
-    uint64_t nLastCoinStakeSearchTime=0;
+    uint64_t nLastCoinStakeSearchTime = 0;
+    uint64_t nLastCoinStakeTime = Staker::getInstance()->getLastCoinStakeTime();
 
     auto wallets = GetWallets();
 
     for (auto & wallet : wallets) {
-        auto[balance, weight] = wallet->GetStakeWeight();
+        auto[balance, weight, nWalletLastCoinStakeTime] = wallet->GetStakeWeight();
         nBalance += balance;
         nWeight += weight;
         nLastCoinStakeSearchTime = std::max(nLastCoinStakeSearchTime, wallet->GetLastCoinStakeSearchTime());
+        nLastCoinStakeTime = std::max(nLastCoinStakeTime, nWalletLastCoinStakeTime);
     }
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
@@ -863,8 +867,8 @@ static RPCHelpMan getstakinginfo()
 
     obj.pushKV("difficulty", GetPosDifficulty(GetLastBlockIndex(ChainActive().Tip(), true)));
     obj.pushKV("search-interval", Staker::getInstance()->getLastCoinStakeSearchInterval());
-    obj.pushKV("search-time", FormatISO8601DateTime(nLastCoinStakeSearchTime));
-    obj.pushKV("stake-time", FormatISO8601DateTime(Staker::getInstance()->getLastCoinStakeTime()));
+    obj.pushKV("search-time", nLastCoinStakeSearchTime ? FormatISO8601DateTime(nLastCoinStakeSearchTime) : "");
+    obj.pushKV("stake-time", nLastCoinStakeTime ? FormatISO8601DateTime(nLastCoinStakeTime) : "");
 
     obj.pushKV("weight", (uint64_t)nWeight);
     obj.pushKV("balance", (uint64_t)nBalance);

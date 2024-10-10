@@ -56,7 +56,7 @@ const std::map<uint64_t,std::string> WALLET_FLAG_CAVEATS{
 
 static const size_t OUTPUT_GROUP_MAX_ENTRIES = 10;
 
-static RecursiveMutex cs_wallets;
+RecursiveMutex cs_wallets;
 static std::vector<std::shared_ptr<CWallet>> vpwallets GUARDED_BY(cs_wallets);
 static std::list<LoadWalletFn> g_load_wallet_fns GUARDED_BY(cs_wallets);
 
@@ -4960,7 +4960,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 
 	CAmount totalRewardAmount = 0;
 	std::vector<CTxOut> ratingRewards;
-    std::vector<opcodetype> winner_types;
+        std::vector<opcodetype> winner_types;
 	if (GetRatingRewards(nReward - nFees, ratingRewards, totalRewardAmount, pindexPrev, hashProofOfStakeSource, winner_types, nullptr)) {
 		blockValue -= totalRewardAmount;
 	}
@@ -5014,7 +5014,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 		return error("CreateCoinStake : exceeded coinstake size limit");
 	}
 
-	LogPrint(BCLog::STAKEMODIF, "Created coin stake\n");
+	LogPrint(BCLog::STAKEMODIF, "Coin stake created!\n");
 
 	// Successfully generated coinstake
 	return true;
@@ -5047,49 +5047,54 @@ int64_t CWallet::GetNewMint() const
 	return nTotal;
 }
 
-tuple<uint64_t, uint64_t> CWallet::GetStakeWeight() const
+tuple<uint64_t, uint64_t, uint64_t> CWallet::GetStakeWeight() const
 {
-	// Choose coins to use
-	int64_t nBalance = GetBalance().m_mine_trusted;
-	if (nBalance <= 0) {
-		return {0, 0};
-	}
+        // Choose coins to use
+        int64_t nBalance = GetBalance().m_mine_trusted;
+        if (nBalance <= 0) {
+                return {0, 0, 0};
+        }
 
-	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
-	std::set<std::pair<const CWalletTx*, unsigned int> > setCoins;
-	int64_t nValueIn = 0;
+//      std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
+        std::set<std::pair<const CWalletTx*, unsigned int> > setCoins;
+        int64_t nValueIn = 0;
 
-	if (!SelectCoinsForStaking(nBalance, GetTime(), setCoins, nValueIn)) {
-		return {0, 0};
-	}
+        if (!SelectCoinsForStaking(nBalance, GetTime(), setCoins, nValueIn)) {
+                return {0, 0, 0};
+        }
 
-	if (setCoins.empty()) {
-		return {0, 0};
-	}
+        if (setCoins.empty()) {
+                return {0, 0, 0};
+        }
 
-	uint64_t nWeight = 0;
+        uint64_t nWeight = 0;
+        uint64_t nLastCoinStakeTime = 0;
 
-	int64_t nCurrentTime = GetTime();
+        uint64_t nCurrentTime = GetTime();
 
     LOCK(cs_wallet);
-	for (auto & pcoin : setCoins)
-	{
-		if (!mapWallet.count(pcoin.first->tx->GetHash())) {
-			continue;
-		}
-		if (nCurrentTime - pcoin.first->tx->nTime > Params().GetConsensus().nStakeMinAge)
-			nWeight += std::min(pcoin.first->tx->vout[pcoin.second].nValue, 5000 * COIN);
-	}
+        for (auto & pcoin : setCoins)
+        {
+                if (!mapWallet.count(pcoin.first->tx->GetHash())) {
+                        continue;
+                }
+                if (nCurrentTime - pcoin.first->tx->nTime > Params().GetConsensus().nStakeMinAge)
+                        nWeight += std::min(pcoin.first->tx->vout[pcoin.second].nValue, 5000 * COIN);
 
-	return {nBalance, nWeight};
+                if (pcoin.first->IsCoinStake() && !pcoin.first->isAbandoned() && !pcoin.first->GetBlocksToMaturity() && pcoin.first->GetDepthInMainChain() > 0) {
+                        nLastCoinStakeTime = std::max(nLastCoinStakeTime, (uint64_t)pcoin.first->tx->nTime);
+                }
+        }
+
+        return {nBalance, nWeight, nLastCoinStakeTime};
 }
 
 uint64_t CWallet::GetLastCoinStakeSearchTime()
 {
-    return nLastCoinStakeSearchTime;
+        return nLastCoinStakeSearchTime;
 }
 
 void CWallet::SetLastCoinStakeSearchTime(uint64_t nTime)
 {
-    nLastCoinStakeSearchTime = nTime;
+        nLastCoinStakeSearchTime = nTime;
 }

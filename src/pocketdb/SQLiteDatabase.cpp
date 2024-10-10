@@ -20,7 +20,7 @@ namespace PocketDb
         // invoked."
         // Assert that this is the case:
         assert(arg == nullptr);
-        LogPrint(BCLog::WARN, "%d; Message: %s\n", code, msg);
+        LogPrint(BCLog::WARN, "%s, error: %d; Message: %s\n", sqlite3_errstr(code), code, msg);
     }
 
     static void InitializeSqlite()
@@ -30,7 +30,7 @@ namespace PocketDb
         int ret = sqlite3_config(SQLITE_CONFIG_LOG, ErrorLogCallback, nullptr);
         if (ret != SQLITE_OK)
             throw std::runtime_error(
-                strprintf("%s: %sd Failed to setup error log: %s\n", __func__, ret, sqlite3_errstr(ret)));
+                strprintf("%s: %d Failed to setup error log: %s\n", __func__, ret, sqlite3_errstr(ret)));
 
         // Force serialized threading mode
         ret = sqlite3_config(SQLITE_CONFIG_SERIALIZED);

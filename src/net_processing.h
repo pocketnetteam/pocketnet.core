@@ -55,8 +55,7 @@ public:
     /**
      * Overridden from CValidationInterface.
      */
-    void NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& pblock,
-        const PocketBlockRef& pocketBlock) override;
+    void NewPoSValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& pblock, const PocketBlockRef& pocketBlock) override;
 
     /** Initialize a peer by adding it to mapNodeState and pushing a message requesting its version */
     void InitializeNode(CNode* pnode) override;
