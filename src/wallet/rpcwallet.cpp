@@ -2665,7 +2665,7 @@ static RPCHelpMan getwalletinfo()
     if (pwallet->IsScanning()) {
         UniValue scanning(UniValue::VOBJ);
         scanning.pushKV("duration", pwallet->ScanningDuration() / 1000);
-        scanning.pushKV("progress", pwallet->ScanningProgress());
+        scanning.pushKV("progress", pwallet->ScanningProgress() / 100);
         obj.pushKV("scanning", scanning);
     } else {
         obj.pushKV("scanning", false);
@@ -4425,6 +4425,48 @@ static RPCHelpMan sethdseed()
     };
 }
 
+static RPCHelpMan gethdseed()
+{
+    return RPCHelpMan{"gethdseed",
+                "\nReturns the HD seed as a string.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::STR, "seed", "The HD seed"
+                },
+                RPCExamples{
+                    HelpExampleCli("gethdseed", "")
+            + HelpExampleRpc("gethdseed", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+            if (!wallet) return NullUniValue;
+            CWallet* const pwallet = wallet.get();
+
+            LOCK(pwallet->cs_wallet);
+
+            if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "Cannot reveal seed while private keys are disabled");
+            }
+
+            EnsureWalletIsUnlocked(pwallet);
+
+            LegacyScriptPubKeyMan& spk_man = EnsureLegacyScriptPubKeyMan(*wallet);
+            CKeyID seed_id = spk_man.GetHDChain().seed_id;
+            if (seed_id.IsNull()) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "HD seed is not available");
+            }
+
+            CKey seed;
+            if (!spk_man.GetKey(seed_id, seed)) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "Failed to retrieve HD seed");
+            }
+
+            return EncodeSecret(seed);
+        },
+    };
+}
+
 static RPCHelpMan walletprocesspsbt()
 {
     return RPCHelpMan{"walletprocesspsbt",
@@ -5035,6 +5077,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "sendmany",                         &sendmany,                      {"dummy","amounts","minconf","comment","subtractfeefrom","replaceable","conf_target","estimate_mode","fee_rate","verbose"} },
     { "wallet",             "sendtoaddress",                    &sendtoaddress,                 {"address","amount","comment","comment_to","subtractfeefromamount","replaceable","conf_target","estimate_mode","avoid_reuse","fee_rate","verbose","destaddress"} },
     { "wallet",             "sethdseed",                        &sethdseed,                     {"newkeypool","seed"} },
+    { "wallet",             "gethdseed",                        &gethdseed,                     {} },
     { "wallet",             "setlabel",                         &setlabel,                      {"address","label"} },
     { "wallet",             "settxfee",                         &settxfee,                      {"amount"} },
     { "wallet",             "setwalletflag",                    &setwalletflag,                 {"flag","value"} },

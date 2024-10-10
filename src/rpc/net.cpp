@@ -817,7 +817,6 @@ static RPCHelpMan getstakinginfo()
                     RPCResult::Type::OBJ, "", "",
                     {
                         {
-                            // TODO (rpc) improve descriptions
                             { RPCResult::Type::BOOL, "enabled", "If staking is enabled" },
                             { RPCResult::Type::BOOL, "staking", "If staking is working" },
                             { RPCResult::Type::STR, "errors", "Errors. Empty if there is no error" },
@@ -854,7 +853,7 @@ static RPCHelpMan getstakinginfo()
     }
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
-    bool staking = ((nLastCoinStakeSearchTime + 60) > GetAdjustedTime()) && nWeight;                                    // Check if coinstkae search was performed in last minute and have weight
+    bool staking = ((nLastCoinStakeSearchTime + 60) > GetAdjustedTime()) && nWeight; // Check if coinstkae search was performed in last minute and have weight
     uint64_t nExpectedTime = staking ? (GetTargetSpacing(ChainActive().Height()) * nNetworkWeight / nWeight) : 0;
 
     UniValue obj(UniValue::VOBJ);
