@@ -1,4 +1,4 @@
-name: Build test
+name: Build
 run-name: "Build: ${{ github.ref_name }} . ${{ inputs.tag || 'latest' }}"
 
 on:
@@ -80,13 +80,18 @@ jobs:
         run: |
           make
           make deploy
+      - name: Prepare output binaries
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          mkdir ./out/
+          ls -l
+          cp ./src/pocketcoind ./out/pocketnetcore_${VERSION}_macos_arm64_daemon.bin
+          cp ./Pocketnet-Core.dmg ./out/pocketnetcore_${VERSION}_macos_arm64_setup.dmg
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: MacOS_arm64
-          path: |
-            ./Pocketnet-Core.dmg
-            ./src/pocketcoind
+          path: ./out/*
 
   build-macos-amd64:
     runs-on: macos-13
@@ -107,10 +112,15 @@ jobs:
         run: |
           make
           make deploy
+      - name: Prepare output binaries
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          mkdir ./out/
+          ls -l
+          cp ./src/pocketcoind ./out/pocketnetcore_${VERSION}_macos_x64_daemon.bin
+          cp ./Pocketnet-Core.dmg ./out/pocketnetcore_${VERSION}_macos_x64_setup.dmg
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: MacOS_amd64
-          path: |
-            ./Pocketnet-Core.dmg
-            ./src/pocketcoind
+          path: ./out/*
