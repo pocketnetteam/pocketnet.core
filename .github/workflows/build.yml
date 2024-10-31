@@ -63,6 +63,7 @@ jobs:
 
   build-macos-arm64:
     runs-on: macos-14
+    needs: prepare
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v3
@@ -95,6 +96,7 @@ jobs:
 
   build-macos-amd64:
     runs-on: macos-13
+    needs: prepare
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v3
