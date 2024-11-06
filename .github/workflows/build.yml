@@ -1,0 +1,158 @@
+name: Build
+run-name: "Build: ${{ github.ref_name }} . ${{ inputs.tag || 'latest' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Specific tag for building'
+        required: false
+        default: ''
+        
+jobs:
+
+  prepare:
+    runs-on: ubuntu-20.04
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || steps.branch-name.outputs.ref_branch }}
+      - name: Detect actual version
+        id: version
+        run: |
+          VERSION=$(./share/version.sh)
+          echo "value=$VERSION" >> $GITHUB_OUTPUT
+
+  build-linux:
+    runs-on: ubuntu-20.04
+    needs: prepare
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || steps.branch-name.outputs.ref_branch }}
+      - name: Install general dependencies
+        run: sudo apt update && sudo apt install -y build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler libqrencode-dev libzmq3-dev libminiupnpc-dev
+      - name: Build depends
+        run: cd depends && make HOST=x86_64-pc-linux-gnu && cd ..
+      - name: Configure
+        run: |
+          ./autogen.sh
+          CONFIG_SITE=$PWD/depends/x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
+      - name: Make
+        run: |
+          make
+          make deploy
+      - name: Prepare output binaries
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          mkdir ./out/
+          cp ./release/usr/local/bin/pocketcoind ./out/pocketnetcore_${VERSION}_linux_x64_daemon.bin
+          cp ./pocketnetcore_*_linux_x64_setup.deb ./out/pocketnetcore_${VERSION}_linux_x64_setup.deb
+          cp ./pocketnetcore_*_linux_x64.tar.gz ./out/pocketnetcore_${VERSION}_linux_x64.tar.gz
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux_x64
+          path: ./out/*
+
+  build-windows:
+    runs-on: ubuntu-20.04
+    needs: prepare
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || steps.branch-name.outputs.ref_branch }}
+      - name: Install general dependencies
+        run: |
+          sudo apt update && sudo apt install -y build-essential libtool autotools-dev automake pkg-config nsis g++-mingw-w64-x86-64
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+      - name: Build depends
+        run: cd depends && make HOST=x86_64-w64-mingw32 && cd ..
+      - name: Configure
+        run: |
+          ./autogen.sh
+          CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/
+      - name: Make
+        run: |
+          make
+          make deploy
+      - name: Prepare output binaries
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          mkdir ./out/
+          cp ./release/pocketcoind.exe ./out/pocketnetcore_${VERSION}_win_x64_daemon.bin
+          cp ./pocketnetcore_*_win_x64_setup.exe ./out/pocketnetcore_${VERSION}_win_x64_setup.exe
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows_x64
+          path: ./out/*
+
+  build-macos-arm64:
+    runs-on: macos-14
+    needs: prepare
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.branch-name.outputs.ref_branch }}
+      - name: Install general dependencies
+        run: brew install automake make libtool miniupnpc protobuf qrencode librsvg python-setuptools
+      - name: Build depends
+        run: cd depends && make && cd ..
+      - name: Configure
+        run: |
+          ./autogen.sh
+          ./configure --prefix=$PWD/depends/arm-apple-darwin23.6.0
+      - name: Make
+        run: |
+          make
+          make deploy
+      - name: Prepare output binaries
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          mkdir ./out/
+          cp ./src/pocketcoind ./out/pocketnetcore_${VERSION}_macos_arm64_daemon.bin
+          cp ./Pocketnet-Core.dmg ./out/pocketnetcore_${VERSION}_macos_arm64_setup.dmg
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MacOS_arm64
+          path: ./out/*
+
+  build-macos-amd64:
+    runs-on: macos-13
+    needs: prepare
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+      - name: Install general dependencies
+        run: |
+          brew install automake make miniupnpc protobuf qrencode librsvg python-setuptools berkeley-db@4
+          pip3 install setuptools
+      - name: Build depends
+        run: cd depends && make && cd ..
+      - name: Configure
+        run: |
+          ./autogen.sh
+          ./configure --prefix=$PWD/depends/x86_64-apple-darwin22.6.0
+      - name: Make
+        run: |
+          make
+          make deploy
+      - name: Prepare output binaries
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          mkdir ./out/
+          cp ./src/pocketcoind ./out/pocketnetcore_${VERSION}_macos_x64_daemon.bin
+          cp ./Pocketnet-Core.dmg ./out/pocketnetcore_${VERSION}_macos_x64_setup.dmg
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: MacOS_x64
+          path: ./out/*

@@ -982,6 +982,15 @@ void PopupMenu(QMenu* menu, const QPoint& point, QAction* at_action)
     menu->popup(point, at_action);
 }
 
+QDateTime StartOfDay(const QDate& date)
+{
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+    return date.startOfDay();
+#else
+    return QDateTime(date);
+#endif
+}
+
 QString MakeHtmlLink(const QString& source, const QString& link)
 {
     return QString(source).replace(
@@ -998,6 +1007,7 @@ void PrintSlotException(
     description += "->";
     description += receiver->metaObject()->className();
     PrintExceptionContinue(exception, description.c_str());
+
 }
 
 } // namespace GUIUtil
