@@ -1,12 +1,16 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <fs.h>
 #include <logging.h>
 #include <util/threadnames.h>
+#include <util/string.h>
 #include <util/time.h>
 
+#include <algorithm>
+#include <array>
 #include <mutex>
 
 const char * const DEFAULT_DEBUGLOGFILE = "debug.log";
@@ -123,8 +127,7 @@ bool BCLog::Logger::DefaultShrinkDebugFile() const
     return m_categories == BCLog::NONE;
 }
 
-struct CLogCategoryDesc
-{
+struct CLogCategoryDesc {
     BCLog::LogFlags flag;
     std::string category;
 };
@@ -217,17 +220,20 @@ std::string LogCategoryToStr(BCLog::LogFlags category)          // FIXME!!! Need
     return "";
 }
 
-std::vector<LogCategory> BCLog::Logger::LogCategoriesList()
+std::vector<LogCategory> BCLog::Logger::LogCategoriesList() const
 {
+    // Sort log categories by alphabetical order.
+    std::array<CLogCategoryDesc, std::size(LogCategories)> categories;
+    std::copy(std::begin(LogCategories), std::end(LogCategories), categories.begin());
+    std::sort(categories.begin(), categories.end(), [](auto a, auto b) { return a.category < b.category; });
+
     std::vector<LogCategory> ret;
-    for (const CLogCategoryDesc& category_desc : LogCategories) {
-        // Omit the special cases.
-        if (category_desc.flag != BCLog::NONE && category_desc.flag != BCLog::ALL) {
-            LogCategory catActive;
-            catActive.category = category_desc.category;
-            catActive.active = WillLogCategory(category_desc.flag);
-            ret.push_back(catActive);
-        }
+    for (const CLogCategoryDesc& category_desc : categories) {
+        if (category_desc.flag == BCLog::NONE || category_desc.flag == BCLog::ALL) continue;
+        LogCategory catActive;
+        catActive.category = category_desc.category;
+        catActive.active = WillLogCategory(category_desc.flag);
+        ret.push_back(catActive);
     }
     return ret;
 }
@@ -247,7 +253,7 @@ std::string BCLog::Logger::LogTimestampStr(const std::string& str)
             strStamped += strprintf(".%06dZ", nTimeMicros%1000000);
         }
         int64_t mocktime = GetMockTime();
-        if (mocktime) {
+        if (mocktime > 0) {
             strStamped += " (mocktime: " + FormatISO8601DateTime(mocktime) + ")";
         }
         strStamped += ' ' + str;
@@ -277,14 +283,15 @@ namespace BCLog {
         }
         return ret;
     }
-}
+} // namespace BCLog
 
-void BCLog::Logger::LogPrintStr(const std::string& str, const BCLog::LogFlags category, const BCLog::Level level)
+void BCLog::Logger::LogPrintStr(const std::string& str, const std::string& logging_function, const std::string& source_file, const int source_line, const BCLog::LogFlags category, const BCLog::Level level)
 {
     StdLockGuard scoped_lock(m_cs);
     std::string str_prefixed = LogEscapeMessage(str);
 
-    if (((category != LogFlags::NONE && category != LogFlags::WALLET) || level != Level::None) && m_started_new_line) {
+//    if ((category != LogFlags::NONE || level != Level::None) && m_started_new_line) {
+    if (((category != LogFlags::NONE && category != LogFlags::WALLET) || level != Level::None) && m_started_new_line) {         // Skip WALLET category
         std::string s{"["};
 
         if (category != LogFlags::NONE) {
@@ -302,6 +309,10 @@ void BCLog::Logger::LogPrintStr(const std::string& str, const BCLog::LogFlags ca
 
         s += "] ";
         str_prefixed.insert(0, s);
+    }
+
+    if (m_log_sourcelocations && m_started_new_line) {
+        str_prefixed.insert(0, "[" + RemovePrefix(source_file, "./") + ":" + ToString(source_line) + "] [" + logging_function + "] ");
     }
 
     if (m_log_threadnames && m_started_new_line) {

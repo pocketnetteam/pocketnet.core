@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef POCKETCOIN_LOGGING_H
-#define POCKETCOIN_LOGGING_H
+#ifndef BITCOIN_LOGGING_H
+#define BITCOIN_LOGGING_H
 
 #include <fs.h>
 #include <tinyformat.h>
@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <list>
 #include <mutex>
 #include <string>
@@ -22,6 +23,7 @@ static const bool DEFAULT_LOGTIMEMICROS = false;
 static const bool DEFAULT_LOGIPS        = false;
 static const bool DEFAULT_LOGTIMESTAMPS = true;
 static const bool DEFAULT_LOGTHREADNAMES = false;
+static const bool DEFAULT_LOGSOURCELOCATIONS = false;
 extern const char * const DEFAULT_DEBUGLOGFILE;
 
 extern bool fLogIPs;
@@ -74,7 +76,6 @@ namespace BCLog {
         LOCK          = ((uint64_t)1 << 37),
         ALL           = ~(uint64_t)0,
     };
-
     enum class Level {
         Debug = 0,
         None = 1,
@@ -114,12 +115,13 @@ namespace BCLog {
         bool m_log_timestamps = DEFAULT_LOGTIMESTAMPS;
         bool m_log_time_micros = DEFAULT_LOGTIMEMICROS;
         bool m_log_threadnames = DEFAULT_LOGTHREADNAMES;
+        bool m_log_sourcelocations = DEFAULT_LOGSOURCELOCATIONS;
 
         fs::path m_file_path;
         std::atomic<bool> m_reopen_file{false};
 
         /** Send a string to the log output */
-        void LogPrintStr(const std::string& str, const BCLog::LogFlags category, const BCLog::Level level);
+        void LogPrintStr(const std::string& str, const std::string& logging_function, const std::string& source_file, const int source_line, const BCLog::LogFlags category, const BCLog::Level level);
 
         /** Returns whether logs will be written to any output */
         bool Enabled() const
@@ -158,10 +160,10 @@ namespace BCLog {
         bool DisableCategory(const std::string& str);
 
         bool WillLogCategory(LogFlags category) const;
-        /** Returns a vector of the log categories */
-        std::vector<LogCategory> LogCategoriesList();
-        /** Returns a string with the log categories */
-        std::string LogCategoriesString()
+        /** Returns a vector of the log categories in alphabetical order. */
+        std::vector<LogCategory> LogCategoriesList() const;
+        /** Returns a string with the log categories in alphabetical order. */
+        std::string LogCategoriesString() const
         {
             return Join(LogCategoriesList(), ", ", [&](const LogCategory& i) { return i.category; });
         };
@@ -187,10 +189,9 @@ bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str);
 // peer can fill up a user's disk with debug.log entries.
 
 template <typename... Args>
-static inline void LogPrintf_(const BCLog::LogFlags flag, const BCLog::Level level, const char* fmt, const Args&... args)
+static inline void LogPrintf_(const std::string& logging_function, const std::string& source_file, const int source_line, const BCLog::LogFlags flag, const BCLog::Level level, const char* fmt, const Args&... args)
 {
-    if (LogInstance().Enabled())
-    {
+    if (LogInstance().Enabled()) {
         std::string log_msg;
         try {
             log_msg = tfm::format(fmt, args...);
@@ -198,25 +199,29 @@ static inline void LogPrintf_(const BCLog::LogFlags flag, const BCLog::Level lev
             /* Original format string will have newline so don't add one here */
             log_msg = "Error \"" + std::string(fmterr.what()) + "\" while formatting log message: " + fmt;
         }
-        LogInstance().LogPrintStr(log_msg, flag, level);
+        LogInstance().LogPrintStr(log_msg, logging_function, source_file, source_line, flag, level);
     }
 }
 
-#define LogPrintf(...) LogPrintf_(BCLog::LogFlags::NONE, BCLog::Level::None, __VA_ARGS__)
+
+#define LogPrintLevel_(category, level, ...) LogPrintf_(__func__, __FILE__, __LINE__, category, level, __VA_ARGS__)
+
+#define LogPrintf(...) LogPrintLevel_(BCLog::LogFlags::NONE, BCLog::Level::None, __VA_ARGS__)
 
 // Use a macro instead of a function for conditional logging to prevent
 // evaluating arguments when logging for the category is not enabled.
-#define LogPrint(category, ...)              \
-    do {                                     \
-        if (LogAcceptCategory((category))) { \
-            LogPrintf_(category, BCLog::Level::None, __VA_ARGS__);          \
-        }                                    \
+#define LogPrint(category, ...)                                        \
+    do {                                                               \
+        if (LogAcceptCategory((category))) {                           \
+            LogPrintLevel_(category, BCLog::Level::None, __VA_ARGS__); \
+        }                                                              \
     } while (0)
+
 #define LogPrintLevel(level, category, ...)               \
     do {                                                  \
         if (LogAcceptCategory((category))) {              \
-            LogPrintf_(category, level, __VA_ARGS__); \
+            LogPrintLevel_(category, level, __VA_ARGS__); \
         }                                                 \
     } while (0)
 
-#endif // POCKETCOIN_LOGGING_H
+#endif // BITCOIN_LOGGING_H
