@@ -103,26 +103,26 @@ endif()
 include(FindPackageHandleStandardArgs)
 # Fails if required vars aren't found, or if the version doesn't meet specifications.
 find_package_handle_standard_args(QREncode
-        FOUND_VAR QREncode_FOUND
-        REQUIRED_VARS
-            QREncode_INCLUDE_DIRS
-            QRENCODE_LIB
-            QREncode_LIBRARIES
-        )
+    FOUND_VAR QREncode_FOUND
+    REQUIRED_VARS
+    QREncode_INCLUDE_DIRS
+    QRENCODE_LIB
+    QREncode_LIBRARIES
+)
 
 # Create an imported lib for easy linking by external projects
 if(QREncode_FOUND AND QREncode_LIBRARIES AND NOT TARGET QREncode::qrencode)
     add_library(QREncode::qrencode INTERFACE IMPORTED)
     set_target_properties(QREncode::qrencode PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${QREncode_INCLUDE_DIRS}"
-            IMPORTED_LOCATION "${QRENCODE_LIB}"
-            INTERFACE_LINK_LIBRARIES "${QREncode_LIBRARIES}"
-            )
+        INTERFACE_INCLUDE_DIRECTORIES "${QREncode_INCLUDE_DIRS}"
+        IMPORTED_LOCATION "${QRENCODE_LIB}"
+        INTERFACE_LINK_LIBRARIES "${QREncode_LIBRARIES}"
+    )
 endif()
 
 include(FindPackageMessage)
 # A message that tells the user what includes/libs were found, and obeys the QUIET command.
 find_package_message(QREncode
-        "Found qrencode libraries: ${QREncode_LIBRARIES}"
-        "[${QREncode_LIBRARIES}[${QREncode_INCLUDE_DIRS}]]"
-        )
+    "Found qrencode libraries: ${QREncode_LIBRARIES}"
+    "[${QREncode_LIBRARIES}[${QREncode_INCLUDE_DIRS}]]"
+)

@@ -7,7 +7,6 @@ elseif(CMAKE_SYSTEM_NAME MATCHES ".*[wW]indows.*")
     file(TO_CMAKE_PATH "$ENV{PROGRAMFILES}" _programfiles)
     list(APPEND _SQLITE_HINTS "${_programfiles}")
 
-    # TODO probably other default paths?
     foreach(_TARGET_SQLITE_PATH "sqlite3")
         list(APPEND _SQLITE_PATHS
                 "${_programfiles}/${_TARGET_SQLITE_PATH}"
@@ -21,7 +20,6 @@ else()
     list(APPEND _SQLITE_PATHS
             "/usr"
             "/usr/local"
-            #            "/usr/local/Cellar/sqlite3" TODO: mac os?
             "/opt"
             "/opt/local"
             )

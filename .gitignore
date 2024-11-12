@@ -20,6 +20,8 @@ src/test/fuzz/*
 !src/test/fuzz/*.*
 src/test/test_pocketcoin
 src/qt/test/test_pocketcoin-qt
+src/sqlite/m4/
+release/
 
 # autoreconf
 Makefile.in
@@ -49,6 +51,8 @@ src/config/stamp-h1
 src/obj
 share/setup.nsi
 share/qt/Info.plist
+configure~
+**/*.deb
 
 .idea
 cmake-build-debug
@@ -158,7 +162,8 @@ db4/
 
 osx_volname
 dist/
-*.background.tiff
+*.background.tiff*
+background.tiff*
 
 /confdefs.h
 /build_msvc/pocketcoind/testdb

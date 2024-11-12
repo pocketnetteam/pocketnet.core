@@ -21,9 +21,9 @@ else()
     list(APPEND _ZMQ_PATHS
             "/usr"
             "/usr/local"
-            #            "/usr/local/Cellar/libzmq" TODO: mac os?
             "/opt"
             "/opt/local"
+            "${CMAKE_PREFIX_PATH}"
             )
 endif()
 if(_ZMQ_PATHS_MANUAL)

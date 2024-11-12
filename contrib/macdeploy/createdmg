@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+
+import sys, re, os, platform, shutil, stat, subprocess, os.path
+from subprocess import PIPE, run
+from argparse import ArgumentParser
+
+ap = ArgumentParser(description="Simple create dmg file for builded app")
+
+ap.add_argument("app_bundle", nargs=1, metavar="app-bundle", help="application bundle to be deployed")
+ap.add_argument("appname", nargs=1, metavar="appname", help="name of the app being deployed")
+ap.add_argument("-verbose", nargs="?", const=True, help="Output additional debugging information")
+
+config = ap.parse_args()
+
+verbose = config.verbose
+app_bundle = config.app_bundle[0]
+appname = config.appname[0]
+
+# --------------------------------------------
+
+print("+ Preparing .dmg disk image +")
+
+if verbose:
+    print("Determining size of \"dist\"...")
+size = 0
+for path, dirs, files in os.walk("dist"):
+    for file in files:
+        size += os.path.getsize(os.path.join(path, file))
+size += int(size * 0.15)
+
+if verbose:
+    print("Creating temp image for modification...")
+
+tempname: str = appname + ".temp.dmg"
+
+run(["hdiutil", "create", tempname, "-srcfolder", "dist", "-format", "UDRW", "-size", str(size), "-volname", appname], check=True, universal_newlines=True)
+
+if verbose:
+    print("Attaching temp image...")
+output = run(["hdiutil", "attach", tempname, "-readwrite"], check=True, universal_newlines=True, stdout=PIPE).stdout
+
+m = re.search(r"/Volumes/(.+$)", output)
+disk_root = m.group(0)
+
+print("+ Applying fancy settings +")
+
+bg_path = os.path.join(disk_root, ".background", os.path.basename('background.tiff'))
+os.mkdir(os.path.dirname(bg_path))
+if verbose:
+    print('background.tiff', "->", bg_path)
+shutil.copy2('contrib/macdeploy/background.tiff', bg_path)
+
+os.symlink("/Applications", os.path.join(disk_root, "Applications"))
+
+print("+ Finalizing .dmg disk image +")
+
+run(["hdiutil", "detach", f"/Volumes/{appname}"], universal_newlines=True)
+
+run(["hdiutil", "convert", tempname, "-format", "UDZO", "-o", appname, "-imagekey", "zlib-level=9"], check=True, universal_newlines=True)
+
+os.unlink(tempname)

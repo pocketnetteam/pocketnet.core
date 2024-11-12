@@ -1831,7 +1831,7 @@ namespace PocketDb
                                 group by f.Int1
                             ) ff
                         ) as Flags,
-                        (select rg.String from Registry rg where rg.RowId = c.RegId1) as LastAddressHash,
+                        (select rg.String from Registry rg where rg.RowId = c.RegId1) as LastAddressHash
                     from
                         txs,
                         addr

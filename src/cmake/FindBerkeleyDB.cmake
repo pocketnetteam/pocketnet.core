@@ -46,6 +46,7 @@ else()
 			"/usr/local/Cellar/berkeley-db"
 			"/opt"
 			"/opt/local"
+			"${CMAKE_PREFIX_PATH}"
 			)
 endif()
 if(_BERKELEYDB_PATHS_MANUAL)

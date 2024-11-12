@@ -855,7 +855,7 @@ add_library(${POCKETCOIN_CRYPTO}
         util/strencodings.cpp
         )
 target_include_directories(${POCKETCOIN_CRYPTO} PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(${POCKETCOIN_CRYPTO} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_SUPPORT} secp256k1)
+target_link_libraries(${POCKETCOIN_CRYPTO} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_SUPPORT} secp256k1 OpenSSL::SSL OpenSSL::Crypto)
 if (ENABLE_SSE41)
     target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_sse41.cpp)
     if (MSVC)
