@@ -137,9 +137,13 @@ BOOST_FIXTURE_TEST_CASE(logging_LogPrintMacros_CategoryName, LogSetup)
     std::vector<std::string> expected;
     for (const auto& [category, name] : expected_category_names) {
         LogPrint(category, "foo: %s\n", "bar");
-        std::string expected_log = "[";
-        expected_log += name;
-        expected_log += "] foo: bar";
+        std::string expected_log;
+        if (category != BCLog::WALLET) {
+            expected_log = "[";
+            expected_log += name;
+            expected_log += "] ";
+        }
+        expected_log += "foo: bar";
         expected.push_back(expected_log);
     }
 
