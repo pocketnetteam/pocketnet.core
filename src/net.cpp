@@ -1162,7 +1162,7 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
     const int on{1};
     if (sock->SetSockOpt(IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == SOCKET_ERROR) {
         LogPrint(BCLog::NET, "connection from %s: unable to set TCP_NODELAY, continuing anyway\n",
-                 addr.ToStringAddrPort());
+                 addr.ToString());
     }
 
     // Don't accept connections from banned peers.
@@ -1238,7 +1238,7 @@ void CConnman::DisconnectNodes()
             // Disconnect any connected nodes
             for (CNode* pnode : vNodes) {
                 if (!pnode->fDisconnect) {
-                    LogPrint(BCLog::NET, "Network not active, dropping peer=%d\n", pnode->GetId());
+                    LogPrint(BCLog::NET, "Network not active, dropping peer=%d%s\n", pnode->GetId(), fLogIPs ? ", peeraddr=" + pnode->addr.ToString() : "");
                     pnode->fDisconnect = true;
                 }
             }
@@ -1310,27 +1310,27 @@ bool CConnman::InactivityCheck(CNode *pnode)
     {
         if (pnode->nLastRecv == 0 || pnode->nLastSend == 0)
         {
-            LogPrint(BCLog::NET, "socket no message in first %i seconds, %d %d from %d\n", m_peer_connect_timeout, pnode->nLastRecv != 0, pnode->nLastSend != 0, pnode->GetId());
+            LogPrint(BCLog::NET, "socket no message in first %i seconds, %d %d from  peer=%d%s\n", m_peer_connect_timeout, pnode->nLastRecv != 0, pnode->nLastSend != 0, pnode->GetId(), fLogIPs ? ", peeraddr=" + pnode->addr.ToString() : "");
             return true;
         }
         else if (nTime - pnode->nLastSend > TIMEOUT_INTERVAL)
         {
-            LogPrintf("socket sending timeout: %is\n", nTime - pnode->nLastSend);
+            LogPrintf("socket sending timeout: %is peer=%d%s\n", nTime - pnode->nLastSend, pnode->GetId(), fLogIPs ? ", peeraddr=" + pnode->addr.ToString() : "");
             return true;
         }
         else if (nTime - pnode->nLastRecv > (pnode->GetCommonVersion() > BIP0031_VERSION ? TIMEOUT_INTERVAL : 90*60))
         {
-            LogPrintf("socket receive timeout: %is\n", nTime - pnode->nLastRecv);
+            LogPrintf("socket receive timeout: %is peer=%d%s\n", nTime - pnode->nLastRecv, pnode->GetId(), fLogIPs ? ", peeraddr=" + pnode->addr.ToString() : "");
             return true;
         }
         else if (pnode->nPingNonceSent && pnode->m_ping_start.load() + std::chrono::seconds{TIMEOUT_INTERVAL} < GetTime<std::chrono::microseconds>())
         {
-            LogPrintf("ping timeout: %fs\n", 0.000001 * count_microseconds(GetTime<std::chrono::microseconds>() - pnode->m_ping_start.load()));
+            LogPrintf("ping timeout: %fs peer=%d%s\n", 0.000001 * count_microseconds(GetTime<std::chrono::microseconds>() - pnode->m_ping_start.load()), pnode->GetId(), fLogIPs ? ", peeraddr=" + pnode->addr.ToString() : "");
             return true;
         }
         else if (!pnode->fSuccessfullyConnected)
         {
-            LogPrint(BCLog::NET, "version handshake timeout from %d\n", pnode->GetId());
+            LogPrint(BCLog::NET, "version handshake timeout from peer=%d%s\n", pnode->GetId(), fLogIPs ? ", peeraddr=" + pnode->addr.ToString() : "");
             return true;
         }
     }
