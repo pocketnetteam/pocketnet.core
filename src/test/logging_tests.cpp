@@ -1,7 +1,8 @@
-// Copyright (c) 2019-2021 The Bitcoin Core developers
+// Copyright (c) 2019-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <init/common.h>
 #include <logging.h>
 #include <logging/timer.h>
 #include <test/util/setup_common.h>
@@ -11,12 +12,19 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include <boost/test/unit_test.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(logging_tests, BasicTestingSetup)
+
+static void ResetLogger()
+{
+    LogInstance().SetLogLevel(BCLog::DEFAULT_LOG_LEVEL);
+    LogInstance().SetCategoryLogLevel({});
+}
 
 struct LogSetup : public BasicTestingSetup {
     fs::path prev_log_path;
@@ -26,6 +34,8 @@ struct LogSetup : public BasicTestingSetup {
     bool prev_log_timestamps;
     bool prev_log_threadnames;
     bool prev_log_sourcelocations;
+    std::unordered_map<BCLog::LogFlags, BCLog::Level> prev_category_levels;
+    BCLog::Level prev_log_level;
 
     LogSetup() : prev_log_path{LogInstance().m_file_path},
                  tmp_log_path{GetDataDir() / "tmp_debug.log"},
@@ -33,14 +43,21 @@ struct LogSetup : public BasicTestingSetup {
                  prev_print_to_file{LogInstance().m_print_to_file},
                  prev_log_timestamps{LogInstance().m_log_timestamps},
                  prev_log_threadnames{LogInstance().m_log_threadnames},
-                 prev_log_sourcelocations{LogInstance().m_log_sourcelocations}
+                 prev_log_sourcelocations{LogInstance().m_log_sourcelocations},
+                 prev_category_levels{LogInstance().CategoryLevels()},
+                 prev_log_level{LogInstance().LogLevel()}
     {
         LogInstance().m_file_path = tmp_log_path;
         LogInstance().m_reopen_file = true;
         LogInstance().m_print_to_file = true;
         LogInstance().m_log_timestamps = false;
         LogInstance().m_log_threadnames = false;
-        LogInstance().m_log_sourcelocations = true;
+
+        // Prevent tests from failing when the line number of the logs changes.
+        LogInstance().m_log_sourcelocations = false;
+
+        LogInstance().SetLogLevel(BCLog::Level::Debug);
+        LogInstance().SetCategoryLogLevel({});
     }
 
     ~LogSetup()
@@ -52,33 +69,25 @@ struct LogSetup : public BasicTestingSetup {
         LogInstance().m_log_timestamps = prev_log_timestamps;
         LogInstance().m_log_threadnames = prev_log_threadnames;
         LogInstance().m_log_sourcelocations = prev_log_sourcelocations;
+        LogInstance().SetLogLevel(prev_log_level);
+        LogInstance().SetCategoryLogLevel(prev_category_levels);
     }
 };
 
 BOOST_AUTO_TEST_CASE(logging_timer)
 {
-    SetMockTime(1);
     auto micro_timer = BCLog::Timer<std::chrono::microseconds>("tests", "end_msg");
-    SetMockTime(2);
-    BOOST_CHECK_EQUAL(micro_timer.LogMsg("test micros"), "tests: test micros (1000000μs)");
-
-    SetMockTime(1);
-    auto ms_timer = BCLog::Timer<std::chrono::milliseconds>("tests", "end_msg");
-    SetMockTime(2);
-    BOOST_CHECK_EQUAL(ms_timer.LogMsg("test ms"), "tests: test ms (1000.00ms)");
-
-    SetMockTime(1);
-    auto sec_timer = BCLog::Timer<std::chrono::seconds>("tests", "end_msg");
-    SetMockTime(2);
-    BOOST_CHECK_EQUAL(sec_timer.LogMsg("test secs"), "tests: test secs (1.00s)");
+    const std::string_view result_prefix{"tests: msg ("};
+    BOOST_CHECK_EQUAL(micro_timer.LogMsg("msg").substr(0, result_prefix.size()), result_prefix);
 }
 
 BOOST_FIXTURE_TEST_CASE(logging_LogPrintf_, LogSetup)
 {
-    LogPrintf_("fn1", "src1", 1, BCLog::LogFlags::NET, BCLog::Level::Debug, "foo1: %s", "bar1\n");
-    LogPrintf_("fn2", "src2", 2, BCLog::LogFlags::NET, BCLog::Level::None, "foo2: %s", "bar2\n");
-    LogPrintf_("fn3", "src3", 3, BCLog::LogFlags::NONE, BCLog::Level::Debug, "foo3: %s", "bar3\n");
-    LogPrintf_("fn4", "src4", 4, BCLog::LogFlags::NONE, BCLog::Level::None, "foo4: %s", "bar4\n");
+    LogInstance().m_log_sourcelocations = true;
+    LogPrintf_("fn1", "src1", 1, BCLog::LogFlags::NET, BCLog::Level::Debug, "foo1: %s\n", "bar1");
+    LogPrintf_("fn2", "src2", 2, BCLog::LogFlags::NET, BCLog::Level::None, "foo2: %s\n", "bar2");
+    LogPrintf_("fn3", "src3", 3, BCLog::LogFlags::NONE, BCLog::Level::Debug, "foo3: %s\n", "bar3");
+    LogPrintf_("fn4", "src4", 4, BCLog::LogFlags::NONE, BCLog::Level::None, "foo4: %s\n", "bar4");
     std::ifstream file{tmp_log_path};
     std::vector<std::string> log_lines;
     for (std::string log; std::getline(file, log);) {
@@ -95,15 +104,13 @@ BOOST_FIXTURE_TEST_CASE(logging_LogPrintf_, LogSetup)
 
 BOOST_FIXTURE_TEST_CASE(logging_LogPrintMacros, LogSetup)
 {
-    // Prevent tests from failing when the line number of the following log calls changes.
-    LogInstance().m_log_sourcelocations = false;
-
     LogPrintf("foo5: %s\n", "bar5");
     LogPrint(BCLog::NET, "foo6: %s\n", "bar6");
-    LogPrintLevel(BCLog::Level::Debug, BCLog::NET, "foo7: %s\n", "bar7");
-    LogPrintLevel(BCLog::Level::Info, BCLog::NET, "foo8: %s\n", "bar8");
-    LogPrintLevel(BCLog::Level::Warning, BCLog::NET, "foo9: %s\n", "bar9");
-    LogPrintLevel(BCLog::Level::Error, BCLog::NET, "foo10: %s\n", "bar10");
+    LogPrintLevel(BCLog::NET, BCLog::Level::Debug, "foo7: %s\n", "bar7");
+    LogPrintLevel(BCLog::NET, BCLog::Level::Info, "foo8: %s\n", "bar8");
+    LogPrintLevel(BCLog::NET, BCLog::Level::Warning, "foo9: %s\n", "bar9");
+    LogPrintLevel(BCLog::NET, BCLog::Level::Error, "foo10: %s\n", "bar10");
+    LogPrintfCategory(BCLog::VALIDATION, "foo11: %s\n", "bar11");
     std::ifstream file{tmp_log_path};
     std::vector<std::string> log_lines;
     for (std::string log; std::getline(file, log);) {
@@ -115,22 +122,22 @@ BOOST_FIXTURE_TEST_CASE(logging_LogPrintMacros, LogSetup)
         "[net:debug] foo7: bar7",
         "[net:info] foo8: bar8",
         "[net:warning] foo9: bar9",
-        "[net:error] foo10: bar10"};
+        "[net:error] foo10: bar10",
+        "[validation] foo11: bar11",
+    };
     BOOST_CHECK_EQUAL_COLLECTIONS(log_lines.begin(), log_lines.end(), expected.begin(), expected.end());
 }
 
 BOOST_FIXTURE_TEST_CASE(logging_LogPrintMacros_CategoryName, LogSetup)
 {
-    // Prevent tests from failing when the line number of the following log calls changes.
-    LogInstance().m_log_sourcelocations = false;
     LogInstance().EnableCategory(BCLog::LogFlags::ALL);
-    const auto concated_categery_names = LogInstance().LogCategoriesString();
+    const auto concatenated_category_names = LogInstance().LogCategoriesString();
     std::vector<std::pair<BCLog::LogFlags, std::string>> expected_category_names;
-    const auto category_names = SplitString(concated_categery_names, ',');
+    const auto category_names = SplitString(concatenated_category_names, ',');
     for (const auto& category_name : category_names) {
-        BCLog::LogFlags category = BCLog::NONE;
+        BCLog::LogFlags category;
         const auto trimmed_category_name = TrimString(category_name);
-        BOOST_TEST(GetLogCategory(category, trimmed_category_name));
+        BOOST_REQUIRE(GetLogCategory(category, trimmed_category_name));
         expected_category_names.emplace_back(category, trimmed_category_name);
     }
 
@@ -153,6 +160,97 @@ BOOST_FIXTURE_TEST_CASE(logging_LogPrintMacros_CategoryName, LogSetup)
         log_lines.push_back(log);
     }
     BOOST_CHECK_EQUAL_COLLECTIONS(log_lines.begin(), log_lines.end(), expected.begin(), expected.end());
+}
+
+BOOST_FIXTURE_TEST_CASE(logging_SeverityLevels, LogSetup)
+{
+    LogInstance().EnableCategory(BCLog::LogFlags::ALL);
+
+    LogInstance().SetLogLevel(BCLog::Level::Debug);
+    LogInstance().SetCategoryLogLevel(/*category_str=*/"net", /*level_str=*/"info");
+
+    // Global log level
+    LogPrintLevel(BCLog::HTTP, BCLog::Level::Info, "foo1: %s\n", "bar1");
+    LogPrintLevel(BCLog::MEMPOOL, BCLog::Level::Trace, "foo2: %s. This log level is lower than the global one.\n", "bar2");
+    LogPrintLevel(BCLog::VALIDATION, BCLog::Level::Warning, "foo3: %s\n", "bar3");
+    LogPrintLevel(BCLog::RPC, BCLog::Level::Error, "foo4: %s\n", "bar4");
+
+    // Category-specific log level
+    LogPrintLevel(BCLog::NET, BCLog::Level::Warning, "foo5: %s\n", "bar5");
+    LogPrintLevel(BCLog::NET, BCLog::Level::Debug, "foo6: %s. This log level is the same as the global one but lower than the category-specific one, which takes precedence. \n", "bar6");
+    LogPrintLevel(BCLog::NET, BCLog::Level::Error, "foo7: %s\n", "bar7");
+
+    std::vector<std::string> expected = {
+        "[http:info] foo1: bar1",
+        "[validation:warning] foo3: bar3",
+        "[rpc:error] foo4: bar4",
+        "[net:warning] foo5: bar5",
+        "[net:error] foo7: bar7",
+    };
+    std::ifstream file{tmp_log_path};
+    std::vector<std::string> log_lines;
+    for (std::string log; std::getline(file, log);) {
+        log_lines.push_back(log);
+    }
+    BOOST_CHECK_EQUAL_COLLECTIONS(log_lines.begin(), log_lines.end(), expected.begin(), expected.end());
+}
+
+BOOST_FIXTURE_TEST_CASE(logging_Conf, LogSetup)
+{
+    // Set global log level
+    {
+        ResetLogger();
+        ArgsManager args;
+        args.AddArg("-loglevel", "...", ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
+        const char* argv_test[] = {"pocketcoind", "-loglevel=debug"};
+        std::string err;
+        BOOST_REQUIRE(args.ParseParameters(2, argv_test, err));
+
+        init::SetLoggingLevel(args);
+        BOOST_CHECK_EQUAL((int)LogInstance().LogLevel(), (int)BCLog::Level::Debug);
+    }
+
+    // Set category-specific log level
+    {
+        ResetLogger();
+        ArgsManager args;
+        args.AddArg("-loglevel", "...", ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
+        const char* argv_test[] = {"pocketcoind", "-loglevel=net:trace"};
+        std::string err;
+        BOOST_REQUIRE(args.ParseParameters(2, argv_test, err));
+
+        init::SetLoggingLevel(args);
+        BOOST_CHECK_EQUAL((int)LogInstance().LogLevel(), (int)BCLog::DEFAULT_LOG_LEVEL);
+
+        const auto& category_levels{LogInstance().CategoryLevels()};
+        const auto net_it{category_levels.find(BCLog::LogFlags::NET)};
+        BOOST_REQUIRE(net_it != category_levels.end());
+        BOOST_CHECK_EQUAL((int)net_it->second, (int)BCLog::Level::Trace);
+    }
+
+    // Set both global log level and category-specific log level
+    {
+        ResetLogger();
+        ArgsManager args;
+        args.AddArg("-loglevel", "...", ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
+        const char* argv_test[] = {"pocketcoind", "-loglevel=debug", "-loglevel=net:trace", "-loglevel=http:info"};
+        std::string err;
+        BOOST_REQUIRE(args.ParseParameters(4, argv_test, err));
+
+        init::SetLoggingLevel(args);
+        BOOST_CHECK_EQUAL((int)LogInstance().LogLevel(), (int)BCLog::Level::Debug);
+
+        const auto& category_levels{LogInstance().CategoryLevels()};
+        BOOST_CHECK_EQUAL(category_levels.size(), 2);
+
+        const auto net_it{category_levels.find(BCLog::LogFlags::NET)};
+        BOOST_CHECK(net_it != category_levels.end());
+        BOOST_CHECK_EQUAL((int)net_it->second, (int)BCLog::Level::Trace);
+
+        const auto http_it{category_levels.find(BCLog::LogFlags::HTTP)};
+        BOOST_CHECK(http_it != category_levels.end());
+        BOOST_CHECK_EQUAL((int)http_it->second, (int)BCLog::Level::Info);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
