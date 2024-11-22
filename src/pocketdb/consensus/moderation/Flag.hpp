@@ -40,7 +40,7 @@ namespace PocketConsensus
             if (!ConsensusRepoInst.ExistsNotDeleted(
                 *ptx->GetContentTxHash(),
                 *ptx->GetContentAddressHash(),
-                { ACCOUNT_USER, CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO, APP, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
+                AllowedContentTypes()
             ))
                 return {false, ConsensusResult_NotFound};
 
@@ -115,17 +115,44 @@ namespace PocketConsensus
         {
             return { *ptx->GetAddress(), *ptx->GetContentAddressHash() };
         }
+
+        virtual vector<PocketTx::TxType> AllowedContentTypes()
+        {
+            return {
+                ACCOUNT_USER,
+                CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO,
+                APP,
+                CONTENT_COMMENT, CONTENT_COMMENT_EDIT
+            };
+        }
+    };
+
+    class ModerationFlagConsensus_pip_109 : public ModerationFlagConsensus
+    {
+    public:
+        ModerationFlagConsensus_pip_109() : ModerationFlagConsensus() {}
+    protected:
+        vector<PocketTx::TxType> AllowedContentTypes() override
+        {
+            return {
+                ACCOUNT_USER,
+                CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO,
+                APP,
+                CONTENT_COMMENT, CONTENT_COMMENT_EDIT,
+                BARTERON_ACCOUNT, BARTERON_OFFER
+            };
+        }
     };
 
 
-    // ----------------------------------------------------------------------------------------------
     // Factory for select actual rules version
     class ModerationFlagConsensusFactory : public BaseConsensusFactory<ModerationFlagConsensus>
     {
     public:
         ModerationFlagConsensusFactory()
         {
-            Checkpoint({ 0, 0, 0, make_shared<ModerationFlagConsensus>() });
+            Checkpoint({       0,       0, -1, make_shared<ModerationFlagConsensus>() });
+            Checkpoint({ 3291900, 3373650,  0, make_shared<ModerationFlagConsensus_pip_109>() });
         }
     };
 

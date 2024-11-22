@@ -12,6 +12,7 @@ namespace PocketDb
         vector<string> result;
 
         string _keyword = "\"" + args.Search + "\"" + " OR " + args.Search + "*";
+        boost::replace_all(_keyword, ".", "_");
 
         string _orderBy = " ct.Height ";
         if (args.Page.OrderBy == "rating")
@@ -43,6 +44,8 @@ namespace PocketDb
                             r.Uid = ct.Uid
                     where
                         t.Type in (221) and
+                        (? or t.RegId1 = (select r.RowId from Registry r where r.String = ?)) and
+                        (? or pt.String2 = ?) and
                         (? or t.RowId in (
                             select
                                 tm.ContentId
@@ -63,7 +66,7 @@ namespace PocketDb
                                 web.ContentMap cm
                             where
                                 c.ROWID = cm.ROWID and
-                                cm.FieldType in (3,5) and
+                                cm.FieldType in (10,11,14) and
                                 c.Value match ?
                         ))
                     order by
@@ -72,6 +75,10 @@ namespace PocketDb
                 )sql")
                 .Bind(
                     args.Page.TopHeight,
+                    args.Address.empty(),
+                    args.Address,
+                    args.Id.empty(),
+                    args.Id,
                     args.Tags.empty(),
                     args.Tags,
                     args.Search.empty(),

@@ -38,6 +38,12 @@ namespace PocketWeb::PocketWebRpc
             if (auto arg = _args.At("search", true); arg.isStr())
                 appListDto.Search = arg.get_str();
 
+            if (auto arg = _args.At("address", true); arg.isStr())
+                appListDto.Address = arg.get_str();
+
+            if (auto arg = _args.At("id", true); arg.isStr())
+                appListDto.Id = arg.get_str();
+
             UniValue result(UniValue::VARR);
 
             // Fetch txs

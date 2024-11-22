@@ -224,11 +224,10 @@ namespace PocketConsensus
         }
     };
 
-    // Fix general validating
-    class CollectionConsensus_checkpoint_tmp_fix : public CollectionConsensus
+    class CollectionConsensus_fix_check : public CollectionConsensus
     {
     public:
-        CollectionConsensus_checkpoint_tmp_fix() : CollectionConsensus() {}
+        CollectionConsensus_fix_check() : CollectionConsensus() {}
 
         tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const CollectionRef& ptx, const PocketBlockRef& block) override
         {
@@ -259,14 +258,86 @@ namespace PocketConsensus
         }
     };
 
+    class CollectionConsensus_pip109 : public CollectionConsensus_fix_check
+    {
+    public:
+        CollectionConsensus_pip109() : CollectionConsensus_fix_check() {}
+
+        tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const CollectionRef& ptx, const PocketBlockRef& block) override
+        {
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+
+            if(auto[contentIdsOk, contentIds] = ptx->GetContentIdsVector(); contentIdsOk)
+            {
+                // Check count of content ids
+                if (contentIds.size() > (size_t)GetConsensusLimit(ConsensusLimit_collection_ids_count))
+                   return {false, ConsensusResult_Failed};
+            }
+            else
+            {
+                return {false, ConsensusResult_Failed};
+            }
+
+            if (ptx->IsEdit())
+                return ValidateEdit(ptx);
+
+            return Success;
+        }
+        
+        tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const CollectionRef& ptx) override
+        {
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, ConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentIds())) return {false, ConsensusResult_Failed};
+
+            return Success;
+        }
+
+    protected:
+    
+        tuple<bool, SocialConsensusResult> ValidateEdit(const CollectionRef& ptx) override
+        {
+            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
+                    *ptx->GetRootTxHash(),
+                    { CONTENT_COLLECTION }
+            );
+            if (lastContentOk && *lastContent->GetType() != CONTENT_COLLECTION)
+                return {false, ConsensusResult_NotAllowed};
+
+            // First get original collection transaction
+            auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
+            if (!lastContentOk || !originalTxOk)
+                return {false, ConsensusResult_NotFound};
+
+            const auto originalPtx = static_pointer_cast<Content>(originalTx);
+
+            // Change type not allowed
+            if (*originalTx->GetType() != *ptx->GetType())
+                return {false, ConsensusResult_NotAllowed};
+
+            // You are author? Really?
+            if (*ptx->GetAddress() != *originalPtx->GetAddress())
+                return {false, ConsensusResult_ContentEditUnauthorized};
+
+            // Check edit limit
+            return ValidateEditOneLimit(ptx);
+        }
+    };
+
 
     class CollectionConsensusFactory : public BaseConsensusFactory<CollectionConsensus>
     {
     public:
         CollectionConsensusFactory()
         {
-            Checkpoint({ 2162400, 1531000, 0, make_shared<CollectionConsensus>() });
-            Checkpoint({ 2583000, 2280000, 0, make_shared<CollectionConsensus_checkpoint_tmp_fix>() });
+            Checkpoint({ 2162400, 1531000, -1, make_shared<CollectionConsensus>() });
+            Checkpoint({ 2583000, 2280000, -1, make_shared<CollectionConsensus_fix_check>() });
+            Checkpoint({ 3291900, 3373650,  0, make_shared<CollectionConsensus_pip109>() });
         }
     };
 

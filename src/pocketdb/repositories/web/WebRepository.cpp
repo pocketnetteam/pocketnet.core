@@ -354,6 +354,9 @@ namespace PocketDb
 
                                 if (data.exists("d"))
                                     result.emplace_back(WebContent(id, ContentFieldType_AppDescription, data["d"].get_str()));
+
+                                if (data.exists("s"))
+                                    result.emplace_back(WebContent(id, ContentFieldType_AppScope, data["s"].get_str()));
                             }
 
                             break;

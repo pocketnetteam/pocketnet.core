@@ -173,10 +173,10 @@ namespace PocketConsensus
     };
 
 
-    class ComplainConsensus_checkpoint_pip_102 : public ComplainConsensus_checkpoint_1124000
+    class ComplainConsensus_checkpoint_pip_109 : public ComplainConsensus_checkpoint_1124000
     {
     public:
-        ComplainConsensus_checkpoint_pip_102() : ComplainConsensus_checkpoint_1124000() {}
+        ComplainConsensus_checkpoint_pip_109() : ComplainConsensus_checkpoint_1124000() {}
     protected:
         int GetChainCount(const ComplainRef& ptx) override
         {
@@ -194,8 +194,7 @@ namespace PocketConsensus
         {
             Checkpoint({       0, -1, -1, make_shared<ComplainConsensus>() });
             Checkpoint({ 1124000, -1, -1, make_shared<ComplainConsensus_checkpoint_1124000>() });
-            // TODO (aok, team): set fork height for enable this limit
-            Checkpoint({ 9999999,  0,  0, make_shared<ComplainConsensus_checkpoint_pip_102>() });
+            Checkpoint({ 3291900,  0,  0, make_shared<ComplainConsensus_checkpoint_pip_109>() });
         }
     };
 

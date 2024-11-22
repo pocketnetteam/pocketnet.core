@@ -26,7 +26,7 @@ namespace PocketConsensus
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BoostContentRef& ptx, const PocketBlockRef& block) override
         {
             // Check exists content transaction
-            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, APP, CONTENT_DELETE });
+            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash(), AllowedContentTypes());
             if (!contentOk)
                 return {false, ConsensusResult_NotFound};
 
@@ -72,6 +72,11 @@ namespace PocketConsensus
         {
             return false;
         }
+
+        virtual vector<PocketTx::TxType> AllowedContentTypes()
+        {
+            return { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, APP, CONTENT_DELETE };
+        }
     };
 
     // Disable scores for blocked accounts
@@ -87,7 +92,7 @@ namespace PocketConsensus
         }
     };
 
-    // ----------------------------------------------------------------------------------------------
+
     class BoostContentConsensus_checkpoint_pip_105 : public BoostContentConsensus_checkpoint_disable_for_blocked
     {
     public:
@@ -99,8 +104,18 @@ namespace PocketConsensus
         }
     };
 
+    
+    class BoostContentConsensus_pip_109 : public BoostContentConsensus_checkpoint_pip_105
+    {
+    public:
+        BoostContentConsensus_pip_109() : BoostContentConsensus_checkpoint_pip_105() {}
+    protected:
+        vector<PocketTx::TxType> AllowedContentTypes() override
+        {
+            return { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, APP, CONTENT_DELETE, BARTERON_OFFER };
+        }
+    };
 
-    // ----------------------------------------------------------------------------------------------
     // Factory for select actual rules version
     class BoostContentConsensusFactory : public BaseConsensusFactory<BoostContentConsensus>
     {
@@ -109,7 +124,8 @@ namespace PocketConsensus
         {
             Checkpoint({       0,       0, -1, make_shared<BoostContentConsensus>() });
             Checkpoint({ 1757000,  953000, -1, make_shared<BoostContentConsensus_checkpoint_disable_for_blocked>() });
-            Checkpoint({ 2794500, 2574300,  0, make_shared<BoostContentConsensus_checkpoint_pip_105>() });
+            Checkpoint({ 2794500, 2574300, -1, make_shared<BoostContentConsensus_checkpoint_pip_105>() });
+            Checkpoint({ 3291900, 3373650,  0, make_shared<BoostContentConsensus_pip_109>() });
         }
     };
 

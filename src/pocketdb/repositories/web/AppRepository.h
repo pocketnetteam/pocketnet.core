@@ -20,6 +20,8 @@ namespace PocketDb
         Pagination Page;
         vector<string> Tags;
         string Search = "";
+        string Address = "";
+        string Id = "";
     };
 
     class AppRepository : public BaseRepository
