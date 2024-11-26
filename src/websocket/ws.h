@@ -431,7 +431,7 @@ namespace SimpleWeb {
       if(config.address.size() > 0)
         endpoint = asio::ip::tcp::endpoint(asio::ip::address::from_string(config.address), config.port);
       else
-        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), config.port);
+        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v6(), config.port);
 
       if(!io_service) {
         io_service = std::make_shared<asio::io_service>();
