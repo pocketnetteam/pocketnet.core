@@ -69,12 +69,13 @@ class BarteronTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Register Barteron accounts")
 
+        brtAccounts = []
         for i, account in enumerate(builder.accounts):
             bartAccount = BartAccountPayload()
             bartAccount.s1 = account.Address
             bartAccount.p = Payload()
             bartAccount.p.s4 = json.dumps({ "a": [ random.randint(0, 100) ], "test": "HOI" })
-            pubGenTx(account, bartAccount)
+            brtAccounts.append({ "tx": pubGenTx(account, bartAccount), "acc": account })
         node.stakeblock(5)
 
         for i, account in enumerate(builder.accounts):
@@ -92,6 +93,7 @@ class BarteronTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Register Barteron offers")
 
+        brtOffers = []
         lang = ['en','ru','gb']
         for i, account in enumerate(builder.accounts):
             for ii in range(10):
@@ -105,11 +107,21 @@ class BarteronTest(PocketcoinTestFramework):
                 bartOffer.p.s6 = randomword(random.randint(0, 10))
                 bartOffer.p.i1 = random.randint(0, 1000)
                 bartOffer.p.s4 = json.dumps({ "t": random.randint(0, 100), "a": [ random.randint(0, 100), random.randint(0, 100), random.randint(0, 100) ], "test": "HOI" })
-                pubGenTx(account, bartOffer)
+                brtOffers.append({ "tx": pubGenTx(account, bartOffer), "acc": account })
                 node.stakeblock(1)
         
         for i, account in enumerate(builder.accounts):
             assert json.loads(node.public().getbarteronoffersbyaddress(account.Address)[0]['p']['s4'])['test'] == "HOI"
+
+        # ---------------------------------------------------------------------------------
+        self.log.info("Moderation checks")
+
+        assert_raises_rpc_error(ConsensusResult.SelfFlag, None, pubGenTx, builder.accounts[0], ModFlagPayload(brtAccounts[0]["tx"], brtAccounts[0]["acc"].Address))
+        pubGenTx(builder.accounts[1], ModFlagPayload(brtAccounts[0]["tx"], brtAccounts[0]["acc"].Address))
+
+        assert_raises_rpc_error(ConsensusResult.SelfFlag, None, pubGenTx, builder.accounts[0], ModFlagPayload(brtOffers[0]["tx"], brtOffers[0]["acc"].Address))
+        assert_raises_rpc_error(ConsensusResult.Duplicate, None, pubGenTx, builder.accounts[1], ModFlagPayload(brtOffers[0]["tx"], brtOffers[0]["acc"].Address))
+        pubGenTx(builder.accounts[2], ModFlagPayload(brtOffers[0]["tx"], brtOffers[0]["acc"].Address))
 
         # ---------------------------------------------------------------------------------
         self.log.info("Check offers feed")

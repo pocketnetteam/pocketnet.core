@@ -290,7 +290,7 @@ bool ArgsManager::ParseParameters(int argc, const char* const argv[], std::strin
     for (int i = 1; i < argc; i++) {
         std::string key(argv[i]);
 
-#ifdef MAC_OSX
+#ifdef __APPLE__
         // At the first time when a user gets the "App downloaded from the
         // internet" warning, and clicks the Open button, macOS passes
         // a unique process serial number (PSN) as -psn_... command-line
@@ -668,7 +668,7 @@ fs::path GetDefaultDataDir()
         pathRet = fs::path("/");
     else
         pathRet = fs::path(pszHome);
-#ifdef MAC_OSX
+#ifdef __APPLE__
     // macOS
     return pathRet / "Library/Application Support/Pocketcoin";
 #else
@@ -1058,7 +1058,7 @@ bool FileCommit(FILE *file)
         LogPrintf("%s: fdatasync failed: %d\n", __func__, errno);
         return false;
     }
-    #elif defined(MAC_OSX) && defined(F_FULLFSYNC)
+    #elif defined(__APPLE__) && defined(F_FULLFSYNC)
     if (fcntl(fileno(file), F_FULLFSYNC, 0) == -1) { // Manpage says "value other than -1" is returned on success
         LogPrintf("%s: fcntl F_FULLFSYNC failed: %d\n", __func__, errno);
         return false;
@@ -1118,7 +1118,7 @@ void AllocateFileRange(FILE *file, unsigned int offset, unsigned int length) {
     nFileSize.u.HighPart = nEndPos >> 32;
     SetFilePointerEx(hFile, nFileSize, 0, FILE_BEGIN);
     SetEndOfFile(hFile);
-#elif defined(MAC_OSX)
+#elif defined(__APPLE__)
     // OSX specific version
     // NOTE: Contrary to other OS versions, the OSX version assumes that
     // NOTE: offset is the size of the file.
@@ -1244,7 +1244,7 @@ void SetupEnvironment()
 #endif
     // On most POSIX systems (e.g. Linux, but not BSD) the environment's locale
     // may be invalid, in which case the "C.UTF-8" locale is used as fallback.
-#if !defined(WIN32) && !defined(MAC_OSX) && !defined(__FreeBSD__) && !defined(__OpenBSD__)
+#if !defined(WIN32) && !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__OpenBSD__)
     try {
         std::locale(""); // Raises a runtime error if current locale is invalid
     } catch (const std::runtime_error&) {

@@ -66,6 +66,20 @@ option(WITH_UTILS "build pocketcoin-cli pocketcoin-tx (default=ON)" ON)
 option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
 option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want to statically link internal libraries. Ignored for non-MSVC build (default=ON)" ON)
 
+# Redefine configuration flags.
+# We leave assertions on.
+if(MSVC)
+  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL}")
+else()
+  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL}")
+  # Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
+  string(REGEX REPLACE "-O3( |$)" "-O2\\1" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+endif()
+
 # Disable warnings
 if(NOT WIN32)
     add_compile_options(-Wall -Wno-unused-function -Wno-unused-parameter -Wno-deprecated)

@@ -2206,11 +2206,11 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>(node id: %1)</source>
-        <translation>(идентификатор узла: %1)</translation>
+        <translation>(ид. узла: %1)</translation>
     </message>
     <message>
         <source>via %1</source>
-        <translation>с помощью %1</translation>
+        <translation>через %1</translation>
     </message>
     <message>
         <source>never</source>

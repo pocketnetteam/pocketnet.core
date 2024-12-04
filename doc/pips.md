@@ -112,3 +112,4 @@ Changes:
 - Enabling Boosts for Barteron Offers [PR #767](https://github.com/pocketnetteam/pocketnet.core/pull/767)
 - Policy change restriction on the type of content in collections - now we cannot mix content (Posts and Videos, for example). This PIP changes this behavior by disabling this restriction. [PR #767](https://github.com/pocketnetteam/pocketnet.core/pull/767)
 - Fix count limit for complain transaction. [PR #767](https://github.com/pocketnetteam/pocketnet.core/pull/767)
+- Allow `.` symbol in App ID. [PR #773](https://github.com/pocketnetteam/pocketnet.core/pull/773)

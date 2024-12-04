@@ -799,7 +799,7 @@ CFeeRate CBlockPolicyEstimator::estimateSmartFee(int confTarget, FeeCalculation 
     if (confTarget == 1) confTarget = 2;
 
     unsigned int maxUsableEstimate = MaxUsableEstimate();
-    LogPrint(BCLog::WALLET, "%u\n", maxUsableEstimate);
+    LogPrint(BCLog::WALLET, "wallet maxUsableEstimate=%u\n", maxUsableEstimate);
     if ((unsigned int)confTarget > maxUsableEstimate) {
         confTarget = maxUsableEstimate;
     }

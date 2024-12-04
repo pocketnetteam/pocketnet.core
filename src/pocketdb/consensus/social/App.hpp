@@ -139,12 +139,33 @@ namespace PocketConsensus
 
     };
 
+    class AppConsensus_pip_109 : public AppConsensus
+    {
+    public:
+        AppConsensus_pip_109() : AppConsensus() {}
+    protected:
+        bool CheckIdContent(const AppRef& ptx) override
+        {
+            auto id = *ptx->GetId();
+            boost::algorithm::to_lower(id);
+
+            if (id.size() > 20)
+                return false;
+            
+            if (!all_of(id.begin(), id.end(), [](unsigned char ch) { return ::isalnum(ch) || ch == '_' || ch == '.'; }))
+                return false;
+
+            return true;
+        }
+    };
+
     class AppConsensusFactory : public BaseConsensusFactory<AppConsensus>
     {
     public:
         AppConsensusFactory()
         {
-            Checkpoint({ 2930000, 0, 0, make_shared<AppConsensus>() });
+            Checkpoint({ 2930000,       0, -1, make_shared<AppConsensus>() });
+            Checkpoint({ 3291900, 3373650,  0, make_shared<AppConsensus_pip_109>() });
         }
     };
 

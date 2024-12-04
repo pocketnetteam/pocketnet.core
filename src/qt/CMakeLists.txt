@@ -139,10 +139,10 @@ if(QT_TS_OUTPUT_PATH)
 endif()
 set_source_files_properties(${QT_TS} PROPERTIES OUTPUT_LOCATION ${QT_TS_OUTPUT_PATH})
 
-set(POCKETCOIN_MM
-        macdockiconhandler.mm
-        macnotificationhandler.mm
-        macos_appnap.mm)
+#set(POCKETCOIN_MM
+#        macdockiconhandler.mm
+#        macnotificationhandler.mm
+#        macos_appnap.mm)
 
 # set(QT_QRC_CPP qrc_pocketcoin.cpp)
 set(QT_QRC pocketcoin.qrc)
@@ -174,6 +174,12 @@ set(POCKETCOIN_QT_H
         guiconstants.h
         guiutil.h
         intro.h
+        $<$<PLATFORM_ID:Darwin>:macdockiconhandler.h>
+        $<$<PLATFORM_ID:Darwin>:macdockiconhandler.mm>
+        $<$<PLATFORM_ID:Darwin>:macnotificationhandler.h>
+        $<$<PLATFORM_ID:Darwin>:macnotificationhandler.mm>
+        $<$<PLATFORM_ID:Darwin>:macos_appnap.h>
+        $<$<PLATFORM_ID:Darwin>:macos_appnap.mm>
         modaloverlay.h
         networkstyle.h
         notificator.h
@@ -210,13 +216,15 @@ set(POCKETCOIN_QT_H
         walletframe.h
         walletmodel.h
         walletmodeltransaction.h
-        walletview.h)
-if(WIN32)
-    list(APPEND POCKETCOIN_QT_H winshutdownmonitor.h)
-endif()
-if(APPLE)
-    list(APPEND POCKETCOIN_QT_H macdockiconhandler.h macnotificationhandler.h macos_appnap.h)
-endif()
+        walletview.h
+        $<$<PLATFORM_ID:Windows>:winshutdownmonitor.h>
+)
+#if(WIN32)
+#    list(APPEND POCKETCOIN_QT_H winshutdownmonitor.h)
+#endif()
+#if(APPLE)
+#    list(APPEND POCKETCOIN_QT_H macdockiconhandler.h macnotificationhandler.h macos_appnap.h)
+#endif()
 
 set(RES_ICONS
         res/icons/add.png
@@ -289,9 +297,12 @@ set(POCKETCOIN_QT_BASE_CPP
         rpcconsole.cpp
         splashscreen.cpp
         trafficgraphwidget.cpp
-        utilitydialog.cpp)
+        utilitydialog.cpp
+        $<$<PLATFORM_ID:Windows>:winshutdownmonitor.cpp>
+)
 
-set(POCKETCOIN_QT_WINDOWS_CPP winshutdownmonitor.cpp)
+#set(POCKETCOIN_QT_WINDOWS_CPP winshutdownmonitor.cpp)
+
 set(POCKETCOIN_QT_WALLET_CPP
         addressbookpage.cpp
         addresstablemodel.cpp
@@ -325,9 +336,9 @@ set(POCKETCOIN_QT_WALLET_CPP
         walletview.cpp)
 
 set(POCKETCOIN_QT_CPP ${POCKETCOIN_QT_BASE_CPP})
-if(WIN32)
-    list(APPEND POCKETCOIN_QT_CPP ${POCKETCOIN_QT_WINDOWS_CPP})
-endif()
+#if(WIN32)
+#    list(APPEND POCKETCOIN_QT_CPP ${POCKETCOIN_QT_WINDOWS_CPP})
+#endif()
 if(NOT DISABLE_WALLET)
     list(APPEND POCKETCOIN_QT_CPP ${POCKETCOIN_QT_WALLET_CPP})
 endif()
@@ -398,13 +409,15 @@ add_library(qt_libpocketcoinqt
         # ${PROTOBUF_CC}
         # ${PROTOBUF_H}
         )
+
+target_compile_definitions(qt_libpocketcoinqt PUBLIC QT_NO_KEYWORDS)
 target_link_libraries(qt_libpocketcoinqt PRIVATE Boost::filesystem OpenSSL::Crypto Oracle::BerkeleyDB leveldb ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON})
 target_link_libraries(qt_libpocketcoinqt PUBLIC Qt5::Core Qt5::Widgets Qt5::Network)
 set_target_properties(qt_libpocketcoinqt PROPERTIES PREFIX "") # Remove "lib" prefix because we already have it in library name
 # Specify dependencies that force processing resources and ui files before this target
 add_dependencies(qt_libpocketcoinqt resources resources_locale ui_done)
 # TODO Add checks for this or allow use config as it is in autotools
-target_compile_definitions(qt_libpocketcoinqt PRIVATE HAVE_DECL_BSWAP_16=1 HAVE_DECL_BSWAP_32=1 HAVE_DECL_BSWAP_64=1 HAVE_DECL_EVP_MD_CTX_NEW=1)
+#target_compile_definitions(qt_libpocketcoinqt PRIVATE HAVE_DECL_BSWAP_16=1 HAVE_DECL_BSWAP_32=1 HAVE_DECL_BSWAP_64=1 HAVE_DECL_EVP_MD_CTX_NEW=1)
 # Include directory "${CMAKE_CURRENT_BINARY_DIR}/.." because generated files (resources, qm files, processed ui, etc) are
 # located in build tree and are included by other qt files by using "#include <qt/filename>"
 target_include_directories(qt_libpocketcoinqt PRIVATE ${OPENSSL_INCLUDE_DIR} ${Protobuf_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/..)
@@ -462,13 +475,11 @@ if(_POCKETCOIN_QT_STATIC)
 endif()
 
 add_executable(pocketcoin-qt main.cpp)
-if(APPLE)
-    target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_MM})
-endif()
+#if(APPLE)
+#    target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_MM})
+#endif()
 if(WIN32)
     target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_RC})
 endif()
 target_link_libraries(pocketcoin-qt PRIVATE qt_libpocketcoinqt ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} leveldb libpocketcoin_cli OpenSSL::SSL OpenSSL::Crypto)
 # target_include_directories(pocketcoin-qt PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
-
-target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_NO_KEYWORDS)

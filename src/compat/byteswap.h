@@ -15,7 +15,7 @@
 #include <byteswap.h>
 #endif
 
-#if defined(MAC_OSX)
+#if defined(__APPLE__)
 
 #include <libkern/OSByteOrder.h>
 #define bswap_16(x) OSSwapInt16(x)
@@ -54,6 +54,6 @@ inline uint64_t bswap_64(uint64_t x)
 }
 #endif // HAVE_DECL_BSWAP64 == 0
 
-#endif // defined(MAC_OSX)
+#endif // defined(__APPLE__)
 
 #endif // POCKETCOIN_COMPAT_BYTESWAP_H

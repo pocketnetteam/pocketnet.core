@@ -117,7 +117,7 @@ static bool AppInit(int argc, char* argv[])
         }
         if (args.GetBoolArg("-daemon", false)) {
 #if HAVE_DECL_DAEMON
-#if defined(MAC_OSX)
+#if defined(__APPLE__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
@@ -127,7 +127,7 @@ static bool AppInit(int argc, char* argv[])
             if (daemon(1, 0)) { // don't chdir (1), do close FDs (0)
                 return InitError(Untranslated(strprintf("daemon() failed: %s\n", SysErrorString(errno))));
             }
-#if defined(MAC_OSX)
+#if defined(__APPLE__)
 #pragma GCC diagnostic pop
 #endif
 #else
