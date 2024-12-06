@@ -116,7 +116,7 @@ static const CRPCCommand commands[] =
     {"explorer",       "getcompactblock",                  &GetCompactBlock,                {"blockHash"}},
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
     {"explorer",       "searchbyhash",                     &SearchByHash,                   {"value"}},
-    {"explorer",       "gettransactions",                  &GetTransactions,                {"transactions"}},
+    {"explorer",       "gettransactions",                  &GetTransactions,                {"transactions", "include_payload", "include_inputs", "include_outputs"}},
     {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address", "pageStart", "pageSize", "filters"}},
     {"explorer",       "getblocktransactions",             &GetBlockTransactions,           {"blockHash", "pageStart", "pageSize"}},
     {"explorer",       "getbalancehistory",                &GetBalanceHistory,              {"address", "topHeight", "count"}},
@@ -130,7 +130,7 @@ static const CRPCCommand commands[] =
     {"system",         "getposdifficulty",                 &GetPosDifficulty,               {"height"}},
     
     // Transactions
-    {"transaction",    "getrawtransaction",                &GetTransaction,                 {"transactions"}},
+    {"transaction",    "getrawtransaction",                &GetTransaction,                 {"transaction", "include_payload", "include_inputs", "include_outputs"}},
     {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },
 
     // Moderation

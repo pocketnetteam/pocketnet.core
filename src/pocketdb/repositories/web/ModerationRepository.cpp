@@ -96,7 +96,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue ModerationRepository::GetAllJury()
+    UniValue ModerationRepository::GetAllJury(const Pagination& pagination)
     {
         UniValue result(UniValue::VARR);
 
@@ -105,17 +105,31 @@ namespace PocketDb
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     select
+                        cf.Height,
                         (select r.String from Registry r where r.RowId = f.RowId),
+                        (select r.String from Registry r where r.RowId = f.RegId2),
+                        c.Type,
                         (select r.String from Registry r where r.RowId = f.RegId3),
                         j.Reason,
                         ifnull(jv.Verdict, -1)
                     from
                         Jury j
-                    cross join Transactions f
-                        on f.RowId = j.FlagRowId
-                    left join JuryVerdict jv
-                        on jv.FlagRowId = j.FlagRowId
-                )sql");
+                    cross join Transactions f on
+                        f.RowId = j.FlagRowId
+                    cross join Chain cf on
+                        cf.TxId = f.RowId and cf.Height )sql" + (pagination.OrderDesc ? " <= "s : " > "s) + R"sql( ?
+                    cross join Transactions c on
+                        c.RowId = f.RegId2
+                    left join JuryVerdict jv on
+                        jv.FlagRowId = j.FlagRowId
+                    order by cf.Height )sql" + (pagination.OrderDesc ? " desc "s : " asc "s) + R"sql(
+                    limit ? offset ?
+                )sql")
+                .Bind(
+                    pagination.TopHeight,
+                    pagination.PageSize,
+                    pagination.PageStart * pagination.PageSize
+                );
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -123,10 +137,13 @@ namespace PocketDb
                     {
                         UniValue rcrd(UniValue::VOBJ);
 
-                        cursor.Collect<string>(0, rcrd, "id");
-                        cursor.Collect<string>(1, rcrd, "address");
-                        cursor.Collect<int>(2, rcrd, "reason");
-                        cursor.Collect<int>(3, rcrd, "verdict");
+                        cursor.Collect<int>(0, rcrd, "height");
+                        cursor.Collect<string>(1, rcrd, "id");
+                        cursor.Collect<string>(2, rcrd, "content_id");
+                        cursor.Collect<int>(3, rcrd, "content_type");
+                        cursor.Collect<string>(4, rcrd, "address");
+                        cursor.Collect<int>(5, rcrd, "reason");
+                        cursor.Collect<int>(6, rcrd, "verdict");
 
                         result.push_back(rcrd);
                     }

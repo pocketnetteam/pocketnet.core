@@ -529,10 +529,12 @@ namespace PocketDb
         auto pBlock = make_shared<PocketBlock>();
         for (auto& collectData: reconstructor.GetResult())
         {
-            if (auto ptx = CollectDataToModelConverter::CollectDataToModel(collectData); ptx)
+            if (auto ptx = CollectDataToModelConverter::CollectDataToModel(collectData); ptx) {
                 pBlock->emplace_back(ptx);
-            else
+            } else {
                 throw runtime_error(strprintf("Transaction::List reconstruct failed - no return data for %s tx", collectData.txHash));
+                LogPrintf("Transaction::List reconstruct failed - no return data for %s tx\n", collectData.txHash);
+            }
         }
 
         return pBlock;

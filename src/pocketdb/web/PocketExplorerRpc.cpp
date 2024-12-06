@@ -628,7 +628,10 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getrawtransaction",
                 "\nGet transaction data.\n",
                 {
-                    // TODO (rpc)
+                    {"hash", RPCArg::Type::STR, RPCArg::Optional::NO, "Transaction Hash"},
+                    {"payload", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Include Payload (default: false)"},
+                    {"inputs", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Include Inputs (default: true)"},
+                    {"outputs", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Include Outputs (default: true)"},
                 },
                 {
                     // TODO (rpc): provide return description
@@ -642,7 +645,19 @@ namespace PocketWeb::PocketWebRpc
         RPCTypeCheck(request.params, {UniValue::VSTR});
         string txHash = request.params[0].get_str();
 
-        auto pBlock = request.DbConnection()->TransactionRepoInst->List({ txHash }, false, true, true);
+        bool includePayload = false;
+        if (request.params[1].isBool())
+            includePayload = request.params[1].get_bool();
+
+        bool includeInputs = true;
+        if (request.params[2].isBool())
+            includeInputs = request.params[2].get_bool();
+
+        bool includeOutputs = true;
+        if (request.params[3].isBool())
+            includeOutputs = request.params[3].get_bool();
+
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List({ txHash }, includePayload, includeInputs, includeOutputs);
         if (pBlock->empty())
             return UniValue(UniValue::VOBJ);
 
@@ -664,6 +679,9 @@ namespace PocketWeb::PocketWebRpc
                             {"transaction", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
                         }
                     },
+                    {"payload", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Include Payload (default: false)"},
+                    {"inputs", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Include Inputs (default: true)"},
+                    {"outputs", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Include Outputs (default: true)"},
                 },
                 {
                     // TODO (rpc): provide return description
@@ -690,7 +708,19 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
         }
 
-        auto pBlock = request.DbConnection()->TransactionRepoInst->List(transactions, false, true, true);
+        bool includePayload = false;
+        if (request.params[1].isBool())
+            includePayload = request.params[1].get_bool();
+
+        bool includeInputs = true;
+        if (request.params[2].isBool())
+            includeInputs = request.params[2].get_bool();
+
+        bool includeOutputs = true;
+        if (request.params[3].isBool())
+            includeOutputs = request.params[3].get_bool();
+
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List(transactions, includePayload, includeInputs, includeOutputs);
 
         UniValue result(UniValue::VARR);
         for (const auto& ptx : *pBlock)
@@ -714,6 +744,14 @@ namespace PocketWeb::PocketWebRpc
         if (ptx->GetHeight()) utx.pushKV("height", *ptx->GetHeight());
         if (ptx->GetBlockHash()) utx.pushKV("blockHash", *ptx->GetBlockHash());
         utx.pushKV("nTime", *ptx->GetTime());
+
+        // Social Part
+        if (ptx->GetString1()) utx.pushKV("s1", *ptx->GetString1());
+        if (ptx->GetString2()) utx.pushKV("s2", *ptx->GetString2());
+        if (ptx->GetString3()) utx.pushKV("s3", *ptx->GetString3());
+        if (ptx->GetString4()) utx.pushKV("s4", *ptx->GetString4());
+        if (ptx->GetString5()) utx.pushKV("s5", *ptx->GetString5());
+        if (ptx->GetInt1()) utx.pushKV("i1", *ptx->GetInt1());
 
         // Inputs
         utx.pushKV("vin", UniValue(UniValue::VARR));
@@ -747,6 +785,22 @@ namespace PocketWeb::PocketWebRpc
             if (out.GetSpentHeight()) uout.pushKV("spent", *out.GetSpentHeight());
 
             utx.At("vout").push_back(uout);
+        }
+
+        // Payload
+        if (ptx->GetPayload())
+        {
+            UniValue payload(UniValue::VOBJ);
+            if (ptx->GetPayload()->GetString1()) payload.pushKV("s1", *ptx->GetPayload()->GetString1());
+            if (ptx->GetPayload()->GetString2()) payload.pushKV("s2", *ptx->GetPayload()->GetString2());
+            if (ptx->GetPayload()->GetString3()) payload.pushKV("s3", *ptx->GetPayload()->GetString3());
+            if (ptx->GetPayload()->GetString4()) payload.pushKV("s4", *ptx->GetPayload()->GetString4());
+            if (ptx->GetPayload()->GetString5()) payload.pushKV("s5", *ptx->GetPayload()->GetString5());
+            if (ptx->GetPayload()->GetString6()) payload.pushKV("s6", *ptx->GetPayload()->GetString6());
+            if (ptx->GetPayload()->GetString7()) payload.pushKV("s7", *ptx->GetPayload()->GetString7());
+            if (ptx->GetPayload()->GetInt1()) utx.pushKV("i1", *ptx->GetPayload()->GetInt1());
+
+            utx.pushKV("p", payload);
         }
 
         return utx;

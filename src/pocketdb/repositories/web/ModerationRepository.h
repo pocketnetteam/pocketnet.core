@@ -27,7 +27,7 @@ namespace PocketDb
         void Destroy() override;
 
         UniValue GetJury(const string& jury);
-        UniValue GetAllJury();
+        UniValue GetAllJury(const Pagination& pagination);
         vector<JuryContent> GetJuryAssigned(const string& address, bool verdict, const Pagination& pagination);
         UniValue GetJuryModerators(const string& jury);
 

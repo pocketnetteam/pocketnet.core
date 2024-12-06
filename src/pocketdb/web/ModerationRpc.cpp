@@ -187,7 +187,11 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getalljury",
             "\nGet list of all jury information.\n",
             {
-                
+                {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Start height of pagination"},
+                {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Start page"},
+                {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Size page"},
+                {"orderBy", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Order by {Height}"},
+                {"desc", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED_NAMED_ARG, "Order desc"},
             },
             RPCResult{
                 RPCResult::Type::ARR, "", "",
@@ -204,7 +208,20 @@ namespace PocketWeb::PocketWebRpc
             },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            return request.DbConnection()->ModerationRepoInst->GetAllJury();
+            Pagination pagination{ ChainActiveSafeHeight(), 0, 10, "height", true };
+
+            if (request.params[0].isNum())
+                pagination.TopHeight = min(request.params[0].get_int(), pagination.TopHeight);
+            if (request.params[1].isNum())
+                pagination.PageStart = request.params[1].get_int();
+            if (request.params[2].isNum())
+                pagination.PageSize = request.params[2].get_int();
+            if (request.params[3].isStr())
+                pagination.OrderBy = request.params[3].get_str();
+            if (request.params[4].isBool())
+                pagination.OrderDesc = request.params[4].get_bool();
+
+            return request.DbConnection()->ModerationRepoInst->GetAllJury(pagination);
         }};
     }
 
