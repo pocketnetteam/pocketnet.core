@@ -1185,7 +1185,7 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
     {
         if (!AttemptToEvictConnection()) {
             // No connection to evict, disconnect the new connection
-            LogPrint(BCLog::NET, "failed to find an eviction candidate - connection from %s dropped (max inbound connections reached% %d)\n", addr.ToString(), nMaxInbound);
+            LogPrint(BCLog::NET, "failed to find an eviction candidate - connection from %s dropped (max inbound connections reached: %d)\n", addr.ToString(), nMaxInbound);
             return;
         }
     }
