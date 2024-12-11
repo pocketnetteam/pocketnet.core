@@ -172,19 +172,23 @@ class ModerationJuryTest(PocketcoinTestFramework):
 
         # One vote does not pass verdict
         pubGenTx(assigned[0], ModVotePayload(jury1["data"]["id"], 1))
-        node.stakeblock(1)
+        node.stakeblock(2)
         assert "verdict" not in node.public().getjury(jury1["data"]["id"])
+        # Check lottery - in last block should be 10% of rating reward for moderation vote
+        assert node.public().getblocktransactions(node.public().getlastblocks(1)[0]['hash'])[0]['vout'][0]['scriptPubKey']['hex'] == 'c4'
 
         # Second vote pass verdict
         pubGenTx(assigned[1], ModVotePayload(jury1["data"]["id"], 1))
-        node.stakeblock(1)
+        node.stakeblock(2)
         assert "verdict" in node.public().getjury(jury1["data"]["id"])
         assert node.public().getjury(jury1["data"]["id"])["verdict"] == 1
+        # Check lottery - in last block should be 10% of rating reward for moderation vote
+        assert node.public().getblocktransactions(node.public().getlastblocks(1)[0]['hash'])[0]['vout'][0]['scriptPubKey']['hex'] == 'c4'
 
         # Check ban
         assert node.public().getbans(jury1["account"].Address)[0]["juryId"] == jury1["data"]["id"]
         assert node.public().getbans(jury1["account"].Address)[0]["reason"] == 1
-        assert node.public().getbans(jury1["account"].Address)[0]["ending"] == 1176
+        assert node.public().getbans(jury1["account"].Address)[0]["ending"] == 1177
 
         # ---------------------------------------------------------------------------------
         self.log.info("Test 5 - banned account can create pocketnet transactions")

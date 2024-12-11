@@ -271,9 +271,9 @@ namespace PocketHelpers
         return false;
     }
 
-    tuple<bool, shared_ptr<ScoreDataDto>> TransactionHelper::ParseScore(const CTransactionRef& tx)
+    tuple<bool, ScoreDataDtoRef> TransactionHelper::ParseScore(const CTransactionRef& tx)
     {
-        shared_ptr<ScoreDataDto> scoreData = make_shared<ScoreDataDto>();
+        ScoreDataDtoRef scoreData = make_shared<ScoreDataDto>();
 
         vector<string> vasm;
         scoreData->ScoreType = ParseType(tx, vasm);
@@ -304,6 +304,25 @@ namespace PocketHelpers
 
         scoreData->ScoreTxHash = tx->GetHash().GetHex();
         return make_tuple(finalCheck, scoreData);
+    }
+
+    tuple<bool, ModerationVoteTxDataRef> TransactionHelper::ParseModerationVote(const CTransactionRef& tx)
+    {
+        auto data = make_shared<ModerationVoteTxData>();
+        
+        vector<string> vasm;
+        auto type = ParseType(tx, vasm);
+
+        if (type == TxType::MODERATION_VOTE)
+        {
+            if (auto[ok, addr] = GetPocketAuthorAddress(tx); ok)
+            {
+                data->AddressHash = addr;
+                return make_tuple(true, data);
+            }
+        }
+
+        return make_tuple(false, data);
     }
 
     PTransactionRef TransactionHelper::CreateInstance(TxType txType, const CTransactionRef& tx)

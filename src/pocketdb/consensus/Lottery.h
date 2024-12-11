@@ -23,6 +23,7 @@ namespace PocketConsensus
         vector<string> PostReferrerWinners;
         vector<string> CommentWinners;
         vector<string> CommentReferrerWinners;
+        vector<string> ModerationVoteWinners;
     };
 
     // ---------------------------------------
@@ -120,6 +121,14 @@ namespace PocketConsensus
 
             for (const auto& tx : block.vtx)
             {
+                // Parse data for moderation votes
+                auto[parseModerationVoteOk, moderationVoteTxData] = TransactionHelper::ParseModerationVote(tx);
+                if (parseModerationVoteOk)
+                {
+                    _winners.ModerationVoteWinners.push_back(moderationVoteTxData->AddressHash);
+                    continue;
+                }
+
                 // Get destination address and score value
                 // In lottery allowed only likes to posts and comments
                 // Also in lottery allowed only positive scores
@@ -192,7 +201,7 @@ namespace PocketConsensus
 
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
-            // Referrer program 5 - 100%; 2.0 - nodes; 3.0 - all for lottery;
+            // 5 - 100%; 2.0 - nodes; 3.0 - all for lottery;
             // 2.0 - posts; 0.4 - referrer over posts (20%); 0.5 - comment; 0.1 - referrer over comment (20%);
             if (code == OP_WINNER_POST) return nCredit * 0.40;
             if (code == OP_WINNER_POST_REFERRAL) return nCredit * 0.08;
@@ -246,7 +255,7 @@ namespace PocketConsensus
 
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
-            // Referrer program 5 - 100%; 4.75 - nodes; 0.25 - all for lottery;
+            // 5 - 100%; 4.75 - nodes; 0.25 - all for lottery;
             // .1 - posts (2%); .1 - referrer over posts (2%); 0.025 - comment (.5%); 0.025 - referrer over comment (.5%);
             if (code == OP_WINNER_POST) return nCredit * 0.02;
             if (code == OP_WINNER_POST_REFERRAL) return nCredit * 0.02;
@@ -266,7 +275,7 @@ namespace PocketConsensus
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // Reduce all winnings by 10 times
-            // Referrer program 5 - 100%; 4.975 - nodes; 0.025 - all for lottery;
+            // 5 - 100%; 4.875 - nodes; 0.125 - all for lottery;
             if (code == OP_WINNER_POST) return nCredit * 0.002;
             if (code == OP_WINNER_POST_REFERRAL) return nCredit * 0.002;
             if (code == OP_WINNER_COMMENT) return nCredit * 0.0005;
@@ -288,6 +297,7 @@ namespace PocketConsensus
         // Lottery checkpoint at 2162400 block
         // Disable lottery payments for likes to comments.
         // Also disable referral program
+        // 5 - 100%; 4.875 - nodes; 0.125 (2.5%) - all for lottery;
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             if (code == OP_WINNER_POST) return nCredit * 0.025;
@@ -306,6 +316,23 @@ namespace PocketConsensus
         }
     };
 
+    class LotteryConsensus_pip_110 : public LotteryConsensus_checkpoint_1180000
+    {
+    public:
+        LotteryConsensus_pip_110() : LotteryConsensus_checkpoint_1180000()
+        {
+            Limits.Set("max_winners_counts", 5, 5, 5);
+        }
+
+        // 5 - 100%; 4.375 (87.5%) - nodes; 0.125 (2.5%) - for posts; 0.5 (10%) - for moderation votes;
+        CAmount RatingReward(CAmount nCredit, opcodetype code) override
+        {
+            if (code == OP_WINNER_POST) return nCredit * 0.025;
+            if (code == OP_WINNER_MODERATION_VOTE) return nCredit * 0.1;
+            return 0;
+        }
+    };
+
 
     //  Factory for select actual rules version
     class LotteryConsensusFactory : public BaseConsensusFactory<LotteryConsensus>
@@ -317,8 +344,9 @@ namespace PocketConsensus
             Checkpoint({  514185,      -1, -1, make_shared<LotteryConsensus_checkpoint_514185>() });
             Checkpoint({ 1035000,      -1, -1, make_shared<LotteryConsensus_checkpoint_1035000>() });
             Checkpoint({ 1124000,      -1, -1, make_shared<LotteryConsensus_checkpoint_1124000>() });
-            Checkpoint({ 1180000,       0,  0, make_shared<LotteryConsensus_checkpoint_1180000>() });
-            Checkpoint({ 2162400, 1650652,  0, make_shared<LotteryConsensus_pip_100>() });
+            Checkpoint({ 1180000,       0, -1, make_shared<LotteryConsensus_checkpoint_1180000>() });
+            Checkpoint({ 2162400, 1650652, -1, make_shared<LotteryConsensus_pip_100>() });
+            Checkpoint({ 3291900, 3500000,  0, make_shared<LotteryConsensus_pip_110>() });
         }
     };
 

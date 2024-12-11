@@ -634,7 +634,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut> &results, CAmount &to
     result &= GenerateOuts(nCredit, results, winners.CommentWinners, lotteryConsensus, OP_WINNER_COMMENT, totalAmount, winner_types);
     result &= GenerateOuts(nCredit, results, winners.PostReferrerWinners, lotteryConsensus, OP_WINNER_POST_REFERRAL, totalAmount, winner_types);
     result &= GenerateOuts(nCredit, results, winners.CommentReferrerWinners, lotteryConsensus, OP_WINNER_COMMENT_REFERRAL, totalAmount, winner_types);
-
+    result &= GenerateOuts(nCredit, results, winners.ModerationVoteWinners, lotteryConsensus, OP_WINNER_MODERATION_VOTE, totalAmount, winner_types);
     return result;
 }
 

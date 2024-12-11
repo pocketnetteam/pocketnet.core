@@ -41,14 +41,20 @@ Consensus
 - Enabling the moderation subsystem for Barteron transactions (PIP 109)
 - Enabling Boosts for Barteron Offers (PIP 109)
 - Allow mixing of content in collections (PIP 109)
+- Fix count limit for complain transaction (PIP 109)
+- Allow `.` symbol in App ID (PIP 109)
+- Include moderation votes from completed juries in winners lottery (PIP 110)
 
 General
 -------
+- Building fixes (openssl on macOS and GUI cmake build)
 
 
 Low-level RPC changes
 ---------------------
 - RPC method `getapps` extend next named arguments: `address` for filter by author address and `id` for filter by unique identificator.
+- Fix `gettransactions` and `getrawtransaction` in public RPC - include payload data.
+- Extend `getalljury` with pagination arguments.
 
 
 0.22.9 change log

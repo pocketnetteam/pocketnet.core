@@ -590,7 +590,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (blockHash)");
         string blockHash = request.params[0].get_str();
 
-        int pageStart = 1;
+        int pageStart = 0;
         if (request.params.size() > 1 && request.params[1].isNum())
             pageStart = request.params[1].get_int();
 

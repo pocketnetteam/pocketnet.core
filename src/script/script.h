@@ -205,6 +205,7 @@ enum opcodetype
     OP_WINNER_POST_REFERRAL = 0xc1,
     OP_WINNER_COMMENT = 0xc2,
     OP_WINNER_COMMENT_REFERRAL = 0xc3,
+    OP_WINNER_MODERATION_VOTE = 0xc4,
 
     // Opcode added by BIP 342 (Tapscript)
     OP_CHECKSIGADD = 0xba,
@@ -213,7 +214,7 @@ enum opcodetype
 };
 
 // Maximum value that an opcode can be
-static const unsigned int MAX_OPCODE = OP_WINNER_COMMENT;
+static const unsigned int MAX_OPCODE = OP_WINNER_MODERATION_VOTE;
 
 std::string GetOpName(opcodetype opcode);
 

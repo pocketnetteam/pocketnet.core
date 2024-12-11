@@ -128,6 +128,14 @@ namespace PocketTx
 
     typedef shared_ptr<ScoreDataDto> ScoreDataDtoRef;
 
+    class ModerationVoteTxData : BaseReturnDto
+    {
+    public:
+        string AddressHash;
+    };
+
+    using ModerationVoteTxDataRef = std::shared_ptr<ModerationVoteTxData>;
+
 } // namespace PocketTx
 
 #endif //POCKETTX_RETURN_DTO_H

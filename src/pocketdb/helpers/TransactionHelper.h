@@ -86,7 +86,8 @@ namespace PocketHelpers
         static bool IsPocketTransaction(const CTransactionRef& tx);
         static bool IsPocketTransaction(const CTransaction& tx);
         static bool IsPocketNeededPaymentTransaction(const CTransactionRef& tx);
-        static tuple<bool, shared_ptr<ScoreDataDto>> ParseScore(const CTransactionRef& tx);
+        static tuple<bool, ScoreDataDtoRef> ParseScore(const CTransactionRef& tx);
+        static tuple<bool, ModerationVoteTxDataRef> ParseModerationVote(const CTransactionRef& tx);
         static PTransactionRef CreateInstance(TxType txType);
         static PTransactionRef CreateInstance(TxType txType, const CTransactionRef& tx);
         static bool IsIn(TxType txType, const vector<TxType>& inTypes);

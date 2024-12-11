@@ -113,3 +113,14 @@ Changes:
 - Policy change restriction on the type of content in collections - now we cannot mix content (Posts and Videos, for example). This PIP changes this behavior by disabling this restriction. [PR #767](https://github.com/pocketnetteam/pocketnet.core/pull/767)
 - Fix count limit for complain transaction. [PR #767](https://github.com/pocketnetteam/pocketnet.core/pull/767)
 - Allow `.` symbol in App ID. [PR #773](https://github.com/pocketnetteam/pocketnet.core/pull/773)
+
+
+## `PIP 110`: Lottery reward for moderation votes
+
+Fork start at:
+- Main net: 3291900
+- Test net: 3500000
+
+Changes:
+- Redistribute lottery rewards: 87.5% for nodes, 2.5% for posts, 10% for moderation votes [PR #779](https://github.com/pocketnetteam/pocketnet.core/pull/779)
+

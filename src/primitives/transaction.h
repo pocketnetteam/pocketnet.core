@@ -174,7 +174,7 @@ public:
                 break;
             }
 
-            if (opcode < OP_WINNER_POST || opcode > OP_WINNER_COMMENT_REFERRAL)
+            if (opcode < OP_WINNER_POST || opcode > OP_WINNER_MODERATION_VOTE)
             {
                 winners = false;
                 break;

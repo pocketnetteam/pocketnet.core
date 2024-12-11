@@ -4370,7 +4370,7 @@ namespace PocketDb
                         case when t.RowId != t.RegId2 then 'true' else null end edit,
                         (select String from Registry where RowId = t.RegId3) as RelayTxHash,
                         (select String from Registry where RowId = t.RegId1) as AddressHash,
-                        t.Time,
+                        ifnull(tr.Time, t.Time) as Time,
                         p.String1 as Lang,
                         t.Type,
                         p.String2 as Caption,
@@ -4469,14 +4469,17 @@ namespace PocketDb
                         txs,
                         addr
                     cross join
-                        Transactions t
-                            on t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210, 207)
+                        Transactions t on
+                            t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210, 207)
                     cross join
-                        Chain c
-                            on c.TxId = t.RowId
+                        Chain c on
+                            c.TxId = t.RowId
                     cross join
-                        Last l
-                            on l.TxId = t.RowId
+                        Last l on
+                            l.TxId = t.RowId
+                    left join
+                        Transactions tr on
+                            tr.RowId = t.RegId2
                     left join
                         Payload p
                             on p.TxId = t.RowId
