@@ -145,6 +145,7 @@ namespace PocketDb
         bool ExistsAccountBan(const string& address, int height);
         bool ExistsAnotherByName(const string& address, const string& name, TxType type);
         bool ExistsNotDeleted(const string& txHash, const string& address, const vector<TxType>& types);
+        bool ExistsJury(const string& juryId);
         bool ExistsActiveJury(const string& juryId);
 
         bool Exists_S1S2T(const string& string1, const string& string2, const vector<TxType>& types);

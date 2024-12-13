@@ -797,6 +797,32 @@ namespace PocketDb
         return result;
     }
 
+    bool ConsensusRepository::ExistsJury(const string& juryId)
+    {
+        assert(juryId != "");
+        bool result = false;
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                select
+                    1
+                from
+                    vTx t
+                    join Jury j
+                        on j.FlagRowId = t.RowId
+                where
+                    t.Hash = ?
+            )sql")
+            .Bind(juryId)
+            .Select([&](Cursor& cursor) {
+                result = cursor.Step();
+            });
+        });
+
+        return result;
+    }
+
     bool ConsensusRepository::ExistsActiveJury(const string& juryId)
     {
         assert(juryId != "");

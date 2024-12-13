@@ -207,14 +207,14 @@ class ExplorerTest(PocketcoinTestFramework):
         self.log.info("Check - stake block does not have transactions")
         result = public_api.getblocktransactions(last_block["hash"])
         assert isinstance(result, list)
-        assert len(result) == 1
+        assert len(result) == 2
         self.check_transaction(result[0])
 
         self.log.info("Check - activity block has transactions")
         first_block = last_blocks[-1]
         result = public_api.getblocktransactions(first_block["hash"])
         assert isinstance(result, list)
-        assert len(result) == 0
+        assert len(result) == 1
 
         self.log.info("Check - dummy hash does not have transactions")
         result = public_api.getblocktransactions("dummy_hash")

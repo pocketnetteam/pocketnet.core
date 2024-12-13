@@ -42,20 +42,6 @@ namespace PocketConsensus
             if (ConsensusRepoInst.Exists_S1S2T(*ptx->GetAddress(), *ptx->GetJuryId(), { MODERATION_VOTE }))
                 return {false, ConsensusResult_Duplicate};
 
-            // The jury must be exists
-            if (!ConsensusRepoInst.ExistsActiveJury(*ptx->GetJuryId()))
-                return {false, ConsensusResult_NotFound};
-
-            // The moderators' votes should be accepted with a delay, in case the jury gets into the orphan block
-            auto juryFlag = ConsensusRepoInst.Get(*ptx->GetJuryId());
-            if (!juryFlag || *juryFlag->GetType() != MODERATION_FLAG
-                || !juryFlag->GetHeight() || (Height - *juryFlag->GetHeight() < 10))
-                return {false, ConsensusResult_NotAllowed};
-
-            // Votes allowed if moderator requested by system
-            if (!ConsensusRepoInst.AllowJuryModerate(*ptx->GetAddress(), *ptx->GetJuryId()))
-                return {false, ConsensusResult_NotAllowed};
-
             return Success;
         }
         
@@ -97,10 +83,64 @@ namespace PocketConsensus
             if (ConsensusRepoInst.Exists_MS1S2T(*ptx->GetAddress(), *ptx->GetJuryId(), { MODERATION_VOTE }))
                 return {false, ConsensusResult_Duplicate};
 
+            // The jury must be exists
+            if (!ConsensusRepoInst.ExistsActiveJury(*ptx->GetJuryId()))
+                return {false, ConsensusResult_NotFound};
+
+            // The moderators' votes should be accepted with a delay, in case the jury gets into the orphan block
+            auto juryFlag = ConsensusRepoInst.Get(*ptx->GetJuryId());
+            if (!juryFlag || *juryFlag->GetType() != MODERATION_FLAG
+                || !juryFlag->GetHeight() || (Height - *juryFlag->GetHeight() < 10))
+                return {false, ConsensusResult_NotAllowed};
+
+            // Votes allowed if moderator requested by system
+            if (!ConsensusRepoInst.AllowJuryModerate(*ptx->GetAddress(), *ptx->GetJuryId()))
+                return {false, ConsensusResult_NotAllowed};
+
             return Success;
         }
     };
 
+    class ModerationVoteConsensus_pip_111 : public ModerationVoteConsensus
+    {
+    public:
+        ModerationVoteConsensus_pip_111() : ModerationVoteConsensus() {}
+
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const ModerationVoteRef& ptx, const PocketBlockRef& block) override
+        {
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+
+            auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(Height);
+            auto accountData = ConsensusRepoInst.GetAccountsData({ *ptx->GetAddress() });
+            auto badges = reputationConsensus->GetBadges(accountData[*ptx->GetAddress()]);
+
+            // Only moderator can set votes
+            if (!badges.Moderator)
+                return {false, ConsensusResult_NotAllowed};
+
+            // The jury must be exists
+            if (!ConsensusRepoInst.ExistsActiveJury(*ptx->GetJuryId()))
+                return {false, ConsensusResult_NotFound};
+
+            // The moderators' votes should be accepted with a delay, in case the jury gets into the orphan block
+            auto juryFlag = ConsensusRepoInst.Get(*ptx->GetJuryId());
+            if (!juryFlag || *juryFlag->GetType() != MODERATION_FLAG
+                || !juryFlag->GetHeight() || (Height - *juryFlag->GetHeight() < 10))
+                return {false, ConsensusResult_NotAllowed};
+
+            // Votes allowed if moderator requested by system
+            if (!ConsensusRepoInst.AllowJuryModerate(*ptx->GetAddress(), *ptx->GetJuryId()))
+                return {false, ConsensusResult_NotAllowed};
+
+            // Double vote to one jury not allowed
+            if (ConsensusRepoInst.Exists_S1S2T(*ptx->GetAddress(), *ptx->GetJuryId(), { MODERATION_VOTE }))
+                return {false, ConsensusResult_Duplicate};
+
+            return Success;
+        }
+    };
 
     // ----------------------------------------------------------------------------------------------
     // Factory for select actual rules version
@@ -109,7 +149,8 @@ namespace PocketConsensus
     public:
         ModerationVoteConsensusFactory()
         {
-            Checkpoint({ 2162400, 1531000, 0, make_shared<ModerationVoteConsensus>() });
+            Checkpoint({ 2162400, 1531000, -1, make_shared<ModerationVoteConsensus>() });
+            Checkpoint({ 3109300, 3500000,  0, make_shared<ModerationVoteConsensus_pip_111>() });
         }
     };
 

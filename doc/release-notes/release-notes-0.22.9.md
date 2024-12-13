@@ -43,7 +43,7 @@ Consensus
 - Allow mixing of content in collections (PIP 109)
 - Fix count limit for complain transaction (PIP 109)
 - Allow `.` symbol in App ID (PIP 109)
-- Include moderation votes from completed juries in winners lottery (PIP 110)
+- Fix moderation votes from completed juries
 
 General
 -------

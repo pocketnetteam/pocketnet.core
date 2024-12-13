@@ -118,9 +118,19 @@ Changes:
 ## `PIP 110`: Lottery reward for moderation votes
 
 Fork start at:
-- Main net: 3291900
+- Main net: 9999999
 - Test net: 3500000
 
 Changes:
 - Redistribute lottery rewards: 87.5% for nodes, 2.5% for posts, 10% for moderation votes [PR #779](https://github.com/pocketnetteam/pocketnet.core/pull/779)
+
+
+## `PIP 111`: Moderation votes check enable after jury creation
+
+Fork start at:
+- Main net: 3109300
+- Test net: 3500000
+
+Changes:
+- Moderation votes check enable after jury creation [PR #786](https://github.com/pocketnetteam/pocketnet.core/pull/786)
 
