@@ -1,7 +1,7 @@
 Dependencies
 ============
 
-These are the dependencies currently used by Pocketcoin Core. You can find instructions for installing them in the `build-*.md` file for your platform.
+These are the dependencies currently used by Pocketnet Core. You can find instructions for installing them in the `build-*.md` file for your platform.
 
 | Dependency | Minimum required |
 | --- | --- |
@@ -19,8 +19,9 @@ These are the dependencies currently used by Pocketcoin Core. You can find instr
 | libevent | [2.1.8-stable](https://github.com/libevent/libevent/releases) | 2.0.22 | No |  |  |
 | Clang |  | [3.3+](https://llvm.org/releases/download.html) (C++11 support) |  |  |  |
 | OpenSSL | [1.1.1w](https://github.com/pocketnetteam/pocketnet.core/pull/664) |  | Yes |  |  |
-| Qt | [5.9.6](https://download.qt.io/official_releases/qt/) | 5.x | No |  |  |
+| Qt | [5.15.14](https://download.qt.io/official_releases/qt/) | 5.9.8 | No |  |  |
 | XCB |  |  |  |  | [Yes](https://github.com/pocketcoin/pocketcoin/blob/master/depends/packages/qt.mk#L87) (Linux only) |
+| systemtap ([tracing](tracing.md))|  |  |  |  | |
 | xkbcommon |  |  |  |  | [Yes](https://github.com/pocketcoin/pocketcoin/blob/master/depends/packages/qt.mk#L86) (Linux only) |
 | Expat | [2.2.5](https://libexpat.github.io/) |  | No | Yes |  |
 | fontconfig | [2.12.1](https://www.freedesktop.org/software/fontconfig/release/) |  | No | Yes |  |
@@ -35,3 +36,23 @@ These are the dependencies currently used by Pocketcoin Core. You can find instr
 | MiniUPnPc | [2.0.20180203](http://miniupnp.free.fr/files) |  | No |  |  |
 | ZeroMQ | [4.2.5](https://github.com/zeromq/libzmq/releases) | 4.0.0 | No |  |  |
 | zlib | [1.2.11](https://zlib.net/) |  |  |  | No |
+
+<a name="note1">Note \*</a> : When compiling with `-stdlib=libc++`, the minimum supported libc++ version is 7.0.
+
+Controlling dependencies
+------------------------
+
+Some dependencies are not needed in all configurations. The following are some factors that affect the dependency list.
+#### Options passed to `./configure`
+* MiniUPnPc is not needed with `--without-miniupnpc`.
+* libnatpmp is not needed with `--without-natpmp`.
+* Berkeley DB is not needed with `--disable-wallet` or `--without-bdb`.
+* SQLite is not needed with `--disable-wallet` or `--without-sqlite`.
+* Qt is not needed with `--without-gui`.
+* If the qrencode dependency is absent, QR support won't be added. To force an error when that happens, pass `--with-qrencode`.
+* If the systemtap dependency is absent, USDT support won't compiled in.
+* ZeroMQ is needed only with the `--with-zmq` option.
+
+#### Other
+* librsvg is only needed if you need to run `make deploy` on (cross-compilation to) macOS.
+* Not-Qt-bundled zlib is required to build the [DMG tool](../contrib/macdeploy/README.md#deterministic-macos-dmg-notes) from the libdmg-hfsplus project.
