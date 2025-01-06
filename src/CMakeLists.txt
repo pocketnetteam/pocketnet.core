@@ -1187,6 +1187,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/BaseRepository.cpp
         pocketdb/repositories/TransactionRepository.h
         pocketdb/repositories/TransactionRepository.cpp
+        pocketdb/repositories/BlockRepository.h
+        pocketdb/repositories/BlockRepository.cpp
         pocketdb/repositories/RatingsRepository.h
         pocketdb/repositories/RatingsRepository.cpp
         pocketdb/repositories/ChainRepository.h

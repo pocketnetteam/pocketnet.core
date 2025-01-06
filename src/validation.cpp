@@ -1260,18 +1260,19 @@ bool ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos, const Consensus::P
 
 bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus::Params& consensusParams)
 {
-    FlatFilePos blockPos;
-    {
-        LOCK(cs_main);
-        blockPos = pindex->GetBlockPos();
-    }
+    // TODO (block_sqlite) : read from sqlite db
+    // FlatFilePos blockPos;
+    // {
+    //     LOCK(cs_main);
+    //     blockPos = pindex->GetBlockPos();
+    // }
 
-    if (!ReadBlockFromDisk(block, blockPos, consensusParams))
-        return false;
-    if (block.GetHash() != pindex->GetBlockHash())
-        return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
-                pindex->ToString(), pindex->GetBlockPos().ToString());
-    return true;
+    // if (!ReadBlockFromDisk(block, blockPos, consensusParams))
+    //     return false;
+    // if (block.GetHash() != pindex->GetBlockHash())
+    //     return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
+    //             pindex->ToString(), pindex->GetBlockPos().ToString());
+    // return true;
 }
 
 bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const FlatFilePos& pos, const CMessageHeader::MessageStartChars& message_start)
@@ -1311,6 +1312,7 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const FlatFilePos& pos, c
 
 bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex, const CMessageHeader::MessageStartChars& message_start)
 {
+    // TODO (block_sqlite) : ?? read as binary for network
     FlatFilePos block_pos;
     {
         LOCK(cs_main);
@@ -4387,11 +4389,13 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, const
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;
     try {
-        FlatFilePos blockPos = SaveBlockToDisk(block, pindex->nHeight, chainparams, dbp);
-        if (blockPos.IsNull()) {
-            state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
-            return false;
-        }
+        // TODO (block_sqlite) : save to sqlite db
+        // FlatFilePos blockPos = SaveBlockToDisk(block, pindex->nHeight, chainparams, dbp);
+        // if (blockPos.IsNull()) {
+        //     state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
+        //     return false;
+        // }
+        FlatFilePos blockPos;
         ReceivedBlockTransactions(block, pindex, blockPos, chainparams.GetConsensus());
     } catch (const std::runtime_error& e) {
         return AbortNode(state, std::string("System error: ") + e.what());
@@ -5199,9 +5203,11 @@ bool CChainState::LoadGenesisBlock(const CChainParams& chainparams)
         if (!deserializeOk)
             return error("%s: generate genesis sqlite record failed", __func__);
 
-        FlatFilePos blockPos = SaveBlockToDisk(block, 0, chainparams, nullptr);
-        if (blockPos.IsNull())
-            return error("%s: writing genesis block to disk failed", __func__);
+        // TODO (block_sqlite) : save to sqlite db
+        FlatFilePos blockPos;
+        // FlatFilePos blockPos = SaveBlockToDisk(block, 0, chainparams, nullptr);
+        // if (blockPos.IsNull())
+        //     return error("%s: writing genesis block to disk failed", __func__);
 
         PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
 
@@ -5311,6 +5317,7 @@ void LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFi
                     while (range.first != range.second) {
                         std::multimap<uint256, FlatFilePos>::iterator it = range.first;
                         std::shared_ptr<CBlock> pblockrecursive = std::make_shared<CBlock>();
+                        // TODO (block_sqlite) : ????
                         if (ReadBlockFromDisk(*pblockrecursive, it->second, chainparams.GetConsensus()))
                         {
                             LogPrint(BCLog::REINDEX, "%s: Processing out of order child %s of %s\n", __func__, pblockrecursive->GetHash().ToString(),

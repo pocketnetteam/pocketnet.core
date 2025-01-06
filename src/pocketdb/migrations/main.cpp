@@ -30,6 +30,29 @@ namespace PocketDb
             );
         )sql");
 
+        _tables.emplace_back(R"sql(
+            create table if not exists Blocks
+            (
+                BlockId        integer primary key, -- Registry.RowId
+                BlockSig       text    not null,
+                Version        int     not null,
+                PrevBlockId    int     not null, -- Registry.RowId
+                MerkleRootId   int     not null, -- Registry.RowId
+                Time           int     not null,
+                Bits           int     not null,
+                Nonce          int     not null,
+                primary key (BlockId)
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists BlockTransactions
+            (
+                BlockId  int     not null, -- Blocks.BlockId
+                TxId     int     not null, -- Transactions.RowId
+                primary key (BlockId, TxId)
+            );
+        )sql");
 
         _tables.emplace_back(R"sql(
             create table if not exists Last

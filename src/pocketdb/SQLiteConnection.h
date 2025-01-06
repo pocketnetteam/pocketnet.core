@@ -16,7 +16,7 @@
 #include "pocketdb/repositories/web/BarteronRepository.h"
 #include "pocketdb/repositories/web/NotifierRepository.h"
 #include "pocketdb/repositories/web/AppRepository.h"
-
+#include "pocketdb/repositories/BlockRepository.h"
 #include "pocketdb/web/PocketFrontend.h"
 
 namespace PocketDb
@@ -44,6 +44,7 @@ namespace PocketDb
         AppRepositoryRef AppRepoInst;
 
         TransactionRepositoryRef TransactionRepoInst;
+        BlockRepositoryRef BlockRepoInst;
         ConsensusRepositoryRef ConsensusRepoInst;
 
     };

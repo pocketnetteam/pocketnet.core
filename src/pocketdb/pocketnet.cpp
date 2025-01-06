@@ -8,6 +8,7 @@ namespace PocketDb
 {
     SQLiteDatabase SQLiteDbInst(false);
     TransactionRepository TransRepoInst(SQLiteDbInst, false);
+    BlockRepository BlockRepoInst(SQLiteDbInst, false);
     ChainRepository ChainRepoInst(SQLiteDbInst, false);
     RatingsRepository RatingsRepoInst(SQLiteDbInst, false);
     ConsensusRepository ConsensusRepoInst(SQLiteDbInst, false);
