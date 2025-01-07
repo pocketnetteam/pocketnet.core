@@ -138,7 +138,7 @@ Changes:
 ## `PIP 112`: Moderation flag check block depth 
 
 Fork start at:
-- Main net: 3291900
+- Main net: 3291950
 - Test net: 3468628
 
 Changes:
