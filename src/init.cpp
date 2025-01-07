@@ -927,7 +927,6 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
         }
 
         // scan for better chains in the block chain database, that are not yet connected in the active best chain
-
         // We can't hold cs_main during ActivateBestChain even though we're accessing
         // the chainman unique_ptrs since ABC requires us not to be holding cs_main, so retrieve
         // the relevant pointers before the ABC call.

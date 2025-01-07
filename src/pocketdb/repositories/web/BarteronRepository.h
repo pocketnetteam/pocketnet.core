@@ -21,6 +21,7 @@ namespace PocketDb
         string Language = "";
         vector<int> Tags;
         vector<string> Location;
+        int LocationGroup = 1;
         int64_t PriceMax = -1;
         int64_t PriceMin = -1;
         string Search = "";
@@ -58,6 +59,7 @@ namespace PocketDb
         map<string, BarteronAccountAdditionalInfo> GetAccountsAdditionalInfo(const vector<string>& txids);
         vector<string> GetAccountOffersIds(const string& address);
         vector<string> GetFeed(const BarteronOffersFeedDto& args);
+        UniValue GetGroups(const BarteronOffersFeedDto& args);
         vector<string> GetDeals(const BarteronOffersDealDto& args);
         map<string, vector<string>> GetComplexDeal(const BarteronOffersComplexDealDto& args);
     };

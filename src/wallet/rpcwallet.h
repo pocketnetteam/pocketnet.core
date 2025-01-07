@@ -33,6 +33,7 @@ std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& reques
 void EnsureWalletIsUnlocked(const CWallet*);
 WalletContext& EnsureWalletContext(const util::Ref& context);
 LegacyScriptPubKeyMan& EnsureLegacyScriptPubKeyMan(CWallet& wallet, bool also_create = false);
+std::shared_ptr<CWallet> _createwallet(const JSONRPCRequest& request, const std::string& walletName);
 
 RPCHelpMan getaddressinfo();
 RPCHelpMan signrawtransactionwithwallet();

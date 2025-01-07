@@ -88,6 +88,8 @@ namespace PocketDb
         map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int firstFlagsDepth = 14);
         map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int firstFlagsDepth = 14);
 
+        UniValue GetAccountVersions(const string& address, const Pagination& pagination);
+
         UniValue GetSubscribesAddresses(
             const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE },
             const string& orderBy = "height", bool orderDesc = true, int offset = 0, int limit = 10);

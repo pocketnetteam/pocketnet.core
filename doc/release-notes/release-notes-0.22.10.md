@@ -1,9 +1,9 @@
-0.22.9 Release Notes
+0.22.10 Release Notes
 ====================
 
-Pocketcoin Core version 0.22.9 is now available from:
+Pocketcoin Core version 0.22.10 is now available from:
 
-  <https://github.com/pocketnetteam/pocketnet.core/releases/tag/0.22.9>
+  <https://github.com/pocketnetteam/pocketnet.core/releases/tag/0.22.10>
 
 This is a new major version release, including new features, various bugfixes
 and performance improvements, as well as updated translations.
@@ -38,29 +38,20 @@ Notable changes
 
 Consensus
 ---------
-- Enabling the moderation subsystem for Barteron transactions (PIP 109)
-- Enabling Boosts for Barteron Offers (PIP 109)
-- Allow mixing of content in collections (PIP 109)
-- Fix count limit for complain transaction (PIP 109)
-- Allow `.` symbol in App ID (PIP 109)
-- Fix moderation votes from completed juries
+
 
 General
 -------
-- Building fixes (openssl on macOS and GUI cmake build)
-- Allow to create new HD wallet from WIF key
-- Fix wallet import from legacy versions
 
-Low-level RPC changes
+
+RPC changes
 ---------------------
-- RPC method `getapps` extend next named arguments: `address` for filter by author address and `id` for filter by unique identificator
-- Fix `gettransactions` and `getrawtransaction` in public RPC - include payload data
-- Extend `getalljury` with pagination arguments
-- Fix `getwalletinfo` command (fix progress calculation)
+- Added `getaccountversions` method to get account versions
+- Modified `listtransactions` method to return total number of transactions
 
-0.22.9 change log
+0.22.10 change log
 =================
-Full Changelog: [0.22.8...0.22.9](https://github.com/pocketnetteam/pocketnet.core/compare/0.22.8...0.22.9)
+Full Changelog: [0.22.9...0.22.10](https://github.com/pocketnetteam/pocketnet.core/compare/0.22.9...0.22.10)
 
 Credits
 =======

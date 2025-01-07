@@ -8,448 +8,433 @@
 
 namespace PocketDb
 {
-    bool MigrationRepository::NeedMigrate0_22()
+    vector<tuple<int, vector<tuple<string, int>>>> MigrationRepository::GetAllModTxs()
     {
-        // No need to migrate if there is empty db
-        return TableExists("Transactions") && !ColumnExists("Transactions", "RegId1");
-    }
-
-    void MigrationRepository::Migrate0_21__0_22()
-    {
-        LogPrintf("Starting migration process, ETA: 24h\n");
-
-        SqlTransaction(__func__, [&]()
-        {
-            auto t1 = GetSystemTimeInSeconds();
-            uiInterface.InitMessage(_("Migration: Fulfilling Registry (1 of 12)...").translated);
-
-            FulfillRegistry();
-
-            auto t2 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t2 - t1);
-            uiInterface.InitMessage(_("Migration: Fulfilling Chain (2 of 12)...").translated);
-
-            FulfillChain();
-
-            auto t3 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t3 - t2);
-            uiInterface.InitMessage(_("Migration: Fulfilling Lists (3 of 12)...").translated);
-
-            FulfillLists();
-
-            auto t4 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t4 - t3);
-            uiInterface.InitMessage(_("Migration: Fulfilling Last (4 of 12)...").translated);
-
-            FulfillLast();
-
-            auto t5 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t5 - t4);
-            uiInterface.InitMessage(_("Migration: Fulfilling First(5 of 12)...").translated);
-
-            FulfillFirst();
-
-            auto t6 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t6 - t5);
-            uiInterface.InitMessage(_("Migration: Fulfilling Transactions (6 of 12)...").translated);
-
-            FulfillTransactions();
-
-            auto t7 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t7 - t6);
-            uiInterface.InitMessage(_("Migration: Fulfilling TxOutputs (7 of 12)...").translated);
-
-            FulfillTxOutputs();
-
-            auto t8 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t8 - t7);
-            uiInterface.InitMessage(_("Migration: Fulfilling TxInputs (8 of 12)...").translated);
-
-            FulfillTxInputs();
-
-            auto t9 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t9 - t8);
-            uiInterface.InitMessage(_("Migration: Fulfilling Balances (9 of 12)...").translated);
-
-            FulfillBalances();
-
-            auto t10 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t10 - t9);
-            uiInterface.InitMessage(_("Migration: Fulfilling Ratings (10 of 12)...").translated);
-
-            FulfillRatings();
-
-            auto t11 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t11 - t10);
-            uiInterface.InitMessage(_("Migration: Fulfilling Payload (11 of 12)...").translated);
-
-            FulfillPayload();
-
-            auto t12 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t12 - t11);
-            uiInterface.InitMessage(_("Migration: Fulfilling other tables (BlockingLists, Jury, Badgets) (12 of 12)...").translated);
-
-            FulfillOthers();
-
-            auto t13 = GetSystemTimeInSeconds();
-            LogPrintf("took %i seconds\n", t13 - t12);
-
-            LogPrintf("Total migrating time: %is\n", t13 - t1);
+        vector<tuple<int, vector<tuple<string, int>>>> result;
+        Sql(R"sql(
+            select c.Height, r.String, f.Type, BlockNum
+            from Transactions f
+            cross join Chain c on c.TxId = f.RowId
+            cross join Registry r on r.RowId = f.RowId
+            where f.Type in (410, 420)
+            order by c.Height, c.BlockNum
+        )sql")
+        .Select([&](Cursor& cursor) {
+            while (cursor.Step())
+            {
+                int height;
+                string hash;
+                int type;
+                if (cursor.CollectAll(height, hash, type)){
+                    result.emplace_back(height, vector<tuple<string, int>>{make_tuple(hash, type)});
+                }
+            }
         });
+        return result;
     }
 
-    void MigrationRepository::FulfillRegistry()
+    void MigrationRepository::ClearAllJuries()
     {
         Sql(R"sql(
-            insert or ignore into newdb.Registry (String)
-            select Hash from Transactions
-            union
-            select BlockHash from Transactions
-            union
-            select String1 from Transactions
-            union
-            select String2 from Transactions
-            union
-            select iif(json_valid(String3), (select value from json_each(String3)), String3) from Transactions
-            union
-            select String4 from Transactions
-            union
-            select String5 from Transactions
-
+            delete from Jury
         )sql")
         .Run();
 
         Sql(R"sql(
-            insert or ignore into Registry (String)
-            select AddressHash from TxOutputs
-            union
-            select ScriptPubKey from TxOutputs
+            delete from JuryVerdict
         )sql")
         .Run();
 
-        // TODO (losty): need SpentTxHash from TxInputs???
-    }
-
-    void MigrationRepository::FulfillLists()
-    {
         Sql(R"sql(
-            insert into newdb.Lists
-            (TxId, OrderIndex, RegId)
-            select
-                h.RowId,
-                j.key,
-                (select r.RowId from Registry r where r.String = j.value)
-            from
-                Transactions t,
-                json_each(t.String3) j
-                cross join newdb.Registry h on
-                    h.String = t.Hash
-            where
-                t.Type = 305 and
-                json_valid(t.String3)
+            delete from JuryBan
+        )sql")
+        .Run();
+
+        Sql(R"sql(
+            delete from JuryModerators
         )sql")
         .Run();
     }
 
-    void MigrationRepository::FulfillChain()
+    int MigrationRepository::LikersByFlag(const string& txHash, int height)
     {
-        Sql(R"sql(
-            insert into newdb.Chain
-            (TxId, BlockId, BlockNum, Height, Uid)
-            select
-                h.RowId,
-                (select r.RowId from Registry r where r.String = t.BlockHash),
-                t.BlockNum,
-                t.Height,
-                t.Id
-            from
-                Transactions t
-                cross join newdb.Registry h on
-                    h.String = t.Hash
-            where
-                t.Height > 0
-        )sql")
-        .Run();
-    }
-
-    void MigrationRepository::FulfillLast()
-    {
-        Sql(R"sql(
-            insert into newdb.Last (TxId)
-            select
-                h.RowId
-            from
-                Transactions t
-                cross join newdb.Registry h on
-                    h.String = t.Hash
-            where
-                t.Last = 1;
-        )sql")
-        .Run();
-    }
-
-    void MigrationRepository::FulfillFirst()
-    {
-        Sql(R"sql(
-            insert into newdb.First (TxId)
-            select
-                h.RowId
-            from
-                Transactions t
-                cross join newdb.Registry h
-                    on h.String = t.Hash
-            where
-                t.First = 1;
-        )sql")
-        .Run();
-    }
-
-    void MigrationRepository::FulfillTransactions()
-    {
-        Sql(R"sql(
-            insert into newdb.Transactions
-            (RowId, Type, Time, RegId1, RegId2, RegId3, RegId4, RegId5, Int1)
-            select 
-                (select r.RowId from newdb.Registry r where r.String = t.Hash),
-                t.Type,
-                Time,
-                (select r.RowId from newdb.Registry r where r.String = t.String1),
-                (select r.RowId from newdb.Registry r where r.String = t.String2),
-                iif(json_valid(t.String3), null, (select r.RowId from newdb.Registry r where r.String = t.String3)),
-                (select r.RowId from newdb.Registry r where r.String = t.String4),
-                (select r.RowId from newdb.Registry r where r.String = t.String5),
-                Int1
-            from
-                Transactions t
-        )sql")
-        .Run();
-    }
-
-    void MigrationRepository::FulfillTxOutputs()
-    {
-        Sql(R"sql(
-            insert into newdb.TxOutputs
-            (TxId, Number, AddressId, Value, ScriptPubKeyId)
-            select
-                (select r.RowId from newdb.Registry r where r.String = o.TxHash),
-                o.Number,
-                (select r.RowId from newdb.Registry r where r.String = o.AddressHash),
-                o.Value,
-                (select r.RowId from newdb.Registry r where r.String = o.ScriptPubKey)
-            from
-                TxOutputs o
-        )sql")
-        .Run();
-    }
-
-    void MigrationRepository::FulfillRatings()
-    {
-        Sql(R"sql(
-            insert into newdb.Ratings
-            (Type, Last, Height, Uid, Value)
-            select
-                r.Type,
-                r.Last,
-                r.Height,
-                r.Id,
-                r.Value
-            from
-                Ratings r
-        )sql")
-        .Run();
-    }
-
-    void MigrationRepository::FulfillBalances()
-    {
-        Sql(R"sql(
-            insert into newdb.Balances
-            (AddressId, Value)
-            select
-                (select r.RowId from newdb.Registry r where r.String = b.AddressHash),
-                b.Value
-            from
-                Balances b
-            where
-                b.Last = 1
-        )sql")
-        .Run();
-    }
-
-    void MigrationRepository::FulfillTxInputs()
-    {
-        Sql(R"sql(
-            insert or ignore into newdb.TxInputs
-            (SpentTxId, TxId, Number)
-            select
-                (select r.RowId from newdb.Registry r where r.String = i.SpentTxHash),
-                (select r.RowId from newdb.Registry r where r.String = i.TxHash),
-                i.Number
-            from
-                TxInputs i
-        )sql")
-        .Run();
-    }
-
-    void MigrationRepository::FulfillPayload()
-    {
-        Sql(R"sql(
-            insert into newdb.Payload
-            (TxId, String1, String2, String3, String4 ,String5, String6, String7, Int1)
-            select
-                (select r.RowId from newdb.Registry r where r.String = p.TxHash),
-                String1,
-                String2,
-                String3,
-                String4,
-                String5,
-                String6,
-                String7,
-                Int1
-            from
-                Payload p
-        )sql")
-        .Run();
-    }
-
-    void MigrationRepository::FulfillOthers()
-    {
-        Sql(R"sql(
-            insert into newdb.BlockingLists
-            (IdSource, IdTarget)
-            select
-                (select r.RowId from Registry r where r.String = s.String1),
-                (select r.RowId from Registry r where r.String = t.String1)
-            from
-                BlockingLists
-                cross join Transactions s indexed by Transactions_Id_Last on
-                    s.Id = IdSource and 
-                    s.Last = 1
-                cross join Transactions t indexed by Transactions_Id_Last on
-                    t.Id = IdTarget and
-                    t.Last = 1
-        )sql")
-        .Run();
-
-        Sql(R"sql(
-            insert into newdb.Jury
-            (FlagRowId, AccountId, Reason)
-            select
-                (select r.RowId from newdb.Registry r where r.String = ft.Hash),
-                (select r.RowId from newdb.Registry r where r.String = at.Hash),
-                Reason
-            from
-                Jury
-                cross join Transactions ft on
-                    ft.rowid = FlagRowId
-                cross join Transactions at on
-                    at.rowid = AccountId
-        )sql")
-        .Run();
-
-        Sql(R"sql(
-            insert into newdb.JuryVerdict
-            (FlagRowId, VoteRowId, Verdict)
-            select
-                (select r.RowId from newdb.Registry r where r.String = ft.Hash),
-                (select r.RowId from newdb.Registry r where r.String = vt.Hash),
-                Verdict
-            from
-                JuryVerdict
-                cross join Transactions ft on
-                    ft.rowid = FlagRowId
-                cross join Transactions vt on
-                    vt.rowid = VoteRowId
-        )sql")
-        .Run();
-
-        Sql(R"sql(
-            insert into newdb.JuryModerators
-            (FlagRowId, AccountId)
-            select
-                (select r.RowId from newdb.Registry r where r.String = ft.Hash),
-                (select r.RowId from newdb.Registry r where r.String = at.Hash)
-            from
-                JuryModerators
-                cross join Transactions ft on
-                    ft.rowid = FlagRowId
-                cross join Transactions at on
-                    at.rowid = AccountId
-        )sql")
-        .Run();
-
-        Sql(R"sql(
-            insert into newdb.JuryBan
-            (VoteRowId, AccountId, Ending)
-            select
-                (select r.RowId from newdb.Registry r where r.String = vt.Hash),
-                (select r.RowId from newdb.Registry r where r.String = at.Hash),
-                Ending
-            from
-                JuryBan
-                cross join Transactions vt on
-                    vt.rowid = VoteRowId
-                cross join Transactions at on
-                    at.rowid = AccountId
-        )sql")
-        .Run();
-
-        Sql(R"sql(
-            insert into newdb.Badges
-            (AccountId, Badge, Cancel, Height)
-            select
-                AccountId,
-                Badge,
-                Cancel,
-                Height
-            from
-                Badges
-        )sql")
-        .Run();
-    }
-
-    bool MigrationRepository::TableExists(const string& tableName)
-    {
-        bool result = false;
-
+        int result = 0;
+        
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                    flag as ( select r.RowId from Registry r where r.String = ? )
                 select
-                    1
+                   ifnull((
+                        select
+                            lp.Value
+                        from Ratings lp
+                        where
+                            lp.Type in (111) and
+                            lp.Uid = cu.Uid and
+                            lp.Height <= ?
+                        order by
+                            lp.Height desc
+                        limit 1
+                     ), 0) +
+                     ifnull((
+                        select
+                            lp.Value
+                        from Ratings lp
+                        where
+                            lp.Type in (112) and
+                            lp.Uid = cu.Uid and
+                            lp.Height <= ?
+                        order by
+                            lp.Height desc
+                        limit 1
+                     ), 0) +
+                     ifnull((
+                        select
+                            lp.Value
+                        from Ratings lp
+                        where
+                            lp.Type in (113) and
+                            lp.Uid = cu.Uid and
+                            lp.Height <= ?
+                        order by
+                            lp.Height desc
+                        limit 1
+                     ), 0) lkrs
                 from
-                    pragma_table_info(?)
+                    flag
+                cross join
+                    Transactions f on
+                        f.RowId = flag.RowId
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_Time on
+                        u.Type in (100, 170) and u.RegId1 = f.RegId3
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                cross join
+                    First fu on
+                        fu.TxId = u.RowId
             )sql")
-            .Bind(tableName)
+            .Bind(txHash, height, height, height)
             .Select([&](Cursor& cursor) {
-                result = cursor.Step();
+                if (cursor.Step())
+                    cursor.CollectAll(result);
             });
         });
 
         return result;
     }
 
-    bool MigrationRepository::ColumnExists(const string& tableName, const string& columnName)
+    int MigrationRepository::LikersByVote(const string& txHash, int height)
     {
-        bool result = false;
-
+        int result = 0;
+        
         SqlTransaction(__func__, [&]()
         {
             Sql(R"sql(
+                with
+                    vote as ( select r.RowId from Registry r where r.String = ? )
                 select
-                    1
+                    ifnull((
+                        select
+                            lp.Value
+                        from Ratings lp
+                        where
+                            lp.Type in (111) and
+                            lp.Uid = cu.Uid and
+                            lp.Height <= ?
+                        order by
+                            lp.Height desc
+                        limit 1
+                     ), 0) +
+                     ifnull((
+                        select
+                            lp.Value
+                        from Ratings lp
+                        where
+                            lp.Type in (112) and
+                            lp.Uid = cu.Uid and
+                            lp.Height <= ?
+                        order by
+                            lp.Height desc
+                        limit 1
+                     ), 0) +
+                     ifnull((
+                        select
+                            lp.Value
+                        from Ratings lp
+                        where
+                            lp.Type in (113) and
+                            lp.Uid = cu.Uid and
+                            lp.Height <= ?
+                        order by
+                            lp.Height desc
+                        limit 1
+                     ), 0) lkrs
                 from
-                    pragma_table_info(?)
+                    vote
+                cross join
+                    Transactions v on
+                        v.RowId = vote.RowId
+                cross join
+                    Transactions f on
+                        f.RowId = v.RegId2
+                cross join
+                    Transactions u indexed by Transactions_Type_RegId1_Time on
+                        u.Type in (100, 170) and u.RegId1 = f.RegId3
+                cross join
+                    Chain cu on
+                        cu.TxId = u.RowId
+                cross join
+                    First fu on
+                        fu.TxId = u.RowId
+            )sql")
+            .Bind(txHash, height, height, height)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                    cursor.CollectAll(result);
+            });
+        });
+
+        return result;
+    }
+
+    void MigrationRepository::IndexModerationJury(const string& flagTxHash, int flagsDepth, int topHeight, int flagsMinCount, int juryModeratorsCount)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                insert into Jury
+
+                select
+
+                    f.RowId, /* Unique id of Flag record */
+                    cu.Uid, /* Account unique id of the content author */
+                    f.Int1 /* Reason */
+
+                from Transactions f
+
+                cross join Chain cf
+                    on cf.TxId = f.RowId
+
+                cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type = 100 and u.RegId1 = f.RegId3
+
+                cross join First fu
+                    on fu.TxId = u.RowId
+
+                cross join Chain cu on
+                    cu.TxId = u.RowId
+
+                where f.RowId = (select r.RowId from Registry r where r.String = ?)
+
+                    -- Is there no active punishment listed on the account ?
+                    and not exists (
+                        select 1
+                        from JuryBan b indexed by JuryBan_AccountId_Ending
+                        where
+                            b.AccountId = cu.Uid and
+                            b.Ending > cf.Height
+                    )
+
+                    -- there is no active jury for the same reason
+                    and not exists (
+                        select 1
+                        from Jury j indexed by Jury_AccountId_Reason
+                        left join JuryVerdict jv
+                            on jv.FlagRowId = j.FlagRowId
+                        where
+                            j.AccountId = cu.Uid and
+                            j.Reason = f.Int1 and
+                            jv.Verdict is null
+                    )
+
+                    -- if there are X flags of the same reason for X time
+                    and ? <= (
+                        select count()
+                        from Transactions ff
+                        cross join Chain cff
+                            on cff.TxId = ff.RowId and cff.Height > ? and cff.Height <= ?
+                        where
+                            ff.Type in (410) and
+                            ff.RegId3 = f.RegId3 and
+                            ff.Int1 = f.Int1
+                    )
+            )sql")
+            .Bind(flagTxHash, flagsMinCount, flagsDepth, topHeight)
+            .Run();
+
+            // Mechanism of distribution of moderators for voting
+            // As a "nonce" we use the hash of the flag transaction that the jury created.
+            // We sort the moderator registration hashes and compare them with the flag hash
+            // to get all the moderator IDs before and after
+            Sql(R"sql(
+                insert into JuryModerators (AccountId, FlagRowId)
+                with
+                  h as (
+                    select r.String as hash, r.RowId as rowid
+                    from Registry r where r.String = ?
+                  ),
+                  f as (
+                    select f.RowId, h.hash
+                    from Transactions f,
+                        Jury j,
+                        h
+                    where f.RowId = h.RowId and j.FlagRowId = f.RowId
+                  ),
+                  c as (
+                    select ?/2 as cnt
+                  ),
+                  a as (
+                    select b.AccountId, (select r.String from Registry r where r.RowId = u.TxId) as Hash
+                    from Badges b indexed by Badges_Badge_Cancel_AccountId_Height
+                    cross join Chain u on u.Uid = b.AccountId and exists (select 1 from First f where f.TxId = u.TxId)
+                    where b.Badge = 3 and b.Cancel=0 and b.AccountId=u.Uid and b.Height < ? and
+                        not exists (
+                            select
+                                1
+                            from
+                                Badges bb indexed by Badges_Badge_Cancel_AccountId_Height
+                            where
+                                bb.Badge = b.Badge and
+                                bb.Cancel = 1 and
+                                bb.AccountId = b.AccountId and
+                                bb.Height > b.Height and
+                                bb.Height < ?
+                        )
+                  ),
+                  l as (
+                    select a.AccountId, a.Hash, row_number() over (order by a.Hash)row_number
+                    from a,f
+                    where a.Hash > f.hash
+                  ),
+                  r as (
+                    select a.AccountId, a.Hash, row_number() over (order by a.Hash desc)row_number
+                    from a,f
+                    where a.Hash < f.hash
+                  )
+                select l.AccountId, f.ROWID from l,c,f where l.row_number <= c.cnt + (c.cnt - (select count() from r where r.row_number <= c.cnt))
+                union
+                select r.AccountId, f.ROWID from r,c,f where r.row_number <= c.cnt + (c.cnt - (select count() from l where l.row_number <= c.cnt))
+            )sql")
+            .Bind(flagTxHash, juryModeratorsCount, topHeight, topHeight)
+            .Run();
+        });
+    }
+
+    void MigrationRepository::IndexModerationBan(const string& voteTxHash, int topHeight, int votesCount, int ban1Time, int ban2Time, int ban3Time)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                -- if there is at least one negative vote, then the defendant is acquitted
+                insert or fail into
+                    JuryVerdict (FlagRowId, VoteRowId, Verdict)
+                select
+                    f.RowId,
+                    v.RowId,
+                    0
+                from
+                    Transactions v
+                    cross join
+                        Transactions f on
+                            f.RowId = v.RegId2
+                    cross join
+                        Transactions vv on
+                            vv.Type in (420) and -- Votes
+                            vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
+                            vv.Int1 = 0 -- Negative verdict
+                    cross join
+                        Chain c on
+                            c.TxId = vv.RowId and
+                            c.Height <= ?
                 where
-                    name = ?
+                    v.RowId = (select r.RowId from Registry r where r.String = ?) and
+                    not exists (select 1 from JuryVerdict jv where jv.FlagRowId = f.RowId)
             )sql")
-            .Bind(tableName, columnName)
-            .Select([&](Cursor& cursor) {
-                result = cursor.Step();
-            });
+            .Bind(topHeight, voteTxHash)
+            .Run();
+            
+            Sql(R"sql(
+                -- if there are X positive votes, then the defendant is punished
+                insert or fail into
+                    JuryVerdict (FlagRowId, VoteRowId, Verdict)
+                select
+                    f.RowId,
+                    v.RowId,
+                    1
+                from
+                    Transactions v
+                    cross join
+                        Transactions f on
+                            f.RowId = v.RegId2
+                where
+                    v.RowId = (select r.RowId from Registry r where r.String = ?) and
+                    not exists (select 1 from JuryVerdict jv where jv.FlagRowId = f.RowId) and
+                    ? <= (
+                        select
+                            count()
+                        from
+                            Transactions vv
+                        cross join
+                            Chain c on
+                                c.TxId = vv.RowId and c.Height <= ?
+                        where
+                            vv.Type in (420) and -- Votes
+                            vv.RegId2 = f.RowId and -- JuryId over FlagTxHash
+                            vv.Int1 = 1 -- Positive verdict
+                    )
+            )sql")
+            .Bind(voteTxHash, votesCount, topHeight)
+            .Run();
+            
+            Sql(R"sql(
+                -- If the defendant is punished, then we need to create a ban record
+                insert into
+                    JuryBan (VoteRowId, AccountId, Ending)
+                select
+                    v.RowId, /* Unique id of Vote record */
+                    j.AccountId, /* Address of the content author */
+                    (
+                        case ( select count() from JuryBan b indexed by JuryBan_AccountId_Ending where b.AccountId = j.AccountId )
+                            when 0 then ?
+                            when 1 then ?
+                            else ?
+                        end
+                    ) /* Ban period */
+                from
+                    Transactions v
+                    cross join Chain cv
+                        on cv.TxId = v.RowId
+                    cross join Transactions f
+                        on f.RowId = v.RegId2
+                    cross join Jury j
+                        on j.FlagRowId = v.RegId2
+                    cross join JuryVerdict jv
+                        on jv.VoteRowId = v.RowId and
+                           jv.FlagRowId = j.FlagRowId and
+                           jv.Verdict = 1
+                where
+                    v.RowId = (select r.RowId from Registry r where r.String = ?) and
+                    not exists (
+                        select
+                            1
+                        from
+                            JuryBan b indexed by JuryBan_AccountId_Ending
+                        where
+                            b.AccountId = j.AccountId and
+                            b.Ending > cv.Height
+                    )
+            )sql")
+            .Bind(ban1Time, ban2Time, ban3Time, voteTxHash)
+            .Run();
         });
-
-        return result;
     }
+
+
+
 
 } // namespace PocketDb
 

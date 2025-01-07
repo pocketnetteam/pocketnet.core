@@ -327,4 +327,50 @@ namespace PocketServices
         }
     }
 
+
+    void ChainPostProcessing::Migrate_Jury()
+    {
+        // Before reindex - clear all existing juries
+        MigrationRepoInst.ClearAllJuries();
+
+        // Reindex all modTxs
+        auto modTxs = MigrationRepoInst.GetAllModTxs();
+        for (const auto&[height, txs] : modTxs)
+        {
+            for (const auto&[hash, type] : txs)
+            {
+                if (type == 410)
+                {
+                    auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
+                    int flag_depth = reputationConsensus->GetConsensusLimit(moderation_jury_flag_depth);
+                    int likers = MigrationRepoInst.LikersByFlag(hash, height);
+                    auto cond = GetConditions(height, likers);
+
+                    MigrationRepoInst.IndexModerationJury(
+                        hash,
+                        height - flag_depth,
+                        height,
+                        cond.flag_count,
+                        cond.moders_count
+                    );
+                }
+                else if (type == 420)
+                {
+                    auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
+                    int likers = MigrationRepoInst.LikersByVote(hash, height);
+                    auto cond = GetConditions(height, likers);
+                        
+                    MigrationRepoInst.IndexModerationBan(
+                        hash,
+                        height,
+                        cond.vote_count,
+                        height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_1_time),
+                        height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_2_time),
+                        height + reputationConsensus->GetConsensusLimit(moderation_jury_ban_3_time)
+                    );
+                }
+            }
+        }
+    }
+
 } // namespace PocketServices

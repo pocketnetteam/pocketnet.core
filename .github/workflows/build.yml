@@ -30,6 +30,10 @@ jobs:
     runs-on: ubuntu-20.04
     needs: prepare
     steps:
+      - name: OS Information
+        run: |
+          uname -a
+          cat /etc/*release
       - name: Check out Git repository
         uses: actions/checkout@v4
         with:
@@ -63,6 +67,10 @@ jobs:
     runs-on: ubuntu-20.04
     needs: prepare
     steps:
+      - name: OS Information
+        run: |
+          uname -a
+          cat /etc/*release
       - name: Check out Git repository
         uses: actions/checkout@v4
         with:

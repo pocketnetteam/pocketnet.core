@@ -14,7 +14,7 @@
 #define CLIENT_VERSION_MINOR 22
 
 /* Build revision */
-#define CLIENT_VERSION_REVISION 9
+#define CLIENT_VERSION_REVISION 11
 
 /* Version Build */
 #define CLIENT_VERSION_BUILD 0
@@ -29,7 +29,7 @@
 #define COPYRIGHT_HOLDERS_SUBSTITUTION "Pocketnet"
 
 /* Copyright year */
-#define COPYRIGHT_YEAR 2024
+#define COPYRIGHT_YEAR 2025
 
 /* Define to 1 to enable wallet functions */
 #define ENABLE_WALLET 1
@@ -346,7 +346,7 @@
 #define PACKAGE_NAME "Pocketnet Core"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "Pocketnet Core 0.22.9"
+#define PACKAGE_STRING "Pocketnet Core 0.22.11"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "pocketcoin"
@@ -355,7 +355,7 @@
 #define PACKAGE_URL "https://github.com/pocketnetteam"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.22.9"
+#define PACKAGE_VERSION "0.22.11"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */

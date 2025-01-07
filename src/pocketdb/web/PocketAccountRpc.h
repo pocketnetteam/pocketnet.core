@@ -16,6 +16,7 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetAccountId();
     RPCHelpMan GetAccountProfiles();
+    RPCHelpMan GetAccountVersions();
     RPCHelpMan GetAccountSetting();
     RPCHelpMan GetAccountAddress();
     RPCHelpMan GetAccountRegistration();

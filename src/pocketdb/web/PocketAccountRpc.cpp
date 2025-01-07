@@ -105,6 +105,43 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
+    RPCHelpMan GetAccountVersions()
+    {
+        return RPCHelpMan{"getaccountversions",
+            "\nGet account versions.\n",
+            {
+                {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Start height of pagination"},
+                {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Start page"},
+                {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Size page"},
+            },
+            {
+                // TODO (rpc): provide return description
+            },
+            RPCExamples{
+                // TODO (rpc): provide correct examples
+                HelpExampleCli("getaccountversions", "") +
+                HelpExampleRpc("getaccountversions", "")
+            },
+            [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+            {
+                RPCTypeCheck(request.params, {UniValue::VSTR});
+
+                string address = request.params[0].get_str();
+
+                Pagination pagination{ ChainActiveSafeHeight(), 0, 10, "height", true };
+                if (request.params[1].isNum())
+                    pagination.TopHeight = min(request.params[1].get_int(), pagination.TopHeight);
+                if (request.params[2].isNum())
+                    pagination.PageStart = request.params[2].get_int();
+                if (request.params[3].isNum())
+                    pagination.PageSize = request.params[3].get_int();
+
+                return request.DbConnection()->WebRpcRepoInst->GetAccountVersions(address, pagination);
+            },
+        };
+    }
+
     RPCHelpMan GetAccountAddress()
     {
         return RPCHelpMan{"getuseraddress",

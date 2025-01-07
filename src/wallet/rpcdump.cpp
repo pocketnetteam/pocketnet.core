@@ -18,7 +18,7 @@
 #include <util/translation.h>
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
-
+#include <wallet/context.h>
 #include <stdint.h>
 #include <tuple>
 
@@ -507,7 +507,6 @@ RPCHelpMan importpubkey()
     };
 }
 
-
 RPCHelpMan importwallet()
 {
     return RPCHelpMan{"importwallet",
@@ -515,6 +514,7 @@ RPCHelpMan importwallet()
                 "Note: Use \"getwalletinfo\" to query the scanning progress.\n",
                 {
                     {"filename", RPCArg::Type::STR, RPCArg::Optional::NO, "The wallet file"},
+                    {"walletname", RPCArg::Type::STR, RPCArg::Optional::NO, "The wallet name"},
                 },
                 RPCResult{RPCResult::Type::NONE, "", ""},
                 RPCExamples{
@@ -527,8 +527,21 @@ RPCHelpMan importwallet()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    if (!wallet) return NullUniValue;
+    std::string walletName = "";
+    if (request.params.size() > 1) {
+        walletName = request.params[1].get_str();
+    }
+
+    // Check existing wallets
+    std::vector<std::shared_ptr<CWallet>> wallets = GetWallets();
+    for (const auto& wallet : wallets) {
+        if (wallet->GetName() == walletName) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet with name " + walletName + " already exists");
+        }
+    }
+
+    // Create new wallet
+    std::shared_ptr<CWallet> wallet = _createwallet(request, walletName);
     CWallet* const pwallet = wallet.get();
 
     EnsureLegacyScriptPubKeyMan(*wallet, true);
@@ -557,6 +570,7 @@ RPCHelpMan importwallet()
         if (!file.is_open()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open wallet dump file");
         }
+
         CHECK_NONFATAL(pwallet->chain().findBlock(pwallet->GetLastBlockHash(), FoundBlock().time(nTimeBegin)));
 
         int64_t nFilesize = std::max((int64_t)1, (int64_t)file.tellg());
@@ -655,7 +669,7 @@ RPCHelpMan importwallet()
         pwallet->chain().showProgress("", 100, false); // hide progress dialog in GUI
     }
     pwallet->chain().showProgress("", 100, false); // hide progress dialog in GUI
-    RescanWallet(*pwallet, reserver, nTimeBegin, false /* update */);
+    // RescanWallet(*pwallet, reserver, nTimeBegin, false /* update */);
     pwallet->MarkDirty();
 
     if (!fGood)

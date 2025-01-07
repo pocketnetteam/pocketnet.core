@@ -387,7 +387,7 @@ namespace PocketDb
         )sql");
 
         _preProcessing = R"sql(
-            PRAGMA user_version = 1;
+            
         )sql";
 
 

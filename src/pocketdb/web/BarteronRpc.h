@@ -16,6 +16,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetBarteronOffersByRootTxHashes();
     RPCHelpMan GetBarteronOffersByAddress();
     RPCHelpMan GetBarteronFeed();
+    RPCHelpMan GetBarteronGroups();
     RPCHelpMan GetBarteronDeals();
     RPCHelpMan GetBarteronOffersDetails();
     RPCHelpMan GetBarteronComplexDeals();

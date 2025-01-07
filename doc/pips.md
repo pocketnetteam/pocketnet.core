@@ -134,3 +134,13 @@ Fork start at:
 Changes:
 - Moderation votes check enable after jury creation [PR #786](https://github.com/pocketnetteam/pocketnet.core/pull/786)
 
+
+## `PIP 112`: Moderation flag check block depth 
+
+Fork start at:
+- Main net: 3291950
+- Test net: 3468628
+
+Changes:
+- Moderation flag check block depth [PR #789](https://github.com/pocketnetteam/pocketnet.core/pull/789)
+

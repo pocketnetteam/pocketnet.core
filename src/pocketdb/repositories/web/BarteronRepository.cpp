@@ -307,6 +307,137 @@ namespace PocketDb
         return result;
     }
 
+    UniValue BarteronRepository::GetGroups(const BarteronOffersFeedDto& args)
+    {
+        UniValue result(UniValue::VARR);
+
+        string _filters = "";
+        if (!args.Language.empty()) _filters += " cross join lang on pt.String1 = lang.value ";
+        if (args.PriceMax > 0) _filters += " cross join priceMax on pt.Int1 <= priceMax.value ";
+        if (args.PriceMin > 0) _filters += " cross join priceMin on pt.Int1 >= priceMin.value ";
+
+        string search = args.Search;
+        boost::replace_all(search, "%", "");
+        if (!search.empty())
+        {
+            search = "\"" + search + "\"" + " OR " + search + "*";
+
+            _filters += R"sql(
+                cross join (
+                    select fm.ContentId
+                    from
+                        web.Content f
+                    cross join
+                        web.ContentMap fm on
+                            fm.ROWID = f.ROWID
+                    where
+                        fm.FieldType in (12,13) and
+                        f.Value match ?
+                ) sc on sc.ContentId = ct.Uid
+            )sql";
+        }
+
+        string _tagsStr = "[]";
+        string _locationStr = "[]";
+
+        if (!args.Tags.empty()) {
+            UniValue _tags(UniValue::VARR);
+            for (auto t : args.Tags)
+                _tags.push_back(t);
+
+            _tagsStr = _tags.write();
+            _filters += " cross join tags on bo.Tag = tags.value ";
+        }
+
+        if (!args.Location.empty()) {
+            UniValue _location(UniValue::VARR);
+            for (auto t : args.Location)
+                _location.push_back(t + "%");
+
+            _locationStr = _location.write();
+            _filters += " cross join location on pt.String6 like location.value ";
+        }
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt =  Sql(R"sql(
+                    with
+                        lang as (select ? as value),
+                        tags as (select value from json_each(?)),
+                        location as (select value from json_each(?)),
+                        priceMax as (select ? as value),
+                        priceMin as (select ? as value)
+                    select
+                        substr(pt.String6, 1, ?),
+                        count(1)
+                    from
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join
+                        Last lt
+                            on lt.TxId = t.RowId
+                    cross join
+                        Chain ct indexed by Chain_TxId_Height
+                            on ct.TxId = t.RowId
+                    cross join
+                        Payload pt
+                            on pt.TxId = t.RowId
+                    -- Account
+                    cross join
+                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on u.Type in (104) and u.RegId1 = t.RegId1
+                    cross join
+                        Last lu
+                            on lu.TxId = u.RowId
+                    cross join
+                        Chain cu
+                            on cu.TxId = u.RowId
+                    -- Tags
+                    left join
+                        web.BarteronOffers bo
+                            on bo.AccountId = cu.Uid and bo.OfferId = ct.Uid
+                    -- Filters
+                    )sql" + _filters + R"sql(
+                    where
+                        t.Type in (211)
+                    group by
+                        substr(pt.String6, 1, ?)
+                )sql");
+
+                stmt.Bind(
+                    args.Language,
+                    _tagsStr,
+                    _locationStr,
+                    args.PriceMax,
+                    args.PriceMin,
+                    args.LocationGroup
+                );
+
+                if (!search.empty())
+                    stmt.Bind(search);
+                
+                stmt.Bind(
+                    args.LocationGroup
+                );
+
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue group(UniValue::VOBJ);
+                        cursor.Collect<string>(0, group, "location");
+                        cursor.Collect<int>(1, group, "count");
+                        result.push_back(group);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
     vector<string> BarteronRepository::GetDeals(const BarteronOffersDealDto& args)
     {
         vector<string> result;

@@ -68,7 +68,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateBlock(const ModerationFlagRef& ptx, const PocketBlockRef& block) override
         {
             // Check flag from one to one
-            if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0)
+            if (CountModerationFlagGreaterThanZero(ptx))
                 return {false, ConsensusResult_Duplicate};
 
             // Count flags in chain
@@ -125,6 +125,11 @@ namespace PocketConsensus
                 CONTENT_COMMENT, CONTENT_COMMENT_EDIT
             };
         }
+
+        virtual bool CountModerationFlagGreaterThanZero(const ModerationFlagRef& ptx)
+        {
+            return ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0;
+        }
     };
 
     class ModerationFlagConsensus_pip_109 : public ModerationFlagConsensus
@@ -144,6 +149,21 @@ namespace PocketConsensus
         }
     };
 
+    class ModerationFlagConsensus_pip_112 : public ModerationFlagConsensus_pip_109
+    {
+    public:
+        ModerationFlagConsensus_pip_112() : ModerationFlagConsensus_pip_109() {}
+    protected:
+        bool CountModerationFlagGreaterThanZero(const ModerationFlagRef& ptx) override
+        {
+            int blockDepth = GetConsensusLimit(moderation_jury_flag_depth);
+            return ConsensusRepoInst.CountModerationFlag(
+                       *ptx->GetAddress(),
+                       *ptx->GetContentAddressHash(),
+                       false,
+                       Height, blockDepth) > 0;
+        }
+    };
 
     // Factory for select actual rules version
     class ModerationFlagConsensusFactory : public BaseConsensusFactory<ModerationFlagConsensus>
@@ -152,7 +172,8 @@ namespace PocketConsensus
         ModerationFlagConsensusFactory()
         {
             Checkpoint({       0,       0, -1, make_shared<ModerationFlagConsensus>() });
-            Checkpoint({ 3291900, 3373650,  0, make_shared<ModerationFlagConsensus_pip_109>() });
+            Checkpoint({ 3291900, 3373650, -1, make_shared<ModerationFlagConsensus_pip_109>() });
+            Checkpoint({ 3291950, 3468628,  0, make_shared<ModerationFlagConsensus_pip_112>() });
         }
     };
 

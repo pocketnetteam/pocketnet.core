@@ -22,27 +22,12 @@ namespace PocketDb
     {
     public:
         explicit MigrationRepository(SQLiteDatabase& db, bool timeouted) : BaseRepository(db, timeouted) {}
-
-        bool NeedMigrate0_22();
-        void Migrate0_21__0_22();
-    protected:
-        void FulfillRegistry();
-        void FulfillChain();
-        void FulfillLists();
-        void FulfillFirst();
-        void FulfillLast();
-        void FulfillTransactions();
-        void FulfillTxOutputs();
-        void FulfillRatings();
-        void FulfillBalances();
-        void FulfillTxInputs();
-        void FulfillPayload();
-        void FulfillOthers();
-
-        bool CheckNeedCreateBlockingList();
-
-        bool TableExists(const string& tableName);
-        bool ColumnExists(const string& tableName, const string& columnName);
+        vector<tuple<int, vector<tuple<string, int>>>> GetAllModTxs();
+        void ClearAllJuries();
+        int LikersByFlag(const string& txHash, int height);
+        int LikersByVote(const string& txHash, int height);
+        void IndexModerationJury(const string& flagTxHash, int flagsDepth, int topHeight, int flagsMinCount, int juryModeratorsCount);
+        void IndexModerationBan(const string& voteTxHash, int topHeight, int votesCount, int ban1Time, int ban2Time, int ban3Time);
     };
 
     typedef std::shared_ptr<MigrationRepository> MigrationRepositoryRef;

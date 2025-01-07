@@ -9,9 +9,12 @@
 #include "util/translation.h"
 #include "validation.h"
 #include <node/ui_interface.h>
+#include "pocketdb/services/ChainPostProcessing.h"
 
 namespace PocketDb
 {
+    static int dbActualVersion = 2;
+
     static void ErrorLogCallback(void* arg, int code, const char* msg)
     {
         // From sqlite3_config() documentation for the SQLITE_CONFIG_LOG option:
@@ -54,8 +57,6 @@ namespace PocketDb
 
         InitializeSqlite();
 
-        MaybeMigrate0_22(dbBasePath);
-
         PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDbMainMigration>();
         PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
         SQLiteDbInst.CreateStructure();
@@ -69,19 +70,24 @@ namespace PocketDb
         MigrationRepoInst.Init();
 
         auto dbVersion = SystemRepoInst.GetDbVersion();
+        // Set db version to actual version if it is not set
+        if (dbVersion == -1) {
+            dbVersion = dbActualVersion;
+            SystemRepoInst.SetDbVersion(dbVersion);
+        }
         LogPrintf("SQLite database version: %d\n", dbVersion);
 
-        // Drop web database
-        bool dropWebDb = gArgs.GetArg("-reindex", 0) == 5;
-        
-        // Change database version
-        if (dbVersion < 1)
-        {
-            dbVersion = 1;
-            SystemRepoInst.SetDbVersion(dbVersion);
-            LogPrintf("SQLite database version changed: %d\n", dbVersion);
-            dropWebDb = true;
+        // Detect old version of database and migrate moderation juries
+        if (dbVersion < dbActualVersion) {
+            LOCK(cs_main);
+            LogPrintf("Migrating moderation juries\n");
+            PocketServices::ChainPostProcessing::Migrate_Jury();
+            dbVersion = dbActualVersion;
+            PocketDb::SystemRepoInst.SetDbVersion(dbVersion);
         }
+
+        // Drop web database if reindex
+        bool dropWebDb = gArgs.GetArg("-reindex", 0) == 5;
 
         // Open, create structure and close `web` db
         PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();
@@ -92,75 +98,6 @@ namespace PocketDb
 
         // Attach `web` db to `main` db
         SQLiteDbInst.AttachDatabase("web");
-    }
-
-    void MaybeMigrate0_22(const fs::path& pocketPath)
-    {
-        const string mainDb = "main";
-        SQLiteDatabase sqliteMainDbInst(false);
-        sqliteMainDbInst.Init(pocketPath.string(), mainDb, std::make_shared<PocketDbOldMinimalMigration>());
-
-        MigrationRepository migRepo(sqliteMainDbInst, false);
-
-        // Destroy repository and close connection with database if migration not needed
-        if (!migRepo.NeedMigrate0_22()) {
-            migRepo.Destroy();
-            sqliteMainDbInst.Close();
-            return;
-        }
-
-        // Initialize current database
-        sqliteMainDbInst.CreateStructure();
-
-        // Create temporary database
-        const string tmpDb = "newdb";
-        SQLiteDatabase sqliteNewDbInst(false);
-        sqliteNewDbInst.Init(pocketPath.string(), tmpDb, std::make_shared<PocketDbMainMigration>(), true);
-        sqliteNewDbInst.CreateStructure(false);
-        sqliteNewDbInst.Close();
-
-        // Attach temporary database for migration
-        sqliteMainDbInst.AttachDatabase(tmpDb);
-
-        // Migration process
-        migRepo.Migrate0_21__0_22();
-
-        // Destroy repository and close connection with database
-        migRepo.Destroy();
-        sqliteMainDbInst.DetachDatabase(tmpDb);
-        sqliteMainDbInst.Close();
-
-        try
-        {
-            const auto shmDst = pocketPath / (mainDb + ".sqlite3-shm");
-            const auto shmSrc = pocketPath / (tmpDb + ".sqlite3-shm");
-            const auto walDst = pocketPath / (mainDb + ".sqlite3-wal");
-            const auto walSrc = pocketPath / (tmpDb + ".sqlite3-wal");
-
-            if (fs::exists(walDst))
-                fs::remove(walDst);
-            if (fs::exists(shmDst))
-                fs::remove(shmDst);
-
-            fs::rename(pocketPath / (tmpDb + ".sqlite3"), pocketPath / (mainDb + ".sqlite3"));
-
-            if (fs::exists(shmSrc))
-                fs::rename(shmSrc, shmDst);
-            if (fs::exists(walSrc))
-                fs::rename(walSrc, walDst);
-
-            // After migration 0.21 -> 0.22 web database need recreating
-            const auto webShm = pocketPath / ("web.sqlite3-shm");
-            const auto webWal = pocketPath / ("web.sqlite3-wal");
-            const auto webDb = pocketPath / ("web.sqlite3");
-            if (fs::exists(webShm)) fs::remove(webShm);
-            if (fs::exists(webWal)) fs::remove(webWal);
-            if (fs::exists(webDb)) fs::remove(webDb);
-        }
-        catch (const fs::filesystem_error& e)
-        {
-            throw std::runtime_error(strprintf("Failed replace original database with migration: %s", e.what()));
-        }
     }
 
     SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)

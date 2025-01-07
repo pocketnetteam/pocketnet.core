@@ -885,6 +885,87 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetAccountVersions(const string& address, const Pagination& pagination)
+    {
+        UniValue result(UniValue::VARR);
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        address as ( select r.RowId as value from Registry r where r.String = ?)
+                    select
+                        (case when f.TxId is null then 0 else 1 end)first,
+                        (case when l.TxId is null then 0 else 1 end)last,
+                        (case when p.TxId is null then 1 else 0 end)deleted,
+                        c.Height,
+                        (select r.String from Registry r where r.RowId = u.RowId)txHash,
+                        p.String1,
+                        p.String2,
+                        p.String3,
+                        p.String4,
+                        p.String5,
+                        p.String6,
+                        p.String7,
+                        p.Int1
+                    from
+                        address
+                    cross join
+                        Transactions u on
+                            u.Type in (100, 170) and
+                            u.RegId1 = address.value
+                    cross join
+                        Chain c on
+                            c.TxId = u.RowId and
+                            c.Height <= ?
+                    left join
+                        Payload p on
+                            p.TxId = u.RowId
+                    left join
+                        Last l on
+                            l.TxId = u.RowId
+                    left join
+                        First f on
+                            f.TxId = u.RowId
+                    order by
+                        c.Height desc
+                    limit ? offset ?
+                )sql")
+                .Bind(address, pagination.TopHeight, pagination.PageSize, pagination.PageStart * pagination.PageSize);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+
+                        cursor.Collect<int>(0, record, "first");
+                        cursor.Collect<int>(1, record, "last");
+                        cursor.Collect<int>(2, record, "deleted");
+                        cursor.Collect<int>(3, record, "height");
+                        cursor.Collect<string>(4, record, "txHash");
+
+                        UniValue p(UniValue::VOBJ);
+                        cursor.Collect<string>(5, p, "s1");
+                        cursor.Collect<string>(6, p, "s2");
+                        cursor.Collect<string>(7, p, "s3");
+                        cursor.Collect<string>(8, p, "s4");
+                        cursor.Collect<string>(9, p, "s5");
+                        cursor.Collect<string>(10, p, "s6");
+                        cursor.Collect<string>(11, p, "s7");
+                        cursor.Collect<int>(12, p, "i1");
+                        record.pushKV("p", p);
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
     UniValue WebRpcRepository::GetLastComments(int count, int height, const string& lang)
     {
         auto result = UniValue(UniValue::VARR);
