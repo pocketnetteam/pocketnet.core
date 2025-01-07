@@ -55,7 +55,7 @@ jobs:
           CONFIG_SITE=$PWD/depends/x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
       - name: Make
         run: |
-          make
+          make -j4
           make deploy
       - name: Prepare output binaries
         run: |
@@ -102,7 +102,7 @@ jobs:
           CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/
       - name: Make
         run: |
-          make
+          make -j4
           make deploy
       - name: Prepare output binaries
         run: |
@@ -142,7 +142,7 @@ jobs:
           ./configure --prefix=$PWD/depends/arm-apple-darwin23.6.0
       - name: Make
         run: |
-          make
+          make -j4
           make deploy
       - name: Sign App
         env:
@@ -209,7 +209,7 @@ jobs:
           ./configure --prefix=$PWD/depends/x86_64-apple-darwin22.6.0
       - name: Make
         run: |
-          make
+          make -j4
           make deploy
       - name: Sign App
         env:
