@@ -17,7 +17,6 @@
 #include "pocketdb/repositories/ChainRepository.h"
 #include "pocketdb/repositories/RatingsRepository.h"
 #include "pocketdb/repositories/TransactionRepository.h"
-#include "pocketdb/repositories/BlockRepository.h"
 #include "pocketdb/repositories/ConsensusRepository.h"
 #include "pocketdb/repositories/SystemRepository.h"
 #include "pocketdb/repositories/CheckpointRepository.h"
@@ -35,7 +34,6 @@ namespace PocketDb
 {
     extern SQLiteDatabase SQLiteDbInst;
     extern TransactionRepository TransRepoInst;
-    extern BlockRepository BlockRepoInst;
     extern ChainRepository ChainRepoInst;
     extern RatingsRepository RatingsRepoInst;
     extern ConsensusRepository ConsensusRepoInst;

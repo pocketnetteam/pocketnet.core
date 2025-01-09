@@ -146,7 +146,6 @@ POCKETDB_H = \
     pocketdb/repositories/RowAccessor.hpp \
     pocketdb/repositories/BaseRepository.h \
     pocketdb/repositories/TransactionRepository.h \
-    pocketdb/repositories/BlockRepository.h \
     pocketdb/repositories/ChainRepository.h \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/RatingsRepository.h \
@@ -288,7 +287,6 @@ POCKETDB_CPP = \
     pocketdb/repositories/ChainRepository.cpp \
     pocketdb/repositories/BaseRepository.cpp \
     pocketdb/repositories/TransactionRepository.cpp \
-    pocketdb/repositories/BlockRepository.cpp \
     pocketdb/repositories/RatingsRepository.cpp \
     pocketdb/repositories/CheckpointRepository.cpp \
     pocketdb/repositories/SystemRepository.cpp \
