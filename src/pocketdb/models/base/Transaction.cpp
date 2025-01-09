@@ -15,14 +15,14 @@ namespace PocketTx
     {
         SetHash(tx->GetHash().GetHex());
         SetTime(tx->nTime);
+        SetVersion(tx->nVersion);
+        SetLockTime(tx->nLockTime);
     }
 
     optional<UniValue> Transaction::Serialize() const
     {
-        // TODO (losty): optional?
-        UniValue result (UniValue::VOBJ);
-        
-        // TODO (aok): remove safe?        
+        UniValue result(UniValue::VOBJ);
+              
         result.pushKV("txid", *GetHash());
         result.pushKV("time", *GetTime());
         result.pushKV("block", 0);
@@ -53,8 +53,8 @@ namespace PocketTx
     const optional<int64_t>& Transaction::GetTime() const { return m_time; }
     void Transaction::SetTime(int64_t value) { m_time = value; }
 
-    const optional<int64_t>& Transaction::GetLocktime() const { return m_locktime; }
-    void Transaction::SetLocktime(int64_t value) { m_locktime = value; }
+    const optional<int64_t>& Transaction::GetLockTime() const { return m_locktime; }
+    void Transaction::SetLockTime(int64_t value) { m_locktime = value; }
 
     const optional<int64_t>& Transaction::GetHeight() const { return m_height; }
     void Transaction::SetHeight(int64_t value) { m_height = value; }
