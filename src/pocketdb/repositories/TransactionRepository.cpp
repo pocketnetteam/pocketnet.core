@@ -311,6 +311,7 @@ namespace PocketDb
                 if (input.GetSpentTxHash()) stringsToBeInserted.insert(*input.GetSpentTxHash());
                 if (input.GetTxHash()) stringsToBeInserted.insert(*input.GetTxHash());
                 if (input.GetAddressHash()) stringsToBeInserted.insert(*input.GetAddressHash());
+                if (input.GetScriptSig()) stringsToBeInserted.insert(*input.GetScriptSig());
             }
         }
 
@@ -749,7 +750,11 @@ namespace PocketDb
                 tx.Hash,
                 i.Number,
                 o.Value,
-                i.ScriptSig,
+                (
+                    select r.String
+                    from Registry r
+                    where r.RowId = i.ScriptSig
+                ),
                 i.Sequence,
                 (
                     select r.String
@@ -1258,19 +1263,25 @@ namespace PocketDb
                     select
                         (select RowId from Registry where String = ?) as spentTx,
                         (select RowId from Registry where String = ?) as tx,
-                        ? as number
+                        ? as number,
+                        (select RowId from Registry where String = ?) as scriptSig,
+                        ? as sequence
                 )
 
             insert or fail into TxInputs
             (
                 SpentTxId,
                 TxId,
-                Number
+                Number,
+                ScriptSig,
+                Sequence
             )
             select
                 data.spentTx,
                 data.tx,
-                data.number
+                data.number,
+                data.scriptSig,
+                data.sequence
             from
                 data
             where
@@ -1289,7 +1300,9 @@ namespace PocketDb
             stmt.Bind(
                 input.GetSpentTxHash(),
                 input.GetTxHash(),
-                input.GetNumber()
+                input.GetNumber(),
+                input.GetScriptSig(),
+                input.GetSequence()
             ).Run();
         }
     }
@@ -1425,7 +1438,9 @@ namespace PocketDb
                 Transactions (
                     RowId,
                     Type,
+                    Version,
                     Time,
+                    LockTime,
                     Int1,
                     RegId1,
                     RegId2,
@@ -1435,6 +1450,8 @@ namespace PocketDb
                 )
             select
                 h.TxId,
+                ?,
+                ?,
                 ?,
                 ?,
                 ?,
@@ -1478,7 +1495,9 @@ namespace PocketDb
         .Bind(
             collectData.txHash,
             (int)*collectData.ptx->GetType(),
+            collectData.ptx->GetVersion(),
             collectData.ptx->GetTime(),
+            collectData.ptx->GetLockTime(),
             collectData.txContextData.int1,
             collectData.txContextData.string1,
             collectData.txContextData.string2,

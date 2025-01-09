@@ -251,7 +251,7 @@ namespace PocketDb
                 SpentTxId int not null,
                 TxId      int not null,
                 Number    int not null,
-                ScriptSig text null,
+                ScriptSig int null,
                 Sequence  int null
             );
         )sql");
