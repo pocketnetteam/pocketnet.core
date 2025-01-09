@@ -4306,21 +4306,26 @@ bool ChainstateManager::ProcessNewBlockHeaders(const std::vector<CBlockHeader>& 
 
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
 static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChainParams& chainparams, const FlatFilePos* dbp) {
-    unsigned int nBlockSize = ::GetSerializeSize(block, CLIENT_VERSION);
-    FlatFilePos blockPos;
-    if (dbp != nullptr)
-        blockPos = *dbp;
-    if (!FindBlockPos(blockPos, nBlockSize+8, nHeight, block.GetBlockTime(), dbp != nullptr)) {
-        error("%s: FindBlockPos failed", __func__);
-        return FlatFilePos();
-    }
-    if (dbp == nullptr) {
-        if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart())) {
-            AbortNode("Failed to write block");
-            return FlatFilePos();
-        }
-    }
-    return blockPos;
+    // unsigned int nBlockSize = ::GetSerializeSize(block, CLIENT_VERSION);
+    // FlatFilePos blockPos;
+    // if (dbp != nullptr)
+    //     blockPos = *dbp;
+    // if (!FindBlockPos(blockPos, nBlockSize+8, nHeight, block.GetBlockTime(), dbp != nullptr)) {
+    //     error("%s: FindBlockPos failed", __func__);
+    //     return FlatFilePos();
+    // }
+    // if (dbp == nullptr) {
+    //     if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart())) {
+    //         AbortNode("Failed to write block");
+    //         return FlatFilePos();
+    //     }
+    // }
+    // return blockPos;
+
+    // TODO (block_sqlite) : save to sqlite db
+    PocketDb::BlockRepoInst.InsertBlock(block);
+
+    return FlatFilePos();
 }
 
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
@@ -4389,13 +4394,11 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, const
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;
     try {
-        // TODO (block_sqlite) : save to sqlite db
-        // FlatFilePos blockPos = SaveBlockToDisk(block, pindex->nHeight, chainparams, dbp);
+        FlatFilePos blockPos = SaveBlockToDisk(block, pindex->nHeight, chainparams, dbp);
         // if (blockPos.IsNull()) {
         //     state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
         //     return false;
         // }
-        FlatFilePos blockPos;
         ReceivedBlockTransactions(block, pindex, blockPos, chainparams.GetConsensus());
     } catch (const std::runtime_error& e) {
         return AbortNode(state, std::string("System error: ") + e.what());
@@ -5203,9 +5206,7 @@ bool CChainState::LoadGenesisBlock(const CChainParams& chainparams)
         if (!deserializeOk)
             return error("%s: generate genesis sqlite record failed", __func__);
 
-        // TODO (block_sqlite) : save to sqlite db
-        FlatFilePos blockPos;
-        // FlatFilePos blockPos = SaveBlockToDisk(block, 0, chainparams, nullptr);
+        FlatFilePos blockPos = SaveBlockToDisk(block, 0, chainparams, nullptr);
         // if (blockPos.IsNull())
         //     return error("%s: writing genesis block to disk failed", __func__);
 
