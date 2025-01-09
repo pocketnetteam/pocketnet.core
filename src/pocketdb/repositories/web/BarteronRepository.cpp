@@ -181,7 +181,7 @@ namespace PocketDb
         boost::replace_all(search, "%", "");
         if (!search.empty())
         {
-            search = "\"" + search + "\"" + " OR " + search + "*";
+            search = "\"" + search + "\"" + " OR \"" + search + "\"*";
 
             _filters += R"sql(
                 cross join (
@@ -320,7 +320,7 @@ namespace PocketDb
         boost::replace_all(search, "%", "");
         if (!search.empty())
         {
-            search = "\"" + search + "\"" + " OR " + search + "*";
+            search = "\"" + search + "\"" + " OR \"" + search + "\"*";
 
             _filters += R"sql(
                 cross join (
@@ -468,7 +468,7 @@ namespace PocketDb
         boost::replace_all(search, "%", "");
         if (!search.empty())
         {
-            search = "\"" + search + "\"" + " OR " + search + "*";
+            search = "\"" + search + "\"" + " OR \"" + search + "\"*";
             
             _filters += R"sql(
                 cross join (
