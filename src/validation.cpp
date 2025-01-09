@@ -47,6 +47,7 @@
 #include <util/rbf.h>
 #include <util/strencodings.h>
 #include <util/system.h>
+#include <util/trace.h>
 #include <util/translation.h>
 #include <validationinterface.h>
 #include <warnings.h>
@@ -59,6 +60,10 @@
 #include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/services/Accessor.h"
 #include "pocketdb/consensus/Helper.h"
+
+TRACEPOINT_SEMAPHORE(validation, block_connected);
+TRACEPOINT_SEMAPHORE(mempool, replaced);
+TRACEPOINT_SEMAPHORE(mempool, rejected);
 
 std::unordered_map<std::string, int> pocketProcessed;
 
@@ -1075,6 +1080,15 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
                 hash.ToString(),
                 FormatMoney(nModifiedFees - nConflictingFees),
                 (int)entry->GetTxSize() - (int)nConflictingSize);
+        TRACEPOINT(mempool, replaced,
+                it->GetTx().GetHash().data(),
+                it->GetTxSize(),
+                it->GetFee(),
+                std::chrono::duration_cast<std::chrono::duration<std::uint64_t>>(it->GetTime()).count(),
+                hash.data(),
+                entry->GetTxSize(),
+                entry->GetFee()
+        );
 
         if (args.m_replaced_transactions)
             args.m_replaced_transactions->push_back(it->GetSharedTx());
@@ -1161,6 +1175,10 @@ static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPo
 
         for (const COutPoint& hashTx : coins_to_uncache)
             ::ChainstateActive().CoinsTip().Uncache(hashTx);
+        TRACEPOINT(mempool, rejected,
+                tx->GetHash().data(),
+                "reject reason not implemented yet"
+        );
     }
     // After we've (potentially) uncached entries, ensure our coins cache is still within its size limits
     BlockValidationState state_dummy;
@@ -2540,6 +2558,16 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     int64_t nTime7 = GetTimeMicros(); nTimeIndex += nTime7 - nTime6;
     LogPrint(BCLog::BENCH, "    - Index writing: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime7 - nTime6), nTimeIndex * MICRO, nTimeIndex * MILLI / nBlocksTotal);
+
+    TRACEPOINT(validation, block_connected,
+        block.GetHash().ToString().c_str(),
+        pindex->nHeight,
+        block.vtx.size(),
+        nInputs,
+        nSigOpsCost,
+        GetTimeMicros() - nTimeStart, // in microseconds (µs)
+        block.GetHash().data()
+    );
 
     return true;
 }

@@ -29,11 +29,15 @@
 #include <util/check.h> // For NDEBUG compile time check
 #include <util/strencodings.h>
 #include <util/system.h>
+#include <util/trace.h>
 #include <validation.h>
 #include <memory>
 #include <typeinfo>
 
 #include "pocketdb/services/Accessor.h"
+
+TRACEPOINT_SEMAPHORE(net, inbound_message);
+TRACEPOINT_SEMAPHORE(net, misbehaving_connection);
 
 /** Expiration time for orphan transactions in seconds */
 static constexpr int64_t ORPHAN_TX_EXPIRE_TIME = 20 * 60;
@@ -1236,6 +1240,10 @@ void PeerManager::Misbehaving(const NodeId pnode, const int howmuch, const std::
     if (peer->m_misbehavior_score >= DISCOURAGEMENT_THRESHOLD && peer->m_misbehavior_score - howmuch < DISCOURAGEMENT_THRESHOLD) {
         LogPrint(BCLog::NET, "Misbehaving: peer=%d (%d -> %d) DISCOURAGE THRESHOLD EXCEEDED%s\n", pnode,
             peer->m_misbehavior_score - howmuch, peer->m_misbehavior_score, message_prefixed);
+        TRACEPOINT(net, misbehaving_connection,
+            pnode,
+            message.c_str()
+        );
         peer->m_should_discourage = true;
     } else {
         LogPrint(BCLog::NET, "Misbehaving: peer=%d (%d -> %d)%s\n", pnode,
@@ -4208,6 +4216,15 @@ bool PeerManager::ProcessMessages(CNode* pfrom, std::atomic<bool>& interruptMsgP
         fMoreWork = !pfrom->vProcessMsg.empty();
     }
     CNetMessage& msg(msgs.front());
+
+    TRACEPOINT(net, inbound_message,
+        pfrom->GetId(),
+        pfrom->GetAddrName().c_str(),
+        pfrom->ConnectionTypeAsString().c_str(),
+        msg.m_command.c_str(),
+        msg.m_recv.size(),
+        msg.m_recv.data()
+    );
 
     if (gArgs.GetBoolArg("-capturemessages", false)) {
         CaptureMessage(pfrom->addr, msg.m_command, MakeUCharSpan(msg.m_recv), /* incoming */ true);
