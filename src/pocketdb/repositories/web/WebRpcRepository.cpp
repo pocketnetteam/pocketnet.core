@@ -6426,7 +6426,7 @@ namespace PocketDb
         string _keyword;
         if(!keyword.empty())
         {
-            _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
+            _keyword = "\"" + keyword + "\"" + " OR \"" + keyword + "\"*";
         }
 
         string contentTypesWhere = " ( 220 ) ";
