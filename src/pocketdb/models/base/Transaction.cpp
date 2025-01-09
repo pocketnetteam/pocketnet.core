@@ -47,8 +47,14 @@ namespace PocketTx
     const optional<TxType>& Transaction::GetType() const { return m_type; }
     void Transaction::SetType(TxType value) { m_type = value; }
 
+    const optional<int64_t>& Transaction::GetVersion() const { return m_version; }
+    void Transaction::SetVersion(int64_t value) { m_version = value; }
+
     const optional<int64_t>& Transaction::GetTime() const { return m_time; }
     void Transaction::SetTime(int64_t value) { m_time = value; }
+
+    const optional<int64_t>& Transaction::GetLocktime() const { return m_locktime; }
+    void Transaction::SetLocktime(int64_t value) { m_locktime = value; }
 
     const optional<int64_t>& Transaction::GetHeight() const { return m_height; }
     void Transaction::SetHeight(int64_t value) { m_height = value; }

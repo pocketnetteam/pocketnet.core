@@ -45,8 +45,14 @@ namespace PocketTx
         const optional<TxType>& GetType() const;
         void SetType(TxType value);
 
+        const optional<int64_t>& GetVersion() const;
+        void SetVersion(int64_t value);
+
         const optional<int64_t>& GetTime() const;
         void SetTime(int64_t value);
+
+        const optional<int64_t>& GetLockTime() const;
+        void SetLockTime(int64_t value);
 
         const optional<int64_t>& GetHeight() const;
         void SetHeight(int64_t value);
@@ -56,6 +62,9 @@ namespace PocketTx
 
         const optional<bool>& GetLast() const;
         void SetLast(bool value);
+
+        const optional<bool>& GetFirst() const;
+        void SetFirst(bool value);
 
         const optional<int64_t>& GetId() const;
         void SetId(int64_t value);
@@ -92,12 +101,15 @@ namespace PocketTx
         virtual size_t PayloadSize() const;
 
     protected:
-        optional<TxType> m_type = nullopt;
         optional<string> m_hash = nullopt;
+        optional<TxType> m_type = nullopt;
+        optional<int64_t> m_version = nullopt;
         optional<int64_t> m_time = nullopt;
+        optional<int64_t> m_locktime = nullopt;
         optional<int64_t> m_height = nullopt;
         optional<string> m_blockhash = nullopt;
         optional<bool> m_last = nullopt;
+        optional<bool> m_first = nullopt;
         optional<int64_t> m_id = nullopt;
         optional<string> m_string1 = nullopt;
         optional<string> m_string2 = nullopt;

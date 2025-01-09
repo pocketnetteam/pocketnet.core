@@ -30,6 +30,12 @@ namespace PocketTx
 
         const optional<int64_t>& GetValue() const;
         void SetValue(int64_t value);
+
+        const optional<string>& GetScriptSig() const;
+        void SetScriptSig(string value);
+
+        const optional<int64_t>& GetSequence() const;
+        void SetSequence(int64_t value);
         
     protected:
         optional<string> m_spentTxHash = nullopt;
@@ -37,6 +43,8 @@ namespace PocketTx
         optional<int64_t> m_number = nullopt;
         optional<string> m_addresshash = nullopt;
         optional<int64_t> m_value = nullopt;
+        optional<string> m_scriptSig = nullopt;
+        optional<int64_t> m_sequence = nullopt;
     };
 
 } // namespace PocketTx

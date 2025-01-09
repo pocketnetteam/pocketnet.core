@@ -20,5 +20,11 @@ namespace PocketTx
 
     const optional<int64_t>& TransactionInput::GetValue() const { return m_value; }
     void TransactionInput::SetValue(int64_t value) { m_value = value; }
+
+    const optional<string>& TransactionInput::GetScriptSig() const { return m_scriptSig; }
+    void TransactionInput::SetScriptSig(string value) { m_scriptSig = value; }
+
+    const optional<int64_t>& TransactionInput::GetSequence() const { return m_sequence; }
+    void TransactionInput::SetSequence(int64_t value) { m_sequence = value; }
     
 } // namespace PocketTx
