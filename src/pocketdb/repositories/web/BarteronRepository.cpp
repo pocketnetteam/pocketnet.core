@@ -462,6 +462,8 @@ namespace PocketDb
             _filters += " cross join location on po2.String6 like location.value ";
         }
 
+        if (!args.Language.empty()) _filters += " cross join lang on po2.String1 = lang.value ";
+
         string search = args.Search;
         boost::replace_all(search, "%", "");
         if (!search.empty())
@@ -488,6 +490,7 @@ namespace PocketDb
             [&]() -> Stmt& {
                 auto& stmt = Sql(R"sql(
                     with
+                        lang as (select ? as value),
                         price as (
                             select
                                 ? as min,
@@ -498,14 +501,6 @@ namespace PocketDb
                         (select r.String from Registry r where r.RowId = to2.RowId)
                     from
                         price
-
-                    -- Source offer
-                    -- cross join
-                    --     BarteronOffers o1 indexed by BarteronOffers_OfferId_Tag_AccountId
-                    --         on o1.OfferId = offer.value
-                    -- cross join
-                    --     BarteronOfferTags t1 -- autoindex OfferId_Tag
-                    --         on t1.OfferId = o1.OfferId
 
                     -- Offer potencial for deal
                     cross join
@@ -523,9 +518,6 @@ namespace PocketDb
                     cross join Registry ru2 on ru2.RowId = u2.RegId1
 
                     -- Filter found deals by another conditions
-                    -- cross join Chain c1 on c1.Uid = o1.OfferId
-                    -- cross join Last l1 on l1.TxId = c1.TxId
-                    -- cross join Payload p1 on p1.TxId = l1.TxId
                     cross join Chain co2 on co2.Uid = o2.OfferId
                     cross join Transactions to2 on to2.RowId = co2.TxId
                     cross join Last lo2 on lo2.TxId = co2.TxId
@@ -546,6 +538,7 @@ namespace PocketDb
                     limit ? offset ?
                 )sql")
                 .Bind(
+                    args.Language,
                     args.PriceMin,
                     args.PriceMax,
                     _locationStr,
@@ -601,6 +594,8 @@ namespace PocketDb
             _locationStr = _location.write();
             _filters += " cross join location on ( p1.String6 like location.value or p2.String6 like location.value )";
         }
+
+        if (!args.Language.empty()) _filters += " cross join lang on p1.String1 = lang.value and p2.String1 = lang.value ";
         
         SqlTransaction(
             __func__,
@@ -608,6 +603,7 @@ namespace PocketDb
                 return Sql(
                     R"sql(
                         with
+                            lang as (select ? as value),
                             location as (select value from json_each(?)),
                             mytag as (
                                 select ? as value
@@ -655,6 +651,7 @@ namespace PocketDb
                     )sql"
                 )
                 .Bind(
+                    args.Language,
                     _locationStr,
                     args.MyTag,
                     args.TheirTags,
