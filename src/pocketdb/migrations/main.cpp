@@ -34,14 +34,13 @@ namespace PocketDb
             create table if not exists Blocks
             (
                 BlockId        integer primary key, -- Registry.RowId
-                BlockSig       text    not null,
+                BlockSig       int     not null, -- Registry.RowId
                 Version        int     not null,
                 PrevBlockId    int     not null, -- Registry.RowId
                 MerkleRootId   int     not null, -- Registry.RowId
                 Time           int     not null,
                 Bits           int     not null,
-                Nonce          int     not null,
-                primary key (BlockId)
+                Nonce          int     not null
             );
         )sql");
 
@@ -103,8 +102,10 @@ namespace PocketDb
             create table if not exists Transactions
             (
                 RowId    integer primary key, -- Id of tx hash in Registry table
+                Version   int    not null,
                 Type      int    not null,
                 Time      int    not null,
+                LockTime  int    null,
 
                 -- AccountUser.ReferrerAddressId
                 -- ContentPost.RootTxId
@@ -249,7 +250,9 @@ namespace PocketDb
             (
                 SpentTxId int not null,
                 TxId      int not null,
-                Number    int not null
+                Number    int not null,
+                ScriptSig text null,
+                Sequence  int null
             );
         )sql");
 
