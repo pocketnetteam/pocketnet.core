@@ -293,6 +293,9 @@ namespace PocketWeb::PocketWebRpc
 
                 if (auto arg = _args.At("search", true); arg.isStr())
                     args.Search = arg.get_str();
+
+                if (auto arg = _args.At("lang", true); arg.isStr())
+                    args.Language = arg.get_str();
             }
 
             auto hashes = request.DbConnection()->BarteronRepoInst->GetDeals(args);
@@ -436,6 +439,9 @@ namespace PocketWeb::PocketWebRpc
                     for (size_t i = 0; i < arg.size(); i++)
                         if (arg[i].isStr())
                             args.Location.push_back(arg[i].get_str());
+
+                if (auto arg = _args.At("lang", true); arg.isStr())
+                    args.Language = arg.get_str();
 
                 if (args.MyTag == 0 || args.TheirTags.empty()) {
                     // TODO (losty): error
