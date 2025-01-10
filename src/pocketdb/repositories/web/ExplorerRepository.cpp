@@ -647,4 +647,65 @@ namespace PocketDb
 
         return result;
     }
+
+    UniValue ExplorerRepository::GetFromToTransactions(const string& from, const string& to, int minHeight)
+    {
+        UniValue result(UniValue::VARR);
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addrFr as ( select RowId as value from Registry where String = ?),
+                        addrTo as ( select RowId as value from Registry where String = ?)
+                    select
+                        (select r.String from Registry r where r.RowId = t.RowId),
+                        t.Type,
+                        tc.Height,
+                        ot.Value
+                    from
+                        addrFr,
+                        addrTo
+                    cross join
+                        TxOutputs ot on
+                            ot.AddressId = addrTo.value
+                    cross join
+                        Transactions t on
+                            t.RowId = ot.TxId and
+                            t.Type in (1, 204)
+                    cross join
+                        Chain tc on
+                            tc.TxId = t.RowId and
+                            tc.Height >= ?
+                    cross join
+                        TxInputs it on
+                            it.SpentTxId = t.RowId and
+                            it.TxId = (select min(itt.TxId) from TxInputs itt where itt.SpentTxId = t.RowId)
+                    cross join
+                        TxOutputs ofr indexed by TxOutputs_TxId_Number_AddressId on
+                            ofr.TxId = it.TxId and
+                            ofr.Number = it.Number and
+                            ofr.AddressId = addrFr.value
+                )sql")
+                .Bind(from, to, minHeight);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+                        cursor.Collect<string>(0, record, "hash");
+                        cursor.Collect<int64_t>(1, record, "type");
+                        cursor.Collect<int64_t>(2, record, "height");
+                        cursor.Collect<int64_t>(3, record, "amount");
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
 }
