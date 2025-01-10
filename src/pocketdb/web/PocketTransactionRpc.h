@@ -27,6 +27,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan EstimateSmartFee();
     RPCHelpMan GenerateTransaction();
     RPCHelpMan GenerateAddress();
+    RPCHelpMan GetFromToTransactions();
 }
 
 #endif //SRC_POCKETTRANSACTIONRPC_H

@@ -467,4 +467,34 @@ namespace PocketWeb::PocketWebRpc
 
         return txid.GetHex();
     }
+
+    RPCHelpMan GetFromToTransactions()
+    {
+        return RPCHelpMan{"getfromtotransactions",
+                "\nGet transactions from/to address.\n",
+                {
+                    {"from", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to get transactions from"},
+                    {"to", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to get transactions to"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of transactions to get"},
+                },
+                {
+                },
+                RPCExamples{
+                    "getfromtotransactions \"address\" \"address\" 10"
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR});
+
+            auto from = request.params[0].get_str();
+            auto to = request.params[1].get_str();
+
+            int depth = ChainActiveSafeHeight() - 1440 * 30 * 1; // 1 month for main network
+            if (request.params.size() > 2 && request.params[2].isNum())
+                depth = request.params[2].get_int();
+
+            return request.DbConnection()->ExplorerRepoInst->GetFromToTransactions(from, to, depth);
+        },
+        };
+    }
 }
