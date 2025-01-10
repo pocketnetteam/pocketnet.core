@@ -54,7 +54,7 @@ namespace PocketDb
 
         //  Base transaction operations
         void InsertTransactions(PocketBlock& pocketBlock);
-        void InsertBlock(const CBlock& block);
+        void InsertBlock(const PBlockRef& block);
         
         PocketBlockRef List(const vector<string>& txHashes, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
         vector<CTransactionRef> ListNative(const vector<string>& txHashes, bool includeInputs = true, bool includeOutputs = true);

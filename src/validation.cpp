@@ -4306,26 +4306,21 @@ bool ChainstateManager::ProcessNewBlockHeaders(const std::vector<CBlockHeader>& 
 
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
 static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChainParams& chainparams, const FlatFilePos* dbp) {
-    // unsigned int nBlockSize = ::GetSerializeSize(block, CLIENT_VERSION);
-    // FlatFilePos blockPos;
-    // if (dbp != nullptr)
-    //     blockPos = *dbp;
-    // if (!FindBlockPos(blockPos, nBlockSize+8, nHeight, block.GetBlockTime(), dbp != nullptr)) {
-    //     error("%s: FindBlockPos failed", __func__);
-    //     return FlatFilePos();
-    // }
-    // if (dbp == nullptr) {
-    //     if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart())) {
-    //         AbortNode("Failed to write block");
-    //         return FlatFilePos();
-    //     }
-    // }
-    // return blockPos;
-
-    // TODO (block_sqlite) : save to sqlite db
-    PocketDb::BlockRepoInst.InsertBlock(block);
-
-    return FlatFilePos();
+    unsigned int nBlockSize = ::GetSerializeSize(block, CLIENT_VERSION);
+    FlatFilePos blockPos;
+    if (dbp != nullptr)
+        blockPos = *dbp;
+    if (!FindBlockPos(blockPos, nBlockSize+8, nHeight, block.GetBlockTime(), dbp != nullptr)) {
+        error("%s: FindBlockPos failed", __func__);
+        return FlatFilePos();
+    }
+    if (dbp == nullptr) {
+        if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart())) {
+            AbortNode("Failed to write block");
+            return FlatFilePos();
+        }
+    }
+    return blockPos;
 }
 
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
@@ -4394,12 +4389,17 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, const
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;
     try {
-        FlatFilePos blockPos = SaveBlockToDisk(block, pindex->nHeight, chainparams, dbp);
+        // FlatFilePos blockPos = SaveBlockToDisk(pocketBlock, pindex->nHeight, chainparams, dbp);
         // if (blockPos.IsNull()) {
         //     state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
         //     return false;
         // }
-        ReceivedBlockTransactions(block, pindex, blockPos, chainparams.GetConsensus());
+
+        // TODO (block_sqlite) : save to sqlite db
+        auto pBlock = PocketHelpers::TransactionHelper::CreateInstance(block, pocketBlock);
+        PocketDb::TransRepoInst.InsertBlock(pBlock);
+
+        ReceivedBlockTransactions(block, pindex, FlatFilePos(), chainparams.GetConsensus());
     } catch (const std::runtime_error& e) {
         return AbortNode(state, std::string("System error: ") + e.what());
     }
@@ -4481,28 +4481,6 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
         LogPrint(BCLog::BENCH, " -- Accept LeveDb: %.2fms (%.3fms/txin)\n",
             MILLI * (double)(nTime5 - nTime4),
             pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime5 - nTime4) / (double)(pocketBlock->size() - 1));
-
-        // Store pocketnet block to disk
-        if (ret && pocketProcessed.find(hash) == pocketProcessed.end())
-        {
-            try
-            {
-                PocketDb::TransRepoInst.InsertTransactions(*pocketBlock);
-                pocketProcessed.emplace(hash, pindex->nHeight);
-            }
-            catch (const std::exception& e)
-            {
-                LogPrintf("Error: ProcessNewBlock (%s) - %s\n", hash, e.what());
-                ret = false;
-                *fNewBlock = false;
-            }
-        }
-
-        int64_t nTime6 = GetTimeMicros();
-        nTimeVerify += nTime6 - nTime5;
-        LogPrint(BCLog::BENCH, " -- Accept SQLite: %.2fms (%.3fms/txin)\n",
-            MILLI * (double)(nTime6 - nTime5),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime6 - nTime5) / (double)(pocketBlock->size() - 1));
 
         // Check FAILED
         if (!ret) {
@@ -5202,18 +5180,21 @@ bool CChainState::LoadGenesisBlock(const CChainParams& chainparams)
     {
         const CBlock& block = chainparams.GenesisBlock();
 
-        auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(block);
+        auto[deserializeOk, pocketBlockData] = PocketServices::Serializer::DeserializeBlock(block);
         if (!deserializeOk)
             return error("%s: generate genesis sqlite record failed", __func__);
 
-        FlatFilePos blockPos = SaveBlockToDisk(block, 0, chainparams, nullptr);
+        // FlatFilePos blockPos = SaveBlockToDisk(block, 0, chainparams, nullptr);
         // if (blockPos.IsNull())
         //     return error("%s: writing genesis block to disk failed", __func__);
 
-        PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+        // TODO (block_sqlite) : create block instance
+        auto pocketBlock = make_shared<PocketBlock>(pocketBlockData);
+        auto pBlock = PocketHelpers::TransactionHelper::CreateInstance(block, pocketBlock);
+        PocketDb::TransRepoInst.InsertBlock(pBlock);
 
         CBlockIndex *pindex = m_blockman.AddToBlockIndex(block);
-        ReceivedBlockTransactions(block, pindex, blockPos, chainparams.GetConsensus());
+        ReceivedBlockTransactions(block, pindex, FlatFilePos(), chainparams.GetConsensus());
     } catch (const std::runtime_error& e) {
         return error("%s: failed to write genesis block: %s", __func__, e.what());
     }

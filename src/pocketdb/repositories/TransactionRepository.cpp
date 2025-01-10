@@ -362,7 +362,7 @@ namespace PocketDb
         });
     }
 
-    void TransactionRepository::InsertBlock(const CBlock& block)
+    void TransactionRepository::InsertBlock(const PBlockRef& block)
     {
         // Collect all strings to save to registry
         vector<string> strings;

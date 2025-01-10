@@ -15,6 +15,8 @@
 
 #include "pocketdb/models/base/DtoModels.h"
 #include "pocketdb/models/base/PocketTypes.h"
+#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/base/Block.h"
 
 #include "pocketdb/models/dto/money/Coinbase.h"
 #include "pocketdb/models/dto/money/Coinstake.h"
@@ -58,12 +60,15 @@ namespace PocketHelpers
     using namespace PocketTx;
 
     // Accumulate transactions in block
-    typedef PocketTx::Transaction PTransaction;
-    typedef shared_ptr<PocketTx::Transaction> PTransactionRef;
-    typedef shared_ptr<PocketTx::TransactionInput> PTransactionInputRef;
-    typedef shared_ptr<PocketTx::TransactionOutput> PTransactionOutputRef;
+    typedef Transaction PTransaction;
+    typedef shared_ptr<Transaction> PTransactionRef;
+    typedef shared_ptr<TransactionInput> PTransactionInputRef;
+    typedef shared_ptr<TransactionOutput> PTransactionOutputRef;
     typedef vector<PTransactionRef> PocketBlock;
     typedef shared_ptr<PocketBlock> PocketBlockRef;
+
+    typedef Block PBlock;
+    typedef shared_ptr<PBlock> PBlockRef;
 
     class TransactionHelper
     {
@@ -90,6 +95,7 @@ namespace PocketHelpers
         static tuple<bool, ModerationVoteTxDataRef> ParseModerationVote(const CTransactionRef& tx);
         static PTransactionRef CreateInstance(TxType txType);
         static PTransactionRef CreateInstance(TxType txType, const CTransactionRef& tx);
+        static PBlockRef CreateInstance(const CBlock& block, const PocketBlockRef& pocketBlock);
         static bool IsIn(TxType txType, const vector<TxType>& inTypes);
         static string TxStringType(TxType type);
         static TxType TxIntType(const string& type);

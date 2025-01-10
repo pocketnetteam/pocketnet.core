@@ -529,6 +529,12 @@ namespace PocketHelpers
         return ptx;
     }
 
+    PBlockRef TransactionHelper::CreateInstance(const CBlock& block, const PocketBlockRef& pocketBlock)
+    {
+        // TODO (block_sqlite) : create block instance
+        return nullptr;
+    }
+
     bool TransactionHelper::IsIn(TxType txType, const vector<TxType>& inTypes)
     {
         for (auto inType : inTypes)
