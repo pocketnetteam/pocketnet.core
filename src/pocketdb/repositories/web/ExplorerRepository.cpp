@@ -663,7 +663,8 @@ namespace PocketDb
                         (select r.String from Registry r where r.RowId = t.RowId),
                         t.Type,
                         tc.Height,
-                        ot.Value
+                        ot.Value,
+                        t.Time
                     from
                         addrFr,
                         addrTo
@@ -699,6 +700,7 @@ namespace PocketDb
                         cursor.Collect<int64_t>(1, record, "type");
                         cursor.Collect<int64_t>(2, record, "height");
                         cursor.Collect<int64_t>(3, record, "amount");
+                        cursor.Collect<int64_t>(4, record, "time");
 
                         result.push_back(record);
                     }
