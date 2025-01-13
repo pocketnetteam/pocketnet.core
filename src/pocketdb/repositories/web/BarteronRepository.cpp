@@ -531,7 +531,7 @@ namespace PocketDb
                         ( ? or po2.Int1 <= price.max ) and
                         ( ? or ru2.String in ( )sql" + join(vector<string>(args.Addresses.size(), "?"), ",") + R"sql( ) ) and
                         ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
-                        cu2.Height <= ?
+                        co2.Height <= ?
 
                     order by
                         )sql" + _orderBy + R"sql(
