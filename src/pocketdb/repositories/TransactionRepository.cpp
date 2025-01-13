@@ -364,18 +364,20 @@ namespace PocketDb
 
     void TransactionRepository::InsertBlock(const PBlockRef& block)
     {
-        // Collect all strings to save to registry
-        vector<string> strings;
-        strings.push_back(block.GetHash().ToString());
-        strings.push_back(HexStr(block.vchBlockSig));
-        strings.push_back(block.hashPrevBlock.ToString());
-        strings.push_back(block.hashMerkleRoot.ToString());
-        for (const auto& tx: block.vtx)
-            strings.push_back(tx->GetHash().ToString());
+        // Insert transactions
+        auto transactions = *block->GetTransactions();
+        InsertTransactions(transactions);
 
         // Save block information in one transaction
         SqlTransaction(__func__, [&]()
         {
+            // Collect all strings to save to registry
+            vector<string> strings;
+            strings.push_back(*block->GetHash());
+            strings.push_back(*block->GetSignature());
+            strings.push_back(*block->GetPrevHash());
+            strings.push_back(*block->GetMerkleRoot());
+
             // Save all strings to registry
             for (const auto& str: strings)
             {
@@ -390,39 +392,42 @@ namespace PocketDb
             InsertBlockInfo(block);
 
             // Insert block transactions
-            for (const auto& tx: block.vtx)
-            {
-                InsertBlockTransaction(block, tx);
-            }
+            InsertBlockTransactions(block);
         });
     }
 
-    void TransactionRepository::InsertBlockTransaction(const CBlock& block, const CTransactionRef& tx)
+    void TransactionRepository::InsertBlockTransactions(const PBlockRef& block)
     {
-        // TODO (block_sqlite) : insert or ignore after testing
-        Sql(R"sql(
-            insert or fail into 
-                BlockTransactions (
-                    BlockId, TxId
+        for (const auto& tx: *block->GetTransactions())
+        {
+            // TODO (block_sqlite) : insert or ignore after testing
+            Sql(R"sql(
+                insert or fail into 
+                    BlockTransactions (
+                        BlockId, TxId
+                    )
+                values (
+                    (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    ),
+                    (
+                        select RowId
+                        from Registry
+                        where String = ?
+                    )
                 )
-            values (
-                (
-                    select RowId
-                    from Registry
-                    where String = ?
-                ),
-                (
-                    select RowId
-                    from Registry
-                    where String = ?
-                )
+            )sql")
+            .Bind(
+                *block->GetHash(),
+                *tx->GetHash()
             )
-        )sql")
-        .Bind(block.GetHash().ToString(), tx->GetHash().ToString())
-        .Run();
+            .Run();
+        }
     }
 
-    void TransactionRepository::InsertBlockInfo(const CBlock& block)
+    void TransactionRepository::InsertBlockInfo(const PBlockRef& block)
     {
         // TODO (block_sqlite) : insert or ignore after testing
         Sql(R"sql(
@@ -458,18 +463,19 @@ namespace PocketDb
             )
         )sql")
         .Bind(
-            block.GetHash().ToString(),
-            HexStr(block.vchBlockSig),
-            block.nVersion,
-            block.hashPrevBlock.ToString(),
-            block.hashMerkleRoot.ToString(),
-            block.nTime,
-            block.nBits,
-            block.nNonce)
+            *block->GetHash(),
+            *block->GetSignature(),
+            *block->GetVersion(),
+            *block->GetPrevHash(),
+            *block->GetMerkleRoot(),
+            *block->GetTime(),
+            *block->GetBits(),
+            *block->GetNonce()
+        )
         .Run();
     }
 
-    bool TransactionRepository::ReadBlock(const uint256& hash, CBlock& block)
+    bool TransactionRepository::ReadBlock(const string& hash, PBlockRef& block)
     {
         // Get block header
         SqlTransaction(__func__, [&]()
@@ -486,28 +492,26 @@ namespace PocketDb
                 from Blocks
                 where BlockId = ( select RowId from Registry where String = ?)
             )sql")
-            .Bind(hash.ToString())
+            .Bind(hash)
             .Select([&](Cursor& cursor) {
                 if (cursor.Step())
                 {
-                    CBlockHeader header;
-                    if (auto [ok, value] = cursor.TryGetColumnInt(1); ok)
-                        header.nVersion = value;
-                    if (auto [ok, value] = cursor.TryGetColumnString(2); ok)
-                        header.hashPrevBlock = uint256S(value);
-                    if (auto [ok, value] = cursor.TryGetColumnString(3); ok)
-                        header.hashMerkleRoot = uint256S(value);
-                    if (auto [ok, value] = cursor.TryGetColumnInt(4); ok)
-                        header.nTime = value;
-                    if (auto [ok, value] = cursor.TryGetColumnInt(5); ok)
-                        header.nBits = value;
-                    if (auto [ok, value] = cursor.TryGetColumnInt(6); ok)
-                        header.nNonce = value;
-
-                    block = CBlock(header);
+                    block->SetHash(hash);
 
                     if (auto [ok, value] = cursor.TryGetColumnString(0); ok)
-                        block.vchBlockSig = ParseHex(value);
+                        block->SetSignature(value);
+                    if (auto [ok, value] = cursor.TryGetColumnInt(1); ok)
+                        block->SetVersion(value);
+                    if (auto [ok, value] = cursor.TryGetColumnString(2); ok)
+                        block->SetPrevHash(value);
+                    if (auto [ok, value] = cursor.TryGetColumnString(3); ok)
+                        block->SetMerkleRoot(value);
+                    if (auto [ok, value] = cursor.TryGetColumnInt(4); ok)
+                        block->SetTime(value);
+                    if (auto [ok, value] = cursor.TryGetColumnInt(5); ok)
+                        block->SetBits(value);
+                    if (auto [ok, value] = cursor.TryGetColumnInt(6); ok)
+                        block->SetNonce(value);
                 }
             });
         });
@@ -522,7 +526,7 @@ namespace PocketDb
                 from BlockTransactions
                 where BlockId = ( select RowId from Registry where String = ?)
             )sql")
-            .Bind(hash.ToString())
+            .Bind(hash)
             .Select([&](Cursor& cursor) {
                 while (cursor.Step())
                 {
@@ -533,54 +537,10 @@ namespace PocketDb
         });
 
         // Get transactions
-        List(transactions, false, true, true);
-    }
+        auto pTransactions = List(transactions, false, true, true);
+        block->SetTransactions(*pTransactions);
 
-    vector<CTransactionRef> TransactionRepository::ListNative(const vector<string>& txHashes, bool includeInputs, bool includeOutputs)
-    {
-        auto sql = ListSql(false, includeInputs, includeOutputs);
-
-        map<string, CollectData> initData;
-        for (const auto& hash: txHashes) {
-            initData.emplace(hash, CollectData{hash});
-        }
-
-        TransactionReconstructor reconstructor(initData);
-        bool recRes = true;
-        SqlTransaction(__func__, [&]()
-        {
-            for (const auto& txHash : txHashes)
-            {
-                Sql(sql)
-                .Bind(txHash)
-                .Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                    {
-                        if (!reconstructor.FeedRow(cursor)) {
-                            recRes = false;
-                            break;
-                        }
-                    }
-                });
-            }
-        });
-
-        if (!recRes) {
-            throw runtime_error("Transaction::List feedRow failed - no return data");
-        }
-
-        vector<CTransactionRef> result;
-        for (auto& collectData: reconstructor.GetResult())
-        {
-            if (auto ptx = CollectDataToModelConverter::CollectDataToModel(collectData); ptx) {
-                result.emplace_back(ptx);
-            } else {
-                throw runtime_error(strprintf("Transaction::List reconstruct failed - no return data for %s tx", collectData.txHash));
-                LogPrintf("Transaction::List reconstruct failed - no return data for %s tx\n", collectData.txHash);
-            }
-        }
-
-        return result;
+        return true;
     }
 
     PocketBlockRef TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs, bool includeOutputs)

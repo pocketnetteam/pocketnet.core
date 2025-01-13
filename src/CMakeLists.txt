@@ -599,6 +599,8 @@ add_library(${POCKETDB}
         pocketdb/models/base/Base.cpp
         pocketdb/models/base/Payload.h
         pocketdb/models/base/Payload.cpp
+        pocketdb/models/base/Block.h
+        pocketdb/models/base/Block.cpp
         pocketdb/models/base/Transaction.h
         pocketdb/models/base/Transaction.cpp
         pocketdb/models/base/TransactionInput.h

@@ -28,6 +28,7 @@ namespace PocketServices
     public:
         static bool GetBlock(const CBlock& block, PocketBlockRef& pocketBlock);
         static bool GetBlock(const CBlock& block, string& data);
+        static bool ReadBlock(const string& hash, CBlock& block);
         static bool GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx);
         static bool GetTransaction(const CTransaction& tx, string& data);
         static bool ExistsTransaction(const string& hash);

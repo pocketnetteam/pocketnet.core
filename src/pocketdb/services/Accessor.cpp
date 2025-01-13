@@ -49,6 +49,18 @@ namespace PocketServices
         return true;
     }
 
+    bool Accessor::ReadBlock(const string& hash, CBlock& block)
+    {
+        PBlockRef pBlock;
+        if (!PocketDb::TransRepoInst.ReadBlock(hash, pBlock))
+            return false;
+
+        // TODO (block_sqlite) : convert pBlock to CBlock
+
+
+        return true;
+    }
+
     bool Accessor::GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
     {
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))

@@ -532,6 +532,7 @@ namespace PocketHelpers
     PBlockRef TransactionHelper::CreateInstance(const CBlock& block, const PocketBlockRef& pocketBlock)
     {
         // TODO (block_sqlite) : create block instance
+        // TODO (block_sqlite) : full fill pTransactions from block transactions
         return nullptr;
     }
 

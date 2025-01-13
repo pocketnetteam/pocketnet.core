@@ -1273,6 +1273,9 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
     //     return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
     //             pindex->ToString(), pindex->GetBlockPos().ToString());
     // return true;
+    
+    return PocketServices::Accessor::ReadBlock(pindex->GetBlockHash().ToString(), block);
+
 }
 
 bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const FlatFilePos& pos, const CMessageHeader::MessageStartChars& message_start)

@@ -65,6 +65,9 @@ namespace PocketTx
     const optional<bool>& Transaction::GetLast() const { return m_last; }
     void Transaction::SetLast(bool value) { m_last = value; }
 
+    const optional<bool>& Transaction::GetFirst() const { return m_first; }
+    void Transaction::SetFirst(bool value) { m_first = value; }
+
     const optional<string>& Transaction::GetString1() const { return m_string1; }
     void Transaction::SetString1(string value) { m_string1 = value; }
 

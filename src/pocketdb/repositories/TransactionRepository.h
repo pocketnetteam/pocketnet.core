@@ -57,11 +57,10 @@ namespace PocketDb
         void InsertBlock(const PBlockRef& block);
         
         PocketBlockRef List(const vector<string>& txHashes, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
-        vector<CTransactionRef> ListNative(const vector<string>& txHashes, bool includeInputs = true, bool includeOutputs = true);
         PTransactionRef Get(const string& hash, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
         PTransactionOutputRef GetTxOutput(const string& txHash, int number);
         shared_ptr<StakeKernelHashTx> GetStakeKernelHashTx(const string& txHash, int number);
-        bool ReadBlock(const uint256& hash, CBlock& block);
+        bool ReadBlock(const string& hash, PBlockRef& block);
 
         bool Exists(const string& hash);
         bool Exists(vector<string>& txHashes);
@@ -89,8 +88,8 @@ namespace PocketDb
     protected:
         string ListSql(bool includePayload, bool includeInputs, bool includeOutputs);
         tuple<bool, PTransactionRef> CreateTransactionFromListRow(Cursor& cursor, bool includedPayload);
-        void InsertBlockTransaction(const CBlock& block, const CTransactionRef& tx);
-        void InsertBlockInfo(const CBlock& block);
+        void InsertBlockTransactions(const PBlockRef& block);
+        void InsertBlockInfo(const PBlockRef& block);
 
     };
 
