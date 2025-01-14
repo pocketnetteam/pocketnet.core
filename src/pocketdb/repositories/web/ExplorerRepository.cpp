@@ -660,12 +660,19 @@ namespace PocketDb
                         addrFr as ( select RowId as value from Registry where String = ?),
                         addrTo as ( select RowId as value from Registry where String = ?)
                     select
-                        distinct
                         (select r.String from Registry r where r.RowId = t.RowId),
                         t.Type,
                         tc.Height,
                         ot.Value,
-                        t.Time
+                        t.Time,
+                        (
+                            select
+                                (select r.String from Registry r where r.RowId = ot0.ScriptPubKeyId)
+                            from TxOutputs ot0 indexed by TxOutputs_TxId_Number_AddressId
+                            where
+                                ot0.TxId = ot.TxId and
+                                ot0.Number = 0
+                        )
                     from
                         addrFr,
                         addrTo
@@ -673,16 +680,20 @@ namespace PocketDb
                         TxOutputs ot on
                             ot.AddressId = addrTo.value
                     cross join
+                        TxOutputs of on
+                            of.TxId = ot.TxId and
+                            of.AddressId = addrFr.value
+                    cross join
                         Transactions t on
-                            t.RowId = ot.TxId and
+                            t.RowId = of.TxId and
                             t.Type in (1, 204)
                     cross join
-                        Chain tc on
+                        Chain tc indexed by Chain_TxId_Height on
                             tc.TxId = t.RowId and
                             tc.Height >= ?
                     cross join
-                        TxInputs it on
-                            it.SpentTxId = t.RowId
+                        TxInputs it indexed by TxInputs_SpentTxId_Number_TxId on
+                            it.SpentTxId = ot.TxId
                     cross join
                         TxOutputs ofr indexed by TxOutputs_TxId_Number_AddressId on
                             ofr.TxId = it.TxId and
@@ -701,6 +712,8 @@ namespace PocketDb
                         cursor.Collect<int64_t>(2, record, "height");
                         cursor.Collect<int64_t>(3, record, "amount");
                         cursor.Collect<int64_t>(4, record, "time");
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok)
+                            record.pushKV("opreturn", TransactionHelper::ParseOpReturn(value));
 
                         result.push_back(record);
                     }

@@ -120,6 +120,22 @@ namespace PocketHelpers
         return "";
     }
 
+    string TransactionHelper::ParseOpReturn(const string& value)
+    {
+        std::vector<unsigned char> data = ParseHex(value);
+        auto script = CScript(data.begin(), data.end());
+        if (script[0] == OP_RETURN)
+        {
+            auto asmStr = ScriptToAsmStr(script);
+            vector<string> vasm;
+            boost::split(vasm, asmStr, boost::is_any_of("\t "));
+            if (vasm.size() >= 2)
+                return vasm[1];
+        }
+        
+        return "";
+    }
+
     TxType TransactionHelper::ParseType(const CTransactionRef& tx, vector<string>& vasm)
     {
         if (tx->IsCoinBase())
