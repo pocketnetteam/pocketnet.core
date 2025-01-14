@@ -660,6 +660,7 @@ namespace PocketDb
                         addrFr as ( select RowId as value from Registry where String = ?),
                         addrTo as ( select RowId as value from Registry where String = ?)
                     select
+                        distinct
                         (select r.String from Registry r where r.RowId = t.RowId),
                         t.Type,
                         tc.Height,
@@ -681,8 +682,7 @@ namespace PocketDb
                             tc.Height >= ?
                     cross join
                         TxInputs it on
-                            it.SpentTxId = t.RowId and
-                            it.TxId = (select min(itt.TxId) from TxInputs itt where itt.SpentTxId = t.RowId)
+                            it.SpentTxId = t.RowId
                     cross join
                         TxOutputs ofr indexed by TxOutputs_TxId_Number_AddressId on
                             ofr.TxId = it.TxId and
