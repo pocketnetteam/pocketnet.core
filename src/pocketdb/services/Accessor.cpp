@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/services/Accessor.h"
+#include "uint256.h"
 
 namespace PocketServices
 {
@@ -51,12 +52,11 @@ namespace PocketServices
 
     bool Accessor::ReadBlock(const string& hash, CBlock& block)
     {
-        PBlockRef pBlock;
+        PBlockRef pBlock = make_shared<PBlock>();
         if (!PocketDb::TransRepoInst.ReadBlock(hash, pBlock))
             return false;
 
-        // TODO (block_sqlite) : convert pBlock to CBlock
-
+        PocketHelpers::TransactionHelper::CreateInstance(pBlock, block);
 
         return true;
     }

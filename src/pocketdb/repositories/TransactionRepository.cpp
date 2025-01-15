@@ -400,9 +400,8 @@ namespace PocketDb
     {
         for (const auto& tx: *block->GetTransactions())
         {
-            // TODO (block_sqlite) : insert or ignore after testing
             Sql(R"sql(
-                insert or fail into 
+                insert or ignore into 
                     BlockTransactions (
                         BlockId, TxId
                     )
@@ -429,9 +428,8 @@ namespace PocketDb
 
     void TransactionRepository::InsertBlockInfo(const PBlockRef& block)
     {
-        // TODO (block_sqlite) : insert or ignore after testing
         Sql(R"sql(
-            insert or fail into 
+            insert or ignore into 
                 Blocks (
                     BlockId, BlockSig, Version, PrevBlockId, MerkleRootId, Time, Bits, Nonce
                 )
@@ -719,7 +717,7 @@ namespace PocketDb
                 (
                     select r.String
                     from Registry r
-                    where r.RowId = t.RowId
+                    where r.RowId = i.TxId
                 ),
                 (
                     select a.String
@@ -741,10 +739,10 @@ namespace PocketDb
                 cross join
                     TxInputs i indexed by TxInputs_SpentTxId_Number_TxId on
                         i.SpentTxId = tx.RowId
-                cross join
+                left join
                     Transactions t on
                         t.RowId = i.TxId
-                cross join
+                left join
                     TxOutputs o indexed by TxOutputs_TxId_Number_AddressId on
                         o.TxId = i.TxId and
                         o.Number = i.Number

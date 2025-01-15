@@ -80,6 +80,7 @@ namespace PocketHelpers
         static string ParseAsmType(const CTransactionRef& tx, vector<string>& vasm);
         static TxType ParseType(const CTransactionRef& tx, vector<string>& vasm);
         static TxType ParseType(const CTransactionRef& tx);
+        static CScript ParseScript(const string& value);
         static string ConvertToReindexerTable(const Transaction& transaction);
         static string ExtractOpReturnHash(const CTransactionRef& tx);
         static tuple<bool, string> ExtractOpReturnPayload(const CTransactionRef& tx);
@@ -96,6 +97,8 @@ namespace PocketHelpers
         static PTransactionRef CreateInstance(TxType txType);
         static PTransactionRef CreateInstance(TxType txType, const CTransactionRef& tx);
         static PBlockRef CreateInstance(const CBlock& block, const PocketBlockRef& pocketBlock);
+        static void CreateInstance(PTransactionRef& pTransaction, CTransactionRef& cTransaction);
+        static void CreateInstance(PBlockRef& pBlock, CBlock& cBlock);
         static bool IsIn(TxType txType, const vector<TxType>& inTypes);
         static string TxStringType(TxType type);
         static TxType TxIntType(const string& type);

@@ -145,6 +145,12 @@ namespace PocketHelpers
         return ParseType(tx, vasm);
     }
 
+    CScript TransactionHelper::ParseScript(const string& value)
+    {
+        std::vector<unsigned char> data = ParseHex(value);
+        return CScript(data.begin(), data.end());
+    }
+
     string TransactionHelper::ConvertToReindexerTable(const Transaction& transaction)
     {
         // TODO (aok) (v0.21.0): need remove for next generation serialization
@@ -531,9 +537,62 @@ namespace PocketHelpers
 
     PBlockRef TransactionHelper::CreateInstance(const CBlock& block, const PocketBlockRef& pocketBlock)
     {
-        // TODO (block_sqlite) : create block instance
-        // TODO (block_sqlite) : full fill pTransactions from block transactions
-        return nullptr;
+        auto pBlock = make_shared<PBlock>(block);
+        pBlock->SetTransactions(*pocketBlock);
+        return pBlock;
+    }
+
+    void TransactionHelper::CreateInstance(PTransactionRef& pTransaction, CTransactionRef& cTransaction)
+    {
+        CMutableTransaction mtx;
+        mtx.nVersion = *pTransaction->GetVersion();
+        mtx.nTime = *pTransaction->GetTime();
+        mtx.nLockTime = *pTransaction->GetLockTime();
+        
+        for (auto pInput : pTransaction->Inputs())
+        {
+            CTxIn in;
+            in.scriptSig = ParseScript(*pInput.GetScriptSig());
+            in.nSequence = *pInput.GetSequence();
+
+            COutPoint prevout;
+            prevout.hash = uint256S(*pInput.GetTxHash());
+            prevout.n = *pInput.GetNumber();
+            in.prevout = prevout;
+
+            mtx.vin.push_back(in);
+        }
+
+        for (auto pOutput : pTransaction->Outputs())
+        {
+            CTxOut out;
+            out.nValue = *pOutput.GetValue();
+            out.scriptPubKey = ParseScript(*pOutput.GetScriptPubKey());
+
+            mtx.vout.push_back(out);
+        }
+
+        cTransaction = MakeTransactionRef(mtx);
+    }
+
+    void TransactionHelper::CreateInstance(PBlockRef& pBlock, CBlock& cBlock)
+    {
+        cBlock.SetNull();
+        
+        cBlock.nVersion = *pBlock->GetVersion();
+        cBlock.hashPrevBlock = uint256S(*pBlock->GetPrevHash());
+        cBlock.hashMerkleRoot = uint256S(*pBlock->GetMerkleRoot());
+        cBlock.nTime = *pBlock->GetTime();
+        cBlock.nBits = *pBlock->GetBits();
+        cBlock.nNonce = *pBlock->GetNonce();
+        cBlock.vchBlockSig = ParseHex(*pBlock->GetSignature());
+
+        for (auto ptx : *pBlock->GetTransactions())
+        {
+            CTransactionRef cTransaction;
+            CreateInstance(ptx, cTransaction);
+            cBlock.vtx.push_back(cTransaction);
+        }
     }
 
     bool TransactionHelper::IsIn(TxType txType, const vector<TxType>& inTypes)

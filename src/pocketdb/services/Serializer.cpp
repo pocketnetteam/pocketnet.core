@@ -80,7 +80,7 @@ namespace PocketServices
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
             return nullptr;
 
-        shared_ptr <Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, tx);
+        shared_ptr<Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, tx);
         if (!ptx)
             return nullptr;
 
@@ -148,6 +148,8 @@ namespace PocketServices
             inp.SetSpentTxHash(spentTxHash);
             inp.SetTxHash(txin.prevout.hash.GetHex());
             inp.SetNumber(txin.prevout.n);
+            inp.SetSequence(txin.nSequence);
+            inp.SetScriptSig(HexStr(txin.scriptSig));
             
             ptx->Inputs().push_back(inp);
         }

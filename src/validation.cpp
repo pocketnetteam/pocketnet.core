@@ -2531,8 +2531,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         nTimeVerify * MILLI / nBlocksTotal);
 
     // -----------------------------------------------------------------------------------------------------------------
-    if (!WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
-        return false;
+    // if (!WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
+    //     return false;
 
     if (!pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
         pindex->RaiseValidity(BLOCK_VALID_SCRIPTS);
@@ -5148,6 +5148,7 @@ void UnloadBlockIndex(CTxMemPool* mempool, ChainstateManager& chainman)
 bool ChainstateManager::LoadBlockIndex(const CChainParams& chainparams)
 {
     AssertLockHeld(cs_main);
+    
     // Load block index from databases
     bool needs_init = IsChainReindex();
     if (!IsChainReindex()) {
