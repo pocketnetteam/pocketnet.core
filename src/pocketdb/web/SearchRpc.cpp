@@ -96,6 +96,28 @@ namespace PocketWeb::PocketWebRpc
             result.At("posts").pushKV("data", data);
         }
 
+        // Search videos in caption, message and urls
+        if (type == "videos")
+        {
+            searchRequest.TxTypes = { CONTENT_VIDEO };
+            searchRequest.FieldTypes = {
+                ContentFieldType_ContentVideoCaption,
+                ContentFieldType_ContentVideoMessage,
+            };
+
+            // Search
+            auto ids = request.DbConnection()->SearchRepoInst->SearchIds(searchRequest);
+            
+            // Get content data
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData({}, ids, searchRequest.Address);
+            
+            UniValue data(UniValue::VARR);
+            data.push_backV(contents);
+
+            result.pushKV("posts", UniValue(UniValue::VOBJ));
+            result.At("posts").pushKV("data", data);
+        }
+
         // Get all videos with requested link
         if (type == "videolink")
         {
