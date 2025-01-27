@@ -52,30 +52,18 @@ namespace PocketDb
             __func__,
             [&]() -> Stmt& {
                 return Sql(R"sql(
-                    with
-                        keyword as (
-                            select
-                                cm.ContentId,
-                                rank
-                            from
-                                web.Content c,
-                                web.ContentMap cm
-                            where
-                                c.ROWID = cm.ROWID and
-                                cm.FieldType in ( )sql" + join(request.FieldTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
-                                c.Value match ?
-                            order by
-                                rank
-                        )
                     select
-                        ct.Uid,
-                        keyword.rank
+                        ct.Uid
                     from
-                        keyword
+                        web.Content c
                     cross join
-                        Chain ct on --indexed by Chain_Uid_Height on
-                            ct.Uid = keyword.ContentId and
-                            (? or ct.Height <= ?) -- 
+                        web.ContentMap cm on
+                            c.ROWID = cm.ROWID and
+                            cm.FieldType in ( )sql" + join(request.FieldTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
+                    cross join
+                        Chain ct indexed by Chain_Uid_Height on
+                            ct.Uid = cm.ContentId and
+                            (? or ct.Height <= ?)
                     cross join
                         Transactions t on
                             ct.TxId = t.RowId and
@@ -91,17 +79,19 @@ namespace PocketDb
                     cross join
                         Last lt on
                             lt.TxId = t.RowId
+                    where
+                        c.Value match ?
                     order by
-                        ct.Uid desc
+                        c.Rank asc
                     limit ?
                     offset ?
                 )sql")
                 .Bind(
-                    _keyword,
                     !(request.TopBlock > 0),
                     request.TopBlock,
                     request.Address.empty(),
                     request.Address,
+                    _keyword,
                     request.PageSize,
                     request.PageStart
                 );
