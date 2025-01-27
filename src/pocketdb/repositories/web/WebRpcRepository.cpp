@@ -1130,7 +1130,7 @@ namespace PocketDb
                     where sc.Type=301 and sc.RegId2 = c.RowId and sc.Int1 = -1)             as ScoreDown,
 
                 (select r.Value from Ratings r indexed by Ratings_Type_Uid_Last_Height
-                    where r.Uid = c.RowId AND r.Type=3 and r.Last=1)                        as Reputation,
+                    where r.Uid = cc.Uid AND r.Type=3 and r.Last=1)                         as Reputation,
 
                 (select count() from Transactions ch indexed by Transactions_Type_RegId4_RegId1
                     join Chain cch on cch.TxId = ch.RowId
@@ -1184,6 +1184,7 @@ namespace PocketDb
                     (
                         select
                             c1.RowId
+                            
                         from Transactions c1 indexed by Transactions_Type_RegId3_RegId1
                         cross join Chain cc1 on cc1.TxId = c1.RowId
                         cross join Last lc1 on lc1.TxId = c1.RowId
@@ -1199,11 +1200,15 @@ namespace PocketDb
                         left join
                             BlockingLists bl_cmt_cnt on
                                 bl_cmt_cnt.IdSource = c1.RegId1 and bl_cmt_cnt.IdTarget = t.RegId1
+                        left join
+                            Ratings ur on
+                                ur.Type = 0 and ur.Last = 1 and ur.Uid = cuac.Uid
+
                         where c1.Type in (204, 205)
                           and c1.RegId3 = t.RegId2
                           and c1.RegId4 is null
                           
-                        order by bl_cnt_cmt.IdSource, bl_cmt_cnt.IdSource, o.Value desc, c1.RowId desc
+                        order by bl_cnt_cmt.IdSource, bl_cmt_cnt.IdSource, (case when ur.Value > 0 then 0 else ur.Value end) desc, o.Value desc, c1.RowId desc
 
                         limit 1
                     )commentRowId
