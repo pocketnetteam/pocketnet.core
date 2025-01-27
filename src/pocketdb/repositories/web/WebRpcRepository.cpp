@@ -5541,7 +5541,6 @@ namespace PocketDb
                     jv.FlagRowId = j.FlagRowId
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-                and t.RegId3 is null
 
                 -- Do not show posts from banned users
                 and jb.AccountId is null
