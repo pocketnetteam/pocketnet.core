@@ -22,6 +22,8 @@ namespace PocketWeb::PocketWebRpc
                 UniValue addData(UniValue::VOBJ);
                 addData.pushKV("regdate", itr->second.RegDate);
                 addData.pushKV("rating", itr->second.Rating);
+                addData.pushKV("rating_sum", itr->second.Sum);
+                addData.pushKV("rating_count", itr->second.Count);
                 txData.pushKV("additional", addData);
             }
             result.push_back(txData);
