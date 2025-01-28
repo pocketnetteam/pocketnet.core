@@ -39,6 +39,8 @@ namespace PocketDb
     {
         int64_t RegDate;
         int Rating;
+        int Sum;
+        int Count;
     };
 
     struct BarteronOffersComplexDealDto
