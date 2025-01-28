@@ -63,6 +63,11 @@ namespace PocketDb
         UniValue GetGroups(const BarteronOffersFeedDto& args);
         vector<string> GetDeals(const BarteronOffersDealDto& args);
         map<string, vector<string>> GetComplexDeal(const BarteronOffersComplexDealDto& args);
+    
+    protected:
+        vector<string> _feed_by_search(const BarteronOffersFeedDto& args, const string& search);
+        vector<string> _feed_by_tags(const BarteronOffersFeedDto& args);
+        vector<string> _feed(const BarteronOffersFeedDto& args);
     };
 
     typedef std::shared_ptr<BarteronRepository> BarteronRepositoryRef;

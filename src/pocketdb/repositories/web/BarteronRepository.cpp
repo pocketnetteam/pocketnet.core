@@ -168,130 +168,106 @@ namespace PocketDb
         return result;
     }
 
-    vector<string> BarteronRepository::GetFeed(const BarteronOffersFeedDto& args)
-    {
-        vector<string> result;
+    vector<string> BarteronRepository::_feed_by_search(const BarteronOffersFeedDto& args, const string& search)
+    {        
+        string keyword = "\"" + search + "\"" + " OR \"" + search + "\"*";
 
-        string _filters = "";
-        if (!args.Language.empty()) _filters += " cross join lang on pt.String1 = lang.value ";
-        if (args.PriceMax > 0) _filters += " cross join priceMax on pt.Int1 <= priceMax.value ";
-        if (args.PriceMin > 0) _filters += " cross join priceMin on pt.Int1 >= priceMin.value ";
+        UniValue _tags(UniValue::VARR);
+        for (auto t : args.Tags)
+            _tags.push_back(t);
+        string tags = _tags.write();
 
-        string search = args.Search;
-        boost::replace_all(search, "%", "");
-        if (!search.empty())
-        {
-            search = "\"" + search + "\"" + " OR \"" + search + "\"*";
+        UniValue _location(UniValue::VARR);
+        for (auto t : args.Location)
+            _location.push_back(t + "%");
+        string location = _location.write();
 
-            _filters += R"sql(
-                cross join (
-                    select fm.ContentId
-                    from
-                        web.Content f
-                    cross join
-                        web.ContentMap fm on
-                            fm.ROWID = f.ROWID
-                    where
-                        fm.FieldType in (12,13) and
-                        f.Value match ?
-                ) sc on sc.ContentId = ct.Uid
-            )sql";
-        }
-
-        string _tagsStr = "[]";
-        string _locationStr = "[]";
-
-        if (!args.Tags.empty()) {
-            UniValue _tags(UniValue::VARR);
-            for (auto t : args.Tags)
-                _tags.push_back(t);
-
-            _tagsStr = _tags.write();
-            _filters += " cross join tags on bo.Tag = tags.value ";
-        }
-
-        if (!args.Location.empty()) {
-            UniValue _location(UniValue::VARR);
-            for (auto t : args.Location)
-                _location.push_back(t + "%");
-
-            _locationStr = _location.write();
-            _filters += " cross join location on pt.String6 like location.value ";
-        }
-
-        string _orderBy = " ct.Height ";
+        string orderBy = " ct.Height ";
         if (args.Page.OrderBy == "location")
-            _orderBy = " pt.String6 ";
+            orderBy = " pt.String6 ";
         if (args.Page.OrderBy == "price")
-            _orderBy = " pt.Int1 ";
+            orderBy = " pt.Int1 ";
         if (args.Page.OrderDesc)
-            _orderBy += " desc ";
-        
+            orderBy += " desc ";
+
+        string sql = R"sql(
+            with
+                lang as (select ? as value),
+                tags as (select value from json_each(?)),
+                location as (select value from json_each(?)),
+                priceMax as (select ? as value),
+                priceMin as (select ? as value)
+            select
+                (select r.String from Registry r where r.RowId = t.RowId)
+            from
+                web.Content f
+            cross join
+                web.ContentMap fm on
+                    fm.ROWID = f.ROWID and
+                    fm.FieldType in (12,13)
+            cross join
+                Chain ct indexed by Chain_Uid_Height
+                    on fm.ContentId = ct.Uid and ct.Height <= ?
+            cross join
+                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    t.Type in (211) and
+                    ct.TxId = t.RowId
+            cross join
+                Last lt
+                    on lt.TxId = t.RowId
+            cross join
+                Payload pt
+                    on pt.TxId = t.RowId
+
+            -- Language
+            )sql" + (!args.Language.empty() ? " cross join lang on pt.String1 = lang.value "s : ""s) + R"sql(
+            
+            -- Price
+            )sql" + (args.PriceMax > 0 ? " cross join priceMax on pt.Int1 <= priceMax.value "s : ""s) + R"sql(
+            )sql" + (args.PriceMin > 0 ? " cross join priceMin on pt.Int1 >= priceMin.value "s : ""s) + R"sql(
+
+            -- Location
+            )sql" + (!args.Location.empty() ? " cross join location on pt.String6 like location.value "s : ""s) + R"sql(
+
+            -- Account
+            cross join
+                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type in (104) and u.RegId1 = t.RegId1
+            cross join
+                Last lu
+                    on lu.TxId = u.RowId
+            cross join
+                Chain cu
+                    on cu.TxId = u.RowId
+
+            -- Tags
+            left join web.BarteronOffers bo on bo.AccountId = cu.Uid and bo.OfferId = ct.Uid
+            )sql" + (!args.Tags.empty() ? " cross join tags on bo.Tag = tags.value "s : ""s) + R"sql(
+
+            where
+                f.Value match ?
+
+            order by
+                    round(f.Rank, 0) asc, )sql" + orderBy + R"sql(
+
+            limit ? offset ?;
+        )sql";
+
+        vector<string> result;
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                auto& stmt =  Sql(R"sql(
-                    with
-                        lang as (select ? as value),
-                        tags as (select value from json_each(?)),
-                        location as (select value from json_each(?)),
-                        priceMax as (select ? as value),
-                        priceMin as (select ? as value)
-
-                    select
-                        (select r.String from Registry r where r.RowId = t.RowId)
-                    from
-                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    cross join
-                        Last lt
-                            on lt.TxId = t.RowId
-                    cross join
-                        Chain ct indexed by Chain_TxId_Height
-                            on ct.TxId = t.RowId and ct.Height <= ?
-                    cross join
-                        Payload pt
-                            on pt.TxId = t.RowId
-                    -- Account
-                    cross join
-                        Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on u.Type in (104) and u.RegId1 = t.RegId1
-                    cross join
-                        Last lu
-                            on lu.TxId = u.RowId
-                    cross join
-                        Chain cu
-                            on cu.TxId = u.RowId
-                    -- Tags
-                    left join
-                        web.BarteronOffers bo
-                            on bo.AccountId = cu.Uid and bo.OfferId = ct.Uid
-                    -- Filters
-                    )sql" + _filters + R"sql(
-                    where
-                        t.Type in (211)
-                    order by
-                        )sql" + _orderBy + R"sql(
-                    limit ? offset ?
-                )sql");
-
-                stmt.Bind(
+                return Sql(sql).Bind(
                     args.Language,
-                    _tagsStr,
-                    _locationStr,
+                    tags,
+                    location,
                     args.PriceMax,
                     args.PriceMin,
-                    args.Page.TopHeight
-                );
-
-                if (!search.empty())
-                    stmt.Bind(search);
-                
-                stmt.Bind(
+                    args.Page.TopHeight,
+                    keyword,
                     args.Page.PageSize,
                     args.Page.PageStart * args.Page.PageSize
                 );
-
-                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -305,6 +281,216 @@ namespace PocketDb
         );
 
         return result;
+    }
+
+    vector<string> BarteronRepository::_feed_by_tags(const BarteronOffersFeedDto& args)
+    {
+        UniValue _tags(UniValue::VARR);
+        for (auto t : args.Tags)
+            _tags.push_back(t);
+        string tags = _tags.write();
+
+        UniValue _location(UniValue::VARR);
+        for (auto t : args.Location)
+            _location.push_back(t + "%");
+        string location = _location.write();
+
+        string orderBy = " ct.Height ";
+        if (args.Page.OrderBy == "location")
+            orderBy = " pt.String6 ";
+        if (args.Page.OrderBy == "price")
+            orderBy = " pt.Int1 ";
+        if (args.Page.OrderDesc)
+            orderBy += " desc ";
+
+        string sql = R"sql(
+            with
+                lang as (select ? as value),
+                tags as (select value from json_each(?)),
+                location as (select value from json_each(?)),
+                priceMax as (select ? as value),
+                priceMin as (select ? as value)
+            select
+                (select r.String from Registry r where r.RowId = t.RowId)
+            from
+                tags
+            cross join
+                web.BarteronOffers bo on
+                    bo.Tag = tags.value
+            cross join
+                Chain ct indexed by Chain_Uid_Height
+                    on bo.OfferId = ct.Uid and ct.Height <= ?
+            cross join
+                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                    t.Type in (211) and
+                    ct.TxId = t.RowId
+            cross join
+                Last lt
+                    on lt.TxId = t.RowId
+            cross join
+                Payload pt
+                    on pt.TxId = t.RowId
+
+            -- Language
+            )sql" + (!args.Language.empty() ? " cross join lang on pt.String1 = lang.value "s : ""s) + R"sql(
+            
+            -- Price
+            )sql" + (args.PriceMax > 0 ? " cross join priceMax on pt.Int1 <= priceMax.value "s : ""s) + R"sql(
+            )sql" + (args.PriceMin > 0 ? " cross join priceMin on pt.Int1 >= priceMin.value "s : ""s) + R"sql(
+
+            -- Location
+            )sql" + (!args.Location.empty() ? " cross join location on pt.String6 like location.value "s : ""s) + R"sql(
+
+            -- Account
+            cross join
+                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type in (104) and u.RegId1 = t.RegId1
+            cross join
+                Last lu
+                    on lu.TxId = u.RowId
+            cross join
+                Chain cu
+                    on cu.TxId = u.RowId
+
+            order by
+                )sql" + orderBy + R"sql(
+
+            limit ? offset ?;
+        )sql";
+
+        vector<string> result;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql).Bind(
+                    args.Language,
+                    tags,
+                    location,
+                    args.PriceMax,
+                    args.PriceMin,
+                    args.Page.TopHeight,
+                    args.Page.PageSize,
+                    args.Page.PageStart * args.Page.PageSize
+                );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                            result.push_back(value);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    vector<string> BarteronRepository::_feed(const BarteronOffersFeedDto& args)
+    {
+        UniValue _location(UniValue::VARR);
+        for (auto t : args.Location)
+            _location.push_back(t + "%");
+        string location = _location.write();
+
+        string orderBy = " ct.Height ";
+        if (args.Page.OrderBy == "location")
+            orderBy = " pt.String6 ";
+        if (args.Page.OrderBy == "price")
+            orderBy = " pt.Int1 ";
+        if (args.Page.OrderDesc)
+            orderBy += " desc ";
+
+        string sql = R"sql(
+            with
+                lang as (select ? as value),
+                location as (select value from json_each(?)),
+                priceMax as (select ? as value),
+                priceMin as (select ? as value)
+            select
+                (select r.String from Registry r where r.RowId = t.RowId)
+            from
+                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+            cross join
+                Chain ct indexed by Chain_TxId_Height
+                    on ct.TxId = t.RowId and ct.Height <= ?
+            cross join
+                Last lt
+                    on lt.TxId = t.RowId
+            cross join
+                Payload pt
+                    on pt.TxId = t.RowId
+
+            -- Language
+            )sql" + (!args.Language.empty() ? " cross join lang on pt.String1 = lang.value "s : ""s) + R"sql(
+            
+            -- Price
+            )sql" + (args.PriceMax > 0 ? " cross join priceMax on pt.Int1 <= priceMax.value "s : ""s) + R"sql(
+            )sql" + (args.PriceMin > 0 ? " cross join priceMin on pt.Int1 >= priceMin.value "s : ""s) + R"sql(
+
+            -- Location
+            )sql" + (!args.Location.empty() ? " cross join location on pt.String6 like location.value "s : ""s) + R"sql(
+
+            -- Account
+            cross join
+                Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on u.Type in (104) and u.RegId1 = t.RegId1
+            cross join
+                Last lu
+                    on lu.TxId = u.RowId
+            cross join
+                Chain cu
+                    on cu.TxId = u.RowId
+
+            where
+                t.Type in (211)
+
+            order by
+                )sql" + orderBy + R"sql(
+
+            limit ? offset ?;
+        )sql";
+
+        vector<string> result;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(sql).Bind(
+                    args.Language,
+                    location,
+                    args.PriceMax,
+                    args.PriceMin,
+                    args.Page.TopHeight,
+                    args.Page.PageSize,
+                    args.Page.PageStart * args.Page.PageSize
+                );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
+                            result.push_back(value);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    vector<string> BarteronRepository::GetFeed(const BarteronOffersFeedDto& args)
+    {
+        string search = args.Search;
+        boost::replace_all(search, "%", "");
+
+        if (!search.empty())
+            return _feed_by_search(args, search);
+        else if (!args.Tags.empty())
+            return _feed_by_tags(args);
+        else
+            return _feed(args);
     }
 
     UniValue BarteronRepository::GetGroups(const BarteronOffersFeedDto& args)
