@@ -5741,9 +5741,18 @@ namespace PocketDb
                 Payload p on
                     p.TxId = t.RowId and
                     ( ? or p.String1 = ? )
+            -- Filter first version for skip edited posts
+            cross join
+                First ft on
+                    ft.TxId = t.RowId
+            cross join
+                Transactions t2 indexed by Transactions_Type_RegId2_RegId1 on
+                    t2.Type = t.Type and
+                    t2.RegId2 = t.RegId2
+            -- Join last version for skip deleted posts
             cross join
                 Last lt on
-                    lt.TxId = t.RowId
+                    lt.TxId = t2.RowId
             cross join
                 Chain ct indexed by Chain_TxId_Height on
                     ct.TxId = t.RowId and
