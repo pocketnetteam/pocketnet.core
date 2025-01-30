@@ -1342,6 +1342,16 @@ else()
     add_compile_definitions(ENABLE_ZMQ=0)
 endif ()
 
+# I2PD
+if (NOT DISABLE_I2PD)
+    find_package(I2PD REQUIRED)
+    if (I2PD_FOUND)
+        add_compile_definitions(ENABLE_I2PD=1)
+        target_link_libraries(${POCKETCOIN_SERVER} PRIVATE I2PD::i2pd)
+        target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${I2PD_INCLUDE_DIR})
+    endif ()
+endif ()
+
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
 target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto OpenSSL::SSL ${CRYPT32} Event::event sqlite3 univalue secp256k1 leveldb)

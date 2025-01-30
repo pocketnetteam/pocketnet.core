@@ -17,6 +17,8 @@ zmq_packages=zeromq
 
 upnp_packages=miniupnpc
 
+i2pd_packages=i2pd
+
 multiprocess_packages = libmultiprocess capnp
 multiprocess_native_packages = native_libmultiprocess native_capnp
 
