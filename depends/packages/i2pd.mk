@@ -25,6 +25,9 @@ define $(package)_stage_cmds
   mkdir -p $($(package)_staging_prefix_dir)/lib && \
   cp libi2pd.a $($(package)_staging_prefix_dir)/lib && \
   cp libi2pdclient.a $($(package)_staging_prefix_dir)/lib && \
-  cp -r libi2pd $($(package)_staging_prefix_dir)/include && \
-  cp -r libi2pd_client $($(package)_staging_prefix_dir)/include
+  cp libi2pdlang.a $($(package)_staging_prefix_dir)/lib && \
+  mkdir -p $($(package)_staging_prefix_dir)/include/libi2pd && \
+  cp -r libi2pd/* $($(package)_staging_prefix_dir)/include/libi2pd/ && \
+  cp -r libi2pd_client/* $($(package)_staging_prefix_dir)/include/libi2pd/ && \
+  cp -r i18n/* $($(package)_staging_prefix_dir)/include/libi2pd/
 endef
