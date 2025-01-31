@@ -20,7 +20,7 @@ namespace PocketConsensus
             {
                 if (auto[ok, result] = validate(tx, *it, pBlock, height); !ok)
                 {
-                    LogPrint(BCLog::CONSENSUS,
+                    LogPrintCategory(BCLog::CONSENSUS,
                         "Warning: SocialConsensus type:%d validate tx:%s blk:%s failed with result:%d at height:%d\n",
                         (int) *(*it)->GetType(), txHash, block.GetHash().GetHex(), (int) result, height);
 
@@ -40,7 +40,7 @@ namespace PocketConsensus
 
         if (auto[ok, result] = validate(tx, ptx, nullptr, height); !ok)
         {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d validate failed with result:%d for tx:%s at height:%d\n",
+            LogPrintCategory(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d validate failed with result:%d for tx:%s at height:%d\n",
                 (int) *ptx->GetType(), (int)result, *ptx->GetHash(), height);
 
             return {false, result};
@@ -53,7 +53,7 @@ namespace PocketConsensus
     {
         if (auto[ok, result] = validate(tx, ptx, pBlock, height); !ok)
         {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d validate tx:%s failed with result:%d for block construction at height:%d\n",
+            LogPrintCategory(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d validate tx:%s failed with result:%d for block construction at height:%d\n",
                 (int)*ptx->GetType(), *ptx->GetHash(), (int)result, height);
 
             return {false, result};
@@ -67,7 +67,7 @@ namespace PocketConsensus
     {
         if (!pBlock)
         {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus check failed with result:%d for blk:%s at height:%d\n",
+            LogPrintCategory(BCLog::CONSENSUS, "Warning: SocialConsensus check failed with result:%d for blk:%s at height:%d\n",
                 (int)ConsensusResult_PocketDataNotFound, block.GetHash().GetHex(), height);
 
             return {false, ConsensusResult_PocketDataNotFound};
@@ -94,7 +94,7 @@ namespace PocketConsensus
             auto it = find_if(pBlock->begin(), pBlock->end(), [&](PTransactionRef const& ptx) { return *ptx == txHash; });
             if (it == pBlock->end())
             {
-                LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d check failed with result:%d for tx:%s in blk:%s at height:%d\n",
+                LogPrintCategory(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d check failed with result:%d for tx:%s in blk:%s at height:%d\n",
                     (int)txType, (int)ConsensusResult_PocketDataNotFound, tx->GetHash().GetHex(), block.GetHash().GetHex(), height);
 
                 return {false, ConsensusResult_PocketDataNotFound};
@@ -103,7 +103,7 @@ namespace PocketConsensus
             // Check founded payload
             if (auto[ok, result] = check(tx, *it, height); !ok)
             {
-                LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus check type:%d failed with result:%d for tx:%s in blk:%s at height:%d\n",
+                LogPrintCategory(BCLog::CONSENSUS, "Warning: SocialConsensus check type:%d failed with result:%d for tx:%s in blk:%s at height:%d\n",
                     (int)txType, (int)result, tx->GetHash().GetHex(), block.GetHash().GetHex(), height);
 
                 return {false, result};
@@ -118,7 +118,7 @@ namespace PocketConsensus
     {
         if (auto[ok, result] = check(tx, ptx, height); !ok)
         {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d check failed with result:%d for tx:%s at height:%d\n",
+            LogPrintCategory(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d check failed with result:%d for tx:%s at height:%d\n",
                 (int) *ptx->GetType(), (int)result, *ptx->GetHash(), height);
 
             return {false, result};

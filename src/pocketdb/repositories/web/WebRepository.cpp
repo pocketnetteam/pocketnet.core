@@ -445,7 +445,7 @@ namespace PocketDb
             // ---------------------------------------------------------
             int64_t nTime4 = GetTimeMicros();
 
-            LogPrint(
+            LogPrintCategory(
                 BCLog::BENCH,
                 "        - SqlTransaction (%s): %.2fms + %.2fms + %.2fms = %.2fms\n",
                 __func__,

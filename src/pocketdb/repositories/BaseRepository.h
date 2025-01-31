@@ -96,7 +96,7 @@ namespace PocketDb
                 // Prepare transaction binds
                 auto& stmt = prepare();
 
-                LogPrint(BCLog::SQLQUERY, "Sql query `%s`:\n%s\n", func, stmt.Log());
+                LogPrintCategory(BCLog::SQLQUERY, "Sql query `%s`:\n%s\n", func, stmt.Log());
 
                 // We are running SQL logic with timeout only for read-only connections
                 if (m_timeouted)
@@ -112,7 +112,7 @@ namespace PocketDb
                         [&]()
                         {
                             m_database.InterruptQuery();
-                            LogPrint(BCLog::WARN, "`%s` failed with execute timeout:\n%s\n", func, stmt.Log());
+                            LogPrintCategory(BCLog::WARN, "`%s` failed with execute timeout:\n%s\n", func, stmt.Log());
                             timeouted = true;
                         }
                     );

@@ -173,7 +173,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             }
             catch (const UniValue& e)
             {
-                LogPrint(BCLog::WARN, "Exception %s\n", e.write());
+                LogPrintCategory(BCLog::WARN, "Exception %s\n", e.write());
             }
 
             CTxDestination destAddress;

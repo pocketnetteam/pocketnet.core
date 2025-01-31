@@ -172,7 +172,7 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
 
     // verify hash target and signature of coinstake tx
     CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
-    LogPrint(BCLog::STAKEMODIF, "CheckStake(): check proof-of-stake signature for new created block %s", pblock->GetHash().GetHex());
+    LogPrintCategory(BCLog::STAKEMODIF, "CheckStake(): check proof-of-stake signature for new created block %s", pblock->GetHash().GetHex());
     if (!CheckProofOfStake(chainman.BlockIndex()[pblock->hashPrevBlock], pblock->vtx[1], pblock->nBits, proofHash,
         hashProofOfStakeSource, hashTarget, NULL, mempool))
     {
@@ -345,7 +345,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
     // Weighted target
     arith_uint256 bnWeight = std::min(txPrev.OutValue, Params().GetConsensus().nStakeMaximumThreshold);
-    LogPrint(BCLog::STAKEMODIF, "CheckStakeKernelHash() : bnTarget(nBits)=%#010x Weight(txPrev.OutValue)=%lu\n", nBits, txPrev.OutValue); // bnTarget.GetHex(),bnWeight.GetHex());
+    LogPrintCategory(BCLog::STAKEMODIF, "CheckStakeKernelHash() : bnTarget(nBits)=%#010x Weight(txPrev.OutValue)=%lu\n", nBits, txPrev.OutValue); // bnTarget.GetHex(),bnWeight.GetHex());
     bnTarget *= bnWeight;
     targetProofOfStake = bnTarget;
 
@@ -358,11 +358,11 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     // Now check if proof-of-stake hash meets target protocol
     if (hashProofOfStake > bnTarget)
     {
-        LogPrint(BCLog::STAKEMODIF, "CheckStakeKernelHash() : Failed : hashProofOfStake(%s) > bnTarget (%s)\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
+        LogPrintCategory(BCLog::STAKEMODIF, "CheckStakeKernelHash() : Failed : hashProofOfStake(%s) > bnTarget (%s)\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
         return false;
     }
 
-    LogPrint(BCLog::STAKEMODIF, "CheckStakeKernelHash() : Ok : hashProofOfStake(%s) <= bnTarget (%s)\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
+    LogPrintCategory(BCLog::STAKEMODIF, "CheckStakeKernelHash() : Ok : hashProofOfStake(%s) <= bnTarget (%s)\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
     return true;
 }
 
@@ -447,7 +447,7 @@ bool ComputeNextStakeModifier(const CBlockIndex *pindexPrev, uint64_t &nStakeMod
         nStakeModifierNew |= (((uint64_t) pindex->GetStakeEntropyBit()) << nRound);
         // add the selected block from candidates to selected list
         mapSelectedBlocks.insert(std::make_pair(pindex->GetBlockHash(), pindex));
-        //        LogPrint("stakemodifier", "ComputeNextStakeModifier: selected round %d stop=%s height=%d bit=%d\n", nRound, DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nSelectionIntervalStop), pindex->nHeight, pindex->GetStakeEntropyBit());
+        //        LogPrintCategory("stakemodifier", "ComputeNextStakeModifier: selected round %d stop=%s height=%d bit=%d\n", nRound, DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nSelectionIntervalStop), pindex->nHeight, pindex->GetStakeEntropyBit());
     }
 
     // Print selection map for visualization of the selected blocks
@@ -476,7 +476,7 @@ bool ComputeNextStakeModifier(const CBlockIndex *pindexPrev, uint64_t &nStakeMod
                 item.second->IsProofOfStake() ? "S" : "W");
         }
 
-        LogPrint(BCLog::STAKEMODIF, "ComputeNextStakeModifier: selection map=%s\n", strSelectionMap);
+        LogPrintCategory(BCLog::STAKEMODIF, "ComputeNextStakeModifier: selection map=%s\n", strSelectionMap);
     }
 
     nStakeModifier = nStakeModifierNew;

@@ -71,7 +71,7 @@ void RPCCache::Clear()
     m_cache.clear();
     m_cacheSize = 0;
 
-    LogPrint(BCLog::RPC, "RPC cache cleared.\n");
+    LogPrintCategory(BCLog::RPC, "RPC cache cleared.\n");
 }
 
 void RPCCache::ClearOverdue(int height)
@@ -99,17 +99,17 @@ void RPCCache::Put(const std::string& path, const UniValue& content, const int& 
     ClearOverdue(currentHeight);
 
     if (m_maxCacheSize < size + m_cacheSize) {
-        LogPrint(BCLog::RPC, "RPC cache over size limit: current = %d, max = %d\n", m_cacheSize, m_maxCacheSize);
+        LogPrintCategory(BCLog::RPC, "RPC cache over size limit: current = %d, max = %d\n", m_cacheSize, m_maxCacheSize);
         return;
     }
 
     if (auto entry = m_cache.find(path); entry != m_cache.end()) {
-        LogPrint(BCLog::RPC, "RPC cache put update '%s'\n", path);
+        LogPrintCategory(BCLog::RPC, "RPC cache put update '%s'\n", path);
         // Adjust cache size, remove old element size, add new element size
         m_cacheSize -= entry->second.Size();
         m_cacheSize += content.write().size();
     } else {
-        LogPrint(BCLog::RPC, "RPC cache put '%s', size %d\n", path, size);
+        LogPrintCategory(BCLog::RPC, "RPC cache put '%s', size %d\n", path, size);
         m_cacheSize += size;
     }
 
@@ -123,7 +123,7 @@ UniValue RPCCache::Get(const std::string& path)
     ClearOverdue(ChainActiveSafeHeight());
 
     if (auto entry = m_cache.find(path); entry != m_cache.end()) {
-        LogPrint(BCLog::RPC, "RPC Cache get found %s in cache\n", path);
+        LogPrintCategory(BCLog::RPC, "RPC Cache get found %s in cache\n", path);
         return entry->second.GetData();
     }
 

@@ -96,7 +96,7 @@ namespace PocketDb
             EnsureAndTrimSocialRegistry(height + 1); // Count for next block
 
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - IndexBlock: %.2fms\n", 0.001 * double(nTime2 - nTime1));
+            LogPrintCategory(BCLog::BENCH, "    - IndexBlock: %.2fms\n", 0.001 * double(nTime2 - nTime1));
         });
     }
 
