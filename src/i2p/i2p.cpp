@@ -7,7 +7,7 @@
 #include <compat.h>
 #include <compat/endian.h>
 #include <crypto/sha256.h>
-#include <i2p.h>
+#include <i2p/i2p.h>
 #include <logging.h>
 #include <netaddress.h>
 #include <netbase.h>
@@ -286,7 +286,7 @@ std::string Session::Reply::Get(const std::string& key) const
 template <typename... Args>
 void Session::Log(const std::string& fmt, const Args&... args) const
 {
-    LogPrint(BCLog::I2P, "%s\n", tfm::format(fmt, args...));
+    LogPrintCategory(BCLog::I2P, "%s\n", tfm::format(fmt, args...));
 }
 
 Session::Reply Session::SendRequestAndGetReply(const Sock& sock,
