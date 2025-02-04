@@ -27,7 +27,8 @@ namespace i2pdw {
         std::string GetSAMAddress();
         uint16_t GetSAMPort();
 
-    private:        
+    private:
+        bool m_runned;
         // Запрещаем копирование и присваивание для паттерна Singleton
         DaemonWrapper(const DaemonWrapper&) = delete;
         DaemonWrapper& operator=(const DaemonWrapper&) = delete;

@@ -270,6 +270,9 @@ void Shutdown(NodeContext& node)
 
     StopTorControl();
 
+    // Stop i2p daemon
+    i2pdw::DaemonWrapper::GetInstance().Stop();
+
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue, threadGroup and load block thread.
     if (node.scheduler) node.scheduler->stop();
